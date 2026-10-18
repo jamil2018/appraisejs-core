@@ -1,0 +1,17 @@
+{
+  "processExits": [0],
+  "processStarts": 1,
+  "userAgent": "appraise_m01_native/0.162.0-alpha.17.2 (Mac OS 27.0.1; arm64) unknown (appraise_m01_native; 0.1)",
+  "effectiveConfigSha256": "8867d26821dc25878dad751c12ff72b625a390d5c64cd4c07febc79973b0401b",
+  "status": "AUTHENTICATION_REQUIRED: selected Codex state has no native ChatGPT login",
+  "evidenceClass": "live-native-configuration-and-auth-check",
+  "binarySha256": "0d5ac7aae20c4eda6242428d5e218c55ba96d8763fda2a271088ff37104b9d28",
+  "configSha256": "b9bb84d1dd44aead17951f316e142038a33300e24c70d83dfd682ae9c1a98b54",
+  "runnerSourceSha256": "d7a395119d6dc38493092635fdbfde446ccb68da870dd3573db42e4f65b34916",
+  "schemaPinVerified": true,
+  "turnStarts": 0,
+  "nativeTransportPolicy": "built-in defaults, explicitly authorized; no supervisor resends",
+  "authenticationPolicy": "check-only; no login command",
+  "m01Complete": false,
+  "checkExitCode": 2
+}

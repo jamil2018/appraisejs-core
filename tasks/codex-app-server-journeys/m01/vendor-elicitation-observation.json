@@ -1,0 +1,164 @@
+{
+  "evidenceClass": "actual-binary-rpc-only-no-model-request-variants",
+  "binarySha256": "0d5ac7aae20c4eda6242428d5e218c55ba96d8763fda2a271088ff37104b9d28",
+  "sourceSha256": "88de64af754096cf56c90ab61f6341317ab431eb7b7c1eb636168acd4a62d4a7",
+  "sharedClientSourceSha256": "a78543ff514cf2c8e3860ea080205d664e572a4ef6f2d06ff7a5919ce266ff0d",
+  "configSha256": "acce2104df0d87d82fc88a2c39dc8e3b5615b1cb493c82ecdbed7d42fff803a1",
+  "cases": [
+    {
+      "requestedMode": "form",
+      "nativeRequestCount": 1,
+      "stubObserved": {
+        "mode": "form",
+        "protocolMethod": "elicitation/create",
+        "action": "cancel",
+        "responseWasError": false
+      },
+      "isError": null
+    },
+    {
+      "requestedMode": "url",
+      "nativeRequestCount": 1,
+      "stubObserved": {
+        "mode": "url",
+        "protocolMethod": "elicitation/create",
+        "action": "cancel",
+        "responseWasError": false
+      },
+      "isError": null
+    },
+    {
+      "requestedMode": "openai/form",
+      "nativeRequestCount": 0,
+      "stubObserved": {
+        "mode": "openai/form",
+        "protocolMethod": "openai/elicitation/create",
+        "action": null,
+        "responseWasError": true
+      },
+      "isError": null
+    },
+    {
+      "requestedMode": "openaiForm",
+      "nativeRequestCount": 1,
+      "stubObserved": {
+        "mode": "openaiForm",
+        "protocolMethod": "openai/form",
+        "action": "cancel",
+        "responseWasError": false
+      },
+      "isError": null
+    }
+  ],
+  "requests": [
+    {
+      "id": 0,
+      "method": "mcpServer/elicitation/request",
+      "mode": "form",
+      "action": "cancel",
+      "content": null,
+      "threadId": "01a136c1-eb8a-7cc2-b55e-a6466cfe3fbf",
+      "turnId": null,
+      "serverName": "m01_variants"
+    },
+    {
+      "id": 1,
+      "method": "mcpServer/elicitation/request",
+      "mode": "url",
+      "action": "cancel",
+      "content": null,
+      "threadId": "01a136c1-eb8a-7cc2-b55e-a6466cfe3fbf",
+      "turnId": null,
+      "serverName": "m01_variants"
+    },
+    {
+      "id": 2,
+      "method": "mcpServer/elicitation/request",
+      "mode": "openai/form",
+      "action": "cancel",
+      "content": null,
+      "threadId": "01a136c1-eb8a-7cc2-b55e-a6466cfe3fbf",
+      "turnId": null,
+      "serverName": "m01_variants"
+    }
+  ],
+  "events": [],
+  "processExits": [0],
+  "turnStarts": 0,
+  "externalInferenceTurns": 0,
+  "permissionGrants": 0,
+  "nativeExecCalls": 0,
+  "m01Complete": false,
+  "fixturePolicyException": true,
+  "approvalPolicy": {
+    "granular": {
+      "mcp_elicitations": true,
+      "sandbox_approval": false,
+      "rules": false,
+      "request_permissions": false,
+      "skill_approval": false
+    }
+  },
+  "fixtureExceptionDocumentSha256": "03444338b6369b9045944c98597fe64d8d319b83c53a18ee93aa0b0f4cdb914b",
+  "schemaManifestSha256": "a725c3a629e0dd5a8b27612dc23a7172d88073ec89c708bd8ed4359344f9402c",
+  "processStarts": 1,
+  "userAgent": "appraise_m01_variants/0.162.0-alpha.17.2 (Mac OS 27.0.1; arm64) unknown (appraise_m01_variants; 0.1)",
+  "effectiveConfigSha256": "f60f8fb2e56ad3eb76d2921442fa2c92aac4fe7e0ce05c694c4aa08787afe22f",
+  "threadId": "01a136c1-eb8a-7cc2-b55e-a6466cfe3fbf",
+  "authFilePresent": false,
+  "intents": [
+    {
+      "method": "owned-process-launch",
+      "transportGeneration": 1
+    },
+    {
+      "id": 1,
+      "transportGeneration": 1,
+      "method": "initialize",
+      "paramsSha256": "bbe7794f4bfe6fab232a6d8809ecd9f2817de1861014f3e0ff256fdcf4fe6ee6",
+      "atUtc": "2026-10-13T19:34:00Z"
+    },
+    {
+      "id": 2,
+      "transportGeneration": 1,
+      "method": "config/read",
+      "paramsSha256": "fa546cef92cb60385d6fff15ed17be5067fd66853ad41dc1d46d111e3b939854",
+      "atUtc": "2026-10-13T19:34:00Z"
+    },
+    {
+      "id": 3,
+      "transportGeneration": 1,
+      "method": "thread/start",
+      "paramsSha256": "84d157d1e1f6097ca863184f961ef32021152c876b232c4ce038922190f46f8f",
+      "atUtc": "2026-10-13T19:34:00Z"
+    },
+    {
+      "id": 4,
+      "transportGeneration": 1,
+      "method": "mcpServer/tool/call",
+      "paramsSha256": "ed8a6d0bbcf8ac194c61f71218b11615f17dc7b121ef6717d110a62f94f98fb3",
+      "atUtc": "2026-10-13T19:34:00Z"
+    },
+    {
+      "id": 5,
+      "transportGeneration": 1,
+      "method": "mcpServer/tool/call",
+      "paramsSha256": "4a7e7b7f671b6b5efa2303168bae55f824bd5f0cbfcc1e201bb92e39996e5016",
+      "atUtc": "2026-10-13T19:34:00Z"
+    },
+    {
+      "id": 6,
+      "transportGeneration": 1,
+      "method": "mcpServer/tool/call",
+      "paramsSha256": "ba5a84b669f564ac7447483069266113abc871f68325e10dd81cd82f5128b625",
+      "atUtc": "2026-10-13T19:34:00Z"
+    },
+    {
+      "id": 7,
+      "transportGeneration": 1,
+      "method": "mcpServer/tool/call",
+      "paramsSha256": "d3465ddc0d8184c8d19a1f73ab92d82722139d612aa543b2a472e9e6a3a46b35",
+      "atUtc": "2026-10-13T19:34:00Z"
+    }
+  ]
+}

@@ -1,3 +1,9 @@
+> Current shipping checkpoint: [M02 scripted qualification accepted](M02-SHIPPED-SCRIPTED-QUALIFICATION-01.md). T2 R51 passed24/24 andT3 R55 passed2/2; final exact evidence review accepted within TA02/TA03 limits. `runtimeQualified` remains false; helper lifetime/global inventory and historical cleanup remain unobserved. No M03 or production dispatch authority follows. Older status passages below remain historical.
+
+**Current Appraise checkpoint (2026-10-15):** M01 protocol qualification is complete for its pinned
+tuple. M02-A has deterministic-only evidence; M02 remains incomplete and M02-B+ unstarted.
+See [M02-A limits](m02-a-qualification.md). Earlier partial-status text below records prior review.
+
 # Open Design implementation references for Journey migration
 
 Reviewed: 2026-10-13. Upstream: `nexu-io/open-design`, revision `014bffbf775f4514020cef8bbffdc0eb5a0009ce`. Links below are pinned to the inspected revision. Documentation and selected source were read; test paths were verified, but upstream tests, installation and live provider behavior were not executed. This is implementation guidance, not evidence that AppraiseJS passes a runtime gate.
@@ -37,4 +43,4 @@ Appraise-specific verification remains mandatory: lost start/submission acknowle
 
 Before implementation, record the upstream revision actually consulted and any differences from this snapshot. Resolve discrepancies against Appraise's [plan](plan.md), [ADR-0005](../../docs/decisions/0005-codex-app-server-journeys.md), canonical services and the selected Codex build's protocol. Use upstream as a reference, not a dependency or runtime authority. If copying code, review the pinned [license](https://github.com/nexu-io/open-design/blob/014bffbf775f4514020cef8bbffdc0eb5a0009ce/LICENSE) and applicable file notices and retain required attribution; no upstream code is copied by this planning update.
 
-These references reduce discovery effort, especially for M01 and M05. They do not shorten the accepted estimate automatically or replace M02/M11/M12 qualification. All implementation tasks remain unstarted; no provider calls, authentication, package installation or product changes are authorized here.
+These references reduce discovery effort, especially for M01 and M05. They do not shorten the accepted estimate automatically or replace M02/M11/M12 qualification. M00 now has [exact design approval](m00-r3-approval.md) and [review evidence](m00-review-evidence.md); M01 has subsequently started with [authorized no-model preparation](m01-evidence.md), including pinned session/protocol/transport test review and a local synthetic Responses fixture. M01 remains partial; native-provider/auth configuration is unqualified. M02–M13 remain unstarted. This reference itself authorizes no provider inference, authentication, package installation or product changes.

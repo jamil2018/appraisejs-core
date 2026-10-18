@@ -1,0 +1,182 @@
+{
+  "initialize": {
+    "userAgent": "appraise_m01_fixture/0.162.0-alpha.17.2 (Mac OS 27.0.1; arm64) unknown (appraise_m01_fixture; 0.1)",
+    "codexHome": "<disposable-root>/codex",
+    "platformFamily": "unix",
+    "platformOs": "macos"
+  },
+  "effectiveConfigSha256": "470806fedebf0dc3aa9b44061d4ad39ac016170be8ceb0e9bb9394f87ea3f555",
+  "systemConfigFileAbsent": true,
+  "threadId": "01a13552-af29-7ee2-a4eb-c18a2f871a3f",
+  "turnId": "01a13552-af31-7090-9e21-bd195af70fa7",
+  "terminal": "completed",
+  "resumeMatches": true,
+  "interruptAcknowledged": true,
+  "interruptedStatus": "interrupted",
+  "deniedServerRequests": [
+    {
+      "method": "item/tool/call",
+      "idType": "int"
+    }
+  ],
+  "lastTurnStatus": "interrupted",
+  "lostTurnAckDropped": 1,
+  "unknownStartBeforeReconciliation": true,
+  "turnStartCount": 3,
+  "automaticResend": false,
+  "restartResumeMatches": true,
+  "exitCode": 0,
+  "methods": [
+    "remoteControl/status/changed",
+    "thread/started",
+    "thread/status/changed",
+    "turn/started",
+    "item/started",
+    "item/completed",
+    "item/started",
+    "item/agentMessage/delta",
+    "item/completed",
+    "thread/tokenUsage/updated",
+    "account/rateLimits/updated",
+    "thread/status/changed",
+    "turn/completed",
+    "deprecationNotice",
+    "thread/tokenUsage/updated",
+    "thread/goal/cleared",
+    "thread/status/changed",
+    "turn/started",
+    "thread/status/changed",
+    "turn/completed",
+    "thread/status/changed",
+    "turn/started",
+    "item/started",
+    "item/completed",
+    "item/started",
+    "item/tool/call",
+    "thread/tokenUsage/updated",
+    "account/rateLimits/updated",
+    "thread/status/changed",
+    "turn/completed",
+    "remoteControl/status/changed",
+    "deprecationNotice",
+    "thread/status/changed"
+  ],
+  "correlatedEvents": [
+    {
+      "method": "turn/started",
+      "threadId": "01a13552-af29-7ee2-a4eb-c18a2f871a3f",
+      "turnId": "01a13552-af31-7090-9e21-bd195af70fa7"
+    },
+    {
+      "method": "item/agentMessage/delta",
+      "threadId": "01a13552-af29-7ee2-a4eb-c18a2f871a3f",
+      "turnId": "01a13552-af31-7090-9e21-bd195af70fa7"
+    },
+    {
+      "method": "turn/completed",
+      "threadId": "01a13552-af29-7ee2-a4eb-c18a2f871a3f",
+      "turnId": "01a13552-af31-7090-9e21-bd195af70fa7"
+    },
+    {
+      "method": "turn/started",
+      "threadId": "01a13552-af29-7ee2-a4eb-c18a2f871a3f",
+      "turnId": "01a13552-af48-7011-881d-747ff52d5cdc"
+    },
+    {
+      "method": "turn/completed",
+      "threadId": "01a13552-af29-7ee2-a4eb-c18a2f871a3f",
+      "turnId": "01a13552-af48-7011-881d-747ff52d5cdc"
+    },
+    {
+      "method": "turn/started",
+      "threadId": "01a13552-af29-7ee2-a4eb-c18a2f871a3f",
+      "turnId": "01a13552-af4d-7e01-a00f-e4050343bb87"
+    },
+    {
+      "method": "turn/completed",
+      "threadId": "01a13552-af29-7ee2-a4eb-c18a2f871a3f",
+      "turnId": "01a13552-af4d-7e01-a00f-e4050343bb87"
+    }
+  ],
+  "sent": [
+    {
+      "id": 1,
+      "method": "initialize"
+    },
+    {
+      "id": 2,
+      "method": "config/read"
+    },
+    {
+      "id": 3,
+      "method": "thread/start"
+    },
+    {
+      "id": 4,
+      "method": "turn/start"
+    },
+    {
+      "id": 5,
+      "method": "thread/resume"
+    },
+    {
+      "id": 6,
+      "method": "turn/start"
+    },
+    {
+      "id": 7,
+      "method": "turn/interrupt"
+    },
+    {
+      "id": 8,
+      "method": "turn/start"
+    },
+    {
+      "id": 9,
+      "method": "turn/interrupt"
+    },
+    {
+      "id": 10,
+      "method": "initialize"
+    },
+    {
+      "id": 11,
+      "method": "thread/resume"
+    }
+  ],
+  "syntheticHttpRequests": [
+    {
+      "path": "/v1/responses",
+      "model": "gpt-6.1-sol",
+      "authorizationPresent": false
+    },
+    {
+      "path": "/v1/responses",
+      "model": "gpt-6.1-sol",
+      "authorizationPresent": false
+    }
+  ],
+  "configTemplate": "model=\"gpt-6.1-sol\"\nmodel_reasoning_effort=\"medium\"\nmodel_provider=\"m01_fixture\"\napproval_policy=\"never\"\nsandbox_mode=\"read-only\"\ncli_auth_credentials_store=\"file\"\nmcp_oauth_credentials_store=\"file\"\nweb_search=\"disabled\"\n[shell_environment_policy]\ninherit=\"none\"\n[features]\nplugins=false\n[analytics]\nenabled=false\n[model_providers.m01_fixture]\nname=\"M01 synthetic local Responses fixture\"\nbase_url=\"http://127.0.0.1:<loopback-port>/v1\"\nwire_api=\"responses\"\nrequires_openai_auth=false\nsupports_websockets=false\n",
+  "noProviderInference": true,
+  "evidenceClass": "live-binary-synthetic-responses",
+  "experimentalSchemaManifestSha256": "1ce397a25e7bd514e80b7281180a7fd07ffc4cfc58661273bc56fe883c0a57da",
+  "experimentalSchemaFileCount": 447,
+  "capabilities": {
+    "experimentalApi": true,
+    "requestAttestation": false,
+    "explicitGatewayOauth": true
+  },
+  "configSha256": "a77758a6b3abc54ed356a8c8d5ae21cfb46d83041a8103ebee627e8916ec057b",
+  "configTemplateSha256": "96508f7d35250ce9d478d7e65d7b82f97340d9998ebd115672b3f6a4cd24b580",
+  "sourceSha256": "bae9de9021d9e9045645489408dc67ce34900c167f1a5408757438facb4bdfe9",
+  "pin": {
+    "binarySha256": "0d5ac7aae20c4eda6242428d5e218c55ba96d8763fda2a271088ff37104b9d28",
+    "os": "27.0.1",
+    "build": "26A434",
+    "architecture": "arm64"
+  },
+  "disposableStateDeleted": true,
+  "m01Complete": false,
+  "providerInferenceAuthorized": false,
+  "generatedAtUtc": "2026-10-13T12:52:54Z"
+}

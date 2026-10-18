@@ -1,0 +1,118 @@
+{
+  "evidenceClass": "actual-binary-rpc-only-no-model-request-variants",
+  "binarySha256": "0d5ac7aae20c4eda6242428d5e218c55ba96d8763fda2a271088ff37104b9d28",
+  "sourceSha256": "ae6985b1dac373a5dc883c77ee0e8909c7829af713651ef14abc7b04b1a32f2c",
+  "sharedClientSourceSha256": "a78543ff514cf2c8e3860ea080205d664e572a4ef6f2d06ff7a5919ce266ff0d",
+  "configSha256": "95b7b26ce860abd40c7c2fae5143451d24e0ae18c3a5a9526f53d04e08d864d3",
+  "cases": [
+    {
+      "requestedMode": "form",
+      "nativeRequestCount": 0,
+      "stubObserved": {
+        "mode": "form",
+        "action": "decline",
+        "responseWasError": false
+      },
+      "isError": null
+    },
+    {
+      "requestedMode": "url",
+      "nativeRequestCount": 0,
+      "stubObserved": {
+        "mode": "url",
+        "action": "decline",
+        "responseWasError": false
+      },
+      "isError": null
+    },
+    {
+      "requestedMode": "openai/form",
+      "nativeRequestCount": 0,
+      "stubObserved": {
+        "mode": "openai/form",
+        "action": "decline",
+        "responseWasError": false
+      },
+      "isError": null
+    },
+    {
+      "requestedMode": "openaiForm",
+      "nativeRequestCount": 0,
+      "stubObserved": {
+        "mode": "openaiForm",
+        "action": "decline",
+        "responseWasError": false
+      },
+      "isError": null
+    }
+  ],
+  "requests": [],
+  "events": [],
+  "processExits": [0],
+  "turnStarts": 0,
+  "externalInferenceTurns": 0,
+  "permissionGrants": 0,
+  "nativeExecCalls": 0,
+  "m01Complete": false,
+  "schemaManifestSha256": "a725c3a629e0dd5a8b27612dc23a7172d88073ec89c708bd8ed4359344f9402c",
+  "processStarts": 1,
+  "userAgent": "appraise_m01_variants/0.162.0-alpha.17.2 (Mac OS 27.0.1; arm64) unknown (appraise_m01_variants; 0.1)",
+  "effectiveConfigSha256": "6d31349a62b8add02cd226c1b373bca43895f77e215baf90aa262c2388f42615",
+  "threadId": "01a136a4-907a-7060-8b69-1787eb6bf81a",
+  "authFilePresent": false,
+  "intents": [
+    {
+      "method": "owned-process-launch",
+      "transportGeneration": 1
+    },
+    {
+      "id": 1,
+      "transportGeneration": 1,
+      "method": "initialize",
+      "paramsSha256": "21b336ee2e70117c730ea577b23b125a6c9ac8644642d07d2832e47d3a65ace9",
+      "atUtc": "2026-10-13T19:01:56Z"
+    },
+    {
+      "id": 2,
+      "transportGeneration": 1,
+      "method": "config/read",
+      "paramsSha256": "464f3da76ca320dd893705ea405bbaf18c0d5f41c3a959f41b074a3134905992",
+      "atUtc": "2026-10-13T19:01:56Z"
+    },
+    {
+      "id": 3,
+      "transportGeneration": 1,
+      "method": "thread/start",
+      "paramsSha256": "d14ac553408c8cea79b78509c1b64bb6d303aedff1f86ff228b54437d55f5042",
+      "atUtc": "2026-10-13T19:01:56Z"
+    },
+    {
+      "id": 4,
+      "transportGeneration": 1,
+      "method": "mcpServer/tool/call",
+      "paramsSha256": "52841d6afa5d630a0650fdb835cad97f33b12a3601b8d9a86decbc37f32ddb22",
+      "atUtc": "2026-10-13T19:01:57Z"
+    },
+    {
+      "id": 5,
+      "transportGeneration": 1,
+      "method": "mcpServer/tool/call",
+      "paramsSha256": "d08c0deb1b477803bd05523e74bc349e05a39d646c8bacda51e2c8739049b69d",
+      "atUtc": "2026-10-13T19:01:57Z"
+    },
+    {
+      "id": 6,
+      "transportGeneration": 1,
+      "method": "mcpServer/tool/call",
+      "paramsSha256": "4449eca01e00820c1bd6d832d8e1f6e2ed53bf8a734fed04db9d711b6bb7b615",
+      "atUtc": "2026-10-13T19:01:57Z"
+    },
+    {
+      "id": 7,
+      "transportGeneration": 1,
+      "method": "mcpServer/tool/call",
+      "paramsSha256": "a5b745725e469847e59d5e178e7ac3f57755a635c8744904a17d09953124e514",
+      "atUtc": "2026-10-13T19:01:57Z"
+    }
+  ]
+}

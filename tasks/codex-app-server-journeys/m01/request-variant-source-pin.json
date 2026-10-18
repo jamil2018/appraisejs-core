@@ -1,0 +1,24 @@
+{
+  "repository": "openai/codex",
+  "commit": "740e5af33c71225640e0c1c1555c514c2c93ab74",
+  "files": [
+    {
+      "file": "codex-rs/app-server/src/request_processors/mcp_processor.rs",
+      "sha256": "00ed7788422c2b3b3fd0762581e70ca80e55ba3c5783a68bc59408b87c72308c"
+    },
+    {
+      "file": "codex-rs/codex-mcp/src/elicitation.rs",
+      "sha256": "fba98e941cd330ac0de663cbc52f5d12b02e320330284667382eca12f31074f6"
+    },
+    {
+      "file": "codex-rs/app-server/tests/suite/v2/mcp_tool.rs",
+      "sha256": "dbf20d86d135cbc688dff1815757e73f20e2baa830382bee816cc9570d36ceca"
+    },
+    {
+      "file": "codex-rs/app-server/tests/suite/v2/mcp_server_elicitation.rs",
+      "sha256": "9c8eb513277375cbd86faeb17aa0b24688238fc760e42cf5bf80c88e5b5ffaa0"
+    }
+  ],
+  "rustTestsExecuted": false,
+  "binaryBuildProvenanceAttested": false
+}

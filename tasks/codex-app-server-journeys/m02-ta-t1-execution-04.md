@@ -1,0 +1,13 @@
+# M02-TA T1 R7 actual execution record 04
+
+Date: 2026-10-16. The exact [R7 command](m02-ta-t1-runtime-record-06.md) was invoked once, exec session `12279`, exit 1. It is consumed and must never be resent. Outcome **UNKNOWN; T1 not passed; M02 incomplete**. Prior accepted artifacts and UNKNOWN histories remain unchanged.
+
+The exclusive p4 root `/private/tmp/appraise-m02-ta-descriptors-p4` retains 17 valid chained records, terminal `d711e1f2b14e16db8cbe22fbe4883e5b66b8ae7d7a44c35efa9784a6f54617c4`. Reservations: one listener, three control writes, one Codex start, one MCP start and one thread start. MCP and thread acknowledgements remain pending. No turn, provider, canonical, scoped call, permission or helper reservation occurred.
+
+The fsynced diagnostic records `UNKNOWN_NOTIFICATION`, phase `ready`, pending `thread/start`, sequence 14, frame kind `notification`, null method hash and null safe remote status. This places the failure at the advisory envelope gate but does not identify the actual method or field. No raw frame was retained; it is incorrect to assert an actual timestamp, benign status or specific method.
+
+Owned Codex exit and close code 0 were both observed after one owned stop, with `processExitProved:true`. Required MCP startup/exit, normal-stop and descriptor/provider receipts are absent. Codex exit is proved; complete cleanup/profile readiness and absence of other effects are not inferred from that observation.
+
+The sanitized archive is `.appraisejs/m02-ta-t1-r7-execution-evidence-01/`, new 0700 directory with exclusive fsynced 0600 copies. Four safe files were copied; seven expected optional receipts were absent. Its index SHA-256 is `e1db9c39e08a209ee71c23a82f9d1b7aa18dcba9bb515371dd316079052d7021`. No raw history/configuration, database, prompts, provider bodies or secrets were copied; source evidence was untouched. Independent execution review `.appraisejs/m02-t1-r7-execution-review.json`, SHA-256 `4114466774656a793bae950006eb6185d966e31b1c84d30c9b86fb203d9e3163`, matched current files/identities, archive, chain and limits and returned `UNKNOWN_CAMPAIGN_STOPPED`.
+
+P4's earliest conservative clock is `2026-10-16T14:18:50.368Z`; unresolved decision due `2026-10-23T14:18:50.368Z`. Earlier p1/p2/p3 clocks remain independent. No UNKNOWN evidence is deleted or recreated. M00 hash remains `1e39e733d5211db80705a1c34235d24580db618a9f505e7a16dc163398568133`, GC3 remains REVISE / not passed, and real inference remains exhausted at 3/3. No auth, real inference, grants, commits or push was authorized; the reviewed journal records no turn, provider, permission or helper reservation.

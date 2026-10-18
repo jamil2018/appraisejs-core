@@ -1,0 +1,1863 @@
+{
+  "schema": "appraise.m02-r51-native-terminal/v1",
+  "evidenceClass": "NATIVE_EXEC_TOOL_TERMINAL_TRANSCRIPTION_CORROBORATED_BY_HASH_VERIFIED_JOURNAL_AND_CASE_WITNESSES",
+  "toolSession": 96343,
+  "exitCode": 0,
+  "status": "T2_CASES_COMPLETED_NOT_CONTAINMENT",
+  "completed": 24,
+  "completedCases": [
+    {
+      "caseId": "B01",
+      "outcome": "accepted",
+      "caseWitnessSha256": "2058f7259c130520088f1af0e51c5705329cae227e7e117338ee58b3708e78d8",
+      "cleanupKnown": true,
+      "counts": {
+        "threadStarts": 1,
+        "turnStarts": 1,
+        "providerRequests": 3,
+        "scopedCalls": 2,
+        "workspaceActions": 0,
+        "permissionReplies": 0,
+        "codexStarts": 1,
+        "mcpStarts": 1,
+        "listenerStarts": 1,
+        "controlWrites": 3,
+        "canonicalRequests": 8,
+        "helperStarts": 0,
+        "outerCalls": 2,
+        "auditRequests": 4
+      },
+      "gitReadiness": {
+        "samples": 13,
+        "gitObserved": true,
+        "gitIdentityCount": 3,
+        "gitGone": true,
+        "gitPidReused": false,
+        "hostObserved": true,
+        "hostIdentityStable": true,
+        "readinessComplete": true
+      },
+      "canonicalAccepted": true,
+      "listenerClosed": true,
+      "environmentProfile": {
+        "profile": "appraise.m02-r51-explicit-launch-environment/v1",
+        "directoryIdentity": {
+          "dev": 16777230,
+          "ino": 71403448
+        },
+        "empty": true,
+        "observation": "TRUSTED_DIRECTORY_CHECK_NOT_FILESYSTEM_CONTAINMENT"
+      },
+      "processStates": {
+        "identities": [
+          {
+            "ordinal": 1,
+            "counts": {
+              "RUNNABLE": 4,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          },
+          {
+            "ordinal": 2,
+            "counts": {
+              "RUNNABLE": 18,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          },
+          {
+            "ordinal": 3,
+            "counts": {
+              "RUNNABLE": 2,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          }
+        ],
+        "overflow": false,
+        "unavailable": false,
+        "additionalOsQueries": 0,
+        "rawArgumentsOrEnvironmentRead": false
+      },
+      "permissionRequestDiagnostic": null
+    },
+    {
+      "caseId": "B02",
+      "outcome": "accepted",
+      "caseWitnessSha256": "20a1bf31f53d955fdaf2de0f4e7e580b8348aa6c746f66716a2ebe85b360de45",
+      "cleanupKnown": true,
+      "counts": {
+        "threadStarts": 1,
+        "turnStarts": 1,
+        "providerRequests": 3,
+        "scopedCalls": 2,
+        "workspaceActions": 0,
+        "permissionReplies": 0,
+        "codexStarts": 1,
+        "mcpStarts": 1,
+        "listenerStarts": 1,
+        "controlWrites": 3,
+        "canonicalRequests": 8,
+        "helperStarts": 0,
+        "outerCalls": 2,
+        "auditRequests": 4
+      },
+      "gitReadiness": {
+        "samples": 1,
+        "gitObserved": false,
+        "gitIdentityCount": 0,
+        "gitGone": false,
+        "gitPidReused": false,
+        "hostObserved": true,
+        "hostIdentityStable": true,
+        "readinessComplete": true
+      },
+      "canonicalAccepted": true,
+      "listenerClosed": true,
+      "environmentProfile": {
+        "profile": "appraise.m02-r51-explicit-launch-environment/v1",
+        "directoryIdentity": {
+          "dev": 16777230,
+          "ino": 71411708
+        },
+        "empty": true,
+        "observation": "TRUSTED_DIRECTORY_CHECK_NOT_FILESYSTEM_CONTAINMENT"
+      },
+      "processStates": {
+        "identities": [],
+        "overflow": false,
+        "unavailable": false,
+        "additionalOsQueries": 0,
+        "rawArgumentsOrEnvironmentRead": false
+      },
+      "permissionRequestDiagnostic": null
+    },
+    {
+      "caseId": "B03",
+      "outcome": "accepted",
+      "caseWitnessSha256": "1e6e004d4a9ff5b62fc2896247b8601c40b7f715a199a8c1cbc74b09d367294f",
+      "cleanupKnown": true,
+      "counts": {
+        "threadStarts": 1,
+        "turnStarts": 1,
+        "providerRequests": 4,
+        "scopedCalls": 3,
+        "workspaceActions": 0,
+        "permissionReplies": 0,
+        "codexStarts": 1,
+        "mcpStarts": 1,
+        "listenerStarts": 1,
+        "controlWrites": 3,
+        "canonicalRequests": 10,
+        "helperStarts": 0,
+        "outerCalls": 3,
+        "auditRequests": 6
+      },
+      "gitReadiness": {
+        "samples": 1,
+        "gitObserved": false,
+        "gitIdentityCount": 0,
+        "gitGone": false,
+        "gitPidReused": false,
+        "hostObserved": true,
+        "hostIdentityStable": true,
+        "readinessComplete": true
+      },
+      "canonicalAccepted": true,
+      "listenerClosed": true,
+      "environmentProfile": {
+        "profile": "appraise.m02-r51-explicit-launch-environment/v1",
+        "directoryIdentity": {
+          "dev": 16777230,
+          "ino": 71412038
+        },
+        "empty": true,
+        "observation": "TRUSTED_DIRECTORY_CHECK_NOT_FILESYSTEM_CONTAINMENT"
+      },
+      "processStates": {
+        "identities": [],
+        "overflow": false,
+        "unavailable": false,
+        "additionalOsQueries": 0,
+        "rawArgumentsOrEnvironmentRead": false
+      },
+      "permissionRequestDiagnostic": null
+    },
+    {
+      "caseId": "B04",
+      "outcome": "accepted",
+      "caseWitnessSha256": "30ef1b233bfac538febd811a7bc6f96151c4b0369854b42e04c437643104e20b",
+      "cleanupKnown": true,
+      "counts": {
+        "threadStarts": 1,
+        "turnStarts": 1,
+        "providerRequests": 3,
+        "scopedCalls": 2,
+        "workspaceActions": 0,
+        "permissionReplies": 0,
+        "codexStarts": 1,
+        "mcpStarts": 1,
+        "listenerStarts": 1,
+        "controlWrites": 3,
+        "canonicalRequests": 8,
+        "helperStarts": 0,
+        "outerCalls": 2,
+        "auditRequests": 4
+      },
+      "gitReadiness": {
+        "samples": 9,
+        "gitObserved": true,
+        "gitIdentityCount": 3,
+        "gitGone": true,
+        "gitPidReused": false,
+        "hostObserved": true,
+        "hostIdentityStable": true,
+        "readinessComplete": true
+      },
+      "canonicalAccepted": true,
+      "listenerClosed": true,
+      "environmentProfile": {
+        "profile": "appraise.m02-r51-explicit-launch-environment/v1",
+        "directoryIdentity": {
+          "dev": 16777230,
+          "ino": 71412402
+        },
+        "empty": true,
+        "observation": "TRUSTED_DIRECTORY_CHECK_NOT_FILESYSTEM_CONTAINMENT"
+      },
+      "processStates": {
+        "identities": [
+          {
+            "ordinal": 1,
+            "counts": {
+              "RUNNABLE": 2,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          },
+          {
+            "ordinal": 2,
+            "counts": {
+              "RUNNABLE": 12,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          },
+          {
+            "ordinal": 3,
+            "counts": {
+              "RUNNABLE": 2,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          }
+        ],
+        "overflow": false,
+        "unavailable": false,
+        "additionalOsQueries": 0,
+        "rawArgumentsOrEnvironmentRead": false
+      },
+      "permissionRequestDiagnostic": null
+    },
+    {
+      "caseId": "B05",
+      "outcome": "accepted",
+      "caseWitnessSha256": "4c8dc979436332d50c13df89a19beb41f9248b001abc39134e13b753af2e1385",
+      "cleanupKnown": true,
+      "counts": {
+        "threadStarts": 1,
+        "turnStarts": 1,
+        "providerRequests": 3,
+        "scopedCalls": 2,
+        "workspaceActions": 0,
+        "permissionReplies": 0,
+        "codexStarts": 1,
+        "mcpStarts": 1,
+        "listenerStarts": 1,
+        "controlWrites": 3,
+        "canonicalRequests": 8,
+        "helperStarts": 0,
+        "outerCalls": 2,
+        "auditRequests": 4
+      },
+      "gitReadiness": {
+        "samples": 9,
+        "gitObserved": true,
+        "gitIdentityCount": 3,
+        "gitGone": true,
+        "gitPidReused": false,
+        "hostObserved": true,
+        "hostIdentityStable": true,
+        "readinessComplete": true
+      },
+      "canonicalAccepted": true,
+      "listenerClosed": true,
+      "environmentProfile": {
+        "profile": "appraise.m02-r51-explicit-launch-environment/v1",
+        "directoryIdentity": {
+          "dev": 16777230,
+          "ino": 71420536
+        },
+        "empty": true,
+        "observation": "TRUSTED_DIRECTORY_CHECK_NOT_FILESYSTEM_CONTAINMENT"
+      },
+      "processStates": {
+        "identities": [
+          {
+            "ordinal": 1,
+            "counts": {
+              "RUNNABLE": 2,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          },
+          {
+            "ordinal": 2,
+            "counts": {
+              "RUNNABLE": 12,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          },
+          {
+            "ordinal": 3,
+            "counts": {
+              "RUNNABLE": 2,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          }
+        ],
+        "overflow": false,
+        "unavailable": false,
+        "additionalOsQueries": 0,
+        "rawArgumentsOrEnvironmentRead": false
+      },
+      "permissionRequestDiagnostic": null
+    },
+    {
+      "caseId": "B06",
+      "outcome": "accepted",
+      "caseWitnessSha256": "bada15d1d129044cb4e8789125da6a72b1d26deb76d3cfa7bcdddf4f5e0331c2",
+      "cleanupKnown": true,
+      "counts": {
+        "threadStarts": 1,
+        "turnStarts": 1,
+        "providerRequests": 4,
+        "scopedCalls": 3,
+        "workspaceActions": 0,
+        "permissionReplies": 0,
+        "codexStarts": 1,
+        "mcpStarts": 1,
+        "listenerStarts": 1,
+        "controlWrites": 3,
+        "canonicalRequests": 10,
+        "helperStarts": 0,
+        "outerCalls": 3,
+        "auditRequests": 6
+      },
+      "gitReadiness": {
+        "samples": 1,
+        "gitObserved": false,
+        "gitIdentityCount": 0,
+        "gitGone": false,
+        "gitPidReused": false,
+        "hostObserved": true,
+        "hostIdentityStable": true,
+        "readinessComplete": true
+      },
+      "canonicalAccepted": true,
+      "listenerClosed": true,
+      "environmentProfile": {
+        "profile": "appraise.m02-r51-explicit-launch-environment/v1",
+        "directoryIdentity": {
+          "dev": 16777230,
+          "ino": 71428715
+        },
+        "empty": true,
+        "observation": "TRUSTED_DIRECTORY_CHECK_NOT_FILESYSTEM_CONTAINMENT"
+      },
+      "processStates": {
+        "identities": [],
+        "overflow": false,
+        "unavailable": false,
+        "additionalOsQueries": 0,
+        "rawArgumentsOrEnvironmentRead": false
+      },
+      "permissionRequestDiagnostic": null
+    },
+    {
+      "caseId": "B07-A01",
+      "outcome": "no-effect",
+      "caseWitnessSha256": "345f437c702c2be3dda6e3425c57bd24e466935285d033b89aebdca20f401762",
+      "cleanupKnown": true,
+      "counts": {
+        "threadStarts": 1,
+        "turnStarts": 1,
+        "providerRequests": 2,
+        "scopedCalls": 1,
+        "workspaceActions": 0,
+        "permissionReplies": 0,
+        "codexStarts": 1,
+        "mcpStarts": 1,
+        "listenerStarts": 1,
+        "controlWrites": 3,
+        "canonicalRequests": 2,
+        "helperStarts": 0,
+        "outerCalls": 1,
+        "auditRequests": 2
+      },
+      "gitReadiness": {
+        "samples": 2,
+        "gitObserved": true,
+        "gitIdentityCount": 1,
+        "gitGone": true,
+        "gitPidReused": false,
+        "hostObserved": true,
+        "hostIdentityStable": true,
+        "readinessComplete": true
+      },
+      "canonicalAccepted": true,
+      "listenerClosed": true,
+      "environmentProfile": {
+        "profile": "appraise.m02-r51-explicit-launch-environment/v1",
+        "directoryIdentity": {
+          "dev": 16777230,
+          "ino": 71429042
+        },
+        "empty": true,
+        "observation": "TRUSTED_DIRECTORY_CHECK_NOT_FILESYSTEM_CONTAINMENT"
+      },
+      "processStates": {
+        "identities": [
+          {
+            "ordinal": 1,
+            "counts": {
+              "RUNNABLE": 2,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          }
+        ],
+        "overflow": false,
+        "unavailable": false,
+        "additionalOsQueries": 0,
+        "rawArgumentsOrEnvironmentRead": false
+      },
+      "permissionRequestDiagnostic": null
+    },
+    {
+      "caseId": "B07-A02",
+      "outcome": "no-effect",
+      "caseWitnessSha256": "793fcfc3c70be2c4475ae3dc4623f450fa5dcf7f0f0e0d5066e6d10e0e9f4c6b",
+      "cleanupKnown": true,
+      "counts": {
+        "threadStarts": 1,
+        "turnStarts": 1,
+        "providerRequests": 2,
+        "scopedCalls": 1,
+        "workspaceActions": 0,
+        "permissionReplies": 0,
+        "codexStarts": 1,
+        "mcpStarts": 1,
+        "listenerStarts": 1,
+        "controlWrites": 3,
+        "canonicalRequests": 2,
+        "helperStarts": 0,
+        "outerCalls": 1,
+        "auditRequests": 2
+      },
+      "gitReadiness": {
+        "samples": 9,
+        "gitObserved": true,
+        "gitIdentityCount": 2,
+        "gitGone": true,
+        "gitPidReused": false,
+        "hostObserved": true,
+        "hostIdentityStable": true,
+        "readinessComplete": true
+      },
+      "canonicalAccepted": true,
+      "listenerClosed": true,
+      "environmentProfile": {
+        "profile": "appraise.m02-r51-explicit-launch-environment/v1",
+        "directoryIdentity": {
+          "dev": 16777230,
+          "ino": 71429369
+        },
+        "empty": true,
+        "observation": "TRUSTED_DIRECTORY_CHECK_NOT_FILESYSTEM_CONTAINMENT"
+      },
+      "processStates": {
+        "identities": [
+          {
+            "ordinal": 1,
+            "counts": {
+              "RUNNABLE": 2,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          },
+          {
+            "ordinal": 2,
+            "counts": {
+              "RUNNABLE": 14,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          }
+        ],
+        "overflow": false,
+        "unavailable": false,
+        "additionalOsQueries": 0,
+        "rawArgumentsOrEnvironmentRead": false
+      },
+      "permissionRequestDiagnostic": null
+    },
+    {
+      "caseId": "B07-A03",
+      "outcome": "no-effect",
+      "caseWitnessSha256": "038589432db5182e1afb623a8e2b5c1c9356db9fdd3bfbb1b41a2d8ed082eb11",
+      "cleanupKnown": true,
+      "counts": {
+        "threadStarts": 1,
+        "turnStarts": 1,
+        "providerRequests": 2,
+        "scopedCalls": 1,
+        "workspaceActions": 0,
+        "permissionReplies": 0,
+        "codexStarts": 1,
+        "mcpStarts": 1,
+        "listenerStarts": 1,
+        "controlWrites": 3,
+        "canonicalRequests": 2,
+        "helperStarts": 0,
+        "outerCalls": 1,
+        "auditRequests": 2
+      },
+      "gitReadiness": {
+        "samples": 9,
+        "gitObserved": true,
+        "gitIdentityCount": 3,
+        "gitGone": true,
+        "gitPidReused": false,
+        "hostObserved": true,
+        "hostIdentityStable": true,
+        "readinessComplete": true
+      },
+      "canonicalAccepted": true,
+      "listenerClosed": true,
+      "environmentProfile": {
+        "profile": "appraise.m02-r51-explicit-launch-environment/v1",
+        "directoryIdentity": {
+          "dev": 16777230,
+          "ino": 71437476
+        },
+        "empty": true,
+        "observation": "TRUSTED_DIRECTORY_CHECK_NOT_FILESYSTEM_CONTAINMENT"
+      },
+      "processStates": {
+        "identities": [
+          {
+            "ordinal": 1,
+            "counts": {
+              "RUNNABLE": 2,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          },
+          {
+            "ordinal": 2,
+            "counts": {
+              "RUNNABLE": 12,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          },
+          {
+            "ordinal": 3,
+            "counts": {
+              "RUNNABLE": 2,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          }
+        ],
+        "overflow": false,
+        "unavailable": false,
+        "additionalOsQueries": 0,
+        "rawArgumentsOrEnvironmentRead": false
+      },
+      "permissionRequestDiagnostic": null
+    },
+    {
+      "caseId": "B07-A04",
+      "outcome": "no-effect",
+      "caseWitnessSha256": "31ff5a0751b28ebd3b432a24b45113895c8697e60c4b4e4ef38770ae69597ff8",
+      "cleanupKnown": true,
+      "counts": {
+        "threadStarts": 1,
+        "turnStarts": 1,
+        "providerRequests": 2,
+        "scopedCalls": 1,
+        "workspaceActions": 0,
+        "permissionReplies": 0,
+        "codexStarts": 1,
+        "mcpStarts": 1,
+        "listenerStarts": 1,
+        "controlWrites": 3,
+        "canonicalRequests": 2,
+        "helperStarts": 0,
+        "outerCalls": 1,
+        "auditRequests": 2
+      },
+      "gitReadiness": {
+        "samples": 9,
+        "gitObserved": true,
+        "gitIdentityCount": 3,
+        "gitGone": true,
+        "gitPidReused": false,
+        "hostObserved": true,
+        "hostIdentityStable": true,
+        "readinessComplete": true
+      },
+      "canonicalAccepted": true,
+      "listenerClosed": true,
+      "environmentProfile": {
+        "profile": "appraise.m02-r51-explicit-launch-environment/v1",
+        "directoryIdentity": {
+          "dev": 16777230,
+          "ino": 71445739
+        },
+        "empty": true,
+        "observation": "TRUSTED_DIRECTORY_CHECK_NOT_FILESYSTEM_CONTAINMENT"
+      },
+      "processStates": {
+        "identities": [
+          {
+            "ordinal": 1,
+            "counts": {
+              "RUNNABLE": 2,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          },
+          {
+            "ordinal": 2,
+            "counts": {
+              "RUNNABLE": 12,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          },
+          {
+            "ordinal": 3,
+            "counts": {
+              "RUNNABLE": 2,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          }
+        ],
+        "overflow": false,
+        "unavailable": false,
+        "additionalOsQueries": 0,
+        "rawArgumentsOrEnvironmentRead": false
+      },
+      "permissionRequestDiagnostic": null
+    },
+    {
+      "caseId": "B07-A05",
+      "outcome": "no-effect",
+      "caseWitnessSha256": "3fee0301c8d1c63ad8cfa439807a31bdda529e5f6ffcda09b678362c6d8c0a43",
+      "cleanupKnown": true,
+      "counts": {
+        "threadStarts": 1,
+        "turnStarts": 1,
+        "providerRequests": 2,
+        "scopedCalls": 1,
+        "workspaceActions": 0,
+        "permissionReplies": 0,
+        "codexStarts": 1,
+        "mcpStarts": 1,
+        "listenerStarts": 1,
+        "controlWrites": 3,
+        "canonicalRequests": 2,
+        "helperStarts": 0,
+        "outerCalls": 1,
+        "auditRequests": 2
+      },
+      "gitReadiness": {
+        "samples": 8,
+        "gitObserved": true,
+        "gitIdentityCount": 2,
+        "gitGone": true,
+        "gitPidReused": false,
+        "hostObserved": true,
+        "hostIdentityStable": true,
+        "readinessComplete": true
+      },
+      "canonicalAccepted": true,
+      "listenerClosed": true,
+      "environmentProfile": {
+        "profile": "appraise.m02-r51-explicit-launch-environment/v1",
+        "directoryIdentity": {
+          "dev": 16777230,
+          "ino": 71454059
+        },
+        "empty": true,
+        "observation": "TRUSTED_DIRECTORY_CHECK_NOT_FILESYSTEM_CONTAINMENT"
+      },
+      "processStates": {
+        "identities": [
+          {
+            "ordinal": 1,
+            "counts": {
+              "RUNNABLE": 2,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          },
+          {
+            "ordinal": 2,
+            "counts": {
+              "RUNNABLE": 12,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          }
+        ],
+        "overflow": false,
+        "unavailable": false,
+        "additionalOsQueries": 0,
+        "rawArgumentsOrEnvironmentRead": false
+      },
+      "permissionRequestDiagnostic": null
+    },
+    {
+      "caseId": "B07-A06",
+      "outcome": "no-effect",
+      "caseWitnessSha256": "96e2787b29370baf92615035458f8fdc8aadb18d630b1993d44586753fd073fa",
+      "cleanupKnown": true,
+      "counts": {
+        "threadStarts": 1,
+        "turnStarts": 1,
+        "providerRequests": 2,
+        "scopedCalls": 1,
+        "workspaceActions": 0,
+        "permissionReplies": 0,
+        "codexStarts": 1,
+        "mcpStarts": 1,
+        "listenerStarts": 1,
+        "controlWrites": 3,
+        "canonicalRequests": 2,
+        "helperStarts": 0,
+        "outerCalls": 1,
+        "auditRequests": 2
+      },
+      "gitReadiness": {
+        "samples": 10,
+        "gitObserved": true,
+        "gitIdentityCount": 3,
+        "gitGone": true,
+        "gitPidReused": false,
+        "hostObserved": true,
+        "hostIdentityStable": true,
+        "readinessComplete": true
+      },
+      "canonicalAccepted": true,
+      "listenerClosed": true,
+      "environmentProfile": {
+        "profile": "appraise.m02-r51-explicit-launch-environment/v1",
+        "directoryIdentity": {
+          "dev": 16777230,
+          "ino": 71454384
+        },
+        "empty": true,
+        "observation": "TRUSTED_DIRECTORY_CHECK_NOT_FILESYSTEM_CONTAINMENT"
+      },
+      "processStates": {
+        "identities": [
+          {
+            "ordinal": 1,
+            "counts": {
+              "RUNNABLE": 2,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          },
+          {
+            "ordinal": 2,
+            "counts": {
+              "RUNNABLE": 14,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          },
+          {
+            "ordinal": 3,
+            "counts": {
+              "RUNNABLE": 2,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          }
+        ],
+        "overflow": false,
+        "unavailable": false,
+        "additionalOsQueries": 0,
+        "rawArgumentsOrEnvironmentRead": false
+      },
+      "permissionRequestDiagnostic": null
+    },
+    {
+      "caseId": "B07-A07",
+      "outcome": "no-effect",
+      "caseWitnessSha256": "390acecf4f332219b4eba8f2bf6000b1f3829084e3b5f703ce381803a7e945b0",
+      "cleanupKnown": true,
+      "counts": {
+        "threadStarts": 1,
+        "turnStarts": 1,
+        "providerRequests": 2,
+        "scopedCalls": 1,
+        "workspaceActions": 0,
+        "permissionReplies": 0,
+        "codexStarts": 1,
+        "mcpStarts": 1,
+        "listenerStarts": 1,
+        "controlWrites": 3,
+        "canonicalRequests": 2,
+        "helperStarts": 0,
+        "outerCalls": 1,
+        "auditRequests": 2
+      },
+      "gitReadiness": {
+        "samples": 9,
+        "gitObserved": true,
+        "gitIdentityCount": 3,
+        "gitGone": true,
+        "gitPidReused": false,
+        "hostObserved": true,
+        "hostIdentityStable": true,
+        "readinessComplete": true
+      },
+      "canonicalAccepted": true,
+      "listenerClosed": true,
+      "environmentProfile": {
+        "profile": "appraise.m02-r51-explicit-launch-environment/v1",
+        "directoryIdentity": {
+          "dev": 16777230,
+          "ino": 71462483
+        },
+        "empty": true,
+        "observation": "TRUSTED_DIRECTORY_CHECK_NOT_FILESYSTEM_CONTAINMENT"
+      },
+      "processStates": {
+        "identities": [
+          {
+            "ordinal": 1,
+            "counts": {
+              "RUNNABLE": 2,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          },
+          {
+            "ordinal": 2,
+            "counts": {
+              "RUNNABLE": 12,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          },
+          {
+            "ordinal": 3,
+            "counts": {
+              "RUNNABLE": 2,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          }
+        ],
+        "overflow": false,
+        "unavailable": false,
+        "additionalOsQueries": 0,
+        "rawArgumentsOrEnvironmentRead": false
+      },
+      "permissionRequestDiagnostic": null
+    },
+    {
+      "caseId": "B07-A08",
+      "outcome": "no-effect",
+      "caseWitnessSha256": "6cf8b113a8c589484028cf2e69ef3810dd700f77ef1f7d59d3b39d84c86627f3",
+      "cleanupKnown": true,
+      "counts": {
+        "threadStarts": 1,
+        "turnStarts": 1,
+        "providerRequests": 2,
+        "scopedCalls": 1,
+        "workspaceActions": 0,
+        "permissionReplies": 0,
+        "codexStarts": 1,
+        "mcpStarts": 1,
+        "listenerStarts": 1,
+        "controlWrites": 3,
+        "canonicalRequests": 2,
+        "helperStarts": 0,
+        "outerCalls": 1,
+        "auditRequests": 2
+      },
+      "gitReadiness": {
+        "samples": 10,
+        "gitObserved": true,
+        "gitIdentityCount": 2,
+        "gitGone": true,
+        "gitPidReused": false,
+        "hostObserved": true,
+        "hostIdentityStable": true,
+        "readinessComplete": true
+      },
+      "canonicalAccepted": true,
+      "listenerClosed": true,
+      "environmentProfile": {
+        "profile": "appraise.m02-r51-explicit-launch-environment/v1",
+        "directoryIdentity": {
+          "dev": 16777230,
+          "ino": 71470602
+        },
+        "empty": true,
+        "observation": "TRUSTED_DIRECTORY_CHECK_NOT_FILESYSTEM_CONTAINMENT"
+      },
+      "processStates": {
+        "identities": [
+          {
+            "ordinal": 1,
+            "counts": {
+              "RUNNABLE": 2,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          },
+          {
+            "ordinal": 2,
+            "counts": {
+              "RUNNABLE": 16,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          }
+        ],
+        "overflow": false,
+        "unavailable": false,
+        "additionalOsQueries": 0,
+        "rawArgumentsOrEnvironmentRead": false
+      },
+      "permissionRequestDiagnostic": null
+    },
+    {
+      "caseId": "B07-A09",
+      "outcome": "no-effect",
+      "caseWitnessSha256": "073543eea0e50a1202635ff34c9c751cb5f92a62c2f16f8804e1f035c13cd461",
+      "cleanupKnown": true,
+      "counts": {
+        "threadStarts": 1,
+        "turnStarts": 1,
+        "providerRequests": 2,
+        "scopedCalls": 0,
+        "workspaceActions": 0,
+        "permissionReplies": 0,
+        "codexStarts": 1,
+        "mcpStarts": 1,
+        "listenerStarts": 1,
+        "controlWrites": 3,
+        "canonicalRequests": 2,
+        "helperStarts": 0,
+        "outerCalls": 1,
+        "auditRequests": 0
+      },
+      "gitReadiness": {
+        "samples": 9,
+        "gitObserved": true,
+        "gitIdentityCount": 2,
+        "gitGone": true,
+        "gitPidReused": false,
+        "hostObserved": true,
+        "hostIdentityStable": true,
+        "readinessComplete": true
+      },
+      "canonicalAccepted": true,
+      "listenerClosed": true,
+      "environmentProfile": {
+        "profile": "appraise.m02-r51-explicit-launch-environment/v1",
+        "directoryIdentity": {
+          "dev": 16777230,
+          "ino": 71478702
+        },
+        "empty": true,
+        "observation": "TRUSTED_DIRECTORY_CHECK_NOT_FILESYSTEM_CONTAINMENT"
+      },
+      "processStates": {
+        "identities": [
+          {
+            "ordinal": 1,
+            "counts": {
+              "RUNNABLE": 2,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          },
+          {
+            "ordinal": 2,
+            "counts": {
+              "RUNNABLE": 14,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          }
+        ],
+        "overflow": false,
+        "unavailable": false,
+        "additionalOsQueries": 0,
+        "rawArgumentsOrEnvironmentRead": false
+      },
+      "permissionRequestDiagnostic": null
+    },
+    {
+      "caseId": "B07-A10",
+      "outcome": "no-effect",
+      "caseWitnessSha256": "87e63d40539414ec0ce7319811085b4f23b204915793ddee510fa7444df019e3",
+      "cleanupKnown": true,
+      "counts": {
+        "threadStarts": 1,
+        "turnStarts": 1,
+        "providerRequests": 2,
+        "scopedCalls": 0,
+        "workspaceActions": 0,
+        "permissionReplies": 0,
+        "codexStarts": 1,
+        "mcpStarts": 1,
+        "listenerStarts": 1,
+        "controlWrites": 3,
+        "canonicalRequests": 2,
+        "helperStarts": 0,
+        "outerCalls": 1,
+        "auditRequests": 0
+      },
+      "gitReadiness": {
+        "samples": 16,
+        "gitObserved": true,
+        "gitIdentityCount": 2,
+        "gitGone": true,
+        "gitPidReused": false,
+        "hostObserved": true,
+        "hostIdentityStable": true,
+        "readinessComplete": true
+      },
+      "canonicalAccepted": true,
+      "listenerClosed": true,
+      "environmentProfile": {
+        "profile": "appraise.m02-r51-explicit-launch-environment/v1",
+        "directoryIdentity": {
+          "dev": 16777230,
+          "ino": 71486804
+        },
+        "empty": true,
+        "observation": "TRUSTED_DIRECTORY_CHECK_NOT_FILESYSTEM_CONTAINMENT"
+      },
+      "processStates": {
+        "identities": [
+          {
+            "ordinal": 1,
+            "counts": {
+              "RUNNABLE": 2,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          },
+          {
+            "ordinal": 2,
+            "counts": {
+              "RUNNABLE": 28,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          }
+        ],
+        "overflow": false,
+        "unavailable": false,
+        "additionalOsQueries": 0,
+        "rawArgumentsOrEnvironmentRead": false
+      },
+      "permissionRequestDiagnostic": null
+    },
+    {
+      "caseId": "B07-A11",
+      "outcome": "no-effect",
+      "caseWitnessSha256": "781e6c796abc4804a2afdd7dd4f32869093df982b8981b35b00c9d3a3b84c250",
+      "cleanupKnown": true,
+      "counts": {
+        "threadStarts": 1,
+        "turnStarts": 1,
+        "providerRequests": 2,
+        "scopedCalls": 0,
+        "workspaceActions": 0,
+        "permissionReplies": 0,
+        "codexStarts": 1,
+        "mcpStarts": 1,
+        "listenerStarts": 1,
+        "controlWrites": 3,
+        "canonicalRequests": 2,
+        "helperStarts": 0,
+        "outerCalls": 1,
+        "auditRequests": 0
+      },
+      "gitReadiness": {
+        "samples": 10,
+        "gitObserved": true,
+        "gitIdentityCount": 3,
+        "gitGone": true,
+        "gitPidReused": false,
+        "hostObserved": true,
+        "hostIdentityStable": true,
+        "readinessComplete": true
+      },
+      "canonicalAccepted": true,
+      "listenerClosed": true,
+      "environmentProfile": {
+        "profile": "appraise.m02-r51-explicit-launch-environment/v1",
+        "directoryIdentity": {
+          "dev": 16777230,
+          "ino": 71494905
+        },
+        "empty": true,
+        "observation": "TRUSTED_DIRECTORY_CHECK_NOT_FILESYSTEM_CONTAINMENT"
+      },
+      "processStates": {
+        "identities": [
+          {
+            "ordinal": 1,
+            "counts": {
+              "RUNNABLE": 2,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          },
+          {
+            "ordinal": 2,
+            "counts": {
+              "RUNNABLE": 14,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          },
+          {
+            "ordinal": 3,
+            "counts": {
+              "RUNNABLE": 2,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          }
+        ],
+        "overflow": false,
+        "unavailable": false,
+        "additionalOsQueries": 0,
+        "rawArgumentsOrEnvironmentRead": false
+      },
+      "permissionRequestDiagnostic": null
+    },
+    {
+      "caseId": "B07-A12",
+      "outcome": "no-effect",
+      "caseWitnessSha256": "9e91dbba1b97276c51b79b58e8731638df8e9a89767ffa1116f39936af2bfb92",
+      "cleanupKnown": true,
+      "counts": {
+        "threadStarts": 1,
+        "turnStarts": 1,
+        "providerRequests": 2,
+        "scopedCalls": 0,
+        "workspaceActions": 0,
+        "permissionReplies": 0,
+        "codexStarts": 1,
+        "mcpStarts": 1,
+        "listenerStarts": 1,
+        "controlWrites": 3,
+        "canonicalRequests": 2,
+        "helperStarts": 0,
+        "outerCalls": 1,
+        "auditRequests": 0
+      },
+      "gitReadiness": {
+        "samples": 30,
+        "gitObserved": true,
+        "gitIdentityCount": 2,
+        "gitGone": true,
+        "gitPidReused": false,
+        "hostObserved": true,
+        "hostIdentityStable": true,
+        "readinessComplete": true
+      },
+      "canonicalAccepted": true,
+      "listenerClosed": true,
+      "environmentProfile": {
+        "profile": "appraise.m02-r51-explicit-launch-environment/v1",
+        "directoryIdentity": {
+          "dev": 16777230,
+          "ino": 71503043
+        },
+        "empty": true,
+        "observation": "TRUSTED_DIRECTORY_CHECK_NOT_FILESYSTEM_CONTAINMENT"
+      },
+      "processStates": {
+        "identities": [
+          {
+            "ordinal": 1,
+            "counts": {
+              "RUNNABLE": 4,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          },
+          {
+            "ordinal": 2,
+            "counts": {
+              "RUNNABLE": 54,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          }
+        ],
+        "overflow": false,
+        "unavailable": false,
+        "additionalOsQueries": 0,
+        "rawArgumentsOrEnvironmentRead": false
+      },
+      "permissionRequestDiagnostic": null
+    },
+    {
+      "caseId": "B07-A13",
+      "outcome": "no-effect",
+      "caseWitnessSha256": "95192924a12bacb44a89ec03f8e9cd7685adf4f69137c318416424f76d2b77a0",
+      "cleanupKnown": true,
+      "counts": {
+        "threadStarts": 1,
+        "turnStarts": 1,
+        "providerRequests": 2,
+        "scopedCalls": 0,
+        "workspaceActions": 0,
+        "permissionReplies": 0,
+        "codexStarts": 1,
+        "mcpStarts": 1,
+        "listenerStarts": 1,
+        "controlWrites": 3,
+        "canonicalRequests": 2,
+        "helperStarts": 0,
+        "outerCalls": 1,
+        "auditRequests": 0
+      },
+      "gitReadiness": {
+        "samples": 9,
+        "gitObserved": true,
+        "gitIdentityCount": 3,
+        "gitGone": true,
+        "gitPidReused": false,
+        "hostObserved": true,
+        "hostIdentityStable": true,
+        "readinessComplete": true
+      },
+      "canonicalAccepted": true,
+      "listenerClosed": true,
+      "environmentProfile": {
+        "profile": "appraise.m02-r51-explicit-launch-environment/v1",
+        "directoryIdentity": {
+          "dev": 16777230,
+          "ino": 71511324
+        },
+        "empty": true,
+        "observation": "TRUSTED_DIRECTORY_CHECK_NOT_FILESYSTEM_CONTAINMENT"
+      },
+      "processStates": {
+        "identities": [
+          {
+            "ordinal": 1,
+            "counts": {
+              "RUNNABLE": 2,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          },
+          {
+            "ordinal": 2,
+            "counts": {
+              "RUNNABLE": 12,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          },
+          {
+            "ordinal": 3,
+            "counts": {
+              "RUNNABLE": 2,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          }
+        ],
+        "overflow": false,
+        "unavailable": false,
+        "additionalOsQueries": 0,
+        "rawArgumentsOrEnvironmentRead": false
+      },
+      "permissionRequestDiagnostic": null
+    },
+    {
+      "caseId": "B07-A14",
+      "outcome": "no-effect",
+      "caseWitnessSha256": "f787f6bd9e478481b66fb9a31e7e9ad3d5699f3b215a4f41756d0b67ce8c3380",
+      "cleanupKnown": true,
+      "counts": {
+        "threadStarts": 1,
+        "turnStarts": 1,
+        "providerRequests": 2,
+        "scopedCalls": 0,
+        "workspaceActions": 0,
+        "permissionReplies": 0,
+        "codexStarts": 1,
+        "mcpStarts": 1,
+        "listenerStarts": 1,
+        "controlWrites": 3,
+        "canonicalRequests": 2,
+        "helperStarts": 0,
+        "outerCalls": 1,
+        "auditRequests": 0
+      },
+      "gitReadiness": {
+        "samples": 9,
+        "gitObserved": true,
+        "gitIdentityCount": 2,
+        "gitGone": true,
+        "gitPidReused": false,
+        "hostObserved": true,
+        "hostIdentityStable": true,
+        "readinessComplete": true
+      },
+      "canonicalAccepted": true,
+      "listenerClosed": true,
+      "environmentProfile": {
+        "profile": "appraise.m02-r51-explicit-launch-environment/v1",
+        "directoryIdentity": {
+          "dev": 16777230,
+          "ino": 71519440
+        },
+        "empty": true,
+        "observation": "TRUSTED_DIRECTORY_CHECK_NOT_FILESYSTEM_CONTAINMENT"
+      },
+      "processStates": {
+        "identities": [
+          {
+            "ordinal": 1,
+            "counts": {
+              "RUNNABLE": 2,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          },
+          {
+            "ordinal": 2,
+            "counts": {
+              "RUNNABLE": 14,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          }
+        ],
+        "overflow": false,
+        "unavailable": false,
+        "additionalOsQueries": 0,
+        "rawArgumentsOrEnvironmentRead": false
+      },
+      "permissionRequestDiagnostic": null
+    },
+    {
+      "caseId": "B07-D01",
+      "outcome": "no-effect",
+      "caseWitnessSha256": "92787366c33631c6ea92280c4cb4dc40cef29393c6b651d9341926501c5d5aa8",
+      "cleanupKnown": true,
+      "counts": {
+        "threadStarts": 1,
+        "turnStarts": 1,
+        "providerRequests": 2,
+        "scopedCalls": 1,
+        "workspaceActions": 0,
+        "permissionReplies": 0,
+        "codexStarts": 1,
+        "mcpStarts": 1,
+        "listenerStarts": 1,
+        "controlWrites": 3,
+        "canonicalRequests": 2,
+        "helperStarts": 0,
+        "outerCalls": 1,
+        "auditRequests": 2
+      },
+      "gitReadiness": {
+        "samples": 10,
+        "gitObserved": true,
+        "gitIdentityCount": 3,
+        "gitGone": true,
+        "gitPidReused": false,
+        "hostObserved": true,
+        "hostIdentityStable": true,
+        "readinessComplete": true
+      },
+      "canonicalAccepted": true,
+      "listenerClosed": true,
+      "environmentProfile": {
+        "profile": "appraise.m02-r51-explicit-launch-environment/v1",
+        "directoryIdentity": {
+          "dev": 16777230,
+          "ino": 71527536
+        },
+        "empty": true,
+        "observation": "TRUSTED_DIRECTORY_CHECK_NOT_FILESYSTEM_CONTAINMENT"
+      },
+      "processStates": {
+        "identities": [
+          {
+            "ordinal": 1,
+            "counts": {
+              "RUNNABLE": 2,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          },
+          {
+            "ordinal": 2,
+            "counts": {
+              "RUNNABLE": 14,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          },
+          {
+            "ordinal": 3,
+            "counts": {
+              "RUNNABLE": 2,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          }
+        ],
+        "overflow": false,
+        "unavailable": false,
+        "additionalOsQueries": 0,
+        "rawArgumentsOrEnvironmentRead": false
+      },
+      "permissionRequestDiagnostic": null
+    },
+    {
+      "caseId": "B07-T01",
+      "outcome": "no-effect",
+      "caseWitnessSha256": "63b08b701bd0f0fd23fafec168b6c980bce44c04c739f2de27da55d208ad542b",
+      "cleanupKnown": true,
+      "counts": {
+        "threadStarts": 1,
+        "turnStarts": 1,
+        "providerRequests": 2,
+        "scopedCalls": 1,
+        "workspaceActions": 0,
+        "permissionReplies": 0,
+        "codexStarts": 1,
+        "mcpStarts": 1,
+        "listenerStarts": 1,
+        "controlWrites": 3,
+        "canonicalRequests": 3,
+        "helperStarts": 0,
+        "outerCalls": 1,
+        "auditRequests": 2
+      },
+      "gitReadiness": {
+        "samples": 2,
+        "gitObserved": true,
+        "gitIdentityCount": 1,
+        "gitGone": true,
+        "gitPidReused": false,
+        "hostObserved": true,
+        "hostIdentityStable": true,
+        "readinessComplete": true
+      },
+      "canonicalAccepted": true,
+      "listenerClosed": true,
+      "environmentProfile": {
+        "profile": "appraise.m02-r51-explicit-launch-environment/v1",
+        "directoryIdentity": {
+          "dev": 16777230,
+          "ino": 71535633
+        },
+        "empty": true,
+        "observation": "TRUSTED_DIRECTORY_CHECK_NOT_FILESYSTEM_CONTAINMENT"
+      },
+      "processStates": {
+        "identities": [
+          {
+            "ordinal": 1,
+            "counts": {
+              "RUNNABLE": 2,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          }
+        ],
+        "overflow": false,
+        "unavailable": false,
+        "additionalOsQueries": 0,
+        "rawArgumentsOrEnvironmentRead": false
+      },
+      "permissionRequestDiagnostic": null
+    },
+    {
+      "caseId": "P00",
+      "outcome": "no-effect",
+      "caseWitnessSha256": "4ea51e725d1e6059f71c6d7a1275174cc1a929eeeb53e9908d661651e1022337",
+      "cleanupKnown": true,
+      "counts": {
+        "threadStarts": 1,
+        "turnStarts": 0,
+        "providerRequests": 0,
+        "scopedCalls": 0,
+        "workspaceActions": 0,
+        "permissionReplies": 0,
+        "codexStarts": 1,
+        "mcpStarts": 1,
+        "listenerStarts": 1,
+        "controlWrites": 3,
+        "canonicalRequests": 0,
+        "helperStarts": 0,
+        "outerCalls": 0,
+        "auditRequests": 0
+      },
+      "gitReadiness": {
+        "samples": 0,
+        "gitObserved": false,
+        "gitIdentityCount": 0,
+        "gitGone": false,
+        "gitPidReused": false,
+        "hostObserved": false,
+        "hostIdentityStable": false,
+        "readinessComplete": false
+      },
+      "canonicalAccepted": true,
+      "listenerClosed": true,
+      "environmentProfile": {
+        "profile": "appraise.m02-r51-explicit-launch-environment/v1",
+        "directoryIdentity": {
+          "dev": 16777230,
+          "ino": 71535947
+        },
+        "empty": true,
+        "observation": "TRUSTED_DIRECTORY_CHECK_NOT_FILESYSTEM_CONTAINMENT"
+      },
+      "processStates": {
+        "identities": [],
+        "overflow": false,
+        "unavailable": false,
+        "additionalOsQueries": 0,
+        "rawArgumentsOrEnvironmentRead": false
+      },
+      "permissionRequestDiagnostic": null
+    },
+    {
+      "caseId": "B14",
+      "outcome": "permission-denied",
+      "caseWitnessSha256": "13176bc34a57eb53dde69e1d1b3ce842915fe8c49b70a064ca9fa348192ad7c2",
+      "cleanupKnown": true,
+      "counts": {
+        "threadStarts": 1,
+        "turnStarts": 1,
+        "providerRequests": 2,
+        "scopedCalls": 0,
+        "workspaceActions": 0,
+        "permissionReplies": 1,
+        "codexStarts": 1,
+        "mcpStarts": 1,
+        "listenerStarts": 1,
+        "controlWrites": 3,
+        "canonicalRequests": 2,
+        "helperStarts": 0,
+        "outerCalls": 1,
+        "auditRequests": 0
+      },
+      "gitReadiness": {
+        "samples": 9,
+        "gitObserved": true,
+        "gitIdentityCount": 3,
+        "gitGone": true,
+        "gitPidReused": false,
+        "hostObserved": true,
+        "hostIdentityStable": true,
+        "readinessComplete": true
+      },
+      "canonicalAccepted": true,
+      "listenerClosed": true,
+      "environmentProfile": {
+        "profile": "appraise.m02-r51-explicit-launch-environment/v1",
+        "directoryIdentity": {
+          "dev": 16777230,
+          "ino": 71536112
+        },
+        "empty": true,
+        "observation": "TRUSTED_DIRECTORY_CHECK_NOT_FILESYSTEM_CONTAINMENT"
+      },
+      "processStates": {
+        "identities": [
+          {
+            "ordinal": 1,
+            "counts": {
+              "RUNNABLE": 2,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          },
+          {
+            "ordinal": 2,
+            "counts": {
+              "RUNNABLE": 12,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          },
+          {
+            "ordinal": 3,
+            "counts": {
+              "RUNNABLE": 2,
+              "SLEEPING": 0,
+              "STOPPED": 0,
+              "ZOMBIE": 0,
+              "OTHER": 0
+            },
+            "goneObserved": true
+          }
+        ],
+        "overflow": false,
+        "unavailable": false,
+        "additionalOsQueries": 0,
+        "rawArgumentsOrEnvironmentRead": false
+      },
+      "permissionRequestDiagnostic": {
+        "reason": "ACCEPTED_SCHEMA",
+        "permissionsShape": "NETWORK_PLUS_NULL_FILESYSTEM",
+        "fileSystem": "NULL",
+        "cwd": "MATCH",
+        "requestIdShape": "SAFE_NONNEGATIVE_INTEGER",
+        "itemIdShape": "SAFE_TOKEN",
+        "threadMatches": true,
+        "turnMatches": true,
+        "startedAtSafeInteger": true,
+        "networkEnabled": true,
+        "environmentIdShape": "STRING",
+        "reasonShape": "STRING"
+      }
+    }
+  ],
+  "failedCase": null,
+  "root": "/private/tmp/appraise-m02-ta-matrix-p28",
+  "rootIdentity": {
+    "dev": 16777230,
+    "ino": 71397373
+  },
+  "manifestDigest": "730c1f2490c12a69424792f3c35812b6efadd14ddd06e5524031116789f25bf1",
+  "manifestFileSha256": "07fa661fa5c229772be13c1b870641064cf13143ed7ca9e9cc5ed8e6118ae2e2",
+  "sourceHostCapacityReserved": 58,
+  "actualSourceHostCount": "UNATTESTED",
+  "consumed": {
+    "threadStarts": 24,
+    "turnStarts": 23,
+    "providerRequests": 54,
+    "scopedCalls": 24,
+    "workspaceActions": 0,
+    "permissionReplies": 1,
+    "codexStarts": 24,
+    "mcpStarts": 24,
+    "listenerStarts": 24,
+    "controlWrites": 72,
+    "canonicalRequests": 87,
+    "helperStarts": 0,
+    "outerCalls": 31,
+    "auditRequests": 48
+  },
+  "pending": [],
+  "journal": {
+    "chainVerified": true,
+    "records": 922,
+    "reservations": 436,
+    "ACKs": 436,
+    "sha256": "41d0d34648551fc2cee1756cdb3c61d6f02f8960e3cead0dfb4c1b5478af2c77",
+    "terminalHash": "d11f8a5525a39815a2ddeab0e8f839422614702989fd4181aa2da13ee1b909b8"
+  },
+  "stageProgress": {
+    "records": 336,
+    "last": {
+      "seq": 336,
+      "caseId": "B14",
+      "stage": "CASE_COMPLETE_RETURN"
+    },
+    "diagnosticAuthority": false
+  },
+  "evidenceIndex": {
+    "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m02-r51-native-terminal-evidence-01/index.json",
+    "sha256": "afa42e953a9eb67bf660623d16056e2d3dbc47f5f7ab1748174bc356e9e908c4"
+  },
+  "lateCaseDiagnostics": [],
+  "protocolFailures": [],
+  "cleanupQualification": "ALL24_BOUNDED_CASE_CLEANUP_ONLY_GLOBAL_INVENTORY_UNATTESTED",
+  "globalProcessInventory": "UNATTESTED",
+  "noResendOrResume": true,
+  "T2": "FULL24_CLOSED_NATIVE_CAMPAIGN_OBSERVED",
+  "T3": "INCOMPLETE",
+  "M02": "INCOMPLETE",
+  "runtimeQualified": false
+}

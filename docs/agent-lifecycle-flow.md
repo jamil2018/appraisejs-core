@@ -1,3 +1,11 @@
+> Current shipping checkpoint: [M02 scripted qualification accepted](../tasks/codex-app-server-journeys/M02-SHIPPED-SCRIPTED-QUALIFICATION-01.md). T2 R51 passed24/24 andT3 R55 passed2/2; final exact evidence review accepted within TA02/TA03 limits. `runtimeQualified` remains false; helper lifetime/global inventory and historical cleanup remain unobserved. No M03 or production dispatch authority follows. Older status passages below remain historical.
+
+> Latest M02 R24 checkpoint (2026-10-17): the separately approved one p10 native invocation is consumed UNKNOWN/B01 with zero T2 completions and cleanup UNKNOWN. Evidence-only review is accepted; T2/T3/M02 are incomplete. No retry, successor or T3 is authorized by that exact request. Current handoff: `tasks/codex-app-server-journeys/M02-R24-CURRENT-WORK.md`. Older rejection/approval-pending addenda below are historical.
+
+> M02 R24 qualification checkpoint (2026-10-17): offline/exact review and actual precheck passed; host auto-review rejected native launch before process creation under the original explicit runtime restriction. Separate exact native approval is required; see `tasks/codex-app-server-journeys/m02-ta-t2-r24-exact-authorization-request-01.md`. M02 remains incomplete.
+
+> **M02 qualification update (2026-10-17):** The approved [TA02 trusted-agent amendment](../tasks/codex-app-server-journeys/m00-trust-amendment-02.md), [M02 plan](../tasks/codex-app-server-journeys/m02-trusted-agent-plan-01.md) and [TA03 evidence revision](../tasks/codex-app-server-journeys/m02-ta03-approval-01.md) govern the current disposable scripted qualification. They permit reviewed scoped MCP and fixed native scratch effects while leaving hostile-agent containment, real-provider/auth support and production dispatch unqualified. M02 remains incomplete. These qualification changes do not authorize product lifecycle decisions or replace M03 mandatory-session gates; the original M00 design description below is historical to its approved slice.
+
 # Agent Lifecycle Flow
 
 For stage-by-stage operator actions and interruption recovery, see the
@@ -27,6 +35,10 @@ A Codex handoff connects a harness-native coordinator to that Journey; it does n
 create an alternate Analyzer, claim work, or bypass questions and human review gates. Appraise-prepared deep links
 prefill a minimal ticket/identity prompt in a validated local or neutral host context. Opening the URI and user Send
 remain distinct from authenticated redemption and authoritative state reads.
+
+## Approved app-server host design (M00; not enabled)
+
+[ADR-0005](decisions/0005-codex-app-server-journeys.md) supersedes the stock-desktop/plugin roadmap, while existing external product behavior and historical evidence remain intact; GC3 stays REVISE / not passed. The [M00 host contract](../tasks/codex-app-server-journeys/m00-host-authority-contract.md) is approved as M00-r3 at f506fccb and its exact SHA-256; see the [approval record](../tasks/codex-app-server-journeys/m00-r3-approval.md). Its submission-time header remains frozen to preserve the approved bytes. It separates `APP_SERVER_LOCAL_V1` hosting from retained `EXTERNAL_V1` admission, requires explicit current session fencing before first dispatch, and limits workers to scoped canonical external role submissions. Existing Factory attestations do not qualify the proposed host. No worker repository writes, broad coordinator credentials, direct database/credential access, native tools or human decisions are allowed. Structured forms and accepted canonical artifacts remain transition authority; provider completion is operational evidence only. No app-server implementation, authentication, schema change or UI cutover has occurred in M00.
 
 ## Journey presentation and observation
 

@@ -1,0 +1,22 @@
+{
+  "evidenceClass": "offline-exact-binary-model-and-fixture-config-inspection",
+  "binarySha256": "0d5ac7aae20c4eda6242428d5e218c55ba96d8763fda2a271088ff37104b9d28",
+  "diagnosticSourceSha256": "80835693c010974cc3a8b2aad334b45ab67cb536692b0dd57bff345df59c6223",
+  "stateId": "appraise-m01-mcp-obmnfak_",
+  "configSha256": "21f600dcc5441f3bcd5abce9bae8f2c18f59e02a181f0b06e461737663d99240",
+  "model": {
+    "slug": "gpt-6.1-sol",
+    "tool_mode": "code_mode_only",
+    "use_responses_lite": true
+  },
+  "embeddedModelJsonOffset": 189181863,
+  "embeddedModelCanonicalSha256": "cded3b4b9f66487981455f57684a118512617cff6488f8bff8b069c3414bf42d",
+  "configuredCodeMode": false,
+  "ownedModelCachePresent": false,
+  "appServerLaunches": 0,
+  "threadStarts": 0,
+  "turnStarts": 0,
+  "providerRequests": 0,
+  "credentialsRead": false,
+  "m01Complete": false
+}

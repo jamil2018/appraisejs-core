@@ -1,12 +1,43 @@
+> Current shipping checkpoint: [M02 scripted qualification accepted](M02-SHIPPED-SCRIPTED-QUALIFICATION-01.md). T2 R51 passed24/24 andT3 R55 passed2/2; final exact evidence review accepted within TA02/TA03 limits. `runtimeQualified` remains false; helper lifetime/global inventory and historical cleanup remain unobserved. No M03 or production dispatch authority follows. Older status passages below remain historical.
+
+> Latest R24 native checkpoint (2026-10-17): exact approval consumed by one p10 invocation; terminal UNKNOWN at B01, actual completed T2 cases0. AUDIT/INCOMPLETE with output observation COMPLETED/NONE; underlying cause and cleanup UNKNOWN. Independent review accepts terminal evidence only. No retry/resume/repair/successor/T3 from this request. See [M02-R24-CURRENT-WORK.md](M02-R24-CURRENT-WORK.md); prior approval-pending text below is historical.
+
+> Current R24 checkpoint (2026-10-17):71/71 offline checks and exact review passed; actual strict precheck passed. Native launch was rejected by host automatic approval review before process creation. New p10 absent, native allocations0, actual T2 completions0; T3/M02 incomplete. Separate exact native approval is pending: [R24 request](m02-ta-t2-r24-exact-authorization-request-01.md). Do not resend without it. Earlier broad implementation-authority text below does not override this host rejection.
+
+**Current M02 implementation continuation (2026-10-17):** The user has authorized completing M02 diagnosis and implementation. Effective qualification is **trusted-agent scripted conformance** under approved TA02 / M02-TA-P1 / TA03; historical hostile-agent containment requirements are withdrawn from this gate, not passed. T1 is retained as tuple-scoped evidence. R23 is consumed UNKNOWN with zero completed native T2 cases; T2, T3 and M02 remain incomplete. Additive R24 work is tracked in [recovery09](m02-ta-t2-recovery-09.md). Each fresh native bundle/command receives exact review and preserves cumulative consumption; no consumed command is resumed. M03+, production dispatch and real-provider qualification remain outside M02. Earlier checkpoints below remain historical.
+
+**Current checkpoint (2026-10-15):** M02-A deterministic gateway implemented; M02 remains incomplete.
+[M02-A evidence](m02-a-qualification.md) records the bounded authorization and trust seams.
+No product dispatch or containment qualification. M02-B+ requires separate authorization;
+no runtime/auth/inference/grants/commits/push in this slice. Earlier checkpoints below are historical.
+
 # Codex app-server behind AppraiseJS: Journey migration plan
 
-Date: 2026-10-12. Direction adopted 2026-10-13. Status: active replacement roadmap under [ADR-0005](../../docs/decisions/0005-codex-app-server-journeys.md); implementation and runtime qualification not started.
+**Current status (2026-10-14):** [M01 protocol qualification](m01-qualification.md) is complete
+for the pinned binary/host/configurations. Final no-model fixtures qualify four true elicitation
+cancellation variants and a native-produced scripted permission denial. Zero new external inference
+or grants. M00 bytes and GC3 REVISE remain intact; M02–M13 remain unstarted.
+
+Date: 2026-10-12. Direction adopted 2026-10-13. Status: active replacement roadmap under [ADR-0005](../../docs/decisions/0005-codex-app-server-journeys.md); M00-r3 design contract explicitly approved; M00 complete; M01 protocol qualification complete for the pinned tuple; M02–M13 not started.
+
+Shared implementation branch: `codex/journey-app-server-migration`, created from fetched `origin/appraise-0.5` at `8d4be5c8`. Use it for M00–M13 and U00–U10 across sessions; branch scope is not task-start authority. Local cohesive commits are authorized with hooks; push, merge and publication require separate instruction.
+
+M00 now has an [approved, byte-frozen detailed contract](m00-host-authority-contract.md), [source/review evidence](m00-review-evidence.md) and [continuation handoff](CONTINUE-HERE.md). The [exact approval record](m00-r3-approval.md) binds f506fccb and the full contract hash; later containment/production qualification remains outstanding. M01 has separately authorized [synthetic/no-model preparation](m01-evidence.md); [native-provider probing](m01-remaining-probe.md) was subsequently authorized, with current check-only steering and an unauthenticated isolated state recorded in [the native checkpoint](m01-native-provider-checkpoint.md).
+
+Latest auth authority: [amendment 01](m00-auth-amendment-01.md) permits existing native login reuse,
+check-only failure and the bounded M01 probe; original M00 bytes remain unchanged. Prior checkpoints
+are historical. [Native results](m01-native-results.md) record three consumed starts with persistence,
+interruption and no-resend UNKNOWN reconciliation. Final fixture-only cancellation/denial evidence completes M01 protocol qualification; M02+ remains unstarted.
+
+Latest [manifest investigation](m01-manifest-investigation.md) corrects the old empty-manifest inference:
+the fixture missed Responses Lite input tool schemas and assumed direct MCP calls for a CodeModeOnly
+model. That investigation checkpoint is historical; the separately authorized fixture-only exception now completes request-variant protocol evidence.
 
 ## Scope and authority
 
 Keep users in AppraiseJS for briefs, questions, reviews, consent, progress, recovery and results. Run Codex as a supervised local backend using MCP. There is no chat composer, transcript product, manual prompt handoff, or requirement to open Codex desktop in the normal flow. Native provider sign-in and target-site login may still require a browser; no-chat does not mean unattended authentication.
 
-This document and [task list](todo.md) supersede the stock Codex desktop/plugin roadmap and ADR-0004 for future Journey work by user decision on 2026-10-13. Codex CLI's `codex app-server` supplies the supervised backend; AppraiseJS owns the UI and MCP-mediated lifecycle. Existing `tasks/plan.md` and `tasks/todo.md` cover unrelated work and are preserved. The retired coordinator [register](../../codex/development%20plan/appraise-0.5/product%20direction/managed-quality-journey-coordinator/TASK_REGISTER.md) is historical evidence only, not an active continuation queue. Its GC2 pass and unfinished C3.3 / GC3 REVISE result retain their original meaning; section 3 remained incomplete, section 4 unstarted and authentication closed at retirement. No old gate becomes an app-server pass. Selecting this direction does not authorize live Journeys or start implementation; M00 still settles the concrete host and authority contract.
+This document and [task list](todo.md) supersede the stock Codex desktop/plugin roadmap and ADR-0004 for future Journey work by user decision on 2026-10-13. Codex CLI's `codex app-server` supplies the supervised backend; AppraiseJS owns the UI and MCP-mediated lifecycle. Existing `tasks/plan.md` and `tasks/todo.md` cover unrelated work and are preserved. The retired coordinator [register](../../codex/development%20plan/appraise-0.5/product%20direction/managed-quality-journey-coordinator/TASK_REGISTER.md) is historical evidence only, not an active continuation queue. Its GC2 pass and unfinished C3.3 / GC3 REVISE result retain their original meaning; section 3 remained incomplete, section 4 unstarted and authentication closed at retirement. No old gate becomes an app-server pass. Selecting this direction does not authorize live Journeys or start implementation; M00-r3 now settles the approved design contract; runtime qualification and later implementation require separate instruction.
 
 Review includes current dirty handoff/UI and qualification work, which this planning task does not modify. No production process, authentication, MCP mutation, database migration, commit or publication is part of this review.
 
@@ -46,7 +77,7 @@ flowchart TD
   Domain --> Tests[Existing consent-bound test runtime]
 ```
 
-Use one backend execution mode, provisionally `CODEX_APP_SERVER`, distinct from existing external desktop mode. Persist the explicit mode when creating a new Journey; never infer mode from provider availability or UI state. For legacy Journeys, preserve effective ownership and existing attempt bindings: WorkAttempt already permits MANAGED and EXTERNAL_V1 histories. Do not blanket-backfill external mode. Inventory active ownership and effects; mixed or unresolved ownership is recovery-required, and active managed work requires explicit quiescent transfer before adoption by the new backend. Historical attempts keep their original modes. Provider hosting mode and assignment admission mode are separate concepts. Initially reuse the externally admitted role contract through a trusted gateway, retaining `hostIsolation: NOT_ATTESTED` until an independently qualified boundary justifies a different claim. This is an explicit new composition; it does not activate the archived managed-provider design.
+Use one backend execution mode, provisionally `APP_SERVER_LOCAL_V1`, distinct from existing external desktop mode. Persist the explicit mode when creating a new Journey; never infer mode from provider availability or UI state. For legacy Journeys, preserve effective ownership and existing attempt bindings: WorkAttempt already permits MANAGED and EXTERNAL_V1 histories. Do not blanket-backfill external mode. Inventory active ownership and effects; mixed or unresolved ownership is recovery-required, and active managed work requires explicit quiescent transfer before adoption by the new backend. Historical attempts keep their original modes. Provider hosting mode and assignment admission mode are separate concepts. Initially reuse the externally admitted role contract through a trusted gateway, retaining existing admission receipts with `hostIsolation: NOT_ATTESTED`; any independently qualified host boundary is separate evidence and never rewrites those receipts. This is an explicit new composition; it does not activate the archived managed-provider design.
 
 Run one role-bound attempt at a time per Journey, with a conservative installation-wide concurrency cap of one initially. Use separate role/attempt threads rather than one unlimited coordinator conversation. Appraise determines eligible work and supplies the exact assignment; the agent proposes the assigned artifact through MCP. Resume a thread only while the same role, input hash, assignment and generation remain valid. A new revision creates a fresh assignment/context. Define the mapping to existing external claim/admit transactions before coding; the host must not create both a Factory attempt and a second external attempt for the same work.
 
@@ -93,8 +124,8 @@ Current official [App Server documentation](https://learn.chatgpt.com/docs/app-s
 
 ## Rollout and rollback
 
-1. Follow adopted ADR-0005 and this task track; settle M00’s detailed host and authority contract before implementation. Retain ADR-0004 and archived evidence as historical decisions. Do not reopen or close GC3 implicitly.
-2. Prove the isolated runtime and scoped MCP composition on disposable data; no production Journey or temporary authentication by implication.
+1. Follow adopted ADR-0005 and this task track; use the exactly approved M00-r3 host and authority contract before separately authorized implementation. Retain ADR-0004 and archived evidence as historical decisions. Do not reopen or close GC3 implicitly.
+2. Prove the isolated runtime and scoped MCP composition on disposable data; M02 results are provisional until M03 mandatory-session re-probes pass; no production Journey or temporary authentication by implication.
 3. Prove Analysis and structured clarification on disposable/internal Journeys, then remaining roles and test/report flows. M06–M07 are internal proof only. Any user-facing opt-in requires M11 core recovery and its crash matrix, plus applicable containment and installation checks; a feature flag is not a recovery exemption.
 4. Qualify recovery and installed packaging before making the mode default. Existing desktop Journeys continue under their existing bindings.
 5. Allow explicit conversion of an existing Journey only at a quiescent boundary with reconciled effects and human-approved ownership transfer. Atomically fence the predecessor and preserve remaining attempt budgets. No dual writers or automatic fallback from an ambiguous run.
@@ -110,7 +141,7 @@ Release requires all six roles, structured question/revision loops, scenario dec
 
 ## Review limitations and next decision
 
-No live model call, sign-in, containment probe, billing verification or recovery experiment was run for this plan. Current implementation evidence supports reuse of domain services, not drop-in reuse of managed Factory attestations. The first implementation checkpoint must settle supported OS/version, provider auth, effective tool/process restrictions and the external-admission mapping before a schedule is committed. The next eligible proposed task is M00 (architecture/authority contract), followed by M01–M02 feasibility; none is started by this document.
+The original planning review ran no live model, sign-in, containment, billing or recovery experiment. Subsequent M01 work adds synthetic transport tests and actual-binary local-SSE start/resume/interruption observations, with no external provider inference. The later authorized isolated sign-in was cancelled under check-only steering. Current implementation evidence supports reuse of domain services, not drop-in reuse of managed Factory attestations. M00-r3 has settled the approved design contract, with the exact artifact and scope in [its approval record](m00-r3-approval.md). M01 was then started and partial under the bounded preparation instruction; current completion is recorded above. Its [no-model evidence](m01-evidence.md) does not qualify native authentication/provider behavior; the [native checkpoint](m01-native-provider-checkpoint.md) records subsequent authorization, transport clarification and check-only steering. At that historical checkpoint the isolated auth check failed and no native inference had been performed; later native and final fixture results supersede its incomplete status. Later feasibility must qualify the exact OS/build, provider auth and effective boundaries; no runtime schedule or support claim follows from design acceptance.
 
 ## Companion UI planning update — 2026-10-12
 

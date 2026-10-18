@@ -1,0 +1,22 @@
+# M02 R22 current work
+
+2026-10-17. **Offline correction complete and exact-reviewed; no runtime authorization.** This additive handoff supersedes prospective status in older checkpoints without changing their bytes.
+
+R21 remains consumed, terminal UNKNOWN at B01, zero completed actual T2 cases. Its precise original failing path, listener effect and cleanup remain UNKNOWN. Preserve p7 and all consumed allocations. Never retry/resume it or another consumed command. GC3 is REVISE / not passed. T3 and M02 remain incomplete. M00 SHA-256 remains `1e39e733d5211db80705a1c34235d24580db618a9f505e7a16dc163398568133`.
+
+The confirmed offline defect was an unconditional live-file verifier over 23 archive-backed historical claims. New `scripts/tests/fixtures/codex-app-server-m02-ta-matrix-r22/` validates the exact TA04 witness set and stable archive/index/copy/absence checks, hashes current files, retains exact tuple checks, preserves p7 UNKNOWN, and fails closed on changed or arbitrary availability labels. It also fixes cumulative-budget JSON ordering, binds disposable diagnostic filesystem operations, and emits bounded operation categories without raw exception text.
+
+The composed red/green path uses actual production-generated manifest serialization, independently serialized receipt files read through the real no-follow reader, entrypoint, runner, launcher and real adapter. Real disposable staging, directories, journals, receipt hashes and terminal journal checks complete all 24 cases. The frozen adapter fails at B01 with ENOENT before listener/process effects. External process/provider/observer/database/child reports are simulated, with real sockets/process starts/addon loads guarded to throw. It does not qualify native protocol, actual SDK/SQLite behavior, host compatibility, lifetime or cleanup.
+
+Passing command: `node --test scripts/tests/codex-app-server-m02-ta-matrix-r22-cases.test.mjs scripts/tests/codex-app-server-m02-ta-matrix-r22-prior.test.mjs scripts/tests/codex-app-server-m02-ta-matrix-r22-composed.test.mjs` — 65/65, session37975 terminalfb533b. Focused ESLint/Prettier passed. The fixed build was prepared once (session70019 terminalcaa7f4); never rerun `--prepare`. Read-only verification proves its bytes equal the production serialization exercised by the composed tests. Full build was unnecessary for fixture-only work and would touch preserved package outputs. Graphify dry-run selected existing dirty graphs; no graph rewrite occurred.
+
+Exact preparation:
+
+- Manifest `.appraisejs/m02-ta-matrix-build-r22/manifest.json`: SHA-256 `a35aef1ffe9e5dda2c9108195d7f01e6b879df6f4ea963d3355772d2ce69ddd6`; manifest digest `38a6bd1c2552275068b8a5e09c9a89d8567dafdd989e26da9368018a008ae0b4`; 6,628 claims, including 23 historical witnesses.
+- Canonical bundle SHA-256 `b3c620aec79545d6166ff00c0ce9c0b52cf5ba5fa700f605216f57fae071bc55`.
+- One combined exact review `.appraisejs/m02-t2-r22-exact-review.json`: SHA-256 `6f23c548f947d8cbf79899d02a7fea309aff3472f7307806fc2d40550bb1220b`; no blocking findings, runtime NOT_RUN. Effective host role/model/context/sandbox properties remain unattested.
+- `.appraisejs/m02-r22-offline-checks-01.json`, `.appraisejs/m02-r22-preservation-01.json` and `.appraisejs/m02-r22-post-review-input-check-01.json` retain sanitized check evidence. All 3,349 frozen baseline files/full modes and 3,607 pre-existing worktree files match. The later snapshot excluded 23 new R22 files already being created by the authorized worker.
+
+The reviewed synthetic specimen and projected-decision input passed read-only entrypoint gates using explicit imported test seams. Neither is a real actual-decision precheck or launch authority. The actual decision `.appraisejs/m02-t2-r22-recovery-user-decision.json` and root `/private/tmp/appraise-m02-ta-matrix-p8` remain absent.
+
+Only next proposed action: [the exact bounded R22 authorization request](m02-ta-t2-r22-authorization-request-01.md), which includes exact hashes, a non-authority decision template, complete commands, fresh paths, ceilings and stop conditions. Cumulative ceilings preserve R21's consumed listener1/sourceCapacity4: matrix listeners32, sourceCapacity82, combined listeners33 including R16. Source capacity is not an observed OS process count. Approval would permit one read-only precheck and, only on success, one full T2 invocation. No automatic successor or T3 follows. Current authority still forbids native/runtime/socket/probe/auth/inference/grant/tracing/commit/push actions.

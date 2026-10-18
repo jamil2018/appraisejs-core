@@ -1,0 +1,14 @@
+{
+  "schema": "appraise.m02-ta-r9-collector-variant/v1",
+  "input": {
+    "path": "packages/appraisejs/dist/mcp/native-descriptor-capture.js",
+    "sha256": "fd9e1d8e6b9f1e48e823dc2d3bccb355cadc69176b61c5e2998e3cbc8d541f9f"
+  },
+  "output": {
+    "path": "scripts/tests/fixtures/codex-app-server-m02-ta-runtime-r9/native-descriptor-capture-r9.mjs",
+    "sha256": "bc2d954c5194a58a4ef4d683fff1d5a76a5dfda88f1fad8da503bd8a17428158"
+  },
+  "normalizedBackSha256": "fd9e1d8e6b9f1e48e823dc2d3bccb355cadc69176b61c5e2998e3cbc8d541f9f",
+  "delta": "typed-Lite optional canonical at_UUIDv5 id only; retained in container metadata",
+  "sourcePinSha256": "1670f4324cd9ffe59f202aa3531e0a3d515b2805d879982c6acca3a442c9e667"
+}

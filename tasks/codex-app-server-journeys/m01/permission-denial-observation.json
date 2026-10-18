@@ -1,0 +1,173 @@
+{
+  "evidenceClass": "actual-binary-local-scripted-permission-denial",
+  "binarySha256": "0d5ac7aae20c4eda6242428d5e218c55ba96d8763fda2a271088ff37104b9d28",
+  "sourceSha256": "e864c35659b502cf328872cc1bb56ad31135610d119a4a5a2f6bbf6ad32aa0e8",
+  "sharedClientSourceSha256": "a78543ff514cf2c8e3860ea080205d664e572a4ef6f2d06ff7a5919ce266ff0d",
+  "fixtureExceptionDocumentSha256": "03444338b6369b9045944c98597fe64d8d319b83c53a18ee93aa0b0f4cdb914b",
+  "events": [
+    {
+      "method": "turn/started",
+      "threadId": "01a136bc-cdb5-7590-b7d9-b0e8f2a01a0a",
+      "turnId": "01a136bc-cdbd-7962-b847-109edfcf0b9f",
+      "status": "inProgress"
+    },
+    {
+      "method": "turn/completed",
+      "threadId": "01a136bc-cdb5-7590-b7d9-b0e8f2a01a0a",
+      "turnId": "01a136bc-cdbd-7962-b847-109edfcf0b9f",
+      "status": "completed"
+    }
+  ],
+  "requests": [
+    {
+      "id": 0,
+      "method": "item/permissions/requestApproval",
+      "threadId": "01a136bc-cdb5-7590-b7d9-b0e8f2a01a0a",
+      "turnId": "01a136bc-cdbd-7962-b847-109edfcf0b9f",
+      "itemId": "m01-permission",
+      "grantedPermissions": {},
+      "scope": "turn"
+    }
+  ],
+  "httpRequests": [
+    {
+      "topLevelToolsPresent": false,
+      "manifestLocations": ["input[0].additional_tools"],
+      "toolTypes": ["custom", "function", "namespace"],
+      "toolNames": [
+        "collaboration.followup_task",
+        "collaboration.interrupt_agent",
+        "collaboration.list_agents",
+        "collaboration.send_message",
+        "collaboration.spawn_agent",
+        "collaboration.wait_agent",
+        "functions.exec",
+        "functions.request_user_input",
+        "functions.request_user_input_async",
+        "functions.wait"
+      ],
+      "authorizationPresent": false
+    },
+    {
+      "topLevelToolsPresent": false,
+      "manifestLocations": ["input[0].additional_tools"],
+      "toolTypes": ["custom", "function", "namespace"],
+      "toolNames": [
+        "collaboration.followup_task",
+        "collaboration.interrupt_agent",
+        "collaboration.list_agents",
+        "collaboration.send_message",
+        "collaboration.spawn_agent",
+        "collaboration.wait_agent",
+        "functions.exec",
+        "functions.request_user_input",
+        "functions.request_user_input_async",
+        "functions.wait"
+      ],
+      "authorizationPresent": false
+    }
+  ],
+  "processExits": [0],
+  "approvalPolicy": {
+    "granular": {
+      "mcp_elicitations": false,
+      "sandbox_approval": false,
+      "rules": false,
+      "request_permissions": true,
+      "skill_approval": false
+    }
+  },
+  "externalInferenceTurns": 0,
+  "permissionGrants": 0,
+  "nativeExecCalls": 0,
+  "commandCalls": 0,
+  "m01Complete": false,
+  "configSha256": "cc50b521f5b43a232a895302a617adfed68893ab3eeff08842f856bf23ad3353",
+  "processStarts": 1,
+  "userAgent": "appraise_m01_denial/0.162.0-alpha.17.2 (Mac OS 27.0.1; arm64) unknown (appraise_m01_denial; 0.1)",
+  "effectiveConfigSha256": "0888136597c1f0557205d7b196ed4f3ed56ed8d3e3f39fe3014958494dce3f42",
+  "threadId": "01a136bc-cdb5-7590-b7d9-b0e8f2a01a0a",
+  "scriptedTurnStarts": 1,
+  "turnId": "01a136bc-cdbd-7962-b847-109edfcf0b9f",
+  "items": [
+    {
+      "method": "item/started",
+      "threadId": "01a136bc-cdb5-7590-b7d9-b0e8f2a01a0a",
+      "turnId": "01a136bc-cdbd-7962-b847-109edfcf0b9f",
+      "itemId": "01a136bc-cdc7-71b2-a6ed-c6071c08cda6",
+      "type": "userMessage"
+    },
+    {
+      "method": "item/completed",
+      "threadId": "01a136bc-cdb5-7590-b7d9-b0e8f2a01a0a",
+      "turnId": "01a136bc-cdbd-7962-b847-109edfcf0b9f",
+      "itemId": "01a136bc-cdc7-71b2-a6ed-c6071c08cda6",
+      "type": "userMessage"
+    },
+    {
+      "method": "item/started",
+      "threadId": "01a136bc-cdb5-7590-b7d9-b0e8f2a01a0a",
+      "turnId": "01a136bc-cdbd-7962-b847-109edfcf0b9f",
+      "itemId": "m01-message",
+      "type": "agentMessage"
+    },
+    {
+      "method": "item/completed",
+      "threadId": "01a136bc-cdb5-7590-b7d9-b0e8f2a01a0a",
+      "turnId": "01a136bc-cdbd-7962-b847-109edfcf0b9f",
+      "itemId": "m01-message",
+      "type": "agentMessage"
+    }
+  ],
+  "usage": {
+    "totalTokens": 4,
+    "inputTokens": 2,
+    "cachedInputTokens": 0,
+    "cacheWriteInputTokens": 0,
+    "outputTokens": 2,
+    "reasoningOutputTokens": 0
+  },
+  "toolResult": {
+    "permissions": {
+      "network": null,
+      "file_system": null
+    },
+    "scope": "turn"
+  },
+  "terminalStatus": "completed",
+  "authFilePresent": false,
+  "intents": [
+    {
+      "method": "owned-process-launch",
+      "transportGeneration": 1
+    },
+    {
+      "id": 1,
+      "transportGeneration": 1,
+      "method": "initialize",
+      "paramsSha256": "d02460c38f3566c19091c8a65ecf1ce301c9b9caab930737d67b46cee584edff",
+      "atUtc": "2026-10-13T19:28:25Z"
+    },
+    {
+      "id": 2,
+      "transportGeneration": 1,
+      "method": "config/read",
+      "paramsSha256": "40518afc5bba0bcf673efa066adf0eba80111ca759c612cb3bd186d0fa4bdd02",
+      "atUtc": "2026-10-13T19:28:25Z"
+    },
+    {
+      "id": 3,
+      "transportGeneration": 1,
+      "method": "thread/start",
+      "paramsSha256": "be27d296c7ccdcd9e4bd9d047dd137297c951c0517820a832c6569ab3769f7eb",
+      "atUtc": "2026-10-13T19:28:25Z"
+    },
+    {
+      "id": 4,
+      "transportGeneration": 1,
+      "method": "turn/start",
+      "paramsSha256": "b54257a597d7678e72dc564b274fe95203d13ffc9d7626378cdeda25df2a945f",
+      "atUtc": "2026-10-13T19:28:25Z"
+    }
+  ]
+}
