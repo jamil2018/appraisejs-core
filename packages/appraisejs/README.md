@@ -100,3 +100,7 @@ every nonempty entry requires explicit risk acceptance at closure.
 Quality Journeys are the sole agent-enabled quality authority. Only Journey-managed execution, sealed Journey evidence,
 triage, report review, and closure can produce a quality outcome. Independent Test Runs remain non-authoritative
 diagnostics and cannot become Journey evidence.
+
+## Journey session compatibility
+
+Journey MCP mutation schemas accept optional `coordinatorSessionId` and `coordinatorGeneration` for explicitly selected internal managed hosting, while retaining legacy handoff credentials. The authenticated hub validates the current persisted owner and attempt binding; omitting credentials does not authorize managed work. Session registration/activation/transfer remain trusted in-process hub operations. This package change does not register production app-server dispatch. See [host-neutral sessions](../../docs/quality-journey-host-sessions.md).

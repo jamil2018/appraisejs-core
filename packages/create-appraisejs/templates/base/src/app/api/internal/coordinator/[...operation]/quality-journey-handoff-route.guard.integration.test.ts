@@ -1,3 +1,4 @@
+import { trustedHumanCoordinatorSession } from '@/services/coordinator/quality-journey-coordinator-session'
 import { createHash } from 'node:crypto'
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
@@ -68,6 +69,8 @@ beforeAll(async () => {
   })
   await client.qualityJourney.create({
     data: {
+      hostingMode: 'EXTERNAL_LEGACY',
+      hostingProvenance: 'CREATED_COMPATIBILITY_V1',
       id: 'journey-handoff-route',
       targetProjectId: 'target-handoff-route',
       rootIdempotencyKey: 'route-handoff',
@@ -225,4 +228,220 @@ it('rejects every stale coordinator-facing Journey mutation before it can mutate
     version: before.version,
     stateHash: before.stateHash,
   })
+})
+
+it('reads a managed accepted outcome after transfer without current-session authority and refuses forged secrets', async () => {
+  const {
+    createQualityJourney,
+    submitDurableQualityJourneyCommand,
+    claimExternalQualityJourneyWork,
+    admitExternalQualityJourneyWork,
+    acceptExternalQualityJourneySubmissionInTransaction,
+    cancelQualityJourneyWork,
+  } = await import('@/services/coordinator/quality-journey-service')
+  const {
+    registerQualityJourneyCoordinatorSession: register,
+    activateQualityJourneyCoordinatorSession: activate,
+    transferQualityJourneyCoordinatorSession: transfer,
+  } = await import('@/services/coordinator/quality-journey-session-service')
+  const created = await createQualityJourney(
+    {
+      targetProjectId: 'target-handoff-route',
+      idempotencyKey: 'managed-outcome-route',
+      requirement: { objective: 'Read a durable outcome across managed transfer.' },
+      hostingMode: 'APP_SERVER_LOCAL_V1',
+    },
+    client,
+  )
+  const scope = { journeyId: created.journey.journeyId, targetProjectId: 'target-handoff-route' }
+  const principal = { principalId: `coordinator:${projectFingerprint}`, assurance: 'PROJECT_CREDENTIAL_ONLY' as const }
+  const candidate = await register(
+    { ...scope, ownerPrincipalId: principal.principalId, hostKind: 'APP_SERVER_LOCAL_V1', idempotencyKey: 'first' },
+    client,
+  )
+  const first = await activate(
+    {
+      ...scope,
+      authority: trustedHumanCoordinatorSession,
+      coordinatorPrincipalId: principal.principalId,
+      coordinatorSessionId: candidate.session.id,
+      requestId: 'activate',
+      expectedOwnershipVersion: 0,
+      expectedStateHash: created.journey.stateHash,
+      approvedBy: 'local-ui',
+    },
+    client,
+  )
+  const credentials = {
+    coordinatorSessionId: first.coordinatorSessionId,
+    coordinatorGeneration: first.coordinatorGeneration,
+    coordinatorPrincipalId: principal.principalId,
+  }
+  const revision = await client.qualityJourneyRevision.findUniqueOrThrow({
+    where: { id: created.journey.activeRevisionIds.journey },
+  })
+  await submitDurableQualityJourneyCommand(
+    {
+      schemaVersion: 'appraise.quality-journey/v1',
+      commandId: 'route-managed-confirm',
+      ...scope,
+      actor: 'USER',
+      command: 'SUBMIT_REQUIREMENT',
+      expectedStateHash: created.journey.stateHash,
+      idempotencyKey: 'route-managed-confirm',
+      inputArtifactRefs: [],
+      payload: { journeyRevisionId: revision.id, requirementHash: revision.contentHash },
+    },
+    client,
+    trustedHumanCoordinatorSession,
+  )
+  const assignmentSecret = 'route-managed-assignment-secret-0123456789'
+  const claimed = await claimExternalQualityJourneyWork(
+    {
+      ...scope,
+      ...credentials,
+      role: 'REQUIREMENT_ANALYZER',
+      principal,
+      assignmentSecret,
+      idempotencyKey: 'route-managed-claim',
+    },
+    client,
+  )
+  const binding = {
+    ...scope,
+    ...credentials,
+    role: 'REQUIREMENT_ANALYZER' as const,
+    principal,
+    assignmentSecret,
+    workItemId: claimed.attempt.workItemId,
+    attemptId: claimed.attempt.id,
+    assignmentId: claimed.attempt.assignmentId!,
+    assignmentGeneration: claimed.attempt.assignmentGeneration,
+    leaseId: claimed.attempt.leaseId,
+  }
+  await admitExternalQualityJourneyWork({ ...binding, idempotencyKey: 'route-managed-admit' }, client)
+  const outcome = { artifactId: 'route-accepted-artifact', accepted: true }
+  await client.$transaction(tx =>
+    acceptExternalQualityJourneySubmissionInTransaction(
+      {
+        ...binding,
+        operation: 'ANALYSIS_SUBMIT',
+        idempotencyKey: 'route-managed-accepted',
+        payload: { fixture: 'route-only-outcome' },
+      },
+      tx,
+      async () => {
+        await tx.qualityJourneyArtifact.create({
+          data: {
+            id: outcome.artifactId,
+            identityKey: outcome.artifactId,
+            ...scope,
+            cycleId: created.journey.activeCycleId,
+            kind: 'ROUTE_FIXTURE',
+            artifactId: outcome.artifactId,
+            contentHash: `sha256:${'a'.repeat(64)}`,
+            artifactJson: JSON.stringify(outcome),
+          },
+        })
+        return outcome
+      },
+    ),
+  )
+  await cancelQualityJourneyWork(
+    {
+      ...scope,
+      ...credentials,
+      workItemId: claimed.attempt.workItemId,
+      actor: 'USER',
+      reason: 'Explicitly quiesce the disposable route fixture.',
+    },
+    client,
+  )
+  const successor = await register(
+    { ...scope, ownerPrincipalId: principal.principalId, hostKind: 'APP_SERVER_LOCAL_V1', idempotencyKey: 'second' },
+    client,
+  )
+  const current = await client.qualityJourney.findUniqueOrThrow({ where: { id: scope.journeyId } })
+  await transfer(
+    {
+      ...scope,
+      authority: trustedHumanCoordinatorSession,
+      coordinatorPrincipalId: principal.principalId,
+      successorSessionId: successor.session.id,
+      predecessorSessionId: first.coordinatorSessionId,
+      predecessorGeneration: first.coordinatorGeneration,
+      requestId: 'transfer',
+      expectedOwnershipVersion: current.ownershipVersion,
+      expectedStateHash: current.stateHash,
+      approvedBy: 'local-ui',
+      reconciliationReceiptId: 'route-fixture-quiescent',
+    },
+    client,
+  )
+  const path = ['quality', 'journeys', scope.journeyId, 'external-work', 'outcomes']
+  const body = {
+    target: scope.targetProjectId,
+    role: binding.role,
+    operation: 'ANALYSIS_SUBMIT',
+    workItemId: binding.workItemId,
+    attemptId: binding.attemptId,
+    assignmentId: binding.assignmentId,
+    assignmentGeneration: binding.assignmentGeneration,
+    leaseId: binding.leaseId,
+    assignmentSecret,
+    idempotencyKey: 'route-managed-accepted',
+  }
+  const before = await client.qualityJourney.findUniqueOrThrow({ where: { id: scope.journeyId } })
+  const result = await POST(mutationRequest(path, body), { params: Promise.resolve({ operation: path }) })
+  expect(result.status).toBe(200)
+  await expect(result.json()).resolves.toMatchObject({ replayed: true, outcome })
+  for (const [action, payload] of [
+    [
+      'claim',
+      {
+        target: scope.targetProjectId,
+        role: binding.role,
+        assignmentSecret,
+        idempotencyKey: 'route-managed-claim',
+        coordinatorSessionId: first.coordinatorSessionId,
+        coordinatorGeneration: first.coordinatorGeneration,
+      },
+    ],
+    [
+      'admissions',
+      {
+        target: scope.targetProjectId,
+        role: binding.role,
+        assignmentSecret,
+        idempotencyKey: 'route-managed-admit',
+        workItemId: binding.workItemId,
+        attemptId: binding.attemptId,
+        assignmentId: binding.assignmentId,
+        assignmentGeneration: binding.assignmentGeneration,
+        leaseId: binding.leaseId,
+        coordinatorSessionId: first.coordinatorSessionId,
+        coordinatorGeneration: first.coordinatorGeneration,
+      },
+    ],
+  ] as const) {
+    const replayPath = ['quality', 'journeys', scope.journeyId, 'external-work', action]
+    const replay = await POST(mutationRequest(replayPath, payload), {
+      params: Promise.resolve({ operation: replayPath }),
+    })
+    expect(replay.status).toBe(200)
+    await expect(replay.json()).resolves.toMatchObject({ replayed: true })
+    const fresh = await POST(mutationRequest(replayPath, { ...payload, idempotencyKey: 'new-fenced-write' }), {
+      params: Promise.resolve({ operation: replayPath }),
+    })
+    expect(fresh.status).toBe(action === 'claim' ? 403 : 409)
+  }
+  const invalid = await POST(
+    mutationRequest(path, { ...body, assignmentSecret: 'wrong-secret-0123456789012345678901' }),
+    { params: Promise.resolve({ operation: path }) },
+  )
+  expect(invalid.status).toBe(401)
+  const wrongPrincipal = mutationRequest(path, body)
+  wrongPrincipal.headers.set('x-appraise-project', 'foreign-project')
+  expect((await POST(wrongPrincipal, { params: Promise.resolve({ operation: path }) })).status).toBe(409)
+  expect(await client.qualityJourney.findUniqueOrThrow({ where: { id: scope.journeyId } })).toEqual(before)
 })

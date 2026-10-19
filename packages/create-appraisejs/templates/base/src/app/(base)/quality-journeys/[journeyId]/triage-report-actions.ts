@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
 import { requireActiveProjectForMutation } from '@/lib/active-project'
+import { trustedHumanCoordinatorSession } from '@/services/coordinator/quality-journey-coordinator-session'
 import {
   approveQualityJourneyRemediation,
   requestQualityJourneyReportRevision,
@@ -46,8 +47,8 @@ export async function qualityJourneyTriageReviewAction(
     const request = { ...reviewInput.parse(values), targetProjectId: project.id }
     const data =
       action.parse(kind) === 'revision'
-        ? await requestQualityJourneyReportRevision(request)
-        : await approveQualityJourneyRemediation(request)
+        ? await requestQualityJourneyReportRevision(request, undefined, trustedHumanCoordinatorSession)
+        : await approveQualityJourneyRemediation(request, undefined, trustedHumanCoordinatorSession)
     revalidatePath(`/quality-journeys/${request.journeyId}`)
     return { success: true, status: 200, data }
   } catch (error) {

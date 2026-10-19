@@ -532,6 +532,12 @@ model QualityJourney {
   targetProjectId                   String
   rootIdempotencyKey                String
   rootRequestHash                   String
+  hostingMode                       String                                       @default("LEGACY_UNRESOLVED")
+  hostingProvenance                 String                                       @default("M03_SQL_V1:CLASSIFICATION_PENDING")
+  currentCoordinatorSessionId       String?                                      @unique
+  ownershipVersion                  Int                                          @default(0)
+  currentCoordinatorSession         QualityJourneyCoordinatorSession?            @relation("CurrentCoordinatorSession", fields: [currentCoordinatorSessionId], references: [id], onDelete: Restrict)
+  coordinatorSessions               QualityJourneyCoordinatorSession[]           @relation("JourneyCoordinatorSessions")
   stage                             QualityJourneyStage                          @default(INTAKE)
   status                            String                                       @default("ACTIVE")
   activeCycleId                     String
@@ -683,6 +689,61 @@ model QualityJourneyReuseSeed {
 
   @@unique([draftId, kind, assetPortableId, sourceVersion])
   @@index([bindingId, assetPortableId, sourceVersion])
+}
+
+model QualityJourneyCoordinatorSession {
+  id                      String                                    @id
+  journeyId               String
+  targetProjectId         String
+  ownerPrincipalId        String
+  hostKind                String
+  status                  String                                    @default("REGISTERED")
+  generation              Int?
+  registrationKey         String
+  registrationRequestHash String
+  predecessorSessionId    String?
+  legacyHandoffId         String?                                   @unique
+  transitionRequestId     String?
+  transitionRequestHash   String?
+  transitionRequestJson   String?
+  transitionResultJson    String?
+  provenance              String
+  activatedAt             DateTime?
+  fencedAt                DateTime?
+  fenceReason             String?
+  createdAt               DateTime                                  @default(now())
+  journey                 QualityJourney                            @relation("JourneyCoordinatorSessions", fields: [journeyId], references: [id], onDelete: Restrict)
+  currentJourney          QualityJourney?                           @relation("CurrentCoordinatorSession")
+  predecessor             QualityJourneyCoordinatorSession?         @relation("SessionPredecessor", fields: [predecessorSessionId], references: [id], onDelete: Restrict)
+  successors              QualityJourneyCoordinatorSession[]        @relation("SessionPredecessor")
+  attemptBindings         QualityJourneyWorkAttemptSessionBinding[]
+
+  @@unique([journeyId, targetProjectId, generation])
+  @@unique([journeyId, targetProjectId, registrationKey])
+  @@unique([journeyId, targetProjectId, transitionRequestId])
+  @@index([journeyId, targetProjectId, status])
+}
+
+/// Side records retain historical request/manifest bytes unchanged.
+model QualityJourneyWorkAttemptSessionBinding {
+  attemptId             String                            @id
+  journeyId             String
+  targetProjectId       String
+  sessionId             String?
+  coordinatorGeneration Int?
+  assignmentGeneration  Int
+  workItemId            String
+  role                  String
+  authorizationId       String?
+  leaseId               String
+  inputHash             String
+  assignmentId          String?
+  provenance            String
+  createdAt             DateTime                          @default(now())
+  attempt               QualityJourneyWorkAttempt         @relation(fields: [attemptId], references: [id], onDelete: Restrict)
+  session               QualityJourneyCoordinatorSession? @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+
+  @@index([journeyId, targetProjectId, sessionId])
 }
 
 model QualityJourneyCoordinatorHandoff {
@@ -1535,6 +1596,7 @@ model QualityJourneyWorkAttempt {
   scenarioSubmissions        QualityJourneyScenarioPortfolioRevision[] @relation("QualityJourneyScenarioSubmittedAttempt")
   automationMaterializations QualityJourneyAutomationMaterialization[]
   automationRequestReceipts  QualityJourneyAutomationRequestReceipt[]
+  sessionBinding             QualityJourneyWorkAttemptSessionBinding?
   externalWorkClaimReceipt   QualityJourneyExternalWorkClaimReceipt?
   externalSubmissionAcceptances QualityJourneyExternalSubmissionAcceptance[]
 

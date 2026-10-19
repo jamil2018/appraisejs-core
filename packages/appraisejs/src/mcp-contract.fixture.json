@@ -846,6 +846,11 @@
             "type": "string",
             "minLength": 1
           },
+          "coordinatorSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
           "coordinatorHandoffId": {
             "type": "string",
             "minLength": 1,
@@ -1340,6 +1345,11 @@
             "maxLength": 200,
             "pattern": "^[A-Za-z0-9._:-]+$"
           },
+          "coordinatorSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
           "coordinatorHandoffId": {
             "type": "string",
             "minLength": 1,
@@ -1416,6 +1426,11 @@
           "contentHash": {
             "type": "string",
             "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "coordinatorSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
           },
           "coordinatorHandoffId": {
             "type": "string",
@@ -1523,6 +1538,11 @@
             "type": "string",
             "pattern": "^sha256:[a-f0-9]{64}$"
           },
+          "coordinatorSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
           "coordinatorHandoffId": {
             "type": "string",
             "minLength": 1,
@@ -1609,6 +1629,11 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 8000
+          },
+          "coordinatorSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
           },
           "coordinatorHandoffId": {
             "type": "string",
@@ -1961,6 +1986,11 @@
               "resolvedQuestionAnswerIds"
             ],
             "additionalProperties": false
+          },
+          "coordinatorSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
           },
           "coordinatorHandoffId": {
             "type": "string",
@@ -2554,6 +2584,11 @@
             ],
             "additionalProperties": false
           },
+          "coordinatorSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
           "coordinatorHandoffId": {
             "type": "string",
             "minLength": 1,
@@ -2609,6 +2644,11 @@
               "type": "string"
             },
             "additionalProperties": {}
+          },
+          "coordinatorSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
           },
           "coordinatorHandoffId": {
             "type": "string",
@@ -2851,6 +2891,11 @@
             "minLength": 1,
             "maxLength": 8000
           },
+          "coordinatorSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
           "coordinatorHandoffId": {
             "type": "string",
             "minLength": 1,
@@ -2900,6 +2945,11 @@
             "maxLength": 200,
             "pattern": "^[A-Za-z0-9._:-]+$"
           },
+          "coordinatorSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
           "coordinatorHandoffId": {
             "type": "string",
             "minLength": 1,
@@ -2948,6 +2998,12 @@
             "pattern": "^sha256:[a-f0-9]{64}$"
           },
           "idempotencyKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "coordinatorSessionId": {
             "type": "string",
             "minLength": 1,
             "maxLength": 200,
@@ -3069,6 +3125,12 @@
             "maxLength": 200,
             "pattern": "^[A-Za-z0-9._:-]+$"
           },
+          "coordinatorSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
           "coordinatorHandoffId": {
             "type": "string",
             "minLength": 1,
@@ -3119,6 +3181,12 @@
             "pattern": "^sha256:[a-f0-9]{64}$"
           },
           "idempotencyKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "coordinatorSessionId": {
             "type": "string",
             "minLength": 1,
             "maxLength": 200,
@@ -3270,6 +3338,11 @@
             "minLength": 1,
             "maxLength": 200,
             "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "coordinatorSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
           },
           "coordinatorHandoffId": {
             "type": "string",
@@ -3633,6 +3706,11 @@
             ],
             "additionalProperties": false
           },
+          "coordinatorSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
           "coordinatorHandoffId": {
             "type": "string",
             "minLength": 1,
@@ -3696,6 +3774,11 @@
             "type": "integer",
             "minimum": 30,
             "maximum": 900
+          },
+          "coordinatorSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
           },
           "coordinatorHandoffId": {
             "type": "string",
@@ -4204,6 +4287,11 @@
             ],
             "additionalProperties": false
           },
+          "coordinatorSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
           "coordinatorHandoffId": {
             "type": "string",
             "minLength": 1,
@@ -4308,6 +4396,11 @@
             "type": "string",
             "minLength": 32,
             "maxLength": 2000
+          },
+          "coordinatorSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
           },
           "coordinatorHandoffId": {
             "type": "string",
@@ -5493,6 +5586,11 @@
             ],
             "additionalProperties": false
           },
+          "coordinatorSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
           "coordinatorHandoffId": {
             "type": "string",
             "minLength": 1,
@@ -5597,6 +5695,11 @@
             "type": "string",
             "minLength": 32,
             "maxLength": 2000
+          },
+          "coordinatorSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
           },
           "coordinatorHandoffId": {
             "type": "string",
@@ -6509,6 +6612,12 @@
             ],
             "additionalProperties": false
           },
+          "coordinatorSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
           "coordinatorHandoffId": {
             "type": "string",
             "minLength": 1,
@@ -6610,6 +6719,11 @@
             "maxLength": 200,
             "pattern": "^[A-Za-z0-9._:-]+$"
           },
+          "coordinatorSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
           "coordinatorHandoffId": {
             "type": "string",
             "minLength": 1,
@@ -6684,6 +6798,11 @@
             "type": "integer",
             "minimum": 30,
             "maximum": 900
+          },
+          "coordinatorSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
           },
           "coordinatorHandoffId": {
             "type": "string",
@@ -7039,6 +7158,12 @@
             "maxLength": 200,
             "pattern": "^[A-Za-z0-9._:-]+$"
           },
+          "coordinatorSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
           "coordinatorHandoffId": {
             "type": "string",
             "minLength": 1,
@@ -7092,6 +7217,12 @@
             "pattern": "^sha256:[a-f0-9]{64}$"
           },
           "idempotencyKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "coordinatorSessionId": {
             "type": "string",
             "minLength": 1,
             "maxLength": 200,
@@ -7212,6 +7343,11 @@
           "expectedScopeHash": {
             "type": "string",
             "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "coordinatorSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
           },
           "coordinatorHandoffId": {
             "type": "string",
@@ -7801,6 +7937,11 @@
             "type": "string",
             "minLength": 1
           },
+          "coordinatorSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
           "coordinatorHandoffId": {
             "type": "string",
             "minLength": 1,
@@ -7901,6 +8042,11 @@
             "type": "string",
             "pattern": "^sha256:[a-f0-9]{64}$"
           },
+          "coordinatorSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
           "coordinatorHandoffId": {
             "type": "string",
             "minLength": 1,
@@ -7962,6 +8108,11 @@
             "minLength": 1,
             "maxLength": 200,
             "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "coordinatorSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
           },
           "coordinatorHandoffId": {
             "type": "string",
@@ -8588,6 +8739,11 @@
             ],
             "additionalProperties": false
           },
+          "coordinatorSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
           "coordinatorHandoffId": {
             "type": "string",
             "minLength": 1,
@@ -8679,6 +8835,11 @@
           "expectedScopeHash": {
             "type": "string",
             "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "coordinatorSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
           },
           "coordinatorHandoffId": {
             "type": "string",
@@ -9087,6 +9248,12 @@
               "log"
             ]
           },
+          "coordinatorSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
           "coordinatorHandoffId": {
             "type": "string",
             "minLength": 1,
@@ -9175,6 +9342,12 @@
             "pattern": "^[A-Za-z0-9._:-]+$"
           },
           "executionCycleId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
+          "coordinatorSessionId": {
             "type": "string",
             "minLength": 1,
             "maxLength": 200,
@@ -9749,6 +9922,12 @@
             ],
             "additionalProperties": false
           },
+          "coordinatorSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          },
           "coordinatorHandoffId": {
             "type": "string",
             "minLength": 1,
@@ -9814,6 +9993,11 @@
             "minLength": 1,
             "maxLength": 8000
           },
+          "coordinatorSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
           "coordinatorHandoffId": {
             "type": "string",
             "minLength": 1,
@@ -9872,6 +10056,11 @@
             "type": "integer",
             "minimum": 30,
             "maximum": 900
+          },
+          "coordinatorSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
           },
           "coordinatorHandoffId": {
             "type": "string",
@@ -9933,6 +10122,11 @@
             },
             "additionalProperties": {}
           },
+          "coordinatorSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
           "coordinatorHandoffId": {
             "type": "string",
             "minLength": 1,
@@ -9988,6 +10182,11 @@
           "ownerToken": {
             "type": "string",
             "minLength": 1
+          },
+          "coordinatorSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
           },
           "coordinatorHandoffId": {
             "type": "string",
@@ -10048,6 +10247,11 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 8000
+          },
+          "coordinatorSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
           },
           "coordinatorHandoffId": {
             "type": "string",

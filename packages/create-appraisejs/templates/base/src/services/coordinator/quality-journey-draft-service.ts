@@ -1,3 +1,4 @@
+import { trustedHumanCoordinatorSession } from './quality-journey-coordinator-session'
 import { createHash } from 'node:crypto'
 import { Prisma, type PrismaClient } from '@prisma/client'
 import prisma from '@/config/db-config'
@@ -299,7 +300,7 @@ function guidedRequirementForConfirmation(draft: NonNullable<DraftRow>) {
 
 async function createAndSubmitDraftJourney(
   draft: NonNullable<DraftRow>,
-  input: { draftId: string; targetProjectId: string },
+  input: { draftId: string; targetProjectId: string; hostingMode?: 'EXTERNAL_LEGACY' | 'APP_SERVER_LOCAL_V1' },
   confirmationKey: string,
   requirement: ReturnType<typeof parseGuidedQualityJourneyRequirement>,
   requirementHash: string,
@@ -309,6 +310,7 @@ async function createAndSubmitDraftJourney(
     {
       targetProjectId: input.targetProjectId,
       idempotencyKey: confirmationKey,
+      ...(input.hostingMode ? { hostingMode: input.hostingMode } : {}),
       requirement,
       ...(draft.predecessorJourneyId ? { predecessorJourneyId: draft.predecessorJourneyId } : {}),
     },
@@ -334,6 +336,9 @@ async function createAndSubmitDraftJourney(
       payload: { journeyRevisionId: journey.activeRevisionIds.journey, requirementHash },
     },
     tx,
+    false,
+    true,
+    trustedHumanCoordinatorSession,
   )
   if (submitted.outcome !== 'COMMITTED') throw new ServiceError('Requirement submission did not commit.', 'CONFLICT')
   return journey.journeyId
@@ -376,11 +381,19 @@ export async function confirmQualityJourneyDraft(
     expectedVersion: number
     expectedDraftHash: string
     requirementHash: string
+    hostingMode?: 'EXTERNAL_LEGACY' | 'APP_SERVER_LOCAL_V1'
   },
   client: PrismaClient = prisma,
 ) {
   const confirmationKey = `draft-confirm:${input.draftId}`
-  const requestHash = hash({ ...input, confirmationKey })
+  const { hostingMode: requestedHostingMode, ...legacyInput } = input
+  if (requestedHostingMode !== undefined && !['EXTERNAL_LEGACY', 'APP_SERVER_LOCAL_V1'].includes(requestedHostingMode))
+    throw new ServiceError('Quality Journey hosting mode is invalid.', 'VALIDATION')
+  const requestHash = hash({
+    ...legacyInput,
+    confirmationKey,
+    ...(requestedHostingMode === 'APP_SERVER_LOCAL_V1' ? { hostingMode: requestedHostingMode } : {}),
+  })
   return client.$transaction(async tx => {
     const draft = await scopedDraft(input, tx)
     if (draft.status === 'CONFIRMED') return replayConfirmedDraft(draft, confirmationKey, requestHash)

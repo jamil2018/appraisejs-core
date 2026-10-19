@@ -37,14 +37,26 @@ function result(role: 'TEST_SCENARIO_DESIGNER' | 'AUTOMATOR' | 'TRIAGER') {
 }
 
 function externalAttemptClient() {
-  const findUnique = vi.fn().mockResolvedValue({ executionMode: 'EXTERNAL_V1' })
+  const findUnique = vi.fn().mockResolvedValue({
+    executionMode: 'EXTERNAL_V1',
+    workItem: { journeyId: ids.journeyId, targetProjectId: ids.targetProjectId },
+  })
   const mutation = vi.fn(() => {
     throw new Error('A legacy EXTERNAL_V1 submission reached a mutation path.')
   })
   const client = {
     $transaction: async (effect: (tx: unknown) => Promise<unknown>) => effect(client),
     qualityJourney: {
-      findFirst: vi.fn().mockResolvedValue({ stage: 'DISCOVERY', status: 'ACTIVE' }),
+      findFirst: vi.fn().mockResolvedValue({
+        id: ids.journeyId,
+        targetProjectId: ids.targetProjectId,
+        hostingMode: 'EXTERNAL_LEGACY',
+        hostingProvenance: 'CREATED_COMPATIBILITY_V1',
+        currentCoordinatorSessionId: null,
+        ownershipVersion: 0,
+        stage: 'DISCOVERY',
+        status: 'ACTIVE',
+      }),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
     qualityJourneyWorkAttempt: { findUnique },

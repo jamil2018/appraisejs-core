@@ -16,39 +16,51 @@ export function auditQualityJourneyIntegrity(database: JourneyAuditDatabase) {
     throw new Error('Quality Journey schema is missing; apply forward migrations.')
   for (const row of database.prepare('PRAGMA foreign_key_check').all())
     issues.push({ table: String(row.table), recordId: String(row.rowid), reason: 'FOREIGN_KEY_ORPHAN' })
-  let checkedTables = 0
-  for (const table of tables.filter(name => name.startsWith('QualityJourney'))) {
-    checkedTables++
-    const columns = database
-      .prepare(`PRAGMA table_info(${identifier(table)})`)
-      .all()
-      .map(row => row.name)
-    if (!columns.includes('journeyId')) continue
-    const owner = columns.includes('targetProjectId') ? ' OR r.targetProjectId != j.targetProjectId' : ''
-    for (const row of database
-      .prepare(
-        `SELECT r.id FROM ${identifier(table)} r LEFT JOIN QualityJourney j ON j.id=r.journeyId WHERE j.id IS NULL${owner}`,
-      )
-      .all())
-      issues.push({ table, recordId: String(row.id), reason: 'JOURNEY_SCOPE_MISMATCH' })
-    if (columns.includes('cycleId')) {
-      for (const row of database
-        .prepare(
-          `SELECT r.id FROM ${identifier(table)} r LEFT JOIN QualityJourneyCycle c ON c.id=r.cycleId AND c.journeyId=r.journeyId WHERE c.id IS NULL`,
-        )
-        .all())
-        issues.push({ table, recordId: String(row.id), reason: 'CYCLE_SCOPE_MISMATCH' })
-    }
-  }
+  const journeyTables = tables.filter(name => name.startsWith('QualityJourney'))
+  for (const table of journeyTables) checkDirectOwnership(database, table, issues)
   checkJourneyHeads(database, issues)
   checkRelationalOwnership(database, tables, issues)
   checkOwnershipEdges(database, issues)
   return {
     schema: 'appraise.quality-journey-integrity/v1',
     result: issues.length ? 'FAIL' : 'PASS',
-    checkedTables,
+    checkedTables: journeyTables.length,
     issues,
   }
+}
+
+function primaryKeyColumns(metadata: Row[]) {
+  return metadata
+    .filter(row => Number(row.pk) > 0)
+    .sort((left, right) => Number(left.pk) - Number(right.pk))
+    .map(row => String(row.name))
+}
+
+function recordIdExpression(primaryKey: string[]) {
+  if (!primaryKey.length) return 'r.rowid'
+  const keys = primaryKey.map(key => `r.${identifier(key)}`)
+  return keys.length === 1 ? keys[0] : `json_array(${keys.join(',')})`
+}
+
+function checkDirectOwnership(database: JourneyAuditDatabase, table: string, issues: Issue[]) {
+  const metadata = database.prepare(`PRAGMA table_info(${identifier(table)})`).all()
+  const columns = metadata.map(row => row.name)
+  if (!columns.includes('journeyId')) return
+  const recordId = recordIdExpression(primaryKeyColumns(metadata))
+  const owner = columns.includes('targetProjectId') ? ' OR r.targetProjectId != j.targetProjectId' : ''
+  const scoped = database
+    .prepare(
+      `SELECT ${recordId} AS recordId FROM ${identifier(table)} r LEFT JOIN QualityJourney j ON j.id=r.journeyId WHERE j.id IS NULL${owner}`,
+    )
+    .all()
+  for (const row of scoped) issues.push({ table, recordId: String(row.recordId), reason: 'JOURNEY_SCOPE_MISMATCH' })
+  if (!columns.includes('cycleId')) return
+  const cycles = database
+    .prepare(
+      `SELECT ${recordId} AS recordId FROM ${identifier(table)} r LEFT JOIN QualityJourneyCycle c ON c.id=r.cycleId AND c.journeyId=r.journeyId WHERE c.id IS NULL`,
+    )
+    .all()
+  for (const row of cycles) issues.push({ table, recordId: String(row.recordId), reason: 'CYCLE_SCOPE_MISMATCH' })
 }
 
 /** Follow declared relationships using identifiers only. In particular, rows
@@ -60,10 +72,7 @@ function checkRelationalOwnership(database: JourneyAuditDatabase, tables: string
   for (const table of tables) {
     const metadata = database.prepare(`PRAGMA table_info(${identifier(table)})`).all()
     const columns = metadata.map(row => String(row.name))
-    const primaryKey = metadata
-      .filter(row => Number(row.pk) > 0)
-      .sort((left, right) => Number(left.pk) - Number(right.pk))
-      .map(row => String(row.name))
+    const primaryKey = primaryKeyColumns(metadata)
     const grouped = new Map<string, Relation>()
     for (const fk of database.prepare(`PRAGMA foreign_key_list(${identifier(table)})`).all()) {
       const key = String(fk.id)

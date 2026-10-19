@@ -127,9 +127,9 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "ajv": "^6.15.0",
     "@babel/traverse": "^7.29.0",
     "@cucumber/cucumber": "^12.9.0",
+    "@modelcontextprotocol/sdk": "1.29.0",
     "@playwright/test": "^1.61.1",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
@@ -143,6 +143,8 @@
     "@types/node": "^20.19.43",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
+    "ajv": "^6.15.0",
+    "esbuild": "0.28.1",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.2.10",
     "execa": "^9.6.1",

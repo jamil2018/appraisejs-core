@@ -11,6 +11,10 @@ import {
 } from '@/lib/quality-journey'
 import { ServiceError } from '@/services/shared/errors'
 import { compileQualityJourneyTriageInput, type TriageInput } from './quality-journey-triage-input'
+import {
+  assertCoordinatorMutationSession,
+  type CoordinatorSessionCredentials,
+} from './quality-journey-coordinator-session'
 import { submitDurableQualityJourneyCommandInTransaction } from './quality-journey-service'
 import { qualityJourneyClosureItems } from './quality-journey-closure-validation'
 import { validateQualityJourneyTriageReport } from './quality-journey-triage-validation'
@@ -185,10 +189,15 @@ function validateClosureRequest(
 }
 
 /** Local terminal approval. Actor identity is local possession, never a client assertion. */
-export async function closeQualityJourney(value: unknown, client: PrismaClient = prisma) {
+export async function closeQualityJourney(
+  value: unknown,
+  client: PrismaClient = prisma,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
   const input = qualityJourneyClosureInputSchema.parse(value)
   const requestHash = hash(input)
   return client.$transaction(async tx => {
+    await assertCoordinatorMutationSession(coordinatorSession, input, tx)
     const context = await readClosureContext(input, tx)
     if (context.closure) {
       if (context.closure.idempotencyKey !== input.idempotencyKey || context.closure.requestHash !== requestHash)
@@ -315,6 +324,7 @@ export async function closeQualityJourney(value: unknown, client: PrismaClient =
       tx,
       true,
       false,
+      coordinatorSession,
     )
     if (result.outcome !== 'COMMITTED') throw conflict('Closure could not commit against the current state.')
     return { receipt, contentHash, replayed: false }

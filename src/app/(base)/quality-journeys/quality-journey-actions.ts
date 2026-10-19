@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { trustedHumanCoordinatorSession } from '@/services/coordinator/quality-journey-coordinator-session'
 import { z } from 'zod'
 
 import { environmentSchema } from '@/constants/form-opts/environment-form-opts'
@@ -179,21 +180,25 @@ export async function createQualityJourneyAction(input: unknown): Promise<Action
     const journey = created.journey
 
     if (journey.stage === 'INTAKE') {
-      const result = await submitDurableQualityJourneyCommand({
-        schemaVersion: 'appraise.quality-journey/v1',
-        commandId: `submit-requirement:${value.idempotencyKey}`,
-        journeyId: journey.journeyId,
-        targetProjectId: project.id,
-        actor: 'USER',
-        command: 'SUBMIT_REQUIREMENT',
-        expectedStateHash: journey.stateHash,
-        idempotencyKey: `submit-requirement:${value.idempotencyKey}`,
-        inputArtifactRefs: [],
-        payload: {
-          journeyRevisionId: journey.activeRevisionIds.journey,
-          requirementHash: hashQualityJourneyRequirement(requirement),
+      const result = await submitDurableQualityJourneyCommand(
+        {
+          schemaVersion: 'appraise.quality-journey/v1',
+          commandId: `submit-requirement:${value.idempotencyKey}`,
+          journeyId: journey.journeyId,
+          targetProjectId: project.id,
+          actor: 'USER',
+          command: 'SUBMIT_REQUIREMENT',
+          expectedStateHash: journey.stateHash,
+          idempotencyKey: `submit-requirement:${value.idempotencyKey}`,
+          inputArtifactRefs: [],
+          payload: {
+            journeyRevisionId: journey.activeRevisionIds.journey,
+            requirementHash: hashQualityJourneyRequirement(requirement),
+          },
         },
-      })
+        undefined,
+        trustedHumanCoordinatorSession,
+      )
       if (result.outcome !== 'COMMITTED')
         throw new ServiceError(
           'Requirement submission did not commit. Refresh the journey and retry safely.',
@@ -293,20 +298,24 @@ export async function answerQualityJourneyAnalysisQuestionAction(input: unknown)
     const value = answerQuestionSchema.parse(input)
     const project = await requireActiveProjectForMutation()
     await getQualityJourney({ journeyId: value.journeyId, targetProjectId: project.id })
-    const result = await answerQualityJourneyAnalysisQuestion({
-      idempotencyKey: value.idempotencyKey,
-      answer: {
-        schemaVersion: 'appraise.quality-journey/v1',
-        answerId: value.answerId,
-        journeyId: value.journeyId,
-        targetProjectId: project.id,
-        analysisRevisionId: value.analysisRevisionId,
-        questionId: value.questionId,
-        answer: value.answer,
-        actor: 'USER',
-        ...(value.correctionOfAnswerId ? { correctionOfAnswerId: value.correctionOfAnswerId } : {}),
+    const result = await answerQualityJourneyAnalysisQuestion(
+      {
+        idempotencyKey: value.idempotencyKey,
+        answer: {
+          schemaVersion: 'appraise.quality-journey/v1',
+          answerId: value.answerId,
+          journeyId: value.journeyId,
+          targetProjectId: project.id,
+          analysisRevisionId: value.analysisRevisionId,
+          questionId: value.questionId,
+          answer: value.answer,
+          actor: 'USER',
+          ...(value.correctionOfAnswerId ? { correctionOfAnswerId: value.correctionOfAnswerId } : {}),
+        },
       },
-    })
+      undefined,
+      trustedHumanCoordinatorSession,
+    )
     revalidatePath(`/quality-journeys/${value.journeyId}`)
     return { status: 200, success: true, data: { answerId: result.answer.answerId, replayed: result.replayed } }
   } catch (error) {
@@ -318,32 +327,36 @@ export async function requestQualityJourneyAnalysisRevisionAction(input: unknown
   try {
     const value = requestRevisionSchema.parse(input)
     const project = await requireActiveProjectForMutation()
-    const result = await requestQualityJourneyAnalysisRevision({
-      expectedReviewHash: value.expectedReviewHash,
-      command: {
-        schemaVersion: 'appraise.quality-journey/v1',
-        commandId: value.commandId,
-        journeyId: value.journeyId,
-        targetProjectId: project.id,
-        actor: 'USER',
-        command: 'REQUEST_ANALYSIS_REVISION',
-        expectedStateHash: value.expectedStateHash,
-        idempotencyKey: value.idempotencyKey,
-        inputArtifactRefs: [
-          {
-            kind: 'ANALYSIS_CHARTER_REVISION',
-            artifactId: value.artifactId,
-            revisionId: value.analysisRevisionId,
-            contentHash: value.contentHash,
+    const result = await requestQualityJourneyAnalysisRevision(
+      {
+        expectedReviewHash: value.expectedReviewHash,
+        command: {
+          schemaVersion: 'appraise.quality-journey/v1',
+          commandId: value.commandId,
+          journeyId: value.journeyId,
+          targetProjectId: project.id,
+          actor: 'USER',
+          command: 'REQUEST_ANALYSIS_REVISION',
+          expectedStateHash: value.expectedStateHash,
+          idempotencyKey: value.idempotencyKey,
+          inputArtifactRefs: [
+            {
+              kind: 'ANALYSIS_CHARTER_REVISION',
+              artifactId: value.artifactId,
+              revisionId: value.analysisRevisionId,
+              contentHash: value.contentHash,
+            },
+          ],
+          payload: {
+            reviewedRevisionId: value.analysisRevisionId,
+            reviewedHash: value.contentHash,
+            feedback: value.feedback,
           },
-        ],
-        payload: {
-          reviewedRevisionId: value.analysisRevisionId,
-          reviewedHash: value.contentHash,
-          feedback: value.feedback,
         },
       },
-    })
+      undefined,
+      trustedHumanCoordinatorSession,
+    )
     revalidatePath(`/quality-journeys/${value.journeyId}`)
     return { status: 200, success: true, data: result }
   } catch (error) {
@@ -355,25 +368,29 @@ export async function approveQualityJourneyAnalysisAction(input: unknown): Promi
   try {
     const value = reviewCommandSchema.parse(input)
     const project = await requireActiveProjectForMutation()
-    const result = await decideQualityJourneyAnalysis({
-      schemaVersion: 'appraise.quality-journey/v1',
-      commandId: value.commandId,
-      journeyId: value.journeyId,
-      targetProjectId: project.id,
-      actor: 'USER',
-      command: 'DECIDE_ANALYSIS',
-      expectedStateHash: value.expectedStateHash,
-      idempotencyKey: value.idempotencyKey,
-      inputArtifactRefs: [
-        {
-          kind: 'ANALYSIS_CHARTER_REVISION',
-          artifactId: value.artifactId,
-          revisionId: value.analysisRevisionId,
-          contentHash: value.contentHash,
-        },
-      ],
-      payload: { revisionId: value.analysisRevisionId, contentHash: value.contentHash, decision: 'APPROVED' },
-    })
+    const result = await decideQualityJourneyAnalysis(
+      {
+        schemaVersion: 'appraise.quality-journey/v1',
+        commandId: value.commandId,
+        journeyId: value.journeyId,
+        targetProjectId: project.id,
+        actor: 'USER',
+        command: 'DECIDE_ANALYSIS',
+        expectedStateHash: value.expectedStateHash,
+        idempotencyKey: value.idempotencyKey,
+        inputArtifactRefs: [
+          {
+            kind: 'ANALYSIS_CHARTER_REVISION',
+            artifactId: value.artifactId,
+            revisionId: value.analysisRevisionId,
+            contentHash: value.contentHash,
+          },
+        ],
+        payload: { revisionId: value.analysisRevisionId, contentHash: value.contentHash, decision: 'APPROVED' },
+      },
+      undefined,
+      trustedHumanCoordinatorSession,
+    )
     revalidatePath(`/quality-journeys/${value.journeyId}`)
     return { status: 200, success: true, data: result }
   } catch (error) {
@@ -394,30 +411,34 @@ export async function decideQualityJourneyScenariosAction(input: unknown): Promi
   try {
     const value = scenarioDecisionSchema.parse(input)
     const project = await requireActiveProjectForMutation()
-    const result = await decideQualityJourneyScenarios({
-      expectedReviewHash: value.expectedReviewHash,
-      approvedScenarioRevisionIds: value.approvedScenarioRevisionIds,
-      rejectedScenarioRevisionIds: value.rejectedScenarioRevisionIds,
-      feedback: value.feedback,
-      command: {
-        schemaVersion: 'appraise.quality-journey/v1',
-        commandId: value.commandId,
-        journeyId: value.journeyId,
-        targetProjectId: project.id,
-        actor: 'USER',
-        command: 'DECIDE_SCENARIOS',
-        expectedStateHash: value.expectedStateHash,
-        idempotencyKey: value.idempotencyKey,
-        inputArtifactRefs: [scenarioArtifactRef(value)],
-        payload: {
-          portfolioRevisionId: value.portfolioRevisionId,
-          portfolioHash: value.portfolioHash,
-          approvedScenarioRevisionIds: value.approvedScenarioRevisionIds,
-          rejectedScenarioRevisionIds: value.rejectedScenarioRevisionIds,
-          ...(value.feedback ? { feedback: value.feedback } : {}),
+    const result = await decideQualityJourneyScenarios(
+      {
+        expectedReviewHash: value.expectedReviewHash,
+        approvedScenarioRevisionIds: value.approvedScenarioRevisionIds,
+        rejectedScenarioRevisionIds: value.rejectedScenarioRevisionIds,
+        feedback: value.feedback,
+        command: {
+          schemaVersion: 'appraise.quality-journey/v1',
+          commandId: value.commandId,
+          journeyId: value.journeyId,
+          targetProjectId: project.id,
+          actor: 'USER',
+          command: 'DECIDE_SCENARIOS',
+          expectedStateHash: value.expectedStateHash,
+          idempotencyKey: value.idempotencyKey,
+          inputArtifactRefs: [scenarioArtifactRef(value)],
+          payload: {
+            portfolioRevisionId: value.portfolioRevisionId,
+            portfolioHash: value.portfolioHash,
+            approvedScenarioRevisionIds: value.approvedScenarioRevisionIds,
+            rejectedScenarioRevisionIds: value.rejectedScenarioRevisionIds,
+            ...(value.feedback ? { feedback: value.feedback } : {}),
+          },
         },
       },
-    })
+      undefined,
+      trustedHumanCoordinatorSession,
+    )
     revalidatePath(`/quality-journeys/${value.journeyId}`)
     return { status: 200, success: true, data: result }
   } catch (error) {
@@ -429,11 +450,15 @@ export async function commentQualityJourneyScenarioPortfolioAction(input: unknow
   try {
     const value = scenarioCommentSchema.parse(input)
     const project = await requireActiveProjectForMutation()
-    const result = await commentQualityJourneyScenarioPortfolio({
-      ...value,
-      targetProjectId: project.id,
-      actor: 'USER',
-    })
+    const result = await commentQualityJourneyScenarioPortfolio(
+      {
+        ...value,
+        targetProjectId: project.id,
+        actor: 'USER',
+      },
+      undefined,
+      trustedHumanCoordinatorSession,
+    )
     revalidatePath(`/quality-journeys/${value.journeyId}`)
     return { status: 201, success: true, data: result }
   } catch (error) {
@@ -445,7 +470,11 @@ export async function disposeQualityJourneyScenarioCommentAction(input: unknown)
   try {
     const value = scenarioCommentDispositionSchema.parse(input)
     const project = await requireActiveProjectForMutation()
-    const result = await disposeQualityJourneyScenarioComment({ ...value, targetProjectId: project.id, actor: 'USER' })
+    const result = await disposeQualityJourneyScenarioComment(
+      { ...value, targetProjectId: project.id, actor: 'USER' },
+      undefined,
+      trustedHumanCoordinatorSession,
+    )
     revalidatePath(`/quality-journeys/${value.journeyId}`)
     return { status: 200, success: true, data: result }
   } catch (error) {
@@ -457,25 +486,29 @@ export async function requestQualityJourneyScenarioRevisionAction(input: unknown
   try {
     const value = scenarioRevisionRequestSchema.parse(input)
     const project = await requireActiveProjectForMutation()
-    const result = await requestQualityJourneyScenarioRevision({
-      expectedReviewHash: value.expectedReviewHash,
-      command: {
-        schemaVersion: 'appraise.quality-journey/v1',
-        commandId: value.commandId,
-        journeyId: value.journeyId,
-        targetProjectId: project.id,
-        actor: 'USER',
-        command: 'REQUEST_SCENARIO_REVISION',
-        expectedStateHash: value.expectedStateHash,
-        idempotencyKey: value.idempotencyKey,
-        inputArtifactRefs: [scenarioArtifactRef(value)],
-        payload: {
-          reviewedRevisionId: value.portfolioRevisionId,
-          reviewedHash: value.portfolioHash,
-          feedback: value.feedback,
+    const result = await requestQualityJourneyScenarioRevision(
+      {
+        expectedReviewHash: value.expectedReviewHash,
+        command: {
+          schemaVersion: 'appraise.quality-journey/v1',
+          commandId: value.commandId,
+          journeyId: value.journeyId,
+          targetProjectId: project.id,
+          actor: 'USER',
+          command: 'REQUEST_SCENARIO_REVISION',
+          expectedStateHash: value.expectedStateHash,
+          idempotencyKey: value.idempotencyKey,
+          inputArtifactRefs: [scenarioArtifactRef(value)],
+          payload: {
+            reviewedRevisionId: value.portfolioRevisionId,
+            reviewedHash: value.portfolioHash,
+            feedback: value.feedback,
+          },
         },
       },
-    })
+      undefined,
+      trustedHumanCoordinatorSession,
+    )
     revalidatePath(`/quality-journeys/${value.journeyId}`)
     return { status: 200, success: true, data: result }
   } catch (error) {

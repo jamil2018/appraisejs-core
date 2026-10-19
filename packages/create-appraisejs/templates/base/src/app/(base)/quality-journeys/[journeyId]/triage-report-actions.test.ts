@@ -1,3 +1,4 @@
+import { trustedHumanCoordinatorSession } from '@/services/coordinator/quality-journey-coordinator-session'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({ approve: vi.fn(), project: vi.fn(), revalidate: vi.fn(), revision: vi.fn() }))
@@ -29,12 +30,20 @@ beforeEach(() => {
 describe('Journey triage review UI authority', () => {
   it('binds a full-report revision request to the active project', async () => {
     expect(await qualityJourneyTriageReviewAction('revision', input)).toMatchObject({ success: true })
-    expect(mocks.revision).toHaveBeenCalledWith({ ...input, targetProjectId: 'target-1' })
+    expect(mocks.revision).toHaveBeenCalledWith(
+      { ...input, targetProjectId: 'target-1' },
+      undefined,
+      trustedHumanCoordinatorSession,
+    )
     expect(mocks.revalidate).toHaveBeenCalledWith('/quality-journeys/journey-1')
   })
   it('uses the same exact report review envelope for remediation approval', async () => {
     expect(await qualityJourneyTriageReviewAction('approve', input)).toMatchObject({ success: true })
-    expect(mocks.approve).toHaveBeenCalledWith({ ...input, targetProjectId: 'target-1' })
+    expect(mocks.approve).toHaveBeenCalledWith(
+      { ...input, targetProjectId: 'target-1' },
+      undefined,
+      trustedHumanCoordinatorSession,
+    )
   })
   it.each([{ actor: 'USER' }, { targetProjectId: 'forged' }, { feedbackScope: 'FULL_REPORT' }])(
     'rejects browser-supplied report authority',

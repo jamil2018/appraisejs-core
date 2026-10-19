@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { trustedHumanCoordinatorSession } from '@/services/coordinator/quality-journey-coordinator-session'
 import { z } from 'zod'
 import { requireActiveProjectForMutation } from '@/lib/active-project'
 import {
@@ -54,7 +55,7 @@ export async function qualityJourneyExecutionAction(
       throw new ServiceError('Execution ownership is resolved by Appraise.', 'UNAUTHORIZED')
     const project = await requireActiveProjectForMutation()
     const request = operation.schema.parse({ ...values, targetProjectId: project.id })
-    const data = await operation.run(request)
+    const data = await operation.run(request, undefined, trustedHumanCoordinatorSession)
     revalidatePath(`/quality-journeys/${request.journeyId}`)
     return { success: true, status: 200, data }
   } catch (error) {

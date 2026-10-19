@@ -66,6 +66,8 @@ type EnsuredGroup = { mode: 'ensure'; name: string; route: string; module: Exist
 
 export type LocatorEnsureInput = {
   journeyId: string
+  coordinatorSessionId?: string
+  coordinatorPrincipalId?: string
   coordinatorHandoffId?: string
   coordinatorGeneration?: number
   allowCreate?: boolean
@@ -160,6 +162,8 @@ async function ensureOnce(
   assertJourneyTarget(journey, expectedTarget)
   await assertCoordinatorMutationSession(
     {
+      ...(input.coordinatorSessionId ? { coordinatorSessionId: input.coordinatorSessionId } : {}),
+      ...(input.coordinatorPrincipalId ? { coordinatorPrincipalId: input.coordinatorPrincipalId } : {}),
       ...(input.coordinatorHandoffId ? { coordinatorHandoffId: input.coordinatorHandoffId } : {}),
       ...(input.coordinatorGeneration ? { coordinatorGeneration: input.coordinatorGeneration } : {}),
     } satisfies CoordinatorSessionCredentials,

@@ -13,6 +13,7 @@ const id = z
 const timestamp = z.string().datetime()
 const boundedText = z.string().trim().min(1).max(8_000)
 const coordinatorSession = {
+  coordinatorSessionId: z.string().min(1).max(200).optional(),
   coordinatorHandoffId: z.string().min(1).max(200).optional(),
   coordinatorGeneration: z.number().int().positive().optional(),
 }
@@ -1277,6 +1278,7 @@ export function registerQualityJourneyOperations({ server, api }: McpRegistryCon
           'TRIAGER',
         ]),
         leaseSeconds: z.number().int().min(30).max(900).optional(),
+        coordinatorSessionId: z.string().min(1).max(200).optional(),
         coordinatorHandoffId: z.string().min(1).max(200).optional(),
         coordinatorGeneration: z.number().int().positive().optional(),
       },
@@ -1384,6 +1386,7 @@ export function registerQualityJourneyOperations({ server, api }: McpRegistryCon
         assignmentSecret: z.string().min(32).max(2_000),
         idempotencyKey: id,
         leaseSeconds: z.number().int().min(30).max(900).optional(),
+        coordinatorSessionId: z.string().min(1).max(200).optional(),
         coordinatorHandoffId: z.string().min(1).max(200).optional(),
         coordinatorGeneration: z.number().int().positive().optional(),
       },
@@ -1432,6 +1435,7 @@ export function registerQualityJourneyOperations({ server, api }: McpRegistryCon
         workItemId: z.string().min(1),
         leaseId: z.string().min(1),
         ownerToken: z.string().min(1),
+        coordinatorSessionId: z.string().min(1).max(200).optional(),
         coordinatorHandoffId: z.string().min(1).max(200).optional(),
         coordinatorGeneration: z.number().int().positive().optional(),
       },

@@ -1,3 +1,7 @@
+import {
+  externalQualityJourneyAssignmentFields,
+  projectExternalQualityJourneySubmission,
+} from './quality-journey-external-submission-input'
 import { createHash } from 'node:crypto'
 import type { Prisma, PrismaClient } from '@prisma/client'
 import { z } from 'zod'
@@ -57,12 +61,7 @@ const scenarioSubmissionSchema = z
 
 const externalScenarioSubmissionSchema = scenarioSubmissionSchema
   .omit({ ownerToken: true, idempotencyKey: true })
-  .extend({
-    assignmentId: z.string().min(1).max(200),
-    assignmentGeneration: z.number().int().positive(),
-    assignmentSecret: z.string().min(32).max(2_000),
-    idempotencyKey: z.string().min(1).max(200),
-  })
+  .extend(externalQualityJourneyAssignmentFields)
   .strict()
 
 const exactScenarioReviewInputSchema = z
@@ -105,18 +104,20 @@ function requireCommittedScenarioCommand(result: { outcome: string }) {
 async function replayDurableScenarioCommand(
   command: { journeyId: string; idempotencyKey: string },
   tx: Prisma.TransactionClient,
+  coordinatorSession?: CoordinatorSessionCredentials,
 ) {
   const existing = await tx.qualityJourneyCommand.findUnique({
     where: { journeyId_idempotencyKey: { journeyId: command.journeyId, idempotencyKey: command.idempotencyKey } },
   })
-  return existing ? submitDurableQualityJourneyCommandInTransaction(command, tx, true) : null
+  return existing ? submitDurableQualityJourneyCommandInTransaction(command, tx, true, true, coordinatorSession) : null
 }
 
 async function currentScenarioCommandContext(
   value: { journeyId: string; targetProjectId: string; idempotencyKey: string },
   tx: Prisma.TransactionClient,
+  coordinatorSession?: CoordinatorSessionCredentials,
 ) {
-  const replay = await replayDurableScenarioCommand(value, tx)
+  const replay = await replayDurableScenarioCommand(value, tx, coordinatorSession)
   if (replay) return { replay }
   return currentPortfolio(value.journeyId, value.targetProjectId, tx)
 }
@@ -546,6 +547,7 @@ async function submitScenarioPortfolioInTransaction(
   contentHash: string,
   submissionHash: string,
   tx: Prisma.TransactionClient,
+  coordinatorSession?: CoordinatorSessionCredentials,
 ) {
   const journey = await tx.qualityJourney.findFirst({
     where: { id: request.journeyId, targetProjectId: request.targetProjectId },
@@ -579,7 +581,10 @@ async function submitScenarioPortfolioInTransaction(
     attempt,
     tx,
   )
-  await completeScenarioDesignerWorkInTransaction(scenarioCompletionInput(request), tx)
+  await completeScenarioDesignerWorkInTransaction(
+    { ...(typeof coordinatorSession === 'object' ? coordinatorSession : {}), ...scenarioCompletionInput(request) },
+    tx,
+  )
   await tx.qualityJourney.update({ where: { id: journey.id }, data: { activeScenarioPortfolioRevisionId: created.id } })
   return { replayed: false, portfolio: created }
 }
@@ -599,22 +604,8 @@ export async function submitQualityJourneyScenarioPortfolio(
     const contentHash = hashScenarioPortfolio(portfolio)
     assertExactDesignerResult(request.result, portfolio, contentHash)
     const submissionHash = hash({ ...request, ownerToken: undefined })
-    return submitScenarioPortfolioInTransaction(request, portfolio, contentHash, submissionHash, tx)
+    return submitScenarioPortfolioInTransaction(request, portfolio, contentHash, submissionHash, tx, coordinatorSession)
   })
-}
-
-function externalScenarioIdempotencyKey(input: {
-  principal: ExternalAnalyzerProjectPrincipal
-  assignmentId: string
-  attemptId: string
-  idempotencyKey: string
-}) {
-  return `external-v1:${hash({
-    principal: input.principal.principalId,
-    assignmentId: input.assignmentId,
-    attemptId: input.attemptId,
-    idempotencyKey: input.idempotencyKey,
-  }).slice('sha256:'.length)}`
 }
 
 /** External admission is authenticated before a durable replay is exposed;
@@ -627,17 +618,14 @@ export async function submitExternalQualityJourneyScenarioPortfolio(
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
   const request = externalScenarioSubmissionSchema.parse(input)
-  const { assignmentId, assignmentGeneration, assignmentSecret, idempotencyKey, ...canonicalInput } = request
-  const canonical = scenarioSubmissionSchema.parse({
-    ...canonicalInput,
-    ownerToken: assignmentSecret,
-    idempotencyKey: externalScenarioIdempotencyKey({
-      assignmentId,
-      attemptId: request.attemptId,
-      idempotencyKey,
-      principal,
-    }),
-  })
+  const projected = projectExternalQualityJourneySubmission(
+    request,
+    { role: 'TEST_SCENARIO_DESIGNER', operation: 'SCENARIO_PORTFOLIO_SUBMIT' },
+    principal,
+    coordinatorSession,
+  )
+  const canonical = scenarioSubmissionSchema.parse(projected.canonical)
+  const { acceptance } = projected
   const portfolio = scenarioPortfolioSchema.parse(canonical.portfolio)
   if (portfolio.journeyId !== canonical.journeyId || portfolio.targetProjectId !== canonical.targetProjectId)
     throw new ServiceError('Scenario portfolio scope does not match the leased journey.', 'CONFLICT')
@@ -645,28 +633,17 @@ export async function submitExternalQualityJourneyScenarioPortfolio(
   assertExactDesignerResult(canonical.result, portfolio, contentHash)
   const submissionHash = hash({ ...canonical, ownerToken: undefined })
   return client.$transaction(async tx => {
-    const accepted = await acceptExternalQualityJourneySubmissionInTransaction(
-      {
-        journeyId: request.journeyId,
-        targetProjectId: request.targetProjectId,
-        role: 'TEST_SCENARIO_DESIGNER',
-        workItemId: request.workItemId,
-        attemptId: request.attemptId,
-        assignmentId,
-        assignmentGeneration,
-        leaseId: request.leaseId,
-        assignmentSecret,
-        principal,
-        operation: 'SCENARIO_PORTFOLIO_SUBMIT',
-        idempotencyKey,
-        payload: { ...request, assignmentSecret: undefined },
-      },
-      tx,
-      async () => {
-        await assertCoordinatorMutationSession(coordinatorSession, canonical, tx)
-        return submitScenarioPortfolioInTransaction(canonical, portfolio, contentHash, submissionHash, tx)
-      },
-    )
+    const accepted = await acceptExternalQualityJourneySubmissionInTransaction(acceptance, tx, async () => {
+      await assertCoordinatorMutationSession(coordinatorSession, canonical, tx)
+      return submitScenarioPortfolioInTransaction(
+        canonical,
+        portfolio,
+        contentHash,
+        submissionHash,
+        tx,
+        coordinatorSession,
+      )
+    })
     return { ...accepted.outcome, replayed: accepted.replayed || accepted.outcome.replayed }
   })
 }
@@ -738,7 +715,7 @@ export async function startQualityJourneyScenarioDesign(
       : null
     if (!journey || !discovery || discovery.status !== 'COMPLETED')
       throw new ServiceError('Scenario design requires exact completed discovery authority.', 'CONFLICT')
-    const result = await submitDurableQualityJourneyCommandInTransaction(command, tx, true)
+    const result = await submitDurableQualityJourneyCommandInTransaction(command, tx, true, true, coordinatorSession)
     if (result.outcome === 'COMMITTED' && !result.replayed)
       await configureScenarioDesignerAssignment(journey, discovery, tx)
     return result
@@ -758,7 +735,7 @@ export async function publishQualityJourneyScenarioPortfolio(
       payload: { artifactRevisionId: string; artifactHash: string }
     }
     await assertCoordinatorMutationSession(coordinatorSession, value, tx)
-    const context = await currentScenarioCommandContext(value, tx)
+    const context = await currentScenarioCommandContext(value, tx, coordinatorSession)
     if ('replay' in context) return context.replay
     const { journey, portfolio } = context
     if (
@@ -768,7 +745,7 @@ export async function publishQualityJourneyScenarioPortfolio(
     )
       throw new ServiceError('Only the exact current scenario portfolio may be published.', 'CONFLICT')
     const result = requireCommittedScenarioCommand(
-      await submitDurableQualityJourneyCommandInTransaction(command, tx, true),
+      await submitDurableQualityJourneyCommandInTransaction(command, tx, true, true, coordinatorSession),
     )
     const reviewHash = await currentScenarioReviewHash(portfolio, tx)
     await tx.qualityJourneyScenarioPortfolioRevision.update({
@@ -806,6 +783,7 @@ export async function publishQualityJourneyScenarioPortfolio(
       reviewed.portfolio,
       reviewed.portfolio.comments.filter(comment => comment.blocking && comment.disposition === 'OPEN'),
       tx,
+      coordinatorSession,
     )
   })
 }
@@ -872,10 +850,11 @@ async function persistScenarioRevisionRequest(
   requestHash: string,
   context: Awaited<ReturnType<typeof currentPortfolio>>,
   tx: Prisma.TransactionClient,
+  coordinatorSession?: CoordinatorSessionCredentials,
 ) {
   const { journey, portfolio } = context
   const result = requireCommittedScenarioCommand(
-    await submitDurableQualityJourneyCommandInTransaction(value, tx, true, false),
+    await submitDurableQualityJourneyCommandInTransaction(value, tx, true, false, coordinatorSession),
   )
   await tx.qualityJourneyScenarioPortfolioRevision.update({
     where: { id: portfolio.id },
@@ -895,14 +874,18 @@ async function persistScenarioRevisionRequest(
   return result
 }
 
-async function requestScenarioRevisionInTransaction(request: ScenarioRevisionRequest, tx: Prisma.TransactionClient) {
+async function requestScenarioRevisionInTransaction(
+  request: ScenarioRevisionRequest,
+  tx: Prisma.TransactionClient,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
   const value = request.command as ScenarioRevisionCommand
   const replay = await replayScenarioRevisionRequest(request, value, tx)
   if ('replay' in replay) return replay.replay
-  const context = await currentScenarioCommandContext(value, tx)
+  const context = await currentScenarioCommandContext(value, tx, coordinatorSession)
   if ('replay' in context) return context.replay
   assertScenarioRevisionRequestIdentity(request, value, context)
-  return persistScenarioRevisionRequest(value, replay.requestHash, context, tx)
+  return persistScenarioRevisionRequest(value, replay.requestHash, context, tx, coordinatorSession)
 }
 
 export async function requestQualityJourneyScenarioRevision(
@@ -917,7 +900,7 @@ export async function requestQualityJourneyScenarioRevision(
       request.command as { journeyId: string; targetProjectId: string },
       tx,
     )
-    return requestScenarioRevisionInTransaction(request, tx)
+    return requestScenarioRevisionInTransaction(request, tx, coordinatorSession)
   })
 }
 
@@ -1055,6 +1038,7 @@ async function finalizeScenarioDecisions(
   portfolio: CurrentScenarioPortfolio,
   openBlocking: CurrentScenarioPortfolio['comments'],
   tx: Prisma.TransactionClient,
+  coordinatorSession?: CoordinatorSessionCredentials,
 ) {
   const all = await tx.qualityJourneyScenarioDecision.findMany({ where: { portfolioRevisionId: portfolio.id } })
   if (all.length !== portfolio.scenarios.length)
@@ -1093,7 +1077,7 @@ async function finalizeScenarioDecisions(
     },
   }
   const result = requireCommittedScenarioCommand(
-    await submitDurableQualityJourneyCommandInTransaction(completeCommand, tx, true),
+    await submitDurableQualityJourneyCommandInTransaction(completeCommand, tx, true, true, coordinatorSession),
   )
   await tx.qualityJourneyScenarioPortfolioRevision.update({
     where: { id: portfolio.id },
@@ -1126,7 +1110,11 @@ async function finalizeScenarioDecisions(
   return result
 }
 
-async function decideQualityJourneyScenariosInTransaction(value: ScenarioDecisionInput, tx: Prisma.TransactionClient) {
+async function decideQualityJourneyScenariosInTransaction(
+  value: ScenarioDecisionInput,
+  tx: Prisma.TransactionClient,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
   const receipt = await tx.qualityJourneyScenarioDecisionReceipt.findUnique({
     where: {
       journeyId_idempotencyKey: { journeyId: value.command.journeyId, idempotencyKey: value.command.idempotencyKey },
@@ -1152,7 +1140,7 @@ async function decideQualityJourneyScenariosInTransaction(value: ScenarioDecisio
   const decisions = scenarioDecisionMap(value, portfolio)
   const openBlocking = assertScenarioDecisionNotBlocked(decisions, portfolio)
   await persistScenarioDecisions(value, decisions, portfolio, tx)
-  const result = await finalizeScenarioDecisions(value, journey.id, portfolio, openBlocking, tx)
+  const result = await finalizeScenarioDecisions(value, journey.id, portfolio, openBlocking, tx, coordinatorSession)
   await tx.qualityJourneyScenarioDecisionReceipt.create({
     data: {
       id: idFor('decision-receipt', portfolio.id, value.command.idempotencyKey),
@@ -1174,7 +1162,7 @@ export async function decideQualityJourneyScenarios(
   return client.$transaction(async tx => {
     const value = input as ScenarioDecisionInput
     await assertCoordinatorMutationSession(coordinatorSession, value.command, tx)
-    return decideQualityJourneyScenariosInTransaction(value, tx)
+    return decideQualityJourneyScenariosInTransaction(value, tx, coordinatorSession)
   })
 }
 

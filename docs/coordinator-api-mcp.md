@@ -143,6 +143,8 @@ reports `current: false`. This coordinator-session handoff neither claims work n
 currently reports known-task reopen as unsupported and Appraise prepares a fresh,
 scoped recovery handoff instead.
 
+For explicitly selected internal managed Journeys, M03 additionally accepts `coordinatorSessionId` with `coordinatorGeneration`. The route supplies the project-authenticated principal and services transactionally validate the current session plus immutable attempt binding. Legacy handoff aliases remain compatible; they cannot authorize a managed session before its first activation. Registration/activation/transfer remain trusted in-process functions, not public MCP capabilities. See [host-neutral session storage](quality-journey-host-sessions.md). Current session persistence does not enable provider dispatch.
+
 `locator_search`, `locator_graph_query`, and `locator_ensure` accept `journeyId`. The coordinator verifies that
 the Journey belongs to the requested target before reading or writing locator resources. `step_search` remains
 generally available and may record optional Journey-bound search evidence.

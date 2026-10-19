@@ -52,7 +52,8 @@ const bindingSchema = z
     assignmentGeneration: z.number().int().positive(),
     leaseId: id,
     authorizationId: id,
-    coordinatorHandoffId: id,
+    coordinatorSessionId: id.optional(),
+    coordinatorHandoffId: id.optional(),
     coordinatorGeneration: z.number().int().positive(),
     transportGeneration: z.number().int().positive(),
     expectedInputHash: digest,
@@ -61,6 +62,9 @@ const bindingSchema = z
     expiresAt: z.string().datetime(),
   })
   .strict()
+  .refine(binding => Boolean(binding.coordinatorSessionId || binding.coordinatorHandoffId), {
+    message: 'A trusted coordinator session or legacy handoff binding is required.',
+  })
 export type ExternalWorkerBinding = z.infer<typeof bindingSchema>
 
 const hiddenFields = [
@@ -74,6 +78,7 @@ const hiddenFields = [
   'leaseId',
   'expectedInputHash',
   'expectedScopeHash',
+  'coordinatorSessionId',
   'coordinatorHandoffId',
   'coordinatorGeneration',
   'ownerToken',
@@ -83,6 +88,8 @@ const forbiddenKeys = new Set([
   'actor',
   'principal',
   'principalId',
+  'coordinatorPrincipalId',
+  'trustedHumanDecision',
   'projectBearer',
   'bearer',
   'credentials',

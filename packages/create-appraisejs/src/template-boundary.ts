@@ -2,6 +2,7 @@ const REPO_ONLY_TEMPLATE_PATHS = new Set([
   'scripts/lib/swarm-ledger-lock.mjs',
   'scripts/lib/toml-validator.mjs',
   'scripts/lib/quality-journey-compatibility.sqlite.integration.test.ts',
+  'scripts/lib/quality-journey-host-sessions-backfill.test.ts',
 ])
 
 const REPO_ONLY_TEMPLATE_PREFIXES = [

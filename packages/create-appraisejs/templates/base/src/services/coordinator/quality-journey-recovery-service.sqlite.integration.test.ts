@@ -36,6 +36,8 @@ async function fixture() {
   })
   await client.qualityJourney.create({
     data: {
+      hostingMode: 'EXTERNAL_LEGACY',
+      hostingProvenance: 'CREATED_COMPATIBILITY_V1',
       id: scope.journeyId,
       targetProjectId: scope.targetProjectId,
       rootIdempotencyKey: 'root-recovery',

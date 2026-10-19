@@ -347,7 +347,7 @@ describe('typed Step Invocation input authoring', () => {
     expect(screen.getAllByLabelText(/Connect after Set viewport/)).toHaveLength(3)
     expect(screen.getByTestId('react-flow')).toHaveAttribute('data-edge-count', '2')
 
-    const editActions = screen.getAllByRole('button', { name: 'Edit' })[0]!.closest('[data-node-actions]')
+    const editActions = screen.getAllByRole('button', { name: 'Edit' })[0]!.closest<HTMLElement>('[data-node-actions]')
     expect(editActions).toHaveClass('flex', 'shrink-0', 'gap-2')
     expect(within(editActions!).getAllByRole('button')).toHaveLength(2)
     expect(screen.getAllByRole('button', { name: 'Add connected step after Set viewport' })).toHaveLength(3)

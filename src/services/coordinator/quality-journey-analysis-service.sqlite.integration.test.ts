@@ -5,6 +5,7 @@ import path from 'node:path'
 import { PrismaClient, type QualityJourney } from '@prisma/client'
 import { afterEach, describe, expect, it } from 'vitest'
 import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
+import { managedSpecializedFixture } from '@/test/managed-journey-specialized-fixture'
 import { clearAgentFactoryProviderAdaptersForTest, registerAgentFactoryProviderAdapter } from '@/lib/quality-journey'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import {
@@ -35,6 +36,8 @@ import {
   revalidateQualityJourneyDiscovery,
   retryQualityJourneyDiscovery,
   submitQualityJourneyResourceResolution,
+  submitExternalQualityJourneyResourceResolution,
+  submitExternalQualityJourneyTargetObservation,
   submitQualityJourneyTargetObservation,
 } from './quality-journey-discovery-service'
 import {
@@ -46,6 +49,7 @@ import {
   requestQualityJourneyScenarioRevision,
   startQualityJourneyScenarioDesign,
   submitQualityJourneyScenarioPortfolio,
+  submitExternalQualityJourneyScenarioPortfolio,
 } from './quality-journey-scenario-service'
 import {
   createQualityJourneyKernelState,
@@ -66,6 +70,7 @@ import {
 import {
   getQualityJourneyAutomationContext,
   materializeQualityJourneyApprovedScenarios,
+  materializeExternalQualityJourneyApprovedScenarios,
 } from './quality-journey-automation-service'
 import { approveQualityJourneyRemediation } from './quality-journey-triage-service'
 import {
@@ -255,11 +260,22 @@ function charter(journeyId: string, cycleId: string, requirementRevisionId: stri
   }
 }
 
-async function readyAnalyzer(client: PrismaClient) {
+async function readyAnalyzer(client: PrismaClient, managed = false) {
   const created = await createQualityJourney(
-    { targetProjectId: 'target-analysis-1', idempotencyKey: 'create-analysis', requirement: { objective: 'Checkout' } },
+    {
+      targetProjectId: 'target-analysis-1',
+      idempotencyKey: 'create-analysis',
+      requirement: { objective: 'Checkout' },
+      ...(managed ? { hostingMode: 'APP_SERVER_LOCAL_V1' as const } : {}),
+    },
     client,
   )
+  const authority = managed
+    ? await managedSpecializedFixture(client, {
+        journeyId: created.journey.journeyId,
+        targetProjectId: 'target-analysis-1',
+      })
+    : undefined
   const requirementRevision = await client.qualityJourneyRevision.findUniqueOrThrow({
     where: { id: created.journey.activeRevisionIds.journey },
   })
@@ -280,15 +296,18 @@ async function readyAnalyzer(client: PrismaClient) {
       },
     },
     client,
+    authority?.human,
   )
   const state = await getQualityJourney(
     { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
     client,
   )
-  const claim = await claimQualityJourneyWork(
-    { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1', role: 'REQUIREMENT_ANALYZER' },
-    client,
-  )
+  const claim = authority
+    ? await authority.claim('REQUIREMENT_ANALYZER')
+    : await claimQualityJourneyWork(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1', role: 'REQUIREMENT_ANALYZER' },
+        client,
+      )
   registerAgentFactoryProviderAdapter({
     adapterId: 'analysis-test-adapter',
     supports: request => request.attemptId === claim.attempt.id,
@@ -317,17 +336,18 @@ async function readyAnalyzer(client: PrismaClient) {
       startedAt: '2026-09-01T00:00:00.000Z',
     }),
   })
-  await dispatchQualityJourneyWork(
-    {
-      journeyId: created.journey.journeyId,
-      targetProjectId: 'target-analysis-1',
-      workItemId: claim.workItem.id,
-      leaseId: claim.attempt.leaseId,
-      ownerToken: claim.ownerToken,
-    },
-    client,
-  )
-  return { created, state, claim }
+  if (!authority)
+    await dispatchQualityJourneyWork(
+      {
+        journeyId: created.journey.journeyId,
+        targetProjectId: 'target-analysis-1',
+        workItemId: claim.workItem.id,
+        leaseId: claim.attempt.leaseId,
+        ownerToken: claim.ownerToken,
+      },
+      client,
+    )
+  return { created, state, claim, authority }
 }
 
 const externalPrincipal = { principalId: 'coordinator:fixture-project', assurance: 'PROJECT_CREDENTIAL_ONLY' as const }
@@ -400,9 +420,22 @@ function registerStartedAnalyzerAdapter(
 /** Builds the smallest real Phase 3/4 lineage needed by the Phase 5 successor
  * tests.  It deliberately goes through the public services: a revision
  * successor must not be tested against synthetic discovery authority. */
-async function completedDiscovery(client: PrismaClient, suffix: string) {
-  const { created, claim } = await readyAnalyzer(client)
-  const submitted = await submitQualityJourneyAnalysisSuccessor(
+async function completedDiscovery(client: PrismaClient, suffix: string, managed = false) {
+  const { created, claim, authority } = await readyAnalyzer(client, managed)
+  type WorkerInput = Parameters<NonNullable<typeof authority>['write']>[1]
+  const submitAnalysis = (input: WorkerInput, fixtureClient: PrismaClient) =>
+    authority
+      ? authority.write('ANALYSIS_SUBMIT', input, submitExternalQualityJourneyAnalysisSuccessor)
+      : submitQualityJourneyAnalysisSuccessor(input, fixtureClient)
+  const submitObservation = (input: WorkerInput, fixtureClient: PrismaClient) =>
+    authority
+      ? authority.write('TARGET_OBSERVATION_SUBMIT', input, submitExternalQualityJourneyTargetObservation)
+      : submitQualityJourneyTargetObservation(input, fixtureClient)
+  const submitResources = (input: WorkerInput, fixtureClient: PrismaClient) =>
+    authority
+      ? authority.write('RESOURCE_RESOLUTION_SUBMIT', input, submitExternalQualityJourneyResourceResolution)
+      : submitQualityJourneyResourceResolution(input, fixtureClient)
+  const submitted = await submitAnalysis(
     {
       journeyId: created.journey.journeyId,
       targetProjectId: 'target-analysis-1',
@@ -435,6 +468,7 @@ async function completedDiscovery(client: PrismaClient, suffix: string) {
       },
     },
     client,
+    authority?.human,
   )
   const analysisRef = {
     kind: 'ANALYSIS_CHARTER_REVISION' as const,
@@ -463,6 +497,7 @@ async function completedDiscovery(client: PrismaClient, suffix: string) {
       },
     },
     client,
+    authority?.credentials,
   )
   const readyForDecision = await getQualityJourney(
     { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
@@ -486,6 +521,7 @@ async function completedDiscovery(client: PrismaClient, suffix: string) {
       },
     },
     client,
+    authority?.human,
   )
   const discovery = (
     await getQualityJourneyDiscovery(
@@ -494,31 +530,36 @@ async function completedDiscovery(client: PrismaClient, suffix: string) {
     )
   ).revisions[0]
   const [scout, resource] = await Promise.all([
-    claimQualityJourneyWork(
-      { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1', role: 'SCOUT' },
-      client,
-    ),
-    claimQualityJourneyWork(
-      { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1', role: 'RESOURCE_EXPLORER' },
-      client,
-    ),
+    authority
+      ? authority.claim('SCOUT')
+      : claimQualityJourneyWork(
+          { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1', role: 'SCOUT' },
+          client,
+        ),
+    authority
+      ? authority.claim('RESOURCE_EXPLORER')
+      : claimQualityJourneyWork(
+          { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1', role: 'RESOURCE_EXPLORER' },
+          client,
+        ),
   ])
   registerStartedAnalyzerAdapter(scout.attempt.id, `${suffix}-scout-adapter`, 'FAST')
   registerStartedAnalyzerAdapter(resource.attempt.id, `${suffix}-resource-adapter`, 'FAST')
-  await Promise.all(
-    [scout, resource].map(work =>
-      dispatchQualityJourneyWork(
-        {
-          journeyId: created.journey.journeyId,
-          targetProjectId: 'target-analysis-1',
-          workItemId: work.workItem.id,
-          leaseId: work.attempt.leaseId,
-          ownerToken: work.ownerToken,
-        },
-        client,
+  if (!authority)
+    await Promise.all(
+      [scout, resource].map(work =>
+        dispatchQualityJourneyWork(
+          {
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-analysis-1',
+            workItemId: work.workItem.id,
+            leaseId: work.attempt.leaseId,
+            ownerToken: work.ownerToken,
+          },
+          client,
+        ),
       ),
-    ),
-  )
+    )
   const inputArtifacts = JSON.parse(discovery.scoutWorkItem.inputArtifactRefsJson)
   const observationReceipt = await seedDiscoveryBrowserReceipt(client, {
     artifactId: `${suffix}-evidence`,
@@ -548,7 +589,7 @@ async function completedDiscovery(client: PrismaClient, suffix: string) {
     evidenceReceipts: [observationReceipt],
   }
   const scoutScope = JSON.parse(discovery.scoutWorkItem.authorizationScopeJson)
-  await submitQualityJourneyTargetObservation(
+  await submitObservation(
     {
       journeyId: created.journey.journeyId,
       targetProjectId: 'target-analysis-1',
@@ -601,7 +642,7 @@ async function completedDiscovery(client: PrismaClient, suffix: string) {
   const frozenResource = frozenResources.find(resource => resource.kind !== 'MODULE')!
   const frozenModule = frozenResources.find(resource => resource.kind === 'MODULE')!
   const resourceScope = JSON.parse(discovery.resourceWorkItem.authorizationScopeJson)
-  await submitQualityJourneyResourceResolution(
+  await submitResources(
     {
       journeyId: created.journey.journeyId,
       targetProjectId: 'target-analysis-1',
@@ -642,7 +683,7 @@ async function completedDiscovery(client: PrismaClient, suffix: string) {
     client,
   )
   const completed = await client.qualityJourneyDiscoveryRevision.findUniqueOrThrow({ where: { id: discovery.id } })
-  return { created, submitted, discovery: completed, frozenResource }
+  return { created, submitted, discovery: completed, frozenResource, authority }
 }
 
 async function seedDiscoveryBuiltIns(client: PrismaClient) {
@@ -703,6 +744,365 @@ async function seedDiscoveryBuiltIns(client: PrismaClient) {
 }
 
 describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
+  it('fences all five canonical specialized worker writes on managed sessions and preserves accepted outcome lookup', async () => {
+    const client = await fixture()
+    try {
+      await seedDiscoveryBuiltIns(client)
+      const { created, discovery, frozenResource, authority } = await completedDiscovery(
+        client,
+        'managed-boundaries',
+        true,
+      )
+      if (!authority) throw new Error('Managed authority fixture was not activated.')
+      const scenarioStartState = await getQualityJourney(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      await startQualityJourneyScenarioDesign(
+        {
+          schemaVersion: 'appraise.quality-journey/v1',
+          commandId: 'start-scenarios-1',
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          actor: 'RUNNER',
+          expectedStateHash: scenarioStartState.journey.stateHash,
+          idempotencyKey: 'start-scenarios-1',
+          inputArtifactRefs: [],
+          command: 'START_SCENARIO_DESIGN',
+          payload: {},
+        },
+        client,
+        authority.credentials,
+      )
+      const designerClaim = await authority.claim('TEST_SCENARIO_DESIGNER')
+      const scenarioPortfolio = {
+        schemaVersion: 'appraise.quality-journey/v1' as const,
+        portfolioId: 'portfolio-1',
+        portfolioRevisionId: 'portfolio-r1',
+        journeyId: created.journey.journeyId,
+        targetProjectId: 'target-analysis-1',
+        cycleId: created.journey.activeCycleId,
+        discoveryRevisionId: discovery.id,
+        discoveryCompletionHash: (
+          await client.qualityJourneyDiscoveryRevision.findUniqueOrThrow({ where: { id: discovery.id } })
+        ).completionHash!,
+        coverageRationale: 'The set covers checkout confirmation while retaining an explicitly deferred branch.',
+        graph: {
+          edges: [
+            {
+              sourceScenarioRevisionId: 'scenario-1-r1',
+              targetScenarioRevisionId: 'scenario-2-r1',
+              relation: 'BRANCHES_TO' as const,
+              rationale: 'A shopper can continue through the alternate checkout branch.',
+            },
+          ],
+          sharedSetup: [
+            {
+              setupId: 'checkout-session',
+              label: 'Authenticated checkout session',
+              scenarioRevisionIds: ['scenario-1-r1', 'scenario-2-r1'],
+            },
+          ],
+        },
+        scenarios: ['scenario-1', 'scenario-2', 'scenario-3'].map((stableScenarioId, index) => ({
+          stableScenarioId,
+          scenarioRevisionId: `${stableScenarioId}-r1`,
+          behavioralIntent: {
+            // The two approved revisions deliberately have equivalent target
+            // intent so the second materialization must reuse the first
+            // durable semantic binding, not rediscover an arbitrary case.
+            title: index < 2 ? 'Checkout' : 'Checkout 3',
+            narrative: 'A shopper completes checkout.',
+            requirementIds: ['REQ-CHECKOUT-1'],
+            expectedSignals: ['Confirmation'],
+            steps: [{ stepId: `${stableScenarioId}-step`, action: 'Submit checkout', expected: 'Confirmation' }],
+          },
+          enrichment: {
+            observationIds: ['managed-boundaries-observation'],
+            resourceAssumptionIds: [frozenResource.id],
+            feasibilityNotes: [],
+          },
+          layout: { x: index * 100, y: 0, sequence: index },
+        })),
+      }
+      const portfolioHash = hashScenarioPortfolio(scenarioPortfolio)
+      const scenarioOutputs = [
+        {
+          kind: 'SCENARIO_PORTFOLIO_REVISION' as const,
+          artifactId: 'portfolio-1',
+          revisionId: 'portfolio-r1',
+          contentHash: portfolioHash,
+        },
+        ...scenarioPortfolio.scenarios.map(scenario => ({
+          kind: 'SCENARIO_REVISION' as const,
+          artifactId: scenario.stableScenarioId,
+          revisionId: scenario.scenarioRevisionId,
+          contentHash: hash(scenario),
+        })),
+      ]
+      const result = {
+        schemaVersion: 'appraise.quality-journey/v1' as const,
+        assignmentId: designerClaim.assignment.assignmentId,
+        workItemId: designerClaim.workItem.id,
+        attemptId: designerClaim.attempt.id,
+        roleContractDigest: designerClaim.assignment.roleDefinition.digest,
+        inputHash: designerClaim.assignment.inputHash,
+        role: 'TEST_SCENARIO_DESIGNER' as const,
+        status: 'COMPLETED' as const,
+        outputs: scenarioOutputs,
+        evidenceReceipts: [],
+        assumptions: [],
+        blockers: [],
+        unresolvedQuestions: [],
+        submittedAt: '2026-09-04T00:00:00.000Z',
+      }
+      const scenarioSubmission = {
+        journeyId: created.journey.journeyId,
+        targetProjectId: 'target-analysis-1',
+        workItemId: designerClaim.workItem.id,
+        attemptId: designerClaim.attempt.id,
+        leaseId: designerClaim.attempt.leaseId,
+        ownerToken: designerClaim.ownerToken,
+        idempotencyKey: 'scenario-submit-1',
+        expectedInputHash: designerClaim.assignment.inputHash,
+        expectedScopeHash: hash(JSON.parse(designerClaim.workItem.authorizationScopeJson)),
+        portfolio: scenarioPortfolio,
+        result,
+      }
+      await authority.write(
+        'SCENARIO_PORTFOLIO_SUBMIT',
+        scenarioSubmission,
+        submitExternalQualityJourneyScenarioPortfolio,
+      )
+      const submittedScenarioState = await getQualityJourney(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      const portfolioRef = {
+        kind: 'SCENARIO_PORTFOLIO_REVISION' as const,
+        artifactId: 'portfolio-1',
+        revisionId: 'portfolio-r1',
+        contentHash: portfolioHash,
+      }
+      await publishQualityJourneyScenarioPortfolio(
+        {
+          schemaVersion: 'appraise.quality-journey/v1',
+          commandId: 'publish-scenarios-1',
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          actor: 'RUNNER',
+          command: 'PUBLISH_SCENARIO_PORTFOLIO',
+          expectedStateHash: submittedScenarioState.journey.stateHash,
+          idempotencyKey: 'publish-scenarios-1',
+          inputArtifactRefs: [portfolioRef],
+          payload: { artifactRevisionId: 'portfolio-r1', artifactHash: portfolioHash },
+        },
+        client,
+        authority.credentials,
+      )
+      const reviewed = await getQualityJourneyScenarioPortfolio(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      await decideQualityJourneyScenarios(
+        {
+          expectedReviewHash: reviewed.portfolio.reviewHash,
+          approvedScenarioRevisionIds: ['scenario-1-r1', 'scenario-2-r1'],
+          rejectedScenarioRevisionIds: ['scenario-3-r1'],
+          feedback: 'The third scenario is deferred.',
+          command: {
+            schemaVersion: 'appraise.quality-journey/v1',
+            commandId: 'managed-decide-scenarios',
+            journeyId: created.journey.journeyId,
+            targetProjectId: 'target-analysis-1',
+            actor: 'USER',
+            command: 'DECIDE_SCENARIOS',
+            expectedStateHash: (
+              await getQualityJourney(
+                { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+                client,
+              )
+            ).journey.stateHash,
+            idempotencyKey: 'managed-decide-scenarios',
+            inputArtifactRefs: [portfolioRef],
+            payload: {
+              portfolioRevisionId: 'portfolio-r1',
+              portfolioHash,
+              approvedScenarioRevisionIds: ['scenario-1-r1', 'scenario-2-r1'],
+              rejectedScenarioRevisionIds: ['scenario-3-r1'],
+            },
+          },
+        },
+        client,
+        authority.human,
+      )
+      const operation = defaultOperationDefinitions.find(
+        candidate => candidate.id === 'browser.navigation.assertion.assert.url.route.equals',
+      )!
+      const readyDefinition = builtInStepDefinitions.find(
+        candidate =>
+          candidate.execution.kind === 'operation' &&
+          candidate.execution.handlerId === operation.handler.id &&
+          candidate.execution.handlerVersion === operation.handler.version,
+      )!
+      const definitionHashes = computeStepDefinitionHashes(readyDefinition)
+      await client.stepDefinition.upsert({
+        where: { id_version: { id: readyDefinition.identity.id, version: readyDefinition.identity.version } },
+        create: {
+          id: readyDefinition.identity.id,
+          version: readyDefinition.identity.version,
+          status: 'ready',
+          title: readyDefinition.intent.title,
+          description: readyDefinition.intent.description,
+          definitionJson: canonicalContractJson(readyDefinition),
+          definitionHash: definitionHashes.definitionHash,
+          humanProjectionHash: definitionHashes.humanProjectionHash,
+          executionHash: definitionHashes.executionHash,
+          provenanceJson: canonicalContractJson(readyDefinition.provenance),
+          executionBinding: {
+            create: {
+              kind: 'operation',
+              bindingJson: canonicalContractJson(readyDefinition.execution),
+              bindingHash: definitionHashes.executionHash,
+            },
+          },
+        },
+        update: {},
+      })
+      const automatorClaim = await authority.claim('AUTOMATOR')
+      const automationContext = await getQualityJourneyAutomationContext(
+        { journeyId: created.journey.journeyId, targetProjectId: 'target-analysis-1' },
+        client,
+      )
+      // Scenario-3 was deliberately rejected; only exact approved decisions materialize.
+      expect(automationContext.scenarioRevisionIds).toEqual(['scenario-1-r1', 'scenario-2-r1'])
+      const approvedScenarios = await client.qualityJourneyScenarioRevision.findMany({
+        where: { scenarioRevisionId: { in: automationContext.scenarioRevisionIds } },
+        orderBy: { scenarioRevisionId: 'asc' },
+      })
+      const proposals = approvedScenarios.map(scenario => ({
+        scenarioRevisionId: scenario.scenarioRevisionId,
+        steps: [
+          {
+            sourceScenarioStepId: `${scenario.stableScenarioId}-step`,
+            stepDefinition: {
+              id: readyDefinition.identity.id,
+              version: readyDefinition.identity.version,
+              definitionHash: computeStepReferenceHash(readyDefinition),
+            },
+            operation: { id: operation.id, version: operation.version, handler: operation.handler },
+            parameters: [{ name: 'route', type: 'string', value: '/checkout' }],
+            testData: [],
+            locatorRequirements: [],
+          },
+        ],
+      }))
+      const expectedOutputs = approvedScenarios.flatMap(scenario => {
+        const materializationId = phaseSixId(
+          'materialization',
+          created.journey.journeyId,
+          scenario.scenarioRevisionId,
+          automationContext.inputHash,
+        )
+        const sharedTargetMaterializationId = phaseSixId(
+          'materialization',
+          created.journey.journeyId,
+          approvedScenarios[0]!.scenarioRevisionId,
+          automationContext.inputHash,
+        )
+        const suiteId = phaseSixId('suite', sharedTargetMaterializationId)
+        const caseId = phaseSixId('case', sharedTargetMaterializationId)
+        const proposal = proposals.find(candidate => candidate.scenarioRevisionId === scenario.scenarioRevisionId)!
+        const source = JSON.parse(scenario.behavioralIntentJson).steps[0]
+        const manifest = {
+          schemaVersion: 'appraise.quality-journey/v1',
+          kind: 'PREPARED_RUNTIME_CAPSULE',
+          materializationId,
+          sourceScenarioRevisionId: scenario.scenarioRevisionId,
+          sourceScenarioContentHash: scenario.contentHash,
+          suiteId,
+          testCaseId: caseId,
+          steps: [
+            {
+              stepId: source.stepId,
+              definition: proposal.steps[0]!.stepDefinition,
+              operation: proposal.steps[0]!.operation,
+              parameters: proposal.steps[0]!.parameters,
+              testData: [],
+              locatorRequirements: [],
+            },
+          ],
+          dataRequirements: [],
+          locatorRequirements: [],
+        }
+        const capsuleId = phaseSixId('prepared', materializationId)
+        const capsuleHash = hash({
+          schemaVersion: 'appraise.quality-journey/v1',
+          capsuleId,
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          cycleId: created.journey.activeCycleId,
+          materializationId,
+          inputHash: automationContext.inputHash,
+          manifestHash: hash(manifest),
+          status: 'PREPARED',
+        })
+        return [
+          { kind: 'TEST_SUITE' as const, artifactId: suiteId, contentHash: hash({ id: suiteId }) },
+          { kind: 'TEST_CASE' as const, artifactId: caseId, contentHash: hash({ id: caseId }) },
+          { kind: 'RUNTIME_CAPSULE' as const, artifactId: capsuleId, contentHash: capsuleHash },
+        ]
+      })
+      const materializeInput = {
+        journeyId: created.journey.journeyId,
+        targetProjectId: 'target-analysis-1',
+        workItemId: automatorClaim.workItem.id,
+        attemptId: automatorClaim.attempt.id,
+        leaseId: automatorClaim.attempt.leaseId,
+        ownerToken: automatorClaim.ownerToken,
+        idempotencyKey: 'phase-6-materialize',
+        expectedInputHash: automationContext.inputHash,
+        expectedScopeHash: automationContext.scopeHash,
+        scenarios: proposals,
+        result: {
+          schemaVersion: 'appraise.quality-journey/v1' as const,
+          assignmentId: automatorClaim.assignment.assignmentId,
+          workItemId: automatorClaim.workItem.id,
+          attemptId: automatorClaim.attempt.id,
+          roleContractDigest: automatorClaim.assignment.roleDefinition.digest,
+          inputHash: automatorClaim.assignment.inputHash,
+          role: 'AUTOMATOR' as const,
+          status: 'COMPLETED' as const,
+          outputs: expectedOutputs,
+          evidenceReceipts: [],
+          assumptions: [],
+          blockers: [],
+          unresolvedQuestions: [],
+          submittedAt: '2026-09-05T00:00:00.000Z',
+        },
+      }
+      await authority.write(
+        'AUTOMATION_MATERIALIZE',
+        materializeInput,
+        materializeExternalQualityJourneyApprovedScenarios,
+      )
+      expect(
+        await client.qualityJourneyAutomationMaterialization.count({
+          where: { journeyId: created.journey.journeyId, status: 'MATERIALIZED' },
+        }),
+      ).toBe(2)
+      await authority.fenceAndReadAccepted([
+        'ANALYSIS_SUBMIT',
+        'TARGET_OBSERVATION_SUBMIT',
+        'RESOURCE_RESOLUTION_SUBMIT',
+        'SCENARIO_PORTFOLIO_SUBMIT',
+        'AUTOMATION_MATERIALIZE',
+      ])
+    } finally {
+      await client.$disconnect()
+    }
+  }, 60_000)
+
   it('rolls back a canonical artifact effect when fault injection prevents its external acceptance receipt', async () => {
     const client = await fixture()
     try {

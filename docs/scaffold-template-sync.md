@@ -87,3 +87,5 @@ to the generated project's README so first-setup and recovery instructions ship 
 - Do not edit `packages/create-appraisejs/templates/base` or flavor overlays instead of changing root source.
 - Do not preserve local report output in scaffold templates unless the task requires fixture changes.
 - Do not reintroduce duplicate full starter and blank app template trees.
+
+The M03 host-session backfill rehearsal is repository-only because it invokes `scripts/tests/` fixtures. Its Vitest wrapper is excluded alongside the historical compatibility rehearsal. Generated projects retain the canonical migration, session services and self-contained session service tests; no historical qualification runtime roots or fixtures are bundled.

@@ -9,6 +9,7 @@ import path from 'node:path'
 import { PrismaClient } from '@prisma/client'
 import { afterEach, describe, expect, it } from 'vitest'
 import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
+import { managedSpecializedFixture } from '@/test/managed-journey-specialized-fixture'
 import {
   clearAgentFactoryProviderAdaptersForTest,
   createQualityJourneyKernelState,
@@ -28,6 +29,7 @@ import {
   prepareQualityJourneyTriage,
   requestQualityJourneyReportRevision,
   submitQualityJourneyTriageReport,
+  submitExternalQualityJourneyTriageReport,
 } from './quality-journey-triage-service'
 import { closeQualityJourney, getQualityJourneyClosure } from './quality-journey-closure-service'
 import { approveQualityJourneyRerun, proposeQualityJourneyRerun } from './quality-journey-execution-service'
@@ -77,7 +79,8 @@ function adapterFor(attemptId: string, adapterId: string) {
 async function fixture({
   passing = false,
   rejectedAnalysis = false,
-}: { passing?: boolean; rejectedAnalysis?: boolean } = {}) {
+  managed = false,
+}: { passing?: boolean; rejectedAnalysis?: boolean; managed?: boolean } = {}) {
   const workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-quality-journey-triage-'))
   workspaces.push(workspace)
   const databasePath = path.join(workspace, 'appraise.db')
@@ -105,10 +108,18 @@ async function fixture({
     },
   })
   const created = await createQualityJourney(
-    { targetProjectId: 'target-triage', idempotencyKey: 'triage-create', requirement: { objective: 'Checkout' } },
+    {
+      targetProjectId: 'target-triage',
+      idempotencyKey: 'triage-create',
+      requirement: { objective: 'Checkout' },
+      ...(managed ? { hostingMode: 'APP_SERVER_LOCAL_V1' as const } : {}),
+    },
     client,
   )
   const journeyId = created.journey.journeyId
+  const authority = managed
+    ? await managedSpecializedFixture(client, { journeyId, targetProjectId: 'target-triage' })
+    : undefined
   const cycleId = created.journey.activeCycleId
   const kernel = createQualityJourneyKernelState({
     journeyId,
@@ -390,7 +401,7 @@ async function fixture({
   await client.$executeRawUnsafe('PRAGMA foreign_keys=ON')
   const enforcement = await client.$queryRawUnsafe<Array<{ foreign_keys: bigint }>>('PRAGMA foreign_keys')
   expect(Number(enforcement[0]!.foreign_keys)).toBe(1)
-  return { client, journeyId, cycleId, stateHash: kernel.stateHash }
+  return { client, journeyId, cycleId, stateHash: kernel.stateHash, authority }
 }
 
 function report(
@@ -449,7 +460,7 @@ function report(
 }
 
 function result(
-  claim: Awaited<ReturnType<typeof claimQualityJourneyWork>>,
+  claim: Pick<Awaited<ReturnType<typeof claimQualityJourneyWork>>, 'assignment' | 'workItem' | 'attempt'>,
   reportRevisionId: string,
   contentHash: string,
 ) {
@@ -543,6 +554,38 @@ function passingReport(
 }
 
 describe('Quality Journey triage service on migrated SQLite', () => {
+  it('fences the canonical managed Triager write and reads its accepted outcome after transfer', async () => {
+    const value = await fixture({ managed: true })
+    const { client, journeyId, authority } = value
+    if (!authority) throw new Error('Managed authority fixture was not activated.')
+    const prepared = await prepareQualityJourneyTriage(
+      { journeyId, targetProjectId: 'target-triage', executionCycleId: 'execution-triage' },
+      client,
+      authority.credentials,
+    )
+    const assignment = prepared.assignments[0]!
+    const claim = await authority.claim('TRIAGER')
+    const document = report(assignment.input, 'managed-triage-report')
+    const contentHash = hash({ report: document, source: assignment.input })
+    await authority.write(
+      'TRIAGE_REPORT_SUBMIT',
+      {
+        journeyId,
+        targetProjectId: 'target-triage',
+        workItemId: claim.workItem.id,
+        attemptId: claim.attempt.id,
+        leaseId: claim.attempt.leaseId,
+        ownerToken: claim.ownerToken,
+        idempotencyKey: 'managed-triage-submit',
+        report: document,
+        result: result(claim, document.reportRevisionId, contentHash),
+      },
+      submitExternalQualityJourneyTriageReport,
+    )
+    expect(await client.qualityJourneyTriageReport.count({ where: { journeyId } })).toBe(1)
+    await authority.fenceAndReadAccepted(['TRIAGE_REPORT_SUBMIT'])
+  }, 60_000)
+
   it('rejects closure when the published analysis gate is not approved', async () => {
     const value = await fixture({ passing: true, rejectedAnalysis: true })
     const prepared = await prepareQualityJourneyTriage(

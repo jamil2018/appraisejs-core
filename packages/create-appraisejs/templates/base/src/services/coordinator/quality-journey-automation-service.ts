@@ -1,3 +1,7 @@
+import {
+  externalQualityJourneyAssignmentFields,
+  projectExternalQualityJourneySubmission,
+} from './quality-journey-external-submission-input'
 import { createHash } from 'node:crypto'
 import type { Prisma, PrismaClient } from '@prisma/client'
 import { z } from 'zod'
@@ -88,10 +92,7 @@ const externalAutomationMaterializationRequestSchema = z
     expectedScopeHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
     scenarios: z.unknown(),
     result: z.unknown(),
-    assignmentId: z.string().min(1).max(200),
-    assignmentGeneration: z.number().int().positive(),
-    assignmentSecret: z.string().min(32).max(2_000),
-    idempotencyKey: z.string().min(1).max(200),
+    ...externalQualityJourneyAssignmentFields,
   })
   .strict()
 type AutomationProposal = AutomationMaterializationRequest['scenarios'][number]
@@ -1532,9 +1533,11 @@ function assertSubmittedMaterializationOutputs(
 async function completeMaterializedAutomatorWork(
   request: AutomationMaterializationRequest,
   tx: Prisma.TransactionClient,
+  coordinatorSession?: CoordinatorSessionCredentials,
 ) {
   return completeAutomatorWorkInTransaction(
     {
+      ...(typeof coordinatorSession === 'object' ? coordinatorSession : {}),
       journeyId: request.journeyId,
       targetProjectId: request.targetProjectId,
       workItemId: request.workItemId,
@@ -1567,7 +1570,7 @@ async function materializeQualityJourneyApprovedScenariosInTransaction(
   await verifyRemediationChanged(approved, results, tx)
   assertCompletedAutomatorResult(request)
   assertSubmittedMaterializationOutputs(request, results)
-  const completion = await completeMaterializedAutomatorWork(request, tx)
+  const completion = await completeMaterializedAutomatorWork(request, tx, coordinatorSession)
   return {
     replayed: results.every(result => result.replayed),
     stage: 'AUTOMATION' as const,
@@ -1609,20 +1612,6 @@ export async function materializeQualityJourneyApprovedScenarios(
   }
 }
 
-function externalAutomationIdempotencyKey(input: {
-  principal: ExternalAnalyzerProjectPrincipal
-  assignmentId: string
-  attemptId: string
-  idempotencyKey: string
-}) {
-  return `external-v1:${hash({
-    principal: input.principal.principalId,
-    assignmentId: input.assignmentId,
-    attemptId: input.attemptId,
-    idempotencyKey: input.idempotencyKey,
-  }).slice('sha256:'.length)}`
-}
-
 export async function materializeExternalQualityJourneyApprovedScenarios(
   input: unknown,
   principal: ExternalAnalyzerProjectPrincipal,
@@ -1630,36 +1619,16 @@ export async function materializeExternalQualityJourneyApprovedScenarios(
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
   const request = externalAutomationMaterializationRequestSchema.parse(input)
-  const { assignmentId, assignmentGeneration, assignmentSecret, idempotencyKey, ...canonical } = request
-  const normalized = automationMaterializationRequestSchema.parse({
-    ...canonical,
-    ownerToken: assignmentSecret,
-    idempotencyKey: externalAutomationIdempotencyKey({
-      assignmentId,
-      attemptId: request.attemptId,
-      idempotencyKey,
-      principal,
-    }),
-  })
+  const { canonical, acceptance } = projectExternalQualityJourneySubmission(
+    request,
+    { role: 'AUTOMATOR', operation: 'AUTOMATION_MATERIALIZE' },
+    principal,
+    coordinatorSession,
+  )
+  const normalized = automationMaterializationRequestSchema.parse(canonical)
   return client.$transaction(async tx => {
-    const accepted = await acceptExternalQualityJourneySubmissionInTransaction(
-      {
-        journeyId: request.journeyId,
-        targetProjectId: request.targetProjectId,
-        role: 'AUTOMATOR',
-        workItemId: request.workItemId,
-        attemptId: request.attemptId,
-        assignmentId,
-        assignmentGeneration,
-        leaseId: request.leaseId,
-        assignmentSecret,
-        principal,
-        operation: 'AUTOMATION_MATERIALIZE',
-        idempotencyKey,
-        payload: { ...request, assignmentSecret: undefined },
-      },
-      tx,
-      () => materializeQualityJourneyApprovedScenariosInTransaction(normalized, coordinatorSession, tx),
+    const accepted = await acceptExternalQualityJourneySubmissionInTransaction(acceptance, tx, () =>
+      materializeQualityJourneyApprovedScenariosInTransaction(normalized, coordinatorSession, tx),
     )
     return { ...accepted.outcome, replayed: accepted.replayed || accepted.outcome.replayed }
   })

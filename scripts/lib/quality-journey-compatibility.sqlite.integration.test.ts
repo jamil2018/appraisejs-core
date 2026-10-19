@@ -5,6 +5,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { PrismaClient } from '@prisma/client'
 import { expect, it } from 'vitest'
+import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
 import {
   admitExternalQualityJourneyWork,
   claimExternalQualityJourneyWork,
@@ -372,9 +373,17 @@ function seedHistoricalRows(db: SqlDatabase) {
 }
 
 async function createPreChangeExternalAssignment(filename: string) {
-  // The current canonical writer emits a real authority/hash lineage into the
-  // pre-C3.1 schema; the resulting data remains a disposable synthetic fixture.
-  const client = new PrismaClient({ datasources: { db: { url: `file:${filename}` } } })
+  // Emit genuine current authority/hash lineage against its matching schema,
+  // then project only historical columns into the pre-C3.1 fixture. A current
+  // Prisma client must never be pointed at an older schema before its upgrade.
+  const currentFilename = `${filename}.current`
+  await copyMigratedTestDatabase(currentFilename)
+  const current = new SqlDatabase(currentFilename)
+  const historical = new SqlDatabase(filename)
+  const target = historical.prepare('SELECT * FROM TargetProject WHERE id=?').get('target')
+  if (!target) throw new Error('Historical compatibility fixture target was not found')
+  insert(current, 'TargetProject', target)
+  const client = new PrismaClient({ datasources: { db: { url: `file:${currentFilename}` } } })
   const assignmentSecret = 'u'.repeat(32)
   const principal = { principalId: 'synthetic-unexpired-principal', assurance: 'PROJECT_CREDENTIAL_ONLY' as const }
   try {
@@ -418,6 +427,23 @@ async function createPreChangeExternalAssignment(filename: string) {
       client,
     )
     expect(claimed.attempt.leaseExpiresAt.getTime()).toBeGreaterThan(Date.now())
+    await client.$disconnect()
+    const quote = (identifier: string) => `"${identifier.replaceAll('"', '""')}"`
+    const historicalJourneyTables = [...snapshot(historical)].filter(([table]) => table.startsWith('QualityJourney'))
+    historical.exec(`
+      ATTACH DATABASE '${currentFilename.replaceAll("'", "''")}' AS canonical;
+      BEGIN IMMEDIATE;
+      PRAGMA defer_foreign_keys=ON;
+      ${historicalJourneyTables
+        .map(([table, { columns }]) => {
+          const projection = columns.map(quote).join(',')
+          return `INSERT INTO main.${quote(table)} (${projection}) SELECT ${projection} FROM canonical.${quote(table)};`
+        })
+        .join('\n')}
+      COMMIT;
+      DETACH DATABASE canonical;
+    `)
+    expect(historical.prepare('PRAGMA foreign_key_check').all()).toEqual([])
     return {
       journeyId: created.journey.journeyId,
       targetProjectId: 'target',
