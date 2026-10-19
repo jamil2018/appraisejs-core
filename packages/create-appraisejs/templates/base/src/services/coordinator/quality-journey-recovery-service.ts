@@ -1,3 +1,4 @@
+import { hasUnreconciledProviderEffects, invalidateUnsentProviderIntents } from './quality-journey-provider-recovery'
 import { createHash } from 'node:crypto'
 import type { Prisma, PrismaClient, QualityJourney } from '@prisma/client'
 
@@ -178,7 +179,8 @@ async function assertResumeReady(input: OperationalInput, tx: Prisma.Transaction
       },
     }),
   ])
-  if (unsettled || nonterminalRun || ambiguousManaged)
+  const providerUncertain = await hasUnreconciledProviderEffects(input, tx)
+  if (unsettled || nonterminalRun || ambiguousManaged || providerUncertain)
     throw conflict('Owned execution or ambiguous managed dispatch still needs reconciliation before resume.')
 }
 
@@ -290,6 +292,7 @@ async function transition(
 }
 
 async function fenceExternalWork(input: Scope, tx: Prisma.TransactionClient) {
+  await invalidateUnsentProviderIntents(input, tx)
   const now = new Date()
   await tx.qualityJourneyWorkAttempt.updateMany({
     where: {
@@ -319,8 +322,17 @@ async function fenceExternalWork(input: Scope, tx: Prisma.TransactionClient) {
     },
     select: { id: true },
   })
+  const safeReplacementIds: string[] = []
+  for (const item of replaceable) {
+    if (await hasUnreconciledProviderEffects({ ...input, workItemId: item.id }, tx)) {
+      await tx.qualityJourneyWorkItem.updateMany({
+        where: { id: item.id },
+        data: { status: 'BLOCKED', version: { increment: 1 } },
+      })
+    } else safeReplacementIds.push(item.id)
+  }
   await tx.qualityJourneyWorkItem.updateMany({
-    where: { id: { in: replaceable.map(item => item.id) } },
+    where: { id: { in: safeReplacementIds } },
     data: { status: 'REPLACEMENT_REQUESTED', version: { increment: 1 } },
   })
 }

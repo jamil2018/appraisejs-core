@@ -28,6 +28,9 @@ Prepared templates should start with clean runtime output. They may contain seed
 machine-local coordinator credentials, leases, durable events, test runs, reports, or personal layout state.
 Fresh prepared databases must also contain no registered `TargetProject` rows; target identity is discovered and
 registered in the generated user's workspace, never inherited from the repository or template-build directory.
+The same verifier rejects M04 provider runs, dispatch intents, observations, wake intents, and occupied provider hub
+slots in both flavors. An idle singleton slot with no run, intent, send boundary, or reservation timestamp is allowed.
+Prepared apps inherit the canonical provider schema and services without any runtime correlation or native handles.
 
 ## Validation
 

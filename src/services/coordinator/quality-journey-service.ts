@@ -1,3 +1,8 @@
+import {
+  hasUnreconciledProviderEffects,
+  invalidateUnsentProviderIntents,
+  assertProviderReplacementSafe,
+} from './quality-journey-provider-recovery'
 import { assertQualityJourneyMutable, assertQualityJourneyRecoverable } from './quality-journey-terminal'
 import {
   assertCurrentCoordinatorSession,
@@ -1629,7 +1634,11 @@ export async function resumeQualityJourney(
       },
     })
     for (const attempt of expired) {
-      if (attempt.dispatchReservedAt && !attempt.spawnReceiptHash) {
+      const providerUncertain = await hasUnreconciledProviderEffects(
+        { journeyId: row.id, targetProjectId: row.targetProjectId, attemptId: attempt.id },
+        tx,
+      )
+      if (providerUncertain || (attempt.dispatchReservedAt && !attempt.spawnReceiptHash)) {
         await blockExpiredQualityJourneyWork(tx, attempt, 'DISPATCH_UNRESOLVED', now)
         await tx.qualityJourneyBlocker.upsert({
           where: { id: `qjb_ambiguous_dispatch_${attempt.id}` },
@@ -1655,6 +1664,10 @@ export async function resumeQualityJourney(
         })
         continue
       }
+      await invalidateUnsentProviderIntents(
+        { journeyId: row.id, targetProjectId: row.targetProjectId, attemptId: attempt.id },
+        tx,
+      )
       const authorization = attempt.authorizationId
         ? await tx.qualityJourneyWorkAuthorization.findUnique({ where: { id: attempt.authorizationId } })
         : null
@@ -1758,6 +1771,11 @@ async function prepareAuthorizedWorkClaim(
   journey: QualityJourney,
   tx: Prisma.TransactionClient,
 ) {
+  await assertProviderReplacementSafe(
+    { journeyId: journey.id, targetProjectId: journey.targetProjectId, workItemId: item.id },
+    tx,
+  )
+  await assertClaimBudgetAvailable(authorization, tx)
   const authorizationPayload = validateFactoryAuthorization(authorization, journey, item)
   const { inputArtifacts, inputHash, projectionHash } = await deriveClaimInput(item, authorizationPayload, tx)
   const attempt = await persistWorkClaim(item, inputHash, tx)
@@ -1932,7 +1950,6 @@ export async function claimQualityJourneyWork(input: WorkClaimInput, client: Pri
     if (!item) throw new ServiceError('No eligible Quality Journey work item is available.', 'CONFLICT')
     await assertSpecializedTriagerClaim(item, journey, tx)
     const authorization = await readIssuedClaimAuthorization(item, tx)
-    await assertClaimBudgetAvailable(authorization, tx)
     const { authorizationPayload, inputArtifacts, inputHash, projectionHash, attempt } =
       await prepareAuthorizedWorkClaim(item, authorization, journey, tx)
     const ownerToken = randomUUID()
@@ -2135,7 +2152,6 @@ export async function claimExternalQualityJourneyWork(
       },
     })
     if (optedIn.count !== 1) throw new ServiceError('External Analyzer authorization changed concurrently.', 'CONFLICT')
-    await assertClaimBudgetAvailable(authorization, tx)
     const { authorizationPayload, inputArtifacts, inputHash, projectionHash, attempt } =
       await prepareAuthorizedWorkClaim(item, authorization, journey, tx)
     const leaseId = `qjl_${randomUUID()}`
@@ -2643,7 +2659,7 @@ export async function dispatchQualityJourneyWork(input: WorkLeaseInput, client: 
     const journey = await readJourney(input.journeyId, input.targetProjectId, tx)
     if (journey.hostingMode === 'APP_SERVER_LOCAL_V1')
       throw new ServiceError(
-        'Managed app-server dispatch is unavailable in M03; provider execution requires separately approved M04/M05 integration.',
+        'Managed app-server dispatch is unavailable; production provider execution requires separately approved and qualified supervision.',
         'CONFLICT',
       )
     assertFactoryAuthorityCurrent(loaded.item, loaded.authorization)
@@ -2794,6 +2810,11 @@ async function cancelActiveWorkAttempts(
   reason: string,
   tx: Prisma.TransactionClient,
 ) {
+  const item = await tx.qualityJourneyWorkItem.findUniqueOrThrow({ where: { id: workItemId } })
+  await invalidateUnsentProviderIntents(
+    { journeyId: item.journeyId, targetProjectId: item.targetProjectId, workItemId },
+    tx,
+  )
   await tx.qualityJourneyWorkAttempt.updateMany({
     where: { workItemId, status: { in: ['CLAIMED', 'WORKER_REQUESTED', 'IN_PROGRESS'] } },
     data: {

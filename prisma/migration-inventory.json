@@ -356,6 +356,14 @@
     {
       "name": "20261019010000_add_host_neutral_journey_sessions",
       "checksum": "f9d8c243b16d11efaa1e861b6881655bc221085eebae6934b4bd0ad5b9b849fd"
+    },
+    {
+      "name": "20261019020000_add_provider_dispatch_wake_intents",
+      "checksum": "e202680abc278867135edb450ea4c71470a5e7fdecf98c7acfad022cfa47ee87"
+    },
+    {
+      "name": "20261019030000_add_journey_wake_producers",
+      "checksum": "8ec5fb0f79ec8bec63eb4d7b186ae633edb669b189f5cf3f7ef8de8bef2e696f"
     }
   ]
 }

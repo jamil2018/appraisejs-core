@@ -583,6 +583,8 @@ model QualityJourney {
   coordinatorHandoffs               QualityJourneyCoordinatorHandoff[]
   externalWorkClaimReceipts         QualityJourneyExternalWorkClaimReceipt[]
   ownedBrowsers                     QualityJourneyOwnedBrowser[]
+  providerRuns                      QualityJourneyProviderRun[]
+  wakeIntents                       QualityJourneyWakeIntent[]
   sourceDraft                       QualityJourneyDraft?                         @relation("ConfirmedQualityJourneyDraft")
 
   @@unique([targetProjectId, rootIdempotencyKey])
@@ -717,6 +719,7 @@ model QualityJourneyCoordinatorSession {
   predecessor             QualityJourneyCoordinatorSession?         @relation("SessionPredecessor", fields: [predecessorSessionId], references: [id], onDelete: Restrict)
   successors              QualityJourneyCoordinatorSession[]        @relation("SessionPredecessor")
   attemptBindings         QualityJourneyWorkAttemptSessionBinding[]
+  providerRuns            QualityJourneyProviderRun[]
 
   @@unique([journeyId, targetProjectId, generation])
   @@unique([journeyId, targetProjectId, registrationKey])
@@ -1537,6 +1540,7 @@ model QualityJourneyWorkAuthorization {
   successorAuthorization    QualityJourneyWorkAuthorization? @relation("QualityJourneyWorkAuthorizationSupersession")
   attempts                  QualityJourneyWorkAttempt[]
   externalWorkClaimReceipts QualityJourneyExternalWorkClaimReceipt[]
+  providerRuns             QualityJourneyProviderRun[]
 
   @@index([targetProjectId, role])
   @@index([journeyId, workItemId])
@@ -1599,6 +1603,7 @@ model QualityJourneyWorkAttempt {
   sessionBinding             QualityJourneyWorkAttemptSessionBinding?
   externalWorkClaimReceipt   QualityJourneyExternalWorkClaimReceipt?
   externalSubmissionAcceptances QualityJourneyExternalSubmissionAcceptance[]
+  providerRun                QualityJourneyProviderRun?
 
   @@unique([workItemId, attempt])
   @@unique([assignmentId])
@@ -2841,4 +2846,133 @@ model QualityJourneyClosure {
   closedAt         DateTime
   journey          QualityJourney             @relation(fields: [journeyId], references: [id], onDelete: Restrict)
   report           QualityJourneyTriageReport @relation(fields: [reportRevisionId], references: [id], onDelete: Restrict)
+}
+
+/// One immutable logical provider correlation per admitted managed attempt.
+model QualityJourneyProviderRun {
+  id                    String                                 @id
+  attemptId             String                                 @unique
+  journeyId             String
+  targetProjectId       String
+  workItemId            String
+  role                  String
+  sessionId             String
+  coordinatorGeneration Int
+  principalId           String
+  assignmentId          String
+  assignmentGeneration  Int
+  authorizationId       String
+  authorizationHash     String
+  admissionId           String
+  admissionHash         String
+  leaseId               String
+  inputHash             String
+  scopeHash             String
+  revisionHash          String
+  assignmentHash        String
+  providerNamespace     String
+  configurationDigest   String
+  prepareKey            String
+  prepareRequestHash    String
+  policyJson            String
+  turnsReserved         Int                                    @default(0)
+  status                String                                 @default("PREPARED")
+  threadId              String?
+  earliestIntentAt      DateTime
+  unresolvedRetentionAt DateTime
+  terminalReconciledAt  DateTime?
+  terminalRetentionAt   DateTime?
+  createdAt             DateTime                               @default(now())
+  journey               QualityJourney                         @relation(fields: [journeyId], references: [id], onDelete: Restrict)
+  attempt               QualityJourneyWorkAttempt              @relation(fields: [attemptId], references: [id], onDelete: Restrict)
+  session               QualityJourneyCoordinatorSession       @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  authorization         QualityJourneyWorkAuthorization        @relation(fields: [authorizationId], references: [id], onDelete: Restrict)
+  intents               QualityJourneyProviderDispatchIntent[]
+  slot                  QualityJourneyProviderSlot?
+
+  @@unique([journeyId, targetProjectId, prepareKey])
+  @@unique([providerNamespace, threadId])
+  @@index([journeyId, targetProjectId, status])
+}
+
+model QualityJourneyProviderDispatchIntent {
+  id                   String                              @id
+  providerRunId        String
+  turnOrdinal          Int
+  operationKey         String
+  requestHash          String
+  envelopeDigest       String
+  status               String                              @default("PENDING")
+  claimOwner           String?
+  claimEpoch           Int                                 @default(0)
+  claimExpiresAt       DateTime?
+  sendBoundaryId       String?                             @unique
+  armedAt              DateTime?
+  acknowledgementDueAt DateTime?
+  turnDueAt            DateTime?
+  providerNamespace    String
+  threadId             String?
+  turnId               String?
+  acknowledgedAt       DateTime?
+  invalidatedAt        DateTime?
+  reconciledAt         DateTime?
+  createdAt            DateTime                            @default(now())
+  run                  QualityJourneyProviderRun           @relation(fields: [providerRunId], references: [id], onDelete: Restrict)
+  observations         QualityJourneyProviderObservation[]
+  slot                 QualityJourneyProviderSlot?
+
+  @@unique([providerRunId, turnOrdinal])
+  @@unique([providerRunId, operationKey])
+  @@unique([providerNamespace, threadId, turnId])
+  @@index([status, claimExpiresAt])
+}
+
+/// Singleton hub exclusion. UNKNOWN ownership is retained until exact reconciliation.
+model QualityJourneyProviderSlot {
+  id             String                                @id
+  providerRunId  String?                               @unique
+  intentId       String?                               @unique
+  sendBoundaryId String?
+  version        Int                                   @default(0)
+  reservedAt     DateTime?
+  run            QualityJourneyProviderRun?            @relation(fields: [providerRunId], references: [id], onDelete: Restrict)
+  intent         QualityJourneyProviderDispatchIntent? @relation(fields: [intentId], references: [id], onDelete: Restrict)
+}
+
+/// Bounded digests and exact native handles only; no prompts, transcripts or credentials.
+model QualityJourneyProviderObservation {
+  id                String                               @id
+  intentId          String
+  observationKey    String
+  kind              String
+  requestHash       String
+  sendBoundaryId    String
+  providerNamespace String
+  threadId          String?
+  turnId            String?
+  evidenceDigest    String
+  createdAt         DateTime                             @default(now())
+  intent            QualityJourneyProviderDispatchIntent @relation(fields: [intentId], references: [id], onDelete: Restrict)
+
+  @@unique([intentId, observationKey])
+}
+
+model QualityJourneyWakeIntent {
+  id                String         @id
+  journeyId         String
+  targetProjectId   String
+  causeKey          String
+  reason            String
+  highWaterSequence Int?
+  status            String         @default("PENDING")
+  claimOwner        String?
+  claimEpoch        Int            @default(0)
+  claimExpiresAt    DateTime?
+  processingOutcome String?
+  acknowledgedAt    DateTime?
+  createdAt         DateTime       @default(now())
+  journey           QualityJourney @relation(fields: [journeyId], references: [id], onDelete: Restrict)
+
+  @@unique([journeyId, targetProjectId, causeKey])
+  @@index([status, claimExpiresAt])
 }

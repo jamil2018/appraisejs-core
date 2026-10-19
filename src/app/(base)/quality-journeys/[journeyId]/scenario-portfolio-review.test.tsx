@@ -132,8 +132,10 @@ describe('ScenarioPortfolioReview', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Approve exact scenario' }))
     await waitFor(() => expect(actions.decide).toHaveBeenCalledTimes(1))
     fireEvent.change(screen.getByLabelText('Review feedback'), { target: { value: 'Needs revision.' } })
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Reject with feedback' })).toBeEnabled())
     fireEvent.click(screen.getByRole('button', { name: 'Reject with feedback' }))
     await waitFor(() => expect(actions.decide).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Approve pending scenarios' })).toBeEnabled())
     fireEvent.click(screen.getByRole('button', { name: 'Approve pending scenarios' }))
     await waitFor(() => expect(actions.decide).toHaveBeenCalledTimes(3))
     expect(actions.decide).toHaveBeenLastCalledWith(

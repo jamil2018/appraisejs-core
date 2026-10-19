@@ -91,6 +91,11 @@ async function readStepDefinitionDataCounts(databasePath: string): Promise<StepD
       triageAssignmentCount,
       triageReportCount,
       reportReviewCount,
+      providerRunCount,
+      providerDispatchIntentCount,
+      providerObservationCount,
+      wakeIntentCount,
+      occupiedProviderSlotCount,
     ] = await prisma.$transaction([
       prisma.stepDefinition.count(),
       prisma.targetProject.count(),
@@ -104,6 +109,20 @@ async function readStepDefinitionDataCounts(databasePath: string): Promise<StepD
       prisma.qualityJourneyTriageAssignment.count(),
       prisma.qualityJourneyTriageReport.count(),
       prisma.qualityJourneyReportReview.count(),
+      prisma.qualityJourneyProviderRun.count(),
+      prisma.qualityJourneyProviderDispatchIntent.count(),
+      prisma.qualityJourneyProviderObservation.count(),
+      prisma.qualityJourneyWakeIntent.count(),
+      prisma.qualityJourneyProviderSlot.count({
+        where: {
+          OR: [
+            { providerRunId: { not: null } },
+            { intentId: { not: null } },
+            { sendBoundaryId: { not: null } },
+            { reservedAt: { not: null } },
+          ],
+        },
+      }),
     ])
     return {
       stepDefinitionCount,
@@ -118,7 +137,12 @@ async function readStepDefinitionDataCounts(databasePath: string): Promise<StepD
         qualityJourneyOwnedBrowserCount +
         triageAssignmentCount +
         triageReportCount +
-        reportReviewCount,
+        reportReviewCount +
+        providerRunCount +
+        providerDispatchIntentCount +
+        providerObservationCount +
+        wakeIntentCount +
+        occupiedProviderSlotCount,
     }
   } finally {
     await prisma.$disconnect()

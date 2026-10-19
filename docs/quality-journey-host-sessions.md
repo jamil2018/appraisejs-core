@@ -45,3 +45,7 @@ npm run migration:inventory:check
 The existing Vitest suite invokes the backfill rehearsal through `scripts/lib/quality-journey-host-sessions-backfill.test.ts`; it also runs directly using the Node 22+ test host used in Release CI. The rehearsal applies all predecessor migrations before M03, compares historical bytes, and verifies stable classification after restart. Package contract generation uses `npm --prefix packages/appraisejs run build:mcp-contract`; template generation uses the canonical `prepare-template` workflow.
 
 This evidence is distinct from M02's trusted-agent scripted native conformance. `runtimeQualified` stays false; helper lifetime, general provider/model/auth/spend behavior and hostile containment remain unqualified. GC3 remains REVISE/not passed, real inference stays exhausted 3/3, and historical UNKNOWN outcomes, pending reservations and consumed commands remain immutable. M04/M05, native/provider campaigns, public managed opt-in and production dispatch need their own scope and authority.
+
+## M04 provider intent integration
+
+[Provider dispatch and wake intent](quality-journey-provider-intents.md) adds internal durable run correlation, a conservative send boundary and transactional wake hints. Transfer now checks provider uncertainty independently of terminal attempt status. This is persistence/service verification only: production dispatch and M05 transport supervision remain unavailable. Earlier M03 scope statements describe its delivered boundary.
