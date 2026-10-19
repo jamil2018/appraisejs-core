@@ -92,3 +92,7 @@ UNKNOWN evidence and GC3 REVISE remain unchanged. M02-B+ requires separate autho
 ## M03 host-neutral persistence — 2026-10-19
 
 The separately approved M03 plan implements [durable host-neutral session ownership](../quality-journey-host-sessions.md), explicit internal Journey hosting and transaction-local first-session fencing. [Current implementation evidence](../../tasks/codex-app-server-journeys/M03-CURRENT-WORK-01.md) remains distinct from the frozen M00 design and M02 scripted qualification. No production app-server dispatch, public managed opt-in, native/provider campaign or M04/M05 implementation follows from persistence checks.
+
+## M04 persistence implementation — 2026-10-19
+
+The approved M04 plan adds [provider-run and wake intent persistence](../quality-journey-provider-intents.md), retaining UNKNOWN after an armed crash and excluding occupied/uncertain hub slots from replacement or transfer. Wake hints grant no authority. Production provider dispatch, transport supervision, authentication, real inference and native qualification remain outside this implementation.

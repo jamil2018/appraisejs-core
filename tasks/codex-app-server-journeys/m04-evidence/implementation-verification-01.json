@@ -1,0 +1,185 @@
+{
+  "schema": "appraise.m04-implementation-verification/v1",
+  "date": "2026-10-19",
+  "timezone": "Asia/Dhaka",
+  "branch": "codex/m04-provider-dispatch-wake-intent",
+  "base": "7569ef5659db5193d81cc3d84ca173f2df1dfcb8",
+  "scope": "S1-S5 SQLite persistence, service integration and offline simulated effects only",
+  "approvedPlanSha256": "8cad170b3a4094d780b0ce7601190de7203a16bd8ab27c6008f74c2152cc85f3",
+  "workingPathBeforeRegressionTests": {
+    "outcome": "PASS",
+    "providerRuns": 1,
+    "dispatchIntents": 1,
+    "attemptBindings": 1,
+    "simulatedSends": 1,
+    "restartReplay": true,
+    "productionDispatchRefused": true,
+    "providerProcesses": 0,
+    "localReceiptSha256": "70402a0a457e4a81ac82739525fff8d8b0d9097aafb62bf9ed9d2dc52899bd8e"
+  },
+  "checks": {
+    "rootUnit": {
+      "files": 292,
+      "passed": 1720,
+      "existingSkipped": 4
+    },
+    "packageTests": {
+      "files": 29,
+      "passed": 295
+    },
+    "scaffoldTests": {
+      "files": 12,
+      "passed": 98
+    },
+    "rootBuild": "PASS",
+    "scaffoldBuildAndCanonicalSync": "PASS",
+    "typecheck": "PASS",
+    "lint": {
+      "errors": 0,
+      "inheritedWarnings": 10
+    },
+    "fallowIntroduced": {
+      "deadCode": 0,
+      "complexity": 0,
+      "duplication": 0
+    },
+    "reactDoctor": {
+      "score": 78,
+      "inheritedWarnings": 88,
+      "errors": 0
+    },
+    "migrations": 91,
+    "preservedPredecessorMigrationChecksums": 89,
+    "backfill": {
+      "journeys": 3,
+      "attempts": 3,
+      "inventedProviderRows": 0,
+      "restartStable": true
+    },
+    "packedScaffoldMigrationNamesAndHashes": "PASS",
+    "documentationLinks": "PASS",
+    "harnessAndValidationRegistry": "PASS",
+    "generatedArtifactPolicy": "PASS",
+    "graphs": {
+      "generatedScopes": ["src", "prisma", "scripts", "packages"],
+      "exportedNodeIdsAndEndpoints": "PASS",
+      "scriptsMethod": "Graphify AST and host semantic cache API for two unchanged READMEs, then canonical cluster command",
+      "externalInference": false,
+      "hostUsage": "Not measured; CLI token zeros are placeholders"
+    }
+  },
+  "preservation": {
+    "originalBranch": "codex/journey-app-server-migration",
+    "originalHead": "98b531d6ce6a821e72c73bb7b9e37a95179d9ded",
+    "originalStatusUnchanged": true,
+    "originalFileHashesUnchanged": 1813,
+    "approvedPlanUnchanged": true,
+    "frozenM00Sha256": "1e39e733d5211db80705a1c34235d24580db618a9f505e7a16dc163398568133",
+    "stagedFiles": 0,
+    "commitsAboveBase": 0,
+    "detachedDiagnosticWorktree": "Preserved without writes"
+  },
+  "limits": {
+    "runtimeQualified": false,
+    "productionDispatchEnabled": false,
+    "nativeProviderCampaigns": false,
+    "providerAuthenticationOrInference": false,
+    "m05Implemented": false,
+    "commitPushPrMerge": false,
+    "gc3": "REVISE_NOT_PASSED",
+    "realInferenceConsumed": "3/3",
+    "effectiveHostRoleModelContextSandbox": "UNATTESTED",
+    "consumedOrMissingSenderPermit": "Cannot prove transport shutdown; retains uncertainty until separately qualified recovery"
+  },
+  "review": "Independent final exact-artifact receipt kept outside tracked bytes at .appraisejs/m04-final-review-01.json; validate against .appraisejs/m04-final-manifest-01.json.",
+  "diagnosticHistory": [
+    "First direct demo fixed overbroad helper scope before PASS.",
+    "Sandbox denied initial root/package socket checks and existing build font fetch; rerun with scoped broader access passed.",
+    "An immutable-authorization budget fixture was corrected to preserve old bytes.",
+    "Existing scenario UI test awaited action call rather than button readiness; test-only readiness waits preserve product behavior, assertions and timeouts.",
+    "Independent review corrections are recorded in M04-CURRENT-WORK-01.md.",
+    "Graphify CLI scripts preflight required a backend despite cached semantic extraction; host API generator completed the graph without external inference. Initial unsafe process-pool invocation failed; sequential extraction preserved all sources and shrink guard refused partial output."
+  ],
+  "localEvidence": [
+    {
+      "path": "/private/tmp/m04-root-tests-final-02.log",
+      "sha256": "d827b3f61bbebbe963c40e6b8941c705cda832dda4096e8166cc8cd7bd7c04b3"
+    },
+    {
+      "path": "/private/tmp/m04-build-last.log",
+      "sha256": "d33f00f76eb7b5c60ea45190c4ea13445bff99f1f613820056ee192af29e86bc"
+    },
+    {
+      "path": "/private/tmp/m04-package-tests-02.log",
+      "sha256": "b28888714637a0a9379536009889822a601448980ff762dcadc7f092ef95b8c8"
+    },
+    {
+      "path": "/private/tmp/m04-scaffold-tests-final-02.log",
+      "sha256": "6a10b36d4f0348b11d2f0ae7357743bd6be90f7ed431a44864da1c0314c5f0e4"
+    },
+    {
+      "path": "/private/tmp/m04-scaffold-build-final-02.log",
+      "sha256": "49859787281d2c27150972db09b49b3cbc7a125fa4f4c7e374cdaa3118cf0520"
+    },
+    {
+      "path": "/private/tmp/m04-migrations-last.log",
+      "sha256": "7b789d4fc1627acd04179416a57bf9ba74787c281f33feba6a80896191f4c45a"
+    },
+    {
+      "path": "/private/tmp/m04-backfill-final.log",
+      "sha256": "dcbdc7f32a0134937385a2979f5fc4cad678a5041f6331bb7039488c7534f6aa"
+    },
+    {
+      "path": "/private/tmp/m04-packages-final-02.log",
+      "sha256": "95042e95efa2db6ce7bc8b1c99a9110f88ff8d6b54a72674bd72bce7b3e6b320"
+    },
+    {
+      "path": "/private/tmp/m04-lint-final.log",
+      "sha256": "f8c56104dbce084ae67d9c14efbd40a663a4bb0c8f0b71393bbbdea2663e6041"
+    },
+    {
+      "path": "/private/tmp/m04-core-tsc-superseded-01.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/private/tmp/m04-fallow-last.log",
+      "sha256": "7adef01e236ef14326766060feec79dbe5255f3ad725a96851e0d2c31227bb31"
+    },
+    {
+      "path": "/private/tmp/m04-react-doctor.log",
+      "sha256": "edfd96ac65b4b20fcf071d98527db6f178b1be9930ff2c722fbbd6f295f33d45"
+    },
+    {
+      "path": "/private/tmp/m04-harness-final.log",
+      "sha256": "9c953ab525243abf371c1584e61ecaaa62015554ce263774440d8c774193c997"
+    },
+    {
+      "path": "/private/tmp/m04-doc-links-last.log",
+      "sha256": "feb5c950cd495da9a31ceed9d8735c4bc8c6accbc4ff3da2e003909fe3ee1294"
+    },
+    {
+      "path": "/private/tmp/m04-artifacts-final.log",
+      "sha256": "a85559b74115f4d6e65d6b30935404c4150e78c809bd9df4f61586c0f0fa7d14"
+    },
+    {
+      "path": "/private/tmp/m04-first-working-02.log",
+      "sha256": "f4605a3362610ed8d971c9e3f0c4c1a6ad51e8aa0c4f8bfdeb3820fac545e40d"
+    },
+    {
+      "path": "/private/tmp/m04-graphify-scripts-final-02.log",
+      "sha256": "d4c54fd6e1f26f3bc6b9f3f71dd445b22ae367f3bf957fc6b82f3ff27d93add8"
+    },
+    {
+      "path": "/private/tmp/m04-graphify-src-last.log",
+      "sha256": "45239b336069a2cfaf5e661b6b7588a0d1e2b1bad7d2079974bacb98efd0600b"
+    },
+    {
+      "path": "/private/tmp/m04-graphify-prisma-last.log",
+      "sha256": "9331bcf7bccf8b4f812f1f697979f18bdda15750cc2ad510424a8aa286b2e3fb"
+    },
+    {
+      "path": "/private/tmp/m04-graphify-packages-last.log",
+      "sha256": "4b9557f03e97759b8f009591a110d1113c870f7992c6096e39fe1bf377d88aac"
+    }
+  ]
+}

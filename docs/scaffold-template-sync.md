@@ -48,6 +48,10 @@ Prepared scaffold databases may contain authored starter assets, but they must n
 credentials, leases, personal layouts, durable event rows, test runs, or reports. Template preparation verifies this
 invariant before publishing the bundled starter and blank templates. They must also contain zero `TargetProject`
 rows so a generated app cannot inherit the producer machine's repository or temporary build path.
+The M04 runtime check also requires zero provider runs, dispatch intents, observations, and wake intents, including
+any persisted thread or turn handles on those records. A provider hub slot may exist only when all ownership fields
+are empty: `providerRunId`, `intentId`, `sendBoundaryId`, and `reservedAt` must be null. An idle singleton is allowed;
+no provider correlation or occupied slot is seeded into either flavor.
 
 Starter and blank currently share the same schema and Step Definition seed inputs. Template preparation therefore
 migrates and seeds one canonical temporary database, copies it to both flavor overlays, and verifies each composed

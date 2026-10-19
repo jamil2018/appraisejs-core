@@ -1,3 +1,5 @@
+> M04 implementation authorized (2026-10-19): the user approved the [bounded plan](m04-provider-dispatch-wake-intent-plan-01.md) and all implementation slices in the isolated M04 worktree. See [current evidence and limits](M04-CURRENT-WORK-01.md). Provider launches, production dispatch, M05 and shipping remain out of scope. Earlier checkpoints below retain historical meaning.
+
 > M03 implementation (2026-10-19): the user approved the [bounded plan](m03-host-neutral-sessions-plan-01.md). Work is isolated on `codex/m03-host-neutral-sessions`; see the [current checkpoint](M03-CURRENT-WORK-01.md). Implementation and SQLite/service verification are complete; final whole-artifact review is recorded with the checkpoint. Native/provider campaigns, production dispatch and M04/M05 remain outside this scope. Earlier checkpoints below are historical.
 
 > Current shipping checkpoint: [M02 scripted qualification accepted](M02-SHIPPED-SCRIPTED-QUALIFICATION-01.md). T2 R51 passed24/24 andT3 R55 passed2/2; final exact evidence review accepted within TA02/TA03 limits. `runtimeQualified` remains false; helper lifetime/global inventory and historical cleanup remain unobserved. No M03 or production dispatch authority follows. Older status passages below remain historical.
@@ -97,7 +99,7 @@ containment and product authority are unqualified. See [M02-A evidence](m02-a-qu
 
 ### M04: Persist provider dispatch and wake intent
 
-- [ ] Implement and verify this slice.
+- [x] Implement and verify this slice within SQLite/offline scope; see [M04 evidence and limits](M04-CURRENT-WORK-01.md).
 
 **Dependencies:** M03. **Estimated scope:** M; split further before implementation if the actual diff spans independent concerns.
 

@@ -1,3 +1,4 @@
+import { assertProviderEffectsQuiescent } from './quality-journey-provider-recovery'
 import { createHash, randomUUID } from 'node:crypto'
 import {
   Prisma,
@@ -157,6 +158,7 @@ async function assertQuiescent(scope: Scope, tx: Prisma.TransactionClient, initi
       'Coordinator transfer requires reconciled quiescence; active or unknown work remains.',
       'CONFLICT',
     )
+  await assertProviderEffectsQuiescent(scope, tx)
   await assertBrowserCleanup(scope, tx)
   await assertExecutionQuiescent(scope, tx)
 }

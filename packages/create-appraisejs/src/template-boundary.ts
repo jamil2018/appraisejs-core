@@ -3,6 +3,7 @@ const REPO_ONLY_TEMPLATE_PATHS = new Set([
   'scripts/lib/toml-validator.mjs',
   'scripts/lib/quality-journey-compatibility.sqlite.integration.test.ts',
   'scripts/lib/quality-journey-host-sessions-backfill.test.ts',
+  'scripts/lib/quality-journey-provider-intent-backfill.test.ts',
 ])
 
 const REPO_ONLY_TEMPLATE_PREFIXES = [

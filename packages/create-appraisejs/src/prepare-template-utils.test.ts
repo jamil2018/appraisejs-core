@@ -1,7 +1,10 @@
+import { execFileSync } from 'node:child_process'
+import { DatabaseSync } from 'node:sqlite'
+import { fileURLToPath } from 'node:url'
 import path from 'path'
 import os from 'os'
 import fs from 'fs-extra'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import {
   assertSharedTemplateDatabaseInputs,
   BLANK_TEMPLATE_PREP_SYNC_SCRIPTS,
@@ -242,4 +245,106 @@ describe('verifyPreparedTemplateState', () => {
       /repository-only swarm harness artifacts/,
     )
   })
+})
+
+describe('prepared database M04 runtime isolation', () => {
+  const templates = ['starter', 'blank'] as const
+  let workspace: string
+  let migratedDatabasePath: string
+  let fixtureNumber = 0
+
+  beforeAll(async () => {
+    workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'create-appraisejs-m04-seeds-'))
+    migratedDatabasePath = path.join(workspace, 'migrated.db')
+    const repositoryRoot = fileURLToPath(new URL('../../../', import.meta.url))
+    execFileSync(process.execPath, ['e2e/apply-migrations.mjs'], {
+      cwd: repositoryRoot,
+      env: { ...process.env, DATABASE_URL: `file:${migratedDatabasePath}` },
+      stdio: 'pipe',
+    })
+    const database = new DatabaseSync(migratedDatabasePath)
+    try {
+      // Match prepare-template's removal of the migration-created legacy target.
+      database.exec(`DELETE FROM "TargetProject" WHERE "id" = '00000000-0000-4000-8000-000000000001'`)
+      database.exec(`INSERT INTO "StepDefinition"
+        ("id", "version", "status", "title", "description", "definitionJson", "definitionHash", "provenanceJson")
+        VALUES ('seed-step', '1', 'ready', 'Seed', 'Seed', '{}', 'seed-hash', '{}')`)
+      database.exec(`INSERT INTO "QualityJourneyProviderSlot" ("id") VALUES ('HUB')`)
+    } finally {
+      database.close()
+    }
+  })
+
+  afterAll(async () => {
+    if (workspace) await fs.remove(workspace)
+  })
+
+  async function fixture(template: (typeof templates)[number]) {
+    const directory = path.join(workspace, `fixture-${fixtureNumber++}`)
+    await createPreparedTemplateFixture(directory)
+    if (template === 'blank') await fs.remove(path.join(directory, 'automation', 'steps'))
+    const databasePath = path.join(directory, 'prisma', 'dev.db')
+    await fs.copyFile(migratedDatabasePath, databasePath)
+    return { directory, databasePath }
+  }
+
+  for (const template of templates) {
+    it(`accepts migrated ${template} with an idle singleton slot`, async () => {
+      const { directory } = await fixture(template)
+      await expect(verifyPreparedTemplateState(directory, template)).resolves.toBeUndefined()
+    })
+
+    it.each([
+      'QualityJourneyProviderRun',
+      'QualityJourneyProviderDispatchIntent',
+      'QualityJourneyProviderObservation',
+      'QualityJourneyWakeIntent',
+    ])(`rejects ${template} containing isolated %s state`, async table => {
+      const { directory, databasePath } = await fixture(template)
+      const database = new DatabaseSync(databasePath)
+      try {
+        // Deliberately isolate each contamination source from already-counted parent rows.
+        // Even a malformed prepared seed must fail the real Prisma verification path.
+        database.exec('PRAGMA foreign_keys = OFF')
+        const columns = database.prepare(`PRAGMA table_info("${table}")`).all() as {
+          name: string
+          type: string
+          notnull: number
+          dflt_value: string | null
+        }[]
+        const required = columns.filter(column => column.notnull && column.dflt_value === null)
+        const handles = columns.filter(column => column.name === 'threadId' || column.name === 'turnId')
+        const inserted = [...required, ...handles]
+        const values = inserted.map(column =>
+          column.type === 'INTEGER' ? 1 : column.type === 'DATETIME' ? '2026-10-19T00:00:00.000Z' : 'seed-runtime',
+        )
+        database
+          .prepare(
+            `INSERT INTO "${table}" (${inserted.map(column => `"${column.name}"`).join(', ')})
+            VALUES (${inserted.map(() => '?').join(', ')})`,
+          )
+          .run(...values)
+      } finally {
+        database.close()
+      }
+      await expect(verifyPreparedTemplateState(directory, template)).rejects.toThrow(/local runtime state/)
+    })
+
+    it.each(['providerRunId', 'intentId', 'sendBoundaryId', 'reservedAt'])(
+      `rejects ${template} containing a slot with %s ownership`,
+      async field => {
+        const { directory, databasePath } = await fixture(template)
+        const database = new DatabaseSync(databasePath)
+        try {
+          database.exec('PRAGMA foreign_keys = OFF')
+          database
+            .prepare(`UPDATE "QualityJourneyProviderSlot" SET "${field}" = ? WHERE "id" = 'HUB'`)
+            .run(field === 'reservedAt' ? '2026-10-19T00:00:00.000Z' : 'seed-runtime')
+        } finally {
+          database.close()
+        }
+        await expect(verifyPreparedTemplateState(directory, template)).rejects.toThrow(/local runtime state/)
+      },
+    )
+  }
 })

@@ -27,6 +27,7 @@ describe('isRepoOnlyTemplatePath', () => {
     expect(isRepoOnlyTemplatePath('scripts/migrate-compatible.mjs')).toBe(false)
     expect(isRepoOnlyTemplatePath('scripts/lib/quality-journey-compatibility.sqlite.integration.test.ts')).toBe(true)
     expect(isRepoOnlyTemplatePath('scripts/lib/quality-journey-host-sessions-backfill.test.ts')).toBe(true)
+    expect(isRepoOnlyTemplatePath('scripts/lib/quality-journey-provider-intent-backfill.test.ts')).toBe(true)
   })
 })
 
