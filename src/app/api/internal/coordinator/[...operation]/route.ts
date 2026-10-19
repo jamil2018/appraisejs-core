@@ -709,6 +709,7 @@ const qualityJourneyWorkControlSchema = z.object({
 const coordinatorJourneySessionEnvelope = z
   .object({
     target: z.string().min(1),
+    coordinatorSessionId: z.string().min(1).max(200).optional(),
     coordinatorHandoffId: z.string().min(1).max(200).optional(),
     coordinatorGeneration: z.number().int().positive().optional(),
   })
@@ -716,6 +717,8 @@ const coordinatorJourneySessionEnvelope = z
 
 function withoutCoordinatorSession(value: Record<string, unknown>) {
   const body = { ...value }
+  delete body.coordinatorSessionId
+  delete body.coordinatorPrincipalId
   delete body.coordinatorHandoffId
   delete body.coordinatorGeneration
   return body
@@ -726,16 +729,52 @@ function withoutCoordinatorSession(value: Record<string, unknown>) {
  * including specialized endpoints that intentionally keep their own strict
  * domain schemas. Human UI actions do not pass through this coordinator API.
  */
-async function admitCoordinatorJourneyMutation(operation: string[], body: unknown) {
-  if (operation[0] !== 'quality' || operation[1] !== 'journeys' || !operation[2])
-    return { body, session: {} satisfies Omit<CoordinatorSessionBinding, 'journeyId' | 'targetProjectId'> }
-  const envelope = coordinatorJourneySessionEnvelope.parse(body)
-  const target = await resolveTargetProject(envelope.target)
-  const session = {
+function isJourneyScopedOperation(operation: string[]) {
+  return operation[0] === 'quality' && operation[1] === 'journeys' && Boolean(operation[2])
+}
+
+function isExternalOutcomeOperation(operation: string[]) {
+  return operation.length === 5 && operation[3] === 'external-work' && operation[4] === 'outcomes'
+}
+
+function permitsExternalReceiptReplay(operation: string[]) {
+  const assignmentReplay =
+    operation.length === 5 &&
+    ['external-work', 'external-analyzer'].includes(operation[3]!) &&
+    ['claim', 'admissions'].includes(operation[4]!)
+  return assignmentReplay || externalSubmissionRecovery.has(operation.slice(3).join('/'))
+}
+
+function coordinatorCredentials(
+  envelope: z.infer<typeof coordinatorJourneySessionEnvelope>,
+  principal: ReturnType<typeof routeProjectCredentialPrincipal>,
+) {
+  return {
+    coordinatorPrincipalId: principal.principalId,
+    ...(envelope.coordinatorSessionId ? { coordinatorSessionId: envelope.coordinatorSessionId } : {}),
     ...(envelope.coordinatorHandoffId ? { coordinatorHandoffId: envelope.coordinatorHandoffId } : {}),
     ...(envelope.coordinatorGeneration ? { coordinatorGeneration: envelope.coordinatorGeneration } : {}),
   }
-  await assertCurrentCoordinatorSession({ journeyId: operation[2], targetProjectId: target.id, ...session }, prisma)
+}
+
+async function admitCoordinatorJourneyMutation(
+  operation: string[],
+  body: unknown,
+  principal: ReturnType<typeof routeProjectCredentialPrincipal>,
+) {
+  if (!isJourneyScopedOperation(operation))
+    return { body, session: {} satisfies Omit<CoordinatorSessionBinding, 'journeyId' | 'targetProjectId'> }
+  // Outcome lookup authenticates the exact assignment and project principal
+  // below; it cannot create authority or mutate work.
+  if (isExternalOutcomeOperation(operation))
+    return { body, session: {} satisfies Omit<CoordinatorSessionBinding, 'journeyId' | 'targetProjectId'> }
+  const envelope = coordinatorJourneySessionEnvelope.parse(body)
+  const target = await resolveTargetProject(envelope.target)
+  const session = coordinatorCredentials(envelope, principal)
+  // Canonical replay-safe services authenticate old receipts before requiring
+  // current authority for any new effect inside their write transactions.
+  if (!permitsExternalReceiptReplay(operation))
+    await assertCurrentCoordinatorSession({ journeyId: operation[2]!, targetProjectId: target.id, ...session }, prisma)
   return { body: withoutCoordinatorSession(envelope), session }
 }
 
@@ -753,7 +792,7 @@ function routeProjectCredentialPrincipal(request: Request) {
 }
 
 async function postQualityOperation(request: Request, operation: string[], body: unknown): Promise<Response> {
-  const admission = await admitCoordinatorJourneyMutation(operation, body)
+  const admission = await admitCoordinatorJourneyMutation(operation, body, routeProjectCredentialPrincipal(request))
   body = admission.body
   const coordinatorSession = admission.session
   const triageResponse = await postQualityJourneyTriageRoute(
@@ -1106,6 +1145,7 @@ async function postLocatorEnsure(request: Request, body: unknown): Promise<Respo
     .object({
       target: z.string().min(1),
       journeyId: z.string().min(1),
+      coordinatorSessionId: z.string().min(1).max(200).optional(),
       coordinatorHandoffId: z.string().min(1).max(200).optional(),
       coordinatorGeneration: z.number().int().positive().optional(),
       allowCreate: z.boolean().optional(),
@@ -1127,16 +1167,19 @@ async function postLocatorEnsure(request: Request, body: unknown): Promise<Respo
     .strict()
     .parse(body)
   const target = await resolveTargetProject(value.target)
+  const coordinatorPrincipalId = routeProjectCredentialPrincipal(request).principalId
   await assertCurrentCoordinatorSession(
     {
       journeyId: value.journeyId,
       targetProjectId: target.id,
+      coordinatorPrincipalId,
+      ...(value.coordinatorSessionId ? { coordinatorSessionId: value.coordinatorSessionId } : {}),
       ...(value.coordinatorHandoffId ? { coordinatorHandoffId: value.coordinatorHandoffId } : {}),
       ...(value.coordinatorGeneration ? { coordinatorGeneration: value.coordinatorGeneration } : {}),
     },
     prisma,
   )
-  return Response.json(await ensureTargetLocator(value, target))
+  return Response.json(await ensureTargetLocator({ ...value, coordinatorPrincipalId }, target))
 }
 
 async function dispatchPost(

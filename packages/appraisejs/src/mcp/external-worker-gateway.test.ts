@@ -234,8 +234,12 @@ function packet(role: ExternalWorkerRole): Record<string, unknown> {
       }
   }
 }
-function harness(role: ExternalWorkerRole = 'REQUIREMENT_ANALYZER') {
+function harness(role: ExternalWorkerRole = 'REQUIREMENT_ANALYZER', hostNeutral = false) {
   const scope = binding(role)
+  if (hostNeutral) {
+    delete scope.coordinatorHandoffId
+    scope.coordinatorSessionId = 'host-neutral-session-1'
+  }
   let current = structuredClone(scope)
   let time = new Date(now)
   let failAfterCommit = false
@@ -264,6 +268,7 @@ function harness(role: ExternalWorkerRole = 'REQUIREMENT_ANALYZER') {
         'leaseId',
         'expectedInputHash',
         'expectedScopeHash',
+        'coordinatorSessionId',
         'coordinatorHandoffId',
         'coordinatorGeneration',
         'ownerToken',
@@ -417,6 +422,24 @@ describe('external worker six-role profile and canonical submissions', () => {
       ExternalWorkerCallError,
     )
     expect(h.request).not.toHaveBeenCalled()
+  })
+  it.each(allRoles)('%s injects a trusted host-neutral session without a desktop handoff', async role => {
+    const h = harness(role, true)
+    const tool = externalWorkerTools[role].at(-1)!
+    await expect(h.gateway.call(tool, { ...packet(role), coordinatorSessionId: 'forged' })).rejects.toBeInstanceOf(
+      ExternalWorkerCallError,
+    )
+    await expect(h.gateway.call(tool, { ...packet(role), coordinatorPrincipalId: 'forged' })).rejects.toBeInstanceOf(
+      ExternalWorkerCallError,
+    )
+    expect(h.request).not.toHaveBeenCalled()
+    await expect(h.gateway.call(tool, packet(role))).resolves.toMatchObject({ receiptId: 'accepted-1' })
+    expect(h.artifacts.get('submit-1')).toMatchObject({
+      coordinatorSessionId: 'host-neutral-session-1',
+      coordinatorGeneration: 3,
+    })
+    expect(h.artifacts.get('submit-1')).not.toHaveProperty('coordinatorHandoffId')
+    expect(JSON.stringify(h.gateway.profile)).not.toContain('host-neutral-session-1')
   })
   it('preserves nested identity schemas and canonical semantic refinements', async () => {
     const h = harness('TEST_SCENARIO_DESIGNER')

@@ -120,6 +120,7 @@ describe('TriageReportPanel', () => {
         }),
       ),
     )
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Approve this version' })).toBeEnabled())
     fireEvent.click(screen.getByRole('button', { name: 'Approve this version' }))
     await waitFor(() =>
       expect(mocks.action).toHaveBeenCalledWith('approve', expect.objectContaining({ journeyId: 'journey-1' })),

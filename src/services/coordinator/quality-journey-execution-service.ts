@@ -320,6 +320,7 @@ async function reserveExecution(
   input: ReturnType<typeof qualityJourneyExecutionStartSchema.parse>,
   tx: Prisma.TransactionClient,
   extra: { proposalId?: string; predecessorExecutionCycleId?: string; allowSubset?: boolean } = {},
+  coordinatorSession?: CoordinatorSessionCredentials,
 ) {
   const prepared = await prepareExecutionReservation(input, tx, extra)
   if (!('journey' in prepared)) return prepared
@@ -358,7 +359,7 @@ async function reserveExecution(
       )
     : null
   if (consent?.required) return { replayed: false, consentRequired: consent }
-  const lifecycle = await reserveRerunLifecycle({ input, journey, source, extra, frozen, tx })
+  const lifecycle = await reserveRerunLifecycle({ input, journey, source, extra, frozen, tx, coordinatorSession })
   return persistExecutionReservation({
     input,
     tx,
@@ -372,6 +373,7 @@ async function reserveExecution(
     requestHash,
     consumedConsentId: consent?.consentId,
     rerun,
+    coordinatorSession,
   })
 }
 
@@ -489,6 +491,7 @@ async function reserveRerunLifecycle(input: {
   extra: { proposalId?: string }
   frozen: Awaited<ReturnType<typeof freezePreparedCapsules>>
   tx: Prisma.TransactionClient
+  coordinatorSession?: CoordinatorSessionCredentials
 }) {
   if (!input.extra.proposalId) return { cycleId: input.journey.activeCycleId, stateHash: input.journey.stateHash }
   if (!input.source || input.source.cycleId !== input.journey.activeCycleId)
@@ -526,6 +529,7 @@ async function reserveRerunLifecycle(input: {
     input.tx,
     true,
     false,
+    input.coordinatorSession,
   )
   if (command.outcome !== 'COMMITTED') throw conflict('Rerun lifecycle transition could not be committed.')
   return { cycleId, stateHash: command.successorStateHash }
@@ -534,6 +538,7 @@ async function reserveRerunLifecycle(input: {
 async function persistExecutionReservation(input: {
   input: ReturnType<typeof qualityJourneyExecutionStartSchema.parse>
   tx: Prisma.TransactionClient
+  coordinatorSession?: CoordinatorSessionCredentials
   extra: { proposalId?: string; predecessorExecutionCycleId?: string }
   frozen: Awaited<ReturnType<typeof freezePreparedCapsules>>
   environmentSnapshot: ReturnType<typeof freezeJourneyExecutionEnvironment>
@@ -637,6 +642,7 @@ async function persistExecutionReservation(input: {
         tx,
         true,
         false,
+        input.coordinatorSession,
       )
   if (command && command.outcome !== 'COMMITTED')
     throw conflict('Execution lifecycle transition could not be committed.')
@@ -656,7 +662,7 @@ export async function startQualityJourneyExecution(
   const input = qualityJourneyExecutionStartSchema.parse(value)
   const result = await client.$transaction(async tx => {
     await assertCoordinatorMutationSession(coordinatorSession, input, tx)
-    return reserveExecution(input, tx)
+    return reserveExecution(input, tx, {}, coordinatorSession)
   })
   if ('consentRequired' in result) return result
   if (!result.executionCycleId) throw conflict('Execution reservation did not produce a cycle identifier.')
@@ -730,13 +736,25 @@ export async function getQualityJourneyExecution(value: unknown, client: PrismaC
   }
 }
 
-export async function grantQualityJourneyExecutionConsent(value: unknown, client: PrismaClient = prisma) {
+async function mutableExecutionConsent(
+  input: { journeyId: string; targetProjectId: string; executionConsentId: string },
+  tx: Prisma.TransactionClient,
+) {
+  assertQualityJourneyMutable(await scopedJourney(input, tx))
+  return tx.qualityJourneyExecutionConsent.findFirst({
+    where: { id: input.executionConsentId, journeyId: input.journeyId, targetProjectId: input.targetProjectId },
+  })
+}
+
+export async function grantQualityJourneyExecutionConsent(
+  value: unknown,
+  client: PrismaClient = prisma,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
   const input = qualityJourneyExecutionConsentGrantSchema.parse(value)
   return client.$transaction(async tx => {
-    assertQualityJourneyMutable(await scopedJourney(input, tx))
-    const consent = await tx.qualityJourneyExecutionConsent.findFirst({
-      where: { id: input.executionConsentId, journeyId: input.journeyId, targetProjectId: input.targetProjectId },
-    })
+    await assertCoordinatorMutationSession(coordinatorSession, input, tx)
+    const consent = await mutableExecutionConsent(input, tx)
     if (
       !consent ||
       consent.scopeHash !== input.expectedScopeHash ||
@@ -752,13 +770,15 @@ export async function grantQualityJourneyExecutionConsent(value: unknown, client
   })
 }
 
-export async function revokeQualityJourneyExecutionConsent(value: unknown, client: PrismaClient = prisma) {
+export async function revokeQualityJourneyExecutionConsent(
+  value: unknown,
+  client: PrismaClient = prisma,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
   const input = qualityJourneyExecutionConsentRevokeSchema.parse(value)
   return client.$transaction(async tx => {
-    assertQualityJourneyMutable(await scopedJourney(input, tx))
-    const consent = await tx.qualityJourneyExecutionConsent.findFirst({
-      where: { id: input.executionConsentId, journeyId: input.journeyId, targetProjectId: input.targetProjectId },
-    })
+    await assertCoordinatorRecoverySession(coordinatorSession, input, tx)
+    const consent = await mutableExecutionConsent(input, tx)
     if (!consent || consent.scopeHash !== input.expectedScopeHash || consent.grantSource !== 'UI')
       throw conflict('Execution consent cannot be revoked for this scope.')
     if (consent.status === 'REVOKED' && consent.revokedAt) return consent
@@ -921,9 +941,14 @@ export async function proposeQualityJourneyRerun(
   })
 }
 
-export async function approveQualityJourneyRerun(value: unknown, client: PrismaClient = prisma) {
+export async function approveQualityJourneyRerun(
+  value: unknown,
+  client: PrismaClient = prisma,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
   const input = qualityJourneyRerunApprovalSchema.parse(value)
   return client.$transaction(async tx => {
+    await assertCoordinatorMutationSession(coordinatorSession, input, tx)
     assertQualityJourneyMutable(await scopedJourney(input, tx))
     const proposal = await tx.qualityJourneyExecutionRerunProposal.findFirst({
       where: { id: input.proposalId, journeyId: input.journeyId, targetProjectId: input.targetProjectId },
@@ -990,6 +1015,7 @@ export async function startQualityJourneyRerun(
       },
       tx,
       { proposalId: proposal.id, predecessorExecutionCycleId: source.id, allowSubset: true },
+      coordinatorSession,
     )
   })
   if ('consentRequired' in result) return result

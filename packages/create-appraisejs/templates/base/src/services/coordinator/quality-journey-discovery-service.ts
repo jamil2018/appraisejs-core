@@ -1,3 +1,7 @@
+import {
+  externalQualityJourneyAssignmentFields,
+  projectExternalQualityJourneySubmission,
+} from './quality-journey-external-submission-input'
 import { assertQualityJourneyMutable } from './quality-journey-terminal'
 import { createHash } from 'node:crypto'
 import type { Prisma, PrismaClient, QualityJourney } from '@prisma/client'
@@ -745,27 +749,8 @@ const submissionEnvelopeSchema = z
 
 const externalSubmissionEnvelopeSchema = submissionEnvelopeSchema
   .omit({ ownerToken: true, idempotencyKey: true })
-  .extend({
-    assignmentId: z.string().min(1).max(200),
-    assignmentGeneration: z.number().int().positive(),
-    assignmentSecret: z.string().min(32).max(2_000),
-    idempotencyKey: z.string().min(1).max(200),
-  })
+  .extend(externalQualityJourneyAssignmentFields)
   .strict()
-
-function externalDiscoveryIdempotencyKey(input: {
-  principal: ExternalAnalyzerProjectPrincipal
-  assignmentId: string
-  attemptId: string
-  idempotencyKey: string
-}) {
-  return `external-v1:${hash({
-    principal: input.principal.principalId,
-    assignmentId: input.assignmentId,
-    attemptId: input.attemptId,
-    idempotencyKey: input.idempotencyKey,
-  }).slice('sha256:'.length)}`
-}
 
 async function assertManagedDiscoverySubmissionAttempt(request: { attemptId: string }, tx: Prisma.TransactionClient) {
   const attempt = await tx.qualityJourneyWorkAttempt.findUnique({ where: { id: request.attemptId } })
@@ -848,46 +833,23 @@ export async function submitExternalQualityJourneyTargetObservation(
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
   const request = externalSubmissionEnvelopeSchema.parse(input)
-  const { assignmentId, assignmentGeneration, assignmentSecret, idempotencyKey, ...canonicalInput } = request
-  const canonical = {
-    ...canonicalInput,
-    ownerToken: assignmentSecret,
-    idempotencyKey: externalDiscoveryIdempotencyKey({
-      assignmentId,
-      attemptId: request.attemptId,
-      idempotencyKey,
-      principal,
-    }),
-  }
+  const { canonical, acceptance } = projectExternalQualityJourneySubmission(
+    request,
+    { role: 'SCOUT', operation: 'TARGET_OBSERVATION_SUBMIT' },
+    principal,
+    coordinatorSession,
+  )
   return client.$transaction(async tx => {
-    const accepted = await acceptExternalQualityJourneySubmissionInTransaction(
-      {
-        journeyId: request.journeyId,
-        targetProjectId: request.targetProjectId,
-        role: 'SCOUT',
-        workItemId: request.workItemId,
-        attemptId: request.attemptId,
-        assignmentId,
-        assignmentGeneration,
-        leaseId: request.leaseId,
-        assignmentSecret,
-        principal,
-        operation: 'TARGET_OBSERVATION_SUBMIT',
-        idempotencyKey,
-        payload: { ...request, assignmentSecret: undefined },
-      },
-      tx,
-      async () => {
-        await assertCoordinatorMutationSession(coordinatorSession, canonical, tx)
-        const bundle = targetObservationBundleSchema.parse(canonical.bundle)
-        return submitQualityJourneyTargetObservationInTransaction(
-          canonical,
-          bundle,
-          hashTargetObservationBundle(bundle),
-          tx,
-        )
-      },
-    )
+    const accepted = await acceptExternalQualityJourneySubmissionInTransaction(acceptance, tx, async () => {
+      await assertCoordinatorMutationSession(coordinatorSession, canonical, tx)
+      const bundle = targetObservationBundleSchema.parse(canonical.bundle)
+      return submitQualityJourneyTargetObservationInTransaction(
+        canonical,
+        bundle,
+        hashTargetObservationBundle(bundle),
+        tx,
+      )
+    })
     return { ...accepted.outcome, replayed: accepted.replayed || accepted.outcome.replayed }
   })
 }
@@ -957,46 +919,23 @@ export async function submitExternalQualityJourneyResourceResolution(
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
   const request = externalSubmissionEnvelopeSchema.parse(input)
-  const { assignmentId, assignmentGeneration, assignmentSecret, idempotencyKey, ...canonicalInput } = request
-  const canonical = {
-    ...canonicalInput,
-    ownerToken: assignmentSecret,
-    idempotencyKey: externalDiscoveryIdempotencyKey({
-      assignmentId,
-      attemptId: request.attemptId,
-      idempotencyKey,
-      principal,
-    }),
-  }
+  const { canonical, acceptance } = projectExternalQualityJourneySubmission(
+    request,
+    { role: 'RESOURCE_EXPLORER', operation: 'RESOURCE_RESOLUTION_SUBMIT' },
+    principal,
+    coordinatorSession,
+  )
   return client.$transaction(async tx => {
-    const accepted = await acceptExternalQualityJourneySubmissionInTransaction(
-      {
-        journeyId: request.journeyId,
-        targetProjectId: request.targetProjectId,
-        role: 'RESOURCE_EXPLORER',
-        workItemId: request.workItemId,
-        attemptId: request.attemptId,
-        assignmentId,
-        assignmentGeneration,
-        leaseId: request.leaseId,
-        assignmentSecret,
-        principal,
-        operation: 'RESOURCE_RESOLUTION_SUBMIT',
-        idempotencyKey,
-        payload: { ...request, assignmentSecret: undefined },
-      },
-      tx,
-      async () => {
-        await assertCoordinatorMutationSession(coordinatorSession, canonical, tx)
-        const bundle = resourceResolutionBundleSchema.parse(canonical.bundle)
-        return submitQualityJourneyResourceResolutionInTransaction(
-          canonical,
-          bundle,
-          hashResourceResolutionBundle(bundle),
-          tx,
-        )
-      },
-    )
+    const accepted = await acceptExternalQualityJourneySubmissionInTransaction(acceptance, tx, async () => {
+      await assertCoordinatorMutationSession(coordinatorSession, canonical, tx)
+      const bundle = resourceResolutionBundleSchema.parse(canonical.bundle)
+      return submitQualityJourneyResourceResolutionInTransaction(
+        canonical,
+        bundle,
+        hashResourceResolutionBundle(bundle),
+        tx,
+      )
+    })
     return { ...accepted.outcome, replayed: accepted.replayed || accepted.outcome.replayed }
   })
 }

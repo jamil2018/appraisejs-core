@@ -352,6 +352,10 @@
     {
       "name": "20261002020000_add_quality_journey_owned_browser",
       "checksum": "aac84abb230cc3ed15aeb466ca902f74027c144dd51d7a91c7dd9799db46f24d"
+    },
+    {
+      "name": "20261019010000_add_host_neutral_journey_sessions",
+      "checksum": "f9d8c243b16d11efaa1e861b6881655bc221085eebae6934b4bd0ad5b9b849fd"
     }
   ]
 }

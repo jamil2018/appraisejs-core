@@ -1,0 +1,133 @@
+{
+  "schema": "appraise.m03-implementation-verification/v1",
+  "date": "2026-10-19",
+  "branch": "codex/m03-host-neutral-sessions",
+  "base": "4e3f6dbe47b8abe39aae88eb557f9e36eb3394bb",
+  "scope": "M03 SQLite persistence and service/API integration only",
+  "checks": {
+    "rootTests": {
+      "passed": 1665,
+      "skippedExisting": 4,
+      "filesPassed": 288
+    },
+    "packageTests": {
+      "passed": 295,
+      "filesPassed": 29
+    },
+    "scaffoldTests": {
+      "passed": 80,
+      "filesPassed": 12
+    },
+    "rootBuild": "PASS",
+    "scaffoldBuild": "PASS",
+    "typecheck": "PASS",
+    "lint": {
+      "errors": 0,
+      "existingWarnings": 10
+    },
+    "fallowIntroduced": {
+      "deadCode": 0,
+      "complexity": 0,
+      "duplication": 0
+    },
+    "reactDoctor": {
+      "affectedDiffScore": 100,
+      "affectedDiagnostics": 0,
+      "fullCiGate": "PASS",
+      "fullInheritedScore": 78,
+      "fullWarnings": 88
+    },
+    "harnessCiRegistry": "PASS",
+    "migrationInventory": 89,
+    "backfill": {
+      "journeys": 16,
+      "historicalAttempts": 18,
+      "mappedSessions": 1,
+      "restartStable": true
+    },
+    "generatedArtifactPolicy": "PASS",
+    "boundedPackageContents": "PASS"
+  },
+  "preservation": {
+    "originalBranch": "codex/journey-app-server-migration",
+    "originalHead": "98b531d6ce6a821e72c73bb7b9e37a95179d9ded",
+    "originalDirtyStatusUnchanged": true,
+    "originalFileHashesUnchanged": 1813,
+    "frozenM00Unchanged": true,
+    "approvedPlanUnchanged": true,
+    "stagedFiles": 0,
+    "commitsAboveBase": 0
+  },
+  "limits": {
+    "runtimeQualified": false,
+    "gc3": "REVISE_NOT_PASSED",
+    "realInferenceConsumed": "3/3",
+    "nativeOrProviderCampaignsRun": false,
+    "productionDispatchEnabled": false,
+    "m04OrM05Implemented": false,
+    "commitPushPrMergePerformed": false,
+    "effectiveHostRoleModelContextSandbox": "UNATTESTED"
+  },
+  "localEvidence": [
+    {
+      "path": "/private/tmp/m03-first-working-receipt.json",
+      "sha256": "fea8bf14a430146412edd6655a490fe6b8ec547f2c115af7fa7aa13764133e66"
+    },
+    {
+      "path": "/private/tmp/m03-root-unit-final-02.log",
+      "sha256": "3e83adfb3abedf87c78367caff5f4b990f28de19c36084efdc5676ecbe752111"
+    },
+    {
+      "path": "/private/tmp/m03-package-tests-final.log",
+      "sha256": "fb849a09a953140b9436393135d34371601c24609b4563ff56c89f95d0ff4556"
+    },
+    {
+      "path": "/private/tmp/m03-scaffold-tests-final.log",
+      "sha256": "375859db294dd9449d0cb11fd56dd844729dc3be050a8382cd9968390ac8702e"
+    },
+    {
+      "path": "/private/tmp/m03-build-final.log",
+      "sha256": "a4951cef2dd8d535cbc30ea15b721efda35284eb471a8b07b902e62dd3a1f732"
+    },
+    {
+      "path": "/private/tmp/m03-scaffold-build-final-02.log",
+      "sha256": "d27ef393f061404368bf15ce2270fecd1ccf40e95c643a972f6b6a2c0729031d"
+    },
+    {
+      "path": "/private/tmp/m03-typecheck-clean.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/private/tmp/m03-lint-final.log",
+      "sha256": "441f68e5068b0a31954bfd8c8e5cdb7df55ac23d5c26f3a5db3a2122a9a992ed"
+    },
+    {
+      "path": "/private/tmp/m03-fallow-final.log",
+      "sha256": "cbbd8241823913397cccf4a219b14558526f38b7a0b1cafff8262a0e7a35f1f8"
+    },
+    {
+      "path": "/private/tmp/m03-react-doctor-diff-final.json",
+      "sha256": "ce666af43cbb95744d065d89c4449102d86f98c4f9e433dae548110e9d6962e9"
+    },
+    {
+      "path": "/private/tmp/m03-react-doctor-final.log",
+      "sha256": "19b1fb113bb300c70d0956ad1883b277345e08ee5dc7ac2e31e4270020fd291e"
+    },
+    {
+      "path": "/private/tmp/m03-harness-final.log",
+      "sha256": "3cf77deda7a5b09a021c2beb4221efae5e86c45b41a25afc5037d4e3123cd378"
+    },
+    {
+      "path": "/private/tmp/m03-scaffold-sync-final-03.log",
+      "sha256": "15653c05b2cb83890f0f4995537c11d5a1b5d54a500b0cc4c8aaa33ac1f3e682"
+    },
+    {
+      "path": "/private/tmp/m03-artifacts-final-02.log",
+      "sha256": "19827be28d16e3804a2f8da0b5224f463dd23f21aa02d362496505a10fcd350e"
+    },
+    {
+      "path": "/private/tmp/m03-packages-final-02.log",
+      "sha256": "e9a34e4516656412934a20b1a29aa2101ee056dec738ce1ee572103cb892df1e"
+    }
+  ]
+}

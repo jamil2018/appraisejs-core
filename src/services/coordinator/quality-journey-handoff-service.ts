@@ -446,6 +446,8 @@ export async function prepareQualityJourneyHandoff(
     try {
       return await client.$transaction(async tx => {
         const journey = await scopedJourney(input.journeyId, input.targetProjectId, tx)
+        if (journey.hostingMode !== 'EXTERNAL_LEGACY')
+          throw new ServiceError('Desktop handoff cannot select or transfer managed or unresolved hosting.', 'CONFLICT')
         const snapshot = await handoffSnapshot(journey, tx)
         const ticket = `qjh_${randomBytes(24).toString('base64url')}`
         const takeoverApproval = `qjha_${randomBytes(24).toString('base64url')}`
@@ -482,6 +484,10 @@ export async function prepareQualityJourneyHandoff(
           orderBy: [{ generation: 'desc' }, { id: 'desc' }],
           select: { generation: true },
         })
+        const previousSessionGeneration = await tx.qualityJourneyCoordinatorSession.aggregate({
+          where: { journeyId: journey.id, targetProjectId: journey.targetProjectId },
+          _max: { generation: true },
+        })
         await tx.qualityJourneyCoordinatorHandoff.updateMany({
           where: {
             journeyId: journey.id,
@@ -497,7 +503,8 @@ export async function prepareQualityJourneyHandoff(
             journeyId: journey.id,
             targetProjectId: journey.targetProjectId,
             providerId: input.providerId,
-            generation: (previousGeneration?.generation ?? 0) + 1,
+            generation:
+              Math.max(previousGeneration?.generation ?? 0, previousSessionGeneration._max.generation ?? 0) + 1,
             ...snapshot,
             takeoverApprovalHash: digest(takeoverApproval),
             takeoverApprovalExpiresAt,
@@ -711,6 +718,8 @@ export async function approveQualityJourneyHandoffTakeover(
     if (!handoff.takeoverApprovalExpiresAt || handoff.takeoverApprovalExpiresAt <= new Date())
       throw new ServiceError('Coordinator takeover approval expired. Prepare a fresh handoff.', 'CONFLICT')
     const { journey, snapshot } = await assertHandoffSnapshotCurrent(handoff, tx)
+    if (journey.hostingMode !== 'EXTERNAL_LEGACY')
+      throw new ServiceError('Desktop takeover cannot transfer managed or unresolved hosting.', 'CONFLICT')
     const effects = effectRecovery(await readHandoffEffects(handoff.journeyId, handoff.targetProjectId, tx))
     if (effects.state === 'RECONCILIATION_REQUIRED')
       throw new ServiceError(
@@ -806,6 +815,47 @@ export async function approveQualityJourneyHandoffTakeover(
         'Coordinator handoff changed while approving takeover. Re-read its authoritative state.',
         'CONFLICT',
       )
+    const sessionId = `qjs_handoff_${handoff.id}`
+    await tx.qualityJourneyCoordinatorSession.create({
+      data: {
+        id: sessionId,
+        journeyId: journey.id,
+        targetProjectId: journey.targetProjectId,
+        ownerPrincipalId: `legacy-handoff:${handoff.id}`,
+        hostKind: 'EXTERNAL_LEGACY',
+        status: 'ACTIVE',
+        generation: handoff.generation,
+        registrationKey: `handoff:${handoff.id}`,
+        registrationRequestHash: handoff.takeoverRequestHash!,
+        predecessorSessionId: journey.currentCoordinatorSessionId,
+        legacyHandoffId: handoff.id,
+        provenance: 'EXPLICIT_LEGACY_HANDOFF_TAKEOVER_V1',
+        activatedAt: now,
+      },
+    })
+    if (journey.currentCoordinatorSessionId) {
+      await tx.qualityJourneyCoordinatorSession.updateMany({
+        where: { id: journey.currentCoordinatorSessionId, status: 'ACTIVE', fencedAt: null },
+        data: { status: 'FENCED', fencedAt: now, fenceReason: `LEGACY_TAKEOVER:${handoff.id}` },
+      })
+    }
+    const ownership = await tx.qualityJourney.updateMany({
+      where: {
+        id: journey.id,
+        targetProjectId: journey.targetProjectId,
+        hostingMode: 'EXTERNAL_LEGACY',
+        currentCoordinatorSessionId: journey.currentCoordinatorSessionId,
+        ownershipVersion: journey.ownershipVersion,
+      },
+      data: {
+        currentCoordinatorSessionId: sessionId,
+        ownershipVersion: { increment: 1 },
+        hostingProvenance: 'EXPLICIT_LEGACY_HANDOFF_TAKEOVER_V1',
+        updatedAt: journey.updatedAt,
+      },
+    })
+    if (ownership.count !== 1)
+      throw new ServiceError('Coordinator ownership changed concurrently during takeover.', 'CONFLICT')
     return result
   })
 }

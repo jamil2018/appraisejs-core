@@ -1,10 +1,12 @@
-import { execFileSync, spawnSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
 import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { createRequire } from 'node:module'
 import os from 'node:os'
 import path from 'node:path'
 import { PrismaClient } from '@prisma/client'
 import { expect, it } from 'vitest'
+import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
 import {
   admitExternalQualityJourneyWork,
   claimExternalQualityJourneyWork,
@@ -16,47 +18,51 @@ import { assertDatabaseCompatibility } from './database-compatibility.mjs'
 
 type SqlValue = string | number | null
 type SqlRow = Record<string, SqlValue>
+type SqlConnection = {
+  exec(sql: string): void
+  prepare(sql: string): { all(...values: SqlValue[]): SqlRow[]; run(...values: SqlValue[]): unknown }
+  close(): void
+}
+// This Node 22+ test host uses the built-in binding while the product retains its Node 20 type surface.
+const { DatabaseSync } = createRequire(import.meta.url)('node:sqlite') as {
+  DatabaseSync: new (filename: string) => SqlConnection
+}
 class SqlDatabase {
   constructor(private readonly filename: string) {}
 
+  private withConnection<T>(operation: (database: SqlConnection) => T): T {
+    const database = new DatabaseSync(this.filename)
+    try {
+      database.exec('PRAGMA foreign_keys=ON')
+      return operation(database)
+    } finally {
+      database.close()
+    }
+  }
+
   exec(sql: string): void {
-    execFileSync('sqlite3', [this.filename], {
-      input: `PRAGMA foreign_keys=ON;\n${sql}`,
-      encoding: 'utf8',
-    })
+    this.withConnection(database => database.exec(sql))
   }
 
   prepare(sql: string) {
-    const statement = (...values: SqlValue[]) => {
-      let index = 0
-      const bound = sql.replace(/\?/g, () => {
-        if (index >= values.length) throw new Error('Missing synthetic SQLite fixture value')
-        const value = values[index++]
-        if (value === null) return 'NULL'
-        if (typeof value === 'number') {
-          if (!Number.isFinite(value)) throw new Error('Invalid synthetic SQLite fixture number')
-          return String(value)
-        }
-        return `'${value.replaceAll("'", "''")}'`
-      })
-      if (index !== values.length) throw new Error('Unused synthetic SQLite fixture value')
-      return bound
-    }
+    const all = (...values: SqlValue[]): SqlRow[] =>
+      this.withConnection(database =>
+        database
+          .prepare(sql)
+          .all(...values)
+          .map(row => ({ ...row })),
+      )
     return {
-      all: (...values: SqlValue[]): SqlRow[] => {
-        const output = execFileSync('sqlite3', ['-json', this.filename], {
-          input: `PRAGMA foreign_keys=ON;\n${statement(...values)}`,
-          encoding: 'utf8',
-        })
-        return output.trim() ? (JSON.parse(output) as SqlRow[]) : []
+      all,
+      get: (...values: SqlValue[]): SqlRow | undefined => all(...values)[0],
+      run: (...values: SqlValue[]): void => {
+        this.withConnection(database => database.prepare(sql).run(...values))
       },
-      get: (...values: SqlValue[]): SqlRow | undefined => this.prepare(sql).all(...values)[0],
-      run: (...values: SqlValue[]): void => this.exec(statement(...values)),
     }
   }
 
   close(): void {
-    // Each sqlite3 invocation owns and closes its connection.
+    // Each operation owns and closes its connection, including error paths.
   }
 }
 
@@ -372,9 +378,17 @@ function seedHistoricalRows(db: SqlDatabase) {
 }
 
 async function createPreChangeExternalAssignment(filename: string) {
-  // The current canonical writer emits a real authority/hash lineage into the
-  // pre-C3.1 schema; the resulting data remains a disposable synthetic fixture.
-  const client = new PrismaClient({ datasources: { db: { url: `file:${filename}` } } })
+  // Emit genuine current authority/hash lineage against its matching schema,
+  // then project only historical columns into the pre-C3.1 fixture. A current
+  // Prisma client must never be pointed at an older schema before its upgrade.
+  const currentFilename = `${filename}.current`
+  await copyMigratedTestDatabase(currentFilename)
+  const current = new SqlDatabase(currentFilename)
+  const historical = new SqlDatabase(filename)
+  const target = historical.prepare('SELECT * FROM TargetProject WHERE id=?').get('target')
+  if (!target) throw new Error('Historical compatibility fixture target was not found')
+  insert(current, 'TargetProject', target)
+  const client = new PrismaClient({ datasources: { db: { url: `file:${currentFilename}` } } })
   const assignmentSecret = 'u'.repeat(32)
   const principal = { principalId: 'synthetic-unexpired-principal', assurance: 'PROJECT_CREDENTIAL_ONLY' as const }
   try {
@@ -418,6 +432,23 @@ async function createPreChangeExternalAssignment(filename: string) {
       client,
     )
     expect(claimed.attempt.leaseExpiresAt.getTime()).toBeGreaterThan(Date.now())
+    await client.$disconnect()
+    const quote = (identifier: string) => `"${identifier.replaceAll('"', '""')}"`
+    const historicalJourneyTables = [...snapshot(historical)].filter(([table]) => table.startsWith('QualityJourney'))
+    historical.exec(`
+      ATTACH DATABASE '${currentFilename.replaceAll("'", "''")}' AS canonical;
+      BEGIN IMMEDIATE;
+      PRAGMA defer_foreign_keys=ON;
+      ${historicalJourneyTables
+        .map(([table, { columns }]) => {
+          const projection = columns.map(quote).join(',')
+          return `INSERT INTO main.${quote(table)} (${projection}) SELECT ${projection} FROM canonical.${quote(table)};`
+        })
+        .join('\n')}
+      COMMIT;
+      DETACH DATABASE canonical;
+    `)
+    expect(historical.prepare('PRAGMA foreign_key_check').all()).toEqual([])
     return {
       journeyId: created.journey.journeyId,
       targetProjectId: 'target',

@@ -1,3 +1,5 @@
+> M03 implementation (2026-10-19): the user approved the [bounded plan](m03-host-neutral-sessions-plan-01.md). Work is isolated on `codex/m03-host-neutral-sessions`; see the [current checkpoint](M03-CURRENT-WORK-01.md). Implementation and SQLite/service verification are complete; final whole-artifact review is recorded with the checkpoint. Native/provider campaigns, production dispatch and M04/M05 remain outside this scope. Earlier checkpoints below are historical.
+
 > Current shipping checkpoint: [M02 scripted qualification accepted](M02-SHIPPED-SCRIPTED-QUALIFICATION-01.md). T2 R51 passed24/24 andT3 R55 passed2/2; final exact evidence review accepted within TA02/TA03 limits. `runtimeQualified` remains false; helper lifetime/global inventory and historical cleanup remain unobserved. No M03 or production dispatch authority follows. Older status passages below remain historical.
 
 > Latest R24 native checkpoint (2026-10-17): exact approval consumed by one p10 invocation; terminal UNKNOWN at B01, actual completed T2 cases0. AUDIT/INCOMPLETE with output observation COMPLETED/NONE; underlying cause and cleanup UNKNOWN. Independent review accepts terminal evidence only. No retry/resume/repair/successor/T3 from this request. See [M02-R24-CURRENT-WORK.md](M02-R24-CURRENT-WORK.md); prior approval-pending text below is historical.
@@ -83,7 +85,7 @@ containment and product authority are unqualified. See [M02-A evidence](m02-a-qu
 
 **Reference:** [Open Design guide](open-design-reference.md). Captured start/resume handles; bind them to canonical generation, attempt and revision rather than treating them as authority.
 
-- [ ] Implement and verify this slice.
+- [x] Implement and verify this slice (SQLite/service scope; see [M03 checkpoint](M03-CURRENT-WORK-01.md)).
 
 **Dependencies:** M02. **Estimated scope:** M; split further before implementation if the actual diff spans independent concerns.
 
@@ -91,7 +93,7 @@ containment and product authority are unqualified. See [M02-A evidence](m02-a-qu
 
 **Acceptance:** Persist explicit execution mode for new Journeys; preserve legacy effective owners and attempt bindings rather than blanket-backfilling external mode. Mixed/unresolved ownership requires recovery; active managed work needs explicit transfer. Provider availability never changes mode. Managed calls require a current session before first takeover; desktop compatibility and historical rows remain readable. Concurrent takeover fences predecessor inside commit transactions.
 
-**Verification:** SQLite migration fixtures for legacy MANAGED, EXTERNAL_V1 and mixed/unknown ownership, preservation and pre-first-takeover, stale-generation, missing-binding, cross-target and concurrent takeover tests; re-probe M02 claim/admit and all six specialized writes under missing/stale/valid mandatory host sessions before M04+ dispatch eligibility; migration inventory verification.
+**Verification:** SQLite migration fixtures for legacy MANAGED, EXTERNAL_V1 and mixed/unknown ownership, preservation and pre-first-takeover, stale-generation, missing-binding, cross-target and concurrent takeover tests; verify claim/admit and all six specialized writes under missing/stale/valid mandatory host sessions in SQLite/service integration; later native re-probes remain separately gated before dispatch eligibility; migration inventory verification.
 
 ### M04: Persist provider dispatch and wake intent
 

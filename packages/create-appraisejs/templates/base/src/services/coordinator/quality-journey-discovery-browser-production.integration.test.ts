@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, onTestFailed } from 'vitest'
 import { access } from 'node:fs/promises'
 import {
   armQualityJourneyDiscoveryBrowserHumanReturn,
@@ -43,7 +43,16 @@ async function fixture(
   configure?: (servers: Awaited<ReturnType<typeof productionFixtureServers>>) => void,
   delayWebSocketObservation = false,
 ) {
+  const startedAt = performance.now()
+  const phases: Array<{ phase: string; elapsedMs: number }> = []
+  const mark = (phase: string) => phases.push({ phase, elapsedMs: Math.round(performance.now() - startedAt) })
+  const trace: string[] = []
+  onTestFailed(() => {
+    console.error('Discovery browser fixture phases', JSON.stringify({ headless, phases, protocol: trace.slice(-24) }))
+  })
+  mark('servers:start')
   const servers = await productionFixtureServers()
+  mark('servers:ready')
   cleanup.push(servers.close)
   configure?.(servers)
   const client = productionFixtureClient(servers.targetOrigin, servers.policy)
@@ -55,14 +64,16 @@ async function fixture(
     []
   let holdRedirectContinuations = false
   const pendingRedirectContinuations: Array<() => void> = []
-  const trace: string[] = []
   const runtime = createQualityJourneyDiscoveryBrowserRuntime({
     headless,
     transportFactory: async () => {
+      mark('transport:start')
       transport = await launchDiscoveryBrowserTransport(headless)
+      mark('transport:spawned')
       cleanup.push(transport.close)
       // Disposable fixture certificates only; never configured by the production default.
       await transport.send('Security.setIgnoreCertificateErrors', { ignore: true })
+      mark('transport:cdp-ready')
       return {
         ...transport,
         async send<T>(method: string, params?: object, sessionId?: string): Promise<T> {
@@ -150,8 +161,10 @@ async function fixture(
   ).catch(error => {
     throw new Error(`Fixture startup failed: ${trace.join(', ')}`, { cause: error })
   })
+  mark('session:ready')
   const identity = { ...productionScope, sessionId: session.id }
   const evaluate = async (expression: string) => {
+    mark('evaluate:start')
     const result = await transport.send<{ result: { value?: unknown } }>(
       'Runtime.evaluate',
       {
@@ -161,6 +174,7 @@ async function fixture(
       },
       seedSession,
     )
+    mark('evaluate:ready')
     return result.result.value
   }
   const navigate = async (url: string) => {

@@ -88,3 +88,7 @@ Trusted projection, authorization and durable-acceptance adapters are explicit s
 dispatch, runtime probe, containment/auth qualification, schema change or publication is supplied.
 M03 mandatory-session re-probes remain required. Frozen M00, native 3/3 exhaustion, historical
 UNKNOWN evidence and GC3 REVISE remain unchanged. M02-B+ requires separate authorization.
+
+## M03 host-neutral persistence — 2026-10-19
+
+The separately approved M03 plan implements [durable host-neutral session ownership](../quality-journey-host-sessions.md), explicit internal Journey hosting and transaction-local first-session fencing. [Current implementation evidence](../../tasks/codex-app-server-journeys/M03-CURRENT-WORK-01.md) remains distinct from the frozen M00 design and M02 scripted qualification. No production app-server dispatch, public managed opt-in, native/provider campaign or M04/M05 implementation follows from persistence checks.

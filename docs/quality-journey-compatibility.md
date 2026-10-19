@@ -7,6 +7,10 @@ The supported stock-Codex path retains Journey IDs, immutable revisions, assignm
 interruptions and sealed evidence. Compatibility checks never reset storage or transfer ownership. Historical
 provider prototypes remain opt-in research paths; the generated default MCP contract excludes provider-native runs.
 
+## M03 ownership preservation
+
+The [host-neutral session migration](quality-journey-host-sessions.md) preserves legacy effective owners and immutable attempt lineage. It does not blanket-convert attempt admission modes into managed hosting. Missing/conflicting ownership and unknown dispatch remain recovery-required; active work is never transferred automatically. Provider availability never changes the persisted Journey hosting mode. Historical receipt reads remain available without granting present mutation authority.
+
 ## Storage upgrades and refusal
 
 `npm run migrate-db` inspects the configured SQLite database and committed migration history before Prisma deploy.

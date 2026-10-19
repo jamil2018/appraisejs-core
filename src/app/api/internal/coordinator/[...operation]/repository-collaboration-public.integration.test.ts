@@ -177,10 +177,8 @@ describe('repository collaboration public worker ingress', () => {
     const databasePath = path.join(workspace, 'appraise.db')
     await execFile('git', ['init', '--bare', '--initial-branch=appraise-0.5', remote])
     await execFile('git', ['clone', remote, local])
-    await Promise.all([
-      fs.mkdir(hub),
-      fs.writeFile(path.join(hub, 'package.json'), '{"name":"public-divergent-hub"}\n'),
-    ])
+    await fs.mkdir(hub)
+    await fs.writeFile(path.join(hub, 'package.json'), '{"name":"public-divergent-hub"}\n')
     await git(local, 'config', 'user.email', 'collaboration@example.test')
     await git(local, 'config', 'user.name', 'Collaboration Test')
 

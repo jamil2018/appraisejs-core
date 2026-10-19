@@ -140,3 +140,7 @@ independently verified durable acceptance. They are not implemented production i
 See [M02-A evidence and limits](../tasks/codex-app-server-journeys/m02-a-qualification.md). No role
 grant, native inference, credential isolation, OS containment or mandatory M03 host session is
 qualified by these deterministic fixtures. Product managed dispatch remains disabled/unimplemented.
+
+## Internal managed-session credentials
+
+M03's [host-neutral sessions](quality-journey-host-sessions.md) use a durable session ID and generation for explicitly selected internal managed Journeys. The coordinator route derives the principal from the authenticated project context; model payloads cannot select it. Existing desktop handoff credentials remain compatibility aliases. No new session activation MCP tool or public managed opt-in is registered by this storage change; restarting a client does not activate a session, change hosting mode or authorize provider dispatch.

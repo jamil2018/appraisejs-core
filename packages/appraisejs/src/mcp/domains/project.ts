@@ -110,6 +110,7 @@ export function registerProjectOperations(context: McpRegistryContext): void {
       inputSchema: {
         target: z.string().min(1),
         journeyId: z.string().min(1),
+        coordinatorSessionId: z.string().min(1).max(200).optional(),
         coordinatorHandoffId: z.string().min(1).max(200).optional(),
         coordinatorGeneration: z.number().int().positive().optional(),
         allowCreate: z.boolean().optional(),

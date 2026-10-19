@@ -1,3 +1,4 @@
+import { trustedHumanCoordinatorSession } from '@/services/coordinator/quality-journey-coordinator-session'
 import { beforeEach, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({ close: vi.fn(), project: vi.fn(), revalidate: vi.fn() }))
 vi.mock('@/services/coordinator/quality-journey-closure-service', () => ({ closeQualityJourney: mocks.close }))
@@ -20,7 +21,11 @@ beforeEach(() => {
 })
 it('resolves target scope and invalidates the closed journey views', async () => {
   expect(await closeQualityJourneyAction(input)).toMatchObject({ success: true })
-  expect(mocks.close).toHaveBeenCalledWith({ ...input, acceptedItemIds: [], targetProjectId: 'project-1' })
+  expect(mocks.close).toHaveBeenCalledWith(
+    { ...input, acceptedItemIds: [], targetProjectId: 'project-1' },
+    undefined,
+    trustedHumanCoordinatorSession,
+  )
   expect(mocks.revalidate).toHaveBeenCalledWith('/quality-journeys/journey-1')
   expect(mocks.revalidate).toHaveBeenCalledWith('/quality-journeys')
 })

@@ -40,6 +40,10 @@ remain distinct from authenticated redemption and authoritative state reads.
 
 [ADR-0005](decisions/0005-codex-app-server-journeys.md) supersedes the stock-desktop/plugin roadmap, while existing external product behavior and historical evidence remain intact; GC3 stays REVISE / not passed. The [M00 host contract](../tasks/codex-app-server-journeys/m00-host-authority-contract.md) is approved as M00-r3 at f506fccb and its exact SHA-256; see the [approval record](../tasks/codex-app-server-journeys/m00-r3-approval.md). Its submission-time header remains frozen to preserve the approved bytes. It separates `APP_SERVER_LOCAL_V1` hosting from retained `EXTERNAL_V1` admission, requires explicit current session fencing before first dispatch, and limits workers to scoped canonical external role submissions. Existing Factory attestations do not qualify the proposed host. No worker repository writes, broad coordinator credentials, direct database/credential access, native tools or human decisions are allowed. Structured forms and accepted canonical artifacts remain transition authority; provider completion is operational evidence only. No app-server implementation, authentication, schema change or UI cutover has occurred in M00.
 
+## Host-neutral session storage (M03)
+
+[Journey hosting and coordinator sessions](quality-journey-host-sessions.md) documents the M03 storage and transaction boundary. Explicit internal managed hosting requires a current durable session before its first claim/admission and all specialized worker writes. Legacy owners and historical attempt bytes remain preserved; mixed or unresolved ownership requires recovery. Trusted human actions pass a server-only capability rather than relying on omitted worker credentials. This adds no app-server supervisor or production dispatch and does not change M02 qualification limits.
+
 ## Journey presentation and observation
 
 The default experience groups canonical lifecycle state into six presentation stages: **Your brief**, **Test

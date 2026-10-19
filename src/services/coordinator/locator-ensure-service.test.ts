@@ -18,10 +18,41 @@ function clientFixture() {
   const client = {
     qualityJourney: {
       findFirst: async ({ where }: { where: { id: string } }) =>
-        where.id === 'journey-login' ? { id: 'journey-login', targetProjectId: targetProject.id, targetProject } : null,
+        where.id === 'journey-login'
+          ? {
+              id: 'journey-login',
+              targetProjectId: targetProject.id,
+              targetProject,
+              hostingMode: 'EXTERNAL_LEGACY',
+              hostingProvenance: 'CREATED_COMPATIBILITY_V1',
+              currentCoordinatorSessionId: effectiveHandoff ? `mapped:${effectiveHandoff.id}` : null,
+              ownershipVersion: 0,
+              status: 'ACTIVE',
+            }
+          : null,
+      updateMany: async () => ({ count: 1 }),
     },
     qualityJourneyCoordinatorHandoff: {
-      findFirst: async () => effectiveHandoff,
+      findUnique: async () =>
+        effectiveHandoff && {
+          ...effectiveHandoff,
+          takeoverAt: new Date(),
+          journeyId: 'journey-login',
+          targetProjectId: targetProject.id,
+        },
+    },
+    qualityJourneyCoordinatorSession: {
+      findUnique: async () =>
+        effectiveHandoff && {
+          id: `mapped:${effectiveHandoff.id}`,
+          generation: effectiveHandoff.generation,
+          journeyId: 'journey-login',
+          targetProjectId: targetProject.id,
+          status: 'ACTIVE',
+          hostKind: 'EXTERNAL_LEGACY',
+          fencedAt: null,
+          legacyHandoffId: effectiveHandoff.id,
+        },
     },
     module: {
       findFirst: async ({ where }: { where: Record<string, unknown> }) => {

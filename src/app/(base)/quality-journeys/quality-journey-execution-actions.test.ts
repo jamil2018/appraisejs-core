@@ -1,3 +1,4 @@
+import { trustedHumanCoordinatorSession } from '@/services/coordinator/quality-journey-coordinator-session'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({ project: vi.fn(), run: vi.fn(), revalidate: vi.fn() }))
 vi.mock('@/lib/active-project', () => ({ requireActiveProjectForMutation: mocks.project }))
@@ -22,12 +23,20 @@ beforeEach(() => {
 describe('Journey execution UI authority', () => {
   it('resolves grant ownership from active project and invalidates the Journey', async () => {
     expect(await qualityJourneyExecutionAction('consent', input)).toMatchObject({ success: true })
-    expect(mocks.run).toHaveBeenCalledWith({ ...input, targetProjectId: 'target-1' })
+    expect(mocks.run).toHaveBeenCalledWith(
+      { ...input, targetProjectId: 'target-1' },
+      undefined,
+      trustedHumanCoordinatorSession,
+    )
     expect(mocks.revalidate).toHaveBeenCalledWith('/quality-journeys/journey-1')
   })
   it('resolves revocation ownership from the active project', async () => {
     expect(await qualityJourneyExecutionAction('revokeConsent', input)).toMatchObject({ success: true })
-    expect(mocks.run).toHaveBeenCalledWith({ ...input, targetProjectId: 'target-1' })
+    expect(mocks.run).toHaveBeenCalledWith(
+      { ...input, targetProjectId: 'target-1' },
+      undefined,
+      trustedHumanCoordinatorSession,
+    )
   })
   it.each([{ actor: 'USER' }, { targetProjectId: 'forged' }, { grantSource: 'UI' }])(
     'rejects browser-supplied authority',

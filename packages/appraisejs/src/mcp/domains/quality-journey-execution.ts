@@ -20,6 +20,7 @@ const ids = z
   )
 const scope = { target: z.string().min(1), journeyId: id }
 const coordinatorSession = {
+  coordinatorSessionId: id.optional(),
   coordinatorHandoffId: id.optional(),
   coordinatorGeneration: z.number().int().positive().optional(),
 }

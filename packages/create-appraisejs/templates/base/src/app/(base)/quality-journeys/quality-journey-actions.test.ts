@@ -1,3 +1,4 @@
+import { trustedHumanCoordinatorSession } from '@/services/coordinator/quality-journey-coordinator-session'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
@@ -76,6 +77,8 @@ describe('Quality Journey route actions', () => {
         command: 'SUBMIT_REQUIREMENT',
         idempotencyKey: 'submit-requirement:journey-create-1',
       }),
+      undefined,
+      trustedHumanCoordinatorSession,
     )
   })
 
@@ -96,6 +99,8 @@ describe('Quality Journey route actions', () => {
       expect.objectContaining({
         answer: expect.objectContaining({ targetProjectId: 'project-1', actor: 'USER', questionId: 'question-1' }),
       }),
+      undefined,
+      trustedHumanCoordinatorSession,
     )
   })
 
@@ -123,6 +128,8 @@ describe('Quality Journey route actions', () => {
           actor: 'USER',
         }),
       }),
+      undefined,
+      trustedHumanCoordinatorSession,
     )
   })
 
@@ -145,6 +152,8 @@ describe('Quality Journey route actions', () => {
         command: 'DECIDE_ANALYSIS',
         actor: 'USER',
       }),
+      undefined,
+      trustedHumanCoordinatorSession,
     )
   })
 })
