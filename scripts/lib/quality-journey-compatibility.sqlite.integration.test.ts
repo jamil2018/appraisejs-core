@@ -1,6 +1,7 @@
-import { execFileSync, spawnSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
 import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { createRequire } from 'node:module'
 import os from 'node:os'
 import path from 'node:path'
 import { PrismaClient } from '@prisma/client'
@@ -17,47 +18,51 @@ import { assertDatabaseCompatibility } from './database-compatibility.mjs'
 
 type SqlValue = string | number | null
 type SqlRow = Record<string, SqlValue>
+type SqlConnection = {
+  exec(sql: string): void
+  prepare(sql: string): { all(...values: SqlValue[]): SqlRow[]; run(...values: SqlValue[]): unknown }
+  close(): void
+}
+// This Node 22+ test host uses the built-in binding while the product retains its Node 20 type surface.
+const { DatabaseSync } = createRequire(import.meta.url)('node:sqlite') as {
+  DatabaseSync: new (filename: string) => SqlConnection
+}
 class SqlDatabase {
   constructor(private readonly filename: string) {}
 
+  private withConnection<T>(operation: (database: SqlConnection) => T): T {
+    const database = new DatabaseSync(this.filename)
+    try {
+      database.exec('PRAGMA foreign_keys=ON')
+      return operation(database)
+    } finally {
+      database.close()
+    }
+  }
+
   exec(sql: string): void {
-    execFileSync('sqlite3', [this.filename], {
-      input: `PRAGMA foreign_keys=ON;\n${sql}`,
-      encoding: 'utf8',
-    })
+    this.withConnection(database => database.exec(sql))
   }
 
   prepare(sql: string) {
-    const statement = (...values: SqlValue[]) => {
-      let index = 0
-      const bound = sql.replace(/\?/g, () => {
-        if (index >= values.length) throw new Error('Missing synthetic SQLite fixture value')
-        const value = values[index++]
-        if (value === null) return 'NULL'
-        if (typeof value === 'number') {
-          if (!Number.isFinite(value)) throw new Error('Invalid synthetic SQLite fixture number')
-          return String(value)
-        }
-        return `'${value.replaceAll("'", "''")}'`
-      })
-      if (index !== values.length) throw new Error('Unused synthetic SQLite fixture value')
-      return bound
-    }
+    const all = (...values: SqlValue[]): SqlRow[] =>
+      this.withConnection(database =>
+        database
+          .prepare(sql)
+          .all(...values)
+          .map(row => ({ ...row })),
+      )
     return {
-      all: (...values: SqlValue[]): SqlRow[] => {
-        const output = execFileSync('sqlite3', ['-json', this.filename], {
-          input: `PRAGMA foreign_keys=ON;\n${statement(...values)}`,
-          encoding: 'utf8',
-        })
-        return output.trim() ? (JSON.parse(output) as SqlRow[]) : []
+      all,
+      get: (...values: SqlValue[]): SqlRow | undefined => all(...values)[0],
+      run: (...values: SqlValue[]): void => {
+        this.withConnection(database => database.prepare(sql).run(...values))
       },
-      get: (...values: SqlValue[]): SqlRow | undefined => this.prepare(sql).all(...values)[0],
-      run: (...values: SqlValue[]): void => this.exec(statement(...values)),
     }
   }
 
   close(): void {
-    // Each sqlite3 invocation owns and closes its connection.
+    // Each operation owns and closes its connection, including error paths.
   }
 }
 
