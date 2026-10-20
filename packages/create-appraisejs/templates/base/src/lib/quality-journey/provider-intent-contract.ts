@@ -51,6 +51,13 @@ export function createProviderSendPermit(
   return permit
 }
 
+/** Verify the exact in-memory owner on every write, including pre-turn handshake. */
+export function assertProviderSendPermitOwned(permit: ProviderSendPermit): void {
+  const sender = permits.get(permit)
+  if (!sender || sender.disabled)
+    throw new ServiceError('Original provider sender is unavailable or disabled.', 'CONFLICT')
+}
+
 /** Consume immediately before the simulated sink. No provider callback is accepted here. */
 export function consumeProviderSendPermit(permit: ProviderSendPermit): ProviderSendIdentity {
   const sender = permits.get(permit)

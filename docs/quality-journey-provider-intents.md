@@ -1,3 +1,5 @@
+> M05 implementation adds an internal owned transport and fixture adapter; see [process supervision](quality-journey-process-supervision.md). Consumed-slot uncertainty remains unreconciled after transport shutdown. The original M04 scope descriptions below retain their milestone meaning. Production/provider dispatch remains blocked.
+
 # Journey provider dispatch and wake intent
 
 M04 adds SQLite-backed internal persistence and deterministic service verification. Production app-server dispatch remains blocked. No provider process, authentication, model inference, background supervisor, automatic retry or public managed opt-in is supplied by this slice. See [hosting and sessions](quality-journey-host-sessions.md) and the [approved M04 plan](../tasks/codex-app-server-journeys/m04-provider-dispatch-wake-intent-plan-01.md).

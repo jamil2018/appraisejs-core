@@ -1,0 +1,82 @@
+{
+  "status": "PASS",
+  "observedAt": "2026-10-20T09:33:15.264673+00:00",
+  "workspace": "/private/tmp/appraise-m05-build-validation-hhb77m05",
+  "database": "/private/tmp/appraise-m05-build-validation-hhb77m05/build.db",
+  "databaseUrlMechanism": "explicit process environment only; no env file or product configuration change",
+  "before": {
+    "_prisma_migrations": 91,
+    "TargetProject": 1,
+    "QualityJourneyProviderRun": 0,
+    "QualityJourneyProviderDispatchIntent": 0,
+    "QualityJourneyProviderSlot": 0
+  },
+  "after": {
+    "_prisma_migrations": 91,
+    "TargetProject": 1,
+    "QualityJourneyProviderRun": 0,
+    "QualityJourneyProviderDispatchIntent": 0,
+    "QualityJourneyProviderSlot": 0
+  },
+  "steps": [
+    {
+      "name": "migrations",
+      "command": ["node", "e2e/apply-migrations.mjs"],
+      "exitCode": 0,
+      "localLog": "/private/tmp/m05-disposable-migrations-02.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "build",
+      "command": ["npm", "run", "build"],
+      "exitCode": 0,
+      "localLog": "/private/tmp/m05-disposable-build-02.log",
+      "sha256": "8947f00f78f8480fbf56612d5f24c2d808a94d7b34694e2f4a895b6f137e96d3"
+    },
+    {
+      "name": "headless-tests",
+      "command": ["npm", "run", "validate:unit", "--", "--testNamePattern", "^(?!.*headless=false)"],
+      "exitCode": 0,
+      "localLog": "/private/tmp/m05-disposable-headless-tests-02.log",
+      "sha256": "e80e2f46ee557a8c01d62d8a551050295e154d3bdd9316c3c04fc4fbf43a87a4"
+    }
+  ],
+  "realProviderLaunches": 0,
+  "productionDispatch": false,
+  "M06Plus": false,
+  "shipping": false,
+  "runtimeQualified": false,
+  "schemaVersion": 1,
+  "milestone": "M05",
+  "validationScope": "configured disposable SQLite build and headless tests; no running application or provider qualification",
+  "predecessorArtifactUnchangedThroughValidation": {
+    "version": 1,
+    "algorithm": "sha256",
+    "digest": "cccd73edc34dc3db6278c14cf942c6aa4de43ad3783406a9afb3802fcc0c48f4",
+    "fileCount": 5025
+  },
+  "canonicalMigrationChecksumsVerified": 91,
+  "migrationInventoryDigest": "790bbbb3bc33755016891b5fab5edac7d85a9655fa0abe0a0f7184a5f88540a9",
+  "databaseSha256": "e3552556dfc7b3aa605d983b79f3afdb5652f1f06e2b44b4e6b4766fe0b4adc5",
+  "headlessResult": {
+    "filesPassed": 295,
+    "testsPassed": 1724,
+    "testsSkipped": 62,
+    "headedVariantsExcluded": 58,
+    "existingSkips": 4
+  },
+  "buildResult": {
+    "exitCode": 0,
+    "missingDatabaseUrlDiagnostic": false,
+    "prismaInitializationError": false,
+    "unchangedSourceBroadPatternWarnings": 3
+  },
+  "diagnostics": {
+    "preparation01": "Rejected an incorrect zero-target baseline before build; canonical migrations create one built-in target. Failed receipt and first disposable database preserved; validation02 used a fresh database."
+  },
+  "review": {
+    "manifest": ".appraisejs/m05-final-manifest-02.json",
+    "receipt": ".appraisejs/m05-final-review-02.json",
+    "priorManifestAndReviewPreserved": true
+  }
+}

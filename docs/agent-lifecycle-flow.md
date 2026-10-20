@@ -269,3 +269,7 @@ Appraise services enforce lifecycle transitions. No managed provider/fork or bac
 ## Operational pause and owned cleanup
 
 See [Quality Journey pause and recovery](quality-journey-recovery.md) for operational admission fences, durable lost-reply recovery, deferred terminal publication, and observed owned-process cleanup. Cancellation requests alone are nonterminal; external Codex activity remains outside Appraise process ownership.
+
+## Owned local process supervision (M05)
+
+[Journey process supervision](quality-journey-process-supervision.md) implements private owned transport, canonical write fencing and fixture-only composition. Production dispatch remains blocked. Transport shutdown, process exit and provider completion cannot release uncertain ownership or accept lifecycle artifacts.

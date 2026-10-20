@@ -21,6 +21,11 @@ const REPOSITORY_ONLY_TEMPLATE_PREFIXES = [
 ]
 const REPOSITORY_ONLY_TEMPLATE_PATHS = new Set([
   'scripts/quality-journey-c33-clean-install.mjs',
+  'scripts/m05-owned-process-smoke.ts',
+  'm05-owned-process-smoke.ts',
+  'src/test/m05-owned-child.mjs',
+  'src/lib/quality-journey/codex-app-server/owned-child.test.ts',
+  'src/services/coordinator/quality-journey-process-supervisor.sqlite.integration.test.ts',
   'src/lib/quality-journey/automation-contracts.mcp-parity.test.ts',
   'src/lib/quality-journey/scenario-contracts.mcp-parity.test.ts',
 ])
