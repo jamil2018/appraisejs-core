@@ -1,0 +1,189 @@
+{
+  "status": "PASS",
+  "observedAt": "2026-10-20T09:52:40.671215+00:00",
+  "reason": "CI rejected added fixture suppression; relocated fixture to existing scripts entrypoint without changing quality policy",
+  "predecessorCommit": "94c2a3bcc9e2153bda91801f3d9010c94ac177a6",
+  "disposableBuild": {
+    "status": "PASS",
+    "observedAt": "2026-10-20T09:51:49.236541+00:00",
+    "workspace": "/private/tmp/appraise-m05-build-validation-k6cdptnc",
+    "database": "/private/tmp/appraise-m05-build-validation-k6cdptnc/build.db",
+    "databaseUrlMechanism": "explicit process environment only; no env file or product configuration change",
+    "before": {
+      "_prisma_migrations": 91,
+      "TargetProject": 1,
+      "QualityJourneyProviderRun": 0,
+      "QualityJourneyProviderDispatchIntent": 0,
+      "QualityJourneyProviderSlot": 0
+    },
+    "after": {
+      "_prisma_migrations": 91,
+      "TargetProject": 1,
+      "QualityJourneyProviderRun": 0,
+      "QualityJourneyProviderDispatchIntent": 0,
+      "QualityJourneyProviderSlot": 0
+    },
+    "steps": [
+      {
+        "name": "migrations",
+        "command": ["node", "e2e/apply-migrations.mjs"],
+        "exitCode": 0,
+        "localLog": "/private/tmp/m05-disposable-migrations-ship03.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "build",
+        "command": ["npm", "run", "build"],
+        "exitCode": 0,
+        "localLog": "/private/tmp/m05-disposable-build-ship03.log",
+        "sha256": "a06944872cfde3de38daee25d4ec8180f92b5a6d7b03761bc7e091ed41f75a2e"
+      },
+      {
+        "name": "headless-tests",
+        "command": ["npm", "run", "validate:unit", "--", "--testNamePattern", "^(?!.*headless=false)"],
+        "exitCode": 0,
+        "localLog": "/private/tmp/m05-disposable-headless-tests-ship03.log",
+        "sha256": "551c90c387f41bee45304f73093ae292e9eb9530517b2aeeeff57e9cf715f938"
+      }
+    ],
+    "realProviderLaunches": 0,
+    "productionDispatch": false,
+    "M06Plus": false,
+    "shipping": true,
+    "runtimeQualified": false
+  },
+  "graphs": {
+    "observedAt": "2026-10-20T09:51:56.690Z",
+    "head": "94c2a3bcc9e2153bda91801f3d9010c94ac177a6",
+    "purpose": "Fixture move after PR305 CI ratchet; canonical graph refresh only",
+    "scopes": [
+      {
+        "scope": "src",
+        "nodes": 6733,
+        "edges": 17629,
+        "uniqueIds": true,
+        "invalidIds": 0,
+        "danglingEndpoints": 0,
+        "freshness": {
+          "scope": "src",
+          "status": "fresh",
+          "recordedAt": "2026-10-20T09:50:45.343Z"
+        },
+        "fixtureSources": [],
+        "files": {
+          "src/graphify-out/graph.json": {
+            "sha256": "de707446d77262fdc83529f511a534ed32ba91cce3f95c8c7293cd07a5578359",
+            "bytes": 9448921
+          },
+          "src/graphify-out/graph.html": {
+            "sha256": "8f6f605a21c59957a301c8b0c12016a8118c0c2d484e57d291ae42eda65fe8d4",
+            "bytes": 440394
+          },
+          "src/graphify-out/GRAPH_REPORT.md": {
+            "sha256": "d6003f2b6120c252484a0d5e978d0d6b4905677ae5858c87ebca2dc04340079e",
+            "bytes": 60564
+          }
+        }
+      },
+      {
+        "scope": "scripts",
+        "nodes": 15673,
+        "edges": 39080,
+        "uniqueIds": true,
+        "invalidIds": 0,
+        "danglingEndpoints": 0,
+        "freshness": {
+          "scope": "scripts",
+          "status": "fresh",
+          "recordedAt": "2026-10-20T09:50:58.428Z"
+        },
+        "fixtureSources": ["tests/fixtures/m05-owned-child.mjs"],
+        "files": {
+          "scripts/graphify-out/graph.json": {
+            "sha256": "8e64bbf7fd6dfc8442db7e1bb1ff32591030bfbaea9cbec148fb67343355336d",
+            "bytes": 22626989
+          },
+          "scripts/graphify-out/graph.html": {
+            "sha256": "1b27227837a7287b68c18b9683f3a60474a44d74b0d9e0887bcde5a3cbd4c220",
+            "bytes": 899124
+          },
+          "scripts/graphify-out/GRAPH_REPORT.md": {
+            "sha256": "7bd8474db197e126722c671805803d3d7523daab8847d87a0e70b6a10ad6fcd6",
+            "bytes": 141965
+          }
+        }
+      },
+      {
+        "scope": "packages",
+        "nodes": 1329,
+        "edges": 2524,
+        "uniqueIds": true,
+        "invalidIds": 0,
+        "danglingEndpoints": 0,
+        "freshness": {
+          "scope": "packages",
+          "status": "fresh",
+          "recordedAt": "2026-10-20T09:18:29.670Z"
+        },
+        "fixtureSources": [],
+        "files": {
+          "packages/graphify-out/graph.json": {
+            "sha256": "72e65593b878e0565feed7a43d7e08e1e97a914f2ebf667f6810e9afac9213ed",
+            "bytes": 1353231
+          },
+          "packages/graphify-out/graph.html": {
+            "sha256": "a57ff3de0ac5adc6b942de27ec8bc9f5a5f502b709e1fcfa67fcda33311ebf61",
+            "bytes": 1163974
+          },
+          "packages/graphify-out/GRAPH_REPORT.md": {
+            "sha256": "3f5c8d7ca8a57123a277bca9403c6bbe1f9f6ba7f8974dd599e7e890afe3cdbc",
+            "bytes": 20258
+          }
+        }
+      }
+    ],
+    "logs": {
+      "auto": "/private/tmp/m05-graphify-ship-auto-01.log",
+      "sourceTree": "/private/tmp/m05-graphify-ship-src-tree-01.log",
+      "scriptsTree": "/private/tmp/m05-graphify-ship-scripts-tree-01.log"
+    },
+    "observations": [
+      "Source deletion and moved scripts fixture reflected in graph provenance.",
+      "Scripts historical semantic cache had2valid docs with26nodes31edges; unchanged docs needed no extraction.",
+      "Packages graph stayed fresh and its canonical outputs were preserved.",
+      "No provider calls, credentials, force override beyond deletion-aware repository wrapper, policy changes or source edits."
+    ]
+  },
+  "logs": [
+    {
+      "localLog": "/private/tmp/m05-ship-smoke-03.log",
+      "sha256": "c868aa80ccb2fe8a08106587b12e2f17fda496a86c8e9bae70785cc9d485b594"
+    },
+    {
+      "localLog": "/private/tmp/m05-ship-focused-03.log",
+      "sha256": "e005809c9b56b2faf9350b8264c0d0723239f6ed7cd63d8b1d48999f114bcbec"
+    },
+    {
+      "localLog": "/private/tmp/m05-ship-scaffold-03.log",
+      "sha256": "30345de46a59d4446a9e8e453f4f7336fddc874108b90d508ec6e52d0004d56e"
+    },
+    {
+      "localLog": "/private/tmp/m05-ship-fallow-03-elevated.log",
+      "sha256": "d52e5e0e47a36d2214e0233f1a1e01d56d098eace110ce29c5685f9525fbd324"
+    },
+    {
+      "localLog": "/private/tmp/m05-ship-artifacts-03.log",
+      "sha256": "d329aed83e85da7e21a56a19f2e53b4e2615e1b997ac86fce39a33801d0cd5d4"
+    },
+    {
+      "localLog": "/private/tmp/m05-ship-packages-03.log",
+      "sha256": "b62b99a521f9883e4934534214a1b4066b15902308cf977124db90d38b6192db"
+    }
+  ],
+  "focusedTestsPassed": 62,
+  "scaffoldTestsPassed": 98,
+  "newSuppressions": 0,
+  "runtimeQualified": false,
+  "productionDispatch": false,
+  "M06Plus": false
+}

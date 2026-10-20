@@ -11,6 +11,7 @@ import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { validateWorkerSpawnReceipt } from '@/lib/quality-journey'
 import {
   assertProviderSenderDisabled,
+  assertProviderSendPermitOwned,
   createProviderSendPermit,
   consumeProviderSendPermit,
   providerIntentPolicy,
@@ -537,6 +538,39 @@ export async function consumeQualityJourneyProviderSendPermit(
     assertSendWindowCurrent(intent)
   })
   return consumeProviderSendPermit(input.permit)
+}
+
+/**
+ * Serialize each owned write against canonical pause/transfer using the M03 ownership CAS.
+ * send must enter its synchronous, revocable write gate before returning. Its reply is
+ * boxed so the database transaction never waits for an RPC acknowledgement. A failed
+ * commit after I/O retains the already committed UNKNOWN boundary; callers never retry.
+ */
+export async function writeQualityJourneyProviderTransport<T>(
+  input: Binding & { permit: ProviderSendPermit; consume: boolean },
+  send: () => Promise<T>,
+  client: PrismaClient = prisma,
+): Promise<{ reply: Promise<T> }> {
+  assertProviderSendPermitOwned(input.permit)
+  return client.$transaction(async tx => {
+    const intent = await readIntent({ ...input, intentId: input.permit.intentId }, tx)
+    await currentAuthority(input, tx, intent.run)
+    assertPermitIdentity(intent, input.permit)
+    if (input.consume) assertSendWindowCurrent(intent)
+    else if (
+      intent.reconciledAt ||
+      intent.run.status === 'CONFLICT' ||
+      !intent.turnDueAt ||
+      intent.turnDueAt <= new Date()
+    )
+      conflict('Provider transport is fenced or expired.')
+    assertProviderSendPermitOwned(input.permit)
+    if (input.consume) consumeProviderSendPermit(input.permit)
+    const reply = send()
+    // Observe rejection even if commit acknowledgement is lost before returning the box.
+    void reply.catch(() => {})
+    return { reply }
+  })
 }
 
 export type ProviderObservationInput = {

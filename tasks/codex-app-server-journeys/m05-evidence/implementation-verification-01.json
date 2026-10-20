@@ -1,0 +1,275 @@
+{
+  "schemaVersion": 1,
+  "milestone": "M05",
+  "date": "2026-10-20",
+  "timezone": "Asia/Dhaka",
+  "baseCommit": "9011b6b43f8bd45cf1e486cb363e890ec6c66d41",
+  "branch": "codex/m05-supervise-local-process",
+  "evidenceClass": "offline-services-and-actual-owned-local-Node-fixtures",
+  "firstWorkingBeforeRegressionTests": {
+    "sha256": "505300bf9cd21830f0068b66b09a82584780fef2e07ae08677de34afb70e170b",
+    "receipt": ".appraisejs/m05-first-working-receipt-01.json",
+    "facts": "Actual owned fixture+SQLite path passed before new test files were authored."
+  },
+  "finalFixtureFacts": {
+    "status": "PASS",
+    "cleanup": {
+      "status": "stopped",
+      "groupExitObserved": true,
+      "privateRootRemoved": true,
+      "privateRootRetained": false
+    },
+    "occupiedAfterReconnect": true,
+    "threadId": "m05-fixture-thread",
+    "turnId": "m05-fixture-turn",
+    "requestSequence": 3,
+    "canonicalAcceptedArtifacts": 0,
+    "providerTerminationProven": false
+  },
+  "checks": [
+    {
+      "check": "headless-root",
+      "summary": "1724 passed;62 skipped (58 excluded headed variants,4 existing skips);295 files passed",
+      "localLog": "m05-root-headless-final-02.log",
+      "sha256": "a98b35a5e4f011fd3dfeddcbcad3f499cc4ef59f8b5cc1fdf46327136b780df5"
+    },
+    {
+      "check": "m05-focused",
+      "summary": "62 passed;3 files;actual owned Node fixtures",
+      "localLog": "m05-focused-final-01.log",
+      "sha256": "cdc7edc1cc9b9ad50d8117fe0424eaccfe558d824a1ac550e7137b12fadbf6dc"
+    },
+    {
+      "check": "package",
+      "summary": "295 passed",
+      "localLog": "m05-package-tests-02.log",
+      "sha256": "5ec278b9916628d3ece45e29f5161686331ab60e466bbee35c3a9b541fedcf33"
+    },
+    {
+      "check": "scaffold-package",
+      "summary": "98 passed",
+      "localLog": "m05-scaffold-tests-01.log",
+      "sha256": "ccc3fe3c50ee1bddd70f8856870901e28f118f2985adae638f29f7bd7bdbe356"
+    },
+    {
+      "check": "build",
+      "summary": "root Next and package/runtime compilation passed;3 broad-pattern warnings from unchanged source",
+      "localLog": "m05-build-final-01.log",
+      "sha256": "7f8e6b12d4543da1acffb1ae92ac9a60bb7d853a576e88bd1f869521a0fb25d0"
+    },
+    {
+      "check": "format",
+      "summary": "passed for all affected source,docs and JSON artifacts",
+      "localLog": "m05-format-final-01.log",
+      "sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+    },
+    {
+      "check": "lint",
+      "summary": "passed;zero errors;ten inherited warnings",
+      "localLog": "m05-lint-final-02.log",
+      "sha256": "210be33b6181f14ce0d394c769b1e29b22be9fc3da8bba614b86370c60f5613e"
+    },
+    {
+      "check": "focused-lint",
+      "summary": "passed;zero warnings/errors",
+      "localLog": "m05-focused-lint-final-01.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "prisma-migrations",
+      "summary": "91 canonical entries;unchanged",
+      "localLog": "m05-migration-01.log",
+      "sha256": "59c102a71fc5104ce49d261b220f41d1a0fed40096e545e5fccf4884f324e727"
+    },
+    {
+      "check": "package-contents",
+      "summary": "91 packed migration names and SQL hashes match;bounded package artifacts",
+      "localLog": "m05-packages-final-01.log",
+      "sha256": "6ded2e43a49ec75ddeb08475175dbfcfbb50303e3b4bb4fa5e2f6a968509c89d"
+    },
+    {
+      "check": "generated-artifacts",
+      "summary": "passed",
+      "localLog": "m05-artifacts-final-01.log",
+      "sha256": "b5e23c6397f46d8354b4d1370436da25b51762cee96f44e22ecfcf86565392b4"
+    },
+    {
+      "check": "documentation-links",
+      "summary": "passed",
+      "localLog": "m05-doc-links-final-02.log",
+      "sha256": "feb5c950cd495da9a31ceed9d8735c4bc8c6accbc4ff3da2e003909fe3ee1294"
+    },
+    {
+      "check": "harness",
+      "summary": "harness,learning and CI registry checks passed",
+      "localLog": "m05-harness-final-02.log",
+      "sha256": "66c3731ddaef315fa585de379e665a8ef3fa545a01f7023cd7c9ceea4ae0dd67"
+    },
+    {
+      "check": "fallow",
+      "summary": "zero introduced dead code,complexity,duplication;one inherited unused export",
+      "localLog": "m05-fallow-final-02.log",
+      "sha256": "f83d020d9e83c1519fc20d6364364181704ace55f894896eb04328f46ab770c9"
+    },
+    {
+      "check": "react-doctor",
+      "summary": "passed;inherited score78;88 warnings",
+      "localLog": "m05-react-doctor-01.log",
+      "sha256": "b744068c549c2162395245b31fd3e85ffdecb22bf5a49da8abe077ad2906dd0a"
+    },
+    {
+      "check": "full-typescript",
+      "summary": "passed",
+      "localLog": "m05-tsc-final-03.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "canonical-scaffold",
+      "summary": "passed;isolated seeds;no provider rows/runtime state",
+      "localLog": "m05-template-final-01.log",
+      "sha256": "965e7cc52adf6751e4ccbe4428e2bd21cb8a4f24b386f3029f7937fa5635169b"
+    },
+    {
+      "check": "owned-fixture-smoke",
+      "summary": "PASS;owned group drained;private root removed;occupied slot retained after reconnect",
+      "localLog": "m05-final-smoke-02.log",
+      "sha256": "d7ef9d4e2a81f043df36c7efd57ad0786f521c314a04a8581a4977cbbe5ed3e0"
+    }
+  ],
+  "graphs": {
+    "observedAt": "2026-10-20T09:25:29.572Z",
+    "scopes": [
+      {
+        "scope": "src",
+        "nodes": 6747,
+        "edges": 17657,
+        "uniqueIds": true,
+        "invalidIds": 0,
+        "danglingEndpoints": 0,
+        "freshness": {
+          "scope": "src",
+          "status": "fresh",
+          "recordedAt": "2026-10-20T09:25:29.125Z"
+        },
+        "files": {
+          "src/graphify-out/graph.json": {
+            "sha256": "e4986a623964912e555e58ca7fab2edb52730859b3ef2c63ecf30dc4c19628db",
+            "bytes": 9461935
+          },
+          "src/graphify-out/graph.html": {
+            "sha256": "b376edfe22213db3a88151beab7c8cfc442d997ce52371a7fe4e68ac90001dee",
+            "bytes": 441134
+          },
+          "src/graphify-out/GRAPH_REPORT.md": {
+            "sha256": "742a5522d0dc82582571206852c4077a3a6e804bad84bd6c0b0dcffebc418f0e",
+            "bytes": 58916
+          }
+        }
+      },
+      {
+        "scope": "scripts",
+        "nodes": 15659,
+        "edges": 39055,
+        "uniqueIds": true,
+        "invalidIds": 0,
+        "danglingEndpoints": 0,
+        "freshness": {
+          "scope": "scripts",
+          "status": "fresh",
+          "recordedAt": "2026-10-20T09:12:40.579Z"
+        },
+        "files": {
+          "scripts/graphify-out/graph.json": {
+            "sha256": "eee926637b8d5cbf1c1a273f65301ce9fa0572d4837feda19542c94f487d01eb",
+            "bytes": 22612580
+          },
+          "scripts/graphify-out/graph.html": {
+            "sha256": "76834e1fff311a5d0e24c6560088162cf818dc59e6ee82d609764b370291d78d",
+            "bytes": 898384
+          },
+          "scripts/graphify-out/GRAPH_REPORT.md": {
+            "sha256": "753f4134d19b4a5c1981297a4947b0530e5c5baa8c31bcddf2f6e2e58b93d6be",
+            "bytes": 149437
+          }
+        }
+      },
+      {
+        "scope": "packages",
+        "nodes": 1329,
+        "edges": 2524,
+        "uniqueIds": true,
+        "invalidIds": 0,
+        "danglingEndpoints": 0,
+        "freshness": {
+          "scope": "packages",
+          "status": "fresh",
+          "recordedAt": "2026-10-20T09:18:29.670Z"
+        },
+        "files": {
+          "packages/graphify-out/graph.json": {
+            "sha256": "72e65593b878e0565feed7a43d7e08e1e97a914f2ebf667f6810e9afac9213ed",
+            "bytes": 1353231
+          },
+          "packages/graphify-out/graph.html": {
+            "sha256": "a57ff3de0ac5adc6b942de27ec8bc9f5a5f502b709e1fcfa67fcda33311ebf61",
+            "bytes": 1163974
+          },
+          "packages/graphify-out/GRAPH_REPORT.md": {
+            "sha256": "3f5c8d7ca8a57123a277bca9403c6bbe1f9f6ba7f8974dd599e7e890afe3cdbc",
+            "bytes": 20258
+          }
+        }
+      }
+    ],
+    "logs": {
+      "auto": "/private/tmp/m05-graphify-auto-01.log",
+      "scriptsApi": "/private/tmp/m05-graphify-scripts-api-01.log",
+      "scriptsCluster": "/private/tmp/m05-graphify-scripts-cluster-01.log",
+      "scriptsTree": "/private/tmp/m05-graphify-scripts-tree-01.log",
+      "packages": "/private/tmp/m05-graphify-packages-final-01.log",
+      "source": "/private/tmp/m05-graphify-src-final-06.log",
+      "sourceTree": "/private/tmp/m05-graphify-src-tree-final-06.log"
+    },
+    "limitations": [
+      "Community labels remain generator placeholders.",
+      "Host semantic token usage unmeasured; no external provider extraction.",
+      "Prisma graph unchanged and outside assigned refresh."
+    ],
+    "supersedes": "/private/tmp/m05-final-graph-receipt-02.json",
+    "sourceFreeze": "lint-only boundary const declaration; implementation and tests frozen",
+    "advisoryEfficiencyObservation": {
+      "observation": "Repeated final graph refreshes were needed while source corrections and lint fixes continued; freshness guards correctly rejected source edits during two runs.",
+      "proposal": "Complete full-suite validation and focused lint/type checks, then confirm the final source freeze before the last graph generation and exact-artifact review.",
+      "status": "advisory only; no policy, config or harness changes"
+    }
+  },
+  "preservation": {
+    "originalHead": "c99a15013b771fa7bd41f95d0602afe9e20ecaca",
+    "originalBranch": "codex/journey-app-server-migration",
+    "originalStatus": "",
+    "approvedPlansUnchanged": {
+      "tasks/codex-app-server-journeys/m00-host-authority-contract.md": "1e39e733d5211db80705a1c34235d24580db618a9f505e7a16dc163398568133",
+      "tasks/codex-app-server-journeys/m03-host-neutral-sessions-plan-01.md": "8d62c42544fa8b994fbbfeef2a085a1a882805af099ee8dd285e49d9200ed430",
+      "tasks/codex-app-server-journeys/m04-provider-dispatch-wake-intent-plan-01.md": "8cad170b3a4094d780b0ce7601190de7203a16bd8ab27c6008f74c2152cc85f3",
+      "tasks/codex-app-server-journeys/plan.md": "c88c5913c000713bed38282f844be5acf9af057741a7044d066f5cf7dc3e2594",
+      "tasks/codex-app-server-journeys/todo.md": "bd522f223e50af15833439bf337d72a8a73f55e764f3e67d08c609d0df9f0b14"
+    },
+    "qualification": "No historical runtime roots, campaigns or allocations recreated."
+  },
+  "limits": {
+    "runtimeQualified": false,
+    "realProviderLaunches": 0,
+    "authentication": false,
+    "modelInference": false,
+    "productionDispatch": false,
+    "M06Plus": false,
+    "shipping": false,
+    "historicalUnknownsResolved": false,
+    "consumedSlotsReleased": false
+  },
+  "finalReview": {
+    "manifest": ".appraisejs/m05-final-manifest-01.json",
+    "receipt": ".appraisejs/m05-final-review-01.json",
+    "hostRoleModelContextSandboxAttestation": "unverified;requested selectors are not effective-host proof"
+  }
+}

@@ -1,4 +1,5 @@
 const REPO_ONLY_TEMPLATE_PATHS = new Set([
+  'scripts/m05-owned-process-smoke.ts',
   'scripts/lib/swarm-ledger-lock.mjs',
   'scripts/lib/toml-validator.mjs',
   'scripts/lib/quality-journey-compatibility.sqlite.integration.test.ts',

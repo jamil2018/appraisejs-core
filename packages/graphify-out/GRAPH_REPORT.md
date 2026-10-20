@@ -1,15 +1,15 @@
-# Graph Report - packages  (2026-10-19)
+# Graph Report - packages  (2026-10-20)
 
 ## Corpus Check
 - cluster-only mode — file stats not available
 
 ## Summary
-- 1329 nodes · 2524 edges · 72 communities (67 shown, 5 thin omitted)
+- 1329 nodes · 2524 edges · 73 communities (68 shown, 5 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 22 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `7569ef56`
+- Built from commit: `9011b6b4`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -75,6 +75,7 @@
 - [[_COMMUNITY_Community 61|Community 61]]
 - [[_COMMUNITY_Community 62|Community 62]]
 - [[_COMMUNITY_Community 63|Community 63]]
+- [[_COMMUNITY_Community 66|Community 66]]
 - [[_COMMUNITY_Community 75|Community 75]]
 - [[_COMMUNITY_Community 178|Community 178]]
 - [[_COMMUNITY_Community 179|Community 179]]
@@ -112,7 +113,7 @@
 ## Hyperedges (group relationships)
 - **Appraise Planning Lifecycle Flow** — appraise_planning_standby_skill_mcp_setup_and_diagnostics, appraise_planning_standby_skill_target_workspace_registration, appraise_planning_standby_skill_plan_creation, appraise_planning_standby_skill_review_readiness, appraise_planning_standby_skill_approval_standby, appraise_planning_standby_skill_approval_outcomes, appraise_planning_standby_skill_validation_preparation [EXTRACTED 1.00]
 
-## Communities (72 total, 5 thin omitted)
+## Communities (73 total, 5 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.08
@@ -156,7 +157,7 @@ Nodes (17): compilerOptions, declaration, declarationMap, esModuleInterop, force
 
 ### Community 10 - "Community 10"
 Cohesion: 0.12
-Nodes (15): author, bin, create-appraisejs, bugs, url, description, exports, files (+7 more)
+Nodes (15): author, bugs, url, description, engines, node, exports, files (+7 more)
 
 ### Community 11 - "Community 11"
 Cohesion: 0.13
@@ -258,6 +259,10 @@ Nodes (15): coordinatorSession, environment, executionCancelInput, executionReco
 Cohesion: 0.47
 Nodes (4): EXCLUDED_TEMPLATE_FILENAMES, EXCLUDED_TEMPLATE_PATH_PREFIXES, shouldExcludeBundledTemplatePath(), toPosixPath()
 
+### Community 37 - "Community 37"
+Cohesion: 0.22
+Nodes (8): NATIVE_DESCRIPTOR_LIMITS, capture(), context, custom, fn(), request(), schema, TrustedDescriptorContext
+
 ### Community 39 - "Community 39"
 Cohesion: 0.26
 Nodes (15): asOptions(), assertAllowedOptions(), assertArgumentCount(), isPlainObject(), locatorOptionKeys, LocatorStepOperation, pageOptionKeys, PageStepOperation (+7 more)
@@ -327,8 +332,8 @@ Cohesion: 0.15
 Nodes (23): fixtureHash(), fixtureHash(), canonical(), CapturedCallable, CaptureError, DescriptorCapture, DescriptorCaptureFailure, DescriptorCaptureResult (+15 more)
 
 ### Community 60 - "Community 60"
-Cohesion: 0.10
-Nodes (19): ExternalWorkerRole, ExternalNativeRoute, hash(), prepareExternalWorkerNativeMapping(), Profile, stable(), context, hash() (+11 more)
+Cohesion: 0.17
+Nodes (11): ExternalWorkerRole, ExternalNativeRoute, hash(), prepareExternalWorkerNativeMapping(), Profile, stable(), context, hash() (+3 more)
 
 ### Community 61 - "Community 61"
 Cohesion: 0.12
@@ -370,9 +375,9 @@ Nodes (5): forbiddenPaths, forbiddenScripts, packageJson, repoRoot, scriptsDir
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `fn()` connect `Community 60` to `Community 30`?**
+- **Why does `fn()` connect `Community 37` to `Community 30`?**
   _High betweenness centrality (0.188) - this node is a cross-community bridge._
-- **Why does `retry()` connect `Community 30` to `Community 60`?**
+- **Why does `retry()` connect `Community 30` to `Community 37`?**
   _High betweenness centrality (0.188) - this node is a cross-community bridge._
 - **What connects `name`, `version`, `description` to the rest of the system?**
   _482 weakly-connected nodes found - possible documentation gaps or missing edges._

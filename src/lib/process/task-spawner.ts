@@ -8,6 +8,8 @@ export interface SpawnerOptions extends ExecaOptions {
   logPrefix?: string
   captureOutput?: boolean
   retainProcessRecord?: boolean
+  /** Keep stdio and the process handle exclusively with the caller; never consume or publish output. */
+  privateStdio?: boolean
   /** Applied before process output is streamed, emitted, or retained. */
   redactOutput?: (value: string) => string
 }
@@ -52,6 +54,7 @@ class TaskSpawner extends EventEmitter {
       logPrefix,
       captureOutput = false,
       retainProcessRecord = true,
+      privateStdio = false,
       redactOutput,
       ...spawnOptions
     } = options
@@ -76,14 +79,23 @@ class TaskSpawner extends EventEmitter {
       stdio: stdioConfig,
       reject: false,
       ...spawnOptions,
+      ...(privateStdio ? { buffer: false, stdio: 'pipe' as const } : {}),
     })
+    if (privateStdio) {
+      // Execa auto-resumes unbuffered streams on its next tick unless explicitly
+      // paused. Preserve startup bytes until the private owner attaches handlers.
+      childProcess.stdout?.pause()
+      childProcess.stderr?.pause()
+    }
 
     spawnedProcess.process = childProcess
     spawnedProcess.pid = childProcess.pid
     spawnedProcess.isRunning = true
 
-    this.processes.set(processName, spawnedProcess)
-    this.outputBuffers.set(processName, { stdout: '', stderr: '' })
+    if (!privateStdio) {
+      this.processes.set(processName, spawnedProcess)
+      this.outputBuffers.set(processName, { stdout: '', stderr: '' })
+    }
 
     this.setupProcessListeners(spawnedProcess, {
       streamLogs,
@@ -92,9 +104,10 @@ class TaskSpawner extends EventEmitter {
       retainProcessRecord,
       redactOutput,
       stdioConfig,
+      privateStdio,
     })
 
-    this.emit('spawn', spawnedProcess)
+    if (!privateStdio) this.emit('spawn', spawnedProcess)
     return spawnedProcess
   }
 
@@ -235,12 +248,14 @@ class TaskSpawner extends EventEmitter {
       retainProcessRecord: boolean
       redactOutput?: (value: string) => string
       stdioConfig: string | string[]
+      privateStdio: boolean
     },
   ): void {
-    const { streamLogs, prefixLogs, captureOutput, retainProcessRecord, stdioConfig, redactOutput } = options
+    const { streamLogs, prefixLogs, captureOutput, retainProcessRecord, stdioConfig, redactOutput, privateStdio } =
+      options
     const { process: childProcess, name } = spawnedProcess
 
-    if (stdioConfig === 'pipe') {
+    if (stdioConfig === 'pipe' && !privateStdio) {
       childProcess.stdout?.on('data', (data: Buffer) => {
         const buffer = this.outputBuffers.get(name)
         if (!buffer) {
@@ -275,7 +290,7 @@ class TaskSpawner extends EventEmitter {
         this.scheduleProcessCleanup(name, spawnedProcess)
       }
 
-      this.emit('exit', { processName: name, code })
+      if (!privateStdio) this.emit('exit', { processName: name, code })
     })
 
     childProcess.on('error', (error: Error) => {
@@ -287,12 +302,12 @@ class TaskSpawner extends EventEmitter {
         this.scheduleProcessCleanup(name, spawnedProcess)
       }
 
-      if (streamLogs) {
+      if (streamLogs && !privateStdio) {
         const prefix = prefixLogs ? `[${name}] ` : ''
         console.error(`${prefix}ERROR: ${error.message}`)
       }
 
-      this.emit('error', { processName: name, error })
+      if (!privateStdio) this.emit('error', { processName: name, error })
     })
   }
 }
