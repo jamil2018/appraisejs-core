@@ -36,7 +36,7 @@ async function setup(mode = 'hold', clientOverride?: (client: PrismaClient) => P
   fixtures.push(f)
   const trace = path.join(f.workspace, 'methods.txt')
   const options = {
-    fixturePath: path.resolve('src/test/m05-owned-child.mjs'),
+    fixturePath: path.resolve('scripts/tests/fixtures/m05-owned-child.mjs'),
     fixtureArgs: [mode, trace],
     requestTimeoutMs: 5_000,
     // A lost turn ACK must time out after readiness succeeds, even under full-suite load.

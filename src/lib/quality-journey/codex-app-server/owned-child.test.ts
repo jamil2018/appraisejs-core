@@ -15,7 +15,7 @@ afterEach(async () => {
   vi.restoreAllMocks()
 })
 
-const fixturePath = path.resolve('src/test/m05-owned-child.mjs')
+const fixturePath = path.resolve('scripts/tests/fixtures/m05-owned-child.mjs')
 async function launch(fixtureArgs = ['hold']) {
   const onFault = vi.fn()
   const onNotification = vi.fn()

@@ -1,4 +1,3 @@
-// fallow-ignore-file unused-file -- Executed as an owned Node entrypoint by absolute path.
 // Local protocol fixture only. No provider, credentials, network or model calls.
 import readline from 'node:readline'
 import fs from 'node:fs'

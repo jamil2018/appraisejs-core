@@ -10,7 +10,7 @@ const fixture = await createProviderFixture()
 const supervisor = createQualityJourneyFixtureSupervisor(
   fixture.prepareInput,
   {
-    fixturePath: path.resolve('src/test/m05-owned-child.mjs'),
+    fixturePath: path.resolve('scripts/tests/fixtures/m05-owned-child.mjs'),
   },
   fixture.client,
 )
