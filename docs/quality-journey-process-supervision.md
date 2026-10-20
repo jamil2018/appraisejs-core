@@ -1,3 +1,5 @@
+> M06 repository continuation adds [internal Analysis fixture delivery and blocked follow-up observation](quality-journey-analysis-delivery.md). The consumed-slot and physical-reconciliation boundary is unchanged; full M06 remains incomplete. Earlier milestone scope statements below retain their historical meaning.
+
 # Journey local process supervision
 
 M05 implements an internal owned-process supervision core and a local Node fixture adapter. Production app-server dispatch and the real provider launcher refuse unconditionally. No route, CLI, MCP registration, scheduler, role instruction loop or M06 behavior enables this sender. [M05 continuation](../tasks/codex-app-server-journeys/M05-CURRENT-WORK-01.md) records evidence and limitations; [the bounded plan](../tasks/codex-app-server-journeys/m05-supervision-plan-01.md) records acceptance criteria.

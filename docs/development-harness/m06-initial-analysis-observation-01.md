@@ -1,0 +1,9 @@
+# M06 initial Analysis observation
+
+The M06 source investigation separated implementable repository delivery from a missing physical-outcome evidence dependency. Canonical accepted output completes Analyzer work, while M05 deliberately retains the consumed provider slot after local cleanup. An exact revision request can durably reissue logical work without authorizing its physical dispatch. Keep that distinction visible when estimating later delivery milestones; do not add another fixture-only proof type to bypass the shared slot invariant.
+
+Actual headless form inspection found an idempotency bug that isolated correction tests missed: an answer followed by a correction in the same mounted form reused the original operation identity. Bind ephemeral request identity to the exact Analysis revision, question, current answer head and payload. Exact retries preserve identity; a correction creates a new operation. A regression must retain the mounted component across the canonical head update. The real form walkthrough was repeated with fresh disposable data after the fix.
+
+The bounded investigator, solver and executor assignments used requested named selectors and `fork_turns: none`; independent final review uses the same bounded assignment pattern. These requests are provenance only. Effective role/model/context/sandbox enforcement is not independently host-attested. The route receipt was recorded after the first investigation had started, a process-order deviation retained here rather than backdated. No harness policy or quality gate changed.
+
+Useful optimization is to identify cross-milestone physical evidence dependencies before promising full-loop acceptance, then use an actual form transition to test identity across refresh. This is advisory guidance, not a permission or routing-policy change. Full M06 remains incomplete; a missing physical-outcome evidence producer cannot be supplied by additional model agreement.

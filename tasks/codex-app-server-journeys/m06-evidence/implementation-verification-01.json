@@ -1,0 +1,263 @@
+{
+  "status": "PARTIAL_IMPLEMENTATION_VERIFIED_FULL_M06_BLOCKED",
+  "observedAt": "2026-10-20T10:41:01.242125+00:00",
+  "base": "bf5efff400bac764960ce69c7c9df01b462bb86d",
+  "branch": "codex/m06-analysis-clarification",
+  "implemented": [
+    "initial owned-child canonical Analysis delivery",
+    "exact specialized submission outcome recovery",
+    "read-only deterministic continuation",
+    "same-mounted-form answer correction identity fix"
+  ],
+  "notImplemented": [
+    "answer-driven Analyzer reissue policy",
+    "actual continuation scheduler/dispatch",
+    "follow-up successor artifact"
+  ],
+  "dependency": "Authoritative original-run physical outcome plus exclusion of delayed original consumed sender; existing cleanup cannot supply this. Physical proof alone does not implement remaining logical follow-up policy.",
+  "verification": {
+    "focused": {
+      "files": 8,
+      "passed": 107
+    },
+    "fullHeadlessBeforeBehaviorPreservingSimplification": {
+      "files": 297,
+      "passed": 1741,
+      "skipped": 62
+    },
+    "scaffoldPassed": 98,
+    "finalBuild": {
+      "workspace": "/private/tmp/appraise-m06-build-06stymy3",
+      "database": "/private/tmp/appraise-m06-build-06stymy3/build.db",
+      "processLocalDatabaseUrl": true,
+      "steps": [
+        {
+          "name": "migrations",
+          "exitCode": 0,
+          "log": "/private/tmp/appraise-m06-build-06stymy3/migrations.log"
+        },
+        {
+          "name": "build",
+          "exitCode": 0,
+          "log": "/private/tmp/appraise-m06-build-06stymy3/build.log"
+        }
+      ],
+      "counts": {
+        "_prisma_migrations": 91,
+        "QualityJourneyProviderRun": 0,
+        "QualityJourneyProviderDispatchIntent": 0,
+        "QualityJourneyProviderSlot": 0
+      }
+    },
+    "fallowIntroducedFindings": 0,
+    "reactDoctor": {
+      "score": 99,
+      "warnings": "two test-only Date constructor diagnostics; zero errors"
+    }
+  },
+  "browser": {
+    "harness": "headless playwright-cli fallback; bundled Browser control skill unavailable",
+    "initialFailure": "same mounted answer then correction reused idempotency identity; preserved and fixed",
+    "actualObserved": [
+      "required question and disabled approval",
+      "pending answer retained across Check for updates",
+      "answer recorded and correction controls shown",
+      "corrected same-mounted answer-to-correction succeeded",
+      "canonical publication enabled exact review controls",
+      "revision feedback committed via existing form"
+    ],
+    "finalDatabase": {
+      "answers": 2,
+      "publications": 1,
+      "decisions": 0,
+      "feedback": 1,
+      "attempts": 1,
+      "intents": 1,
+      "turnsReserved": 1,
+      "workStatus": "ELIGIBLE",
+      "continuation": "PHYSICAL_RECONCILIATION_REQUIRED"
+    },
+    "consoleErrors": 0,
+    "finalListedRequests": "all 200; CLI excludes successful static resources by default",
+    "snapshots": [
+      "/private/tmp/m06-browser-pending-answer-01.yml",
+      "/private/tmp/m06-browser-pending-after-check-01.yml",
+      "/private/tmp/m06-browser-answer-expanded-01.yml",
+      "/private/tmp/m06-browser-revision-requested-01.yml"
+    ],
+    "limitations": "first revision observation waited for incorrect toast text and timed out after action committed; DB and DOM independently confirmed effect"
+  },
+  "graphs": [
+    {
+      "scope": "src",
+      "nodes": 6752,
+      "edges": 17734,
+      "uniqueNodeIds": true,
+      "danglingEndpoints": 0,
+      "htmlGenerator": "graphify tree",
+      "files": {
+        "src/graphify-out/graph.json": "8a7985ac7b8c1e5f7c724a879af6aa1e98b5c12795ab587e74ee14d9724f8c6e",
+        "src/graphify-out/graph.html": "550d5b5a245c28c067a7f9bdf17cec37232165d7dec74e45ec3386ed6f261d04",
+        "src/graphify-out/GRAPH_REPORT.md": "4e1d2a3e8695bdaea8bb9044b99940fa169aa160813bc71460b9c369fec2cf00"
+      }
+    },
+    {
+      "scope": "scripts",
+      "nodes": 15691,
+      "edges": 39106,
+      "uniqueNodeIds": true,
+      "danglingEndpoints": 0,
+      "htmlGenerator": "graphify tree",
+      "files": {
+        "scripts/graphify-out/graph.json": "71cc433ad3b657b47c4416844bccf75a66097d2c1ec703805ec5e99a3a695014",
+        "scripts/graphify-out/graph.html": "3590404d645e182491d08ee7523aaca45d3dece0e30498f7aa6d9848f0cd9c99",
+        "scripts/graphify-out/GRAPH_REPORT.md": "a83528c080598b0a877c6c148a96379c3614571b469fbfb912008dd5bbf87d46"
+      }
+    }
+  ],
+  "diagnosticsPreserved": [
+    "sandbox owned-child launch/cleanup observation refusal and retained private root",
+    "sandbox loopback/tsx IPC refusals",
+    "initial Google Fonts network build failure in build-receipt-01",
+    "Graphify full scripts preflight rejected absent semantic backend; incremental update reused content-addressed unchanged two-document cache (26 nodes, 31 edges)",
+    "transient Graphify rebuild lock caught by artifact check and removed from index before final snapshot",
+    "initial three Fallow complexity findings resolved without suppression",
+    "historical M05 headed startup timeout and one passing retry retained as predecessor history"
+  ],
+  "logs": [
+    {
+      "name": "focused-final",
+      "localLog": "/private/tmp/m06-focused-final-02.log",
+      "exitCode": 0,
+      "sha256": "ed9441018d4636108aefb5c03d0519727a5827efbe9bb74e642905f70f550c17"
+    },
+    {
+      "name": "full-headless",
+      "localLog": "/private/tmp/appraise-m06-build-64qnceuy/headless-tests.log",
+      "exitCode": 0,
+      "sha256": "fef1a01e5c0cc616aa2eca67e5e4a59cbe6934ccd4869044a4b05a159996bca5"
+    },
+    {
+      "name": "final-build",
+      "localLog": "/private/tmp/appraise-m06-build-06stymy3/build.log",
+      "exitCode": 0,
+      "sha256": "8fac302b07224132fbb7a7d8ecc23b6fd052d3fb8e6befdb0df4da222928c395"
+    },
+    {
+      "name": "scaffold-tests",
+      "localLog": "/private/tmp/m06-scaffold-tests-final-01.log",
+      "exitCode": 0,
+      "sha256": "19abd65f179d34054299daf4655ee4ed8b221856b8824500623dfb97f742de26"
+    },
+    {
+      "name": "harness",
+      "localLog": "/private/tmp/m06-harness-01.log",
+      "exitCode": 0,
+      "sha256": "ca5ccc3146f1072dac289a37356e293bec8aa9686fc2f28c5b95a5a2db259da5"
+    },
+    {
+      "name": "lint",
+      "localLog": "/private/tmp/m06-lint-01.log",
+      "exitCode": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "final-lint",
+      "localLog": "/private/tmp/m06-final-lint-02.log",
+      "exitCode": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "format",
+      "localLog": "/private/tmp/m06-format-final-01.log",
+      "exitCode": 0,
+      "sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+    },
+    {
+      "name": "migrations",
+      "localLog": "/private/tmp/m06-migrations-check-01.log",
+      "exitCode": 0,
+      "sha256": "3c2ed82f822b4ca821f7f39726197554730b33eb41b36a0f9f3e72548467cb43"
+    },
+    {
+      "name": "migration-inventory",
+      "localLog": "/private/tmp/m06-migration-inventory-01.log",
+      "exitCode": 0,
+      "sha256": "59c102a71fc5104ce49d261b220f41d1a0fed40096e545e5fccf4884f324e727"
+    },
+    {
+      "name": "artifact-check",
+      "localLog": "/private/tmp/m06-artifacts-final-02.log",
+      "exitCode": 0,
+      "sha256": "8aad90b19a2b23bd4c53599ccb4b1991b24bdcd085fbcc251c4bf194a427564d"
+    },
+    {
+      "name": "package-contents",
+      "localLog": "/private/tmp/m06-packages-final-01.log",
+      "exitCode": 0,
+      "sha256": "95e9cd5b135a633e3123e2e036b4a6c4f82fbac1d99b7a58f666367786c53c91"
+    },
+    {
+      "name": "fallow",
+      "localLog": "/private/tmp/m06-fallow-03.log",
+      "exitCode": 0,
+      "sha256": "7bde882662584af944c93e4fc56a14dc1225b599b3e6b01453771128bd0bc859"
+    },
+    {
+      "name": "react-doctor",
+      "localLog": "/private/tmp/m06-react-doctor-02.log",
+      "exitCode": 0,
+      "sha256": "45cb2f986b43434a6851a7f11647230e4f15b2b98ce65b4d82e0d9895c580534"
+    },
+    {
+      "name": "composed-smoke",
+      "localLog": "/private/tmp/m06-composed-smoke-final-01.log",
+      "exitCode": 0,
+      "sha256": "9bd3d53cdbaaaf7e1d1ca05782cc57d045e2e4f45cfd9bd4bc7d97488259ad3b"
+    },
+    {
+      "name": "fixture-after-simplification",
+      "localLog": "/private/tmp/m06-fixture-simplification-tests-01.log",
+      "exitCode": 0,
+      "sha256": "239d5c869adf4c79c6c6ce6286525c0351c9489dfa249def291b5326dcaf1c5f"
+    },
+    {
+      "name": "browser-publication",
+      "localLog": "/private/tmp/m06-browser-publication-02.log",
+      "exitCode": 0,
+      "sha256": "c06d6834924ccb1775fb4cddf24281cec63a0a38e3287616164ebdaeeff52c66"
+    },
+    {
+      "name": "browser-database",
+      "localLog": "/private/tmp/m06-browser-final-database-01.log",
+      "exitCode": 0,
+      "sha256": "c39bc67486f1cb6212ef0a4671d076b5e9c7ac0609dee705bcaa11179ee858d7"
+    },
+    {
+      "name": "browser-console",
+      "localLog": "/private/tmp/m06-browser-final-console-01.log",
+      "exitCode": 0,
+      "sha256": "d0e5634bb0c1271965327ad2ac18107af18fa7da6d2c9ce13e03eeda6cb603db"
+    },
+    {
+      "name": "browser-requests",
+      "localLog": "/private/tmp/m06-browser-final-requests-01.log",
+      "exitCode": 0,
+      "sha256": "9dfcedc10aac4c86d7e0421f92bec45a7260341f3384b60abcd61ecf40eb578a"
+    },
+    {
+      "name": "template",
+      "localLog": "/private/tmp/m06-template-final-01.log",
+      "exitCode": 0,
+      "sha256": "965e7cc52adf6751e4ccbe4428e2bd21cb8a4f24b386f3029f7937fa5635169b"
+    }
+  ],
+  "runtimeQualified": false,
+  "providerTerminationProven": false,
+  "slotReleased": false,
+  "productionDispatch": false,
+  "realProviderLaunches": 0,
+  "realCodexAppServerLaunches": 0,
+  "M07Plus": false,
+  "shipping": false
+}

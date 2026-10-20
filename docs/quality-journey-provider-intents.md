@@ -1,3 +1,5 @@
+> M06 repository continuation adds [internal Analysis fixture delivery and blocked follow-up observation](quality-journey-analysis-delivery.md). The consumed-slot and physical-reconciliation boundary is unchanged; full M06 remains incomplete. Earlier milestone scope statements below retain their historical meaning.
+
 > M05 implementation adds an internal owned transport and fixture adapter; see [process supervision](quality-journey-process-supervision.md). Consumed-slot uncertainty remains unreconciled after transport shutdown. The original M04 scope descriptions below retain their milestone meaning. Production/provider dispatch remains blocked.
 
 # Journey provider dispatch and wake intent

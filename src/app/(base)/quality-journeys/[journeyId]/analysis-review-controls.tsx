@@ -119,8 +119,12 @@ export function AnalysisReviewControls({
   function recordAnswer(question: AnalysisRevisionView['questions'][number]) {
     const answer = answers[question.questionId]?.trim()
     if (!answer) return
-    const action = idsForAction(ids, question.questionId)
     const latest = question.answers.at(-1)
+    // Exact retries retain identity; a new revision, answer head or edited payload is a new operation.
+    const action = idsForAction(
+      ids,
+      JSON.stringify([analysisRevisionId, question.questionId, latest?.answerId, answer]),
+    )
     setError(null)
     startTransition(async () => {
       const response = await answerQualityJourneyAnalysisQuestionAction({

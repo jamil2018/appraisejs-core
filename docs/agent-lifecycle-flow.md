@@ -273,3 +273,7 @@ See [Quality Journey pause and recovery](quality-journey-recovery.md) for operat
 ## Owned local process supervision (M05)
 
 [Journey process supervision](quality-journey-process-supervision.md) implements private owned transport, canonical write fencing and fixture-only composition. Production dispatch remains blocked. Transport shutdown, process exit and provider completion cannot release uncertain ownership or accept lifecycle artifacts.
+
+## Internal Analysis fixture delivery (M06)
+
+[Internal Analysis delivery](quality-journey-analysis-delivery.md) connects disposable managed assignments to canonical Analysis acceptance and existing human forms. Follow-up dispatch remains blocked on authoritative physical reconciliation of the consumed predecessor. Observation keys and durable wakes grant no execution or human-decision authority.
