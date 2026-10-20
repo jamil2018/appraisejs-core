@@ -1,6 +1,8 @@
+> Current M02 checkpoint: [R55 final scripted qualification](../../tasks/codex-app-server-journeys/M02-R55-CURRENT-WORK-01.md) records accepted T2 R51 and T3 R55 evidence within TA02/TA03 limits. M02 was delivered separately in [PR #301](https://github.com/jamil2018/appraisejs-core/pull/301). `runtimeQualified` remains false; helper lifetime/global inventory and historical cleanup remain unobserved. This branch retains its separate harness history. Older status passages below remain historical; no production dispatch or new native campaign is authorized.
+
 # ADR-0005: Run Codex app-server behind AppraiseJS Journeys
 
-Status: accepted direction; M00-r3 detailed design contract explicitly approved and byte-frozen; authentication amendment recorded; M00 complete; M01 protocol qualification complete for the pinned tuple; M02+ not started.
+Status: accepted direction; M00-r3 detailed design contract explicitly approved and byte-frozen; authentication amendment recorded; M00 complete; M01 protocol qualification complete for the pinned tuple; M02-A deterministic gateway implemented; M02 incomplete; M02-B+ not started.
 Date: 2026-10-13. Authority: user explicitly retired the old plan in favor of the Codex CLI-driven mechanism.
 Supersedes: [ADR-0004](0004-stock-codex-journey-handoff.md).
 
@@ -77,3 +79,12 @@ permission grants or native exec calls. Previous partial checkpoints above are h
 acceptance is complete for the pinned tuple, with reviewed mode mapping and historical policy hashes.
 M00 approved bytes remain unchanged. Model-driven MCP routing, containment and managed-runtime
 qualification remain unverified; M02+ remains unstarted, GC3 REVISE / not passed, local commits only.
+
+## M02-A deterministic checkpoint — 2026-10-15
+
+[M02-A](../../tasks/codex-app-server-journeys/m02-a-qualification.md) adds a disconnected six-role
+external-worker gateway and disposable deterministic fixtures. Public/legacy MCP remains unchanged.
+Trusted projection, authorization and durable-acceptance adapters are explicit seams; no product
+dispatch, runtime probe, containment/auth qualification, schema change or publication is supplied.
+M03 mandatory-session re-probes remain required. Frozen M00, native 3/3 exhaustion, historical
+UNKNOWN evidence and GC3 REVISE remain unchanged. M02-B+ requires separate authorization.

@@ -1,0 +1,20 @@
+# M02 R55 final current-work checkpoint
+
+M02 is accepted for **trusted-agent scripted native functional conformance with unobserved helper lifetime**, under the approved TA02/TA03 scope. The final exact implementation/evidence review accepted with no blocking findings or remaining required scripted gates. This records repository qualification; it does not advance Appraise product lifecycle rows or authorize M03.
+
+R51 supplied its own successful full 24-case T2 campaign. R55 supplied its own successful original N01/N02 T3 campaign: session65133, exit0, 62 journal records, 28 reservations/28ACKs, closed checkpoint, pending0. Both native actions have exact result correlation, owned scratch FD proof, ACK/canonical acceptance and bounded case cleanup. N02 accepted three passive current-case/thread/turn-bound diff notifications totaling1,212originalframebytes, failureReasonnull, authorityfalse. No raw diff/provider/account/auth payload was retained.
+
+The additive source is `scripts/tests/fixtures/codex-app-server-m02-ta-workspace-r55/` (28modules). It retains the R54 scratch proof correction and adds the bounded passive notification classifier/integration, exact R54 predecessor evidence, fresh p4 bindings and cumulative budget. All predecessor artifacts remain at their original paths/bytes. R54 N02 stays UNKNOWN/pending1; R52 stays UNKNOWN/pending2; R23 and all older consumption/uncertainty remain unchanged. A new success does not resolve historical cleanup.
+
+Passing checks: all28modules ESLint/Prettier; guarded actual entrypoint preparation/verification (9,509artifacts,0external effects); actual historical closure (603claims); composed entrypoint→runner→launcher→protocol→native adapter with real FD proof/serialization and explicitly simulated external effects; exact bound receipts below64KiB; actual guarded file-only precheck; one native campaign; postrun integrity of4snapshots/193liveoriginal-copy pairs; focused pre-native and final resulting-evidence reviews. No regression tests were added or run. No broad app build or production qualification was attempted for this additive CLI fixture change.
+
+`runtimeQualified` remains false. Actual short-lived helper lifetime and global process inventory remain unobserved; helperStarts0 is a reservation count, not an actual process census. Historical cleanup, R52's exact changed anchor and R54's omitted notification params/body remain UNKNOWN. No containment, general provider/model/auth/spend, production dispatch, M03, auth/inference/grants, privileged tracing, argv/env reads, historical cleanup, commit or push follows from this acceptance. GC3 remains REVISE/notpassed; real inference remains exhausted3/3; frozen M00 SHA256 remains1e39e733d5211db80705a1c34235d24580db618a9f505e7a16dc163398568133.
+
+Retained whole allocated ceilings after this one fresh campaign: listener263, Codex/MCP/thread260, turn250, provider621, scoped348, workspace8, permission12, control1034, outer372, canonical1906, source644; combined listener includingR16=264. No refund, reset, reuse or automatic successor.
+
+Final review: `.appraisejs/m02-r55-final-scripted-evidence-review-01.json`, SHA25680b70a4d024e5cedb4db0e0257a246e0d6837e291ea3a818647203e5a9476ac8.
+Native terminal: `.appraisejs/m02-r55-native-terminal-01.json`, SHA256f630ea9d82d4f01fabc05e34a738adcf33a7d2bfed8039b7479db8af0ae93444.
+Manifest: `.appraisejs/m02-ta-workspace-build-r55/manifest.json`, SHA25653093d5e2f98ab346f1dafd4aac68d4f44949444a7114f201d60c5f6e92970fd, digest08908c7f1835d8526a5682c66869d71a57be55dedf4b531914cf5af3c63f6f3a.
+Evidence ledger: `.appraisejs/m02-r55-evidence-ledger-01.json`, SHA256fd62ba1ed469aecb429721f70531d055d10a565d0fac68e02b47ca997be3181a.
+
+No required scripted M02 work remains. Further work needs its own scope; this checkpoint grants no additional runtime authority. Preserve the13unrelatedtracked dirty paths and all historical untracked evidence. Requested agent roles/context remain host-UNATTESTED; no official host-attested score is claimed.

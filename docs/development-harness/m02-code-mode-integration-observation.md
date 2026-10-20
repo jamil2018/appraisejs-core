@@ -1,0 +1,15 @@
+# M02 Code Mode integration observation
+
+Date: 2026-10-16. Advisory learning only; no routing, model, permission or quality-gate change.
+
+The current native tool surface changed enough that a generic wrapper, its nested SDK tools, its result projection and its persistent host process needed separate evidence. Pinned Open Design and t3code lifecycle patterns helped repair initialization and request/notification handling; current upstream Codex source supplied the wrapper-specific details. The user's standing instruction is to consult Open Design or t3code for agent integration issues. Existing frozen artifacts and historical UNKNOWN attempts must retain their original meaning.
+
+Useful deterministic checks found material problems before another native case: caller-forged decoder plans, incomplete audit correlation, a client/server transport orientation mismatch, post-spawn cleanup gaps, short OS metadata reads mistaken for process absence, a zero-turn case accidentally allocated a host slot, and invented mandatory fields on an optional startup notification. A passing mock suite did not establish native support; the independent review and actual SDK/SQLite path exposed different gaps. Avoid requiring telemetry fields or event ordering that the pinned producer/schema does not guarantee.
+
+Runtime-facing counters should distinguish supervisor-owned effects, source-bound capacity reservations and actual observed process identities. A source-derived host-attempt upper bound is not an OS process count. A persistent host needs observed lifecycle evidence beyond parent exit. Equally, optional telemetry is not a substitute for a correlated source-shaped required-MCP error and trusted child evidence. These distinctions preserve the trusted-agent scope without reintroducing hostile-containment requirements.
+
+The work benefited from separate owners for route/capture, phase/audit composition, protocol/observer and exact review. Repeated bounded investigations and new versioned copies cost time and resources; use one compact evidence ledger with exact APIs, source hashes and ownership before asking an executor to integrate. Reuse completed agents with an actual follow-up task, since a queued message alone does not start work. Do not report a freeze until deterministic checks finish; once accepted, make subsequent corrections in a new artifact.
+
+A public-source cache write was rejected outside its recorded directory scope. The safer approved alternative read the pinned source to stdout without creating that directory. Keep cache write authority explicit and preserve a rejected or accidental directory untouched; a generic cache label is insufficient. None of these lessons authorizes broader network, auth, grants, inference, native starts or historical evidence cleanup.
+
+Proposed follow-up: maintain a small source-backed compatibility ledger for native wrapper formats, SDK exposure and persistent dependencies, then derive focused checks from that ledger. This is deferred advice, not an implemented harness-policy change or a condition for unrelated work.

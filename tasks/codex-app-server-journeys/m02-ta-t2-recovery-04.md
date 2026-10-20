@@ -1,0 +1,61 @@
+# M02 T2 recovery proposal 04
+
+2026-10-17. **PROPOSED — offline integration and preparation only; no launch authority.** Preserve M00, accepted artifacts and every historical UNKNOWN. No auth, real inference, Appraise grants, privileged tracing, commits or push. The standing no-launch instruction remains effective. A future runtime command requires its own exact artifacts, independent review and actual user decision; nothing here supplies that decision.
+
+## Evidence and bounded integration
+
+R17 ran once in matrix-p4 and stopped UNKNOWN at B01 with zero completed cases. Its independent actual review `.appraisejs/m02-t2-r17-execution-review-01.json`, SHA `3976c3c5f442ae6c856db9ca55ea1709c87a17c6dada436408c4e72005034535`, binds thirty journal records, pending provider request2 and no outer2/response2. The actual request body, exception and effect remain UNKNOWN. Owned-stop labels and MCP exit self-report do not prove complete cleanup. Preserve p1/p2/p3/p4 roots and all source/archive bytes; never reuse, resume, relabel or clean them as successful history.
+
+The independently reviewed R18 offline fixes, review `.appraisejs/m02-ta-continuation-r18-exact-review-01.json`, SHA `69dcba1bc3d8a28c16103eeface66bac42f5c8739243e281cd1f2d7962ddd163`, correct cumulative-output projection and fencing after transcript refusal. The final diagnosis report SHA is `b790ba7b8a0af750f9ae2b93b13266fd2659b04008b44a089ec2da4b7b8267bf`. They do not establish the actual R17 cause. Retain their exact source/tests/review; do not silently modify them during integration.
+
+The proposed R19 successor composes the frozen R17 case/protocol/route behavior with the exact R18 factory, plus bounded sanitized continuation diagnostics. New source is `scripts/tests/fixtures/codex-app-server-m02-ta-matrix-r19/`, new focused test is `scripts/tests/codex-app-server-m02-ta-matrix-r19.test.mjs`, offline build is `.appraisejs/m02-ta-matrix-build-r19/`, and future root is `/private/tmp/appraise-m02-ta-matrix-p5`. No runtime root is created during offline work. Canonical relocation must replace exactly one p4 literal in the pinned R17 bundle, reversibly; no production rebuild or accepted source change. The prepared manifest must have exactly one active canonical backend and scoped entry.
+
+## Diagnostic contract
+
+R17's listener has T1-specific failure reporting, while T2 exceptions can fence without retaining which continuation boundary failed. In addition, launcher diagnostic recording skips a journal already fenced by its coordinator. The successor must report safe failure metadata without defeating the fence, fabricating acknowledgement or resuming a case.
+
+Permit at most one exclusive case-local `provider-failure.json` receipt per failed case, in the existing owned supervisor directory, before shutdown. This is an explicit new allowlisted evidence file, separate from control/stdio writes and not an extra provider request or native action. It may be written after journal fencing using the retained owned directory identity; it must never authorize another effect or require reopening a listener. Refuse foreign ownership, symlinks, changed identities or an existing receipt. Fsync the file and parent; uncertain flush remains UNKNOWN. Failure to write diagnostics must not prevent fencing or owned stop, and never permits retry.
+
+The receipt contains only a fixed schema, case ID, request index (a positive integer within its case ceiling or the exact null pre-reservation sentinel), fixed request-state enum, fixed stage enum, fixed failure-class enum, and fixed evidence/authority labels. Request-bearing stages must bind the case/index to the trusted currently processing request context and its durable provider reservation in the owned active-case journal; a ceiling check alone is insufficient. Derive the reservation ID from that trusted context and verify the matching journal record, active case and latest provider index before writing. Record RESERVED_PENDING or RESERVED_ACKNOWLEDGED according to the actual journal state; response-write failure may occur after the handler reservation was acknowledged, and diagnostics must not alter that ACK. A failure before provider reservation, including P00 or route/header/launcher refusal, uses requestIndex null and PRE_RESERVATION only when the trusted context proves no request reservation was issued for that failing operation. Never invent index 0 or 1, correlate to an older request or derive correlation from incoming payload fields. No free-form exception message, stack, body, prompt/history, argument, account/auth value, tool-output text, credential, environment value, data-derived hash, tool enumeration or object-key inventory may enter it. Do not collect raw native history to reconstruct R17.
+
+Stages must distinguish listener route/header refusal, body read/limit, UTF8 decode, JSON parse, owned provider binding, descriptor gate, transcript gate, scoped-audit snapshot, continuation decoding, audit completion, next-outer reservation, response-receipt write and HTTP response validation/write. An unclassified failure uses a fixed OTHER stage/class instead of stringifying an error. Derive stage from trusted control flow, never from incoming payload fields. Retain known intentional failure distinctions such as registry absence versus dispatched MCP error; do not reinterpret them as successful case outcomes. No semantic broadening of text-only codec, namespaces, registry names, quotas, current/previous-output checks, compact-history compatibility or audit authority.
+
+## Offline acceptance
+
+Pure derivation must read the fixed existing R17 manifest and rehash its 6,470 pins, including sixteen legitimate empty dependencies, without invoking R17's pre-run verifier that requires consumed p4 absent. Verify all earlier UNKNOWN guards, exact p4 journal/archive/current-file identity and equality/missing-path proof, R15/R16 preflight evidence and the final R18 source/review/report pins. Record reservations separately from ACKs and source capacity separately from OS process observations. No actual host-mode or containment attestation follows from configuration.
+
+Before one offline writer, focused disposable/fake-port tests and independent source review must prove: R18 adoption by the actual new composition; cumulative and compacted two-/three-operation continuations; unchanged role/descriptor/codec/audit/no-resend behavior; coherent p5 paths in launcher, children, canonical bundle and receipts; complete prior evidence guards; exact future approval/host-mode/workdir gates; and stage-specific failure receipts across body/launcher/session/response boundaries. Use fake HTTP streams/server handles and disposable temporary directories only, never bind a socket, load a native observer addon or launch Codex/MCP.
+
+Exercise the failure-receipt writer against real disposable filesystem operations, plus missing/changed/foreign receipt, existing-file refusal, write/fsync failure, unexpected error objects and secret-bearing messages/getters that must not be evaluated or retained. Include request/index/case mismatch, absent or older reservation, forged current context, pre-reservation null (including zero-request P00), pending versus already-acknowledged request and post-fence journal-correlation checks. A diagnostic can record the failed stage even after a prior UNKNOWN fence; the journal remains fenced, pending reservation remains pending and no ACK, response2, next case or new native action is created. Successful cases must not emit failure receipts. Tests cannot claim actual native compatibility or reconstruct R17's missing request.
+
+After source acceptance only, one exclusive offline `--prepare` may write the fixed build manifest/private canonical bundle. Independently review the generated closure and exact command before asking for future runtime authority. Existing frozen suites with historical-root-absence assumptions remain historical failures; do not delete roots or edit accepted tests to make them green. Update only new tests and the mutable current checkpoint.
+
+## Proposed single future T2 and limits
+
+One full 24-case campaign at fresh p5, one active case, 60 seconds per case and 2,400 seconds overall. No prefix, replay, resume, retry, correction turn, automatic replacement or T3 follow-on. Cases and per-new-T2 maxima remain unchanged: 24 Codex/MCP/thread reservations each, 23 turns, 58 local scripted provider requests, 34 scoped calls, 35 outer issuances, 24 listeners, 96 control writes, 184 canonical requests and 58 source-capacity reservations. Workspace actions, auth, real inference and grants remain zero. P00 has no turn/provider request. B14 permits only its one correlated permission request and empty denial, then fences.
+
+For the same successful T1–T3 envelope plus consumed matrix p1/p2/p3/p4, proposed cumulative ceilings are:
+
+| Allocation                                      | Maximum |
+| ----------------------------------------------- | ------: |
+| Codex / MCP / thread reservations, each         |      29 |
+| Turns                                           |      28 |
+| Local scripted provider-request reservations    |      66 |
+| Scoped calls                                    |      34 |
+| Future separately reviewed T3 workspace actions |       2 |
+| Empty denial replies                            |       1 |
+| Matrix/T1/T3 listener allocations               |      31 |
+| Control writes                                  |     115 |
+| Outer issuances                                 |      39 |
+| Canonical requests                              |     194 |
+| Source-capacity reservations                    |      78 |
+
+These add consumed R17's one Codex/MCP/thread/turn/listener each, two provider reservations (one pending), three control writes, two canonical requests, one outer issuance and four source-capacity slots to the prior R17 envelope. They are arithmetic ceilings, not approval or observed process counts. Earlier failed T1 allocations remain separately retained. R15's one Node/root/result file and zero observed binds remain separate. R16's one Node/eight directories/three files/one reported bind-close remain separate; combined listener allocations including R16 become 32. None of this replenishes exhausted real-inference budget 3/3 or erases pending/UNKNOWN effects.
+
+## Exact future authority and stops
+
+A possible future command must bind this final proposal, source review, manifest/digest/file hash, exact command review and actual exclusive decision receipt. Fixed `env -i`, pinned Node/entrypoint, repository workdir and an explicit `exec_command sandbox_permissions=require_escalated` request; no broad reusable prefix approval. Requested mode remains source-unattested. The supervisor may only hash its pinned artifact closure, stage the approved source/private canonical bundle, and use its disposable synthetic SQLite fixture. Unscoped native source access, production database/credential access, external requests, arbitrary shell work and privilege tracing remain prohibited.
+
+Exact paths: source review `.appraisejs/m02-ta-matrix-r19-source-review-01.json`, manifest `.appraisejs/m02-ta-matrix-build-r19/manifest.json`, exact command review `.appraisejs/m02-t2-r19-exact-review.json`, future actual decision `.appraisejs/m02-t2-r19-recovery-user-decision.json`, safe archive `.appraisejs/m02-ta-t2-r19-execution-evidence-01/` and actual review `.appraisejs/m02-t2-r19-execution-review-01.json`. No decision file may exist before an actual new approval. A local receipt/review is not a cryptographic user signature or launch authority.
+
+Wrong tuple/hash/owner/root/profile, changed/missing history, unknown/malformed notification, unplanned request/effect, auth/network demand, nonempty grant, lost ACK, deadline/flush failure or uncertain cleanup fences the campaign without resend. Preserve error-stage evidence if safely possible; missing diagnostics are not proof of no effect. T3 requires accepted actual T2 success and a separately reviewed additive successor. No M03+, containment qualification, actual provider/auth/model qualification, production dispatch, UI/schema/release, commit, push, merge or publish follows. M02 remains incomplete until actual T2/T3 and final exact evidence review pass.

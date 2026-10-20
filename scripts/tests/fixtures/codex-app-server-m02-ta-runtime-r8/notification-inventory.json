@@ -1,0 +1,359 @@
+{
+  "schema": "appraise.m02-ta-r8-server-notification-inventory/v1",
+  "source": ".appraisejs/m02-executable-qualification-20261016-01/schemas/ServerNotification.json",
+  "sourceSha256": "8e719512bc26bb3871fcf7b378b79abf912d82787609c0ad418b71f179d0883f",
+  "methodCount": 85,
+  "dispositionCounts": {
+    "strict-lifecycle": 12,
+    "bounded-advisory": 7,
+    "forbidden-auth": 5,
+    "unsupported-fence": 61
+  },
+  "notifications": [
+    {
+      "method": "error",
+      "disposition": "strict-lifecycle"
+    },
+    {
+      "method": "thread/started",
+      "disposition": "strict-lifecycle"
+    },
+    {
+      "method": "thread/status/changed",
+      "disposition": "strict-lifecycle"
+    },
+    {
+      "method": "thread/readState/changed",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "thread/archived",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "thread/deleted",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "thread/unarchived",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "thread/closed",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "thread/reverted",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "skills/changed",
+      "disposition": "bounded-advisory"
+    },
+    {
+      "method": "thread/name/updated",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "thread/attachment/updated",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "thread/goal/updated",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "thread/prediction/updated",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "thread/goal/cleared",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "thread/queue/changed",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "project/changed",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "thread/project/updated",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "thread/environment/connected",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "thread/environment/disconnected",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "thread/settings/updated",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "thread/tokenUsage/updated",
+      "disposition": "strict-lifecycle"
+    },
+    {
+      "method": "turn/started",
+      "disposition": "strict-lifecycle"
+    },
+    {
+      "method": "hook/started",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "turn/completed",
+      "disposition": "strict-lifecycle"
+    },
+    {
+      "method": "hook/completed",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "turn/diff/updated",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "turn/plan/updated",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "item/started",
+      "disposition": "strict-lifecycle"
+    },
+    {
+      "method": "item/autoApprovalReview/started",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "item/autoApprovalReview/completed",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "autoApprovalReview/strictReviewRequired",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "item/completed",
+      "disposition": "strict-lifecycle"
+    },
+    {
+      "method": "item/agentMessage/delta",
+      "disposition": "strict-lifecycle"
+    },
+    {
+      "method": "item/plan/delta",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "command/exec/outputDelta",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "process/outputDelta",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "process/exited",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "item/commandExecution/outputDelta",
+      "disposition": "strict-lifecycle"
+    },
+    {
+      "method": "item/commandExecution/terminalInteraction",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "item/fileChange/outputDelta",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "item/fileChange/patchUpdated",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "serverRequest/resolved",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "item/mcpToolCall/progress",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "mcpServer/oauthLogin/completed",
+      "disposition": "forbidden-auth"
+    },
+    {
+      "method": "mcpServer/startupStatus/updated",
+      "disposition": "bounded-advisory"
+    },
+    {
+      "method": "mcpServer/event/stream/notification",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "account/updated",
+      "disposition": "bounded-advisory"
+    },
+    {
+      "method": "account/gatewayOAuth/changed",
+      "disposition": "forbidden-auth"
+    },
+    {
+      "method": "account/rateLimits/updated",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "app/list/updated",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "remoteControl/status/changed",
+      "disposition": "bounded-advisory"
+    },
+    {
+      "method": "externalAgentConfig/import/progress",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "externalAgentConfig/import/completed",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "fs/changed",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "item/reasoning/summaryTextDelta",
+      "disposition": "strict-lifecycle"
+    },
+    {
+      "method": "item/reasoning/summaryPartAdded",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "item/reasoning/textDelta",
+      "disposition": "strict-lifecycle"
+    },
+    {
+      "method": "thread/compacted",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "model/rerouted",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "model/verification",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "modelProvider/authRecoveryStarted",
+      "disposition": "forbidden-auth"
+    },
+    {
+      "method": "modelProvider/authRecoveryCompleted",
+      "disposition": "forbidden-auth"
+    },
+    {
+      "method": "turn/moderationMetadata",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "model/safetyBuffering/updated",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "warning",
+      "disposition": "bounded-advisory"
+    },
+    {
+      "method": "guardianWarning",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "deprecationNotice",
+      "disposition": "bounded-advisory"
+    },
+    {
+      "method": "configWarning",
+      "disposition": "bounded-advisory"
+    },
+    {
+      "method": "fuzzyFileSearch/sessionUpdated",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "fuzzyFileSearch/sessionCompleted",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "thread/realtime/started",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "thread/realtime/itemAdded",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "thread/realtime/item/started",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "thread/realtime/item/transcript/delta",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "thread/realtime/item/completed",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "thread/realtime/transcript/delta",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "thread/realtime/transcript/done",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "thread/realtime/outputAudio/delta",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "thread/realtime/sdp",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "thread/realtime/error",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "thread/realtime/closed",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "windows/worldWritableWarning",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "windowsSandbox/setupCompleted",
+      "disposition": "unsupported-fence"
+    },
+    {
+      "method": "account/login/completed",
+      "disposition": "forbidden-auth"
+    }
+  ],
+  "limits": [
+    "Only explicit peer handlers can accept a frame",
+    "Bounded advisory frames have no authority or acknowledgement effect",
+    "Unsupported and forbidden methods fence UNKNOWN"
+  ]
+}

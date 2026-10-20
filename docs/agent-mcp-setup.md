@@ -1,3 +1,5 @@
+> Current M02 checkpoint: [R55 final scripted qualification](../tasks/codex-app-server-journeys/M02-R55-CURRENT-WORK-01.md) records accepted T2 R51 and T3 R55 evidence within TA02/TA03 limits. M02 was delivered separately in [PR #301](https://github.com/jamil2018/appraisejs-core/pull/301). `runtimeQualified` remains false; helper lifetime/global inventory and historical cleanup remain unobserved. This branch retains its separate harness history. Older status passages below remain historical; no production dispatch or new native campaign is authorized.
+
 # MCP Setup For Quality Work
 
 For the complete operator path from setup through handoff, recovery, and upgrade, see the
@@ -124,3 +126,17 @@ role execution or replace lifecycle gates.
 Opening Codex does not establish a connection or start work: the documented prefill flow requires the user to send,
 then authenticated handoff redemption and authoritative state reads. The plugin supplies workflow guidance while
 Appraise services enforce lifecycle transitions. No managed provider/fork or background-wake guarantee is introduced.
+
+## Disconnected external-worker gateway (M02-A)
+
+The package's `src/mcp/external-worker-gateway.ts` provides an additive in-process six-role gateway.
+It is not a CLI mode, registered connection or product dispatch path. It captures canonical schemas
+without creating a coordinator client or opening a transport. Explicit registration exposes only
+role reads and the specialized external write, with strict worker schemas and no resources.
+Read preparation filters exact assignment records and projects fixed fields; it never forwards broad
+GET/search results. Trusted adapters must supply canonical frozen inputs, current authorization and
+independently verified durable acceptance. They are not implemented production integrations in M02-A.
+
+See [M02-A evidence and limits](../tasks/codex-app-server-journeys/m02-a-qualification.md). No role
+grant, native inference, credential isolation, OS containment or mandatory M03 host session is
+qualified by these deterministic fixtures. Product managed dispatch remains disabled/unimplemented.

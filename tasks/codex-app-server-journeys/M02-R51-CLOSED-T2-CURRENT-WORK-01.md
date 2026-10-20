@@ -1,0 +1,13 @@
+# R51 closed full T2; T3 authorized and preparing
+
+R51 native tool session96343 exited0. All24 cases completed, 922 journal records,436 reservations and436 ACKs, pending0, source capacity58,336 complete observational stage markers. Terminal status T2_CASES_COMPLETED_NOT_CONTAINMENT; closed checkpoint verified. This establishes the fixed trusted-agent native T2 conjunctions and bounded per-case cleanup, not containment, total process absence, real inference or general compatibility.
+
+Exact terminal .appraisejs/m02-r51-native-terminal-01.json SHA256 76dfc7cff42707403623e9096b8aa0752d742355ea26ce6be49f9ddc586e0951. Original151-file index .appraisejs/m02-r51-native-terminal-evidence-01/index.json SHA256 afa42e953a9eb67bf660623d16056e2d3dbc47f5f7ab1748174bc356e9e908c4 remains frozen. Separate B14 supplement index .appraisejs/m02-r51-b14-supplemental-evidence-01/index.json SHA256 92629f26ee6159d11d14b2cc07d8dcb01c03bce15194e6f7dceec95320b18f0c retains the two omitted live permission receipts without changing the original index.
+
+Confirmed: full24 native campaign success, actual fixed-artifact precheck, exact stage prefix, closed journal and matching sanitized witnesses. Confirmed source defect corrected in R51: the scoped bootstrap consumer formerly allowed the stale root. The actual rejected R48 predicate remains UNKNOWN; source correction does not recover that native response.
+
+Hypotheses: none promoted as an explanation of earlier failures. Unknown: all earlier UNKNOWN/pending allocations and unresolved cleanup remain; native T3 envelopes/output and helper lifetime remain unqualified before actual T3 observation. Historical consumed allocations are never refunded or replayed. Full R51 allocation retained: listener257/control1010/source632/combined258 including R16.
+
+Latest user expressly approved R51 and proceeding to T3 if it passes. The condition is met. R52 additive N01/N02 T3 preparation uses original180s phase/60s admitted-case limits, no new regression tests, full exact history at each case admission, strict codec/correlation/ACK/owned-FD proof and cleanup. Fresh T3 acceptance requires both real native cases, exact byte proof, terminal journal closure and final exact implementation/evidence review. M02 remains incomplete until that work succeeds. TA03 native helper inventory remains UNKNOWN_NOT_INDEPENDENTLY_OBSERVED; GC3 remains REVISE/not passed and inference3/3 exhausted.
+
+Never retry or resume R51 or any consumed root/command. No auth, real inference, grants, privileged tracing, historical cleanup, commits, push or M03. Preserve frozen M00 1e39e733d5211db80705a1c34235d24580db618a9f505e7a16dc163398568133 and unrelated dirty work.

@@ -1,3 +1,11 @@
+> Current M02 checkpoint: [R55 final scripted qualification](../tasks/codex-app-server-journeys/M02-R55-CURRENT-WORK-01.md) records accepted T2 R51 and T3 R55 evidence within TA02/TA03 limits. M02 was delivered separately in [PR #301](https://github.com/jamil2018/appraisejs-core/pull/301). `runtimeQualified` remains false; helper lifetime/global inventory and historical cleanup remain unobserved. This branch retains its separate harness history. Older status passages below remain historical; no production dispatch or new native campaign is authorized.
+
+> Latest M02 R24 checkpoint (2026-10-17): the separately approved one p10 native invocation is consumed UNKNOWN/B01 with zero T2 completions and cleanup UNKNOWN. Evidence-only review is accepted; T2/T3/M02 are incomplete. No retry, successor or T3 is authorized by that exact request. Current handoff: `tasks/codex-app-server-journeys/M02-R24-CURRENT-WORK.md`. Older rejection/approval-pending addenda below are historical.
+
+> M02 R24 qualification checkpoint (2026-10-17): offline/exact review and actual precheck passed; host auto-review rejected native launch before process creation under the original explicit runtime restriction. Separate exact native approval is required; see `tasks/codex-app-server-journeys/m02-ta-t2-r24-exact-authorization-request-01.md`. M02 remains incomplete.
+
+> **M02 qualification update (2026-10-17):** The approved [TA02 trusted-agent amendment](../tasks/codex-app-server-journeys/m00-trust-amendment-02.md), [M02 plan](../tasks/codex-app-server-journeys/m02-trusted-agent-plan-01.md) and [TA03 evidence revision](../tasks/codex-app-server-journeys/m02-ta03-approval-01.md) govern the current disposable scripted qualification. They permit reviewed scoped MCP and fixed native scratch effects while leaving hostile-agent containment, real-provider/auth support and production dispatch unqualified. M02 remains incomplete. These qualification changes do not authorize product lifecycle decisions or replace M03 mandatory-session gates; the original M00 design description below is historical to its approved slice.
+
 # Agent Lifecycle Flow
 
 For stage-by-stage operator actions and interruption recovery, see the

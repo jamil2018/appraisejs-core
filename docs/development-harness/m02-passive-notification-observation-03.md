@@ -1,0 +1,15 @@
+# M02 passive notification observation 03
+
+Advisory learning only, 2026-10-16. No general routing, prompt, model, tool, permission or quality-gate change.
+
+The one approved R12 campaign passed its owner/environment preflights and issued one scripted outer call, then fenced a notification whose method hash maps uniquely among pinned schemas to `account/rateLimits/updated`. Its parameters were unretained; actual validity remains UNKNOWN. Zero T2 cases completed. The independent actual review accepted this failed evidence without qualification or cleanup claims.
+
+Pinned Open Design and t3code demonstrate nonfatal handling of passive notifications through dispatch/classification. Their broader account-read paths must not be copied into this bounded task. A conservative one-method validate-and-discard profile can address the compatibility gap without an account RPC, retained account values or auth/spend authority. Unknown and malformed messages still fence. Offline fixtures must exercise the actual protocol composition, envelope, phase/start ACKs and cumulative full-frame quotas, in addition to the pure params predicate.
+
+The useful lesson is to distinguish observed notification method compatibility from unobserved payload validity. Source-only mapping of a hash is sufficient to identify a prospective schema; it cannot validate discarded historical params or retroactively change UNKNOWN. A fresh campaign has consumed-action consequences and needs its own exact decision when the prior approval was one-shot. Past cleanup uncertainty stays historical even after a future success.
+
+Review latency and repeated additive protocol copies remain usability costs. Reusable passive dispatch may be considered in a separately approved general design; this task adds no automatic ignore policy, account queries, runtime retries, process scans or permission changes. Requested agent roles, models and context settings remain unverified where no host attestation exists.
+
+Independent R13 composition review found a concrete inherited quota gap before acceptance: counting reserialized parsed JSON can undercount original whitespace/escape bytes. The new proposal explicitly requires original full-frame charging. The additive candidate must carry a numeric raw-frame byte count from its decoder into the shared telemetry quota, without retaining the raw input, and cover padded/escaped/chunked frames in negative fixtures. Pure predicate tests did not establish this framing invariant. No runtime campaign was launched to discover or reproduce this issue.
+
+A second source-only review finding narrowed the additive p3 retention helper's T2 archive-schema check from a version regex to the exact R13 schema. Hash-valid historical-version negative fixtures now fail before cleanup intent. Thirty disposable tests and independent source re-review passed; no plan or deletion ran. The accepted R12 helper remains unchanged. These findings are advisory evidence about composition checks, not authority to alter global quality gates.

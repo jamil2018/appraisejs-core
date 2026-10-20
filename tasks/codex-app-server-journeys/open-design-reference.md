@@ -1,3 +1,9 @@
+> Current M02 checkpoint: [R55 final scripted qualification](M02-R55-CURRENT-WORK-01.md) records accepted T2 R51 and T3 R55 evidence within TA02/TA03 limits. M02 was delivered separately in [PR #301](https://github.com/jamil2018/appraisejs-core/pull/301). `runtimeQualified` remains false; helper lifetime/global inventory and historical cleanup remain unobserved. This branch retains its separate harness history. Older status passages below remain historical; no production dispatch or new native campaign is authorized.
+
+**Current Appraise checkpoint (2026-10-15):** M01 protocol qualification is complete for its pinned
+tuple. M02-A has deterministic-only evidence; M02 remains incomplete and M02-B+ unstarted.
+See [M02-A limits](m02-a-qualification.md). Earlier partial-status text below records prior review.
+
 # Open Design implementation references for Journey migration
 
 Reviewed: 2026-10-13. Upstream: `nexu-io/open-design`, revision `014bffbf775f4514020cef8bbffdc0eb5a0009ce`. Links below are pinned to the inspected revision. Documentation and selected source were read; test paths were verified, but upstream tests, installation and live provider behavior were not executed. This is implementation guidance, not evidence that AppraiseJS passes a runtime gate.

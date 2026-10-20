@@ -1,3 +1,15 @@
+> Current M02 checkpoint: [R55 final scripted qualification](M02-R55-CURRENT-WORK-01.md) records accepted T2 R51 and T3 R55 evidence within TA02/TA03 limits. M02 was delivered separately in [PR #301](https://github.com/jamil2018/appraisejs-core/pull/301). `runtimeQualified` remains false; helper lifetime/global inventory and historical cleanup remain unobserved. This branch retains its separate harness history. Older status passages below remain historical; no production dispatch or new native campaign is authorized.
+
+> Latest R24 native checkpoint (2026-10-17): exact approval consumed by one p10 invocation; terminal UNKNOWN at B01, actual completed T2 cases0. AUDIT/INCOMPLETE with output observation COMPLETED/NONE; underlying cause and cleanup UNKNOWN. Independent review accepts terminal evidence only. No retry/resume/repair/successor/T3 from this request. See [M02-R24-CURRENT-WORK.md](M02-R24-CURRENT-WORK.md); prior approval-pending text below is historical.
+
+> Current R24 checkpoint (2026-10-17):71/71 offline checks and exact review passed; actual strict precheck passed. Native launch was rejected by host automatic approval review before process creation. New p10 absent, native allocations0, actual T2 completions0; T3/M02 incomplete. Separate exact native approval is pending: [R24 request](m02-ta-t2-r24-exact-authorization-request-01.md). Do not resend without it. Earlier broad implementation-authority text below does not override this host rejection.
+
+**Current M02 implementation continuation (2026-10-17):** The user has authorized completing M02 diagnosis and implementation. Effective qualification is **trusted-agent scripted conformance** under approved TA02 / M02-TA-P1 / TA03; historical hostile-agent containment requirements are withdrawn from this gate, not passed. T1 is retained as tuple-scoped evidence. R23 is consumed UNKNOWN with zero completed native T2 cases; T2, T3 and M02 remain incomplete. Additive R24 work is tracked in [recovery09](m02-ta-t2-recovery-09.md). Each fresh native bundle/command receives exact review and preserves cumulative consumption; no consumed command is resumed. M03+, production dispatch and real-provider qualification remain outside M02. Earlier checkpoints below remain historical.
+
+**Current M02 checkpoint (2026-10-15):** M02-A deterministic gateway implemented; M02 incomplete.
+[M02-A evidence and limits](m02-a-qualification.md). M02-B+ remains unauthorized; no runtime,
+auth/inference, grants, commits or push. Prior M01 checkpoint statements below are historical.
+
 # Codex app-server Journey migration tasks
 
 **Current status (2026-10-14):** [M01 protocol qualification](m01-qualification.md) is complete
@@ -51,6 +63,9 @@ checkpoints remain historical evidence, not current blockers. No containment or 
 **Verification:** Synthetic protocol tests plus explicitly authorized live disposable observations; label each evidence class and version.
 
 ### M02: Qualify scoped MCP and containment
+
+**Partial:** M02-A only is implemented with deterministic fixtures. M02-B/C remains unstarted;
+containment and product authority are unqualified. See [M02-A evidence](m02-a-qualification.md).
 
 **Reference:** [Open Design guide](open-design-reference.md). Permission-boundary comparison; independently prove Appraise MCP scoping and denied native/direct access.
 

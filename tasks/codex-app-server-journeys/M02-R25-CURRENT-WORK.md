@@ -1,0 +1,25 @@
+# M02 R25 offline correction checkpoint
+
+2026-10-17. R24's exact approved p10 invocation is consumed, terminal UNKNOWN/B01 with zero completed T2 cases. Its provider request2 remains pending and cleanup remains UNKNOWN. Never retry/resume R23 or R24, signal stored historical PIDs, reset allocations, or clean their roots. No R25 native invocation, socket, account authentication, real inference, Appraise grant, privileged tracing, commit or push has occurred.
+
+## Findings and correction
+
+Reviewed retained R24 history identifies one exact generated call/envelope containing an ordinary error result (`isError`, text only, no structuredContent) in a COMPLETED Code Mode output. A separately reviewed fixed-literal classifier matched POLICY_NEVER_LITERAL with turnApprovalPolicy NEVER; origin remains UNATTESTED. No raw history/provider/account/auth content was copied or hashed. This is retained-history evidence, not exact provider-request-byte attestation. R23's rejected predicate and result shape remain UNKNOWN.
+
+Frozen R24 configuration had global never, no MCP approval override, and sealed tools without annotations. At pinned Codex revision4ebc485ca321243727539187169425fcf972f2c4, auto mode conservatively requires approval for these tools; global Never refuses before server dispatch. Combined evidence supports a scoped R24 approval-policy configuration mismatch. Installed-binary provenance, organization/host requirements merging, and corrected native compatibility remain unqualified.
+
+The additive R25 fixture uses exactly the selected sealed role's native tool names under `mcp_servers.appraise_m02.tools`, each with `approval_mode: approve`. It rejects stale/foreign/duplicate/missing profiles and existing broader overrides. Ordinary global never, P00 required-server failure, B14 granular empty-denial policy, exact registry absence, canonical arguments, audit/correlation, codec, TA04 archives, TA05, current hashes and tuple checks remain enforcing. No server-wide default, role union, annotation change or Appraise authorization change is introduced. Per-tool approve bypasses the host approval prompt for every invocation of those exact tools inside the private case; finite provider, audit and canonical checks remain necessary.
+
+See `m02-ta-mcp-approval-policy-correction-proposal-02.md` and `.appraisejs/m02-r25-offline-evidence-ledger-01.json`. Original proposal01 and all R24 accepted artifacts remain immutable.
+
+## Prepared artifacts and validation boundary
+
+Fresh offline preparation was written once at `.appraisejs/m02-ta-matrix-build-r25`; p11 remains unused. Manifest SHA256 cc4922392584a41b954722b9a2719f717022bf2d17274b1c5654aab581192a30; digest eec592c7ef6274cd62b4485d17465264db2628fd46976255ca3d893bf6c7fc2d;6786 claims. Canonical SHA256 13652a74ff2222bd63f777376bbd64d786a7d31be3b881f95b0710fdc5ca6b0d. Do not overwrite or rerun fixed preparation.
+
+The R25 suite passed56/56, including helper8/8 and all24 composed cases plus refusal, continuation, missingACK, deadline, cleanup and policy-refusal reproduction. Retained SDK/reader checks passed10/10 separately:66 checks total. Focused ESLint and Prettier passed. The focused exact-artifact review accepted the offline artifacts and fixed command: `.appraisejs/m02-r25-focused-review-01.json` SHA256 7d49e8ecbd7e961fb327e4ca00035d30ec411a31f7c4393d50444725387cec7c; exact review receipt SHA256 97b5a8d623f00cc5c98d42490373504aa74ab34980b67b4cb75140a38495d131. This supplies no native authority. Real codec, serialization and SDK logic are exercised with external OS/provider/database effects simulated and process/socket/native-addon guards active. No real host precheck or native R25 compatibility is claimed. Full build is deferred because it rewrites preserved pinned bundles. Graphify regeneration failed for lack of a semantic-extraction API key; no credentials or inference were supplied and all existing dirty graph bytes remain exact. Dry-run succeeds.
+
+## Allocations and next boundary
+
+R23 and R24 separately consumed listener/Codex/MCP/thread/turn1 each, provider2,control3,canonical2,outer1,source capacity4. Both pending reservations and cleanup UNKNOWN remain separate. Prospective cumulative ceilings including R24 consumption: Codex31,MCP31,thread31,turn30,provider70,scoped34,workspace2,permission replies1,listener34,control121,outer41,canonical198,source capacity90; combined listener35 including standaloneR16. Historical ceilings stay historical, not available authority. Prospective fresh T2 maxima remain24 cases,58 provider requests and58 source capacity.
+
+Guarded composed checks are complete. The concrete request is [R25 exact authorization](m02-ta-t2-r25-exact-authorization-request-01.md), with its readiness bound in `.appraisejs/m02-r25-final-readiness-01.json`. The actual user-decision path remains absent until a separate literal exact approval. Do not launch without separate exact user approval. Actual accepted T2 precedes separately authorized T3. T2/T3/M02 remain incomplete, GC3 REVISE/not passed, real inference exhausted3/3. Frozen M00 SHA256 1e39e733d5211db80705a1c34235d24580db618a9f505e7a16dc163398568133.
