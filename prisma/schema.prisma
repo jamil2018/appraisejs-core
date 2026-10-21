@@ -2889,6 +2889,7 @@ model QualityJourneyProviderRun {
   authorization         QualityJourneyWorkAuthorization        @relation(fields: [authorizationId], references: [id], onDelete: Restrict)
   intents               QualityJourneyProviderDispatchIntent[]
   slot                  QualityJourneyProviderSlot?
+  custodySources        QualityJourneyProviderSourceState[]
 
   @@unique([journeyId, targetProjectId, prepareKey])
   @@unique([providerNamespace, threadId])
@@ -2920,6 +2921,7 @@ model QualityJourneyProviderDispatchIntent {
   run                  QualityJourneyProviderRun           @relation(fields: [providerRunId], references: [id], onDelete: Restrict)
   observations         QualityJourneyProviderObservation[]
   slot                 QualityJourneyProviderSlot?
+  custodySource        QualityJourneyProviderSourceState?
 
   @@unique([providerRunId, turnOrdinal])
   @@unique([providerRunId, operationKey])
@@ -2953,6 +2955,7 @@ model QualityJourneyProviderObservation {
   evidenceDigest    String
   createdAt         DateTime                             @default(now())
   intent            QualityJourneyProviderDispatchIntent @relation(fields: [intentId], references: [id], onDelete: Restrict)
+  committedSource   QualityJourneyProviderSourceState?
 
   @@unique([intentId, observationKey])
 }
@@ -2975,4 +2978,50 @@ model QualityJourneyWakeIntent {
 
   @@unique([journeyId, targetProjectId, causeKey])
   @@index([status, claimExpiresAt])
+}
+
+/// Fresh original synthetic custody. No legacy journal is promoted or reconstructed.
+model QualityJourneyProviderSourceState {
+  sourceId                    String                                     @id
+  sourceIncarnation           String                                     @unique
+  providerRunId               String
+  intentId                    String                                     @unique
+  providerNamespace           String                                     @unique
+  identityJson                String
+  protocolDigest              String
+  qualificationDigest         String
+  epoch                       Int                                        @default(1)
+  lifecycle                   String                                     @default("ACTIVE")
+  sequence                    Int                                        @default(0)
+  head                        String
+  byteCount                   Int                                        @default(0)
+  sealedHead                  String?
+  sealedEnvelopeDigest        String?
+  commitFenceVersion          Int                                        @default(0)
+  committedObservationId      String?                                    @unique
+  committedRequestHash        String?
+  pendingBatchId              String?                                    @unique
+  pendingBatchStartHead       String?
+  pendingBatchRecordAllowance Int?
+  pendingBatchByteAllowance   Int?
+  pendingBatchRequestDigest   String?
+  createdAt                   DateTime                                   @default(now())
+  run                         QualityJourneyProviderRun                  @relation(fields: [providerRunId], references: [id], onDelete: Restrict)
+  intent                      QualityJourneyProviderDispatchIntent       @relation(fields: [intentId], references: [id], onDelete: Restrict)
+  committedObservation        QualityJourneyProviderObservation?         @relation(fields: [committedObservationId], references: [id], onDelete: Restrict)
+  records                     QualityJourneyProviderSourceLedgerRecord[]
+}
+
+/// Immutable bounded original observation chain, authoritative in the canonical database.
+model QualityJourneyProviderSourceLedgerRecord {
+  sourceId     String
+  sequence     Int
+  previousHead String
+  head         String
+  kind         String
+  dataJson     String
+  byteCount    Int
+  source       QualityJourneyProviderSourceState @relation(fields: [sourceId], references: [sourceId], onDelete: Restrict)
+
+  @@id([sourceId, sequence])
 }
