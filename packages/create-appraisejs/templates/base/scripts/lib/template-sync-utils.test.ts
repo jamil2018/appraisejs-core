@@ -17,6 +17,41 @@ describe('template sync utils', () => {
     expect(shouldExcludeTemplatePath('src/app/page.tsx')).toBe(false)
   })
 
+  it('keeps native12 source assembly and cross-package factories repository-only', () => {
+    for (const source of [
+      'scripts/m06-native-fixture-workspace-13.mjs',
+      'm06-native-fixture-workspace-13.mjs',
+      'scripts/tests/m06-native-fixture-workspace-13.test.mjs',
+      'tests/m06-native-fixture-workspace-13.test.mjs',
+      'scripts/m06-native-patch-15.mjs',
+      'm06-native-patch-15.mjs',
+      'scripts/tests/m06-native-patch-15.test.mjs',
+      'tests/m06-native-patch-15.test.mjs',
+      'scripts/m06-native-patch-13.mjs',
+      'm06-native-patch-13.mjs',
+      'scripts/tests/m06-native-patch-13.test.mjs',
+      'tests/m06-native-patch-13.test.mjs',
+      'scripts/m06-native-patch-12.mjs',
+      'm06-native-patch-12.mjs',
+      'scripts/tests/m06-native-patch-12.test.mjs',
+      'tests/m06-native-patch-12.test.mjs',
+      'src/lib/quality-journey/codex-app-server/native-owned-session.ts',
+      'lib/quality-journey/codex-app-server/native-mcp-session-bridge.ts',
+      'src/services/coordinator/quality-journey-native-mcp-custody.sqlite.integration.test.ts',
+      'src/app/api/internal/coordinator/[...operation]/repository-collaboration-public.integration.test.ts',
+      'app/api/internal/coordinator/[...operation]/repository-collaboration-public.integration.test.ts',
+      'scripts/tests/fixtures/m06-native-source-child.mjs',
+      'tests/fixtures/m06-native-source-child.mjs',
+    ])
+      expect(shouldExcludeTemplatePath(source)).toBe(true)
+    for (const source of [
+      'src/lib/quality-journey/codex-app-server/native-source-owner.ts',
+      'src/lib/quality-journey/codex-app-server/native-source-protocol.ts',
+      'src/services/coordinator/quality-journey-native-mcp-acceptance.ts',
+    ])
+      expect(shouldExcludeTemplatePath(source)).toBe(false)
+  })
+
   it('detects whether legacy environment config should be backfilled', () => {
     expect(shouldBackfillLegacyEnvironmentConfig(false, true)).toBe(true)
     expect(shouldBackfillLegacyEnvironmentConfig(true, true)).toBe(false)
