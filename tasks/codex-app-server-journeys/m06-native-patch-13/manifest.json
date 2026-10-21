@@ -1,0 +1,84 @@
+{
+  "version": 2,
+  "status": "CANDIDATE_COMPILE_UNVERIFIED",
+  "sourceRevision": "4ebc485ca321243727539187169425fcf972f2c4",
+  "sourceTree": "0cab0734fd471b47b59ecc4d7b257ab5034aad77",
+  "existingManifestSha256": "d5715604835611aa937166db41db70dea0d060b135a78fc856e928a4b21580b2",
+  "additions": [
+    {
+      "path": "codex-rs/app-server/src/m06_outcome.rs",
+      "preimage": "ABSENT",
+      "mode": "100644",
+      "length": 2791,
+      "sha256": "2dd10c256663d2a0b4608351e55976b2d43ca1793235fa1fde15579483f1a1b2",
+      "payload": "additions/codex-rs/app-server/src/m06_outcome.rs"
+    },
+    {
+      "path": "codex-rs/app-server/src/m06_outcome_tests.rs",
+      "preimage": "ABSENT",
+      "mode": "100644",
+      "length": 29082,
+      "sha256": "0437e345e69cdfa8364eb8518ff47eefbd8e117db12c0254db5532bfd7bb2928",
+      "payload": "additions/codex-rs/app-server/src/m06_outcome_tests.rs"
+    },
+    {
+      "path": "codex-rs/http-client/src/m06_outcome.rs",
+      "preimage": "ABSENT",
+      "mode": "100644",
+      "length": 91674,
+      "sha256": "6be48ebd0f6c1b014be73751dc7065bd6d944168c5a630d90bc4c64f8d1c62df",
+      "payload": "additions/codex-rs/http-client/src/m06_outcome.rs"
+    },
+    {
+      "path": "codex-rs/http-client/src/m06_outcome_tests.rs",
+      "preimage": "ABSENT",
+      "mode": "100644",
+      "length": 45917,
+      "sha256": "be75f6275ec2b60a5804ca6f37f36c81f5e79428e2620a53753052d8bd206eb6",
+      "payload": "additions/codex-rs/http-client/src/m06_outcome_tests.rs"
+    },
+    {
+      "path": "codex-rs/rmcp-client/src/inherited_owner_transport.rs",
+      "preimage": "ABSENT",
+      "mode": "100644",
+      "length": 3239,
+      "sha256": "26e0224ed84bbfe3143a56ef6f273cb43a8103a90261e11663468264e391901e",
+      "payload": "additions/codex-rs/rmcp-client/src/inherited_owner_transport.rs"
+    },
+    {
+      "path": "codex-rs/rmcp-client/src/inherited_owner_transport_tests.rs",
+      "preimage": "ABSENT",
+      "mode": "100644",
+      "length": 1551,
+      "sha256": "d9056de81a76b7c24a55b3c8d583df6625fa1e8d13745b191310504ac689e970",
+      "payload": "additions/codex-rs/rmcp-client/src/inherited_owner_transport_tests.rs"
+    },
+    {
+      "path": "codex-rs/websocket-client/src/m06_io.rs",
+      "preimage": "ABSENT",
+      "mode": "100644",
+      "length": 4658,
+      "sha256": "382b6575bbd08a24ed78ed75c7ee44f656cf80b703344f83614a7914003376bc",
+      "payload": "additions/codex-rs/websocket-client/src/m06_io.rs"
+    },
+    {
+      "path": "codex-rs/websocket-client/src/m06_io_tests.rs",
+      "preimage": "ABSENT",
+      "mode": "100644",
+      "length": 2334,
+      "sha256": "1c2b2613cb1cff8d5005aba079597bbf1f80c10915a1869c6ffc461de0bb6bd7",
+      "payload": "additions/codex-rs/websocket-client/src/m06_io_tests.rs"
+    }
+  ],
+  "verification": {
+    "rustCompilation": "UNEXECUTED",
+    "rustTests": "UNEXECUTED",
+    "rustFormatting": "UNEXECUTED",
+    "lockedBuildCoherence": "UNEXECUTED",
+    "nativeExecution": false,
+    "runtimeQualified": false,
+    "productionIssuerAvailable": false,
+    "reason": "New combined reconstruction metadata; no historical whole13 bundle identity existed.",
+    "completeSourceInventorySha256": "f28900f6eda47e14ab25b40a55b8a15666d7dded01481c9a2cafbbf0d1e4be66"
+  }
+}
