@@ -16,7 +16,7 @@ export const nativeSourceBounds = Object.freeze({
   outboundBytes: 2097152,
   inspections: 8,
 })
-class NativeSourceError extends Error {
+export class NativeSourceError extends Error {
   constructor(readonly reason: string) {
     super(`Native source unavailable: ${reason}`)
     this.name = 'NativeSourceError'
@@ -70,6 +70,10 @@ const senderManifestSchema = z
       .max(256),
   })
   .strict()
+export const rpcSenderSealDigest = (manifest: unknown) =>
+  nativeDigest(canonicalNativeJson(senderManifestSchema.parse(manifest)), 'M06_RPC_SENDER_SEAL_V1\0')
+export const rpcDeliveredIdsDigest = (ids: readonly number[]) =>
+  nativeDigest(canonicalNativeJson([...ids].sort((a, b) => a - b)), 'M06_RPC_DELIVERED_IDS_V1\0')
 const payloads = {
   RPC_SENDER_SEAL: senderManifestSchema,
   RPC_INPUT: z

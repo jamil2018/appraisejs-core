@@ -9,6 +9,16 @@ export type RpcTransportOptions = {
   maxFrameBytes?: number
 }
 
+export type RpcSenderManifest = Readonly<{
+  sealId: string
+  transportId: string
+  transportIncarnation: string
+  issuedRequests: number
+  attemptedBytes: number
+  allocations: readonly Readonly<{ id: number; state: 'ATTEMPTED' | 'NOT_EMITTED' }>[]
+  attempts: readonly Readonly<{ requestId: number | null; start: number; end: number; rawDigest: string }>[]
+}>
+
 class RpcTransportError extends Error {
   constructor(readonly reason: string) {
     super(`Private RPC transport: ${reason}`)
