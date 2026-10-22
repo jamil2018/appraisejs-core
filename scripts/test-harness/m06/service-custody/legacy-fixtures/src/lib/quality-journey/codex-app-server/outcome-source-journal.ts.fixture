@@ -1,0 +1,92 @@
+import { closeSync, constants, fstatSync, fsyncSync, openSync, lstatSync, readSync, writeSync } from 'node:fs'
+import {
+  canonicalOutcomeJson,
+  outcomeDigest,
+  outcomeSourceBounds,
+  OutcomeSourceUnknownError,
+} from './outcome-source-contract'
+
+/** Fresh exclusive, bounded append/fsync journal. Existing files never reconstruct live custody. */
+export class OutcomeSourceJournal {
+  #fd: number
+  #path: string
+  #bytes = Buffer.alloc(0)
+  #sequence = 0
+  #head = outcomeDigest('M06_CUSTODY_JOURNAL_V1')
+  #failed = false
+  constructor(path: string) {
+    this.#path = path
+    let opened: number | undefined
+    try {
+      this.#fd = openSync(path, constants.O_CREAT | constants.O_EXCL | constants.O_RDWR | constants.O_NOFOLLOW, 0o600)
+      opened = this.#fd
+      fsyncSync(this.#fd)
+    } catch {
+      if (opened !== undefined) closeSync(opened)
+      throw new OutcomeSourceUnknownError('journal_create_or_crash')
+    }
+  }
+  append(kind: string, data: Readonly<Record<string, unknown>> = {}): string {
+    this.assertHealthy()
+    const body = { sequence: this.#sequence + 1, previous: this.#head, kind, data }
+    const head = outcomeDigest(canonicalOutcomeJson(body))
+    const frame = Buffer.from(`${canonicalOutcomeJson({ ...body, head })}\n`)
+    if (
+      this.#sequence >= outcomeSourceBounds.journalRecords ||
+      this.#bytes.length + frame.length > outcomeSourceBounds.journalBytes
+    ) {
+      this.#failed = true
+      throw new OutcomeSourceUnknownError('journal_overflow')
+    }
+    try {
+      // The caller cannot perform its next action until the complete record is durable.
+      if (writeSync(this.#fd, frame, 0, frame.length, this.#bytes.length) !== frame.length) throw new Error()
+      fsyncSync(this.#fd)
+      this.#bytes = Buffer.concat([this.#bytes, frame])
+      this.#head = head
+      this.#sequence++
+      return head
+    } catch {
+      this.#failed = true
+      throw new OutcomeSourceUnknownError('journal_append_or_fsync')
+    }
+  }
+  assertHealthy(): void {
+    if (this.#failed) throw new OutcomeSourceUnknownError('journal_unavailable')
+    try {
+      const size = this.#assertFileIdentity()
+      this.#assertStoredContents(size)
+    } catch {
+      this.#failed = true
+      throw new OutcomeSourceUnknownError('journal_read_or_corrupt')
+    }
+  }
+  #assertFileIdentity(): number {
+    const stat = fstatSync(this.#fd)
+    const named = lstatSync(this.#path)
+    if (
+      !stat.isFile() ||
+      !named.isFile() ||
+      stat.ino !== named.ino ||
+      stat.dev !== named.dev ||
+      stat.nlink !== 1 ||
+      (stat.mode & 0o777) !== 0o600 ||
+      stat.size !== this.#bytes.length
+    )
+      throw new Error()
+    return stat.size
+  }
+  #assertStoredContents(size: number): void {
+    const actual = Buffer.alloc(size)
+    if (readSync(this.#fd, actual, 0, actual.length, 0) !== actual.length || !actual.equals(this.#bytes))
+      throw new Error()
+  }
+  get head(): string {
+    this.assertHealthy()
+    return this.#head
+  }
+  dispose(): void {
+    this.#failed = true
+    closeSync(this.#fd)
+  }
+}
