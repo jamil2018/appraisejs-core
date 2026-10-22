@@ -1,3 +1,4 @@
+import { assertHistoricalHubQuiescent } from './quality-journey-provider-recovery'
 import { createHash, randomUUID } from 'node:crypto'
 import type {
   Prisma,
@@ -8,7 +9,6 @@ import type {
 } from '@prisma/client'
 import prisma from '@/config/db-config'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
-import { validateWorkerSpawnReceipt } from '@/lib/quality-journey'
 import {
   assertProviderSenderDisabled,
   assertProviderSendPermitOwned,
@@ -18,10 +18,40 @@ import {
   trustedProviderObservation,
   trustedProviderArm,
   trustedProviderReconciliation,
+  type ProviderSenderExcluded,
   type ProviderSenderDisabled,
   type ProviderSendPermit,
 } from '@/lib/quality-journey/provider-intent-contract'
 import { ServiceError } from '@/services/shared/errors'
+import {
+  validateProviderReconciliationEvidence,
+  assertCommittedProviderSourceReplay,
+  assertProviderReceiptCanonicalIdentity,
+  assertProviderReceiptBoundaryIdentity,
+  captureProviderReconciliationContext,
+  providerReconciliationRequestHash,
+  ProviderReconciliationConflictError,
+  type ProviderReconciliationContext,
+  type ProviderReconciliationReceipt,
+} from '@/lib/quality-journey/provider-reconciliation-contract'
+import {
+  acquireOriginalSqliteOutcomeCustody,
+  beginOriginalSqliteDiscardSend,
+  readOriginalSqliteCommittedReplay,
+  resolveOriginalSqliteRetirementFromReplay,
+  type SqliteOutcomeCustody,
+} from '@/lib/quality-journey/codex-app-server/outcome-source'
+import {
+  providerSourceDatabaseIsOwned,
+  providerSourceDatabaseFor,
+  readProviderSourceCommittedSnapshot,
+} from '@/lib/quality-journey/provider-source-database'
+import { outcomeSourceBounds } from '@/lib/quality-journey/codex-app-server/outcome-source-contract'
+import {
+  sqliteOutcomeSourceProtocolDigest,
+  type SourceLedgerState,
+  readProviderSourceLedgerRecords,
+} from '@/lib/quality-journey/codex-app-server/outcome-source-sqlite-journal'
 import { assertCoordinatorMutationSession } from './quality-journey-coordinator-session'
 import {
   authenticateExternalQualityJourneySubmission,
@@ -153,76 +183,6 @@ async function assertAttemptBudget(attempt: AuthenticatedAttempt, tx: Prisma.Tra
   const workAttempts = await tx.qualityJourneyWorkAttempt.count({ where: { workItemId: attempt.workItemId } })
   if (authorizationAttempts > authorization.maxAttempts || workAttempts > providerIntentPolicy.maxAttempts)
     conflict('Provider attempt budget is exhausted.')
-}
-
-type HistoricalDispatch = Prisma.QualityJourneyWorkAttemptGetPayload<{
-  select: {
-    id: true
-    workItemId: true
-    assignmentId: true
-    status: true
-    spawnRequestJson: true
-    spawnRequestHash: true
-    spawnReceiptJson: true
-    spawnReceiptHash: true
-  }
-}>
-
-function readHistoricalDispatchEvidence(attempt: HistoricalDispatch) {
-  if (!attempt.spawnRequestJson || !attempt.spawnRequestHash || !attempt.spawnReceiptJson || !attempt.spawnReceiptHash)
-    return null
-  const request = JSON.parse(attempt.spawnRequestJson) as Record<string, unknown>
-  const receipt = JSON.parse(attempt.spawnReceiptJson) as Record<string, unknown>
-  if (hash(request) !== attempt.spawnRequestHash || hash(receipt) !== attempt.spawnReceiptHash) return null
-  return { request, receipt }
-}
-
-function isProvenHistoricalNonstart(attempt: HistoricalDispatch) {
-  if (attempt.status !== 'REFUSED') return false
-  try {
-    const evidence = readHistoricalDispatchEvidence(attempt)
-    if (!evidence) return false
-    const request = evidence.request
-    if (
-      request.attemptId !== attempt.id ||
-      request.workItemId !== attempt.workItemId ||
-      request.assignmentId !== attempt.assignmentId
-    )
-      return false
-    return validateWorkerSpawnReceipt(evidence.receipt, request).outcome === 'REFUSED'
-  } catch {
-    return false
-  }
-}
-
-async function assertHistoricalHubQuiescent(tx: Prisma.TransactionClient) {
-  const conflictingRun = await tx.qualityJourneyProviderRun.findFirst({
-    where: { status: 'CONFLICT' },
-    select: { id: true },
-  })
-  if (conflictingRun) conflict('Conflicting provider evidence requires reconciliation before hub reuse.')
-  const historical = await tx.qualityJourneyWorkAttempt.findMany({
-    where: {
-      providerRun: null,
-      OR: [
-        { dispatchReservedAt: { not: null } },
-        { dispatchStartedAt: { not: null } },
-        { status: 'DISPATCH_UNRESOLVED' },
-      ],
-    },
-    select: {
-      id: true,
-      workItemId: true,
-      assignmentId: true,
-      status: true,
-      spawnRequestJson: true,
-      spawnRequestHash: true,
-      spawnReceiptJson: true,
-      spawnReceiptHash: true,
-    },
-  })
-  if (historical.some(attempt => !isProvenHistoricalNonstart(attempt)))
-    conflict('Historical provider dispatch requires reconciliation before hub reuse.')
 }
 
 function authoritySnapshot(input: Binding, journey: QualityJourney, attempt: AuthenticatedAttempt) {
@@ -540,6 +500,40 @@ export async function consumeQualityJourneyProviderSendPermit(
   return consumeProviderSendPermit(input.permit)
 }
 
+const sourceStateSelection = {
+  sourceId: true,
+  sourceIncarnation: true,
+  providerRunId: true,
+  intentId: true,
+  providerNamespace: true,
+  identityJson: true,
+  protocolDigest: true,
+  qualificationDigest: true,
+  epoch: true,
+  lifecycle: true,
+  sequence: true,
+  head: true,
+  byteCount: true,
+  sealedHead: true,
+  sealedEnvelopeDigest: true,
+  commitFenceVersion: true,
+  committedObservationId: true,
+  committedRequestHash: true,
+  pendingBatchId: true,
+  pendingBatchStartHead: true,
+  pendingBatchRecordAllowance: true,
+  pendingBatchByteAllowance: true,
+  pendingBatchRequestDigest: true,
+} as const satisfies Record<keyof SourceLedgerState, true>
+
+async function assertOriginalDiscardReservation(expected: SourceLedgerState, tx: Prisma.TransactionClient) {
+  const actual = await tx.qualityJourneyProviderSourceState.findFirst({
+    where: { ...expected },
+    select: { sourceId: true },
+  })
+  if (!actual) conflict('Original source discard reservation is no longer current.')
+}
+
 /**
  * Serialize each owned write against canonical pause/transfer using the M03 ownership CAS.
  * send must enter its synchronous, revocable write gate before returning. Its reply is
@@ -551,26 +545,43 @@ export async function writeQualityJourneyProviderTransport<T>(
   send: () => Promise<T>,
   client: PrismaClient = prisma,
 ): Promise<{ reply: Promise<T> }> {
-  assertProviderSendPermitOwned(input.permit)
-  return client.$transaction(async tx => {
-    const intent = await readIntent({ ...input, intentId: input.permit.intentId }, tx)
-    await currentAuthority(input, tx, intent.run)
-    assertPermitIdentity(intent, input.permit)
-    if (input.consume) assertSendWindowCurrent(intent)
-    else if (
-      intent.reconciledAt ||
-      intent.run.status === 'CONFLICT' ||
-      !intent.turnDueAt ||
-      intent.turnDueAt <= new Date()
-    )
-      conflict('Provider transport is fenced or expired.')
-    assertProviderSendPermitOwned(input.permit)
-    if (input.consume) consumeProviderSendPermit(input.permit)
-    const reply = send()
-    // Observe rejection even if commit acknowledgement is lost before returning the box.
-    void reply.catch(() => {})
-    return { reply }
-  })
+  const captured = Object.freeze({ ...input, principal: Object.freeze({ ...input.principal }) })
+  assertProviderSendPermitOwned(captured.permit)
+  const operation = await beginOriginalSqliteDiscardSend(captured.permit, client)
+  let engineOperation: Promise<{ reply: Promise<T> }> | undefined
+  try {
+    engineOperation = client.$transaction(async tx => {
+      if (operation) await operation.assertTransactionSettings(tx)
+      const intent = await readIntent({ ...captured, intentId: captured.permit.intentId }, tx)
+      await currentAuthority(captured, tx, intent.run)
+      if (operation) await assertOriginalDiscardReservation(operation.reservation, tx)
+      assertPermitIdentity(intent, captured.permit)
+      if (captured.consume) assertSendWindowCurrent(intent)
+      else if (
+        intent.reconciledAt ||
+        intent.run.status === 'CONFLICT' ||
+        !intent.turnDueAt ||
+        intent.turnDueAt <= new Date()
+      )
+        conflict('Provider transport is fenced or expired.')
+      assertProviderSendPermitOwned(captured.permit)
+      const sendOriginal = () => {
+        if (captured.consume) consumeProviderSendPermit(captured.permit)
+        return send()
+      }
+      if (operation) return operation.capture(sendOriginal)
+      const reply = sendOriginal()
+      // Observe rejection even if commit acknowledgement is lost before returning the box.
+      void reply.catch(() => {})
+      return { reply }
+    })
+    const result = await engineOperation
+    await operation?.completeFulfilled()
+    return result
+  } catch (error) {
+    operation?.retire(engineOperation)
+    throw error
+  }
 }
 
 export type ProviderObservationInput = {
@@ -709,6 +720,32 @@ function assertReconciliationAllowed(intent: ProviderIntent, outcome: 'NONSTART'
     conflict('Provider reconciliation conflicts with retained evidence.')
 }
 
+/** Finalize only after validated evidence has been inserted in this same transaction. */
+async function finalizeReconciledProviderIntent(
+  intent: ProviderIntent,
+  outcome: 'NONSTART' | 'TERMINAL',
+  now: Date,
+  tx: Prisma.TransactionClient,
+) {
+  await tx.qualityJourneyProviderDispatchIntent.update({
+    where: { id: intent.id },
+    data: { reconciledAt: now, status: `${outcome}_RECONCILED` },
+  })
+  await tx.qualityJourneyProviderRun.update({
+    where: { id: intent.run.id },
+    data: {
+      status: `${outcome}_RECONCILED`,
+      terminalReconciledAt: now,
+      terminalRetentionAt: after(now, providerIntentPolicy.terminalRetentionSeconds),
+    },
+  })
+  const released = await tx.qualityJourneyProviderSlot.updateMany({
+    where: { id: 'HUB', providerRunId: intent.run.id, intentId: intent.id, sendBoundaryId: intent.sendBoundaryId },
+    data: { providerRunId: null, intentId: null, sendBoundaryId: null, reservedAt: null, version: { increment: 1 } },
+  })
+  if (released.count !== 1) conflict('Provider hub slot no longer binds exact reconciliation identity.')
+}
+
 /** Evidence records physical reconciliation only; no canonical acceptance or replacement is granted. */
 export async function reconcileQualityJourneyProviderIntent(
   input: ProviderObservationInput & { outcome: 'NONSTART' | 'TERMINAL'; senderDisabled?: ProviderSenderDisabled },
@@ -757,23 +794,477 @@ export async function reconcileQualityJourneyProviderIntent(
         requestHash,
       },
     })
-    await tx.qualityJourneyProviderDispatchIntent.update({
-      where: { id: intent.id },
-      data: { reconciledAt: now, status: `${input.outcome}_RECONCILED` },
-    })
-    await tx.qualityJourneyProviderRun.update({
-      where: { id: intent.run.id },
-      data: {
-        status: `${input.outcome}_RECONCILED`,
-        terminalReconciledAt: now,
-        terminalRetentionAt: after(now, providerIntentPolicy.terminalRetentionSeconds),
-      },
-    })
-    const released = await tx.qualityJourneyProviderSlot.updateMany({
-      where: { id: 'HUB', providerRunId: intent.run.id, intentId: intent.id, sendBoundaryId: intent.sendBoundaryId },
-      data: { providerRunId: null, intentId: null, sendBoundaryId: null, reservedAt: null, version: { increment: 1 } },
-    })
-    if (released.count !== 1) conflict('Provider hub slot no longer binds exact reconciliation identity.')
+    await finalizeReconciledProviderIntent(intent, input.outcome, now, tx)
     return { replayed: false, observation }
   })
+}
+
+export type ReconcileConsumedProviderIntentInput = {
+  intentId: string
+  observationKey: string
+  senderExcluded?: ProviderSenderExcluded
+  physicalEvidence?: unknown
+  /** Read-only exact durable replay; never recreates either live capability. */
+  replayRequestHash?: string
+}
+
+function assertConsumedReceiptBoundaryIdentity(receipt: ProviderReconciliationReceipt, intent: ProviderIntent) {
+  assertProviderReceiptBoundaryIdentity(receipt, {
+    runId: intent.run.id,
+    intentId: intent.id,
+    sendBoundaryId: intent.sendBoundaryId,
+    claimEpoch: intent.claimEpoch,
+    providerNamespace: intent.providerNamespace,
+    configurationDigest: intent.run.configurationDigest,
+  })
+}
+
+function assertConsumedReceiptIdentity(receipt: ProviderReconciliationReceipt, intent: ProviderIntent) {
+  assertProviderReceiptCanonicalIdentity(receipt, {
+    runId: intent.run.id,
+    intentId: intent.id,
+    sendBoundaryId: intent.sendBoundaryId,
+    claimEpoch: intent.claimEpoch,
+    providerNamespace: intent.providerNamespace,
+    configurationDigest: intent.run.configurationDigest,
+    runThreadId: intent.run.threadId,
+    intentThreadId: intent.threadId,
+    turnId: intent.turnId,
+  })
+}
+
+async function quarantineConsumedReconciliation(
+  intent: ProviderIntent,
+  receipt: ProviderReconciliationReceipt,
+  requestHash: string,
+  tx: Prisma.TransactionClient,
+) {
+  const observationKey = `reconciliation-conflict:${requestHash.slice(7)}`
+  await tx.qualityJourneyProviderObservation.upsert({
+    where: { intentId_observationKey: { intentId: intent.id, observationKey } },
+    create: {
+      id: id('qjpo'),
+      intentId: intent.id,
+      observationKey,
+      kind: 'RECONCILIATION_CONFLICT',
+      requestHash,
+      sendBoundaryId: intent.sendBoundaryId!,
+      providerNamespace: intent.providerNamespace,
+      threadId: receipt.identity.threadId,
+      turnId: receipt.identity.turnId,
+      evidenceDigest: hash(receipt),
+      reconciliationJson: json(receipt),
+    },
+    update: {},
+  })
+  await tx.qualityJourneyProviderRun.update({ where: { id: intent.run.id }, data: { status: 'CONFLICT' } })
+}
+
+type ConsumedReconciliationRequest = {
+  input: ReconcileConsumedProviderIntentInput
+  candidate?: ProviderReconciliationReceipt
+  requestHash: string
+  sourceConflict: boolean
+}
+
+function validateConsumedReconciliationInput(input: ReconcileConsumedProviderIntentInput) {
+  if (
+    !boundedIdentifier(input.intentId) ||
+    !boundedIdentifier(input.observationKey) ||
+    (input.replayRequestHash !== undefined && !validDigest(input.replayRequestHash))
+  )
+    throw new ServiceError('Provider reconciliation identity is invalid.', 'VALIDATION')
+}
+
+function readConsumedReconciliationProof(
+  input: ReconcileConsumedProviderIntentInput,
+  context: ProviderReconciliationContext,
+) {
+  let candidate: ProviderReconciliationReceipt | undefined
+  let sourceConflict = false
+  if (input.senderExcluded) {
+    try {
+      candidate = validateProviderReconciliationEvidence(input.senderExcluded, input.physicalEvidence, context)
+    } catch (error) {
+      if (!(error instanceof ProviderReconciliationConflictError)) throw error
+      candidate = error.receipt
+      sourceConflict = true
+    }
+  } else if (!input.replayRequestHash) {
+    conflict('Exact original provider sender exclusion and physical evidence are required.')
+  }
+  return { candidate, sourceConflict }
+}
+
+function consumedReconciliationRequest(
+  input: ReconcileConsumedProviderIntentInput,
+  context: ProviderReconciliationContext,
+): ConsumedReconciliationRequest {
+  validateConsumedReconciliationInput(input)
+  const { candidate, sourceConflict } = readConsumedReconciliationProof(input, context)
+  const requestHash = candidate
+    ? providerReconciliationRequestHash(input.intentId, input.observationKey, candidate)
+    : input.replayRequestHash!
+  if (input.replayRequestHash && input.replayRequestHash !== requestHash)
+    conflict('Provider reconciliation replay hash does not match exact evidence.')
+  return { input, candidate, requestHash, sourceConflict }
+}
+
+/** Validate the actual stored receipt before checking its observation or source binding. */
+function readCommittedConsumedReceipt(
+  prior: QualityJourneyProviderObservation,
+  intent: ProviderIntent,
+  request: ConsumedReconciliationRequest,
+) {
+  const { input, requestHash } = request
+  if (!['NONSTART', 'TERMINAL'].includes(prior.kind) || !prior.reconciliationJson || !intent.reconciledAt)
+    conflict('Provider reconciliation has no committed exact release receipt.')
+  const durable = JSON.parse(prior.reconciliationJson) as ProviderReconciliationReceipt
+  if (providerReconciliationRequestHash(input.intentId, input.observationKey, durable) !== requestHash)
+    conflict('Provider reconciliation durable receipt digest is invalid.')
+  assertConsumedReceiptIdentity(durable, intent)
+  return durable
+}
+
+function assertConsumedObservationReceipt(
+  prior: QualityJourneyProviderObservation,
+  durable: ProviderReconciliationReceipt,
+) {
+  if (
+    prior.kind !== durable.physical.outcome ||
+    prior.evidenceDigest !== hash(durable) ||
+    prior.sendBoundaryId !== durable.identity.sendBoundaryId ||
+    prior.providerNamespace !== durable.identity.providerNamespace ||
+    prior.threadId !== durable.identity.threadId ||
+    prior.turnId !== durable.identity.turnId
+  )
+    conflict('Provider reconciliation observation does not match its exact receipt.')
+}
+
+async function replayConsumedReconciliation(
+  prior: QualityJourneyProviderObservation,
+  intent: ProviderIntent,
+  request: ConsumedReconciliationRequest,
+  tx: Prisma.TransactionClient,
+) {
+  const { candidate, requestHash } = request
+  if (prior.requestHash !== requestHash) {
+    if (!candidate) conflict('Provider reconciliation key was reused with different evidence.')
+    await quarantineConsumedReconciliation(intent, candidate, requestHash, tx)
+    return { conflicted: true as const }
+  }
+  const durable = readCommittedConsumedReceipt(prior, intent, request)
+  assertConsumedObservationReceipt(prior, durable)
+  const source = await tx.qualityJourneyProviderSourceState.findUnique({
+    where: { sourceId: durable.physical.sourceId },
+  })
+  assertCommittedProviderSourceReplay(source, prior, durable)
+  return {
+    conflicted: false as const,
+    replayed: true,
+    observation: prior,
+    receipt: durable,
+    requestHash,
+    quarantined: intent.run.status === 'CONFLICT',
+  }
+}
+
+function readLegacyReplayEvidence(row: Readonly<Record<string, unknown>>, request: ConsumedReconciliationRequest) {
+  const { input, candidate, requestHash } = request
+  if (!row.reconciliationJson || typeof row.reconciliationJson !== 'string')
+    conflict('Provider reconciliation has no committed exact release receipt.')
+  if (
+    !candidate ||
+    row.sourceId != null ||
+    row.intentId !== input.intentId ||
+    row.observationKey !== input.observationKey ||
+    row.requestHash !== requestHash
+  )
+    conflict('Legacy provider reconciliation does not match the original validated receipt.')
+  return { candidate, storedJson: row.reconciliationJson }
+}
+
+function assertLegacyObservationReceipt(
+  row: Readonly<Record<string, unknown>>,
+  candidate: ProviderReconciliationReceipt,
+) {
+  if (
+    row.kind !== candidate.physical.outcome ||
+    !row.reconciledAt ||
+    row.observationBoundary !== candidate.identity.sendBoundaryId ||
+    row.observationNamespace !== candidate.identity.providerNamespace ||
+    row.observationThread !== candidate.identity.threadId ||
+    row.observationTurn !== candidate.identity.turnId ||
+    row.evidenceDigest !== hash(candidate)
+  )
+    conflict('Legacy provider reconciliation does not match the original validated receipt.')
+}
+
+function assertLegacyStoredCandidateReceipt(
+  row: Readonly<Record<string, unknown>>,
+  candidate: ProviderReconciliationReceipt,
+  storedJson: string,
+  requestHash: string,
+) {
+  if (
+    Buffer.byteLength(storedJson) > outcomeSourceBounds.envelopeBytes ||
+    json(JSON.parse(storedJson)) !== json(candidate)
+  )
+    conflict('Legacy stored provider receipt differs from its validated original candidate.')
+  assertProviderReceiptCanonicalIdentity(candidate, {
+    runId: String(row.providerRunId),
+    intentId: String(row.intentId),
+    sendBoundaryId: row.sendBoundaryId as string | null,
+    claimEpoch: Number(row.claimEpoch),
+    providerNamespace: String(row.providerNamespace),
+    configurationDigest: String(row.configurationDigest),
+    runThreadId: row.runThreadId as string | null,
+    intentThreadId: row.intentThreadId as string | null,
+    turnId: row.turnId as string | null,
+  })
+  assertCommittedProviderSourceReplay(null, { id: String(row.observationId), requestHash }, candidate)
+}
+
+/** Replay an exact stored legacy receipt through the clean reader without requiring a new SourceState. */
+function replayLegacyConsumedSnapshot(row: Readonly<Record<string, unknown>>, request: ConsumedReconciliationRequest) {
+  const { input, requestHash } = request
+  const { candidate, storedJson } = readLegacyReplayEvidence(row, request)
+  assertLegacyObservationReceipt(row, candidate)
+  assertLegacyStoredCandidateReceipt(row, candidate, storedJson, requestHash)
+  const createdAt = new Date(row.observationCreatedAt as string | number)
+  if (!Number.isFinite(createdAt.getTime())) conflict('Legacy provider observation timestamp is invalid.')
+  return {
+    conflicted: false as const,
+    replayed: true,
+    receipt: candidate,
+    requestHash,
+    quarantined: row.runStatus === 'CONFLICT',
+    observation: {
+      id: String(row.observationId),
+      intentId: input.intentId,
+      observationKey: input.observationKey,
+      kind: String(row.kind),
+      requestHash,
+      sendBoundaryId: candidate.identity.sendBoundaryId,
+      providerNamespace: candidate.identity.providerNamespace,
+      threadId: candidate.identity.threadId,
+      turnId: candidate.identity.turnId,
+      evidenceDigest: String(row.evidenceDigest),
+      reconciliationJson: storedJson,
+      createdAt,
+    },
+  }
+}
+
+function consumedOutcomeContradictsHistory(
+  intent: ProviderIntent,
+  candidate: ProviderReconciliationReceipt,
+  sourceConflict: boolean,
+) {
+  return (
+    sourceConflict ||
+    (intent.reconciledAt && intent.status !== `${candidate.physical.outcome}_RECONCILED`) ||
+    (candidate.physical.outcome === 'NONSTART' && intent.acknowledgedAt)
+  )
+}
+
+async function reconcileConsumedInTransaction(request: ConsumedReconciliationRequest, tx: Prisma.TransactionClient) {
+  const { input, candidate, requestHash, sourceConflict } = request
+  const intent = await tx.qualityJourneyProviderDispatchIntent.findUniqueOrThrow({
+    where: { id: input.intentId },
+    include: { run: true },
+  })
+  if (!intent.sendBoundaryId) conflict('Provider intent has no original send boundary.')
+  if (candidate) assertConsumedReceiptBoundaryIdentity(candidate, intent)
+  const prior = await tx.qualityJourneyProviderObservation.findUnique({
+    where: { intentId_observationKey: { intentId: input.intentId, observationKey: input.observationKey } },
+  })
+  if (prior) {
+    if (candidate) assertConsumedReceiptIdentity(candidate, intent)
+    return replayConsumedReconciliation(prior, intent, request, tx)
+  }
+  if (!candidate) conflict('No committed provider reconciliation receipt exists; live proof cannot be reconstructed.')
+  if (consumedOutcomeContradictsHistory(intent, candidate, sourceConflict)) {
+    await quarantineConsumedReconciliation(intent, candidate, requestHash, tx)
+    return { conflicted: true as const }
+  }
+  assertConsumedReceiptIdentity(candidate, intent)
+  assertReconciliationAllowed(intent, candidate.physical.outcome)
+  const now = new Date()
+  const observation = await tx.qualityJourneyProviderObservation.create({
+    data: {
+      id: id('qjpo'),
+      intentId: intent.id,
+      observationKey: input.observationKey,
+      kind: candidate.physical.outcome,
+      requestHash,
+      sendBoundaryId: intent.sendBoundaryId,
+      providerNamespace: intent.providerNamespace,
+      threadId: candidate.identity.threadId,
+      turnId: candidate.identity.turnId,
+      evidenceDigest: hash(candidate),
+      reconciliationJson: json(candidate),
+    },
+  })
+  await finalizeReconciledProviderIntent(intent, candidate.physical.outcome, now, tx)
+  return {
+    conflicted: false as const,
+    replayed: false,
+    observation,
+    receipt: candidate,
+    requestHash,
+    quarantined: false,
+  }
+}
+
+/** This must be the first statement of the final reconciliation transaction. */
+async function lockOriginalSqliteOutcome(custody: SqliteOutcomeCustody, tx: Prisma.TransactionClient) {
+  const expected = custody.state
+  const locked = await tx.$executeRawUnsafe(
+    `UPDATE "QualityJourneyProviderSourceState" SET "commitFenceVersion" = "commitFenceVersion" + 1
+     WHERE "sourceId" = ? AND "sourceIncarnation" = ? AND "providerRunId" = ? AND "intentId" = ?
+       AND "providerNamespace" = ? AND "identityJson" = ? AND "protocolDigest" = ? AND "qualificationDigest" = ?
+       AND "epoch" = ? AND "commitFenceVersion" = ? AND "lifecycle" = 'SEALED' AND "sequence" = ? AND "head" = ? AND "byteCount" = ?
+       AND "sealedHead" = ? AND "sealedEnvelopeDigest" = ?
+       AND "committedObservationId" IS NULL AND "committedRequestHash" IS NULL
+       AND "pendingBatchId" IS NULL AND "pendingBatchStartHead" IS NULL
+       AND "pendingBatchRecordAllowance" IS NULL AND "pendingBatchByteAllowance" IS NULL
+       AND "pendingBatchRequestDigest" IS NULL`,
+    expected.sourceId,
+    expected.sourceIncarnation,
+    expected.providerRunId,
+    expected.intentId,
+    expected.providerNamespace,
+    expected.identityJson,
+    expected.protocolDigest,
+    expected.qualificationDigest,
+    expected.epoch,
+    expected.commitFenceVersion,
+    expected.sequence,
+    expected.head,
+    expected.byteCount,
+    expected.sealedHead,
+    expected.sealedEnvelopeDigest,
+  )
+  if (locked !== 1) conflict('Original source outcome custody is no longer current.')
+  await custody.assertTransactionSettings(tx)
+  const state = await tx.qualityJourneyProviderSourceState.findUniqueOrThrow({
+    where: { sourceId: expected.sourceId },
+    select: sourceStateSelection,
+  })
+  const records = await readProviderSourceLedgerRecords(tx, expected.sourceId)
+  return { state, records }
+}
+
+/** Two independent facts atomically release exactly one consumed original send boundary. */
+export async function reconcileConsumedQualityJourneyProviderIntent(
+  input: ReconcileConsumedProviderIntentInput,
+  context: ProviderReconciliationContext,
+  capability: typeof trustedProviderReconciliation,
+  client: PrismaClient = prisma,
+) {
+  if (capability !== trustedProviderReconciliation) unauthorized()
+  const capturedContext = captureProviderReconciliationContext(context)
+  const capturedInput = Object.freeze({ ...input })
+  validateConsumedReconciliationInput(capturedInput)
+  const originalReplay = await readOriginalSqliteCommittedReplay(capturedInput, capturedContext, client)
+  if (originalReplay) return originalReplay
+  rejectUnmatchedOwnedReplayRequest(capturedInput, client)
+  const request = consumedReconciliationRequest(capturedInput, capturedContext)
+  const ownedClient = providerSourceDatabaseIsOwned(client)
+  if (isOwnedLegacyReconciliation(ownedClient, request)) {
+    const snapshot = await readProviderSourceCommittedSnapshot(
+      providerSourceDatabaseFor(client),
+      capturedInput.intentId,
+      capturedInput.observationKey,
+    )
+    if (!snapshot) conflict('No exact committed legacy provider reconciliation exists.')
+    return replayLegacyConsumedSnapshot(snapshot, request)
+  }
+  // Exact durable replay takes no fresh source custody and never repeats physical release.
+  const prior = ownedClient
+    ? null
+    : await client.qualityJourneyProviderObservation.findUnique({
+        where: { intentId_observationKey: { intentId: input.intentId, observationKey: input.observationKey } },
+      })
+  if (!request.candidate || prior) {
+    const result = await client.$transaction(tx => reconcileConsumedInTransaction(request, tx))
+    if (result.conflicted)
+      conflict('Provider reconciliation conflicts with retained physical evidence; hub remains quarantined.')
+    await resolveOriginalSqliteRetirementFromReplay(client, input.intentId, input.observationKey, request.requestHash)
+    return result
+  }
+  return reconcileFreshOriginalConsumedIntent(input, capturedInput, capturedContext, request, client, request.candidate)
+}
+
+/** The fresh original source path retains its actual transaction Promise through completion or ambiguity. */
+async function reconcileFreshOriginalConsumedIntent(
+  input: ReconcileConsumedProviderIntentInput,
+  capturedInput: Readonly<ReconcileConsumedProviderIntentInput>,
+  capturedContext: ReturnType<typeof captureProviderReconciliationContext>,
+  request: ReturnType<typeof consumedReconciliationRequest>,
+  client: PrismaClient,
+  candidate: ProviderReconciliationReceipt,
+) {
+  if (!capturedContext.source || !input.senderExcluded) conflict('Original source custody is required.')
+  const custody = acquireOriginalSqliteOutcomeCustody(
+    capturedContext.source,
+    input.physicalEvidence,
+    input.senderExcluded,
+    client,
+    candidate,
+    Object.freeze({ observationKey: capturedInput.observationKey, requestHash: request.requestHash }),
+  )
+  let entered = false
+  let engineOperation: Promise<Awaited<ReturnType<typeof reconcileConsumedInTransaction>>> | undefined
+  let result: Awaited<ReturnType<typeof reconcileConsumedInTransaction>>
+  try {
+    engineOperation = client.$transaction(async tx => {
+      if (entered) conflict('Provider reconciliation transaction callback may only enter once.')
+      entered = true
+      const locked = await lockOriginalSqliteOutcome(custody, tx)
+      custody.verifyLocked(locked.state, locked.records)
+      const result = await reconcileConsumedInTransaction(request, tx)
+      if (result.conflicted) {
+        await tx.qualityJourneyProviderSourceState.update({
+          where: { sourceId: custody.state.sourceId },
+          data: { lifecycle: 'REVOKED' },
+        })
+      } else {
+        await tx.qualityJourneyProviderSourceState.update({
+          where: { sourceId: custody.state.sourceId },
+          data: {
+            lifecycle: 'COMMITTED',
+            committedObservationId: result.observation.id,
+            committedRequestHash: result.requestHash,
+          },
+        })
+      }
+      return result
+    })
+    result = await engineOperation
+  } catch (error) {
+    custody.retire(engineOperation)
+    const replay = await custody.tryResolveCommittedReplay()
+    if (replay) return replay
+    throw error
+  }
+  custody.completeFulfilled()
+  if (result.conflicted)
+    conflict('Provider reconciliation conflicts with retained physical evidence; hub remains quarantined.')
+  return result
+}
+
+/** An explicit owned replay request cannot fall through to a fresh physical reconciliation. */
+function rejectUnmatchedOwnedReplayRequest(
+  capturedInput: Readonly<ReconcileConsumedProviderIntentInput>,
+  client: PrismaClient,
+): void {
+  if (capturedInput.replayRequestHash && providerSourceDatabaseIsOwned(client))
+    conflict('No exact committed provider reconciliation exists in the clean replay resolver.')
+}
+
+/** Select the existing clean resolver route for the legacy source dialect. */
+function isOwnedLegacyReconciliation(ownedClient: boolean, request: ConsumedReconciliationRequest): boolean {
+  return ownedClient && request.candidate?.physical.protocolDigest !== sqliteOutcomeSourceProtocolDigest
 }
