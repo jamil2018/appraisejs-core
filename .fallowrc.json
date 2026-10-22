@@ -66,5 +66,45 @@
     "duplicate-exports": "error",
     "circular-dependencies": "error",
     "unresolved-imports": "error"
-  }
+  },
+  "framework": [
+    {
+      "name": "appraise-m06-node-test",
+      "detection": {
+        "type": "fileExists",
+        "pattern": "scripts/test-harness/m06/**/*.test.mjs"
+      },
+      "entryPoints": [
+        "scripts/test-harness/m06/fixture-audit-records.test.mjs",
+        "scripts/test-harness/m06/fixture-diagnostic-failures.test.mjs",
+        "scripts/test-harness/m06/fixture-evidence-read.test.mjs",
+        "scripts/test-harness/m06/fixture-terminal-codecs.test.mjs",
+        "scripts/test-harness/m06/service-custody/custody-activation-proof.test.mjs",
+        "scripts/test-harness/m06/service-custody/custody-complement-canonical.test.mjs",
+        "scripts/test-harness/m06/service-custody/custody-complement-observation.test.mjs",
+        "scripts/test-harness/m06/service-custody/custody-fixture-admission.test.mjs",
+        "scripts/test-harness/m06/service-custody/custody-fixture-ipc-fault.test.mjs",
+        "scripts/test-harness/m06/service-custody/custody-fixture-transport.test.mjs",
+        "scripts/test-harness/m06/service-custody/custody-ipc-fault-controller.test.mjs",
+        "scripts/test-harness/m06/service-custody/custody-legacy-proof.test.mjs",
+        "scripts/test-harness/m06/service-custody/custody-service-callbacks.test.mjs",
+        "scripts/test-harness/m06/service-custody/custody-service-retained-proof.test.mjs",
+        "scripts/test-harness/m06/service-custody/custody-service-syntax.test.mjs",
+        "scripts/test-harness/m06/service-custody/custody-supervisor.test.mjs",
+        "scripts/test-harness/m06/source-custody/source-custody-case-protocols.test.mjs",
+        "scripts/test-harness/m06/source-custody/source-custody-client-binding.test.mjs",
+        "scripts/test-harness/m06/source-custody/source-custody-fault-proofs.test.mjs",
+        "scripts/test-harness/m06/source-custody/source-custody-guard.test.mjs",
+        "scripts/test-harness/m06/source-custody/source-custody-ipc-fault.test.mjs",
+        "scripts/test-harness/m06/source-custody/source-custody-launch.test.mjs",
+        "scripts/test-harness/m06/source-custody/source-custody-ledger-fixture.test.mjs",
+        "scripts/test-harness/m06/source-custody/source-custody-owner-evidence.test.mjs",
+        "scripts/test-harness/m06/source-custody/source-custody-passive-forwarding.test.mjs",
+        "scripts/test-harness/m06/source-custody/source-custody-projection.test.mjs",
+        "scripts/test-harness/m06/source-custody/source-custody-terminal.test.mjs",
+        "scripts/test-harness/m06/unique-json.test.mjs"
+      ],
+      "entryPointRole": "test"
+    }
+  ]
 }
