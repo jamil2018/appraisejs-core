@@ -1,7 +1,23 @@
+import { readAnalysisFollowupAttemptBudget } from './quality-journey-analysis-followup-budget'
+import {
+  compileAnalysisFollowupDescriptor,
+  assertAnalysisFollowupAttemptBudget,
+  analysisFollowupExpectedWorkSchema,
+  selectAnalysisFollowupIssuance,
+  type AnalysisFollowupDescriptorV1,
+  type AnalysisFollowupExpectedWork,
+  type AnalysisFollowupIssuanceV1,
+} from './quality-journey-analysis-followup'
+import { providerIntentPolicy } from '@/lib/quality-journey/provider-intent-contract'
+import {
+  enqueueQualityJourneyWakeInTransaction,
+  trustedQualityJourneyWakeProducer,
+} from './quality-journey-wake-service'
 import {
   hasUnreconciledProviderEffects,
   invalidateUnsentProviderIntents,
   assertProviderReplacementSafe,
+  assertHistoricalHubQuiescent,
 } from './quality-journey-provider-recovery'
 import { assertQualityJourneyMutable, assertQualityJourneyRecoverable } from './quality-journey-terminal'
 import {
@@ -505,6 +521,493 @@ async function currentWorkAuthorization(workItemId: string, db: Db) {
   })
 }
 
+type FollowupScope = { journeyId: string; targetProjectId: string }
+
+/** Exact immutable current leaf snapshot. No published-pointer or timestamp selection. */
+type AnalysisFollowupLeaf = Prisma.QualityJourneyAnalysisRevisionGetPayload<{
+  include: {
+    artifact: true
+    submittedAttempt: true
+    decision: true
+    questions: { include: { artifact: true; answers: { include: { artifact: true } } } }
+  }
+}>
+
+async function readCurrentAnalysisFollowupLeaf(journey: QualityJourney, tx: Db) {
+  const leaves = await tx.qualityJourneyAnalysisRevision.findMany({
+    where: {
+      journeyId: journey.id,
+      targetProjectId: journey.targetProjectId,
+      cycleId: journey.activeCycleId,
+      successors: { none: {} },
+    },
+    include: {
+      artifact: true,
+      submittedAttempt: true,
+      decision: true,
+      questions: { include: { artifact: true, answers: { include: { artifact: true } } } },
+    },
+  })
+  if (!leaves.length) return null
+  if (leaves.length !== 1) throw new ServiceError('Analysis follow-up has ambiguous accepted leaves.', 'CONFLICT')
+  const predecessor = leaves[0]!
+  return predecessor.decision ? null : predecessor
+}
+
+function assertAnalysisPredecessorWorkScope(
+  journey: QualityJourney,
+  item: QualityJourneyWorkItem | null,
+): asserts item is QualityJourneyWorkItem {
+  if (
+    !item ||
+    item.journeyId !== journey.id ||
+    item.targetProjectId !== journey.targetProjectId ||
+    item.cycleId !== journey.activeCycleId ||
+    item.role !== 'REQUIREMENT_ANALYZER'
+  )
+    throw new ServiceError('Analysis follow-up predecessor completion lineage is invalid.', 'CONFLICT')
+}
+function assertAnalysisPredecessorCompletionEvidence(
+  prior: AnalysisFollowupLeaf['submittedAttempt'],
+  predecessor: AnalysisFollowupLeaf,
+) {
+  if (
+    prior.status !== 'COMPLETED' ||
+    !prior.assignmentJson ||
+    !prior.assignmentHash ||
+    hash(JSON.parse(prior.assignmentJson)) !== prior.assignmentHash ||
+    JSON.parse(prior.assignmentJson).inputHash !== predecessor.inputHash
+  )
+    throw new ServiceError('Analysis follow-up predecessor completion lineage is invalid.', 'CONFLICT')
+}
+async function readAnalysisPredecessorAuthorization(
+  journey: QualityJourney,
+  item: QualityJourneyWorkItem,
+  prior: AnalysisFollowupLeaf['submittedAttempt'],
+  tx: Db,
+) {
+  if (
+    prior.workItemId !== item.id ||
+    !prior.authorizationId ||
+    item.id !== qualityJourneyWorkItemId(journey.id, journey.activeCycleId, 'REQUIREMENT_ANALYZER')
+  )
+    throw new ServiceError('Analysis follow-up predecessor completion lineage is invalid.', 'CONFLICT')
+  if (item.status === 'COMPLETED' && item.currentAttempt !== prior.attempt)
+    throw new ServiceError(
+      'Completed Analysis work has no matching accepted attempt; recovery is required.',
+      'CONFLICT',
+    )
+  const priorAuthorization = await tx.qualityJourneyWorkAuthorization.findUnique({
+    where: { id: prior.authorizationId },
+  })
+  if (!priorAuthorization || priorAuthorization.workItemId !== item.id || priorAuthorization.journeyId !== journey.id)
+    throw new ServiceError('Analysis follow-up predecessor authorization is unavailable.', 'CONFLICT')
+  return prior.authorizationId
+}
+async function readAnalysisPredecessorWork(journey: QualityJourney, predecessor: AnalysisFollowupLeaf, tx: Db) {
+  const item = await tx.qualityJourneyWorkItem.findUnique({ where: { id: predecessor.submittedWorkItemId } })
+  const prior = predecessor.submittedAttempt
+  assertAnalysisPredecessorWorkScope(journey, item)
+  assertAnalysisPredecessorCompletionEvidence(prior, predecessor)
+  const predecessorAuthorizationId = await readAnalysisPredecessorAuthorization(journey, item, prior, tx)
+  return { item, prior, predecessorAuthorizationId }
+}
+
+async function readAnalysisFollowupRequirement(journey: QualityJourney, predecessor: AnalysisFollowupLeaf, tx: Db) {
+  const activeRequirement = parseRecord(journey.activeRevisionIdsJson).journey
+  const requirement = activeRequirement
+    ? await tx.qualityJourneyRevision.findFirst({ where: { id: activeRequirement, journeyId: journey.id } })
+    : null
+  const charter = JSON.parse(predecessor.artifact.artifactJson)
+  if (
+    !requirement ||
+    hash(JSON.parse(requirement.contentJson)) !== requirement.contentHash ||
+    charter.requirementRevisionId !== requirement.id ||
+    charter.cycleId !== journey.activeCycleId
+  )
+    throw new ServiceError('Analysis follow-up requirement identity is stale.', 'CONFLICT')
+
+  return { requirement, charter }
+}
+
+function analysisFollowupArtifactReference(
+  journey: QualityJourney,
+  artifact: {
+    journeyId: string
+    targetProjectId: string
+    cycleId: string
+    kind: string
+    artifactId: string
+    revisionId: string | null
+    contentHash: string
+    artifactJson: string
+  },
+) {
+  if (
+    artifact.journeyId !== journey.id ||
+    artifact.targetProjectId !== journey.targetProjectId ||
+    artifact.cycleId !== journey.activeCycleId ||
+    hash(JSON.parse(artifact.artifactJson)) !== artifact.contentHash
+  )
+    throw new ServiceError('Analysis follow-up artifact identity is invalid.', 'CONFLICT')
+  return {
+    kind: artifact.kind,
+    artifactId: artifact.artifactId,
+    ...(artifact.revisionId ? { revisionId: artifact.revisionId } : {}),
+    contentHash: artifact.contentHash,
+  }
+}
+
+function readAnalysisCurrentQuestionHeads(
+  journey: QualityJourney,
+  predecessor: AnalysisFollowupLeaf,
+  charter: Record<string, unknown>,
+) {
+  if (
+    predecessor.contentHash !== predecessor.artifact.contentHash ||
+    charter.analysisRevisionId !== predecessor.artifactRevisionId
+  )
+    throw new ServiceError('Analysis follow-up predecessor artifact is invalid.', 'CONFLICT')
+  const heads: string[] = []
+  const questions = predecessor.questions.map(question => {
+    const corrected = new Set(question.answers.flatMap(a => (a.correctionOfAnswerId ? [a.correctionOfAnswerId] : [])))
+    const current = question.answers.filter(a => !corrected.has(a.id))
+    if (
+      (question.answers.length && current.length !== 1) ||
+      question.contentHash !== question.artifact.contentHash ||
+      question.artifact.artifactId !== question.questionId
+    )
+      throw new ServiceError('Analysis follow-up answer heads are ambiguous.', 'CONFLICT')
+    const answer = current[0]
+    if (answer) {
+      if (answer.contentHash !== answer.artifact.contentHash || answer.artifact.artifactId !== answer.answerId)
+        throw new ServiceError('Analysis follow-up answer hash is invalid.', 'CONFLICT')
+      heads.push(answer.answerId)
+    }
+    return {
+      questionId: question.questionId,
+      required: question.required,
+      question: analysisFollowupArtifactReference(journey, question.artifact),
+      answer: answer ? analysisFollowupArtifactReference(journey, answer.artifact) : null,
+    }
+  })
+
+  return { questions, heads }
+}
+
+async function readCommittedAnalysisFeedbackCommand(
+  journey: QualityJourney,
+  predecessor: AnalysisFollowupLeaf,
+  commandId: string,
+  reviewedHash: unknown,
+  tx: Db,
+) {
+  const command = await tx.qualityJourneyCommand.findUnique({ where: { id: commandId } })
+  if (
+    !command ||
+    command.journeyId !== journey.id ||
+    hash(JSON.parse(command.requestJson)) !== command.requestHash ||
+    JSON.parse(command.requestJson).command !== 'REQUEST_ANALYSIS_REVISION' ||
+    JSON.parse(command.resultJson).outcome !== 'COMMITTED' ||
+    reviewedHash !== predecessor.contentHash
+  )
+    throw new ServiceError('Analysis follow-up feedback has no exact committed command.', 'CONFLICT')
+  return command
+}
+
+async function readAnalysisFollowupFeedback(journey: QualityJourney, predecessor: AnalysisFollowupLeaf, tx: Db) {
+  const feedbacks = await tx.qualityJourneyArtifact.findMany({
+    where: {
+      journeyId: journey.id,
+      cycleId: journey.activeCycleId,
+      kind: 'ANALYSIS_REVISION_FEEDBACK',
+      revisionId: predecessor.artifactRevisionId,
+    },
+  })
+  if (feedbacks.length > 1) throw new ServiceError('Analysis follow-up feedback identity is ambiguous.', 'CONFLICT')
+  const feedbackArtifact = feedbacks[0]
+  let feedback: AnalysisFollowupDescriptorV1['feedback'] = null
+  if (feedbackArtifact) {
+    const payload = JSON.parse(feedbackArtifact.artifactJson)
+    const command = await readCommittedAnalysisFeedbackCommand(
+      journey,
+      predecessor,
+      payload.commandId,
+      payload.reviewedHash,
+      tx,
+    )
+    const request = journeyCommandSchema.parse(JSON.parse(command.requestJson))
+    if (
+      request.command !== 'REQUEST_ANALYSIS_REVISION' ||
+      request.actor !== 'USER' ||
+      request.payload.reviewedRevisionId !== predecessor.artifactRevisionId ||
+      json(revisionFeedbackPayload(request, journey, null)) !== feedbackArtifact.artifactJson
+    )
+      throw new ServiceError('Analysis follow-up feedback differs from its committed command.', 'CONFLICT')
+    feedback = { commandId: command.id, artifact: analysisFollowupArtifactReference(journey, feedbackArtifact) }
+  }
+
+  return feedback
+}
+
+async function readAnalysisFollowupHumanCause(
+  journey: QualityJourney,
+  predecessor: AnalysisFollowupLeaf,
+  heads: string[],
+  feedback: AnalysisFollowupDescriptorV1['feedback'],
+  tx: Db,
+) {
+  const causes = await tx.qualityJourneyEvent.findMany({
+    where: { journeyId: journey.id, eventType: { in: ['ANALYSIS_ANSWERED', 'COMMAND_REQUEST_ANALYSIS_REVISION'] } },
+    orderBy: { sequence: 'asc' },
+  })
+  const causal = causes
+    .filter(event => {
+      const payload = JSON.parse(event.payloadJson)
+      return event.eventType === 'ANALYSIS_ANSWERED'
+        ? payload.analysisRevisionId === predecessor.id && heads.includes(payload.answerId)
+        : Boolean(feedback && event.commandId === feedback.commandId)
+    })
+    .at(-1)
+  return causal ?? null
+}
+
+export async function readQualityJourneyAnalysisFollowupInTransaction(scope: FollowupScope, tx: Db) {
+  const journey = await readJourney(scope.journeyId, scope.targetProjectId, tx)
+  if (journey.hostingMode !== 'APP_SERVER_LOCAL_V1') return null
+  const predecessor = await readCurrentAnalysisFollowupLeaf(journey, tx)
+  if (!predecessor) return null
+  const { item, prior, predecessorAuthorizationId } = await readAnalysisPredecessorWork(journey, predecessor, tx)
+  const { requirement, charter } = await readAnalysisFollowupRequirement(journey, predecessor, tx)
+  const { questions, heads } = readAnalysisCurrentQuestionHeads(journey, predecessor, charter)
+  const feedback = await readAnalysisFollowupFeedback(journey, predecessor, tx)
+  const causal = await readAnalysisFollowupHumanCause(journey, predecessor, heads, feedback, tx)
+  if (!causal) return null
+  const advisoryInputRefs = await advisoryInputRefsForJourneyRole(journey, 'REQUIREMENT_ANALYZER', tx)
+  const compiled = compileAnalysisFollowupDescriptor({
+    schemaVersion: 'appraise.analysis-followup-descriptor/v1',
+    journeyId: journey.id,
+    targetProjectId: journey.targetProjectId,
+    cycleId: journey.activeCycleId,
+    workItemId: item.id,
+    predecessor: {
+      revisionId: predecessor.id,
+      artifact: analysisFollowupArtifactReference(journey, predecessor.artifact),
+      attemptId: prior.id,
+      authorizationId: predecessorAuthorizationId,
+      inputHash: predecessor.inputHash,
+    },
+    requirement: {
+      kind: 'JOURNEY_REVISION',
+      artifactId: requirement.id,
+      revisionId: requirement.id,
+      contentHash: requirement.contentHash,
+    },
+    questions,
+    feedback,
+    cause: { eventId: causal.id, sequence: causal.sequence },
+    advisoryInputRefs,
+    advisoryDigest: hash(advisoryInputRefs),
+    roleContractDigest: item.roleContractDigest,
+  })
+  return { journey, item, predecessor, ...compiled }
+}
+
+/** One canonical issuance event per authorization. Duplicates are conflicts, never latest-wins. */
+export async function readQualityJourneyAnalysisFollowupIssuanceInTransaction(
+  scope: FollowupScope & { workItemId: string; authorizationId: string },
+  tx: Db,
+) {
+  const events = await tx.qualityJourneyEvent.findMany({
+    where: {
+      journeyId: scope.journeyId,
+      targetProjectId: scope.targetProjectId,
+      eventType: 'ANALYSIS_FOLLOWUP_ISSUED',
+    },
+  })
+  return selectAnalysisFollowupIssuance(
+    events.map(event => JSON.parse(event.payloadJson)),
+    scope,
+  )
+}
+
+/** Transaction-only producer. A hint, descriptor or logical eligibility never authorizes dispatch. */
+type AnalysisFollowupSnapshot = NonNullable<Awaited<ReturnType<typeof readQualityJourneyAnalysisFollowupInTransaction>>>
+
+async function observeIssuedAnalysisFollowup(
+  scope: FollowupScope,
+  snapshot: AnalysisFollowupSnapshot,
+  authorization: QualityJourneyWorkAuthorization,
+  tx: Db,
+) {
+  const { item, inputHash, causeHash } = snapshot
+  const issued = await readQualityJourneyAnalysisFollowupIssuanceInTransaction(
+    { ...scope, workItemId: item.id, authorizationId: authorization.id },
+    tx,
+  )
+  if (issued.inputHash !== inputHash || item.inputHash !== inputHash)
+    throw new ServiceError('Pending Analysis follow-up input changed.', 'CONFLICT')
+  if (item.status === 'ELIGIBLE') {
+    const budget = await readAnalysisFollowupAttemptBudget(item, authorization, tx)
+    try {
+      assertAnalysisFollowupAttemptBudget(budget)
+    } catch (error) {
+      if (error instanceof ServiceError) return { status: 'AUTHORITY_BLOCKED' as const, expected: null }
+      throw error
+    }
+  }
+  return {
+    status: 'ISSUED' as const,
+    expected: {
+      workItemId: item.id,
+      cycleId: item.cycleId,
+      version: issued.issuance.issuedWorkItemVersion,
+      inputHash,
+      authorizationId: authorization.id,
+      causeHash,
+    },
+  }
+}
+
+async function issueAnalysisFollowupSnapshot(
+  scope: FollowupScope,
+  snapshot: AnalysisFollowupSnapshot,
+  authorization: QualityJourneyWorkAuthorization,
+  tx: Db,
+) {
+  const { journey, item, descriptor, causeHash, inputHash } = snapshot
+  const state = createQualityJourneyKernelState({
+    journeyId: journey.id,
+    targetProjectId: journey.targetProjectId,
+    activeCycleId: journey.activeCycleId,
+    stage: 'ANALYSIS',
+    activeRevisionIds: parseRecord(journey.activeRevisionIdsJson),
+    analysisReviewHash: journey.analysisReviewHash ?? undefined,
+    unresolvedQuestionIds: [],
+    blockerIds: [],
+    activeWorkItemIds: [...new Set([...parseArray(journey.activeWorkItemIdsJson), item.id])].sort(),
+  })
+  const changed = await tx.qualityJourney.updateMany({
+    where: { id: journey.id, version: journey.version, stateHash: journey.stateHash, status: 'ACTIVE' },
+    data: {
+      stage: 'ANALYSIS',
+      activeWorkItemIdsJson: json(state.activeWorkItemIds),
+      stateHash: state.stateHash,
+      version: { increment: 1 },
+    },
+  })
+  if (changed.count !== 1) throw new ServiceError('Analysis follow-up state changed concurrently.', 'CONFLICT')
+  const claimed = await tx.qualityJourneyWorkItem.updateMany({
+    where: {
+      id: item.id,
+      version: item.version,
+      status: 'COMPLETED',
+      currentAttempt: item.currentAttempt,
+      inputHash: item.inputHash,
+    },
+    data: {
+      status: 'ELIGIBLE',
+      inputHash,
+      inputArtifactRefsJson: json(snapshot.inputArtifacts),
+      advisoryInputRefsJson: json(descriptor.advisoryInputRefs),
+      version: { increment: 1 },
+    },
+  })
+  if (claimed.count !== 1) throw new ServiceError('Analysis follow-up issuance changed concurrently.', 'CONFLICT')
+  const reissued = await tx.qualityJourneyWorkItem.findUniqueOrThrow({ where: { id: item.id } })
+  await createWorkAuthorization(journey, reissued, tx, providerIntentPolicy.maxAttempts, authorization.id)
+  const successor = await currentWorkAuthorization(item.id, tx)
+  if (!successor || successor.id === authorization.id)
+    throw new ServiceError('Analysis follow-up authorization was not issued.', 'CONFLICT')
+  const issuance: AnalysisFollowupIssuanceV1 = {
+    schemaVersion: 'appraise.analysis-followup-issuance/v1',
+    descriptor,
+    causeHash,
+    inputHash,
+    workItemId: item.id,
+    authorizationId: successor.id,
+    issuedWorkItemVersion: reissued.version,
+  }
+  const sequence = (await tx.qualityJourneyEvent.count({ where: { journeyId: journey.id } })) + 1
+  await tx.qualityJourneyEvent.create({
+    data: {
+      id: `qje_followup_${hash({ journeyId: journey.id, causeHash }).slice(7, 31)}`,
+      ...scope,
+      sequence,
+      eventType: 'ANALYSIS_FOLLOWUP_ISSUED',
+      predecessorStateHash: journey.stateHash,
+      successorStateHash: state.stateHash,
+      payloadJson: json(issuance),
+    },
+  })
+  return {
+    status: 'ISSUED' as const,
+    expected: {
+      workItemId: item.id,
+      cycleId: item.cycleId,
+      version: reissued.version,
+      inputHash,
+      authorizationId: successor.id,
+      causeHash,
+    },
+  }
+}
+
+async function hasAnalysisFollowupIssuanceSession(journey: AnalysisFollowupSnapshot['journey'], tx: Db) {
+  const session = journey.currentCoordinatorSessionId
+    ? await tx.qualityJourneyCoordinatorSession.findUnique({ where: { id: journey.currentCoordinatorSessionId } })
+    : null
+  if (
+    !session ||
+    session.status !== 'ACTIVE' ||
+    session.fencedAt ||
+    !session.generation ||
+    session.journeyId !== journey.id ||
+    session.targetProjectId !== journey.targetProjectId ||
+    session.hostKind !== journey.hostingMode
+  )
+    return false
+  return true
+}
+
+export async function ensureQualityJourneyAnalysisFollowupInTransaction(scope: FollowupScope, tx: Db) {
+  const snapshot = await readQualityJourneyAnalysisFollowupInTransaction(scope, tx)
+  if (!snapshot) return { status: 'OBSERVED' as const, expected: null }
+  const { journey, item, descriptor, causeHash } = snapshot
+  await enqueueQualityJourneyWakeInTransaction(
+    {
+      ...scope,
+      causeKey: `analysis-followup:${causeHash}`,
+      reason: 'STATE_CHANGED',
+      highWaterSequence: descriptor.cause.sequence,
+    },
+    tx,
+    trustedQualityJourneyWakeProducer,
+  )
+  const authorization = await currentWorkAuthorization(item.id, tx)
+  if (journey.status !== 'ACTIVE' || !['ANALYSIS', 'ANALYSIS_REVIEW'].includes(journey.stage))
+    return { status: 'INACTIVE' as const, expected: null }
+  if (!authorization || authorization.revokedAt || authorization.cancelledAt)
+    return { status: 'AUTHORITY_BLOCKED' as const, expected: null }
+  if (item.status !== 'COMPLETED') return observeIssuedAnalysisFollowup(scope, snapshot, authorization, tx)
+  if (
+    !snapshot.ready ||
+    parseArray(journey.unresolvedQuestionIdsJson).length ||
+    parseArray(journey.blockerIdsJson).length
+  )
+    return { status: 'WAITING_FOR_HUMAN' as const, expected: null }
+  if (!(await hasAnalysisFollowupIssuanceSession(journey, tx)))
+    return { status: 'AUTHORITY_BLOCKED' as const, expected: null }
+  const budget = await readAnalysisFollowupAttemptBudget(item, authorization, tx)
+  try {
+    assertAnalysisFollowupAttemptBudget(budget)
+  } catch (error) {
+    if (error instanceof ServiceError) return { status: 'AUTHORITY_BLOCKED' as const, expected: null }
+    throw error
+  }
+  return issueAnalysisFollowupSnapshot(scope, snapshot, authorization, tx)
+}
+
 /** Internal issuance repair for a specialized stage compiler that has just
  * persisted its bounded input artifacts and scope before the work is claimed. */
 export async function refreshQualityJourneyWorkAuthorizationInTransaction(
@@ -770,6 +1273,7 @@ async function reissueCompletedAnalysisWorkItem(
   roleContractDigest: string,
   db: Db,
 ) {
+  if (row.hostingMode === 'APP_SERVER_LOCAL_V1') return item
   if (!isCompletedActiveWorkItem(item, 'REQUIREMENT_ANALYZER', 'ANALYSIS', row, activeWorkItemIds)) return item
   const [inputArtifacts, authorization, advisoryInputRefs] = await Promise.all([
     predecessorAnalysisInputArtifacts(row, db),
@@ -824,6 +1328,11 @@ async function reissueCompletedScenarioDesignerWorkItem(
 }
 
 async function ensureEligibleWorkItems(row: QualityJourney, db: Db) {
+  if (row.hostingMode === 'APP_SERVER_LOCAL_V1')
+    await ensureQualityJourneyAnalysisFollowupInTransaction(
+      { journeyId: row.id, targetProjectId: row.targetProjectId },
+      db,
+    )
   if (row.status === 'PAUSED') return
   const roles = eligibleRolesForAutomaticIssuance(row.stage as QualityJourneyStage)
   const activeWorkItemIds = parseArray(row.activeWorkItemIdsJson)
@@ -1803,7 +2312,7 @@ async function deriveClaimInput(item: QualityJourneyWorkItem, authorization: Fac
 async function persistWorkClaim(item: QualityJourneyWorkItem, inputHash: string, tx: Prisma.TransactionClient) {
   const attempt = item.currentAttempt + 1
   const claimed = await tx.qualityJourneyWorkItem.updateMany({
-    where: { id: item.id, version: item.version, status: item.status },
+    where: { id: item.id, version: item.version, status: item.status, currentAttempt: item.currentAttempt },
     data: { status: 'WORKER_REQUESTED', currentAttempt: attempt, inputHash, version: { increment: 1 } },
   })
   if (claimed.count !== 1) throw new ServiceError('Quality Journey work item was claimed concurrently.', 'CONFLICT')
@@ -2084,13 +2593,128 @@ export async function claimExternalQualityJourneyWork(
   input: ExternalQualityJourneyWorkClaimInput,
   client: PrismaClient = prisma,
 ) {
+  return claimExternalWork(input, client)
+}
+
+/** Trusted bounded scheduler entry: exact work is compared before any role selection or claim CAS. */
+export async function claimExternalQualityJourneyAnalysisFollowup(
+  input: ExternalQualityJourneyWorkClaimInput & { expected: AnalysisFollowupExpectedWork },
+  client: PrismaClient = prisma,
+) {
+  if (input.role !== 'REQUIREMENT_ANALYZER')
+    throw new ServiceError('Analysis follow-up requires the Analyzer role.', 'UNAUTHORIZED')
+  const expected = analysisFollowupExpectedWorkSchema.parse(input.expected)
+  return claimExternalWork(input, client, expected)
+}
+
+function assertExpectedAnalysisClaimStage(
+  journey: QualityJourney,
+  item: QualityJourneyWorkItem | null,
+): asserts item is QualityJourneyWorkItem {
+  if (
+    !item ||
+    journey.hostingMode !== 'APP_SERVER_LOCAL_V1' ||
+    journey.stage !== 'ANALYSIS' ||
+    parseArray(journey.unresolvedQuestionIdsJson).length ||
+    parseArray(journey.blockerIdsJson).length
+  )
+    throw new ServiceError('Expected Analysis follow-up work identity is stale.', 'CONFLICT')
+}
+function assertExpectedAnalysisClaimItem(
+  input: ExternalQualityJourneyWorkClaimInput,
+  expected: AnalysisFollowupExpectedWork,
+  journey: QualityJourney,
+  item: QualityJourneyWorkItem,
+) {
+  if (
+    item.journeyId !== journey.id ||
+    item.targetProjectId !== journey.targetProjectId ||
+    item.role !== input.role ||
+    item.status !== 'ELIGIBLE' ||
+    item.cycleId !== journey.activeCycleId ||
+    item.cycleId !== expected.cycleId ||
+    item.version !== expected.version ||
+    item.inputHash !== expected.inputHash
+  )
+    throw new ServiceError('Expected Analysis follow-up work identity is stale.', 'CONFLICT')
+}
+async function readExpectedAnalysisClaimWork(
+  input: ExternalQualityJourneyWorkClaimInput,
+  expected: AnalysisFollowupExpectedWork,
+  tx: Prisma.TransactionClient,
+) {
+  const journey = await readJourney(input.journeyId, input.targetProjectId, tx)
+  assertQualityJourneyMutable(journey)
+  const item = await tx.qualityJourneyWorkItem.findUnique({ where: { id: expected.workItemId } })
+  assertExpectedAnalysisClaimStage(journey, item)
+  assertExpectedAnalysisClaimItem(input, expected, journey, item)
+  return { journey, item }
+}
+async function readExternalClaimWork(
+  input: ExternalQualityJourneyWorkClaimInput,
+  expected: AnalysisFollowupExpectedWork | undefined,
+  tx: Prisma.TransactionClient,
+) {
+  if (expected) return readExpectedAnalysisClaimWork(input, expected, tx)
+  const journey = await readClaimableJourney(input, tx)
+  const item = await findClaimableWorkItem(
+    journey,
+    { journeyId: input.journeyId, targetProjectId: input.targetProjectId, role: input.role },
+    tx,
+  )
+  if (!item) throw new ServiceError('No eligible external Quality Journey work item is available.', 'CONFLICT')
+  return { journey, item }
+}
+
+async function assertAnalysisClaimHubQuiescent(tx: Prisma.TransactionClient) {
+  // Fresh internal claims cannot consume an attempt behind a globally
+  // occupied slot or historical unrecorded dispatch. M04 repeats this guard.
+  const slot = await tx.qualityJourneyProviderSlot.findUnique({ where: { id: 'HUB' } })
+  if (slot?.intentId || slot?.providerRunId)
+    throw new ServiceError('Provider hub requires physical reconciliation before Analysis claim.', 'CONFLICT')
+  await assertHistoricalHubQuiescent(tx)
+}
+
+async function assertCurrentAnalysisFollowupClaim(
+  input: ExternalQualityJourneyWorkClaimInput,
+  expected: AnalysisFollowupExpectedWork,
+  item: QualityJourneyWorkItem,
+  authorization: QualityJourneyWorkAuthorization,
+  tx: Prisma.TransactionClient,
+) {
+  if (authorization.id !== expected.authorizationId)
+    throw new ServiceError('Analysis follow-up authorization is stale.', 'CONFLICT')
+  const issuance = await readQualityJourneyAnalysisFollowupIssuanceInTransaction(
+    { ...input, workItemId: item.id, authorizationId: authorization.id },
+    tx,
+  )
+  const snapshot = await readQualityJourneyAnalysisFollowupInTransaction(input, tx)
+  if (
+    !snapshot?.ready ||
+    issuance.causeHash !== expected.causeHash ||
+    issuance.inputHash !== item.inputHash ||
+    snapshot.inputHash !== issuance.inputHash
+  )
+    throw new ServiceError('Analysis follow-up canonical inputs changed.', 'CONFLICT')
+  assertAnalysisFollowupAttemptBudget(await readAnalysisFollowupAttemptBudget(item, authorization, tx))
+  await assertAnalysisClaimHubQuiescent(tx)
+}
+
+async function claimExternalWork(
+  input: ExternalQualityJourneyWorkClaimInput,
+  client: PrismaClient,
+  expected?: AnalysisFollowupExpectedWork,
+) {
   const leaseSeconds = Math.min(Math.max(input.leaseSeconds ?? 120, 30), 900)
   if (input.principal.assurance !== 'PROJECT_CREDENTIAL_ONLY')
     throw new ServiceError('External Analyzer principal assurance is invalid.', 'UNAUTHORIZED')
   assertExternalAssignmentSecretShape(input.assignmentSecret)
   if (!input.idempotencyKey || input.idempotencyKey.length > 200)
     throw new ServiceError('External work claim idempotency key is invalid.', 'VALIDATION')
-  const requestInput = externalClaimRequestInput(input, leaseSeconds)
+  const requestInput = {
+    ...externalClaimRequestInput(input, leaseSeconds),
+    ...(expected ? { expectedAnalysisFollowup: expected } : {}),
+  }
   return client.$transaction(async tx => {
     const existing = await tx.qualityJourneyExternalWorkClaimReceipt.findUnique({
       where: {
@@ -2115,15 +2739,10 @@ export async function claimExternalQualityJourneyWork(
     }
     await assertCoordinatorMutationSession(input, input, tx)
     assertExternalCoordinatorPrincipal(input)
-    const journey = await readClaimableJourney(input, tx)
-    const item = await findClaimableWorkItem(
-      journey,
-      { journeyId: input.journeyId, targetProjectId: input.targetProjectId, role: input.role },
-      tx,
-    )
-    if (!item) throw new ServiceError('No eligible external Quality Journey work item is available.', 'CONFLICT')
+    const { journey, item } = await readExternalClaimWork(input, expected, tx)
     await assertSpecializedTriagerClaim(item, journey, tx)
     const authorization = await readIssuedClaimAuthorization(item, tx)
+    if (expected) await assertCurrentAnalysisFollowupClaim(input, expected, item, authorization, tx)
     if (
       authorization.externalAdmissionProtocol &&
       (authorization.externalAdmissionProtocol !== externalAnalyzerAdmissionProtocol ||
