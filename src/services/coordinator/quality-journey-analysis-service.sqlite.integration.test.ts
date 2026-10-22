@@ -9,6 +9,8 @@ import { managedSpecializedFixture } from '@/test/managed-journey-specialized-fi
 import { clearAgentFactoryProviderAdaptersForTest, registerAgentFactoryProviderAdapter } from '@/lib/quality-journey'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import {
+  claimExternalQualityJourneyAnalysisFollowup,
+  ensureQualityJourneyAnalysisFollowupInTransaction,
   acceptExternalQualityJourneySubmissionInTransaction,
   admitExternalQualityJourneyAnalyzer,
   cancelQualityJourneyWork,
@@ -444,32 +446,38 @@ async function completedDiscovery(client: PrismaClient, suffix: string, managed 
       leaseId: claim.attempt.leaseId,
       ownerToken: claim.ownerToken,
       idempotencyKey: `${suffix}-analysis-submit`,
-      charter: charter(
-        created.journey.journeyId,
-        created.journey.activeCycleId,
-        created.journey.activeRevisionIds.journey,
-        suffix,
-      ),
-    },
-    client,
-  )
-  await answerQualityJourneyAnalysisQuestion(
-    {
-      idempotencyKey: `${suffix}-answer`,
-      answer: {
-        schemaVersion: 'appraise.quality-journey/v1',
-        answerId: `${suffix}-answer`,
-        journeyId: created.journey.journeyId,
-        targetProjectId: 'target-analysis-1',
-        analysisRevisionId: submitted.analysisRevision.id,
-        questionId: 'question-payment',
-        answer: 'Card payment.',
-        actor: 'USER',
+      charter: {
+        ...charter(
+          created.journey.journeyId,
+          created.journey.activeCycleId,
+          created.journey.activeRevisionIds.journey,
+          suffix,
+        ),
+        // This fixture targets the five specialized session boundaries. Managed
+        // human-follow-up rounds are exercised by the dedicated M06 lineage case.
+        ...(managed ? { questions: [] } : {}),
       },
     },
     client,
-    authority?.human,
   )
+  if (!managed)
+    await answerQualityJourneyAnalysisQuestion(
+      {
+        idempotencyKey: `${suffix}-answer`,
+        answer: {
+          schemaVersion: 'appraise.quality-journey/v1',
+          answerId: `${suffix}-answer`,
+          journeyId: created.journey.journeyId,
+          targetProjectId: 'target-analysis-1',
+          analysisRevisionId: submitted.analysisRevision.id,
+          questionId: 'question-payment',
+          answer: 'Card payment.',
+          actor: 'USER',
+        },
+      },
+      client,
+      authority?.human,
+    )
   const analysisRef = {
     kind: 'ANALYSIS_CHARTER_REVISION' as const,
     artifactId: `analysis-charter-${suffix}`,
@@ -5355,3 +5363,6 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
     }
   }, 60_000)
 })
+
+// Authored for exact-artifact offline execution review. This is canonical service
+// acceptance only: no provider process/intent, synthetic TERMINAL or native claim.
