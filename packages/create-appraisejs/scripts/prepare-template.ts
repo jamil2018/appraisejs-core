@@ -15,7 +15,7 @@ import {
 } from 'fs'
 import path from 'path'
 import { spawn } from 'child_process'
-import { fileURLToPath, pathToFileURL } from 'url'
+import { fileURLToPath } from 'url'
 import {
   assertSharedTemplateDatabaseInputs,
   collectFiles,
@@ -69,10 +69,6 @@ function getPackageFlavorDir(template: TemplateId): string {
 
 function getTsxCliPath(): string {
   return path.join(repoRoot, 'node_modules', 'tsx', 'dist', 'cli.mjs')
-}
-
-function getTsNodeLoaderPath(): string {
-  return path.join(repoRoot, 'node_modules', 'ts-node', 'esm.mjs')
 }
 
 function getPrismaCliPath(): string {
@@ -137,25 +133,9 @@ async function runProcess(command: string, args: string[], cwd: string, env?: No
 }
 
 async function runTypeScriptScript(scriptPath: string, cwd: string): Promise<void> {
-  try {
-    await runProcess(process.execPath, [getTsxCliPath(), scriptPath], cwd, {
-      TSX_TSCONFIG_PATH: path.join(cwd, 'tsconfig.json'),
-    })
-    return
-  } catch (error) {
-    console.warn(`tsx execution failed for ${scriptPath}, falling back to ts-node.`)
-    console.warn(error instanceof Error ? error.message : String(error))
-  }
-
-  await runProcess(
-    process.execPath,
-    ['--loader', pathToFileURL(getTsNodeLoaderPath()).href, '--experimental-specifier-resolution=node', scriptPath],
-    cwd,
-    {
-      TS_NODE_PROJECT: path.join(cwd, 'tsconfig.json'),
-      TS_NODE_TRANSPILE_ONLY: 'true',
-    },
-  )
+  await runProcess(process.execPath, [getTsxCliPath(), scriptPath], cwd, {
+    TSX_TSCONFIG_PATH: path.join(cwd, 'tsconfig.json'),
+  })
 }
 
 async function runPrismaMigrateDeploy(cwd: string): Promise<void> {
