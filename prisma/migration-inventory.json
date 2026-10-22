@@ -368,6 +368,10 @@
     {
       "name": "20261021000000_add_provider_source_custody",
       "checksum": "a8c881f6453771a22addfbc6f8c04ae6f24b9a0cbc277ad040b097b236de6a22"
+    },
+    {
+      "name": "20261021010000_add_provider_reconciliation_receipt",
+      "checksum": "c9480c49e9561da1f9f5a9b948bc71993cf8637faaa9cec7c12b9f8c33e233df"
     }
   ]
 }

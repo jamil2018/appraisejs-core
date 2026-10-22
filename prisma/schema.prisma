@@ -2953,6 +2953,7 @@ model QualityJourneyProviderObservation {
   threadId          String?
   turnId            String?
   evidenceDigest    String
+  reconciliationJson String?
   createdAt         DateTime                             @default(now())
   intent            QualityJourneyProviderDispatchIntent @relation(fields: [intentId], references: [id], onDelete: Restrict)
   committedSource   QualityJourneyProviderSourceState?
