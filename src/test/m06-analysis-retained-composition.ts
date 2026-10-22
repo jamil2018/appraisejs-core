@@ -154,8 +154,15 @@ export async function composeRetainedAnalysisAfterOriginalNonstart(
   )
   const issued = await client.$transaction(tx => ensureQualityJourneyAnalysisFollowupInTransaction(scope, tx))
   assert.ok(issued.expected)
+  // A new claim carries coordinator authority, never the predecessor attempt scope.
   const input: AnalysisFollowupSchedulerInput = {
-    ...admitted,
+    journeyId: admitted.journeyId,
+    targetProjectId: admitted.targetProjectId,
+    coordinatorSessionId: admitted.coordinatorSessionId,
+    coordinatorHandoffId: admitted.coordinatorHandoffId,
+    coordinatorGeneration: admitted.coordinatorGeneration,
+    coordinatorPrincipalId: admitted.coordinatorPrincipalId,
+    principal: admitted.principal,
     expected: issued.expected,
     assignmentSecret: settings.followupAssignmentSecret,
     fixture: settings.fixture,

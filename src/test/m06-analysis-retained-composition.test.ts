@@ -133,6 +133,73 @@ describe('actual composition intent topology assertions (mocked product effects)
     })
     expect(result.runtimeQualified).toBe(false)
   })
+  it('passes only current coordinator authority and follow-up inputs to each scheduler step', async () => {
+    const f = fixture()
+    const admitted = Object.freeze({
+      ...f.admitted,
+      coordinatorHandoffId: undefined,
+      futureCoordinatorSession: 'future-session-must-not-leak',
+      futureAuthorization: Object.freeze({ id: 'future-auth-must-not-leak' }),
+    })
+    const before = structuredClone(admitted)
+    const expected = Object.freeze({
+      workItemId: 'work',
+      cycleId: 'cycle',
+      version: 2,
+      inputHash: 'sha256:followup-input',
+      authorizationId: 'followup-authorization',
+      causeHash: 'sha256:followup-cause',
+    })
+    product.compile.mockResolvedValue({ expected })
+    const followupSettings = {
+      ...settings,
+      followupAssignmentSecret: 'followup-inert-secret-01234567890123456789',
+    }
+    await composeRetainedAnalysisAfterOriginalNonstart(
+      f.client as unknown as PrismaClient,
+      admitted,
+      f.result,
+      followupSettings,
+    )
+    expect(product.advance).toHaveBeenCalledTimes(3)
+    const firstInput = product.advance.mock.calls[0]![0]
+    const intended = {
+      journeyId: admitted.journeyId,
+      targetProjectId: admitted.targetProjectId,
+      coordinatorSessionId: admitted.coordinatorSessionId,
+      coordinatorHandoffId: admitted.coordinatorHandoffId,
+      coordinatorGeneration: admitted.coordinatorGeneration,
+      coordinatorPrincipalId: admitted.coordinatorPrincipalId,
+      principal: admitted.principal,
+      expected,
+      assignmentSecret: followupSettings.followupAssignmentSecret,
+      fixture: followupSettings.fixture,
+    }
+    for (const [input, client, controller] of product.advance.mock.calls) {
+      expect(input).toBe(firstInput)
+      expect(Object.keys(input).sort()).toEqual(Object.keys(intended).sort())
+      expect(input).toStrictEqual(intended)
+      expect(input.principal).toBe(admitted.principal)
+      expect(input.expected).toBe(expected)
+      expect(input.fixture).toBe(followupSettings.fixture)
+      expect(client).toBe(f.client)
+      expect(controller).toBe(followupSettings.controller)
+      for (const key of [
+        'workItemId',
+        'attemptId',
+        'assignmentId',
+        'assignmentGeneration',
+        'leaseId',
+        'role',
+        'futureCoordinatorSession',
+        'futureAuthorization',
+      ])
+        expect(Object.hasOwn(input, key)).toBe(false)
+    }
+    expect(admitted).toStrictEqual(before)
+    expect(admitted.principal).toBe(f.admitted.principal)
+    expect(admitted.assignmentSecret).not.toBe(followupSettings.followupAssignmentSecret)
+  })
   it('refuses an additional unrequested intent instead of accepting a larger baseline-adjusted count', async () => {
     const f = fixture(true)
     await expect(
