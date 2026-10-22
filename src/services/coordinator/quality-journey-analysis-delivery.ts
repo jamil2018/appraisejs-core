@@ -4,6 +4,7 @@ import type { PrismaClient } from '@prisma/client'
 import { z } from 'zod'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { analysisCharterSchema, assignmentManifestSchema } from '@/lib/quality-journey'
+import { providerIntentPolicy } from '@/lib/quality-journey/provider-intent-contract'
 import { launchOwnedFixtureChild } from '@/lib/quality-journey/codex-app-server/owned-child'
 import { ServiceError } from '@/services/shared/errors'
 import { getQualityJourneyLibraryArtifact } from './quality-journey-artifact-library-service'
@@ -16,13 +17,15 @@ import type { PrepareQualityJourneyProviderRunInput } from './quality-journey-pr
 import {
   authenticateExternalQualityJourneySubmission,
   readExternalQualityJourneySubmissionOutcome,
+  readQualityJourneyAnalysisFollowupInTransaction,
+  readQualityJourneyAnalysisFollowupIssuanceInTransaction,
 } from './quality-journey-service'
 
 const digest = (value: unknown) => `sha256:${createHash('sha256').update(canonicalContractJson(value)).digest('hex')}`
 const candidateSchema = z
   .object({ threadId: z.string().min(1).max(200), turnId: z.string().min(1).max(200), charter: analysisCharterSchema })
   .strict()
-type Options = {
+export type QualityJourneyAnalysisFixtureDeliveryOptions = {
   fixturePath: string
   submissionIdempotencyKey: string
   mode?:
@@ -41,7 +44,7 @@ type Options = {
 /** Internal, explicit owned-fixture delivery. No route, scheduler or real provider uses this adapter. */
 export async function createQualityJourneyAnalysisFixtureDelivery(
   input: PrepareQualityJourneyProviderRunInput,
-  options: Options,
+  options: QualityJourneyAnalysisFixtureDeliveryOptions,
   client: PrismaClient,
 ) {
   const binding = structuredClone(input)
@@ -50,7 +53,23 @@ export async function createQualityJourneyAnalysisFixtureDelivery(
     throw new ServiceError('Analysis delivery requires Analyzer work.', 'CONFLICT')
   if (!settings.submissionIdempotencyKey || settings.submissionIdempotencyKey.length > 200)
     throw new ServiceError('Analysis submission identity is required.', 'CONFLICT')
-  const { item, attempt } = await client.$transaction(tx => authenticateExternalQualityJourneySubmission(binding, tx))
+  const { item, attempt, followup } = await client.$transaction(async tx => {
+    const authenticated = await authenticateExternalQualityJourneySubmission(binding, tx)
+    const { item, attempt } = authenticated
+    const hasPredecessor = await tx.qualityJourneyAnalysisRevision.count({
+      where: { journeyId: binding.journeyId, cycleId: item.cycleId },
+    })
+    if (!hasPredecessor) return { ...authenticated, followup: null }
+    if (!attempt.authorizationId) throw new ServiceError('Analysis follow-up authority is missing.', 'CONFLICT')
+    const issued = await readQualityJourneyAnalysisFollowupIssuanceInTransaction(
+      { ...binding, authorizationId: attempt.authorizationId },
+      tx,
+    )
+    const snapshot = await readQualityJourneyAnalysisFollowupInTransaction(binding, tx)
+    if (!snapshot?.ready || issued.inputHash !== snapshot.inputHash || item.inputHash !== issued.inputHash)
+      throw new ServiceError('Analysis follow-up delivery inputs changed.', 'CONFLICT')
+    return { ...authenticated, followup: issued }
+  })
   const assignment = assignmentManifestSchema.parse(JSON.parse(attempt.assignmentJson ?? 'null'))
   if (digest(assignment) !== attempt.assignmentHash)
     throw new ServiceError('Analysis assignment lineage is invalid.', 'CONFLICT')
@@ -65,6 +84,51 @@ export async function createQualityJourneyAnalysisFixtureDelivery(
   // The library revisionId is a display ordinal. The immutable row ID and hash bind the requirement.
   if (entry.artifactId !== requirementRef.artifactId || entry.sourceContentHash !== requirementRef.contentHash)
     throw new ServiceError('Exact requirement descriptor changed.', 'CONFLICT')
+  async function projectedArtifact(reference: NonNullable<typeof followup>['inputArtifacts'][number]) {
+    const records = await client.qualityJourneyArtifact.findMany({
+      where: {
+        journeyId: binding.journeyId,
+        targetProjectId: binding.targetProjectId,
+        cycleId: item.cycleId,
+        kind: reference.kind,
+        artifactId: reference.artifactId,
+        revisionId: reference.revisionId ?? null,
+        contentHash: reference.contentHash,
+      },
+    })
+    if (records.length !== 1)
+      throw new ServiceError('Exact Analysis input artifact is missing or ambiguous.', 'CONFLICT')
+    const { entry: projected } = await getQualityJourneyLibraryArtifact(
+      { ...binding, entryId: `ARTIFACT:${records[0]!.id}` },
+      client,
+    )
+    if (
+      projected.kind !== reference.kind ||
+      projected.artifactId !== reference.artifactId ||
+      projected.revisionId !== (reference.revisionId ?? null) ||
+      projected.sourceContentHash !== reference.contentHash ||
+      projected.cycleId !== item.cycleId
+    )
+      throw new ServiceError('Exact Analysis input projection changed.', 'CONFLICT')
+    return { reference, data: projected.data }
+  }
+  if (followup && canonicalContractJson(assignment.inputArtifacts) !== canonicalContractJson(followup.inputArtifacts))
+    throw new ServiceError('Analysis follow-up assignment does not authorize the exact envelope.', 'CONFLICT')
+  const followupEnvelope = followup
+    ? {
+        causeHash: followup.causeHash,
+        inputHash: followup.inputHash,
+        predecessorAnalysisRevisionId: followup.descriptor.predecessor.revisionId,
+        predecessor: await projectedArtifact(followup.descriptor.predecessor.artifact),
+        questions: await Promise.all(
+          followup.descriptor.questions.map(async question => ({
+            question: await projectedArtifact(question.question),
+            currentAnswer: question.answer ? await projectedArtifact(question.answer) : null,
+          })),
+        ),
+        feedback: followup.descriptor.feedback ? await projectedArtifact(followup.descriptor.feedback.artifact) : null,
+      }
+    : null
   const roleEnvelope = {
     schemaVersion: 'appraise.analysis-fixture-input/v1',
     role: binding.role,
@@ -72,6 +136,7 @@ export async function createQualityJourneyAnalysisFixtureDelivery(
     targetProjectId: binding.targetProjectId,
     cycleId: item.cycleId,
     requirement: { artifactId: entry.artifactId, contentHash: entry.sourceContentHash, data: entry.data },
+    ...(followupEnvelope ? { followup: followupEnvelope } : {}),
   }
   let candidate: unknown
   let candidateHash: string | undefined
@@ -83,16 +148,28 @@ export async function createQualityJourneyAnalysisFixtureDelivery(
   })
   let submission: Parameters<typeof submitExternalQualityJourneyAnalysisSuccessor>[0] | undefined
   let startFlight: Promise<Awaited<ReturnType<typeof deliver>>> | undefined
+  const supervisorInput = [{ type: 'text', text: canonicalContractJson(roleEnvelope) }]
+  const configurationDigest = digest({
+    kind: 'M06_ANALYSIS_OWNED_FIXTURE_V1',
+    scriptDigest: digest(readFileSync(settings.fixturePath, 'utf8')),
+    mode: settings.mode ?? 'normal',
+  })
+  const preparationIdentity = Object.freeze({
+    idempotencyKey: binding.idempotencyKey,
+    providerNamespace: binding.providerNamespace,
+    configurationDigest,
+    envelopeDigest: digest({
+      input: supervisorInput,
+      model: providerIntentPolicy.model,
+      effort: providerIntentPolicy.reasoning,
+    }),
+  })
   const supervisor = createQualityJourneyProcessSupervisor(
     binding,
     {
       capability: trustedJourneyProcessAdapter,
-      configurationDigest: digest({
-        kind: 'M06_ANALYSIS_OWNED_FIXTURE_V1',
-        scriptDigest: digest(readFileSync(settings.fixturePath, 'utf8')),
-        mode: settings.mode ?? 'normal',
-      }),
-      input: [{ type: 'text', text: canonicalContractJson(roleEnvelope) }],
+      configurationDigest,
+      input: supervisorInput,
       launch: callbacks =>
         launchOwnedFixtureChild({
           fixturePath: settings.fixturePath,
@@ -172,6 +249,7 @@ export async function createQualityJourneyAnalysisFixtureDelivery(
         leaseId: binding.leaseId,
         assignmentSecret: binding.assignmentSecret,
         idempotencyKey: settings.submissionIdempotencyKey,
+        ...(followupEnvelope ? { predecessorAnalysisRevisionId: followupEnvelope.predecessorAnalysisRevisionId } : {}),
         charter: parsed.data.charter,
       })
       const acceptance = await recoverSubmission()
@@ -182,6 +260,7 @@ export async function createQualityJourneyAnalysisFixtureDelivery(
     }
   }
   return Object.freeze({
+    preparationIdentity,
     start() {
       startFlight ??= deliver()
       return startFlight
