@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input'
 import DeletePrompt from '@/components/user-prompt/delete-prompt'
 import { toast } from '@/hooks/use-toast'
 import { formatDateTime } from '@/lib/utils'
-import { identityProviderOriginsFromDiscoveryAuthTransitPolicy } from '@/lib/quality-journey/discovery-auth-transit-policy'
+import { identityProviderOriginsFromDiscoveryAuthTransitPolicy } from '@/lib/quality-journey/discovery-auth-transit-display'
 
 import type { EnvironmentTableRow } from './environment-helpers'
 
