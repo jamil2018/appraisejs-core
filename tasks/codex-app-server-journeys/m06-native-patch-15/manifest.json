@@ -1,0 +1,84 @@
+{
+  "version": 2,
+  "status": "CANDIDATE_COMPILE_UNVERIFIED",
+  "sourceRevision": "4ebc485ca321243727539187169425fcf972f2c4",
+  "sourceTree": "0cab0734fd471b47b59ecc4d7b257ab5034aad77",
+  "existingManifestSha256": "536938c8a1b4118e22b8ff7216a108b1232988510927eee6bcc01a4d5eaf286a",
+  "additions": [
+    {
+      "path": "codex-rs/app-server/src/m06_outcome.rs",
+      "preimage": "ABSENT",
+      "mode": "100644",
+      "length": 2791,
+      "sha256": "2dd10c256663d2a0b4608351e55976b2d43ca1793235fa1fde15579483f1a1b2",
+      "payload": "additions/codex-rs/app-server/src/m06_outcome.rs"
+    },
+    {
+      "path": "codex-rs/app-server/src/m06_outcome_tests.rs",
+      "preimage": "ABSENT",
+      "mode": "100644",
+      "length": 36324,
+      "sha256": "9bdb0671adbec4889cbcffcff8a8010d02e958ffa2553d170957d5aa9245747b",
+      "payload": "additions/codex-rs/app-server/src/m06_outcome_tests.rs"
+    },
+    {
+      "path": "codex-rs/http-client/src/m06_outcome.rs",
+      "preimage": "ABSENT",
+      "mode": "100644",
+      "length": 91674,
+      "sha256": "6be48ebd0f6c1b014be73751dc7065bd6d944168c5a630d90bc4c64f8d1c62df",
+      "payload": "additions/codex-rs/http-client/src/m06_outcome.rs"
+    },
+    {
+      "path": "codex-rs/http-client/src/m06_outcome_tests.rs",
+      "preimage": "ABSENT",
+      "mode": "100644",
+      "length": 49158,
+      "sha256": "8ac94136b6ba164edcbf20049b9a85d86d87d2dc6d4e57c5a69a2c4382d2e9c8",
+      "payload": "additions/codex-rs/http-client/src/m06_outcome_tests.rs"
+    },
+    {
+      "path": "codex-rs/rmcp-client/src/inherited_owner_transport.rs",
+      "preimage": "ABSENT",
+      "mode": "100644",
+      "length": 3239,
+      "sha256": "26e0224ed84bbfe3143a56ef6f273cb43a8103a90261e11663468264e391901e",
+      "payload": "additions/codex-rs/rmcp-client/src/inherited_owner_transport.rs"
+    },
+    {
+      "path": "codex-rs/rmcp-client/src/inherited_owner_transport_tests.rs",
+      "preimage": "ABSENT",
+      "mode": "100644",
+      "length": 1551,
+      "sha256": "d9056de81a76b7c24a55b3c8d583df6625fa1e8d13745b191310504ac689e970",
+      "payload": "additions/codex-rs/rmcp-client/src/inherited_owner_transport_tests.rs"
+    },
+    {
+      "path": "codex-rs/websocket-client/src/m06_io.rs",
+      "preimage": "ABSENT",
+      "mode": "100644",
+      "length": 4658,
+      "sha256": "382b6575bbd08a24ed78ed75c7ee44f656cf80b703344f83614a7914003376bc",
+      "payload": "additions/codex-rs/websocket-client/src/m06_io.rs"
+    },
+    {
+      "path": "codex-rs/websocket-client/src/m06_io_tests.rs",
+      "preimage": "ABSENT",
+      "mode": "100644",
+      "length": 2334,
+      "sha256": "1c2b2613cb1cff8d5005aba079597bbf1f80c10915a1869c6ffc461de0bb6bd7",
+      "payload": "additions/codex-rs/websocket-client/src/m06_io_tests.rs"
+    }
+  ],
+  "verification": {
+    "rustCompilation": "UNEXECUTED",
+    "rustTests": "UNEXECUTED",
+    "rustFormatting": "UNEXECUTED",
+    "lockedBuildCoherence": "UNEXECUTED",
+    "nativeExecution": false,
+    "runtimeQualified": false,
+    "productionIssuerAvailable": false,
+    "reason": "New packaging of accepted production15 source only; phaseA and owned Close flush correction included. No native or provider qualification.",
+    "completeSourceInventorySha256": "d881bb6861f6b9b7cc6f1fe8b78235b45797d6ea79743ca4ef62530ab6176c44"
+  }
+}
