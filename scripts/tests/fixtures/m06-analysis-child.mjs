@@ -1,3 +1,4 @@
+import { analysisCharter } from './m06-analysis-charter.mjs'
 // Local fixture only: stdin role input contains no credentials or provider authority.
 import readline from 'node:readline'
 import fs from 'node:fs'
@@ -28,49 +29,6 @@ function readEnvelope(frame) {
   if (envelope.schemaVersion !== 'appraise.analysis-fixture-input/v1' || envelope.role !== 'REQUIREMENT_ANALYZER')
     process.exit(91)
   return envelope
-}
-function analysisCharter(envelope) {
-  return {
-    schemaVersion: 'appraise.quality-journey/v1',
-    charterId: 'm06-analysis-charter',
-    analysisRevisionId: 'm06-analysis-revision',
-    journeyId: envelope.journeyId,
-    targetProjectId: envelope.targetProjectId,
-    cycleId: envelope.cycleId,
-    requirementRevisionId: envelope.requirement.artifactId,
-    objectives: [envelope.requirement.data.objective],
-    scope: { included: ['Fixture analysis'], excluded: [] },
-    actors: ['User'],
-    requirements: [
-      {
-        requirementId: 'REQ-M06',
-        statement: envelope.requirement.data.objective,
-        sourceRefs: ['requirement:objective'],
-      },
-    ],
-    obligations: [
-      {
-        obligationId: 'OBL-M06',
-        requirementId: 'REQ-M06',
-        statement: 'The clarified requirement has evidence.',
-        acceptanceSignals: ['Recorded clarification'],
-      },
-    ],
-    constraints: [],
-    assumptions: [],
-    risks: [],
-    acceptanceSignals: ['Recorded clarification'],
-    retiredRequirementIds: [],
-    questions: [
-      {
-        questionId: 'm06-required-question',
-        prompt: 'Which payment method is in scope?',
-        required: true,
-        rationale: 'Scope depends on this decision.',
-      },
-    ],
-    resolvedQuestionAnswerIds: [],
-  }
 }
 function candidateCharter(charter) {
   if (mode === 'canonical-invalid') charter.requirementRevisionId = 'foreign-requirement'
