@@ -303,3 +303,73 @@ describe('actual prepared-run classification before fixture construction', () =>
     expect(mocks.delivery).not.toHaveBeenCalled()
   })
 })
+
+describe('offline scheduler conflict diagnostics', () => {
+  it.each([
+    ['Expected Analysis follow-up work identity is stale.', 'M06_CONFLICT_69725F5B92D7C8F4'],
+    ['Analysis charter does not trace supplied intake fields: objective.', 'M06_CONFLICT_TRACEABILITY_FIELDS'],
+    ['Analysis charter does not trace supplied intake fields: context, objective.', 'M06_CONFLICT_UNCLASSIFIED'],
+    ['PRIVATE-PAYLOAD work item identity conflicts with frozen authority.', 'M06_CONFLICT_SPECIALIZED_IDENTITY'],
+    ['Quality Journey worker dispatch was blocked: PRIVATE-PAYLOAD', 'M06_CONFLICT_WORKER_DISPATCH_BLOCKED'],
+    ['Quality Journey worker result is invalid: PRIVATE-PAYLOAD', 'M06_CONFLICT_WORKER_RESULT_INVALID'],
+    [
+      'Quality Journey worker dispatch was blocked: PRIVATE-PAYLOAD work item identity conflicts with frozen authority.',
+      'M06_CONFLICT_AMBIGUOUS_SPECIALIZED_WORKER',
+    ],
+    [
+      'Quality Journey worker result is invalid: PRIVATE-PAYLOAD work item identity conflicts with frozen authority.',
+      'M06_CONFLICT_AMBIGUOUS_SPECIALIZED_WORKER',
+    ],
+    ['PRIVATE-PAYLOAD unknown conflict', 'M06_CONFLICT_UNCLASSIFIED'],
+  ])('preserves the conflict recovery and exposes only its fixed class for %s', async (message, classification) => {
+    const f = fixture()
+    mocks.claim.mockRejectedValue(new ServiceError(message, 'CONFLICT'))
+    const result = await advanceQualityJourneyAnalysisFollowup(input(), f.db)
+    expect(result).toEqual({
+      phase: 'RECOVERY_REQUIRED',
+      reason: 'CONFLICT',
+      expected: input().expected,
+      runtimeQualified: false,
+      fixtureConflictClass: classification,
+    })
+    expect(JSON.stringify(result)).not.toContain('PRIVATE-PAYLOAD')
+    expect(f.client.qualityJourneyExternalWorkClaimReceipt.findUnique).toHaveBeenCalledTimes(1)
+    expect(mocks.claim).toHaveBeenCalledTimes(1)
+    expect(mocks.admit).not.toHaveBeenCalled()
+    expect(mocks.delivery).not.toHaveBeenCalled()
+  })
+  it('does not invoke an accessor message while classifying a conflict', async () => {
+    const f = fixture()
+    const error = new ServiceError('Unobserved message.', 'CONFLICT')
+    let getterCalls = 0
+    Object.defineProperty(error, 'message', {
+      get() {
+        getterCalls += 1
+        throw new Error('Message getter invoked.')
+      },
+    })
+    mocks.claim.mockRejectedValue(error)
+    expect(await advanceQualityJourneyAnalysisFollowup(input(), f.db)).toMatchObject({
+      phase: 'RECOVERY_REQUIRED',
+      reason: 'CONFLICT',
+      fixtureConflictClass: 'M06_CONFLICT_UNCLASSIFIED',
+    })
+    expect(getterCalls).toBe(0)
+  })
+  it.each(['UNAUTHORIZED', 'NOT_FOUND'] as const)('preserves %s recovery without a conflict field', async code => {
+    const f = fixture()
+    mocks.claim.mockRejectedValue(new ServiceError('PRIVATE-PAYLOAD', code))
+    expect(await advanceQualityJourneyAnalysisFollowup(input(), f.db)).toEqual({
+      phase: 'RECOVERY_REQUIRED',
+      reason: code,
+      expected: input().expected,
+      runtimeQualified: false,
+    })
+  })
+  it('rethrows the exact unexpected error', async () => {
+    const f = fixture()
+    const error = new Error('Unexpected offline failure.')
+    mocks.claim.mockRejectedValue(error)
+    await expect(advanceQualityJourneyAnalysisFollowup(input(), f.db)).rejects.toBe(error)
+  })
+})
