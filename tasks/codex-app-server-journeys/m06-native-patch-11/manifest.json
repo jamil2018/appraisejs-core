@@ -1,0 +1,100 @@
+{
+  "version": 1,
+  "status": "CANDIDATE_COMPILE_UNVERIFIED",
+  "sourceRevision": "4ebc485ca321243727539187169425fcf972f2c4",
+  "sourceTree": "0cab0734fd471b47b59ecc4d7b257ab5034aad77",
+  "patchSha256": "f59c6738d68a7177c65c01114867235d7cf682f78bd4dcc5db2ea7805a10cc6f",
+  "changedPaths": [
+    "codex-rs/core/src/client_common.rs",
+    "codex-rs/core/src/client_common_tests.rs",
+    "codex-rs/core/src/session/turn.rs",
+    "codex-rs/core/src/session/turn_tests.rs",
+    "codex-rs/core/src/turn_timing.rs"
+  ],
+  "files": [
+    {
+      "path": "codex-rs/core/src/client_common.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "cdc103174fee2fc87a72dff4af4d20d3f963b4d3f495729bca6aa7d310e6be22"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "b046a514ccbfa1d444d23b95b4bc1d385b6d1834aabe788af11fbb831afee24b"
+      }
+    },
+    {
+      "path": "codex-rs/core/src/client_common_tests.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "fa724c4e81cc6d2310cd365433b549e53b5fbca25b52b7e51d3a78231e7e12b5"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "cf718bad5b689417a278ac39f2a87b2be9a13bf74dfbfc961642dce645fad17a"
+      }
+    },
+    {
+      "path": "codex-rs/core/src/session/turn.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "394b2246903a312c0cd76c370d06afe7f0673dddde792105a9779a7657dc9e70"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "6dc588ac61993dec48da742b48382ecf9adf8253a29c60387200275945235fa9"
+      }
+    },
+    {
+      "path": "codex-rs/core/src/session/turn_tests.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "9321640d9dbb8914c5506bab919398a5007e510e9b5052bf7a83486805de70c3"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "d62a9314e408276d431aab44e5e4b71ff59debc78b4ba67d432806f70787844c"
+      }
+    },
+    {
+      "path": "codex-rs/core/src/turn_timing.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "c326ef59a84f2ff3b487a70ac835ebf40ffd5c25ff9175eaa068a64b87cbc7c7"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "a3fe5d0059ed7269de9f48142df4b48675c8e1cc038c44b2f3b3136698884cbb"
+      }
+    }
+  ],
+  "copiedPinnedSymlink": {
+    "sourceRevision": "4ebc485ca321243727539187169425fcf972f2c4",
+    "path": "codex-rs/vendor/bubblewrap/LICENSE",
+    "mode": "120000",
+    "blob": "d24842f3cdcf2e447f9a7a26fa387ad63f5c4b91",
+    "target": "COPYING",
+    "length": 7,
+    "sha256": "400d38e5cfee181230373a8b02d38f50271a5bf62c62410382efddb8e8b19e22",
+    "targetPath": "codex-rs/vendor/bubblewrap/COPYING",
+    "targetMode": "100644",
+    "targetBlob": "5bc8fb2c8f757e34a0d8f4644f589d57609e213f",
+    "targetLength": 25383,
+    "targetSha256": "b7993225104d90ddd8024fd838faf300bea5e83d91203eab98e29512acebd69c"
+  },
+  "verification": {
+    "rustCompilation": "UNEXECUTED",
+    "rustTests": "UNEXECUTED",
+    "rustFormatting": "UNEXECUTED",
+    "reason": "cargo, rustc and rustfmt absent; no native target or Cargo registry/git caches; no installation/fetch/native execution authorized.",
+    "nativeExecution": false,
+    "runtimeQualified": false
+  },
+  "rustTestFilters": ["ordinary_cancel_", "sampling11_"],
+  "limits": [
+    "Cooperative owned-consumer dispatch guards do not reverse prior/internal/transitive/detached effects.",
+    "Accounting Interrupted preserves partial mutations as UNKNOWN without replay/refund.",
+    "Pre-stream acquisition unchanged; outer task may truncate cleanup earlier than fixed100ms ceiling.",
+    "No HTTP cancellation coverage, provider terminal authority, native issuer or full-range qualification."
+  ]
+}
