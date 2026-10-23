@@ -65,3 +65,9 @@ Both paths reject malformed stored verifiers, expired leases and changed artifac
 ## Operational pause and owned cleanup
 
 See [Quality Journey pause and recovery](quality-journey-recovery.md) for operational admission fences, durable lost-reply recovery, deferred terminal publication, and observed owned-process cleanup. Cancellation requests alone are nonterminal; external Codex activity remains outside Appraise process ownership.
+
+## Synthetic outcome-source verification
+
+The internal provider custody path has a separate [source-custody contract](quality-journey-source-custody.md). It uses the original canonical Prisma writer for asynchronous source persistence and canonical commits, while synchronous original transport capture issues no SQL. A final conditional source write barrier and bounded same-transaction verification establish fresh release authority. A preowned committed-read resolver and actual resource holds preserve exact replay and UNKNOWN outcomes without retry or cleanup-induced loss.
+
+Its ordinary Node/SQLite fixtures are offline repository verification. Native contenders and database inspectors use separate processes; ambiguous owners remain retained, and crash recovery preserves original database and journal bytes before any reviewed recovery copy is opened. This scope does not run or qualify a provider, authenticate a target or enable production dispatch.

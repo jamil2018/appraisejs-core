@@ -22,6 +22,11 @@ contents when a root/base source change should flow through template preparation
 2. Run `npm --prefix packages/create-appraisejs run prepare-template`.
 3. Review the base template and flavor overlay diffs before finishing.
 
+TypeScript sync scripts execute once through TSX with the temporary workspace configuration. A failed child
+propagates its error without a second loader attempt, including failures after partial fixture writes. The outer
+seed preparation retains its existing local seed fallback; offline verification must keep both repository seed
+database candidates absent when fresh migration and sync are required.
+
 `prepare-template` intentionally resets scaffold artifacts, including report output, the environment file, and the
 locator map starter shape. Preserve those reset rules unless the task explicitly changes scaffold seeding behavior.
 It also copies `.fallowrc.json` and `config/` so scaffolded release and quality scripts always ship with the ratchet
@@ -41,6 +46,10 @@ and harness-only commands are also excluded.
 Phase-0 and managed-Journey qualification scripts, fixtures, tests, and experimental worker gateways are likewise
 repository-only. Template preparation excludes those exact path families while retaining canonical Journey services,
 contracts, migrations, and product tests.
+The M06 custody controllers under `scripts/test-harness/m06/` and their four repository SQLite test entrypoints
+are also excluded. Those fixtures depend on producer-owned generated clients, exact child-process tools and local
+evidence. The local `.orig` backup of the custody integration matrix is also excluded without removing or changing the backup. Canonical source custody services, contracts and migrations remain part of the generated app. Native patch preparers10–15, source-bound assembly tests, native session bridge factories and the cross-package CLI collaboration fixture are also repository-only; reusable native source owner/protocol and MCP acceptance modules remain included. These boundaries are checked through both repository-relative and copy-relative paths; package exclusion evidence still requires canonical template preparation and actual packed inventory checks.
+
 Generated projects retain their own bundled `check:harness` command, which verifies that this repository-only
 orchestration surface has not leaked into the scaffold.
 
