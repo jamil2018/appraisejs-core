@@ -1,5 +1,5 @@
 import type { StepDefinition } from '../../../../packages/cucumber-runtime/src/step-definitions/index'
-import { canonicalStepDefinitionJson } from '../../../../packages/cucumber-runtime/src/step-definitions/contracts'
+import { canonicalOperationJson as canonicalStepDefinitionJson } from '../../../../packages/cucumber-runtime/src/canonical-json'
 import { generateStepDefinitionContract } from '../../../../packages/cucumber-runtime/src/step-definitions/artifact-contract'
 
 export type DraftDefinition = StepDefinition
