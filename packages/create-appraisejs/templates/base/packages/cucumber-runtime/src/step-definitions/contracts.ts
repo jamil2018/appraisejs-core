@@ -1,15 +1,35 @@
 import { createHash } from 'node:crypto'
 import { z } from 'zod'
 
-import { boundedOperationValueSchema, canonicalOperationJson } from '../operations/contracts.ts'
+import { canonicalOperationJson } from '../operations/contracts.ts'
+import {
+  boundedText,
+  identifierSchema,
+  stepDefinitionHashSchema,
+  stepDefinitionIdSchema,
+  stepDefinitionVersionSchema,
+  stepIdentitySchema,
+  stepInputExpressionSchema,
+  stepInvocationSchema,
+  stepReferenceSchema,
+  stepValueSchema,
+} from './invocation-contracts.ts'
+
+export {
+  stepDefinitionIdSchema,
+  stepDefinitionVersionSchema,
+  stepDefinitionHashSchema,
+  stepIdentitySchema,
+  stepReferenceSchema,
+  stepValueSchema,
+  stepInputExpressionSchema,
+  stepInvocationSchema,
+  type StepValue,
+  type StepInputSelector,
+  type StepInputExpression,
+} from './invocation-contracts.ts'
 
 export const STEP_DEFINITION_SCHEMA_VERSION = '1' as const
-
-export const stepDefinitionIdSchema = z.string().regex(/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/)
-export const stepDefinitionVersionSchema = z.string().regex(/^\d+(?:\.\d+){0,2}$/)
-export const stepDefinitionHashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/)
-const identifierSchema = z.string().regex(/^[a-z][a-zA-Z0-9-]*$/)
-const boundedText = (maximum: number) => z.string().trim().min(1).max(maximum)
 
 export function canonicalStepDefinitionJson(value: unknown): string {
   return canonicalOperationJson(value)
@@ -18,20 +38,6 @@ export function canonicalStepDefinitionJson(value: unknown): string {
 export function stepDefinitionContentHash(value: unknown): string {
   return `sha256:${createHash('sha256').update(canonicalStepDefinitionJson(value)).digest('hex')}`
 }
-
-export const stepIdentitySchema = z.object({
-  id: stepDefinitionIdSchema,
-  version: stepDefinitionVersionSchema,
-})
-
-export const stepReferenceSchema = stepIdentitySchema.extend({ definitionHash: stepDefinitionHashSchema })
-
-export const stepValueSchema = boundedOperationValueSchema
-
-export type StepValue = string | number | boolean | null | StepValue[] | { [key: string]: StepValue }
-
-export type StepInputSelector = { input: string } | { output: string }
-export type StepInputExpression = StepValue | StepInputSelector
 
 export const stepInputDefinitionSchema = z.object({
   name: identifierSchema,
@@ -68,18 +74,6 @@ export const stepOutputDefinitionSchema = z.object({
   type: stepInputDefinitionSchema.shape.type,
   storable: z.boolean(),
 })
-
-function isSelectorShaped(value: unknown) {
-  return !!value && typeof value === 'object' && (Object.hasOwn(value, 'input') || Object.hasOwn(value, 'output'))
-}
-
-export const stepInputExpressionSchema: z.ZodType<StepInputExpression> = z.union([
-  z.object({ input: identifierSchema }).strict(),
-  z.object({ output: identifierSchema }).strict(),
-  stepValueSchema.refine(value => !isSelectorShaped(value), {
-    message: 'Selector-shaped composition input expressions must be exact input or output selectors.',
-  }),
-]) as z.ZodType<StepInputExpression>
 
 export const stepExecutionBindingSchema = z.discriminatedUnion('kind', [
   z.object({
@@ -265,17 +259,6 @@ export const stepDefinitionDraftAuthoringSchema = z
       .passthrough(),
   })
   .passthrough()
-
-export const stepInvocationSchema = z
-  .object({
-    step: stepReferenceSchema,
-    inputs: z.record(identifierSchema, stepValueSchema),
-    store: z.object({ output: identifierSchema, as: identifierSchema }).optional(),
-    presentation: z
-      .object({ keyword: z.enum(['Given', 'When', 'Then', 'And']), description: boundedText(2_000).optional() })
-      .optional(),
-  })
-  .strict()
 
 export function stepInputValueMatchesType(value: unknown, type: StepDefinition['inputs'][number]['type']) {
   if (

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import definitions from './definitions.json'
 import {
+  boundedOperationValueSchema,
   canonicalOperationJson,
   operationContentHash,
   operationDefinitionSchema,
@@ -10,6 +11,7 @@ import {
   type OperationDefinition,
 } from './contracts'
 import { createOperationRegistry } from './registry'
+import { boundedOperationValueSchema as sharedBoundedOperationValueSchema } from './value-schema.ts'
 
 const HASH = `sha256:${'a'.repeat(64)}`
 
@@ -56,9 +58,27 @@ function operation(overrides: Partial<OperationDefinition> = {}): OperationDefin
 }
 
 describe('operation contracts', () => {
+  it('preserves the shared bounded-value schema through the existing contract export', () => {
+    expect(boundedOperationValueSchema).toBe(sharedBoundedOperationValueSchema)
+  })
   it('canonicalizes and hashes semantic content deterministically', () => {
     expect(canonicalOperationJson({ z: 1, a: { y: 2, x: 3 } })).toBe('{"a":{"x":3,"y":2},"z":1}')
     expect(operationContentHash({ z: 1, a: 2 })).toBe(operationContentHash({ a: 2, z: 1 }))
+  })
+
+  it('preserves canonical serialization edge cases and the existing SHA-256 value', () => {
+    expect(canonicalOperationJson({ present: 1, absent: undefined })).toBe('{"present":1}')
+    expect(canonicalOperationJson([undefined, Number.NaN])).toBe('[,null]')
+    const sparse: unknown[] = []
+    sparse.length = 2
+    expect(canonicalOperationJson(sparse)).toBe('[,]')
+    expect(canonicalOperationJson({ '2': 2, '10': 10 })).toBe('{"10":10,"2":2}')
+    expect(canonicalOperationJson(new Date('2026-07-22T00:00:00.000Z'))).toBe('{}')
+    expect(canonicalOperationJson(undefined)).toBeUndefined()
+    expect(() => canonicalOperationJson(BigInt(1))).toThrow(TypeError)
+    expect(operationContentHash({ z: 1, a: 2 })).toBe(
+      'sha256:c2985c5ba6f7d2a55e768f92490ca09388e95bc4cccb9fdf11b15f4d42f93e73',
+    )
   })
 
   it('rejects duplicate inputs, executable values, unknown projection inputs, and unbounded values', () => {

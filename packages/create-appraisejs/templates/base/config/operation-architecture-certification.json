@@ -2,9 +2,9 @@
   "schemaVersion": 3,
   "status": "certified",
   "hashes": {
-    "capabilityLedger": "sha256:c7cc92182496db09a3f35e1ca207ee06bb284eff8ca37ad20c1ca5820a2203b0",
+    "capabilityLedger": "sha256:202f6130245ea2603bc12a463fdaefee3e709194db5daf6e3db994978fbf22d3",
     "stepDefinitionSource": "sha256:f1fea3b4ddaf4afa2689cce00ea747f4e5bb2b382603ddc3516ece2ed8f9e067",
-    "operationRegistry": "sha256:42cb6cabdf92461a7960734c175db2008eae850fef6511cef50ab508ca54d25d"
+    "operationRegistry": "sha256:adf6ff4b76cf9e3d4151315d0b4e6fdf5ff180fea305016bc441d31cf304089f"
   },
   "counts": {
     "builtInStepDefinitions": 127,
@@ -65,5 +65,5 @@
       "^packages\\/create-appraisejs\\/templates\\/base\\/scripts\\/certify-operation-architecture\\.ts$"
     ]
   },
-  "receiptHash": "sha256:45dd2d152317ee17ad7a99acb2eb6b98d32f4af3484c3242ac80cec0ce86347a"
+  "receiptHash": "sha256:a0c970bf20e495f08d8796bca2e680670d0c0925d87adab18de6b29edc4b5bef"
 }
