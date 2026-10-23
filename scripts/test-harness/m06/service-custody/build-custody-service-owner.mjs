@@ -145,6 +145,12 @@ if (generated === physicalC) {
       '.appraisejs/m06-work/evidence/source-regression8/client-binding16m-physical1/physical-client-binding.json',
     ),
   )
+  paths.add(
+    path.join(
+      commonRoot,
+      '.appraisejs/m06-work/evidence/service-composition16z-canonical-closure7/physical-identity-data-proposal1/physical-client-binding.proposed.DATA.json',
+    ),
+  )
   paths.add(path.join(commonRoot, '.appraisejs/m06-work/reviews/custody-source8-physical-client16m-review.json'))
 }
 if (generated.includes('/node_modules/@prisma/client/'))

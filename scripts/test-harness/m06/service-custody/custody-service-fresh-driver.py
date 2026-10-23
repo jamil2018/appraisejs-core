@@ -329,7 +329,7 @@ def verify_service_absence(proposal, effects):
 
 def verify_physical_client_admission(proposal, inputs, effects):
     canonical_entry = str(SERVICE_ROOT / C_RELATIVE)
-    binding_path = SERVICE_ROOT.parents[1] / "evidence/source-regression8/client-binding16m-physical1/physical-client-binding.json"
+    binding_path = SERVICE_ROOT.parents[1] / "evidence/service-composition16z-canonical-closure7/physical-identity-data-proposal1/physical-client-binding.proposed.DATA.json"
     require_admission(proposal["generatedClient"] == canonical_entry, "C_ENTRY_BINDING")
     record = proposal["physicalClientBinding"]
     require_admission(record["filename"] == str(binding_path) and record in inputs, "C_FIXED_BINDING_RECORD")
