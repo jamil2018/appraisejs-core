@@ -4715,7 +4715,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2898",
+      "source_location": "L2899",
       "_origin": "prisma-schema",
       "community": 159,
       "community_name": "QualityJourneyProviderDispatchIntent",
@@ -4728,7 +4728,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2931",
+      "source_location": "L2933",
       "_origin": "prisma-schema",
       "community": 160,
       "community_name": "QualityJourneyProviderSlot",
@@ -4741,7 +4741,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2943",
+      "source_location": "L2945",
       "_origin": "prisma-schema",
       "community": 161,
       "community_name": "QualityJourneyProviderObservation",
@@ -4754,11 +4754,37 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2960",
+      "source_location": "L2964",
       "_origin": "prisma-schema",
       "community": 162,
       "community_name": "QualityJourneyWakeIntent",
       "norm_label": "qualityjourneywakeintent",
+      "graphify_type": "model"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourcestate",
+      "label": "QualityJourneyProviderSourceState",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L2985",
+      "_origin": "prisma-schema",
+      "community": 163,
+      "community_name": "QualityJourneyProviderSourceState",
+      "norm_label": "qualityjourneyprovidersourcestate",
+      "graphify_type": "model"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourceledgerrecord",
+      "label": "QualityJourneyProviderSourceLedgerRecord",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L3017",
+      "_origin": "prisma-schema",
+      "community": 164,
+      "community_name": "QualityJourneyProviderSourceLedgerRecord",
+      "norm_label": "qualityjourneyprovidersourceledgerrecord",
       "graphify_type": "model"
     },
     {
@@ -4783,7 +4809,7 @@
       "source_file": "schema.prisma",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 163,
+      "community": 165,
       "community_name": "String",
       "norm_label": "string",
       "graphify_type": "scalar_type"
@@ -4838,7 +4864,7 @@
       "source_file": "schema.prisma",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 164,
+      "community": 166,
       "community_name": "DateTime",
       "norm_label": "datetime",
       "graphify_type": "scalar_type"
@@ -5005,7 +5031,7 @@
       "source_file": "schema.prisma",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 165,
+      "community": 167,
       "community_name": "Boolean",
       "norm_label": "boolean",
       "graphify_type": "scalar_type"
@@ -5032,7 +5058,7 @@
       "source_file": "schema.prisma",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 166,
+      "community": 168,
       "community_name": "Int",
       "norm_label": "int",
       "graphify_type": "scalar_type"
@@ -28257,7 +28283,7 @@
       "source_file": "schema.prisma",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 167,
+      "community": 169,
       "community_name": "Float",
       "norm_label": "float",
       "graphify_type": "scalar_type"
@@ -29901,12 +29927,26 @@
       "prisma_type": "QualityJourneyProviderSlot?"
     },
     {
+      "id": "prisma_model_qualityjourneyproviderrun_field_custodysources",
+      "label": "QualityJourneyProviderRun.custodySources",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L2892",
+      "_origin": "prisma-schema",
+      "community": 158,
+      "community_name": "QualityJourneyProviderRun",
+      "norm_label": "qualityjourneyproviderrun.custodysources",
+      "graphify_type": "field",
+      "prisma_type": "QualityJourneyProviderSourceState[]"
+    },
+    {
       "id": "prisma_model_qualityjourneyproviderdispatchintent_field_id",
       "label": "QualityJourneyProviderDispatchIntent.id",
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2899",
+      "source_location": "L2900",
       "_origin": "prisma-schema",
       "community": 159,
       "community_name": "QualityJourneyProviderDispatchIntent",
@@ -29920,7 +29960,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2900",
+      "source_location": "L2901",
       "_origin": "prisma-schema",
       "community": 159,
       "community_name": "QualityJourneyProviderDispatchIntent",
@@ -29934,7 +29974,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2901",
+      "source_location": "L2902",
       "_origin": "prisma-schema",
       "community": 159,
       "community_name": "QualityJourneyProviderDispatchIntent",
@@ -29948,7 +29988,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2902",
+      "source_location": "L2903",
       "_origin": "prisma-schema",
       "community": 159,
       "community_name": "QualityJourneyProviderDispatchIntent",
@@ -29962,7 +30002,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2903",
+      "source_location": "L2904",
       "_origin": "prisma-schema",
       "community": 159,
       "community_name": "QualityJourneyProviderDispatchIntent",
@@ -29976,7 +30016,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2904",
+      "source_location": "L2905",
       "_origin": "prisma-schema",
       "community": 159,
       "community_name": "QualityJourneyProviderDispatchIntent",
@@ -29990,7 +30030,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2905",
+      "source_location": "L2906",
       "_origin": "prisma-schema",
       "community": 159,
       "community_name": "QualityJourneyProviderDispatchIntent",
@@ -30004,7 +30044,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2906",
+      "source_location": "L2907",
       "_origin": "prisma-schema",
       "community": 159,
       "community_name": "QualityJourneyProviderDispatchIntent",
@@ -30018,7 +30058,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2907",
+      "source_location": "L2908",
       "_origin": "prisma-schema",
       "community": 159,
       "community_name": "QualityJourneyProviderDispatchIntent",
@@ -30032,7 +30072,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2908",
+      "source_location": "L2909",
       "_origin": "prisma-schema",
       "community": 159,
       "community_name": "QualityJourneyProviderDispatchIntent",
@@ -30046,7 +30086,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2909",
+      "source_location": "L2910",
       "_origin": "prisma-schema",
       "community": 159,
       "community_name": "QualityJourneyProviderDispatchIntent",
@@ -30060,7 +30100,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2910",
+      "source_location": "L2911",
       "_origin": "prisma-schema",
       "community": 159,
       "community_name": "QualityJourneyProviderDispatchIntent",
@@ -30074,7 +30114,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2911",
+      "source_location": "L2912",
       "_origin": "prisma-schema",
       "community": 159,
       "community_name": "QualityJourneyProviderDispatchIntent",
@@ -30088,7 +30128,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2912",
+      "source_location": "L2913",
       "_origin": "prisma-schema",
       "community": 159,
       "community_name": "QualityJourneyProviderDispatchIntent",
@@ -30102,7 +30142,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2913",
+      "source_location": "L2914",
       "_origin": "prisma-schema",
       "community": 159,
       "community_name": "QualityJourneyProviderDispatchIntent",
@@ -30116,7 +30156,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2914",
+      "source_location": "L2915",
       "_origin": "prisma-schema",
       "community": 159,
       "community_name": "QualityJourneyProviderDispatchIntent",
@@ -30130,7 +30170,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2915",
+      "source_location": "L2916",
       "_origin": "prisma-schema",
       "community": 159,
       "community_name": "QualityJourneyProviderDispatchIntent",
@@ -30144,7 +30184,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2916",
+      "source_location": "L2917",
       "_origin": "prisma-schema",
       "community": 159,
       "community_name": "QualityJourneyProviderDispatchIntent",
@@ -30158,7 +30198,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2917",
+      "source_location": "L2918",
       "_origin": "prisma-schema",
       "community": 159,
       "community_name": "QualityJourneyProviderDispatchIntent",
@@ -30172,7 +30212,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2918",
+      "source_location": "L2919",
       "_origin": "prisma-schema",
       "community": 159,
       "community_name": "QualityJourneyProviderDispatchIntent",
@@ -30186,7 +30226,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2919",
+      "source_location": "L2920",
       "_origin": "prisma-schema",
       "community": 159,
       "community_name": "QualityJourneyProviderDispatchIntent",
@@ -30200,7 +30240,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2920",
+      "source_location": "L2921",
       "_origin": "prisma-schema",
       "community": 159,
       "community_name": "QualityJourneyProviderDispatchIntent",
@@ -30214,7 +30254,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2921",
+      "source_location": "L2922",
       "_origin": "prisma-schema",
       "community": 159,
       "community_name": "QualityJourneyProviderDispatchIntent",
@@ -30228,7 +30268,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2922",
+      "source_location": "L2923",
       "_origin": "prisma-schema",
       "community": 159,
       "community_name": "QualityJourneyProviderDispatchIntent",
@@ -30237,12 +30277,26 @@
       "prisma_type": "QualityJourneyProviderSlot?"
     },
     {
+      "id": "prisma_model_qualityjourneyproviderdispatchintent_field_custodysource",
+      "label": "QualityJourneyProviderDispatchIntent.custodySource",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L2924",
+      "_origin": "prisma-schema",
+      "community": 159,
+      "community_name": "QualityJourneyProviderDispatchIntent",
+      "norm_label": "qualityjourneyproviderdispatchintent.custodysource",
+      "graphify_type": "field",
+      "prisma_type": "QualityJourneyProviderSourceState?"
+    },
+    {
       "id": "prisma_model_qualityjourneyproviderslot_field_id",
       "label": "QualityJourneyProviderSlot.id",
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2932",
+      "source_location": "L2934",
       "_origin": "prisma-schema",
       "community": 160,
       "community_name": "QualityJourneyProviderSlot",
@@ -30256,7 +30310,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2933",
+      "source_location": "L2935",
       "_origin": "prisma-schema",
       "community": 160,
       "community_name": "QualityJourneyProviderSlot",
@@ -30270,7 +30324,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2934",
+      "source_location": "L2936",
       "_origin": "prisma-schema",
       "community": 160,
       "community_name": "QualityJourneyProviderSlot",
@@ -30284,7 +30338,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2935",
+      "source_location": "L2937",
       "_origin": "prisma-schema",
       "community": 160,
       "community_name": "QualityJourneyProviderSlot",
@@ -30298,7 +30352,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2936",
+      "source_location": "L2938",
       "_origin": "prisma-schema",
       "community": 160,
       "community_name": "QualityJourneyProviderSlot",
@@ -30312,7 +30366,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2937",
+      "source_location": "L2939",
       "_origin": "prisma-schema",
       "community": 160,
       "community_name": "QualityJourneyProviderSlot",
@@ -30326,7 +30380,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2938",
+      "source_location": "L2940",
       "_origin": "prisma-schema",
       "community": 160,
       "community_name": "QualityJourneyProviderSlot",
@@ -30340,7 +30394,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2939",
+      "source_location": "L2941",
       "_origin": "prisma-schema",
       "community": 160,
       "community_name": "QualityJourneyProviderSlot",
@@ -30354,7 +30408,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2944",
+      "source_location": "L2946",
       "_origin": "prisma-schema",
       "community": 161,
       "community_name": "QualityJourneyProviderObservation",
@@ -30368,7 +30422,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2945",
+      "source_location": "L2947",
       "_origin": "prisma-schema",
       "community": 161,
       "community_name": "QualityJourneyProviderObservation",
@@ -30382,7 +30436,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2946",
+      "source_location": "L2948",
       "_origin": "prisma-schema",
       "community": 161,
       "community_name": "QualityJourneyProviderObservation",
@@ -30396,7 +30450,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2947",
+      "source_location": "L2949",
       "_origin": "prisma-schema",
       "community": 161,
       "community_name": "QualityJourneyProviderObservation",
@@ -30410,7 +30464,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2948",
+      "source_location": "L2950",
       "_origin": "prisma-schema",
       "community": 161,
       "community_name": "QualityJourneyProviderObservation",
@@ -30424,7 +30478,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2949",
+      "source_location": "L2951",
       "_origin": "prisma-schema",
       "community": 161,
       "community_name": "QualityJourneyProviderObservation",
@@ -30438,7 +30492,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2950",
+      "source_location": "L2952",
       "_origin": "prisma-schema",
       "community": 161,
       "community_name": "QualityJourneyProviderObservation",
@@ -30452,7 +30506,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2951",
+      "source_location": "L2953",
       "_origin": "prisma-schema",
       "community": 161,
       "community_name": "QualityJourneyProviderObservation",
@@ -30466,7 +30520,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2952",
+      "source_location": "L2954",
       "_origin": "prisma-schema",
       "community": 161,
       "community_name": "QualityJourneyProviderObservation",
@@ -30480,7 +30534,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2953",
+      "source_location": "L2955",
       "_origin": "prisma-schema",
       "community": 161,
       "community_name": "QualityJourneyProviderObservation",
@@ -30489,12 +30543,26 @@
       "prisma_type": "String"
     },
     {
+      "id": "prisma_model_qualityjourneyproviderobservation_field_reconciliationjson",
+      "label": "QualityJourneyProviderObservation.reconciliationJson",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L2956",
+      "_origin": "prisma-schema",
+      "community": 161,
+      "community_name": "QualityJourneyProviderObservation",
+      "norm_label": "qualityjourneyproviderobservation.reconciliationjson",
+      "graphify_type": "field",
+      "prisma_type": "String?"
+    },
+    {
       "id": "prisma_model_qualityjourneyproviderobservation_field_createdat",
       "label": "QualityJourneyProviderObservation.createdAt",
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2954",
+      "source_location": "L2957",
       "_origin": "prisma-schema",
       "community": 161,
       "community_name": "QualityJourneyProviderObservation",
@@ -30508,7 +30576,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2955",
+      "source_location": "L2958",
       "_origin": "prisma-schema",
       "community": 161,
       "community_name": "QualityJourneyProviderObservation",
@@ -30517,12 +30585,26 @@
       "prisma_type": "QualityJourneyProviderDispatchIntent"
     },
     {
+      "id": "prisma_model_qualityjourneyproviderobservation_field_committedsource",
+      "label": "QualityJourneyProviderObservation.committedSource",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L2959",
+      "_origin": "prisma-schema",
+      "community": 161,
+      "community_name": "QualityJourneyProviderObservation",
+      "norm_label": "qualityjourneyproviderobservation.committedsource",
+      "graphify_type": "field",
+      "prisma_type": "QualityJourneyProviderSourceState?"
+    },
+    {
       "id": "prisma_model_qualityjourneywakeintent_field_id",
       "label": "QualityJourneyWakeIntent.id",
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2961",
+      "source_location": "L2965",
       "_origin": "prisma-schema",
       "community": 162,
       "community_name": "QualityJourneyWakeIntent",
@@ -30536,7 +30618,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2962",
+      "source_location": "L2966",
       "_origin": "prisma-schema",
       "community": 162,
       "community_name": "QualityJourneyWakeIntent",
@@ -30550,7 +30632,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2963",
+      "source_location": "L2967",
       "_origin": "prisma-schema",
       "community": 162,
       "community_name": "QualityJourneyWakeIntent",
@@ -30564,7 +30646,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2964",
+      "source_location": "L2968",
       "_origin": "prisma-schema",
       "community": 162,
       "community_name": "QualityJourneyWakeIntent",
@@ -30578,7 +30660,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2965",
+      "source_location": "L2969",
       "_origin": "prisma-schema",
       "community": 162,
       "community_name": "QualityJourneyWakeIntent",
@@ -30592,7 +30674,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2966",
+      "source_location": "L2970",
       "_origin": "prisma-schema",
       "community": 162,
       "community_name": "QualityJourneyWakeIntent",
@@ -30606,7 +30688,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2967",
+      "source_location": "L2971",
       "_origin": "prisma-schema",
       "community": 162,
       "community_name": "QualityJourneyWakeIntent",
@@ -30620,7 +30702,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2968",
+      "source_location": "L2972",
       "_origin": "prisma-schema",
       "community": 162,
       "community_name": "QualityJourneyWakeIntent",
@@ -30634,7 +30716,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2969",
+      "source_location": "L2973",
       "_origin": "prisma-schema",
       "community": 162,
       "community_name": "QualityJourneyWakeIntent",
@@ -30648,7 +30730,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2970",
+      "source_location": "L2974",
       "_origin": "prisma-schema",
       "community": 162,
       "community_name": "QualityJourneyWakeIntent",
@@ -30662,7 +30744,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2971",
+      "source_location": "L2975",
       "_origin": "prisma-schema",
       "community": 162,
       "community_name": "QualityJourneyWakeIntent",
@@ -30676,7 +30758,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2972",
+      "source_location": "L2976",
       "_origin": "prisma-schema",
       "community": 162,
       "community_name": "QualityJourneyWakeIntent",
@@ -30690,7 +30772,7 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2973",
+      "source_location": "L2977",
       "_origin": "prisma-schema",
       "community": 162,
       "community_name": "QualityJourneyWakeIntent",
@@ -30704,13 +30786,517 @@
       "type": "code",
       "file_type": "code",
       "source_file": "schema.prisma",
-      "source_location": "L2974",
+      "source_location": "L2978",
       "_origin": "prisma-schema",
       "community": 162,
       "community_name": "QualityJourneyWakeIntent",
       "norm_label": "qualityjourneywakeintent.journey",
       "graphify_type": "field",
       "prisma_type": "QualityJourney"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourcestate_field_sourceid",
+      "label": "QualityJourneyProviderSourceState.sourceId",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L2986",
+      "_origin": "prisma-schema",
+      "community": 163,
+      "community_name": "QualityJourneyProviderSourceState",
+      "norm_label": "qualityjourneyprovidersourcestate.sourceid",
+      "graphify_type": "field",
+      "prisma_type": "String"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourcestate_field_sourceincarnation",
+      "label": "QualityJourneyProviderSourceState.sourceIncarnation",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L2987",
+      "_origin": "prisma-schema",
+      "community": 163,
+      "community_name": "QualityJourneyProviderSourceState",
+      "norm_label": "qualityjourneyprovidersourcestate.sourceincarnation",
+      "graphify_type": "field",
+      "prisma_type": "String"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourcestate_field_providerrunid",
+      "label": "QualityJourneyProviderSourceState.providerRunId",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L2988",
+      "_origin": "prisma-schema",
+      "community": 163,
+      "community_name": "QualityJourneyProviderSourceState",
+      "norm_label": "qualityjourneyprovidersourcestate.providerrunid",
+      "graphify_type": "field",
+      "prisma_type": "String"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourcestate_field_intentid",
+      "label": "QualityJourneyProviderSourceState.intentId",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L2989",
+      "_origin": "prisma-schema",
+      "community": 163,
+      "community_name": "QualityJourneyProviderSourceState",
+      "norm_label": "qualityjourneyprovidersourcestate.intentid",
+      "graphify_type": "field",
+      "prisma_type": "String"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourcestate_field_providernamespace",
+      "label": "QualityJourneyProviderSourceState.providerNamespace",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L2990",
+      "_origin": "prisma-schema",
+      "community": 163,
+      "community_name": "QualityJourneyProviderSourceState",
+      "norm_label": "qualityjourneyprovidersourcestate.providernamespace",
+      "graphify_type": "field",
+      "prisma_type": "String"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourcestate_field_identityjson",
+      "label": "QualityJourneyProviderSourceState.identityJson",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L2991",
+      "_origin": "prisma-schema",
+      "community": 163,
+      "community_name": "QualityJourneyProviderSourceState",
+      "norm_label": "qualityjourneyprovidersourcestate.identityjson",
+      "graphify_type": "field",
+      "prisma_type": "String"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourcestate_field_protocoldigest",
+      "label": "QualityJourneyProviderSourceState.protocolDigest",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L2992",
+      "_origin": "prisma-schema",
+      "community": 163,
+      "community_name": "QualityJourneyProviderSourceState",
+      "norm_label": "qualityjourneyprovidersourcestate.protocoldigest",
+      "graphify_type": "field",
+      "prisma_type": "String"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourcestate_field_qualificationdigest",
+      "label": "QualityJourneyProviderSourceState.qualificationDigest",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L2993",
+      "_origin": "prisma-schema",
+      "community": 163,
+      "community_name": "QualityJourneyProviderSourceState",
+      "norm_label": "qualityjourneyprovidersourcestate.qualificationdigest",
+      "graphify_type": "field",
+      "prisma_type": "String"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourcestate_field_epoch",
+      "label": "QualityJourneyProviderSourceState.epoch",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L2994",
+      "_origin": "prisma-schema",
+      "community": 163,
+      "community_name": "QualityJourneyProviderSourceState",
+      "norm_label": "qualityjourneyprovidersourcestate.epoch",
+      "graphify_type": "field",
+      "prisma_type": "Int"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourcestate_field_lifecycle",
+      "label": "QualityJourneyProviderSourceState.lifecycle",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L2995",
+      "_origin": "prisma-schema",
+      "community": 163,
+      "community_name": "QualityJourneyProviderSourceState",
+      "norm_label": "qualityjourneyprovidersourcestate.lifecycle",
+      "graphify_type": "field",
+      "prisma_type": "String"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourcestate_field_sequence",
+      "label": "QualityJourneyProviderSourceState.sequence",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L2996",
+      "_origin": "prisma-schema",
+      "community": 163,
+      "community_name": "QualityJourneyProviderSourceState",
+      "norm_label": "qualityjourneyprovidersourcestate.sequence",
+      "graphify_type": "field",
+      "prisma_type": "Int"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourcestate_field_head",
+      "label": "QualityJourneyProviderSourceState.head",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L2997",
+      "_origin": "prisma-schema",
+      "community": 163,
+      "community_name": "QualityJourneyProviderSourceState",
+      "norm_label": "qualityjourneyprovidersourcestate.head",
+      "graphify_type": "field",
+      "prisma_type": "String"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourcestate_field_bytecount",
+      "label": "QualityJourneyProviderSourceState.byteCount",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L2998",
+      "_origin": "prisma-schema",
+      "community": 163,
+      "community_name": "QualityJourneyProviderSourceState",
+      "norm_label": "qualityjourneyprovidersourcestate.bytecount",
+      "graphify_type": "field",
+      "prisma_type": "Int"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourcestate_field_sealedhead",
+      "label": "QualityJourneyProviderSourceState.sealedHead",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L2999",
+      "_origin": "prisma-schema",
+      "community": 163,
+      "community_name": "QualityJourneyProviderSourceState",
+      "norm_label": "qualityjourneyprovidersourcestate.sealedhead",
+      "graphify_type": "field",
+      "prisma_type": "String?"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourcestate_field_sealedenvelopedigest",
+      "label": "QualityJourneyProviderSourceState.sealedEnvelopeDigest",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L3000",
+      "_origin": "prisma-schema",
+      "community": 163,
+      "community_name": "QualityJourneyProviderSourceState",
+      "norm_label": "qualityjourneyprovidersourcestate.sealedenvelopedigest",
+      "graphify_type": "field",
+      "prisma_type": "String?"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourcestate_field_commitfenceversion",
+      "label": "QualityJourneyProviderSourceState.commitFenceVersion",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L3001",
+      "_origin": "prisma-schema",
+      "community": 163,
+      "community_name": "QualityJourneyProviderSourceState",
+      "norm_label": "qualityjourneyprovidersourcestate.commitfenceversion",
+      "graphify_type": "field",
+      "prisma_type": "Int"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourcestate_field_committedobservationid",
+      "label": "QualityJourneyProviderSourceState.committedObservationId",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L3002",
+      "_origin": "prisma-schema",
+      "community": 163,
+      "community_name": "QualityJourneyProviderSourceState",
+      "norm_label": "qualityjourneyprovidersourcestate.committedobservationid",
+      "graphify_type": "field",
+      "prisma_type": "String?"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourcestate_field_committedrequesthash",
+      "label": "QualityJourneyProviderSourceState.committedRequestHash",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L3003",
+      "_origin": "prisma-schema",
+      "community": 163,
+      "community_name": "QualityJourneyProviderSourceState",
+      "norm_label": "qualityjourneyprovidersourcestate.committedrequesthash",
+      "graphify_type": "field",
+      "prisma_type": "String?"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourcestate_field_pendingbatchid",
+      "label": "QualityJourneyProviderSourceState.pendingBatchId",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L3004",
+      "_origin": "prisma-schema",
+      "community": 163,
+      "community_name": "QualityJourneyProviderSourceState",
+      "norm_label": "qualityjourneyprovidersourcestate.pendingbatchid",
+      "graphify_type": "field",
+      "prisma_type": "String?"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourcestate_field_pendingbatchstarthead",
+      "label": "QualityJourneyProviderSourceState.pendingBatchStartHead",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L3005",
+      "_origin": "prisma-schema",
+      "community": 163,
+      "community_name": "QualityJourneyProviderSourceState",
+      "norm_label": "qualityjourneyprovidersourcestate.pendingbatchstarthead",
+      "graphify_type": "field",
+      "prisma_type": "String?"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourcestate_field_pendingbatchrecordallowance",
+      "label": "QualityJourneyProviderSourceState.pendingBatchRecordAllowance",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L3006",
+      "_origin": "prisma-schema",
+      "community": 163,
+      "community_name": "QualityJourneyProviderSourceState",
+      "norm_label": "qualityjourneyprovidersourcestate.pendingbatchrecordallowance",
+      "graphify_type": "field",
+      "prisma_type": "Int?"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourcestate_field_pendingbatchbyteallowance",
+      "label": "QualityJourneyProviderSourceState.pendingBatchByteAllowance",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L3007",
+      "_origin": "prisma-schema",
+      "community": 163,
+      "community_name": "QualityJourneyProviderSourceState",
+      "norm_label": "qualityjourneyprovidersourcestate.pendingbatchbyteallowance",
+      "graphify_type": "field",
+      "prisma_type": "Int?"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourcestate_field_pendingbatchrequestdigest",
+      "label": "QualityJourneyProviderSourceState.pendingBatchRequestDigest",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L3008",
+      "_origin": "prisma-schema",
+      "community": 163,
+      "community_name": "QualityJourneyProviderSourceState",
+      "norm_label": "qualityjourneyprovidersourcestate.pendingbatchrequestdigest",
+      "graphify_type": "field",
+      "prisma_type": "String?"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourcestate_field_createdat",
+      "label": "QualityJourneyProviderSourceState.createdAt",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L3009",
+      "_origin": "prisma-schema",
+      "community": 163,
+      "community_name": "QualityJourneyProviderSourceState",
+      "norm_label": "qualityjourneyprovidersourcestate.createdat",
+      "graphify_type": "field",
+      "prisma_type": "DateTime"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourcestate_field_run",
+      "label": "QualityJourneyProviderSourceState.run",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L3010",
+      "_origin": "prisma-schema",
+      "community": 163,
+      "community_name": "QualityJourneyProviderSourceState",
+      "norm_label": "qualityjourneyprovidersourcestate.run",
+      "graphify_type": "field",
+      "prisma_type": "QualityJourneyProviderRun"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourcestate_field_intent",
+      "label": "QualityJourneyProviderSourceState.intent",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L3011",
+      "_origin": "prisma-schema",
+      "community": 163,
+      "community_name": "QualityJourneyProviderSourceState",
+      "norm_label": "qualityjourneyprovidersourcestate.intent",
+      "graphify_type": "field",
+      "prisma_type": "QualityJourneyProviderDispatchIntent"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourcestate_field_committedobservation",
+      "label": "QualityJourneyProviderSourceState.committedObservation",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L3012",
+      "_origin": "prisma-schema",
+      "community": 163,
+      "community_name": "QualityJourneyProviderSourceState",
+      "norm_label": "qualityjourneyprovidersourcestate.committedobservation",
+      "graphify_type": "field",
+      "prisma_type": "QualityJourneyProviderObservation?"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourcestate_field_records",
+      "label": "QualityJourneyProviderSourceState.records",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L3013",
+      "_origin": "prisma-schema",
+      "community": 163,
+      "community_name": "QualityJourneyProviderSourceState",
+      "norm_label": "qualityjourneyprovidersourcestate.records",
+      "graphify_type": "field",
+      "prisma_type": "QualityJourneyProviderSourceLedgerRecord[]"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourceledgerrecord_field_sourceid",
+      "label": "QualityJourneyProviderSourceLedgerRecord.sourceId",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L3018",
+      "_origin": "prisma-schema",
+      "community": 164,
+      "community_name": "QualityJourneyProviderSourceLedgerRecord",
+      "norm_label": "qualityjourneyprovidersourceledgerrecord.sourceid",
+      "graphify_type": "field",
+      "prisma_type": "String"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourceledgerrecord_field_sequence",
+      "label": "QualityJourneyProviderSourceLedgerRecord.sequence",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L3019",
+      "_origin": "prisma-schema",
+      "community": 164,
+      "community_name": "QualityJourneyProviderSourceLedgerRecord",
+      "norm_label": "qualityjourneyprovidersourceledgerrecord.sequence",
+      "graphify_type": "field",
+      "prisma_type": "Int"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourceledgerrecord_field_previoushead",
+      "label": "QualityJourneyProviderSourceLedgerRecord.previousHead",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L3020",
+      "_origin": "prisma-schema",
+      "community": 164,
+      "community_name": "QualityJourneyProviderSourceLedgerRecord",
+      "norm_label": "qualityjourneyprovidersourceledgerrecord.previoushead",
+      "graphify_type": "field",
+      "prisma_type": "String"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourceledgerrecord_field_head",
+      "label": "QualityJourneyProviderSourceLedgerRecord.head",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L3021",
+      "_origin": "prisma-schema",
+      "community": 164,
+      "community_name": "QualityJourneyProviderSourceLedgerRecord",
+      "norm_label": "qualityjourneyprovidersourceledgerrecord.head",
+      "graphify_type": "field",
+      "prisma_type": "String"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourceledgerrecord_field_kind",
+      "label": "QualityJourneyProviderSourceLedgerRecord.kind",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L3022",
+      "_origin": "prisma-schema",
+      "community": 164,
+      "community_name": "QualityJourneyProviderSourceLedgerRecord",
+      "norm_label": "qualityjourneyprovidersourceledgerrecord.kind",
+      "graphify_type": "field",
+      "prisma_type": "String"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourceledgerrecord_field_datajson",
+      "label": "QualityJourneyProviderSourceLedgerRecord.dataJson",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L3023",
+      "_origin": "prisma-schema",
+      "community": 164,
+      "community_name": "QualityJourneyProviderSourceLedgerRecord",
+      "norm_label": "qualityjourneyprovidersourceledgerrecord.datajson",
+      "graphify_type": "field",
+      "prisma_type": "String"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourceledgerrecord_field_bytecount",
+      "label": "QualityJourneyProviderSourceLedgerRecord.byteCount",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L3024",
+      "_origin": "prisma-schema",
+      "community": 164,
+      "community_name": "QualityJourneyProviderSourceLedgerRecord",
+      "norm_label": "qualityjourneyprovidersourceledgerrecord.bytecount",
+      "graphify_type": "field",
+      "prisma_type": "Int"
+    },
+    {
+      "id": "prisma_model_qualityjourneyprovidersourceledgerrecord_field_source",
+      "label": "QualityJourneyProviderSourceLedgerRecord.source",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "schema.prisma",
+      "source_location": "L3025",
+      "_origin": "prisma-schema",
+      "community": 164,
+      "community_name": "QualityJourneyProviderSourceLedgerRecord",
+      "norm_label": "qualityjourneyprovidersourceledgerrecord.source",
+      "graphify_type": "field",
+      "prisma_type": "QualityJourneyProviderSourceState"
     },
     {
       "id": "prisma_migration_20251026202316_migrate_back_to_sqlite",
@@ -30720,7 +31306,7 @@
       "source_file": "migrations/20251026202316_migrate_back_to_sqlite/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 168,
+      "community": 170,
       "community_name": "20251026202316_migrate_back_to_sqlite",
       "norm_label": "20251026202316_migrate_back_to_sqlite",
       "graphify_type": "migration"
@@ -30733,7 +31319,7 @@
       "source_file": "migrations/20251026202316_migrate_back_to_sqlite/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 169,
+      "community": 171,
       "community_name": "TemplateStep",
       "norm_label": "templatestep",
       "graphify_type": "table"
@@ -30746,7 +31332,7 @@
       "source_file": "migrations/20251026202316_migrate_back_to_sqlite/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 170,
+      "community": 172,
       "community_name": "TemplateStepGroup",
       "norm_label": "templatestepgroup",
       "graphify_type": "table"
@@ -30759,7 +31345,7 @@
       "source_file": "migrations/20251026202316_migrate_back_to_sqlite/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 171,
+      "community": 173,
       "community_name": "TemplateStepParameter",
       "norm_label": "templatestepparameter",
       "graphify_type": "table"
@@ -30772,7 +31358,7 @@
       "source_file": "migrations/20251026202316_migrate_back_to_sqlite/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 172,
+      "community": 174,
       "community_name": "_TagToTestRun",
       "norm_label": "_tagtotestrun",
       "graphify_type": "table"
@@ -30785,7 +31371,7 @@
       "source_file": "migrations/20251026202316_migrate_back_to_sqlite/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 173,
+      "community": 175,
       "community_name": "_TestSuiteTestCases",
       "norm_label": "_testsuitetestcases",
       "graphify_type": "table"
@@ -30798,7 +31384,7 @@
       "source_file": "migrations/20251104113456_add_type_for_template_step_groups/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 174,
+      "community": 176,
       "community_name": "20251104113456_add_type_for_template_step_groups",
       "norm_label": "20251104113456_add_type_for_template_step_groups",
       "graphify_type": "migration"
@@ -30811,7 +31397,7 @@
       "source_file": "migrations/20251104113456_add_type_for_template_step_groups/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 175,
+      "community": 177,
       "community_name": "new_TemplateStepGroup",
       "norm_label": "new_templatestepgroup",
       "graphify_type": "table"
@@ -30824,7 +31410,7 @@
       "source_file": "migrations/20251104170946_add_tags_to_test_suite_and_test_case/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 176,
+      "community": 178,
       "community_name": "20251104170946_add_tags_to_test_suite_and_test_case",
       "norm_label": "20251104170946_add_tags_to_test_suite_and_test_case",
       "graphify_type": "migration"
@@ -30837,7 +31423,7 @@
       "source_file": "migrations/20251104170946_add_tags_to_test_suite_and_test_case/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 177,
+      "community": 179,
       "community_name": "_TagToTestCase",
       "norm_label": "_tagtotestcase",
       "graphify_type": "table"
@@ -30850,7 +31436,7 @@
       "source_file": "migrations/20251104170946_add_tags_to_test_suite_and_test_case/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 178,
+      "community": 180,
       "community_name": "_TagToTestSuite",
       "norm_label": "_tagtotestsuite",
       "graphify_type": "table"
@@ -30863,7 +31449,7 @@
       "source_file": "migrations/20251112190024_add_cascade_delete_to_test_run_test_case/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 179,
+      "community": 181,
       "community_name": "20251112190024_add_cascade_delete_to_test_run_test_case",
       "norm_label": "20251112190024_add_cascade_delete_to_test_run_test_case",
       "graphify_type": "migration"
@@ -30876,7 +31462,7 @@
       "source_file": "migrations/20251112190024_add_cascade_delete_to_test_run_test_case/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 180,
+      "community": 182,
       "community_name": "new_TestRunTestCase",
       "norm_label": "new_testruntestcase",
       "graphify_type": "table"
@@ -30889,7 +31475,7 @@
       "source_file": "migrations/20251113181100_add_test_run_log/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 181,
+      "community": 183,
       "community_name": "20251113181100_add_test_run_log",
       "norm_label": "20251113181100_add_test_run_log",
       "graphify_type": "migration"
@@ -30902,7 +31488,7 @@
       "source_file": "migrations/20251119191838_add_tag_type/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 182,
+      "community": 184,
       "community_name": "20251119191838_add_tag_type",
       "norm_label": "20251119191838_add_tag_type",
       "graphify_type": "migration"
@@ -30915,7 +31501,7 @@
       "source_file": "migrations/20251119191838_add_tag_type/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 183,
+      "community": 185,
       "community_name": "new_Tag",
       "norm_label": "new_tag",
       "graphify_type": "table"
@@ -30928,7 +31514,7 @@
       "source_file": "migrations/20251121164059_add_conflict_resolution/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 184,
+      "community": 186,
       "community_name": "20251121164059_add_conflict_resolution",
       "norm_label": "20251121164059_add_conflict_resolution",
       "graphify_type": "migration"
@@ -30941,7 +31527,7 @@
       "source_file": "migrations/20251130190737_add_trace_path_to_test_run_test_case/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 185,
+      "community": 187,
       "community_name": "20251130190737_add_trace_path_to_test_run_test_case",
       "norm_label": "20251130190737_add_trace_path_to_test_run_test_case",
       "graphify_type": "migration"
@@ -30954,7 +31540,7 @@
       "source_file": "migrations/20251213074835_add_log_path_to_test_run/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 186,
+      "community": 188,
       "community_name": "20251213074835_add_log_path_to_test_run",
       "norm_label": "20251213074835_add_log_path_to_test_run",
       "graphify_type": "migration"
@@ -30967,7 +31553,7 @@
       "source_file": "migrations/20251213183952_add_name_property_for_the_test_run_entities/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 187,
+      "community": 189,
       "community_name": "20251213183952_add_name_property_for_the_test_run_entities",
       "norm_label": "20251213183952_add_name_property_for_the_test_run_entities",
       "graphify_type": "migration"
@@ -30980,7 +31566,7 @@
       "source_file": "migrations/20251213183952_add_name_property_for_the_test_run_entities/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 188,
+      "community": 190,
       "community_name": "new_TestRun",
       "norm_label": "new_testrun",
       "graphify_type": "table"
@@ -30993,7 +31579,7 @@
       "source_file": "migrations/20251223183400_add_report_model_to_db_schema/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 189,
+      "community": 191,
       "community_name": "20251223183400_add_report_model_to_db_schema",
       "norm_label": "20251223183400_add_report_model_to_db_schema",
       "graphify_type": "migration"
@@ -31006,7 +31592,7 @@
       "source_file": "migrations/20251223183637_add_report_test_case_entity_for_storing_test_results_for_individual_test_cases/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 190,
+      "community": 192,
       "community_name": "20251223183637_add_report_test_case_entity_for_storing_test_results_for_individual_test_cases",
       "norm_label": "20251223183637_add_report_test_case_entity_for_storing_test_results_for_individual_test_cases",
       "graphify_type": "migration"
@@ -31019,7 +31605,7 @@
       "source_file": "migrations/20251224083549_add_comprehensive_report_storage/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 191,
+      "community": 193,
       "community_name": "20251224083549_add_comprehensive_report_storage",
       "norm_label": "20251224083549_add_comprehensive_report_storage",
       "graphify_type": "migration"
@@ -31032,7 +31618,7 @@
       "source_file": "migrations/20251224083549_add_comprehensive_report_storage/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 192,
+      "community": 194,
       "community_name": "new_ReportTestCase",
       "norm_label": "new_reporttestcase",
       "graphify_type": "table"
@@ -31045,7 +31631,7 @@
       "source_file": "migrations/20251229194422_migrate_duration_to_string/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 193,
+      "community": 195,
       "community_name": "20251229194422_migrate_duration_to_string",
       "norm_label": "20251229194422_migrate_duration_to_string",
       "graphify_type": "migration"
@@ -31058,7 +31644,7 @@
       "source_file": "migrations/20251229194422_migrate_duration_to_string/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 194,
+      "community": 196,
       "community_name": "new_ReportHook",
       "norm_label": "new_reporthook",
       "graphify_type": "table"
@@ -31071,7 +31657,7 @@
       "source_file": "migrations/20251229194422_migrate_duration_to_string/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 195,
+      "community": 197,
       "community_name": "new_ReportStep",
       "norm_label": "new_reportstep",
       "graphify_type": "table"
@@ -31084,7 +31670,7 @@
       "source_file": "migrations/20251230124637_add_unique_constraint_to_test_run_name/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 196,
+      "community": 198,
       "community_name": "20251230124637_add_unique_constraint_to_test_run_name",
       "norm_label": "20251230124637_add_unique_constraint_to_test_run_name",
       "graphify_type": "migration"
@@ -31097,7 +31683,7 @@
       "source_file": "migrations/20260115094436_add_dashboard_metrics/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 197,
+      "community": 199,
       "community_name": "20260115094436_add_dashboard_metrics",
       "norm_label": "20260115094436_add_dashboard_metrics",
       "graphify_type": "migration"
@@ -31110,7 +31696,7 @@
       "source_file": "migrations/20260127172022_add_cascade_delete_to_step_parameters/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 198,
+      "community": 200,
       "community_name": "20260127172022_add_cascade_delete_to_step_parameters",
       "norm_label": "20260127172022_add_cascade_delete_to_step_parameters",
       "graphify_type": "migration"
@@ -31123,7 +31709,7 @@
       "source_file": "migrations/20260127172022_add_cascade_delete_to_step_parameters/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 199,
+      "community": 201,
       "community_name": "new_TemplateTestCaseStepParameter",
       "norm_label": "new_templatetestcasestepparameter",
       "graphify_type": "table"
@@ -31136,7 +31722,7 @@
       "source_file": "migrations/20260127172022_add_cascade_delete_to_step_parameters/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 200,
+      "community": 202,
       "community_name": "new_TestCaseStepParameter",
       "norm_label": "new_testcasestepparameter",
       "graphify_type": "table"
@@ -31149,7 +31735,7 @@
       "source_file": "migrations/20260313093000_add_report_step_screenshot_path/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 201,
+      "community": 203,
       "community_name": "20260313093000_add_report_step_screenshot_path",
       "norm_label": "20260313093000_add_report_step_screenshot_path",
       "graphify_type": "migration"
@@ -31162,7 +31748,7 @@
       "source_file": "migrations/20260318120000_add_test_suite_context_to_test_run_test_case/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 202,
+      "community": 204,
       "community_name": "20260318120000_add_test_suite_context_to_test_run_test_case",
       "norm_label": "20260318120000_add_test_suite_context_to_test_run_test_case",
       "graphify_type": "migration"
@@ -31175,7 +31761,7 @@
       "source_file": "migrations/20260318173512_add_support_of_test_suite_level_runs/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 203,
+      "community": 205,
       "community_name": "20260318173512_add_support_of_test_suite_level_runs",
       "norm_label": "20260318173512_add_support_of_test_suite_level_runs",
       "graphify_type": "migration"
@@ -31188,7 +31774,7 @@
       "source_file": "migrations/20260507000000_add_flow_builder_node_grouping/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 204,
+      "community": 206,
       "community_name": "20260507000000_add_flow_builder_node_grouping",
       "norm_label": "20260507000000_add_flow_builder_node_grouping",
       "graphify_type": "migration"
@@ -31201,7 +31787,7 @@
       "source_file": "migrations/20260609002500_add_plan_projection_and_sync/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 205,
+      "community": 207,
       "community_name": "20260609002500_add_plan_projection_and_sync",
       "norm_label": "20260609002500_add_plan_projection_and_sync",
       "graphify_type": "migration"
@@ -31214,7 +31800,7 @@
       "source_file": "migrations/20260609002500_add_plan_projection_and_sync/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 206,
+      "community": 208,
       "community_name": "PlanProjection",
       "norm_label": "planprojection",
       "graphify_type": "table"
@@ -31227,7 +31813,7 @@
       "source_file": "migrations/20260609002500_add_plan_projection_and_sync/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 207,
+      "community": 209,
       "community_name": "PlanRevision",
       "norm_label": "planrevision",
       "graphify_type": "table"
@@ -31240,7 +31826,7 @@
       "source_file": "migrations/20260609002500_add_plan_projection_and_sync/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 208,
+      "community": 210,
       "community_name": "PlanSyncIssue",
       "norm_label": "plansyncissue",
       "graphify_type": "table"
@@ -31253,7 +31839,7 @@
       "source_file": "migrations/20260609002500_add_plan_projection_and_sync/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 209,
+      "community": 211,
       "community_name": "PlanTaskProjection",
       "norm_label": "plantaskprojection",
       "graphify_type": "table"
@@ -31266,7 +31852,7 @@
       "source_file": "migrations/20260609090000_add_plan_review_runtime/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 210,
+      "community": 212,
       "community_name": "20260609090000_add_plan_review_runtime",
       "norm_label": "20260609090000_add_plan_review_runtime",
       "graphify_type": "migration"
@@ -31279,7 +31865,7 @@
       "source_file": "migrations/20260609090000_add_plan_review_runtime/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 211,
+      "community": 213,
       "community_name": "PlanEvent",
       "norm_label": "planevent",
       "graphify_type": "table"
@@ -31292,7 +31878,7 @@
       "source_file": "migrations/20260609090000_add_plan_review_runtime/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 212,
+      "community": 214,
       "community_name": "PlanPersonalLayout",
       "norm_label": "planpersonallayout",
       "graphify_type": "table"
@@ -31305,7 +31891,7 @@
       "source_file": "migrations/20260609160000_add_coordinator_events_api_mcp/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 213,
+      "community": 215,
       "community_name": "20260609160000_add_coordinator_events_api_mcp",
       "norm_label": "20260609160000_add_coordinator_events_api_mcp",
       "graphify_type": "migration"
@@ -31318,7 +31904,7 @@
       "source_file": "migrations/20260609160000_add_coordinator_events_api_mcp/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 214,
+      "community": 216,
       "community_name": "AppraiseProjectIdentity",
       "norm_label": "appraiseprojectidentity",
       "graphify_type": "table"
@@ -31331,7 +31917,7 @@
       "source_file": "migrations/20260609160000_add_coordinator_events_api_mcp/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 215,
+      "community": 217,
       "community_name": "PlanCoordinatorLease",
       "norm_label": "plancoordinatorlease",
       "graphify_type": "table"
@@ -31344,7 +31930,7 @@
       "source_file": "migrations/20260609160000_add_coordinator_events_api_mcp/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 216,
+      "community": 218,
       "community_name": "new_PlanEvent",
       "norm_label": "new_planevent",
       "graphify_type": "table"
@@ -31357,7 +31943,7 @@
       "source_file": "migrations/20260613015000_add_plan_description/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 217,
+      "community": 219,
       "community_name": "20260613015000_add_plan_description",
       "norm_label": "20260613015000_add_plan_description",
       "graphify_type": "migration"
@@ -31370,7 +31956,7 @@
       "source_file": "migrations/20260628090000_add_target_projects/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 218,
+      "community": 220,
       "community_name": "20260628090000_add_target_projects",
       "norm_label": "20260628090000_add_target_projects",
       "graphify_type": "migration"
@@ -31383,7 +31969,7 @@
       "source_file": "migrations/20260628090000_add_target_projects/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 219,
+      "community": 221,
       "community_name": "new_PlanProjection",
       "norm_label": "new_planprojection",
       "graphify_type": "table"
@@ -31396,7 +31982,7 @@
       "source_file": "migrations/20260628103000_add_plan_slug_legacy_identity/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 220,
+      "community": 222,
       "community_name": "20260628103000_add_plan_slug_legacy_identity",
       "norm_label": "20260628103000_add_plan_slug_legacy_identity",
       "graphify_type": "migration"
@@ -31409,7 +31995,7 @@
       "source_file": "migrations/20260701090000_add_provider_workflow_runs/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 221,
+      "community": 223,
       "community_name": "20260701090000_add_provider_workflow_runs",
       "norm_label": "20260701090000_add_provider_workflow_runs",
       "graphify_type": "migration"
@@ -31422,7 +32008,7 @@
       "source_file": "migrations/20260701090000_add_provider_workflow_runs/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 222,
+      "community": 224,
       "community_name": "ProviderAdapterRegistration",
       "norm_label": "provideradapterregistration",
       "graphify_type": "table"
@@ -31435,7 +32021,7 @@
       "source_file": "migrations/20260701090000_add_provider_workflow_runs/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 223,
+      "community": 225,
       "community_name": "ProviderArtifactSnapshot",
       "norm_label": "providerartifactsnapshot",
       "graphify_type": "table"
@@ -31448,7 +32034,7 @@
       "source_file": "migrations/20260701090000_add_provider_workflow_runs/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 224,
+      "community": 226,
       "community_name": "ProviderPermissionDecision",
       "norm_label": "providerpermissiondecision",
       "graphify_type": "table"
@@ -31461,7 +32047,7 @@
       "source_file": "migrations/20260701090000_add_provider_workflow_runs/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 225,
+      "community": 227,
       "community_name": "ProviderRunEvent",
       "norm_label": "providerrunevent",
       "graphify_type": "table"
@@ -31474,7 +32060,7 @@
       "source_file": "migrations/20260701090000_add_provider_workflow_runs/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 226,
+      "community": 228,
       "community_name": "ProviderWorkflowRun",
       "norm_label": "providerworkflowrun",
       "graphify_type": "table"
@@ -31487,7 +32073,7 @@
       "source_file": "migrations/20260701120000_add_provider_registration_settings/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 227,
+      "community": 229,
       "community_name": "20260701120000_add_provider_registration_settings",
       "norm_label": "20260701120000_add_provider_registration_settings",
       "graphify_type": "migration"
@@ -31500,7 +32086,7 @@
       "source_file": "migrations/20260708090000_add_test_run_evidence_health/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 228,
+      "community": 230,
       "community_name": "20260708090000_add_test_run_evidence_health",
       "norm_label": "20260708090000_add_test_run_evidence_health",
       "graphify_type": "migration"
@@ -31513,7 +32099,7 @@
       "source_file": "migrations/20260709090000_add_step_blocks/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 229,
+      "community": 231,
       "community_name": "20260709090000_add_step_blocks",
       "norm_label": "20260709090000_add_step_blocks",
       "graphify_type": "migration"
@@ -31526,7 +32112,7 @@
       "source_file": "migrations/20260709090000_add_step_blocks/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 230,
+      "community": 232,
       "community_name": "StepBlock",
       "norm_label": "stepblock",
       "graphify_type": "table"
@@ -31539,7 +32125,7 @@
       "source_file": "migrations/20260709090000_add_step_blocks/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 231,
+      "community": 233,
       "community_name": "StepBlockStep",
       "norm_label": "stepblockstep",
       "graphify_type": "table"
@@ -31552,7 +32138,7 @@
       "source_file": "migrations/20260711120000_add_baseline_attempt_history/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 232,
+      "community": 234,
       "community_name": "20260711120000_add_baseline_attempt_history",
       "norm_label": "20260711120000_add_baseline_attempt_history",
       "graphify_type": "migration"
@@ -31565,7 +32151,7 @@
       "source_file": "migrations/20260711120000_add_baseline_attempt_history/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 233,
+      "community": 235,
       "community_name": "BaselineAttempt",
       "norm_label": "baselineattempt",
       "graphify_type": "table"
@@ -31578,7 +32164,7 @@
       "source_file": "migrations/20260711120000_add_baseline_attempt_history/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 234,
+      "community": 236,
       "community_name": "BaselineAttemptEvent",
       "norm_label": "baselineattemptevent",
       "graphify_type": "table"
@@ -31591,7 +32177,7 @@
       "source_file": "migrations/20260711150000_add_delegated_authorization_nonces/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 235,
+      "community": 237,
       "community_name": "20260711150000_add_delegated_authorization_nonces",
       "norm_label": "20260711150000_add_delegated_authorization_nonces",
       "graphify_type": "migration"
@@ -31604,7 +32190,7 @@
       "source_file": "migrations/20260711150000_add_delegated_authorization_nonces/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 236,
+      "community": 238,
       "community_name": "DelegatedAuthorizationNonce",
       "norm_label": "delegatedauthorizationnonce",
       "graphify_type": "table"
@@ -31617,7 +32203,7 @@
       "source_file": "migrations/20260711170000_add_delegated_ast_submissions/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 237,
+      "community": 239,
       "community_name": "20260711170000_add_delegated_ast_submissions",
       "norm_label": "20260711170000_add_delegated_ast_submissions",
       "graphify_type": "migration"
@@ -31630,7 +32216,7 @@
       "source_file": "migrations/20260711170000_add_delegated_ast_submissions/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 238,
+      "community": 240,
       "community_name": "DelegatedValidationAstSubmission",
       "norm_label": "delegatedvalidationastsubmission",
       "graphify_type": "table"
@@ -31643,7 +32229,7 @@
       "source_file": "migrations/20260711190000_add_validation_ast_publish_journal/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 239,
+      "community": 241,
       "community_name": "20260711190000_add_validation_ast_publish_journal",
       "norm_label": "20260711190000_add_validation_ast_publish_journal",
       "graphify_type": "migration"
@@ -31656,7 +32242,7 @@
       "source_file": "migrations/20260711190000_add_validation_ast_publish_journal/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 240,
+      "community": 242,
       "community_name": "ValidationAstPublishOperation",
       "norm_label": "validationastpublishoperation",
       "graphify_type": "table"
@@ -31669,7 +32255,7 @@
       "source_file": "migrations/20260711190000_add_validation_ast_publish_journal/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 241,
+      "community": 243,
       "community_name": "ValidationExtensionReview",
       "norm_label": "validationextensionreview",
       "graphify_type": "table"
@@ -31682,7 +32268,7 @@
       "source_file": "migrations/20260711220000_add_runtime_capsules/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 242,
+      "community": 244,
       "community_name": "20260711220000_add_runtime_capsules",
       "norm_label": "20260711220000_add_runtime_capsules",
       "graphify_type": "migration"
@@ -31695,7 +32281,7 @@
       "source_file": "migrations/20260712010000_add_runtime_capsule_execution_attempt/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 243,
+      "community": 245,
       "community_name": "20260712010000_add_runtime_capsule_execution_attempt",
       "norm_label": "20260712010000_add_runtime_capsule_execution_attempt",
       "graphify_type": "migration"
@@ -31708,7 +32294,7 @@
       "source_file": "migrations/20260712020000_add_test_run_preparation_key/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 244,
+      "community": 246,
       "community_name": "20260712020000_add_test_run_preparation_key",
       "norm_label": "20260712020000_add_test_run_preparation_key",
       "graphify_type": "migration"
@@ -31721,7 +32307,7 @@
       "source_file": "migrations/20260712180000_add_repository_exports/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 245,
+      "community": 247,
       "community_name": "20260712180000_add_repository_exports",
       "norm_label": "20260712180000_add_repository_exports",
       "graphify_type": "migration"
@@ -31734,7 +32320,7 @@
       "source_file": "migrations/20260712180000_add_repository_exports/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 246,
+      "community": 248,
       "community_name": "RepositoryExportJob",
       "norm_label": "repositoryexportjob",
       "graphify_type": "table"
@@ -31747,7 +32333,7 @@
       "source_file": "migrations/20260712180000_add_repository_exports/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 247,
+      "community": 249,
       "community_name": "RepositoryExportReceipt",
       "norm_label": "repositoryexportreceipt",
       "graphify_type": "table"
@@ -31760,7 +32346,7 @@
       "source_file": "migrations/20260713143000_add_project_resource_ownership/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 248,
+      "community": 250,
       "community_name": "20260713143000_add_project_resource_ownership",
       "norm_label": "20260713143000_add_project_resource_ownership",
       "graphify_type": "migration"
@@ -31773,7 +32359,7 @@
       "source_file": "migrations/20260713153000_add_validation_resource_proposals/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 249,
+      "community": 251,
       "community_name": "20260713153000_add_validation_resource_proposals",
       "norm_label": "20260713153000_add_validation_resource_proposals",
       "graphify_type": "migration"
@@ -31786,7 +32372,7 @@
       "source_file": "migrations/20260713153000_add_validation_resource_proposals/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 250,
+      "community": 252,
       "community_name": "ValidationResourceProposal",
       "norm_label": "validationresourceproposal",
       "graphify_type": "table"
@@ -31799,7 +32385,7 @@
       "source_file": "migrations/20260713163000_normalize_managed_validation_vocabulary/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 251,
+      "community": 253,
       "community_name": "20260713163000_normalize_managed_validation_vocabulary",
       "norm_label": "20260713163000_normalize_managed_validation_vocabulary",
       "graphify_type": "migration"
@@ -31812,7 +32398,7 @@
       "source_file": "migrations/20260713173000_add_named_plan_hashes/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 252,
+      "community": 254,
       "community_name": "20260713173000_add_named_plan_hashes",
       "norm_label": "20260713173000_add_named_plan_hashes",
       "graphify_type": "migration"
@@ -31825,7 +32411,7 @@
       "source_file": "migrations/20260713183000_add_delegated_coordinator_receipts/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 253,
+      "community": 255,
       "community_name": "20260713183000_add_delegated_coordinator_receipts",
       "norm_label": "20260713183000_add_delegated_coordinator_receipts",
       "graphify_type": "migration"
@@ -31838,7 +32424,7 @@
       "source_file": "migrations/20260713183000_add_delegated_coordinator_receipts/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 254,
+      "community": 256,
       "community_name": "DelegatedCoordinatorConsumption",
       "norm_label": "delegatedcoordinatorconsumption",
       "graphify_type": "table"
@@ -31851,7 +32437,7 @@
       "source_file": "migrations/20260713183000_add_delegated_coordinator_receipts/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 255,
+      "community": 257,
       "community_name": "DelegatedCoordinatorReceipt",
       "norm_label": "delegatedcoordinatorreceipt",
       "graphify_type": "table"
@@ -31864,7 +32450,7 @@
       "source_file": "migrations/20260713200000_stage_complete_project_ownership/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 256,
+      "community": 258,
       "community_name": "20260713200000_stage_complete_project_ownership",
       "norm_label": "20260713200000_stage_complete_project_ownership",
       "graphify_type": "migration"
@@ -31877,7 +32463,7 @@
       "source_file": "migrations/20260713210000_add_target_project_description/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 257,
+      "community": 259,
       "community_name": "20260713210000_add_target_project_description",
       "norm_label": "20260713210000_add_target_project_description",
       "graphify_type": "migration"
@@ -31890,7 +32476,7 @@
       "source_file": "migrations/20260713211000_scope_test_run_preparation_key/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 258,
+      "community": 260,
       "community_name": "20260713211000_scope_test_run_preparation_key",
       "norm_label": "20260713211000_scope_test_run_preparation_key",
       "graphify_type": "migration"
@@ -31903,7 +32489,7 @@
       "source_file": "migrations/20260714000000_make_template_library_shared/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 259,
+      "community": 261,
       "community_name": "20260714000000_make_template_library_shared",
       "norm_label": "20260714000000_make_template_library_shared",
       "graphify_type": "migration"
@@ -31916,7 +32502,7 @@
       "source_file": "migrations/20260714143000_add_validation_review_state_receipt/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 260,
+      "community": 262,
       "community_name": "20260714143000_add_validation_review_state_receipt",
       "norm_label": "20260714143000_add_validation_review_state_receipt",
       "graphify_type": "migration"
@@ -31929,7 +32515,7 @@
       "source_file": "migrations/20260714160500_scope_environment_names_to_project/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 261,
+      "community": 263,
       "community_name": "20260714160500_scope_environment_names_to_project",
       "norm_label": "20260714160500_scope_environment_names_to_project",
       "graphify_type": "migration"
@@ -31942,7 +32528,7 @@
       "source_file": "migrations/20260716190000_replace_environment_password_with_reference/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 262,
+      "community": 264,
       "community_name": "20260716190000_replace_environment_password_with_reference",
       "norm_label": "20260716190000_replace_environment_password_with_reference",
       "graphify_type": "migration"
@@ -31955,7 +32541,7 @@
       "source_file": "migrations/20260716190000_replace_environment_password_with_reference/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 263,
+      "community": 265,
       "community_name": "new_Environment",
       "norm_label": "new_environment",
       "graphify_type": "table"
@@ -31968,7 +32554,7 @@
       "source_file": "migrations/20260716210000_add_measured_test_run_pagination_index/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 264,
+      "community": 266,
       "community_name": "20260716210000_add_measured_test_run_pagination_index",
       "norm_label": "20260716210000_add_measured_test_run_pagination_index",
       "graphify_type": "migration"
@@ -31981,7 +32567,7 @@
       "source_file": "migrations/20260718110000_add_agent_preflight_receipts/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 265,
+      "community": 267,
       "community_name": "20260718110000_add_agent_preflight_receipts",
       "norm_label": "20260718110000_add_agent_preflight_receipts",
       "graphify_type": "migration"
@@ -31994,7 +32580,7 @@
       "source_file": "migrations/20260718160000_add_plan_observability/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 266,
+      "community": 268,
       "community_name": "20260718160000_add_plan_observability",
       "norm_label": "20260718160000_add_plan_observability",
       "graphify_type": "migration"
@@ -32007,7 +32593,7 @@
       "source_file": "migrations/20260718160000_add_plan_observability/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 267,
+      "community": 269,
       "community_name": "LifecycleCertificationReceipt",
       "norm_label": "lifecyclecertificationreceipt",
       "graphify_type": "table"
@@ -32020,7 +32606,7 @@
       "source_file": "migrations/20260718160000_add_plan_observability/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 268,
+      "community": 270,
       "community_name": "PlanOperationMetric",
       "norm_label": "planoperationmetric",
       "graphify_type": "table"
@@ -32033,7 +32619,7 @@
       "source_file": "migrations/20260718193000_add_environment_identity_expectation/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 269,
+      "community": 271,
       "community_name": "20260718193000_add_environment_identity_expectation",
       "norm_label": "20260718193000_add_environment_identity_expectation",
       "graphify_type": "migration"
@@ -32046,7 +32632,7 @@
       "source_file": "migrations/20260720010000_add_canonical_operation_mappings/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 270,
+      "community": 272,
       "community_name": "20260720010000_add_canonical_operation_mappings",
       "norm_label": "20260720010000_add_canonical_operation_mappings",
       "graphify_type": "migration"
@@ -32059,7 +32645,7 @@
       "source_file": "migrations/20260722013000_scope_locator_group_names_to_project/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 271,
+      "community": 273,
       "community_name": "20260722013000_scope_locator_group_names_to_project",
       "norm_label": "20260722013000_scope_locator_group_names_to_project",
       "graphify_type": "migration"
@@ -32072,7 +32658,7 @@
       "source_file": "migrations/20260722190000_add_step_definition_registry/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 272,
+      "community": 274,
       "community_name": "20260722190000_add_step_definition_registry",
       "norm_label": "20260722190000_add_step_definition_registry",
       "graphify_type": "migration"
@@ -32085,7 +32671,7 @@
       "source_file": "migrations/20260722190000_add_step_definition_registry/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 273,
+      "community": 275,
       "community_name": "StepCompatibilityReference",
       "norm_label": "stepcompatibilityreference",
       "graphify_type": "table"
@@ -32098,7 +32684,7 @@
       "source_file": "migrations/20260722223000_add_step_definition_reviewed_extensions/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 274,
+      "community": 276,
       "community_name": "20260722223000_add_step_definition_reviewed_extensions",
       "norm_label": "20260722223000_add_step_definition_reviewed_extensions",
       "graphify_type": "migration"
@@ -32111,7 +32697,7 @@
       "source_file": "migrations/20260725190000_add_step_block_migration_ledger/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 275,
+      "community": 277,
       "community_name": "20260725190000_add_step_block_migration_ledger",
       "norm_label": "20260725190000_add_step_block_migration_ledger",
       "graphify_type": "migration"
@@ -32124,7 +32710,7 @@
       "source_file": "migrations/20260725190000_add_step_block_migration_ledger/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 276,
+      "community": 278,
       "community_name": "StepBlockMigrationLedger",
       "norm_label": "stepblockmigrationledger",
       "graphify_type": "table"
@@ -32137,7 +32723,7 @@
       "source_file": "migrations/20260725190000_add_step_block_migration_ledger/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 277,
+      "community": 279,
       "community_name": "_LegacyCompositionDefinition",
       "norm_label": "_legacycompositiondefinition",
       "graphify_type": "table"
@@ -32150,7 +32736,7 @@
       "source_file": "migrations/20260725193000_make_validation_projection_template_step_optional/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 278,
+      "community": 280,
       "community_name": "20260725193000_make_validation_projection_template_step_optional",
       "norm_label": "20260725193000_make_validation_projection_template_step_optional",
       "graphify_type": "migration"
@@ -32163,7 +32749,7 @@
       "source_file": "migrations/20260725193000_make_validation_projection_template_step_optional/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 279,
+      "community": 281,
       "community_name": "new_TestCaseStep",
       "norm_label": "new_testcasestep",
       "graphify_type": "table"
@@ -32176,7 +32762,7 @@
       "source_file": "migrations/20260725194500_cut_over_authored_steps_to_step_invocations/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 280,
+      "community": 282,
       "community_name": "20260725194500_cut_over_authored_steps_to_step_invocations",
       "norm_label": "20260725194500_cut_over_authored_steps_to_step_invocations",
       "graphify_type": "migration"
@@ -32189,7 +32775,7 @@
       "source_file": "migrations/20260725194500_cut_over_authored_steps_to_step_invocations/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 281,
+      "community": 283,
       "community_name": "IF",
       "norm_label": "if",
       "graphify_type": "table"
@@ -32202,7 +32788,7 @@
       "source_file": "migrations/20260725200000_remove_legacy_step_authority/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 282,
+      "community": 284,
       "community_name": "20260725200000_remove_legacy_step_authority",
       "norm_label": "20260725200000_remove_legacy_step_authority",
       "graphify_type": "migration"
@@ -32215,7 +32801,7 @@
       "source_file": "migrations/20260725201000_add_step_definition_telemetry/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 283,
+      "community": 285,
       "community_name": "20260725201000_add_step_definition_telemetry",
       "norm_label": "20260725201000_add_step_definition_telemetry",
       "graphify_type": "migration"
@@ -32228,7 +32814,7 @@
       "source_file": "migrations/20260725202000_add_step_definition_reuse_justification/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 284,
+      "community": 286,
       "community_name": "20260725202000_add_step_definition_reuse_justification",
       "norm_label": "20260725202000_add_step_definition_reuse_justification",
       "graphify_type": "migration"
@@ -32241,7 +32827,7 @@
       "source_file": "migrations/20260725203000_add_step_definition_review_receipts/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 285,
+      "community": 287,
       "community_name": "20260725203000_add_step_definition_review_receipts",
       "norm_label": "20260725203000_add_step_definition_review_receipts",
       "graphify_type": "migration"
@@ -32254,7 +32840,7 @@
       "source_file": "migrations/20260725204000_harden_step_definition_evidence_and_telemetry/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 286,
+      "community": 288,
       "community_name": "20260725204000_harden_step_definition_evidence_and_telemetry",
       "norm_label": "20260725204000_harden_step_definition_evidence_and_telemetry",
       "graphify_type": "migration"
@@ -32267,7 +32853,7 @@
       "source_file": "migrations/20260725205000_add_reviewed_extension_revocation/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 287,
+      "community": 289,
       "community_name": "20260725205000_add_reviewed_extension_revocation",
       "norm_label": "20260725205000_add_reviewed_extension_revocation",
       "graphify_type": "migration"
@@ -32280,7 +32866,7 @@
       "source_file": "migrations/20260725206000_add_step_definition_search_receipts/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 288,
+      "community": 290,
       "community_name": "20260725206000_add_step_definition_search_receipts",
       "norm_label": "20260725206000_add_step_definition_search_receipts",
       "graphify_type": "migration"
@@ -32293,7 +32879,7 @@
       "source_file": "migrations/20260906090000_quality_journey_authority/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 289,
+      "community": 291,
       "community_name": "20260906090000_quality_journey_authority",
       "norm_label": "20260906090000_quality_journey_authority",
       "graphify_type": "migration"
@@ -32306,7 +32892,7 @@
       "source_file": "migrations/20260906090000_quality_journey_authority/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 290,
+      "community": 292,
       "community_name": "new_DashboardMetrics",
       "norm_label": "new_dashboardmetrics",
       "graphify_type": "table"
@@ -32319,7 +32905,7 @@
       "source_file": "migrations/20260906090000_quality_journey_authority/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 291,
+      "community": 293,
       "community_name": "new_Locator",
       "norm_label": "new_locator",
       "graphify_type": "table"
@@ -32332,7 +32918,7 @@
       "source_file": "migrations/20260906090000_quality_journey_authority/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 292,
+      "community": 294,
       "community_name": "new_LocatorGroup",
       "norm_label": "new_locatorgroup",
       "graphify_type": "table"
@@ -32345,7 +32931,7 @@
       "source_file": "migrations/20260906090000_quality_journey_authority/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 293,
+      "community": 295,
       "community_name": "new_Module",
       "norm_label": "new_module",
       "graphify_type": "table"
@@ -32358,7 +32944,7 @@
       "source_file": "migrations/20260906090000_quality_journey_authority/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 294,
+      "community": 296,
       "community_name": "new_ProjectResourceOwnership",
       "norm_label": "new_projectresourceownership",
       "graphify_type": "table"
@@ -32371,7 +32957,7 @@
       "source_file": "migrations/20260906090000_quality_journey_authority/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 295,
+      "community": 297,
       "community_name": "new_Report",
       "norm_label": "new_report",
       "graphify_type": "table"
@@ -32384,7 +32970,7 @@
       "source_file": "migrations/20260906090000_quality_journey_authority/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 296,
+      "community": 298,
       "community_name": "new_StepDefinitionSearchReceipt",
       "norm_label": "new_stepdefinitionsearchreceipt",
       "graphify_type": "table"
@@ -32397,7 +32983,7 @@
       "source_file": "migrations/20260906090000_quality_journey_authority/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 297,
+      "community": 299,
       "community_name": "new_StepDefinitionTelemetryEvent",
       "norm_label": "new_stepdefinitiontelemetryevent",
       "graphify_type": "table"
@@ -32410,7 +32996,7 @@
       "source_file": "migrations/20260906090000_quality_journey_authority/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 298,
+      "community": 300,
       "community_name": "new_TargetProject",
       "norm_label": "new_targetproject",
       "graphify_type": "table"
@@ -32423,7 +33009,7 @@
       "source_file": "migrations/20260906090000_quality_journey_authority/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 299,
+      "community": 301,
       "community_name": "new_TemplateTestCase",
       "norm_label": "new_templatetestcase",
       "graphify_type": "table"
@@ -32436,7 +33022,7 @@
       "source_file": "migrations/20260906090000_quality_journey_authority/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 300,
+      "community": 302,
       "community_name": "new_TestCase",
       "norm_label": "new_testcase",
       "graphify_type": "table"
@@ -32449,7 +33035,7 @@
       "source_file": "migrations/20260906090000_quality_journey_authority/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 301,
+      "community": 303,
       "community_name": "new_TestCaseMetrics",
       "norm_label": "new_testcasemetrics",
       "graphify_type": "table"
@@ -32462,7 +33048,7 @@
       "source_file": "migrations/20260906090000_quality_journey_authority/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 302,
+      "community": 304,
       "community_name": "new_TestSuite",
       "norm_label": "new_testsuite",
       "graphify_type": "table"
@@ -32475,7 +33061,7 @@
       "source_file": "migrations/20260906090000_quality_journey_authority/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 303,
+      "community": 305,
       "community_name": "new_TestSuiteMetrics",
       "norm_label": "new_testsuitemetrics",
       "graphify_type": "table"
@@ -32488,7 +33074,7 @@
       "source_file": "migrations/20260906180000_add_quality_journey_coordinator_handoffs/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 304,
+      "community": 306,
       "community_name": "20260906180000_add_quality_journey_coordinator_handoffs",
       "norm_label": "20260906180000_add_quality_journey_coordinator_handoffs",
       "graphify_type": "migration"
@@ -32501,7 +33087,7 @@
       "source_file": "migrations/20260907090000_add_quality_journey_drafts/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 305,
+      "community": 307,
       "community_name": "20260907090000_add_quality_journey_drafts",
       "norm_label": "20260907090000_add_quality_journey_drafts",
       "graphify_type": "migration"
@@ -32514,7 +33100,7 @@
       "source_file": "migrations/20260908170000_add_repository_collaboration/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 306,
+      "community": 308,
       "community_name": "20260908170000_add_repository_collaboration",
       "norm_label": "20260908170000_add_repository_collaboration",
       "graphify_type": "migration"
@@ -32527,7 +33113,7 @@
       "source_file": "migrations/20260908190000_add_journey_reuse_annotation/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 307,
+      "community": 309,
       "community_name": "20260908190000_add_journey_reuse_annotation",
       "norm_label": "20260908190000_add_journey_reuse_annotation",
       "graphify_type": "migration"
@@ -32540,7 +33126,7 @@
       "source_file": "migrations/20260909090000_add_repository_collaboration_queue_worker/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 308,
+      "community": 310,
       "community_name": "20260909090000_add_repository_collaboration_queue_worker",
       "norm_label": "20260909090000_add_repository_collaboration_queue_worker",
       "graphify_type": "migration"
@@ -32553,7 +33139,7 @@
       "source_file": "migrations/20260909101500_collaboration_decision_single_resolution/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 309,
+      "community": 311,
       "community_name": "20260909101500_collaboration_decision_single_resolution",
       "norm_label": "20260909101500_collaboration_decision_single_resolution",
       "graphify_type": "migration"
@@ -32566,7 +33152,7 @@
       "source_file": "migrations/20260909113000_add_collaboration_operation_execution_state/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 310,
+      "community": 312,
       "community_name": "20260909113000_add_collaboration_operation_execution_state",
       "norm_label": "20260909113000_add_collaboration_operation_execution_state",
       "graphify_type": "migration"
@@ -32579,7 +33165,7 @@
       "source_file": "migrations/20260909130000_add_collaboration_step_execution_identity/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 311,
+      "community": 313,
       "community_name": "20260909130000_add_collaboration_step_execution_identity",
       "norm_label": "20260909130000_add_collaboration_step_execution_identity",
       "graphify_type": "migration"
@@ -32592,7 +33178,7 @@
       "source_file": "migrations/20260909143000_add_collaboration_authority_receipts/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 312,
+      "community": 314,
       "community_name": "20260909143000_add_collaboration_authority_receipts",
       "norm_label": "20260909143000_add_collaboration_authority_receipts",
       "graphify_type": "migration"
@@ -32605,7 +33191,7 @@
       "source_file": "migrations/20260909150000_add_collaboration_remote_auth_repair/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 313,
+      "community": 315,
       "community_name": "20260909150000_add_collaboration_remote_auth_repair",
       "norm_label": "20260909150000_add_collaboration_remote_auth_repair",
       "graphify_type": "migration"
@@ -32618,7 +33204,7 @@
       "source_file": "migrations/20260912120000_add_external_analyzer_admission/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 314,
+      "community": 316,
       "community_name": "20260912120000_add_external_analyzer_admission",
       "norm_label": "20260912120000_add_external_analyzer_admission",
       "graphify_type": "migration"
@@ -32631,7 +33217,7 @@
       "source_file": "migrations/20260913090000_add_coordinator_handoff_reconnect_takeover/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 315,
+      "community": 317,
       "community_name": "20260913090000_add_coordinator_handoff_reconnect_takeover",
       "norm_label": "20260913090000_add_coordinator_handoff_reconnect_takeover",
       "graphify_type": "migration"
@@ -32644,7 +33230,7 @@
       "source_file": "migrations/20260913100000_add_external_work_claim_receipts/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 316,
+      "community": 318,
       "community_name": "20260913100000_add_external_work_claim_receipts",
       "norm_label": "20260913100000_add_external_work_claim_receipts",
       "graphify_type": "migration"
@@ -32657,7 +33243,7 @@
       "source_file": "migrations/20260913110000_add_external_submission_acceptances/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 317,
+      "community": 319,
       "community_name": "20260913110000_add_external_submission_acceptances",
       "norm_label": "20260913110000_add_external_submission_acceptances",
       "graphify_type": "migration"
@@ -32670,7 +33256,7 @@
       "source_file": "migrations/20260914090000_add_discovery_auth_transit_policy/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 318,
+      "community": 320,
       "community_name": "20260914090000_add_discovery_auth_transit_policy",
       "norm_label": "20260914090000_add_discovery_auth_transit_policy",
       "graphify_type": "migration"
@@ -32683,7 +33269,7 @@
       "source_file": "migrations/20261002010000_add_capsule_stop_receipt/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 319,
+      "community": 321,
       "community_name": "20261002010000_add_capsule_stop_receipt",
       "norm_label": "20261002010000_add_capsule_stop_receipt",
       "graphify_type": "migration"
@@ -32696,7 +33282,7 @@
       "source_file": "migrations/20261002020000_add_capsule_output_completion/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 320,
+      "community": 322,
       "community_name": "20261002020000_add_capsule_output_completion",
       "norm_label": "20261002020000_add_capsule_output_completion",
       "graphify_type": "migration"
@@ -32709,7 +33295,7 @@
       "source_file": "migrations/20261002020000_add_quality_journey_owned_browser/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 321,
+      "community": 323,
       "community_name": "20261002020000_add_quality_journey_owned_browser",
       "norm_label": "20261002020000_add_quality_journey_owned_browser",
       "graphify_type": "migration"
@@ -32722,7 +33308,7 @@
       "source_file": "migrations/20261019010000_add_host_neutral_journey_sessions/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 322,
+      "community": 324,
       "community_name": "20261019010000_add_host_neutral_journey_sessions",
       "norm_label": "20261019010000_add_host_neutral_journey_sessions",
       "graphify_type": "migration"
@@ -32735,7 +33321,7 @@
       "source_file": "migrations/20261019020000_add_provider_dispatch_wake_intents/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 323,
+      "community": 325,
       "community_name": "20261019020000_add_provider_dispatch_wake_intents",
       "norm_label": "20261019020000_add_provider_dispatch_wake_intents",
       "graphify_type": "migration"
@@ -32748,9 +33334,35 @@
       "source_file": "migrations/20261019030000_add_journey_wake_producers/migration.sql",
       "source_location": "L1",
       "_origin": "prisma-schema",
-      "community": 324,
+      "community": 326,
       "community_name": "20261019030000_add_journey_wake_producers",
       "norm_label": "20261019030000_add_journey_wake_producers",
+      "graphify_type": "migration"
+    },
+    {
+      "id": "prisma_migration_20261021000000_add_provider_source_custody",
+      "label": "20261021000000_add_provider_source_custody",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "migrations/20261021000000_add_provider_source_custody/migration.sql",
+      "source_location": "L1",
+      "_origin": "prisma-schema",
+      "community": 327,
+      "community_name": "20261021000000_add_provider_source_custody",
+      "norm_label": "20261021000000_add_provider_source_custody",
+      "graphify_type": "migration"
+    },
+    {
+      "id": "prisma_migration_20261021010000_add_provider_reconciliation_receipt",
+      "label": "20261021010000_add_provider_reconciliation_receipt",
+      "type": "code",
+      "file_type": "code",
+      "source_file": "migrations/20261021010000_add_provider_reconciliation_receipt/migration.sql",
+      "source_location": "L1",
+      "_origin": "prisma-schema",
+      "community": 328,
+      "community_name": "20261021010000_add_provider_reconciliation_receipt",
+      "norm_label": "20261021010000_add_provider_reconciliation_receipt",
       "graphify_type": "migration"
     }
   ],
@@ -36734,7 +37346,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2898",
+      "source_location": "L2899",
       "weight": 1
     },
     {
@@ -36745,7 +37357,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2931",
+      "source_location": "L2933",
       "weight": 1
     },
     {
@@ -36756,7 +37368,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2943",
+      "source_location": "L2945",
       "weight": 1
     },
     {
@@ -36767,7 +37379,29 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2960",
+      "source_location": "L2964",
+      "weight": 1
+    },
+    {
+      "source": "prisma_schema",
+      "target": "prisma_model_qualityjourneyprovidersourcestate",
+      "relation": "contains",
+      "context": "schema",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2985",
+      "weight": 1
+    },
+    {
+      "source": "prisma_schema",
+      "target": "prisma_model_qualityjourneyprovidersourceledgerrecord",
+      "relation": "contains",
+      "context": "schema",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3017",
       "weight": 1
     },
     {
@@ -86469,6 +87103,39 @@
       "weight": 1
     },
     {
+      "source": "prisma_model_qualityjourneyproviderrun",
+      "target": "prisma_model_qualityjourneyproviderrun_field_custodysources",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2892",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyproviderrun",
+      "target": "prisma_model_qualityjourneyprovidersourcestate",
+      "relation": "relates_to",
+      "context": "relation",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2892",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyproviderrun_field_custodysources",
+      "target": "prisma_model_qualityjourneyprovidersourcestate",
+      "relation": "relation_field_to",
+      "context": "relation",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2892",
+      "weight": 1
+    },
+    {
       "source": "prisma_model_qualityjourneyproviderdispatchintent",
       "target": "prisma_model_qualityjourneyproviderdispatchintent_field_id",
       "relation": "has_field",
@@ -86476,7 +87143,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2899",
+      "source_location": "L2900",
       "weight": 1
     },
     {
@@ -86487,7 +87154,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2899",
+      "source_location": "L2900",
       "weight": 1
     },
     {
@@ -86498,7 +87165,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2899",
+      "source_location": "L2900",
       "weight": 1
     },
     {
@@ -86509,7 +87176,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2900",
+      "source_location": "L2901",
       "weight": 1
     },
     {
@@ -86520,7 +87187,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2900",
+      "source_location": "L2901",
       "weight": 1
     },
     {
@@ -86531,7 +87198,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2901",
+      "source_location": "L2902",
       "weight": 1
     },
     {
@@ -86542,7 +87209,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2901",
+      "source_location": "L2902",
       "weight": 1
     },
     {
@@ -86553,7 +87220,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2902",
+      "source_location": "L2903",
       "weight": 1
     },
     {
@@ -86564,7 +87231,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2902",
+      "source_location": "L2903",
       "weight": 1
     },
     {
@@ -86575,7 +87242,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2903",
+      "source_location": "L2904",
       "weight": 1
     },
     {
@@ -86586,7 +87253,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2903",
+      "source_location": "L2904",
       "weight": 1
     },
     {
@@ -86597,7 +87264,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2904",
+      "source_location": "L2905",
       "weight": 1
     },
     {
@@ -86608,7 +87275,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2904",
+      "source_location": "L2905",
       "weight": 1
     },
     {
@@ -86619,7 +87286,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2905",
+      "source_location": "L2906",
       "weight": 1
     },
     {
@@ -86630,7 +87297,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2905",
+      "source_location": "L2906",
       "weight": 1
     },
     {
@@ -86641,7 +87308,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2906",
+      "source_location": "L2907",
       "weight": 1
     },
     {
@@ -86652,7 +87319,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2906",
+      "source_location": "L2907",
       "weight": 1
     },
     {
@@ -86663,7 +87330,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2907",
+      "source_location": "L2908",
       "weight": 1
     },
     {
@@ -86674,7 +87341,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2907",
+      "source_location": "L2908",
       "weight": 1
     },
     {
@@ -86685,7 +87352,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2908",
+      "source_location": "L2909",
       "weight": 1
     },
     {
@@ -86696,7 +87363,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2908",
+      "source_location": "L2909",
       "weight": 1
     },
     {
@@ -86707,7 +87374,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2909",
+      "source_location": "L2910",
       "weight": 1
     },
     {
@@ -86718,7 +87385,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2909",
+      "source_location": "L2910",
       "weight": 1
     },
     {
@@ -86729,7 +87396,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2909",
+      "source_location": "L2910",
       "weight": 1
     },
     {
@@ -86740,7 +87407,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2910",
+      "source_location": "L2911",
       "weight": 1
     },
     {
@@ -86751,7 +87418,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2910",
+      "source_location": "L2911",
       "weight": 1
     },
     {
@@ -86762,7 +87429,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2911",
+      "source_location": "L2912",
       "weight": 1
     },
     {
@@ -86773,7 +87440,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2911",
+      "source_location": "L2912",
       "weight": 1
     },
     {
@@ -86784,7 +87451,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2912",
+      "source_location": "L2913",
       "weight": 1
     },
     {
@@ -86795,7 +87462,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2912",
+      "source_location": "L2913",
       "weight": 1
     },
     {
@@ -86806,7 +87473,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2913",
+      "source_location": "L2914",
       "weight": 1
     },
     {
@@ -86817,7 +87484,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2913",
+      "source_location": "L2914",
       "weight": 1
     },
     {
@@ -86828,7 +87495,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2914",
+      "source_location": "L2915",
       "weight": 1
     },
     {
@@ -86839,7 +87506,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2914",
+      "source_location": "L2915",
       "weight": 1
     },
     {
@@ -86850,7 +87517,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2915",
+      "source_location": "L2916",
       "weight": 1
     },
     {
@@ -86861,7 +87528,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2915",
+      "source_location": "L2916",
       "weight": 1
     },
     {
@@ -86872,7 +87539,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2916",
+      "source_location": "L2917",
       "weight": 1
     },
     {
@@ -86883,7 +87550,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2916",
+      "source_location": "L2917",
       "weight": 1
     },
     {
@@ -86894,7 +87561,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2917",
+      "source_location": "L2918",
       "weight": 1
     },
     {
@@ -86905,7 +87572,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2917",
+      "source_location": "L2918",
       "weight": 1
     },
     {
@@ -86916,7 +87583,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2918",
+      "source_location": "L2919",
       "weight": 1
     },
     {
@@ -86927,7 +87594,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2918",
+      "source_location": "L2919",
       "weight": 1
     },
     {
@@ -86938,7 +87605,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2919",
+      "source_location": "L2920",
       "weight": 1
     },
     {
@@ -86949,7 +87616,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2919",
+      "source_location": "L2920",
       "weight": 1
     },
     {
@@ -86960,7 +87627,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2920",
+      "source_location": "L2921",
       "weight": 1
     },
     {
@@ -86971,7 +87638,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2920",
+      "source_location": "L2921",
       "weight": 1
     },
     {
@@ -86982,7 +87649,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2920",
+      "source_location": "L2921",
       "weight": 1
     },
     {
@@ -86993,7 +87660,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2920",
+      "source_location": "L2921",
       "weight": 1
     },
     {
@@ -87004,7 +87671,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2920",
+      "source_location": "L2921",
       "weight": 1
     },
     {
@@ -87015,7 +87682,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2921",
+      "source_location": "L2922",
       "weight": 1
     },
     {
@@ -87026,7 +87693,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2921",
+      "source_location": "L2922",
       "weight": 1
     },
     {
@@ -87037,7 +87704,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2921",
+      "source_location": "L2922",
       "weight": 1
     },
     {
@@ -87048,7 +87715,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2922",
+      "source_location": "L2923",
       "weight": 1
     },
     {
@@ -87059,7 +87726,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2922",
+      "source_location": "L2923",
       "weight": 1
     },
     {
@@ -87070,7 +87737,40 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2922",
+      "source_location": "L2923",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyproviderdispatchintent",
+      "target": "prisma_model_qualityjourneyproviderdispatchintent_field_custodysource",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2924",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyproviderdispatchintent",
+      "target": "prisma_model_qualityjourneyprovidersourcestate",
+      "relation": "relates_to",
+      "context": "relation",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2924",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyproviderdispatchintent_field_custodysource",
+      "target": "prisma_model_qualityjourneyprovidersourcestate",
+      "relation": "relation_field_to",
+      "context": "relation",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2924",
       "weight": 1
     },
     {
@@ -87081,7 +87781,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2932",
+      "source_location": "L2934",
       "weight": 1
     },
     {
@@ -87092,7 +87792,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2932",
+      "source_location": "L2934",
       "weight": 1
     },
     {
@@ -87103,7 +87803,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2932",
+      "source_location": "L2934",
       "weight": 1
     },
     {
@@ -87114,7 +87814,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2933",
+      "source_location": "L2935",
       "weight": 1
     },
     {
@@ -87125,7 +87825,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2933",
+      "source_location": "L2935",
       "weight": 1
     },
     {
@@ -87136,7 +87836,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2933",
+      "source_location": "L2935",
       "weight": 1
     },
     {
@@ -87147,7 +87847,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2934",
+      "source_location": "L2936",
       "weight": 1
     },
     {
@@ -87158,7 +87858,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2934",
+      "source_location": "L2936",
       "weight": 1
     },
     {
@@ -87169,7 +87869,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2934",
+      "source_location": "L2936",
       "weight": 1
     },
     {
@@ -87180,7 +87880,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2935",
+      "source_location": "L2937",
       "weight": 1
     },
     {
@@ -87191,7 +87891,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2935",
+      "source_location": "L2937",
       "weight": 1
     },
     {
@@ -87202,7 +87902,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2936",
+      "source_location": "L2938",
       "weight": 1
     },
     {
@@ -87213,7 +87913,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2936",
+      "source_location": "L2938",
       "weight": 1
     },
     {
@@ -87224,7 +87924,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2937",
+      "source_location": "L2939",
       "weight": 1
     },
     {
@@ -87235,7 +87935,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2937",
+      "source_location": "L2939",
       "weight": 1
     },
     {
@@ -87246,7 +87946,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2938",
+      "source_location": "L2940",
       "weight": 1
     },
     {
@@ -87257,7 +87957,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2938",
+      "source_location": "L2940",
       "weight": 1
     },
     {
@@ -87268,7 +87968,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2938",
+      "source_location": "L2940",
       "weight": 1
     },
     {
@@ -87279,7 +87979,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2938",
+      "source_location": "L2940",
       "weight": 1
     },
     {
@@ -87290,7 +87990,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2938",
+      "source_location": "L2940",
       "weight": 1
     },
     {
@@ -87301,7 +88001,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2939",
+      "source_location": "L2941",
       "weight": 1
     },
     {
@@ -87312,7 +88012,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2939",
+      "source_location": "L2941",
       "weight": 1
     },
     {
@@ -87323,7 +88023,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2939",
+      "source_location": "L2941",
       "weight": 1
     },
     {
@@ -87334,7 +88034,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2939",
+      "source_location": "L2941",
       "weight": 1
     },
     {
@@ -87345,7 +88045,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2939",
+      "source_location": "L2941",
       "weight": 1
     },
     {
@@ -87356,7 +88056,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2944",
+      "source_location": "L2946",
       "weight": 1
     },
     {
@@ -87367,7 +88067,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2944",
+      "source_location": "L2946",
       "weight": 1
     },
     {
@@ -87378,7 +88078,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2944",
+      "source_location": "L2946",
       "weight": 1
     },
     {
@@ -87389,7 +88089,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2945",
+      "source_location": "L2947",
       "weight": 1
     },
     {
@@ -87400,7 +88100,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2945",
+      "source_location": "L2947",
       "weight": 1
     },
     {
@@ -87411,7 +88111,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2946",
+      "source_location": "L2948",
       "weight": 1
     },
     {
@@ -87422,7 +88122,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2946",
+      "source_location": "L2948",
       "weight": 1
     },
     {
@@ -87433,7 +88133,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2947",
+      "source_location": "L2949",
       "weight": 1
     },
     {
@@ -87444,7 +88144,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2947",
+      "source_location": "L2949",
       "weight": 1
     },
     {
@@ -87455,7 +88155,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2948",
+      "source_location": "L2950",
       "weight": 1
     },
     {
@@ -87466,7 +88166,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2948",
+      "source_location": "L2950",
       "weight": 1
     },
     {
@@ -87477,7 +88177,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2949",
+      "source_location": "L2951",
       "weight": 1
     },
     {
@@ -87488,7 +88188,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2949",
+      "source_location": "L2951",
       "weight": 1
     },
     {
@@ -87499,7 +88199,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2950",
+      "source_location": "L2952",
       "weight": 1
     },
     {
@@ -87510,7 +88210,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2950",
+      "source_location": "L2952",
       "weight": 1
     },
     {
@@ -87521,7 +88221,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2951",
+      "source_location": "L2953",
       "weight": 1
     },
     {
@@ -87532,7 +88232,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2951",
+      "source_location": "L2953",
       "weight": 1
     },
     {
@@ -87543,7 +88243,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2952",
+      "source_location": "L2954",
       "weight": 1
     },
     {
@@ -87554,7 +88254,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2952",
+      "source_location": "L2954",
       "weight": 1
     },
     {
@@ -87565,7 +88265,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2953",
+      "source_location": "L2955",
       "weight": 1
     },
     {
@@ -87576,7 +88276,29 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2953",
+      "source_location": "L2955",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyproviderobservation",
+      "target": "prisma_model_qualityjourneyproviderobservation_field_reconciliationjson",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2956",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyproviderobservation_field_reconciliationjson",
+      "target": "prisma_scalar_string",
+      "relation": "uses_scalar",
+      "context": "field_type",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2956",
       "weight": 1
     },
     {
@@ -87587,7 +88309,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2954",
+      "source_location": "L2957",
       "weight": 1
     },
     {
@@ -87598,7 +88320,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2954",
+      "source_location": "L2957",
       "weight": 1
     },
     {
@@ -87609,7 +88331,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2955",
+      "source_location": "L2958",
       "weight": 1
     },
     {
@@ -87620,7 +88342,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2955",
+      "source_location": "L2958",
       "weight": 1
     },
     {
@@ -87631,7 +88353,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2955",
+      "source_location": "L2958",
       "weight": 1
     },
     {
@@ -87642,7 +88364,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2955",
+      "source_location": "L2958",
       "weight": 1
     },
     {
@@ -87653,7 +88375,40 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2955",
+      "source_location": "L2958",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyproviderobservation",
+      "target": "prisma_model_qualityjourneyproviderobservation_field_committedsource",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2959",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyproviderobservation",
+      "target": "prisma_model_qualityjourneyprovidersourcestate",
+      "relation": "relates_to",
+      "context": "relation",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2959",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyproviderobservation_field_committedsource",
+      "target": "prisma_model_qualityjourneyprovidersourcestate",
+      "relation": "relation_field_to",
+      "context": "relation",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2959",
       "weight": 1
     },
     {
@@ -87664,7 +88419,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2961",
+      "source_location": "L2965",
       "weight": 1
     },
     {
@@ -87675,7 +88430,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2961",
+      "source_location": "L2965",
       "weight": 1
     },
     {
@@ -87686,7 +88441,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2961",
+      "source_location": "L2965",
       "weight": 1
     },
     {
@@ -87697,7 +88452,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2962",
+      "source_location": "L2966",
       "weight": 1
     },
     {
@@ -87708,7 +88463,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2962",
+      "source_location": "L2966",
       "weight": 1
     },
     {
@@ -87719,7 +88474,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2963",
+      "source_location": "L2967",
       "weight": 1
     },
     {
@@ -87730,7 +88485,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2963",
+      "source_location": "L2967",
       "weight": 1
     },
     {
@@ -87741,7 +88496,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2964",
+      "source_location": "L2968",
       "weight": 1
     },
     {
@@ -87752,7 +88507,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2964",
+      "source_location": "L2968",
       "weight": 1
     },
     {
@@ -87763,7 +88518,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2965",
+      "source_location": "L2969",
       "weight": 1
     },
     {
@@ -87774,7 +88529,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2965",
+      "source_location": "L2969",
       "weight": 1
     },
     {
@@ -87785,7 +88540,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2966",
+      "source_location": "L2970",
       "weight": 1
     },
     {
@@ -87796,7 +88551,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2966",
+      "source_location": "L2970",
       "weight": 1
     },
     {
@@ -87807,7 +88562,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2967",
+      "source_location": "L2971",
       "weight": 1
     },
     {
@@ -87818,7 +88573,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2967",
+      "source_location": "L2971",
       "weight": 1
     },
     {
@@ -87829,7 +88584,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2968",
+      "source_location": "L2972",
       "weight": 1
     },
     {
@@ -87840,7 +88595,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2968",
+      "source_location": "L2972",
       "weight": 1
     },
     {
@@ -87851,7 +88606,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2969",
+      "source_location": "L2973",
       "weight": 1
     },
     {
@@ -87862,7 +88617,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2969",
+      "source_location": "L2973",
       "weight": 1
     },
     {
@@ -87873,7 +88628,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2970",
+      "source_location": "L2974",
       "weight": 1
     },
     {
@@ -87884,7 +88639,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2970",
+      "source_location": "L2974",
       "weight": 1
     },
     {
@@ -87895,7 +88650,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2971",
+      "source_location": "L2975",
       "weight": 1
     },
     {
@@ -87906,7 +88661,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2971",
+      "source_location": "L2975",
       "weight": 1
     },
     {
@@ -87917,7 +88672,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2972",
+      "source_location": "L2976",
       "weight": 1
     },
     {
@@ -87928,7 +88683,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2972",
+      "source_location": "L2976",
       "weight": 1
     },
     {
@@ -87939,7 +88694,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2973",
+      "source_location": "L2977",
       "weight": 1
     },
     {
@@ -87950,7 +88705,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2973",
+      "source_location": "L2977",
       "weight": 1
     },
     {
@@ -87961,7 +88716,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2974",
+      "source_location": "L2978",
       "weight": 1
     },
     {
@@ -87972,7 +88727,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2974",
+      "source_location": "L2978",
       "weight": 1
     },
     {
@@ -87983,7 +88738,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2974",
+      "source_location": "L2978",
       "weight": 1
     },
     {
@@ -87994,7 +88749,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2974",
+      "source_location": "L2978",
       "weight": 1
     },
     {
@@ -88005,7 +88760,1008 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1,
       "source_file": "schema.prisma",
-      "source_location": "L2974",
+      "source_location": "L2978",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate",
+      "target": "prisma_model_qualityjourneyprovidersourcestate_field_sourceid",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2986",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_sourceid",
+      "target": "prisma_model_qualityjourneyprovidersourcestate",
+      "relation": "primary_key_for",
+      "context": "constraint",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2986",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_sourceid",
+      "target": "prisma_scalar_string",
+      "relation": "uses_scalar",
+      "context": "field_type",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2986",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate",
+      "target": "prisma_model_qualityjourneyprovidersourcestate_field_sourceincarnation",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2987",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_sourceincarnation",
+      "target": "prisma_model_qualityjourneyprovidersourcestate",
+      "relation": "unique_for",
+      "context": "constraint",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2987",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_sourceincarnation",
+      "target": "prisma_scalar_string",
+      "relation": "uses_scalar",
+      "context": "field_type",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2987",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate",
+      "target": "prisma_model_qualityjourneyprovidersourcestate_field_providerrunid",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2988",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_providerrunid",
+      "target": "prisma_scalar_string",
+      "relation": "uses_scalar",
+      "context": "field_type",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2988",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate",
+      "target": "prisma_model_qualityjourneyprovidersourcestate_field_intentid",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2989",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_intentid",
+      "target": "prisma_model_qualityjourneyprovidersourcestate",
+      "relation": "unique_for",
+      "context": "constraint",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2989",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_intentid",
+      "target": "prisma_scalar_string",
+      "relation": "uses_scalar",
+      "context": "field_type",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2989",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate",
+      "target": "prisma_model_qualityjourneyprovidersourcestate_field_providernamespace",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2990",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_providernamespace",
+      "target": "prisma_model_qualityjourneyprovidersourcestate",
+      "relation": "unique_for",
+      "context": "constraint",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2990",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_providernamespace",
+      "target": "prisma_scalar_string",
+      "relation": "uses_scalar",
+      "context": "field_type",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2990",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate",
+      "target": "prisma_model_qualityjourneyprovidersourcestate_field_identityjson",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2991",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_identityjson",
+      "target": "prisma_scalar_string",
+      "relation": "uses_scalar",
+      "context": "field_type",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2991",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate",
+      "target": "prisma_model_qualityjourneyprovidersourcestate_field_protocoldigest",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2992",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_protocoldigest",
+      "target": "prisma_scalar_string",
+      "relation": "uses_scalar",
+      "context": "field_type",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2992",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate",
+      "target": "prisma_model_qualityjourneyprovidersourcestate_field_qualificationdigest",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2993",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_qualificationdigest",
+      "target": "prisma_scalar_string",
+      "relation": "uses_scalar",
+      "context": "field_type",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2993",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate",
+      "target": "prisma_model_qualityjourneyprovidersourcestate_field_epoch",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2994",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_epoch",
+      "target": "prisma_scalar_int",
+      "relation": "uses_scalar",
+      "context": "field_type",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2994",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate",
+      "target": "prisma_model_qualityjourneyprovidersourcestate_field_lifecycle",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2995",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_lifecycle",
+      "target": "prisma_scalar_string",
+      "relation": "uses_scalar",
+      "context": "field_type",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2995",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate",
+      "target": "prisma_model_qualityjourneyprovidersourcestate_field_sequence",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2996",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_sequence",
+      "target": "prisma_scalar_int",
+      "relation": "uses_scalar",
+      "context": "field_type",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2996",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate",
+      "target": "prisma_model_qualityjourneyprovidersourcestate_field_head",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2997",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_head",
+      "target": "prisma_scalar_string",
+      "relation": "uses_scalar",
+      "context": "field_type",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2997",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate",
+      "target": "prisma_model_qualityjourneyprovidersourcestate_field_bytecount",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2998",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_bytecount",
+      "target": "prisma_scalar_int",
+      "relation": "uses_scalar",
+      "context": "field_type",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2998",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate",
+      "target": "prisma_model_qualityjourneyprovidersourcestate_field_sealedhead",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2999",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_sealedhead",
+      "target": "prisma_scalar_string",
+      "relation": "uses_scalar",
+      "context": "field_type",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L2999",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate",
+      "target": "prisma_model_qualityjourneyprovidersourcestate_field_sealedenvelopedigest",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3000",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_sealedenvelopedigest",
+      "target": "prisma_scalar_string",
+      "relation": "uses_scalar",
+      "context": "field_type",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3000",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate",
+      "target": "prisma_model_qualityjourneyprovidersourcestate_field_commitfenceversion",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3001",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_commitfenceversion",
+      "target": "prisma_scalar_int",
+      "relation": "uses_scalar",
+      "context": "field_type",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3001",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate",
+      "target": "prisma_model_qualityjourneyprovidersourcestate_field_committedobservationid",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3002",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_committedobservationid",
+      "target": "prisma_model_qualityjourneyprovidersourcestate",
+      "relation": "unique_for",
+      "context": "constraint",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3002",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_committedobservationid",
+      "target": "prisma_scalar_string",
+      "relation": "uses_scalar",
+      "context": "field_type",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3002",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate",
+      "target": "prisma_model_qualityjourneyprovidersourcestate_field_committedrequesthash",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3003",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_committedrequesthash",
+      "target": "prisma_scalar_string",
+      "relation": "uses_scalar",
+      "context": "field_type",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3003",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate",
+      "target": "prisma_model_qualityjourneyprovidersourcestate_field_pendingbatchid",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3004",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_pendingbatchid",
+      "target": "prisma_model_qualityjourneyprovidersourcestate",
+      "relation": "unique_for",
+      "context": "constraint",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3004",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_pendingbatchid",
+      "target": "prisma_scalar_string",
+      "relation": "uses_scalar",
+      "context": "field_type",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3004",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate",
+      "target": "prisma_model_qualityjourneyprovidersourcestate_field_pendingbatchstarthead",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3005",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_pendingbatchstarthead",
+      "target": "prisma_scalar_string",
+      "relation": "uses_scalar",
+      "context": "field_type",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3005",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate",
+      "target": "prisma_model_qualityjourneyprovidersourcestate_field_pendingbatchrecordallowance",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3006",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_pendingbatchrecordallowance",
+      "target": "prisma_scalar_int",
+      "relation": "uses_scalar",
+      "context": "field_type",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3006",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate",
+      "target": "prisma_model_qualityjourneyprovidersourcestate_field_pendingbatchbyteallowance",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3007",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_pendingbatchbyteallowance",
+      "target": "prisma_scalar_int",
+      "relation": "uses_scalar",
+      "context": "field_type",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3007",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate",
+      "target": "prisma_model_qualityjourneyprovidersourcestate_field_pendingbatchrequestdigest",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3008",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_pendingbatchrequestdigest",
+      "target": "prisma_scalar_string",
+      "relation": "uses_scalar",
+      "context": "field_type",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3008",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate",
+      "target": "prisma_model_qualityjourneyprovidersourcestate_field_createdat",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3009",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_createdat",
+      "target": "prisma_scalar_datetime",
+      "relation": "uses_scalar",
+      "context": "field_type",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3009",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate",
+      "target": "prisma_model_qualityjourneyprovidersourcestate_field_run",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3010",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate",
+      "target": "prisma_model_qualityjourneyproviderrun",
+      "relation": "relates_to",
+      "context": "relation",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3010",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_run",
+      "target": "prisma_model_qualityjourneyproviderrun",
+      "relation": "relation_field_to",
+      "context": "relation",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3010",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_providerrunid",
+      "target": "prisma_model_qualityjourneyproviderrun",
+      "relation": "foreign_key_to",
+      "context": "foreign_key",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3010",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_run",
+      "target": "prisma_model_qualityjourneyproviderrun_field_id",
+      "relation": "references_field",
+      "context": "foreign_key",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3010",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate",
+      "target": "prisma_model_qualityjourneyprovidersourcestate_field_intent",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3011",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate",
+      "target": "prisma_model_qualityjourneyproviderdispatchintent",
+      "relation": "relates_to",
+      "context": "relation",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3011",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_intent",
+      "target": "prisma_model_qualityjourneyproviderdispatchintent",
+      "relation": "relation_field_to",
+      "context": "relation",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3011",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_intentid",
+      "target": "prisma_model_qualityjourneyproviderdispatchintent",
+      "relation": "foreign_key_to",
+      "context": "foreign_key",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3011",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_intent",
+      "target": "prisma_model_qualityjourneyproviderdispatchintent_field_id",
+      "relation": "references_field",
+      "context": "foreign_key",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3011",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate",
+      "target": "prisma_model_qualityjourneyprovidersourcestate_field_committedobservation",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3012",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate",
+      "target": "prisma_model_qualityjourneyproviderobservation",
+      "relation": "relates_to",
+      "context": "relation",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3012",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_committedobservation",
+      "target": "prisma_model_qualityjourneyproviderobservation",
+      "relation": "relation_field_to",
+      "context": "relation",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3012",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_committedobservationid",
+      "target": "prisma_model_qualityjourneyproviderobservation",
+      "relation": "foreign_key_to",
+      "context": "foreign_key",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3012",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_committedobservation",
+      "target": "prisma_model_qualityjourneyproviderobservation_field_id",
+      "relation": "references_field",
+      "context": "foreign_key",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3012",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate",
+      "target": "prisma_model_qualityjourneyprovidersourcestate_field_records",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3013",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate",
+      "target": "prisma_model_qualityjourneyprovidersourceledgerrecord",
+      "relation": "relates_to",
+      "context": "relation",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3013",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourcestate_field_records",
+      "target": "prisma_model_qualityjourneyprovidersourceledgerrecord",
+      "relation": "relation_field_to",
+      "context": "relation",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3013",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourceledgerrecord",
+      "target": "prisma_model_qualityjourneyprovidersourceledgerrecord_field_sourceid",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3018",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourceledgerrecord_field_sourceid",
+      "target": "prisma_scalar_string",
+      "relation": "uses_scalar",
+      "context": "field_type",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3018",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourceledgerrecord",
+      "target": "prisma_model_qualityjourneyprovidersourceledgerrecord_field_sequence",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3019",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourceledgerrecord_field_sequence",
+      "target": "prisma_scalar_int",
+      "relation": "uses_scalar",
+      "context": "field_type",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3019",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourceledgerrecord",
+      "target": "prisma_model_qualityjourneyprovidersourceledgerrecord_field_previoushead",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3020",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourceledgerrecord_field_previoushead",
+      "target": "prisma_scalar_string",
+      "relation": "uses_scalar",
+      "context": "field_type",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3020",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourceledgerrecord",
+      "target": "prisma_model_qualityjourneyprovidersourceledgerrecord_field_head",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3021",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourceledgerrecord_field_head",
+      "target": "prisma_scalar_string",
+      "relation": "uses_scalar",
+      "context": "field_type",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3021",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourceledgerrecord",
+      "target": "prisma_model_qualityjourneyprovidersourceledgerrecord_field_kind",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3022",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourceledgerrecord_field_kind",
+      "target": "prisma_scalar_string",
+      "relation": "uses_scalar",
+      "context": "field_type",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3022",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourceledgerrecord",
+      "target": "prisma_model_qualityjourneyprovidersourceledgerrecord_field_datajson",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3023",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourceledgerrecord_field_datajson",
+      "target": "prisma_scalar_string",
+      "relation": "uses_scalar",
+      "context": "field_type",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3023",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourceledgerrecord",
+      "target": "prisma_model_qualityjourneyprovidersourceledgerrecord_field_bytecount",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3024",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourceledgerrecord_field_bytecount",
+      "target": "prisma_scalar_int",
+      "relation": "uses_scalar",
+      "context": "field_type",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3024",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourceledgerrecord",
+      "target": "prisma_model_qualityjourneyprovidersourceledgerrecord_field_source",
+      "relation": "has_field",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3025",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourceledgerrecord",
+      "target": "prisma_model_qualityjourneyprovidersourcestate",
+      "relation": "relates_to",
+      "context": "relation",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3025",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourceledgerrecord_field_source",
+      "target": "prisma_model_qualityjourneyprovidersourcestate",
+      "relation": "relation_field_to",
+      "context": "relation",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3025",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourceledgerrecord_field_sourceid",
+      "target": "prisma_model_qualityjourneyprovidersourcestate",
+      "relation": "foreign_key_to",
+      "context": "foreign_key",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3025",
+      "weight": 1
+    },
+    {
+      "source": "prisma_model_qualityjourneyprovidersourceledgerrecord_field_source",
+      "target": "prisma_model_qualityjourneyprovidersourcestate_field_sourceid",
+      "relation": "references_field",
+      "context": "foreign_key",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "schema.prisma",
+      "source_location": "L3025",
       "weight": 1
     },
     {
@@ -92726,8 +94482,63 @@
       "source_file": "migrations/20261019030000_add_journey_wake_producers/migration.sql",
       "source_location": "L1",
       "weight": 1
+    },
+    {
+      "source": "prisma_schema",
+      "target": "prisma_migration_20261021000000_add_provider_source_custody",
+      "relation": "has_migration",
+      "context": "migration",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "migrations/20261021000000_add_provider_source_custody/migration.sql",
+      "source_location": "L1",
+      "weight": 1
+    },
+    {
+      "source": "prisma_migration_20261021000000_add_provider_source_custody",
+      "target": "prisma_model_qualityjourneyprovidersourceledgerrecord",
+      "relation": "migrates_model",
+      "context": "migration",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "migrations/20261021000000_add_provider_source_custody/migration.sql",
+      "source_location": "L1",
+      "weight": 1
+    },
+    {
+      "source": "prisma_migration_20261021000000_add_provider_source_custody",
+      "target": "prisma_model_qualityjourneyprovidersourcestate",
+      "relation": "migrates_model",
+      "context": "migration",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "migrations/20261021000000_add_provider_source_custody/migration.sql",
+      "source_location": "L1",
+      "weight": 1
+    },
+    {
+      "source": "prisma_schema",
+      "target": "prisma_migration_20261021010000_add_provider_reconciliation_receipt",
+      "relation": "has_migration",
+      "context": "migration",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "migrations/20261021010000_add_provider_reconciliation_receipt/migration.sql",
+      "source_location": "L1",
+      "weight": 1
+    },
+    {
+      "source": "prisma_migration_20261021010000_add_provider_reconciliation_receipt",
+      "target": "prisma_model_qualityjourneyproviderobservation",
+      "relation": "migrates_model",
+      "context": "migration",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1,
+      "source_file": "migrations/20261021010000_add_provider_reconciliation_receipt/migration.sql",
+      "source_location": "L1",
+      "weight": 1
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "7569ef56"
+  "built_at_commit": "a6ed2095"
 }
