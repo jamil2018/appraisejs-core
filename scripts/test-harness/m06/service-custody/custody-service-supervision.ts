@@ -141,7 +141,7 @@ export function launchServiceOwner(
     detached: true,
     cwd: specification.cwd,
     stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
-    env: specification.environment,
+    env: specification.environment as unknown as NodeJS.ProcessEnv,
   }
   const originalFork = effects.fork
   try {

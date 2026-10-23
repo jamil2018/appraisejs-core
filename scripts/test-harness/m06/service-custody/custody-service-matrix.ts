@@ -207,7 +207,7 @@ export function createServiceMatrix(
         execFileSync(
           process.execPath,
           ['scripts/test-harness/m06/service-custody/build-custody-service-owner.mjs', directory],
-          { cwd: process.cwd(), env: { PATH: process.env.PATH }, stdio: 'pipe' },
+          { cwd: process.cwd(), env: { PATH: process.env.PATH } as unknown as NodeJS.ProcessEnv, stdio: 'pipe' },
         )
       }
       manifest = JSON.parse(readFileSync(path.join(directory, 'owner-manifest.json'), 'utf8')) as ServiceMatrixManifest
@@ -231,7 +231,7 @@ export function createServiceMatrix(
             verificationDirectory,
             manifest.generated,
           ],
-          { cwd: process.cwd(), env: { PATH: process.env.PATH }, stdio: 'pipe' },
+          { cwd: process.cwd(), env: { PATH: process.env.PATH } as unknown as NodeJS.ProcessEnv, stdio: 'pipe' },
         )
         const rebuilt = JSON.parse(
           readFileSync(path.join(verificationDirectory, 'owner-manifest.json'), 'utf8'),
@@ -1168,7 +1168,12 @@ export function createServiceMatrix(
             ? 'ORIGINAL_COMPOSITION16Z'
             : 'ORIGINAL_C1',
       ],
-      { cwd: process.cwd(), env: { PATH: process.env.PATH }, encoding: 'utf8', maxBuffer: 1024 * 1024 },
+      {
+        cwd: process.cwd(),
+        env: { PATH: process.env.PATH } as unknown as NodeJS.ProcessEnv,
+        encoding: 'utf8',
+        maxBuffer: 1024 * 1024,
+      },
     )
     const result = JSON.parse(inspected) as Record<string, unknown>
     writeFileSync(path.join(workspace, 'inspection.json'), JSON.stringify(result, null, 2) + '\n')

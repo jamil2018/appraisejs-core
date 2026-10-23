@@ -283,7 +283,7 @@ class NativeContender {
         execPath: process.execPath,
         execArgv: [],
         stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
-        env: { PATH: process.env.PATH },
+        env: { PATH: process.env.PATH } as unknown as NodeJS.ProcessEnv,
       }),
     )
     retained.push(this.child)
@@ -525,7 +525,7 @@ async function createOriginalFixture() {
   admitActual('custody-service-owner.ts:288:3:operation', () =>
     execFileSync(process.execPath, ['e2e/apply-migrations.mjs'], {
       cwd: admitActual('custody-service-owner.ts:289:10:operation', () => process.cwd()),
-      env: { PATH: process.env.PATH, DATABASE_URL: `file:${databasePath}` },
+      env: { PATH: process.env.PATH, DATABASE_URL: `file:${databasePath}` } as unknown as NodeJS.ProcessEnv,
       stdio: 'pipe',
     }),
   )
@@ -942,7 +942,7 @@ async function prepareWrongOriginalClient() {
   admitActual('16h:other-database-migrations', () =>
     execFileSync(process.execPath, ['e2e/apply-migrations.mjs'], {
       cwd: process.cwd(),
-      env: { PATH: process.env.PATH, DATABASE_URL: `file:${filename}` },
+      env: { PATH: process.env.PATH, DATABASE_URL: `file:${filename}` } as unknown as NodeJS.ProcessEnv,
       stdio: 'pipe',
     }),
   )
