@@ -1,0 +1,102 @@
+{
+  "version": 2,
+  "status": "CANDIDATE_COMPILE_UNVERIFIED",
+  "sourceRevision": "4ebc485ca321243727539187169425fcf972f2c4",
+  "sourceTree": "0cab0734fd471b47b59ecc4d7b257ab5034aad77",
+  "existingManifestSha256": "af814d2aaec52be84ed4db4114a2eb6d50e38ac32aa8968a13006f5e8a9a4109",
+  "additions": [
+    {
+      "path": "codex-rs/app-server/src/m06_outcome.rs",
+      "preimage": "ABSENT",
+      "mode": "100644",
+      "length": 2716,
+      "sha256": "6511f4bee09dc119337a7f371ac487a41162fb8b3dd36ca0d973c59f9ea7c023",
+      "payload": "additions/codex-rs/app-server/src/m06_outcome.rs"
+    },
+    {
+      "path": "codex-rs/app-server/src/m06_outcome_tests.rs",
+      "preimage": "ABSENT",
+      "mode": "100644",
+      "length": 39764,
+      "sha256": "cb1d06a7d77fcb7f4a9e779e4a102ca83a3d5926ee635b24a9c2fbc43243c574",
+      "payload": "additions/codex-rs/app-server/src/m06_outcome_tests.rs"
+    },
+    {
+      "path": "codex-rs/http-client/src/m06_outcome.rs",
+      "preimage": "ABSENT",
+      "mode": "100644",
+      "length": 105927,
+      "sha256": "3d17ca84d2ce9de859cfc2f0892924ee1226b5446fe0d637abdb37e0af0e365c",
+      "payload": "additions/codex-rs/http-client/src/m06_outcome.rs"
+    },
+    {
+      "path": "codex-rs/http-client/src/m06_outcome_tests.rs",
+      "preimage": "ABSENT",
+      "mode": "100644",
+      "length": 55456,
+      "sha256": "e90f14cb4223f5e481addeb00348631aa0834aafef0c773e113bf5dfd17b5c9f",
+      "payload": "additions/codex-rs/http-client/src/m06_outcome_tests.rs"
+    },
+    {
+      "path": "codex-rs/rmcp-client/src/inherited_owner_transport.rs",
+      "preimage": "ABSENT",
+      "mode": "100644",
+      "length": 3434,
+      "sha256": "70f8f2e482499760208eff84f95038230ea9d3265522fb514a2bd50042391af4",
+      "payload": "additions/codex-rs/rmcp-client/src/inherited_owner_transport.rs"
+    },
+    {
+      "path": "codex-rs/rmcp-client/src/inherited_owner_transport_tests.rs",
+      "preimage": "ABSENT",
+      "mode": "100644",
+      "length": 1642,
+      "sha256": "c0a3c5d1c73f9e4984a3fedbfe39f597a20ba5342fd8b9ff74b65185d8e4035e",
+      "payload": "additions/codex-rs/rmcp-client/src/inherited_owner_transport_tests.rs"
+    },
+    {
+      "path": "codex-rs/websocket-client/src/m06_io.rs",
+      "preimage": "ABSENT",
+      "mode": "100644",
+      "length": 4831,
+      "sha256": "b7c38146c20fffd8b4d70c8b6d8568d7f41e7990b28ac394d79847b0659fabf8",
+      "payload": "additions/codex-rs/websocket-client/src/m06_io.rs"
+    },
+    {
+      "path": "codex-rs/websocket-client/src/m06_io_tests.rs",
+      "preimage": "ABSENT",
+      "mode": "100644",
+      "length": 2392,
+      "sha256": "6ec6f69f24a9a818ea1d69d286eb248f768a49cf67b967575997a8d8ae499924",
+      "payload": "additions/codex-rs/websocket-client/src/m06_io_tests.rs"
+    }
+  ],
+  "verification": {
+    "rustCompilation": "UNEXECUTED",
+    "rustTests": "UNEXECUTED",
+    "rustFormatting": "UNEXECUTED",
+    "lockedBuildCoherence": "UNEXECUTED",
+    "nativeExecution": false,
+    "runtimeQualified": false,
+    "productionIssuerAvailable": false,
+    "reason": "Fresh additive packaging only. Prior final-source development checks are separately pinned historical DATA; current generic12 assembly/compilation/tests have not run.",
+    "completeSourceInventorySha256": "d53f1e7bcc3a13fa9a98d33e918a90dd714febd3a64d89b42e861dc78ee7fb0d",
+    "priorFinalSourceDevelopmentChecks": {
+      "compile": {
+        "status": "PASS",
+        "scope": "Current source21 eight selected library test targets compiled offline with --lib --no-run; zero tests/harness starts. Production20 CHECK5 separately PASS; source21 differs by one cfg(test)-only file per pinned proof, not a standalone production21 check claim.",
+        "receipt": {
+          "filename": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m06-work/evidence/m06-native-source21-test-compile-operations3/root-host-actual1.json",
+          "sha256": "620cb695886a597edb91a6469eb7017b604a73de66d9c1ad6122ca550bb21cb9"
+        }
+      },
+      "tests": {
+        "status": "PASS",
+        "scope": "Exactly four named pure unit filters from source21 library test executables, one PASS each; custody PASS; no full suite/native product/provider qualification.",
+        "receipt": {
+          "filename": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m06-work/evidence/m06-native-pure-unit-operations1/actual1/result.json",
+          "sha256": "73c147ce0f16cb41389ac599966f59a27bf57df642cf0df8e9e24713301fd7a2"
+        }
+      }
+    }
+  }
+}

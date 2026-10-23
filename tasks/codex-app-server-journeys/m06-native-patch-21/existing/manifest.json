@@ -1,0 +1,666 @@
+{
+  "version": 1,
+  "status": "CANDIDATE_COMPILE_UNVERIFIED",
+  "sourceRevision": "4ebc485ca321243727539187169425fcf972f2c4",
+  "sourceTree": "0cab0734fd471b47b59ecc4d7b257ab5034aad77",
+  "patchSha256": "d03811c2b05c7cb1526d66e0936df9ea0d9f1b1d67c50605e04ddcb3ed9c0c80",
+  "changedPaths": [
+    "codex-rs/Cargo.lock",
+    "codex-rs/app-server-transport/src/transport/stdio.rs",
+    "codex-rs/app-server/src/in_process.rs",
+    "codex-rs/app-server/src/lib.rs",
+    "codex-rs/app-server/src/main.rs",
+    "codex-rs/app-server/src/message_processor.rs",
+    "codex-rs/app-server/src/message_processor_workspace_routing_tests.rs",
+    "codex-rs/app-server/src/request_processors/thread_processor.rs",
+    "codex-rs/app-server/src/turn_cost_worker.rs",
+    "codex-rs/codex-api/src/endpoint/responses.rs",
+    "codex-rs/codex-api/src/endpoint/responses_websocket.rs",
+    "codex-rs/codex-api/src/endpoint/responses_websocket/connector.rs",
+    "codex-rs/codex-api/src/endpoint/session.rs",
+    "codex-rs/codex-api/src/sse/responses.rs",
+    "codex-rs/codex-mcp/Cargo.toml",
+    "codex-rs/codex-mcp/src/binding.rs",
+    "codex-rs/codex-mcp/src/binding_tests.rs",
+    "codex-rs/codex-mcp/src/connection_manager.rs",
+    "codex-rs/codex-mcp/src/rmcp_client.rs",
+    "codex-rs/core/src/agent/control/spawn.rs",
+    "codex-rs/core/src/client.rs",
+    "codex-rs/core/src/client_common.rs",
+    "codex-rs/core/src/client_common_tests.rs",
+    "codex-rs/core/src/compact.rs",
+    "codex-rs/core/src/compact_remote_v2.rs",
+    "codex-rs/core/src/config/mod.rs",
+    "codex-rs/core/src/mcp_tool_call.rs",
+    "codex-rs/core/src/realtime_conversation.rs",
+    "codex-rs/core/src/responses_retry.rs",
+    "codex-rs/core/src/session/session.rs",
+    "codex-rs/core/src/session/startup_prewarm.rs",
+    "codex-rs/core/src/session/tests.rs",
+    "codex-rs/core/src/session/turn.rs",
+    "codex-rs/core/src/session/turn_tests.rs",
+    "codex-rs/core/src/thread_manager.rs",
+    "codex-rs/core/src/tools/code_mode/mod.rs",
+    "codex-rs/core/src/tools/registry.rs",
+    "codex-rs/core/src/turn_timing.rs",
+    "codex-rs/http-client/Cargo.toml",
+    "codex-rs/http-client/src/lib.rs",
+    "codex-rs/http-client/src/network_policy.rs",
+    "codex-rs/http-client/src/outbound_proxy.rs",
+    "codex-rs/http-client/src/route_aware_client_pool/execution.rs",
+    "codex-rs/http-client/src/transport.rs",
+    "codex-rs/rmcp-client/src/lib.rs",
+    "codex-rs/rmcp-client/src/rmcp_client.rs",
+    "codex-rs/rmcp-client/src/stdio_server_launcher.rs",
+    "codex-rs/rmcp-client/src/streamable_http_retry.rs",
+    "codex-rs/websocket-client/src/dialer.rs",
+    "codex-rs/websocket-client/src/dialer_tests.rs",
+    "codex-rs/websocket-client/src/lib.rs"
+  ],
+  "files": [
+    {
+      "path": "codex-rs/Cargo.lock",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "17cdd862471774ba7aef836aaf0a0a3ed76bd23e503b1fc7278c89d1f2719d03"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "6c9db1c240d36d0a91e80f25bda9b705a2f911168c4cd41b79596c925941a24b"
+      }
+    },
+    {
+      "path": "codex-rs/app-server-transport/src/transport/stdio.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "e4f83304498aec2e9ccad9ad3a0af66965ab93508a4a6923f993731adcd69c19"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "d22d563a48ad8a8645635dd8bd914caa6f4f1ab27549881793899e08f18f8493"
+      }
+    },
+    {
+      "path": "codex-rs/app-server/src/in_process.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "f676d9a932866a6aee763013648a163356468a2ab052b773f2b208c37bc7f651"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "be2c8f605e61c1b796739a4a1e61ec3eca3960c6b0e63d821d9777a1feffd721"
+      }
+    },
+    {
+      "path": "codex-rs/app-server/src/lib.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "e00b242cde1234ae62cbc420ceefe86a23b93d34115ead6cc02bad454970aa9b"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "380ab1ee96476ab29fdacc1aff5c7f696b90f479f57624792102c4b3fca68322"
+      }
+    },
+    {
+      "path": "codex-rs/app-server/src/main.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "6c027c0307379f7426f25812e4422d5740ac6a128a28a51bcf79267516457ced"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "ba4964100b4fad10f8326b77c635149eac5619d023e438896ddf736988c92de7"
+      }
+    },
+    {
+      "path": "codex-rs/app-server/src/message_processor.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "96d57b0cb554802211460637993c2e57e27440b1052ca5f12ac79e1bbaf54449"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "8cda8cb52aaec994285f045d1c0b314e1f7aad4c0aa7f3b8d14eeefb3802af84"
+      }
+    },
+    {
+      "path": "codex-rs/app-server/src/message_processor_workspace_routing_tests.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "10bb56c7794e1451e447fabe1a97ab257cf41cb5d9aca399c561aa90f3ebcb80"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "df2e99e2b4c63824ef6ffbbd5ef10bf09674c62013ad9ab21f533d7711dd6579"
+      }
+    },
+    {
+      "path": "codex-rs/app-server/src/request_processors/thread_processor.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "f98fdad7df37ad720e63b75488ffab99ae88f7de4578b280ab957a09f0a98153"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "5c3c892d362c151775b6d4cda6efc4afba58aaf877c81e0d009d06f9d566d318"
+      }
+    },
+    {
+      "path": "codex-rs/app-server/src/turn_cost_worker.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "880e8442a155112e6f7383418879cda6896cbc3a6bc931480b236972757e8e92"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "651c0055341e46e1f4d5e00600dfb927569624758e460c8c4f485b3e1f700465"
+      }
+    },
+    {
+      "path": "codex-rs/codex-api/src/endpoint/responses.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "4f2fff3da4ca3ca9fcfa40ada8e98a0229af296094e03febb4d823f32ef932c8"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "4b30187452b40eae719b9bf1557c6eb5caefd4c532e2f99fbb601e342e21c13a"
+      }
+    },
+    {
+      "path": "codex-rs/codex-api/src/endpoint/responses_websocket.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "aad72bd914844d880acfdefe7b982b2da6fb8c4f315e724f55d52b4e49f53c37"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "9cc7822502e8898262f43a658e20b0d898ca9ccc79494ec78c99149e377734c7"
+      }
+    },
+    {
+      "path": "codex-rs/codex-api/src/endpoint/responses_websocket/connector.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "f5ee18d99223616564f48e56e45dbc88cd604094e7c6a912b2d5419d09b682fc"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "306bfa394d43858ac511b2bcdeb9a9821517a6cd6dbaa877522b56cf1c904cfe"
+      }
+    },
+    {
+      "path": "codex-rs/codex-api/src/endpoint/session.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "355cc0f030ab32d21b3e6fcce569a15a59958fecdda85423bf05642497bdb1eb"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "b2aca31a05d49472bd73de265799764f00eedd415c12a12ae6de3f8279e8f6c4"
+      }
+    },
+    {
+      "path": "codex-rs/codex-api/src/sse/responses.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "c58b85803937e43eb66adf6148d8f8fcca8e7badf43c1e96a747c9e56ae4e618"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "5966b53002ca2292d1e840a2739daebfe4e6d1c5c90c3bb0f7eb6561bd14ef7d"
+      }
+    },
+    {
+      "path": "codex-rs/codex-mcp/Cargo.toml",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "87adc337f2864b8b83f2f9a05bd925e61a1ee5736f1dce0efde9e639dd5f6dad"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "d824cf7a51ec373bec09f3cc857468e7635ceef8c0c52953015cfe6a64c54ad4"
+      }
+    },
+    {
+      "path": "codex-rs/codex-mcp/src/binding.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "45e3c49f5c25de1731c2782ccb8416c95e48c47df4cd6851a02f5ade76d55429"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "31f4b8430e6d86b40b5920c6f318503f31f1b18214b7c5266070f57f6b758861"
+      }
+    },
+    {
+      "path": "codex-rs/codex-mcp/src/binding_tests.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "0be5b0ccad82e4a8337f9d9922d01994bf9b89f2d41428abcf00f8f72b8590c4"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "6a58dd8178df8781098461532dd0b66ddb1441daddb3726c3eac6cbb4ece9a66"
+      }
+    },
+    {
+      "path": "codex-rs/codex-mcp/src/connection_manager.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "6b0fe696c3e6b89079a9e6c013622e11fa23a1f08f65f01af4a835a5c1975c86"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "c00c1e2ca95927287db02567ba4fea3598e67f84a3133a62960785c66112341d"
+      }
+    },
+    {
+      "path": "codex-rs/codex-mcp/src/rmcp_client.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "8e5f2e8b762378216098b1ff64c04f27039fb510fc966266b25d918157ced91a"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "6821543cb9027bf68845cffaabe11e80fb0308987114849f5275881ba47186ff"
+      }
+    },
+    {
+      "path": "codex-rs/core/src/agent/control/spawn.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "c5f52f1f58d12c3e51a3faedbd6cc678a01a729efc7f324b1b56621beb8d0799"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "580d407b79113b8b88f991a5130e5aad66940723efd41735b4efc9bf880f84af"
+      }
+    },
+    {
+      "path": "codex-rs/core/src/client.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "934ac0856c95f11d554e692e7ccf975822de1c916c037c9beddfe26832854e13"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "7287b2dbed184e71aec1c75c88b7b535e49a9304cc8301dcf8e9790e4901535b"
+      }
+    },
+    {
+      "path": "codex-rs/core/src/client_common.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "cdc103174fee2fc87a72dff4af4d20d3f963b4d3f495729bca6aa7d310e6be22"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "c0506706ee0e4214c72c376b99af3cf3308d87e42d5b97379825cd975e7fbd8e"
+      }
+    },
+    {
+      "path": "codex-rs/core/src/client_common_tests.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "fa724c4e81cc6d2310cd365433b549e53b5fbca25b52b7e51d3a78231e7e12b5"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "89b29c64fa472efb49f04fe70e273558510f2aa7d20b83f06b7f0c9e7ef55f1a"
+      }
+    },
+    {
+      "path": "codex-rs/core/src/compact.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "28363b56f58b999358b3f2fbf9953a1633818c0a74f5a71a3d7f3d813144355a"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "f43113c50ce42366752f1baa2f9da601c0447b0e0b248998684a2e7d82aac2ee"
+      }
+    },
+    {
+      "path": "codex-rs/core/src/compact_remote_v2.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "cb81ae523a2d3674ffe0acd12a492431d773e1148a420bbd99850b9081277673"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "6d891d034077dc6d1c19405d8c6099dcb01b40c15895a63c168fb7a9da780a9d"
+      }
+    },
+    {
+      "path": "codex-rs/core/src/config/mod.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "cbd8dd6d50cb7d61183d309cbefa95cd368de87bf44d2ac60e83c3a2aff59658"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "f03f7b3383b662be0715b0875495c43e462ee63accc413d59841b73c61b07701"
+      }
+    },
+    {
+      "path": "codex-rs/core/src/mcp_tool_call.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "e434c6380a209c96ff8a34bf1a0b6f375a72e6fdeaa02ac04bcb2657234ec569"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "72f8870bd6fb5c5294cf82813ffebcf567653b84a13108f9134ed53cead8368b"
+      }
+    },
+    {
+      "path": "codex-rs/core/src/realtime_conversation.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "1108d4e6b01fb95c65c4a0a55efc9d9e13147f9f4288bfc78f9c33966478b843"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "e5403fa8ecfb119f194dbd716eadfa120e34067b74f86b526f0b748ce9e0936d"
+      }
+    },
+    {
+      "path": "codex-rs/core/src/responses_retry.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "8136a44f54b593cd9257658b1798418567e1e26928dc0ad1b3edf748e2a181fd"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "ec98bbae15a46fb302dac7334eebbe96458877ecd2a52bd886cd4d6030a36f93"
+      }
+    },
+    {
+      "path": "codex-rs/core/src/session/session.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "e6f4b9f069343031a87bd2a862701f461d1aa9728272196f8a7376b610234806"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "b9e45191a818fb862d158e92b904f0f3f8cedd28c19ddd258d31d4c9647156bd"
+      }
+    },
+    {
+      "path": "codex-rs/core/src/session/startup_prewarm.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "539659506976454262e2931fec0b5616ec990adac7e7423c6e73de28fbbe6fa7"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "e2bd4f38e7e4788b7b83151885963c71491e407e832b9c96c579f4361ac9f7b8"
+      }
+    },
+    {
+      "path": "codex-rs/core/src/session/tests.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "e662500b961979c843d7287779815b72ad22aa80ea63f98517bd7df1872b918e"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "f774494f920b86d78459fb3ecaee927411c017a515e00f62f25053eb9160bb0c"
+      }
+    },
+    {
+      "path": "codex-rs/core/src/session/turn.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "394b2246903a312c0cd76c370d06afe7f0673dddde792105a9779a7657dc9e70"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "d4028fd9e12d7db69944a3d18ac60defbe21ca6eb0b18fea22b8f85911d5c77d"
+      }
+    },
+    {
+      "path": "codex-rs/core/src/session/turn_tests.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "9321640d9dbb8914c5506bab919398a5007e510e9b5052bf7a83486805de70c3"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "ac0bd75e1376e3c9fe4301463e3725d1ce62b3abb4d2c058625244cdbed3ca3f"
+      }
+    },
+    {
+      "path": "codex-rs/core/src/thread_manager.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "6888f63946839c28d375e1514d1fe938db728aed6a7ffd694daf41b90aeed3fb"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "528f3ab91a9cd3b689eee9ed5ba3d5898d36bb7fd9c12a08eb06cdca87be1772"
+      }
+    },
+    {
+      "path": "codex-rs/core/src/tools/code_mode/mod.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "3bc73b9a929d72b598aa3a6682eb531cfa31ea161de2e9dc628b96b9bcca2219"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "2d1eb799c317082af753b1d05d943215f89f1bff442b33fedd67a75eebb9ecc5"
+      }
+    },
+    {
+      "path": "codex-rs/core/src/tools/registry.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "fc37acd056a78779aeeff497d30bcbba759ea55f469ae2c9e7b8f37f3aeb2dae"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "464d126756aa0a94600d6ac502540c2c33dc90d57fee1be7de9ea38ad5e6ecdc"
+      }
+    },
+    {
+      "path": "codex-rs/core/src/turn_timing.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "c326ef59a84f2ff3b487a70ac835ebf40ffd5c25ff9175eaa068a64b87cbc7c7"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "a3fe5d0059ed7269de9f48142df4b48675c8e1cc038c44b2f3b3136698884cbb"
+      }
+    },
+    {
+      "path": "codex-rs/http-client/Cargo.toml",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "1751d649e2cead46bef5b8b6da355f3d6c3b53eedbc59660cde3579f1eb8fd94"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "1161bd33581a19cc647d55c0184ede13be8aeaf1de8b8000c563e7a02567f2fe"
+      }
+    },
+    {
+      "path": "codex-rs/http-client/src/lib.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "7f4187bf5774ecc4dbe96c43b4a71730aa696ca2d0912789ffc16e180741294f"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "42d2d553c9fd6bfec031b42a693f0133f2584f195763658f0ace6a99e5c05a52"
+      }
+    },
+    {
+      "path": "codex-rs/http-client/src/network_policy.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "65569bcb7f943980ab0ff8f75352d3de4f738bd369c527cff0018a03c30bd8bf"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "ab34e6177ce5decf9f3368c5dcaba02a163f86de277734393040f8434ea3c354"
+      }
+    },
+    {
+      "path": "codex-rs/http-client/src/outbound_proxy.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "5c1fb52555ea4e9546cf66dd1c4ddee2a9d6ef136ba3f51a25ceafd368d3be36"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "b6775485ff9e296fc84236846953b44eaef776fee8f5afeb8a2efc087aebb011"
+      }
+    },
+    {
+      "path": "codex-rs/http-client/src/route_aware_client_pool/execution.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "024ed73f0afc5db847e77682ea8410dce3b1762fa5837d6df104fc725e21dd5a"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "b4acd83449efd16a2dd69d4ee8961d4a4ad32060f45ce5e84d03a5876fe22e24"
+      }
+    },
+    {
+      "path": "codex-rs/http-client/src/transport.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "88aa391e6893205336b3412b065600bd717da8d80d59c1c7dd094d19bee666b6"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "02ba0c8e563b17e18d5c77db7e99c509dad9032ec4ebd5f5beaba6f11002533c"
+      }
+    },
+    {
+      "path": "codex-rs/rmcp-client/src/lib.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "c4c4e13f713032b911ce16116c1d21021b036afbb32b5deeb8c0391b45e30431"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "842b6b203b613f7160e7b64990b1c336919c654d70548fe952aa2be279d789ec"
+      }
+    },
+    {
+      "path": "codex-rs/rmcp-client/src/rmcp_client.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "ee576f4e0c40bbbc2814bb8b7bfb247cacec6ba8005466aab86e8ac799b18047"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "c875edd9e45863090fd7ad3ae848f4b4be26caa25e0e3b28216d0ad4579d2f7e"
+      }
+    },
+    {
+      "path": "codex-rs/rmcp-client/src/stdio_server_launcher.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "9395a9aacb0b0e936abef7b9be76df10532d1872f51d85e4178326cbf411f653"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "8fe05ba66a2f50e4e834c603f58cf189ed8fab2f10924286d6ed79c5f594501a"
+      }
+    },
+    {
+      "path": "codex-rs/rmcp-client/src/streamable_http_retry.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "1a2b8c834551b3168bb478bf65ca405e91dcdcab686945bef5131f8d1ed24813"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "867b6c4f56f1c8344e010c09cc4ba2d1953d34ba7577c9ff354f9c5d744d74f4"
+      }
+    },
+    {
+      "path": "codex-rs/websocket-client/src/dialer.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "a97f6afb5a7ac4a66183b92ee829287ac30b463b859fb854dec04da3effaaae7"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "4c159b64072a7cd1219aab908c1b46a31a7fdf457f9cdd7b8277379f07e8d9e2"
+      }
+    },
+    {
+      "path": "codex-rs/websocket-client/src/dialer_tests.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "647ef0715fd5d06e08c38b4aeaf85df37d672bdf8a0e9e1cfdff4997c8a807fd"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "7c875856a30324d3c160ba463797fea4767cee227ea027e472728e7fba2b2c50"
+      }
+    },
+    {
+      "path": "codex-rs/websocket-client/src/lib.rs",
+      "preimage": {
+        "mode": "100644",
+        "sha256": "2a5ec40c05bca7b10ca8af755985c6230d9009f36648096352f2c543497b392e"
+      },
+      "postimage": {
+        "mode": "100644",
+        "sha256": "5bb5495471e54ef8ecc70889401a0d79a8002886aa55e705f5e721d3a59a0b6f"
+      }
+    }
+  ],
+  "copiedPinnedSymlink": {
+    "sourceRevision": "4ebc485ca321243727539187169425fcf972f2c4",
+    "path": "codex-rs/vendor/bubblewrap/LICENSE",
+    "mode": "120000",
+    "blob": "d24842f3cdcf2e447f9a7a26fa387ad63f5c4b91",
+    "target": "COPYING",
+    "length": 7,
+    "sha256": "400d38e5cfee181230373a8b02d38f50271a5bf62c62410382efddb8e8b19e22",
+    "targetPath": "codex-rs/vendor/bubblewrap/COPYING",
+    "targetMode": "100644",
+    "targetBlob": "5bc8fb2c8f757e34a0d8f4644f589d57609e213f",
+    "targetLength": 25383,
+    "targetSha256": "b7993225104d90ddd8024fd838faf300bea5e83d91203eab98e29512acebd69c"
+  },
+  "verification": {
+    "rustCompilation": "UNEXECUTED",
+    "rustTests": "UNEXECUTED",
+    "rustFormatting": "UNEXECUTED",
+    "lockedBuildCoherence": "UNEXECUTED",
+    "nativeExecution": false,
+    "runtimeQualified": false,
+    "productionIssuerAvailable": false,
+    "reason": "Fresh additive packaging only. Prior final-source development checks are separately pinned historical DATA; current generic12 assembly/compilation/tests have not run.",
+    "completeSourceInventorySha256": "d53f1e7bcc3a13fa9a98d33e918a90dd714febd3a64d89b42e861dc78ee7fb0d",
+    "priorFinalSourceDevelopmentChecks": {
+      "compile": {
+        "status": "PASS",
+        "scope": "Current source21 eight selected library test targets compiled offline with --lib --no-run; zero tests/harness starts. Production20 CHECK5 separately PASS; source21 differs by one cfg(test)-only file per pinned proof, not a standalone production21 check claim.",
+        "receipt": {
+          "filename": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m06-work/evidence/m06-native-source21-test-compile-operations3/root-host-actual1.json",
+          "sha256": "620cb695886a597edb91a6469eb7017b604a73de66d9c1ad6122ca550bb21cb9"
+        }
+      },
+      "tests": {
+        "status": "PASS",
+        "scope": "Exactly four named pure unit filters from source21 library test executables, one PASS each; custody PASS; no full suite/native product/provider qualification.",
+        "receipt": {
+          "filename": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m06-work/evidence/m06-native-pure-unit-operations1/actual1/result.json",
+          "sha256": "73c147ce0f16cb41389ac599966f59a27bf57df642cf0df8e9e24713301fd7a2"
+        }
+      }
+    }
+  }
+}

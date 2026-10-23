@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "status": "ADDITIVE_HISTORICAL_NARRATIVE_CLARIFICATION",
+  "frozenReceiptsAndGeneratedBundleUnmodified": true,
+  "field": "rootSource19Authority.changes",
+  "historicalIncorrectValue": "ONLY_TWO_M06_LITERAL_TO_STRING_CONVERSIONS_PLUS_PINNED_SCOPED_RUSTFMT",
+  "correctSource18To19": "One streamable_http_retry.rs match arm adds PendingTransport::InheritedOwner to the no-retry variants; the existing in-process/stdio false and HTTP true arms remain.",
+  "correctSource19To20": "Two M06 string literals passed to CallToolResult::from_error_text in core/src/mcp_tool_call.rs gain .to_string(), with scoped formatting.",
+  "exactFrozenReceiptReferences": [
+    {
+      "evidenceId": "m06-native-source21-test-compile-operations3/binding-root.json",
+      "bytes": 28518741,
+      "sha256": "9fda4e8a3a7432ea9bff6884addc486433d059a0e7ef2abf9e27ce81fa32806a"
+    },
+    {
+      "evidenceId": "m06-native-source19-check-operations4/source19-freeze.json",
+      "bytes": 4426240,
+      "sha256": "fa067dceb00e359833b4d9e41017003ad557a5d02443392af0d9f974af5525ed"
+    },
+    {
+      "evidenceId": "m06-native-source19-check-operations4/source18-to-source19.unified.diff",
+      "bytes": 710,
+      "sha256": "d3020c80994a39a1e7239e5fb04264887dd46bf9c042e3136701b830d453ae85"
+    },
+    {
+      "evidenceId": "m06-native-source20-check-operations5/source20-freeze.json",
+      "bytes": 4426225,
+      "sha256": "573472ba7a5ea3c598a40e728d5217d47833e33a9e38e394e33372da8a102dc1"
+    },
+    {
+      "evidenceId": "m06-native-source20-check-operations5/source19-to-source20.postformat.diff",
+      "bytes": 964,
+      "sha256": "17762ee828b4d6379d1b8445e9ea265c37398c0375c118c1541436abf54d3dac"
+    }
+  ],
+  "source19ChangedLeaves": ["codex-rs/rmcp-client/src/streamable_http_retry.rs"],
+  "source20ChangedLeaves": ["codex-rs/core/src/mcp_tool_call.rs"],
+  "source19FreezeMatchesEmbeddedBinding": true,
+  "publishedDiffs": [
+    {
+      "evidenceId": "m06-native-source19-check-operations4/source18-to-source19.unified.diff",
+      "sha256": "d3020c80994a39a1e7239e5fb04264887dd46bf9c042e3136701b830d453ae85",
+      "text": "--- source18/codex-rs/rmcp-client/src/streamable_http_retry.rs\n+++ source19/codex-rs/rmcp-client/src/streamable_http_retry.rs\n@@ -34,7 +34,9 @@\n     )> {\n         let timeout = initialize_context.timeout;\n         let should_retry = match &initial_transport {\n-            PendingTransport::InProcess { .. } | PendingTransport::Stdio { .. } => false,\n+            PendingTransport::InheritedOwner { .. }\n+            | PendingTransport::InProcess { .. }\n+            | PendingTransport::Stdio { .. } => false,\n             PendingTransport::StreamableHttp { .. }\n             | PendingTransport::StreamableHttpWithOAuth { .. }\n             | PendingTransport::StreamableHttpWithAccessTokenOnly { .. } => true,\n"
+    },
+    {
+      "evidenceId": "m06-native-source20-check-operations5/source19-to-source20.postformat.diff",
+      "sha256": "17762ee828b4d6379d1b8445e9ea265c37398c0375c118c1541436abf54d3dac",
+      "text": "--- source19/codex-rs/core/src/mcp_tool_call.rs\n+++ source20-postformat/codex-rs/core/src/mcp_tool_call.rs\n@@ -150,7 +150,7 @@\n             owner.fence(\"CODEMODE_MCP_ORIGIN_DENIED\");\n         }\n         return HandledMcpToolCall {\n-            result: CallToolResult::from_error_text(\"M06 CodeMode origin denied\"),\n+            result: CallToolResult::from_error_text(\"M06 CodeMode origin denied\".to_string()),\n             tool_input: JsonValue::Object(serde_json::Map::new()),\n         };\n     }\n@@ -489,7 +489,9 @@\n             Ok(context) => Some(context),\n             Err(_) => {\n                 return HandledMcpToolCall {\n-                    result: CallToolResult::from_error_text(\"M06 original MCP context unavailable\"),\n+                    result: CallToolResult::from_error_text(\n+                        \"M06 original MCP context unavailable\".to_string(),\n+                    ),\n                     tool_input,\n                 };\n             }\n"
+    }
+  ],
+  "interpretation": "Historical narrative label only; source identity is bound by exact frozen hashes and selected changed leaves. All required correction text and exact diff text are embedded here; ignored local evidence paths are not needed to read this clarification.",
+  "runtimeQualified": false,
+  "providerQualified": false
+}

@@ -1,0 +1,24 @@
+{
+  "inspectedCurrentLeaves": 9183,
+  "rootNpmrcPayloadRead": false,
+  "inheritedEntry": {
+    "path": ".npmrc",
+    "mode": "100644",
+    "length": 104,
+    "sha256": "966e472185f648dcaf0fd13867fdfdc417d40fcb0ba1de99a2a55c5a95b5c815"
+  },
+  "inheritedFrom": {
+    "filename": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m06-work/worktrees/custody-fix/tasks/codex-app-server-journeys/m06-native-patch-15/source-inventory.json",
+    "fileSha256": "45ebcbf4db047096bdea98a6636b70dc2654422ae0c957e09e653c883cfd66b6",
+    "inventorySha256": "d881bb6861f6b9b7cc6f1fe8b78235b45797d6ea79743ca4ef62530ab6176c44"
+  },
+  "originalGitNpmrcBlobMetadataOnly": {
+    "mode": "100644",
+    "blob": "4153fe87bb5f08b63514128adf30f1643ef3f1fc"
+  },
+  "currentFinalSourceExtraNamespaceAbsenceClaimed": false,
+  "sourceFrozenReference": {
+    "filename": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m06-work/evidence/m06-native-final-bundle-source21-proposal1/ROOT-final-reference.json",
+    "sha256": "663b653d6e1dd53ce120cc2c9107f2786e5167b4f16365f0100e0624a48fd164"
+  }
+}
