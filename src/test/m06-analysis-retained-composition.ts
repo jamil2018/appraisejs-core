@@ -73,6 +73,26 @@ export async function composeRetainedAnalysisAfterOriginalNonstart(
     await client.qualityJourneyProviderDispatchIntent.count({ where: { run: { workItemId: admitted.workItemId } } }),
     priorIntents.length,
   )
+  const priorControls = priorIntents.filter(intent => intent.id !== originalIntent.id)
+  assert.equal(priorControls.length, 1)
+  const controlIntent = priorControls[0]!
+  assert.match(controlIntent.id, /^control-.+$/)
+  assert.equal(controlIntent.operationKey, controlIntent.id)
+  assert.equal(controlIntent.providerNamespace, `synthetic:control:${controlIntent.id.slice('control-'.length)}`)
+  assert.equal(controlIntent.providerRunId, originalRun.id)
+  assert.notEqual(controlIntent.turnOrdinal, originalIntent.turnOrdinal)
+  assert.ok(controlIntent.turnOrdinal >= 1 && controlIntent.turnOrdinal <= 3)
+  assert.equal(controlIntent.status, 'PENDING')
+  assert.equal(controlIntent.armedAt, null)
+  assert.equal(controlIntent.invalidatedAt, null)
+  assert.equal(controlIntent.reconciledAt, null)
+  assert.equal(controlIntent.sendBoundaryId, null)
+  assert.equal(controlIntent.claimEpoch, 0)
+  assert.equal(controlIntent.claimOwner, null)
+  assert.equal(controlIntent.claimExpiresAt, null)
+  assert.equal(controlIntent.acknowledgedAt, null)
+  assert.equal(controlIntent.threadId, null)
+  assert.equal(controlIntent.turnId, null)
   const oldPhysical = {
     run: originalRun,
     intent: originalIntent,
@@ -214,11 +234,20 @@ export async function composeRetainedAnalysisAfterOriginalNonstart(
     currentIntents.length,
   )
   const priorIds = new Set(priorIntents.map(intent => intent.id))
-  // Normal accepted completion/issuance/claim has no expiry/cancel invalidation path.
-  // Existing diagnostic control rows remain part of the actual physical history.
+  // Completing A retires the original attempt and invalidates its exact unarmed control.
+  // The armed original history and every other control field must remain deeply equal.
+  const retiredControl = currentIntents.find(intent => intent.id === controlIntent.id)
+  assert.ok(retiredControl)
+  assert.equal(retiredControl.status, 'INVALIDATED')
+  const invalidatedAt = retiredControl.invalidatedAt
+  assert.ok(
+    invalidatedAt instanceof Date && Number.isSafeInteger(invalidatedAt.getTime()) && invalidatedAt.getTime() >= 0,
+  )
   assert.deepEqual(
     currentIntents.filter(intent => priorIds.has(intent.id)),
-    priorIntents,
+    priorIntents.map(intent =>
+      intent.id === controlIntent.id ? { ...intent, status: 'INVALIDATED', invalidatedAt } : intent,
+    ),
   )
   const addedIntents = currentIntents.filter(intent => !priorIds.has(intent.id))
   assert.equal(addedIntents.length, 1)

@@ -31,12 +31,41 @@ function fixture(extra = false) {
     status: 'NONSTART_RECONCILED',
     turnOrdinal: 1,
   }
-  const controlIntent = { id: 'control-intent', providerRunId: 'original-run', status: 'PENDING', turnOrdinal: 2 }
+  const controlIntent = {
+    id: 'control-intent',
+    providerRunId: 'original-run',
+    status: 'PENDING',
+    turnOrdinal: 2,
+    operationKey: 'control-intent',
+    providerNamespace: 'synthetic:control:intent',
+    requestHash: 'sha256:control-request',
+    envelopeDigest: 'sha256:control-envelope',
+    armedAt: null,
+    invalidatedAt: null,
+    reconciledAt: null,
+    sendBoundaryId: null,
+    claimEpoch: 0,
+    claimOwner: null,
+    claimExpiresAt: null,
+    acknowledgedAt: null,
+    threadId: null,
+    turnId: null,
+    createdAt: new Date('2026-10-22T19:59:00.000Z'),
+  }
   const addedIntent = { id: 'B-intent', providerRunId: 'B-run', status: 'UNKNOWN', turnOrdinal: 1 }
   const baseline = [controlIntent, originalIntent]
-  const current = [addedIntent, ...baseline, ...(extra ? [{ ...addedIntent, id: 'unrequested-extra' }] : [])].sort(
-    (a, b) => a.id.localeCompare(b.id),
-  )
+  const currentControl = {
+    ...controlIntent,
+    status: 'INVALIDATED',
+    invalidatedAt: new Date('2026-10-22T20:03:00.000Z'),
+  }
+  const currentOriginal = structuredClone(originalIntent)
+  const current = [
+    addedIntent,
+    currentControl,
+    currentOriginal,
+    ...(extra ? [{ ...addedIntent, id: 'unrequested-extra' }] : []),
+  ].sort((a, b) => a.id.localeCompare(b.id))
   const originalRun = {
     id: 'original-run',
     attemptId: 'original-attempt',
@@ -45,19 +74,28 @@ function fixture(extra = false) {
     turnsReserved: 1,
   }
   const observation = { id: 'original-observation', exact: 'preserved' }
+  const currentRun = structuredClone(originalRun)
+  const currentObservation = structuredClone(observation)
+  let originalRunReads = 0
   const client = {
     qualityJourneyProviderDispatchIntent: {
-      findUniqueOrThrow: vi.fn().mockResolvedValue(originalIntent),
+      findUniqueOrThrow: vi.fn().mockResolvedValueOnce(originalIntent).mockResolvedValue(currentOriginal),
       findMany: vi.fn().mockResolvedValueOnce(baseline).mockResolvedValue(current),
       count: vi.fn().mockResolvedValueOnce(2).mockResolvedValue(current.length),
     },
     qualityJourneyProviderRun: {
       findUniqueOrThrow: vi.fn(async ({ where }) =>
-        where.id === 'B-run' ? { id: 'B-run', attemptId: 'B-attempt', turnsReserved: 1 } : originalRun,
+        where.id === 'B-run'
+          ? { id: 'B-run', attemptId: 'B-attempt', turnsReserved: 1 }
+          : originalRunReads++ === 0
+            ? originalRun
+            : currentRun,
       ),
       count: vi.fn().mockResolvedValue(2),
     },
-    qualityJourneyProviderObservation: { findUniqueOrThrow: vi.fn().mockResolvedValue(observation) },
+    qualityJourneyProviderObservation: {
+      findUniqueOrThrow: vi.fn().mockResolvedValueOnce(observation).mockResolvedValue(currentObservation),
+    },
     qualityJourneyProviderSlot: {
       findUniqueOrThrow: vi
         .fn()
@@ -101,7 +139,7 @@ function fixture(extra = false) {
     observation,
     requestHash: 'sha256:original',
   } as unknown as Parameters<typeof composeRetainedAnalysisAfterOriginalNonstart>[2]
-  return { client, admitted, result }
+  return { client, admitted, result, controlIntent, currentControl, currentOriginal, currentRun, currentObservation }
 }
 beforeEach(() => {
   vi.resetAllMocks()
@@ -118,7 +156,7 @@ describe('actual composition intent topology assertions (mocked product effects)
     followupAssignmentSecret: 'original-secret-not-executed',
     controller: { retainDelivery: vi.fn() },
   }
-  it('preserves both original and diagnostic control identities while requiring exactly one new B intent', async () => {
+  it('accepts only canonical control retirement while preserving original history and requiring exactly one new B intent', async () => {
     const f = fixture()
     const result = await composeRetainedAnalysisAfterOriginalNonstart(
       f.client as unknown as PrismaClient,
@@ -133,6 +171,65 @@ describe('actual composition intent topology assertions (mocked product effects)
     })
     expect(result.runtimeQualified).toBe(false)
   })
+  it.each([
+    ['pending control', { status: 'PENDING', invalidatedAt: null }],
+    ['null invalidation timestamp', { invalidatedAt: null }],
+    ['invalid Date', { invalidatedAt: new Date(NaN) }],
+    ['timestamp coercion', { invalidatedAt: '2026-10-22T20:03:00.000Z' }],
+    ['negative timestamp', { invalidatedAt: new Date(-1) }],
+    ['wrong status', { status: 'ACKNOWLEDGED' }],
+    ['changed request', { requestHash: 'sha256:changed' }],
+    ['changed envelope', { envelopeDigest: 'sha256:changed' }],
+    ['changed namespace', { providerNamespace: 'synthetic:other' }],
+    ['changed run', { providerRunId: 'other-run' }],
+    ['changed operation', { operationKey: 'other-operation' }],
+    ['changed ordinal', { turnOrdinal: 3 }],
+    ['new arm', { armedAt: new Date('2026-10-22T20:03:00.000Z') }],
+    ['new send boundary', { sendBoundaryId: 'unexpected-boundary' }],
+    ['new charge epoch', { claimEpoch: 1 }],
+    ['new claim owner', { claimOwner: 'unexpected-owner' }],
+    ['new reconciliation', { reconciledAt: new Date('2026-10-22T20:03:00.000Z') }],
+    ['changed creation', { createdAt: new Date('2026-10-22T20:03:00.000Z') }],
+  ])('refuses %s in the retained control', async (_label, patch) => {
+    const f = fixture()
+    Object.assign(f.currentControl, patch)
+    await expect(
+      composeRetainedAnalysisAfterOriginalNonstart(f.client as unknown as PrismaClient, f.admitted, f.result, settings),
+    ).rejects.toThrow()
+  })
+  it.each([
+    ['armed', { armedAt: new Date('2026-10-22T20:00:00.000Z') }],
+    ['already invalidated', { invalidatedAt: new Date('2026-10-22T20:00:00.000Z') }],
+    ['already reconciled', { reconciledAt: new Date('2026-10-22T20:00:00.000Z') }],
+    ['charged', { claimEpoch: 1 }],
+    ['wrong identity', { operationKey: 'other-control' }],
+    ['wrong namespace', { providerNamespace: 'synthetic:other' }],
+    ['wrong run', { providerRunId: 'other-run' }],
+    ['wrong ordinal', { turnOrdinal: 1 }],
+  ])('refuses an ineligible %s baseline control before product effects', async (_label, patch) => {
+    const f = fixture()
+    Object.assign(f.controlIntent, patch)
+    await expect(
+      composeRetainedAnalysisAfterOriginalNonstart(f.client as unknown as PrismaClient, f.admitted, f.result, settings),
+    ).rejects.toThrow()
+    expect(product.submit).not.toHaveBeenCalled()
+    expect(product.advance).not.toHaveBeenCalled()
+  })
+  it.each(['currentOriginal', 'currentRun', 'currentObservation'] as const)(
+    'refuses mutation of original physical history: %s',
+    async key => {
+      const f = fixture()
+      Object.assign(f[key], { unexpectedMutation: true })
+      await expect(
+        composeRetainedAnalysisAfterOriginalNonstart(
+          f.client as unknown as PrismaClient,
+          f.admitted,
+          f.result,
+          settings,
+        ),
+      ).rejects.toThrow()
+    },
+  )
   it('passes only current coordinator authority and follow-up inputs to each scheduler step', async () => {
     const f = fixture()
     const admitted = Object.freeze({
@@ -360,5 +457,112 @@ describe('initial retained Analysis submission request boundary (DB-free)', () =
     expect(binding.principal).toBe(f.admitted.principal)
     expect(Object.hasOwn(projected, 'futureCoordinatorSession')).toBe(false)
     expect(Object.hasOwn(projected, 'futureAuthorization')).toBe(false)
+  })
+})
+
+// Evaluate only exact pure declarations, never the matrix factory, module body, controller or runtime imports.
+describe('actual matrix diagnostic-control oracle (AST-extracted, no service runtime)', () => {
+  const matrixPath = path.resolve('scripts/test-harness/m06/service-custody/custody-service-matrix.ts')
+  const datePath = path.resolve('scripts/test-harness/m06/service-custody/custody-fixture-datetime.ts')
+  const matrix = ts.createSourceFile(matrixPath, readFileSync(matrixPath, 'utf8'), ts.ScriptTarget.Latest, true)
+  const dates = ts.createSourceFile(datePath, readFileSync(datePath, 'utf8'), ts.ScriptTarget.Latest, true)
+  function exactDeclaration(source: ts.SourceFile, name: string, kind: 'function' | 'variable') {
+    const found: ts.Node[] = []
+    function visit(node: ts.Node) {
+      if (
+        (kind === 'function' && ts.isFunctionDeclaration(node) && node.name?.text === name) ||
+        (kind === 'variable' && ts.isVariableDeclaration(node) && node.name.getText(source) === name)
+      )
+        found.push(node)
+      ts.forEachChild(node, visit)
+    }
+    visit(source)
+    expect(found).toHaveLength(1)
+    return found[0]!
+  }
+  const oracle = ts.transpileModule(
+    [
+      exactDeclaration(matrix, 'assertFields', 'function').getText(matrix),
+      exactDeclaration(matrix, 'assertDiagnosticControl', 'function').getText(matrix),
+      exactDeclaration(dates, 'fixtureDateTime', 'function')
+        .getText(dates)
+        .replace(/^export /, ''),
+      'const ' + exactDeclaration(matrix, 'composition', 'variable').getText(matrix),
+      'assertDiagnosticControl()',
+    ].join('\n'),
+    { compilerOptions: { target: ts.ScriptTarget.ES2022 } },
+  ).outputText
+  const fresh = exactDeclaration(matrix, 'freshRemainingServiceCases', 'variable') as ts.VariableDeclaration
+  if (!fresh.initializer || !ts.isArrayLiteralExpression(fresh.initializer))
+    throw new Error('Exact fresh case list required')
+  const names = fresh.initializer.elements.map(element => {
+    if (!ts.isStringLiteral(element)) throw new Error('Literal fresh case names required')
+    return element.text
+  })
+  const compositionCase = 'original-nonstart-authored-analysis-composition16z'
+  function check(name: string, patch: Record<string, unknown> = {}, sourcePatch: Record<string, unknown> = {}) {
+    const controlSource = { sourceId: 'control-intent', lifecycle: 'ACTIVE', sequence: 0 }
+    vm.runInNewContext(oracle, {
+      expect,
+      Date,
+      name,
+      compositionServiceCase: compositionCase,
+      controlIntent: {
+        id: 'control-intent',
+        providerRunId: 'original-run',
+        turnOrdinal: 2,
+        providerNamespace: 'synthetic:control:intent',
+        sendBoundaryId: null,
+        status: name === compositionCase ? 'INVALIDATED' : 'PENDING',
+        armedAt: null,
+        claimEpoch: 0,
+        claimOwner: null,
+        acknowledgedAt: null,
+        reconciledAt: null,
+        invalidatedAt: name === compositionCase ? 1792699380000 : null,
+        ...patch,
+      },
+      identity: { runId: 'original-run' },
+      control: { ordinal: 2, providerNamespace: 'synthetic:control:intent' },
+      intent: { turnOrdinal: 1 },
+      controlState: { ...controlSource, ...sourcePatch },
+      expected: { controlSource },
+    })
+  }
+  it('accepts exact composition invalidation as integer epoch or Prisma Date', () => {
+    expect(() => check(compositionCase)).not.toThrow()
+    expect(() => check(compositionCase, { invalidatedAt: new Date(1792699380000) })).not.toThrow()
+  })
+  it('keeps all 17 fresh case names pending and rejects retirement leakage', () => {
+    expect(names).toHaveLength(17)
+    for (const name of names) {
+      expect(() => check(name)).not.toThrow()
+      expect(() => check(name, { status: 'INVALIDATED', invalidatedAt: 1792699380000 })).toThrow()
+      expect(() => check(name, { invalidatedAt: 1792699380000 })).toThrow()
+    }
+  })
+  it.each([
+    { status: 'PENDING' },
+    { status: 'ACKNOWLEDGED' },
+    { invalidatedAt: null },
+    { invalidatedAt: '2026-10-22T20:03:00.000Z' },
+    { invalidatedAt: NaN },
+    { invalidatedAt: -1 },
+    { invalidatedAt: 0.5 },
+    { invalidatedAt: new Date(NaN) },
+    { armedAt: 1792699380000 },
+    { sendBoundaryId: 'unexpected-boundary' },
+    { providerRunId: 'other-run' },
+    { providerNamespace: 'synthetic:other' },
+    { turnOrdinal: 1 },
+    { claimEpoch: 1 },
+    { claimOwner: 'unexpected-owner' },
+    { acknowledgedAt: 1792699380000 },
+    { reconciledAt: 1792699380000 },
+  ])('rejects invalid composition control state %#', patch => {
+    expect(() => check(compositionCase, patch)).toThrow()
+  })
+  it('keeps the actual source-state assertion effective', () => {
+    expect(() => check(compositionCase, {}, { sequence: 1 })).toThrow()
   })
 })
