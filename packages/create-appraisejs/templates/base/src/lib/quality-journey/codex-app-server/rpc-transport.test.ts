@@ -1,7 +1,14 @@
+import { createHash } from 'node:crypto'
 import { PassThrough, Writable } from 'node:stream'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { RpcTransport, type RpcTransportOptions } from './rpc-transport'
+import {
+  RpcTransport,
+  inspectRpcTransportOwner,
+  inspectRpcTransportSeal,
+  type RpcTransportOptions,
+  type RpcTransportObservation,
+} from './rpc-transport'
 
 const transports: RpcTransport[] = []
 afterEach(() => {
@@ -10,7 +17,11 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-function harness(options: Partial<RpcTransportOptions> = {}, holdWrites = false) {
+function harness(
+  options: Partial<RpcTransportOptions> = {},
+  holdWrites = false,
+  observation?: RpcTransportObservation,
+) {
   const writes: Buffer[] = []
   const callbacks: Array<(error?: Error | null) => void> = []
   const stdin = new Writable({
@@ -25,7 +36,7 @@ function harness(options: Partial<RpcTransportOptions> = {}, holdWrites = false)
   const stderr = new PassThrough()
   const onFault = vi.fn()
   const onNotification = vi.fn()
-  const transport = new RpcTransport({ stdin, stdout, stderr }, { onFault, onNotification, ...options })
+  const transport = new RpcTransport({ stdin, stdout, stderr }, { onFault, onNotification, ...options }, observation)
   transports.push(transport)
   return { transport, stdin, stdout, stderr, writes, callbacks, onFault, onNotification }
 }
@@ -38,6 +49,34 @@ async function initialized(h: ReturnType<typeof harness>) {
 }
 
 describe('private bounded RPC transport', () => {
+  it('cannot attribute a foreign transport seal by shadowing the public owner accessor', () => {
+    const first = harness()
+    const second = harness()
+    const originalSecondOwner = second.transport.owner
+    Object.defineProperty(second.transport, 'owner', { value: first.transport.owner })
+    const seal = second.transport.sealSender()
+    expect(inspectRpcTransportSeal(seal).owner).toBe(originalSecondOwner)
+    expect(inspectRpcTransportSeal(seal).owner).not.toBe(first.transport.owner)
+    expect(first.transport.snapshot().status).toBe('open')
+    expect(second.transport.snapshot().status).toBe('fenced')
+    expect(() => inspectRpcTransportSeal({ ...seal })).toThrow('Exact original')
+  })
+
+  it('seals through its private gate even when the public fence method is replaced', async () => {
+    const h = harness({}, true)
+    const response = h.transport.request('initialize', {})
+    const rejected = expect(response).rejects.toBeInstanceOf(Error)
+    h.transport.fence = () => {}
+    const seal = h.transport.sealSender()
+    expect(h.transport.snapshot()).toMatchObject({ status: 'fenced', writing: false, pendingRequests: 0 })
+    expect(inspectRpcTransportSeal(seal)).toMatchObject({ issuedRequests: 1, writtenBytes: h.writes[0].length })
+    await rejected
+    h.callbacks[0]()
+    h.stdin.emit('drain')
+    await expect(h.transport.request('turn/start', {})).rejects.toMatchObject({ reason: 'fenced' })
+    expect(h.writes).toHaveLength(1)
+  })
+
   it('writes synchronously and decodes UTF8 split inside a code point with coalesced notification frames', async () => {
     const h = harness()
     const response = h.transport.request('initialize', {})
@@ -315,5 +354,189 @@ describe('private bounded RPC transport', () => {
     await initialized(h)
     await h.transport.notifyInitialized()
     expect(JSON.parse(h.writes[1].toString())).toEqual({ method: 'initialized' })
+  })
+})
+
+describe('trusted original RPC accounting', () => {
+  function observer() {
+    return { allocated: vi.fn(), notEmitted: vi.fn(), attempted: vi.fn() }
+  }
+  it('retains the exact original immutable owner and seal without exposing streams', () => {
+    const h = harness({ transportId: 'original_transport' })
+    const owner = h.transport.owner
+    expect(inspectRpcTransportOwner(owner)).toMatchObject({ transportId: 'original_transport' })
+    expect(Object.isFrozen(inspectRpcTransportOwner(owner))).toBe(true)
+    expect(() => inspectRpcTransportOwner({ ...owner })).toThrow('Exact original')
+    const seal = h.transport.sealSender()
+    expect(h.transport.sealSender()).toBe(seal)
+    expect(Object.isFrozen(inspectRpcTransportSeal(seal))).toBe(true)
+    expect(inspectRpcTransportSeal(seal)).toEqual({
+      ...inspectRpcTransportOwner(owner),
+      owner,
+      issuedRequests: 0,
+      writtenBytes: 0,
+    })
+  })
+
+  it('checks admission before allocating and preserves a prewrite admission hole', async () => {
+    const observation = { ...observer(), assertAdmission: vi.fn() }
+    const h = harness({}, false, observation)
+    observation.assertAdmission.mockImplementation(() => {
+      throw new Error('closed')
+    })
+    await expect(h.transport.request('initialize', {})).rejects.toThrow('closed')
+    expect(h.transport.snapshot().issuedRequests).toBe(0)
+    expect(observation.allocated).not.toHaveBeenCalled()
+    observation.assertAdmission
+      .mockReset()
+      .mockImplementationOnce(() => {})
+      .mockImplementationOnce(() => {})
+    observation.assertAdmission.mockImplementation(() => {
+      throw new Error('closed_at_write')
+    })
+    await expect(h.transport.request('initialize', {})).rejects.toThrow('closed_at_write')
+    expect(observation.allocated).toHaveBeenCalledExactlyOnceWith(1)
+    expect(observation.notEmitted).toHaveBeenCalledExactlyOnceWith(1)
+    expect(observation.attempted).not.toHaveBeenCalled()
+    expect(h.writes).toHaveLength(0)
+    expect(h.transport.snapshot()).toMatchObject({ issuedRequests: 1, pendingRequests: 0, writtenBytes: 0 })
+  })
+
+  it('rechecks admission after attempted observation immediately before write', async () => {
+    let admitted = true
+    const observation = {
+      ...observer(),
+      assertAdmission() {
+        if (!admitted) throw new Error('closed_after_attempt')
+      },
+    }
+    const h = harness({}, false, observation)
+    observation.attempted.mockImplementation(() => {
+      admitted = false
+    })
+    await expect(h.transport.request('initialize', {})).rejects.toBeInstanceOf(Error)
+    expect(h.writes).toHaveLength(0)
+    expect(observation.attempted).toHaveBeenCalledOnce()
+    expect(observation.notEmitted).not.toHaveBeenCalled()
+    expect(h.transport.snapshot()).toMatchObject({ status: 'fenced', issuedRequests: 1 })
+    expect(h.transport.snapshot().writtenBytes).toBe(jsonl({ id: 1, method: 'initialize', params: {} }).length)
+  })
+
+  it('records only the outer serialization hole when a reentrant request owns the gate', async () => {
+    const observation = observer()
+    const h = harness({}, false, observation)
+    let inner!: Promise<unknown>
+    const outer = h.transport.request('initialize', {
+      toJSON() {
+        inner = h.transport.request('thread/start', {})
+        return {}
+      },
+    })
+    await expect(outer).rejects.toMatchObject({ reason: 'pending_limit' })
+    expect(observation.allocated.mock.calls).toEqual([[1], [2]])
+    expect(observation.notEmitted).toHaveBeenCalledExactlyOnceWith(1)
+    expect(observation.attempted).toHaveBeenCalledOnce()
+    expect(observation.attempted.mock.calls[0][0].requestId).toBe(2)
+    h.stdout.write(jsonl({ id: 2, result: {} }))
+    await inner
+    expect(h.writes).toHaveLength(1)
+  })
+
+  it('fences a not-emitted observer failure without forwarding or retry', async () => {
+    const observation = observer()
+    observation.notEmitted.mockImplementation(() => {
+      throw new Error('observer')
+    })
+    const h = harness({}, false, observation)
+    await expect(h.transport.request('initialize', { value: BigInt(1) })).rejects.toMatchObject({
+      reason: 'observation_failed',
+    })
+    expect(h.transport.snapshot()).toMatchObject({ status: 'fenced', reason: 'observation_failed', issuedRequests: 1 })
+    expect(h.writes).toHaveLength(0)
+  })
+  it('observes allocation before encoding and preserves serialization holes', async () => {
+    const observation = observer()
+    const h = harness({}, false, observation)
+    const params = {
+      toJSON() {
+        expect(observation.allocated).toHaveBeenCalledWith(1)
+        throw new Error('encoding')
+      },
+    }
+    await expect(h.transport.request('initialize', params)).rejects.toMatchObject({ reason: 'invalid_request' })
+    expect(observation.notEmitted).toHaveBeenCalledExactlyOnceWith(1)
+    expect(observation.attempted).not.toHaveBeenCalled()
+    expect(inspectRpcTransportSeal(h.transport.sealSender())).toMatchObject({ issuedRequests: 1, writtenBytes: 0 })
+  })
+  it('records the hole when caller serialization seals the original transport', async () => {
+    const observation = observer()
+    const h = harness({}, false, observation)
+    await expect(
+      h.transport.request('initialize', {
+        toJSON() {
+          h.transport.sealSender()
+          return {}
+        },
+      }),
+    ).rejects.toMatchObject({ reason: 'fenced' })
+    expect(observation.notEmitted).toHaveBeenCalledExactlyOnceWith(1)
+    expect(h.writes).toHaveLength(0)
+  })
+  it('charges full attempted bytes before a throwing write, including notification-only bytes', async () => {
+    const observation = observer()
+    const h = harness({}, false, observation)
+    vi.spyOn(h.stdin, 'write').mockImplementation(() => {
+      throw new Error('write')
+    })
+    await expect(h.transport.notifyInitialized()).rejects.toBeInstanceOf(Error)
+    const size = jsonl({ method: 'initialized' }).length
+    expect(observation.attempted).toHaveBeenCalledExactlyOnceWith({
+      requestId: null,
+      start: 0,
+      end: size,
+      rawDigest: `sha256:${createHash('sha256')
+        .update(jsonl({ method: 'initialized' }))
+        .digest('hex')}`,
+    })
+    expect(inspectRpcTransportSeal(h.transport.sealSender())).toMatchObject({ issuedRequests: 0, writtenBytes: size })
+  })
+  it.each(['allocated', 'attempted'] as const)('fences %s observer exceptions before forwarding', async stage => {
+    const observation = observer()
+    observation[stage].mockImplementation(() => {
+      throw new Error('observer')
+    })
+    const h = harness({}, false, observation)
+    await expect(h.transport.request('initialize', {})).rejects.toBeInstanceOf(Error)
+    expect(h.writes).toHaveLength(0)
+    expect(h.transport.snapshot()).toMatchObject({ status: 'fenced', reason: 'observation_failed', issuedRequests: 1 })
+    await expect(h.transport.notifyInitialized()).rejects.toBeInstanceOf(Error)
+  })
+  it('rechecks the private gate after attempted-range observation with no delayed sink', async () => {
+    const observation = observer()
+    const h = harness({}, false, observation)
+    observation.attempted.mockImplementation(() => h.transport.sealSender())
+    await expect(h.transport.request('initialize', {})).rejects.toBeInstanceOf(Error)
+    expect(h.writes).toHaveLength(0)
+    expect(h.transport.snapshot().writtenBytes).toBeGreaterThan(0)
+    expect(observation.notEmitted).not.toHaveBeenCalled()
+  })
+  it('retains charged ranges through callback failure/backpressure and delayed callbacks', async () => {
+    const observation = observer()
+    const h = harness({}, true, observation)
+    const pending = h.transport.request('turn/interrupt', {})
+    const rejected = expect(pending).rejects.toBeInstanceOf(Error)
+    const charged = h.writes[0].length
+    expect(observation.attempted).toHaveBeenCalledExactlyOnceWith({
+      requestId: 1,
+      start: 0,
+      end: charged,
+      rawDigest: `sha256:${createHash('sha256').update(h.writes[0]).digest('hex')}`,
+    })
+    h.transport.sealSender()
+    h.callbacks[0](new Error('partial'))
+    h.stdin.emit('drain')
+    await rejected
+    expect(h.writes).toHaveLength(1)
+    expect(h.transport.snapshot().writtenBytes).toBe(charged)
   })
 })
