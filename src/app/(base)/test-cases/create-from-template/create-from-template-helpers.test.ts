@@ -1,5 +1,5 @@
 import { StepParameterType, StepIcon } from '@prisma/client'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import {
   getConvertedTemplateTestCaseData,
@@ -7,6 +7,11 @@ import {
   getTemplateSelectionOptions,
   getTemplateTestCaseWithSteps,
 } from './create-from-template-helpers'
+
+vi.mock('@prisma/client', () => ({
+  StepParameterType: { STRING: 'STRING' },
+  StepIcon: { INPUT: 'INPUT' },
+}))
 
 describe('create-from-template helpers', () => {
   it('formats field errors and selection options for the route form', () => {
