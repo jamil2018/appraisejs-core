@@ -1,0 +1,87 @@
+{
+  "recordType": "M06_REPOSITORY_COMPLETION_CHECKPOINT",
+  "date": "2026-10-23",
+  "status": "REPOSITORY_WORK_COMPLETE_PROVIDER_QUALIFICATION_BLOCKED",
+  "repositoryComplete": true,
+  "overallM06Complete": false,
+  "runtimeQualified": false,
+  "providerQualified": false,
+  "releaseAuthorized": false,
+  "recordGrantsAuthority": false,
+  "branch": "codex/m06-custody-fix",
+  "remote": "https://github.com/jamil2018/appraisejs-core.git",
+  "reviewedImplementationHead": "a52ad1fd0506465bba8ba26ed749e6a6f130c387",
+  "finalCheckpointCommit": "Separate normal-hook documentation commit in this branch history; no self-referential commit hash is embedded.",
+  "implementationCommits": [
+    "f9f2faf86596bad3c773a897243855f723bcb04e",
+    "59ba713577a0c49ffccc7d82fbd3884074d96d1c",
+    "91d5dbee403153f6fb347ca6309534bbc5bc31fb",
+    "be13a9187ca183b57946df889f76f3d5fb3c7ec8",
+    "c6ccc0d5415994542f337fc32014f5306dd9dab8",
+    "4dc579f189cfe0990177bc3d110ae77076e6da34",
+    "43c0eac2a74672d489ea44d85b99cebacf93e237",
+    "d3d01faaa2e599f65c6199dd9ad31861af2c51a9",
+    "f48fa6fadce640d0e29533f22372ddb5588e3bf9",
+    "ae35603a0b792d19a0923fe811f25579fcecd5e8",
+    "5eb1e91e362ccb8086454c63fc6a65388158624e",
+    "c48e226a6bbe708252a5337fca63023fa756ee26",
+    "4357b9f38f68905645974d9b24c0410130c5ff74",
+    "a52ad1fd0506465bba8ba26ed749e6a6f130c387"
+  ],
+  "checks": {
+    "applicationBuild": {
+      "status": "CANONICAL_BUILD_PASS",
+      "originalSession": 27759,
+      "terminalReceipt": "d500b0",
+      "manifestSha256": "b024dd69e52f653a4560bf5c35f81e4ff71088dba48fa7da7fe3f496f1c7897f"
+    },
+    "independentIntegratedReview": {
+      "verdict": "ACCEPT",
+      "findings": 0,
+      "sha256": "c9798fcc97b3b1cfeb8e3564ddd0cd333650f3285f3fb2fe064d62722df8bf9c",
+      "afterFullBuildPass": true
+    },
+    "canonicalTemplateSync": "RUN5 PASS, original55897 terminal10adda; complete preimages retained",
+    "packageCompiler": "Source-identical isolated compilation PASS,52 outputs identical to original partial output bytes; preimages retained; W resolver unchanged",
+    "localPackageParity": {
+      "manifestSha256": "657736c1e027005f6c9e2fc215ae2afde82b3dfd125a3a71988ef2eab7ffe777",
+      "tarFiles": 1346,
+      "migrations": 93,
+      "locatorSourceAndDist": 27,
+      "compiledCliFiles": 52
+    },
+    "native": "Production20 CHECK5 PASS; source21 eight-library no-run compile PASS; ten selected exact offline unit tests PASS; full suite unrun",
+    "focusedApplicationTests": 141,
+    "nativeArtifactAssemblyTests": 1,
+    "exclusionTests": 78,
+    "fallowIntroducedFindings": 0,
+    "generatedArtifactPolicy": "PASS",
+    "harnessLearning": "PASS58lessons4proposals15localobservations",
+    "graphs": "Four scopes logically fresh; rendered inspection BLOCKED; packages self-loop and Prisma directed endpoint-collapse warnings retained",
+    "postBuildSourceIntegrity": "1879 current canonical pins and20 prior reviewed app hashes unchanged; exact2 test cache DATA pins unchanged; normal hooks preserved reviewed candidate bytes"
+  },
+  "qualificationRemaining": [
+    "Separately approve an exact real-provider campaign and compiled native binary identity, provider/MCP bindings, authentication handling, budgets and stop rules.",
+    "Qualify authoritative physical outcomes, sender exclusion and custody/trust across the exact real provider/WebSocket/MCP paths before claiming termination or releasing an occupied uncertain slot.",
+    "Preserve every old consumed/UNKNOWN allocation and frozen runtime resource; qualification does not authorize replay, reset, cleanup or shipping."
+  ],
+  "blocked": [
+    "provider/native product launches",
+    "authentication",
+    "inference",
+    "qualification runs",
+    "merge",
+    "release/shipping"
+  ],
+  "reviewProtocolDeviation": {
+    "action": "Reviewer unintentionally read/hashed the newly generated known-closed blank static fixture DB during an overly broad inventory comparison.",
+    "noSqlSemanticClaimMutationOrRuntimeContact": true,
+    "disclosedInIndependentReview": true
+  },
+  "preservation": {
+    "failedFrozenUnknownAttempts": "Retained; no resets, cleanup or replay",
+    "unrelatedDirtyArtifacts": "Existing .orig files and __pycache__ preserved and excluded from commits",
+    "durability": "Implementation, source patch bundle and these portable records are tracked on the approved feature branch. Large execution evidence, compiler caches, native source copies and runtime fixtures remain local ignored evidence, not a remote backup."
+  },
+  "continuation": "Use this record, repository-continuation-2026-10-23.json and local .appraisejs/m06-work/CONTINUE-NOW.md. Provider qualification requires a new explicit authorization; no action is granted by this record."
+}

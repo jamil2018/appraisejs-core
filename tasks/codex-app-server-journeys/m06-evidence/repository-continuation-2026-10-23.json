@@ -1,0 +1,445 @@
+{
+  "recordType": "REPOSITORY_CONTINUATION_STATUS",
+  "updatedLocalDate": "2026-10-23",
+  "status": "REPOSITORY_WORK_COMPLETE_PROVIDER_QUALIFICATION_BLOCKED",
+  "branch": "codex/m06-custody-fix",
+  "latestReviewedCodeCommit": "a52ad1fd0506465bba8ba26ed749e6a6f130c387",
+  "repositoryComplete": true,
+  "runtimeQualified": false,
+  "providerQualified": false,
+  "releaseAuthorized": false,
+  "recordGrantsAuthority": false,
+  "authoritySource": "User directions in the host conversation; recorded approval metadata is provenance only",
+  "acceptedScopes": {
+    "sourceCases": "18 normal and 2 fault selectors across their exact frozen generations; retained outcomes remain retained",
+    "serviceMatrix": "17 fresh service/crash cases; branch-bounded acceptance",
+    "analysisProductCases": "7 accepted offline cases; no provider termination or physical-slot release claim",
+    "fixtureLineageCorrection": {
+      "commit": "e40a5193bc7591e58881b37cef8ab93a69695235",
+      "implementationReviewSha256": "2ff69ade05b657d5912b71d6df89fa215f636344727a225a093316b5482e297f",
+      "checks": "Actual old-helper regression failed; corrected projection and all six helper tests passed; lint/format/strict types and normal commit hooks passed"
+    }
+  },
+  "latestIntegration": {
+    "name": "canonical7-device1",
+    "result": "ORIGINAL_EXIT0_KNOWN_CLOSED_INDEPENDENTLY_ACCEPTED",
+    "originalToolSession": 37400,
+    "originalExit": 0,
+    "supervisorResultSha256": "671e3c6084a73825bbf78d2d0d734d5e75aee52105a56aa4bd7cf3f8b10306b2",
+    "actualManifestSha256": "d310eacdab158bad5a1ae9db119cada17f3eefbf39488147ac4079c687425b0d",
+    "observation": "Accepted original NONSTART to authored A to fixture human answer to fresh B: two attempts, distinct authorizations, three intents, six observations. Original fixture resources CLOSED; B physical UNKNOWN, canonical ACKNOWLEDGED and slot-occupying. No provider termination or qualification.",
+    "independentResultReviewSha256": "e740f5465b656a01ae27ac4fe12222dcb3492ad12ca70c27cf1a6705be8c6bcf"
+  },
+  "remainingRepositoryWork": [],
+  "nativeChecks": {
+    "sourceCommit": "4ebc485ca321243727539187169425fcf972f2c4",
+    "rustToolchainPin": "1.95.0",
+    "sourceAssembly": "Artifact21 exact source assembly PASS against the pinned authentic original Git source; complete 9184-entry result bound, with root .npmrc inherited metadata-only and not read. Artifact15 preserved.",
+    "formatCompileTestsLockedCoherence": "Native20 production CHECK5 PASS; native21 eight-library locked offline no-run compilation PASS; current21 formatting PASS by composition; ten exact offline pure units PASS across two retained operations. Artifact21 Node assembly and78 exclusion tests PASS. Full Rust suite and standalone production21 check remain unclaimed.",
+    "provisioning": "Official Rust1.95 and public locked development dependencies acquired in isolated task-owned root; no global install or provider authentication",
+    "boundedCurrentSourceEvidence": {
+      "verifiedExpectedLeaves": 9183,
+      "metadataOnlyExcludedLeaves": 1,
+      "fullInventoryCurrent": false,
+      "extraNamespaceAbsent": false,
+      "manifestSha256": "10bd643b81992d7f484f0f2d4bf55dff137435ff79efa43401969a7d9ee59c1b"
+    },
+    "candidateCargoLockSha256": "6590b1b39375d536b72c9bf552fd3f72f13db0d320ae7c501f608c81a41ee04f",
+    "authenticUpstreamCargoLockSha256": "17cdd862471774ba7aef836aaf0a0a3ed76bd23e503b1fc7278c89d1f2719d03",
+    "prerequisitePlanReviewSha256": "9df306bcb11a67ebe3a952dacf7803f47f61557694d97e54d72e6e9d355de6e6",
+    "currentSource": "Frozen native21: sole cfg(test) workspace-routing optional-worker shutdown adjustment; all production bytes identical to native20 CHECK5 PASS. Node application source20 is a separate reviewed/pushed slice.",
+    "firstCompile": {
+      "originalSession": 19372,
+      "terminalReceipt": "d86cfe",
+      "exitCode": 101,
+      "sourceCustody": "PASS",
+      "toolCustody": "PASS",
+      "cacheCustody": "PASS_ONLY_TWO_AUTHORIZED_EFFECTS"
+    },
+    "secondCompile": {
+      "originalSession": 37184,
+      "terminalReceipt": "e3aaf0",
+      "exitCode": 101,
+      "failure": "E0382 codex-api SSE response error moved before owned drain retains it",
+      "sourceCustody": "PASS",
+      "toolCustody": "PASS",
+      "cacheCustody": "PASS_ONLY_TWO_AUTHORIZED_EFFECTS"
+    },
+    "latestCompile": {
+      "source": "native20",
+      "status": "OFFLINE_CHECK_PASS",
+      "originalSession": 53192,
+      "terminalReceipt": "22f19c",
+      "exitCode": 0,
+      "sourceCustody": "PASS",
+      "toolCustody": "PASS",
+      "cacheCustody": "PASS_ONLY_TWO_AUTHORIZED_EFFECTS",
+      "testsExecuted": 0,
+      "resultManifestSha256": "fd6a29358dd88c2b13434ece0da57265baa43ba916eed654a9bd660e94d8d41b",
+      "localPublication": ".appraisejs/m06-work/evidence/m06-native-source20-check-operations5/root-host-actual1.json"
+    },
+    "historicalCompileFailures": [
+      {
+        "source": "native19",
+        "originalSession": 64118,
+        "terminalReceipt": "7ff739",
+        "exitCode": 101,
+        "error": "Two E0308 core/mcp_tool_call.rs from_error_text expects owned String",
+        "sourceCustody": "PASS",
+        "toolCustody": "PASS",
+        "cacheCustody": "PASS_ONLY_TWO_AUTHORIZED_EFFECTS",
+        "testsExecuted": 0
+      }
+    ],
+    "latestTestCompilation": {
+      "source": "native21",
+      "status": "OFFLINE_LIB_TEST_COMPILE_PASS",
+      "originalSession": 81575,
+      "terminalReceipt": "23ae0d",
+      "exitCode": 0,
+      "affectedLibraries": 8,
+      "libraryTestExecutablePathsBound": 8,
+      "testsExecuted": 0,
+      "testHarnessStartup": false,
+      "sourceCustody": "PASS",
+      "toolCustody": "PASS",
+      "cacheCustody": "PASS_ONLY_TWO_AUTHORIZED_EFFECTS",
+      "resultManifestSha256": "905535266ab84291fdaaa8993498f379f0b4d79ff49d440834ad31bb18bf3182",
+      "localPublication": ".appraisejs/m06-work/evidence/m06-native-source21-test-compile-operations3/root-host-actual1.json",
+      "standaloneProductionCheck21Claim": false
+    },
+    "source21Delta": {
+      "path": "codex-rs/app-server/src/message_processor_workspace_routing_tests.rs",
+      "scope": "cfg(test) only",
+      "change": "Optional models_refresh_worker cleanup uses if let Some(worker) and worker.shutdown(); Some behavior retained, None no-op",
+      "other9182LeavesAndModesExact20": true,
+      "productionSourceBytesIdentical20": true,
+      "lockAndManifestsUnchanged": true
+    },
+    "currentFormatting": {
+      "source": "native21",
+      "status": "PASS_BY_COMPOSITION"
+    },
+    "pureUnitChecks": {
+      "status": "FOUR_EXACT_PURE_UNITS_PASS",
+      "originalSession": 99008,
+      "terminalReceipt": "0de7b5",
+      "exitCode": 0,
+      "harnessesStarted": 4,
+      "exactUnitPasses": 4,
+      "exactFilters": [
+        "m06_outcome::tests::canonical_rejects_float_negative_unsafe_and_sorts_ascii",
+        "inherited_owner_transport::tests::real_parser_retains_string_and_number_id_domains",
+        "m06_io::tests::ordinary_unowned_io_preserves_bytes",
+        "m06_outcome::tests::dormant_profile_is_fixed_not_a_caller_descriptor"
+      ],
+      "sourceToolCustody": "PASS",
+      "fullSuiteExecuted": false,
+      "childLaunchTestsExecuted": false,
+      "resultManifestSha256": "dd4912397b600ac17b610d9c3fca60fa34a607d5f30cb9fae56e40b63273ab21",
+      "localPublication": ".appraisejs/m06-work/evidence/m06-native-pure-unit-operations1/root-host-actual1.json",
+      "runtimeQualified": false,
+      "providerQualified": false,
+      "independentAcceptanceClaim": false
+    },
+    "exactSelectedNativeUnitPasses": 10
+  },
+  "standingUserBoundaries": [
+    "No real provider/native Codex launches, including version probes",
+    "No provider authentication, inference or qualification runs",
+    "No merge, release, publication or shipping",
+    "Preserve consumed and UNKNOWN outcomes; no contact, cleanup, reset, replay or retry of retained failed resources"
+  ],
+  "durability": {
+    "reviewedSource": "Feature branch pushed through the named code commit",
+    "fullLocalEvidence": "Ignored .appraisejs/m06-work records; not a remote backup",
+    "localContinuationPointers": [
+      ".appraisejs/m06-work/CONTINUE-NOW.md",
+      ".appraisejs/m06-work/CURRENT-IMPLEMENTATION-16X.json"
+    ],
+    "lostEvidenceBoundary": "A missing local record does not authorize recreating a run, reclaiming consumed allocation or assuming retained operations terminated"
+  },
+  "effectiveHostRoleModelContextSandbox": "UNVERIFIED",
+  "pauseCheckpoint": ".appraisejs/m06-work/evidence/pause-checkpoint16z-control-oracle1/checkpoint.json",
+  "pauseProgress": {
+    "focusedTests": 55,
+    "implementationEvidence": "SEALED_c910a7e7",
+    "independentReview": "FINAL_ACCEPT_01b4df7a",
+    "closure7": "ACCEPTED_ACTUAL_EXIT0_e740f546",
+    "sourceAndCacheWriters": "ROOT_DOC_GRAPH_MAINTENANCE_ACTIVE_AFTER_ACCEPTED_IDENTITY_REFRESH; build12 capture held until new freeze"
+  },
+  "latestOracleCorrection": {
+    "sourcePins": [
+      {
+        "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m06-work/worktrees/custody-fix/src/test/m06-analysis-retained-composition.ts",
+        "bytes": 12958,
+        "sha256": "f80f3bbae8e4b07ea56bd80e70fb96d77ba6fec385fd0acd1deb78a0974b5b2e",
+        "device": 16777233,
+        "inode": 76254083,
+        "mtime_ns": 1792704954475090665
+      },
+      {
+        "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m06-work/worktrees/custody-fix/src/test/m06-analysis-retained-composition.test.ts",
+        "bytes": 24906,
+        "sha256": "4242bb34b16f36f52eaefee622e4a8c66738a7c2b0dc26e9426bc48e83ec8b6b",
+        "device": 16777233,
+        "inode": 76263168,
+        "mtime_ns": 1792704964379734362
+      },
+      {
+        "path": "/Users/jamil/Personal Projects/appraisejs/.appraisejs/m06-work/worktrees/custody-fix/scripts/test-harness/m06/service-custody/custody-service-matrix.ts",
+        "bytes": 51723,
+        "sha256": "0b70f4fdda3e6c86bd06c47ceef07dd63486b0bb1625ba2745d14723dbd21f61",
+        "device": 16777233,
+        "inode": 76255942,
+        "mtime_ns": 1792704954476004755
+      }
+    ],
+    "state": "FINAL_IMPLEMENTATION_REVIEW_ACCEPTED_AND_PUSHED",
+    "reviewSha256": "01b4df7a7c0e1ba398438666a43645e4fa4a89efeb99a9dc21c7bb4d0a17ac3c",
+    "commits": ["5464d093c415acb1acda636259efdfda7d0d4bfd", "ba781b12c1e074acd89b235271b6cdcb7e00943e"]
+  },
+  "currentBlocker": "Repository implementation/offline checks and independent integrated-artifact review passed. Only separately authorized real-provider qualification and lifecycle/release work remain blocked; final checkpoint documents are committed separately.",
+  "deviceIdentityRenewal": {
+    "status": "IMPLEMENTED_INDEPENDENTLY_ACCEPTED_PUSHED",
+    "planReviewSha256": "2a49cc0524f3c8e10df0fac9c51baf2a936b92399044eae1d754e9ebad8b75a0",
+    "selectedDescriptorSha256": "c4206a212eb915ded731ff23ba50f102a45e13aca10569fefeaafd553c4021ff",
+    "deviceChange": "16777233 to 16777230; exact equality retained; historical descriptor immutable",
+    "runtimeAllocated": true,
+    "historicalSourcePinsNote": "Embedded device33 records preserve historical freeze; not current admission evidence",
+    "integratedReviewSha256": "f3f13874b02e93054e603e80671b7926d0f0803fbd3eba5655a87882ce79417a",
+    "commit": "9c64655f9617db053abf9a5ed7de12d0919c4aba",
+    "focusedChecks": "11 canonical inert tests and builder syntax/lint/format PASS; normal hooks PASS",
+    "runtimeAllocationNote": "Fresh canonical7-device1 operation completed and accepted; historical failures unchanged"
+  },
+  "currentGraphs": {
+    "status": "ALL_FOUR_CANONICAL_SCOPES_FRESH",
+    "manifestSha256": "def05e3c643f117265ba28f803b2e77f01470e5612df14f349745e59f5d17bc7",
+    "modelRequests": 0,
+    "visualInspection": "BLOCKED_BY_PRIOR_BROWSER_POLICY",
+    "preservedWarnings": ["packages:one preexisting self-loop", "Prisma:18 preexisting directed endpoint collapses"],
+    "prismaGraphModified": false
+  },
+  "latestBuild": {
+    "status": "CANONICAL_BUILD_PASS",
+    "build": "BUILD17",
+    "originalSession": 27759,
+    "terminalReceipt": "d500b0",
+    "exitCode": 0,
+    "run": "m06-offline-build16z-run11",
+    "allocation": "CONSUMED_PRESERVED_NEVER_REUSE",
+    "sealedManifestSha256": "b024dd69e52f653a4560bf5c35f81e4ff71088dba48fa7da7fe3f496f1c7897f",
+    "operationManifestSha256": "54bf280146054d74ae70bf26964d8029b7bf7b0b1acc992dcaa117e3b88fe7a7",
+    "independentReview": "ACCEPT_IMPLEMENTATION_AND_PACKAGE_SCOPE",
+    "independentReviewSha256": "c9798fcc97b3b1cfeb8e3564ddd0cd333650f3285f3fb2fe064d62722df8bf9c",
+    "futureBuildAuthorized": false,
+    "noFurtherOriginalRunResourceContact": true,
+    "providerQualified": false,
+    "runtimeQualified": false
+  },
+  "browserBoundaryFix": {
+    "status": "EXACT_IMPLEMENTATION_ACCEPTED_COMMITTED_AND_PUSHED",
+    "sourcePlanReviewSha256": "f08e6bfa744cd0960b5d2529bb4cf514fa73713507a3ceaf5f21893aad61fe78",
+    "testOperationsReviewSha256": "3f516e852f24a09952f115350811e837872bea49b666930a6bed93567d06a464",
+    "scope": "Three pure leaves, two old server-contract import/reexports, three client bridges; compatibility and browser compiler regressions; file-local enum-only mock avoids real Prisma evaluation",
+    "checks": "Five focused files/36 tests including three authentic browser compiler checks PASS; lint/format/package noEmit and exact extraction/API/schema identity/hash proofs PASS; unchanged root new-only Fallow gate exit0/zero introduced findings; independent source and gate-result ACCEPT; normal hooks and both ordinary feature pushes PASS",
+    "sourceArtifactReviewSha256": "e12f9c67ebb7a538741e30519a928076b470996c96b6ac6ca7330f0c14202787",
+    "rootQualityResultReviewSha256": "5b3f318d7b9b4a2ab2e0da7b45f05c5c7e8d2627b0d83948c1eb0950425a168c",
+    "commits": ["73d8dc181fcaab98f39dc2b9f893f43d21938937", "ae77074d9d6dd87c39e68ffd4f83f964ad6940d3"],
+    "packageQualityGateCoverageClaimed": false,
+    "integrationLimit": "Canonical Cucumber emission and real five-suite architecture certification passed; full application build/template/package/integrated review remain separate; no whole-component UI or native/provider qualification claim"
+  },
+  "prerequisiteAuthorityCorrection": "Earlier blanket provisioning prohibition was an investigator assertion, not sourced user instruction. ROOT treats necessary reversible isolated toolchain/dependency acquisition as repository implementation scope; global profile/PATH/toolchain/credential changes remain excluded.",
+  "historicalBuilds": [
+    {
+      "result": "KNOWN_CLOSED_FAIL_INDEPENDENT_RESULT_ACCEPTED",
+      "originalToolSession": 18144,
+      "originalExit": 1,
+      "run": "m06-offline-build16z-run4",
+      "allocation": "CONSUMED_PRESERVED_NEVER_REUSE",
+      "prerequisites": "CLI, Cucumber runtime and locator compiler steps passed; full Next build failed",
+      "actualManifestSha256": "8ee9a67563c74292d734b9d1d6adfea1d4a1ba95a848631031901440bf7a1a27",
+      "independentResultReviewSha256": "7ddf17ad95d507d1b918951cba0059e6781f85011816ebbdf1970a159592be32",
+      "futureBuild": "Fresh run5 only after accepted exact source and new strict operations review; no retry of run4"
+    }
+  ],
+  "canonicalIdentityRefresh": {
+    "status": "ALL_SEVEN_CANONICAL_COMMANDS_AND_POSTCONDITIONS_PASS_ACCEPTED_COMMITTED_PUSHED",
+    "originalSession": 8186,
+    "originalExit": 0,
+    "actualManifestSha256": "518e87da3c0f2c77ba743dbd33fae9aed6b3550d6d2ca4b5925cd1ffc6ba9943",
+    "independentResultReviewSha256": "a8575349c744c92109a42b9bdc920e2d52b0d1c40ea7e18349102c3203a28f88",
+    "certificationReceiptHash": "sha256:a0c970bf20e495f08d8796bca2e680670d0c0925d87adab18de6b29edc4b5bef",
+    "certificationTests": 48,
+    "certificationSuites": 5,
+    "unchangedWrappers": 24,
+    "commit": "2dd91e762b54f0469e5f37fda4f544d777becbca",
+    "formatting": "Handler/ledger pass. Canonical certification JSON has inherited Prettier mismatch in both predecessor/current; canonical producer bytes preserved.",
+    "push": {
+      "exitCode": 0,
+      "toolInitial": "4993bf",
+      "toolTerminal": "b3251f",
+      "ordinaryNonForce": true
+    }
+  },
+  "currentOwnerStaticProof": {
+    "status": "DATA_ONLY_CURRENT_OWNER_STATIC_APPLICABILITY_RETAINED",
+    "manifestSha256": "2d268a3084a044f5dd174e4171e7bf32a4eeffd9582d1725f099db016e1a6e42",
+    "proofSha256": "50103f20cd80f88a92b82bf414b1fec49bbae6534622d3bb5d1a426708a56cb4",
+    "freshBundleEmitted": false,
+    "graph": "139-key AST projection by unchanged-edge equivalence; not a new runtime observation",
+    "independentReviewSha256": "5f5579141bf6c8043db4994c300a3817b2ba18eb1c11ba00003a1143d7f9c9cd",
+    "independentReview": "ACCEPT_BOUNDED_EQUIVALENCE_HISTORICAL_METADATA_LIMITS"
+  },
+  "latestApplicationBuild": {
+    "status": "CANONICAL_BUILD_PASS",
+    "build": "BUILD17",
+    "originalSession": 27759,
+    "terminalReceipt": "d500b0",
+    "exitCode": 0,
+    "run": "m06-offline-build16z-run11",
+    "allocation": "CONSUMED_PRESERVED_NEVER_REUSE",
+    "sealedManifestSha256": "b024dd69e52f653a4560bf5c35f81e4ff71088dba48fa7da7fe3f496f1c7897f",
+    "operationManifestSha256": "54bf280146054d74ae70bf26964d8029b7bf7b0b1acc992dcaa117e3b88fe7a7",
+    "independentReview": "ACCEPT_IMPLEMENTATION_AND_PACKAGE_SCOPE",
+    "independentReviewSha256": "c9798fcc97b3b1cfeb8e3564ddd0cd333650f3285f3fb2fe064d62722df8bf9c",
+    "futureBuildAuthorized": false,
+    "noFurtherOriginalRunResourceContact": true,
+    "providerQualified": false,
+    "runtimeQualified": false
+  },
+  "latestReviewedSource20": {
+    "commits": [
+      "ffe4d3a0e2d6805efd4014331e7511473e077813",
+      "c0ac3115ee8ad8d03a9071f9ce11a1e10039f5cb",
+      "33b99d8cab48fde4c5cfc4282c19974b3f7c4454",
+      "fd2e2a30222c3e12471e4b76ad529b5eb39bd2b9"
+    ],
+    "pushed": true,
+    "normalHooksPassed": true,
+    "source20BytesUnchanged": true,
+    "sliceOnly": true
+  },
+  "latestStaticOwnerApplicability": {
+    "status": "DATA_ONLY_CURRENT_OWNER_STATIC_APPLICABILITY_RETAINED",
+    "manifestSha256": "2d268a3084a044f5dd174e4171e7bf32a4eeffd9582d1725f099db016e1a6e42",
+    "proofSha256": "50103f20cd80f88a92b82bf414b1fec49bbae6534622d3bb5d1a426708a56cb4",
+    "freshBundleEmitted": false,
+    "graph": "139-key AST projection by unchanged-edge equivalence; not a new runtime observation",
+    "independentReviewSha256": "5f5579141bf6c8043db4994c300a3817b2ba18eb1c11ba00003a1143d7f9c9cd",
+    "independentReview": "ACCEPT_BOUNDED_EQUIVALENCE_HISTORICAL_METADATA_LIMITS"
+  },
+  "latestNativeRepositoryMilestone": {
+    "artifact": 21,
+    "manifestSha256": "45208f9a209649c72baf42372914b864e102e7a30489bf7122e7e1ceb40fec09",
+    "originalSourcePin": "4ebc485ca321243727539187169425fcf972f2c4",
+    "source21EightLibraryTestCompilation": "PASS",
+    "production20Check": "PASS",
+    "standaloneProduction21CheckClaimed": false,
+    "exactSelectedNativeUnitPasses": 10,
+    "additionalSixOriginalSession": 56518,
+    "additionalSixTerminal": "c50e73",
+    "sourceToolCustody": "PASS",
+    "exactNodeAssemblyTestsPassed": 1,
+    "exclusionTestsPassed": 78,
+    "fullRustSuiteExecuted": false,
+    "clarificationSha256": "cd78bbaaa9e6050cd4ee930bf68aa5a50c2547cf122445678cd232d4356e4848",
+    "clarificationReviewSha256": "15cc926b43e20b2ff3146feeb4f676dd4dec78f10fe375dd259eeba9ccfc8500",
+    "runtimeQualified": false,
+    "providerQualified": false
+  },
+  "previousBlockerBeforeNative21Milestone": "Native21 scoped offline verification passed; final portable native bundle, final canonical scaffold/package checks, full application BUILD17 and integrated review remain pending.",
+  "latestCanonicalTemplateSync": {
+    "status": "CANONICAL_PREPARE_PASS",
+    "originalSession": 55897,
+    "terminalReceipt": "10adda",
+    "exitCode": 0,
+    "resultSha256": "16742aedb654784bce9c09a6cbd9738798365ae2756875a2d133de246a6e901b",
+    "localPublication": ".appraisejs/m06-work/evidence/m06-final-template16z-operations-run5/attempt-ec5db7f4-d678-4fc2-8c73-040e29ca089e/result.json",
+    "independentAcceptanceClaim": false,
+    "runtimeQualified": false,
+    "providerQualified": false
+  },
+  "latestFinalSourceQuality": {
+    "name": "Fallow6",
+    "status": "PASS",
+    "independentAcceptanceClaim": false,
+    "originalSession": 88293,
+    "terminalReceipt": "4c51d4",
+    "exitCode": 0,
+    "resultSha256": "9213ed692319789043981f6d70f8c975a5c24b0095afee6e1acd389f9bf16710",
+    "localPublication": ".appraisejs/m06-work/evidence/m06-final-native21-quality-root6/result.json",
+    "gate": "new-only",
+    "introducedFindings": 0
+  },
+  "finalPackageVerification": {
+    "compilerManifestSha256": "e21a3cddf1ee5370d4d3894d329e0b71655c7d02511deddd0ce587c166e3ed50",
+    "compilerOriginalSession": 17870,
+    "compilerTerminalReceipt": "2fe8bd",
+    "compilerExitCode": 0,
+    "compilerSourceIdenticalIsolatedEnvironment": true,
+    "worktreeResolverUnchanged": true,
+    "compiledFiles": 52,
+    "compiledCompositionDifferences": 0,
+    "packResultManifestSha256": "657736c1e027005f6c9e2fc215ae2afde82b3dfd125a3a71988ef2eab7ffe777",
+    "packOriginalSession": 25543,
+    "packTerminalReceipt": "6c93fc",
+    "packExitCode": 0,
+    "packedFiles": 1346,
+    "migrationParity": 93,
+    "locatorSourceAndDistParity": 27,
+    "failedCompilerAttemptsPreserved": 2,
+    "qualification": false
+  },
+  "overallM06Complete": false,
+  "finalRepositoryEvidence": {
+    "completionRecord": "repository-completion-2026-10-23.json",
+    "fullBuildManifestSha256": "b024dd69e52f653a4560bf5c35f81e4ff71088dba48fa7da7fe3f496f1c7897f",
+    "fullBuildOriginal": 27759,
+    "fullBuildTerminal": "d500b0",
+    "fullBuildExit": 0,
+    "integratedReviewSha256": "c9798fcc97b3b1cfeb8e3564ddd0cd333650f3285f3fb2fe064d62722df8bf9c",
+    "implementationCommitPushCount": 14,
+    "implementationRemoteHead": "a52ad1fd0506465bba8ba26ed749e6a6f130c387",
+    "normalHooksPassed": true,
+    "implementationBytesUnchangedAfterHooks": true,
+    "finalCheckpointDocsSeparate": true
+  },
+  "historicalLatestBuildBeforeBuild17": {
+    "result": "KNOWN_CLOSED_FAIL_BEFORE_COMPILATION_INDEPENDENT_RESULT_ACCEPTED",
+    "originalToolSession": 93539,
+    "originalExit": 1,
+    "run": "m06-offline-build16z-run5",
+    "allocation": "CONSUMED_PRESERVED_NEVER_REUSE",
+    "actualManifestSha256": "7a87cf78e55ab032f550e62524313be487e7b41c0cdc872c52f1154e41363758",
+    "independentResultReviewSha256": "f6d1d34c3946e85b3f050355a1947fea02d99406f9500badc45e539251bf7afd",
+    "prerequisites": "Stopped at stale operation source identity before compilation. Canonical identity refresh later passed separately; no full build pass claimed.",
+    "futureBuild": "Fresh run6 only after current source freeze and new strict operations review; no retry or contact of run5"
+  },
+  "historicalLatestApplicationBuildBeforeBuild17": {
+    "status": "CANONICAL_BUILD_PASS",
+    "originalSession": 1441,
+    "terminalReceipt": "a1cee6",
+    "exitCode": 0,
+    "artifact": "source20 frozen in operations16 current-source20-validation.json",
+    "sealedManifestSha256": "2be1b4a7b368b4ec42fc9df77d4bb0cd0eac981165d1b4e3339ac63cafc1fa77",
+    "independentReview": "ACCEPT",
+    "providerQualified": false,
+    "runtimeQualified": false,
+    "independentReviewSha256": "3c17128d74258f37c4db0dcf395ab0b5d9321d8d7f89585e4d7dc700750b3bbc"
+  },
+  "historicalCurrentOwnerStaticProofBeforeFinalCheckpoint": {
+    "status": "ACTUAL_STATIC_PASS_INDEPENDENT_APPLICABILITY_ACCEPTED",
+    "proofSha256": "dddbadcac4c9ad16048ae718e8e1d238e923a79648745d5e3a57282746cfbdb7",
+    "toolChunk": "70d1c3",
+    "exitCode": 0,
+    "actualInputKeys": 138,
+    "fixtureReplay": false,
+    "moduleEvaluation": false,
+    "firstAttempt": "Strict environment assertion failed before bundling because macOS injected CF field; preserved; additive exact successor passed",
+    "reviewSha256": "3c9f2317925129310ae8ef2760405d31f7cbf819b0c190dcb4decccbef371bf4",
+    "priorApplicabilityGap": "CLOSED_NO_FIXTURE_REPLAY_REQUIRED",
+    "physicalMetadataLimit": "Embedded JavaScript source/DIST metadata nanoseconds are a rounded projection; exact original Python receipt hash, content hashes and fingerprints remain authoritative"
+  },
+  "historicalCheckpointPolicy": "Objects named historical* or previous* are preserved superseded evidence only. Embedded futureBuild text is historical, never current authorization. Every old run allocation remains consumed; no replay, new build or resource contact is authorized by this record."
+}
