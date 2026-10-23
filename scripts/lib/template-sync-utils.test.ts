@@ -35,7 +35,7 @@ describe('template sync utils', () => {
     expect(shouldExcludeTemplatePath('src/app/page.tsx')).toBe(false)
   })
 
-  it('keeps native12 source assembly and cross-package factories repository-only', () => {
+  it('keeps native source assembly and cross-package factories repository-only', () => {
     for (const source of [
       'scripts/m06-native-fixture-workspace-13.mjs',
       'm06-native-fixture-workspace-13.mjs',
@@ -69,6 +69,10 @@ describe('template sync utils', () => {
       'm06-native-patch-cli.mjs',
       'scripts/tests/m06-native-patch-cli.test.mjs',
       'tests/m06-native-patch-cli.test.mjs',
+      'scripts/m06-native-patch-21.mjs',
+      'm06-native-patch-21.mjs',
+      'scripts/tests/m06-native-patch-21.test.mjs',
+      'tests/m06-native-patch-21.test.mjs',
       'scripts/m06-native-patch-15.mjs',
       'm06-native-patch-15.mjs',
       'scripts/tests/m06-native-patch-15.test.mjs',
