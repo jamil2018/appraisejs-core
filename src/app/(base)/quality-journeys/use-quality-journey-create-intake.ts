@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useReducer, useRef, useState, useTransition } from 'react'
 
 import { toast } from '@/hooks/use-toast'
-import { hashQualityJourneyRequirement } from '@/lib/quality-journey'
+import { hashQualityJourneyRequirementForBrowser } from '@/lib/quality-journey/requirement-browser'
 
 import {
   archiveQualityJourneyDraftAction,
@@ -198,6 +198,8 @@ export function useQualityJourneyCreateIntake({
         update({ error: response.error ?? 'Unable to register this environment.' })
         return
       }
+      editRevision.current += 1
+      setSaveStatus('dirty')
       dispatch({ type: 'environment-registered', environment })
       toast({ title: 'Environment registered', description: `${environment.name} is included in this intake.` })
     })
@@ -223,12 +225,31 @@ export function useQualityJourneyCreateIntake({
     focusIntakeField(`intake-${['requirement', 'scope', 'profile', 'environment'][step]}-heading`)
   }
 
+  async function verifyCurrentRequirement() {
+    const revision = editRevision.current
+    const requirement = requirementRef.current
+    let hash: string
+    try {
+      hash = await hashQualityJourneyRequirementForBrowser(requirement)
+    } catch {
+      updateView({ error: 'Unable to verify this brief. Retry before creating the Journey.' })
+      return
+    }
+    if (editRevision.current !== revision) {
+      updateView({ error: 'Your brief changed while it was being verified. Review it before creating the Journey.' })
+      return
+    }
+    return { revision, requirement, hash }
+  }
+
   function submit() {
     startTransition(async () => {
       if (saveTimer.current) window.clearTimeout(saveTimer.current)
-      const savedLatest = await enqueueSave()
+      const verified = await verifyCurrentRequirement()
+      if (!verified) return
+      const savedLatest = await enqueueSave(verified.requirement)
       const activeDraft = draftRef.current
-      if (!activeDraft || !savedLatest || saveConflict) {
+      if (!activeDraft || !savedLatest || saveConflict || editRevision.current !== verified.revision) {
         update({ error: 'Your brief has not been saved yet. Retry after it is saved.' })
         return
       }
@@ -236,7 +257,7 @@ export function useQualityJourneyCreateIntake({
         draftId: activeDraft.id,
         expectedVersion: activeDraft.version,
         expectedDraftHash: activeDraft.draftHash,
-        requirementHash: hashQualityJourneyRequirement(requirement),
+        requirementHash: verified.hash,
       })
       const journeyId = journeyIdFrom(response)
       if (!journeyId) {
