@@ -277,3 +277,7 @@ See [Quality Journey pause and recovery](quality-journey-recovery.md) for operat
 ## Internal Analysis fixture delivery (M06)
 
 [Internal Analysis delivery](quality-journey-analysis-delivery.md) connects disposable managed assignments to canonical Analysis acceptance and existing human forms. Follow-up dispatch remains blocked on authoritative physical reconciliation of the consumed predecessor. Observation keys and durable wakes grant no execution or human-decision authority.
+
+## Synthetic physical-outcome custody
+
+The internal [source-custody contract](quality-journey-source-custody.md) covers original synthetic NONSTART evidence, canonical first-write exclusion, conservative resource retirement and exact committed replay. Source-local inspection is insufficient for a fresh release; canonical validation and complete source verification share the same actual transaction. No source receipt replaces Analysis acceptance, review, approval or another Appraise-owned lifecycle gate. Native/provider/MCP TERMINAL authority and real-provider qualification remain unavailable through this synthetic path.

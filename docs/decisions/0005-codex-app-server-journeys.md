@@ -96,3 +96,9 @@ The separately approved M03 plan implements [durable host-neutral session owners
 ## M04 persistence implementation — 2026-10-19
 
 The approved M04 plan adds [provider-run and wake intent persistence](../quality-journey-provider-intents.md), retaining UNKNOWN after an armed crash and excluding occupied/uncertain hub slots from replacement or transfer. Wake hints grant no authority. Production provider dispatch, transport supervision, authentication, real inference and native qualification remain outside this implementation.
+
+## Synthetic custody storage decision — 2026-10-22
+
+The [M06 synthetic custody lane](../quality-journey-source-custody.md) uses one genuine factory-owned Prisma writer for source and canonical state, plus one preowned committed-read resolver from the same loaded native library. Mixed SQLite implementations must not open the canonical file in the owning process. Source persistence becomes asynchronous; original synchronous transport observation remains metadata-only with zero SQL. Fresh release requires a conditional first-SQL source barrier and full bounded verification inside the existing canonical transaction.
+
+Actual client destruction is deferred through protected and unresolved operations. Source key disposal and database/client cleanup have separate lifetimes so exact disposed replay can use the original resolver without reconnecting or reconstructing evidence. Independent installed-runtime exclusion evidence gates implementation; original source/service/crash evidence and exact-artifact review gate completion. This decision establishes no real-provider or TERMINAL qualification and leaves production dispatch blocked.
