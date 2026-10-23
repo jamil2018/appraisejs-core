@@ -3,8 +3,8 @@ import { z } from 'zod'
 import {
   stepInputExpressionSchema,
   stepReferenceSchema,
-  type StepDefinition,
-} from '../../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
+} from '../../../packages/cucumber-runtime/src/step-definitions/invocation-contracts.ts'
+import type { StepDefinition } from '../../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
 
 const identifierSchema = z.string().regex(/^[a-z][a-zA-Z0-9-]*$/)
 

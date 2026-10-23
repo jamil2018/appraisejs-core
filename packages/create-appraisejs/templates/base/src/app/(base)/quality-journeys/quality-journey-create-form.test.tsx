@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 
+import { webcrypto } from 'node:crypto'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   push: vi.fn(),
@@ -27,6 +28,7 @@ vi.mock('./quality-journey-actions', () => ({
 import { QualityJourneyCreateForm } from './quality-journey-create-form'
 
 beforeEach(() => {
+  vi.stubGlobal('crypto', webcrypto)
   vi.clearAllMocks()
   mocks.createDraft.mockResolvedValue({
     success: true,
@@ -38,6 +40,10 @@ beforeEach(() => {
       draft: { id: 'draft-1', version: value.expectedVersion + 1, draftHash: `sha256:${'b'.repeat(64)}` },
     },
   }))
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
 })
 
 describe('QualityJourneyCreateForm', () => {
@@ -177,15 +183,17 @@ describe('QualityJourneyCreateForm', () => {
     expect(mocks.confirmDraft).not.toHaveBeenCalled()
     await user.click(screen.getByRole('button', { name: 'Confirm and create Journey' }))
 
-    expect(mocks.confirmDraft).toHaveBeenCalledWith(
-      expect.objectContaining({
-        draftId: 'draft-1',
-        expectedVersion: expect.any(Number),
-        expectedDraftHash: expect.stringMatching(/^sha256:/),
-        requirementHash: expect.stringMatching(/^sha256:/),
-      }),
+    await waitFor(() =>
+      expect(mocks.confirmDraft).toHaveBeenCalledWith(
+        expect.objectContaining({
+          draftId: 'draft-1',
+          expectedVersion: expect.any(Number),
+          expectedDraftHash: expect.stringMatching(/^sha256:/),
+          requirementHash: expect.stringMatching(/^sha256:/),
+        }),
+      ),
     )
-    expect(mocks.push).toHaveBeenCalledWith('/quality-journeys/journey-1?project=project%20one')
+    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/quality-journeys/journey-1?project=project%20one'))
   })
 
   it('shows an actionable error when creation does not yield a stable journey identifier', async () => {
