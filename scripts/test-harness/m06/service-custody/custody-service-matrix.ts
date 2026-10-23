@@ -768,12 +768,15 @@ export function createServiceMatrix(
         turnOrdinal: control.ordinal,
         providerNamespace: control.providerNamespace,
         sendBoundaryId: null,
-        status: 'PENDING',
+        status: composition ? 'INVALIDATED' : 'PENDING',
+        armedAt: null,
         claimEpoch: 0,
         claimOwner: null,
         acknowledgedAt: null,
         reconciledAt: null,
       })
+      if (composition) expect(fixtureDateTime(controlIntent.invalidatedAt)).not.toBeNull()
+      else expect(controlIntent.invalidatedAt).toBeNull()
       expect(control.ordinal).not.toBe(intent.turnOrdinal)
       expect(Number(control.ordinal)).toBeGreaterThanOrEqual(1)
       expect(Number(control.ordinal)).toBeLessThanOrEqual(3)
