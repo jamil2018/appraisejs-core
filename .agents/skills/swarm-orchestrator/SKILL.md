@@ -20,8 +20,11 @@ Optimize for verified accuracy per unit of agent work, not agent count.
 6. Use `solver` when an evidence ledger exists but judgment or causal arbitration remains the blocker; require a
    bounded decision record.
 7. Use `executor` for routine settled work and `executor-advanced` for cross-module, strongly verifiable work.
-8. Prefer deterministic verification over model agreement.
-9. Use `judge` only when residual uncertainty and consequence justify independent evaluation.
+8. Prefer deterministic verification over model agreement. Routine mechanical checks do not need separate model
+   review. Use a campaign scope review only when consequences or an explicit task contract require it.
+9. Use `judge` only when residual uncertainty and consequence justify independent evaluation, or a mandatory
+   acceptance gate requires it. Name the re-review trigger from `references/routing-and-evolution.md`; preserve final
+   exact-artifact acceptance and explicitly amend stricter task contracts before changing their review requirements.
 10. Route back to investigation when evidence is incomplete and back to the solver when execution violates an
     assumption.
 11. Avoid concurrent overlapping writes and stop fan-out when another agent is unlikely to add independent evidence.

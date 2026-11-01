@@ -68,6 +68,40 @@ contradictory evidence, weak verification at high consequence, or discovery that
 Security, persistence, migration, and public-contract risk require Sol-level judgment and conditional independent
 evaluation. Do not route routine discovery or mechanical execution to a solver or judge.
 
+## Review boundaries
+
+Ordinary authorized checks proceed with deterministic verification. Do not add a campaign contract or model review
+for every edit or command. When consequences or an explicit task contract require campaign review, review its scope,
+source and tool inputs, permitted effects, safety assumptions, result predicates, and finite recovery limits together.
+An independent campaign decision approves that contract; it does not independently accept future observations.
+
+Request re-review only for a named trigger, recording the changed evidence or required gate:
+
+- substantive behavior changes, including changes to consequential source;
+- changed permissions or effects;
+- changed trusted tools or dependencies;
+- invalidated safety assumptions;
+- disputed evidence;
+- mandatory final acceptance, including renewal of invalidated exact-artifact acceptance.
+
+Routine formatting, linting, publication metadata, and fresh IDs or hashes within an accepted derivation rule require
+their applicable deterministic checks, without a separate model review unless one of these triggers applies. Complete
+planned edits and checks before taking the final review snapshot; intermediate edits do not each need a judge.
+The final acceptance and invalidation rules in `docs/development-harness.md` remain unchanged.
+
+Clearly label campaign-derived verification records. Link the campaign decision and derivation rule, and record actual
+current inputs, observations, and results, including required containment measurements. Never fabricate
+`independentReviewer` or independent-acceptance fields to make a derived record satisfy a legacy review requirement.
+If the required record cannot represent this distinction, stop and obtain an explicitly reviewed amendment before
+using a successor record or validator.
+
+Stricter task-specific contracts remain binding until explicitly amended by their authority; identify the clauses
+replaced and retained. This guidance grants no new host permission, product lifecycle approval, or retry budget.
+Preserve task-specific limits and UNKNOWN/no-replay restrictions; an ordinary diagnosed failure receives only the
+finite recovery already authorized for it. UNKNOWN never gains a retry by default. Prefer direct authorized diagnostic
+inspection; after two uninformative diagnostic attempts, resolve missing evidence or access as described in
+`docs/development-harness.md` instead of expanding diagnostic machinery.
+
 ## Profile matrix
 
 | Profile             | Role         | Model / effort                | Authority       | Stop or escalate when                                      |
