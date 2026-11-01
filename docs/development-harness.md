@@ -61,13 +61,23 @@ Inspect its plan before executing it. Unknown or shared configuration broadens v
 and unstaged changes, untracked source, both sides of renames, and deleted files. Documentation-only hook skipping applies
 only to strictly recognized documentation paths; dependencies, source, and configuration retain their checks.
 
+Routine mechanical validation proceeds under existing task authorization without separate model review. Use a bounded
+campaign scope review only when consequences or an explicit task contract require it. Follow the
+[review boundaries](../.agents/skills/swarm-orchestrator/references/routing-and-evolution.md#review-boundaries): name
+the substantive behavior, permissions/effects, trusted tools/dependencies, safety-assumption, disputed-evidence, or
+mandatory-final-acceptance trigger for each re-review. Unchanged formatting, lint, or publication metadata alone does
+not trigger a separate judge review. Campaign-derived checks must record current observations and remain distinct from
+independent acceptance; never fabricate `independentReviewer`. Stricter task contracts require explicit amendment.
+Product lifecycle gates, host approvals, UNKNOWN/no-replay restrictions, and task-specific budgets remain binding.
+
 Prerequisite reuse is local to a validation session and valid only for matching content and toolchain inputs. A failed
 or interrupted command cannot satisfy a prerequisite. Timings, retries, and reuse are measurements of the commands that
 actually ran, not proof of productivity gains. Consult [the validation matrix](agent-validation-matrix.md) for surface
 requirements. Release acceptance requires all findings verified; a valid waiver documents an exception but cannot
 satisfy release acceptance.
 
-Use `npm run harness:review -- snapshot` before independent review. Save the snapshot and resulting receipt outside the
+Finish planned edits and applicable checks, then use `npm run harness:review -- snapshot` before final independent
+acceptance. A campaign scope review does not pre-accept the final artifact. Save the snapshot and resulting receipt outside the
 tracked artifact (for example in `.appraisejs/`). After review, `bind <snapshot> <reviewer> <evidence>` emits an acceptance
 receipt; `verify <receipt>` checks the current artifact. These commands record a host review, not perform one. Any
 tracked or untracked content change, deletion, or executable-mode change invalidates acceptance; rerun the affected
@@ -83,6 +93,11 @@ current.
 Run diagnostics and inspect focused command failures before changing source. Host model/profile incompatibility needs
 explicit disclosure; never silently weaken profile constraints. Missing browser
 session proof remains unknown. A stale graph needs its scoped refresh. A changed review artifact needs another review.
+Prefer direct inspection of authorized logs and relevant source over new diagnostic wrappers. After two uninformative
+diagnostic attempts, stop that diagnostic path and identify the missing evidence or access needed. Use existing
+authorization to obtain it; if access is outside that authority, request the specific access and explain the blocker.
+Do not add more classifiers or review machinery to compensate for unavailable evidence. This diagnostic stop condition
+does not authorize another execution attempt or relax UNKNOWN/no-replay restrictions or task-specific budgets.
 A malformed local journal uses the existing `swarm:ledger recover` path; retain recovery provenance. Invalid portable
 records fail validation rather than becoming policy.
 
