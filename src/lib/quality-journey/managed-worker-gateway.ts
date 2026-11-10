@@ -102,7 +102,7 @@ const roleToolMap = Object.freeze({
     'work.output.submit': Object.freeze(['quality_journey_target_observation_submit']),
   }),
   RESOURCE_EXPLORER: Object.freeze({
-    'catalog.search': Object.freeze(['operation_search']),
+    'catalog.search': Object.freeze(['quality_journey_discovery_get']),
     'artifact.read': Object.freeze(['quality_journey_discovery_get']),
     'work.output.submit': Object.freeze(['quality_journey_resource_resolution_submit']),
   }),

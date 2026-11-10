@@ -1,5 +1,11 @@
 import { createHash, randomUUID } from 'node:crypto'
-import type { Prisma, PrismaClient, QualityJourneyOwnedBrowser } from '@prisma/client'
+import type {
+  Prisma,
+  PrismaClient,
+  QualityJourneyArtifact,
+  QualityJourneyDiscoveryRevision,
+  QualityJourneyOwnedBrowser,
+} from '@prisma/client'
 import { z } from 'zod'
 import prisma from '@/config/db-config'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
@@ -2115,23 +2121,120 @@ export async function replaceQualityJourneyDiscoveryBrowserContext(
   return replacementSession ? projection(replacementSession) : replacement
 }
 
+type DiscoveryReceiptRevision = Pick<
+  QualityJourneyDiscoveryRevision,
+  'id' | 'journeyId' | 'targetProjectId' | 'cycleId' | 'scoutWorkItemId'
+>
+
+function assertReceiptMatchesDiscovery(
+  artifact: Pick<QualityJourneyArtifact, 'artifactId' | 'contentHash'>,
+  receipt: DiscoveryBrowserReceipt,
+  revision: DiscoveryReceiptRevision,
+  environmentBindings: FrozenEnvironmentBinding[] | undefined,
+) {
+  const bindings = [
+    [receipt.issuer, discoveryBrowserReceiptIssuer],
+    [receipt.verificationStrength, discoveryBrowserVerificationStrength],
+    [receipt.artifactId, artifact.artifactId],
+    [artifact.contentHash, hash(receipt)],
+    [receipt.journeyId, revision.journeyId],
+    [receipt.targetProjectId, revision.targetProjectId],
+    [receipt.cycleId, revision.cycleId],
+    [receipt.discoveryRevisionId, revision.id],
+    [receipt.workItemId, revision.scoutWorkItemId],
+    [receipt.observationFactsHash, hash(receipt.observationFacts)],
+  ]
+  if (bindings.some(([actual, expected]) => actual !== expected) || !hasAdmissibleReceiptAccessOutcome(receipt))
+    throw new ServiceError('Scout evidence receipt is outside the exact discovery browser scope.', 'CONFLICT')
+  const binding = environmentBindings?.find(value => value.environmentId === receipt.environmentId)
+  if (
+    !binding ||
+    receipt.environmentScopeVersion !== binding.scopeVersion ||
+    !hasExactFrozenReceiptTarget(receipt, binding)
+  )
+    throw new ServiceError('Scout evidence receipt has stale environment or target provenance.', 'CONFLICT')
+  assertAuthenticatedReceiptBinding(receipt, binding)
+}
+
+function assertAuthenticatedReceiptBinding(receipt: DiscoveryBrowserReceipt, binding: FrozenEnvironmentBinding) {
+  if (receipt.accessMode !== 'AUTHENTICATED_INTENT') return
+  if (
+    receipt.authPolicyHash !== binding.discoveryAuthTransitPolicyHash ||
+    !receipt.authFlowId ||
+    !hasSelectedFrozenAuthFlow(binding, receipt.authFlowId)
+  )
+    throw new ServiceError('Authenticated Scout evidence receipt has stale transit-policy provenance.', 'CONFLICT')
+  if (!hasValidHumanReturnReceiptProvenance(receipt))
+    throw new ServiceError(
+      'Authenticated Scout evidence receipt lacks valid one-shot human-return provenance.',
+      'CONFLICT',
+    )
+}
+
+/** Role-scoped projection of captures from the active revision's frozen browser scope. */
+export async function readInternalScoutEvidence(
+  revision: DiscoveryReceiptRevision & { scoutScopeJson: string },
+  tx: Prisma.TransactionClient,
+) {
+  const scope = JSON.parse(revision.scoutScopeJson) as {
+    routes: string[]
+    environmentBindings: FrozenEnvironmentBinding[]
+  }
+  const records = await tx.qualityJourneyArtifact.findMany({
+    where: {
+      journeyId: revision.journeyId,
+      targetProjectId: revision.targetProjectId,
+      cycleId: revision.cycleId,
+      kind: discoveryBrowserReceiptKind,
+    },
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+  })
+  return records.flatMap(artifact => {
+    const parsed = discoveryBrowserReceiptSchema.safeParse(JSON.parse(artifact.artifactJson))
+    if (
+      !parsed.success ||
+      parsed.data.discoveryRevisionId !== revision.id ||
+      !hasAdmissibleReceiptAccessOutcome(parsed.data)
+    )
+      return []
+    const receipt = parsed.data
+    assertReceiptMatchesDiscovery(artifact, receipt, revision, scope.environmentBindings)
+    if (!scope.routes.includes(receipt.routeId))
+      throw new ServiceError('Scout evidence receipt is outside the frozen routes.', 'CONFLICT')
+    return [
+      {
+        artifactId: artifact.artifactId,
+        contentHash: artifact.contentHash,
+        snapshotId: receipt.snapshotId,
+        capturedAt: receipt.capturedAt,
+        routeId: receipt.routeId,
+        environmentId: receipt.environmentId,
+        facts: receipt.observationFacts,
+      },
+    ]
+  })
+}
+
+type ScoutEvidenceBundle = {
+  cycleId: string
+  evidenceReceipts: Array<{ artifactId: string; contentHash: string }>
+  targetSnapshot: { snapshotId: string }
+  observations: Array<{
+    snapshotId: string
+    routeId: string
+    environmentId: string
+    fact: string
+    evidenceReceiptIds: string[]
+  }>
+}
+
 /** Transaction-local admission used by Scout submission. Host screenshots,
  * arbitrary artifacts, and stale/mismatched browser receipts never qualify. */
 export async function assertDiscoveryBrowserReceiptAdmission(
-  bundle: {
-    cycleId: string
-    evidenceReceipts: Array<{ artifactId: string; contentHash: string }>
-    targetSnapshot: { snapshotId: string }
-    observations: Array<{
-      snapshotId: string
-      routeId: string
-      environmentId: string
-      fact: string
-      evidenceReceiptIds: string[]
-    }>
-  },
-  revision: { id: string; journeyId: string; targetProjectId: string; cycleId: string; scoutWorkItemId: string },
+  bundle: ScoutEvidenceBundle,
+  revision: DiscoveryReceiptRevision,
   tx: Prisma.TransactionClient,
+  snapshot?: { contentHash: string; capturedAt: string },
 ) {
   const descriptors = new Map(bundle.evidenceReceipts.map(receipt => [receipt.artifactId, receipt]))
   const used = new Set(bundle.observations.flatMap(observation => observation.evidenceReceiptIds))
@@ -2177,42 +2280,22 @@ export async function assertDiscoveryBrowserReceiptAdmission(
     } catch {
       throw new ServiceError('Scout evidence receipt has invalid Appraise browser provenance.', 'CONFLICT')
     }
-    if (
-      receipt.issuer !== discoveryBrowserReceiptIssuer ||
-      receipt.verificationStrength !== discoveryBrowserVerificationStrength ||
-      receipt.artifactId !== artifact.artifactId ||
-      artifact.contentHash !== hash(receipt) ||
-      receipt.journeyId !== revision.journeyId ||
-      receipt.targetProjectId !== revision.targetProjectId ||
-      receipt.cycleId !== revision.cycleId ||
-      receipt.discoveryRevisionId !== revision.id ||
-      receipt.workItemId !== revision.scoutWorkItemId ||
-      receipt.observationFactsHash !== hash(receipt.observationFacts) ||
-      !hasAdmissibleReceiptAccessOutcome(receipt)
-    )
-      throw new ServiceError('Scout evidence receipt is outside the exact discovery browser scope.', 'CONFLICT')
-    const binding = environmentBindings?.find(value => value.environmentId === receipt.environmentId)
-    if (
-      !binding ||
-      receipt.environmentScopeVersion !== binding.scopeVersion ||
-      !hasExactFrozenReceiptTarget(receipt, binding)
-    )
-      throw new ServiceError('Scout evidence receipt has stale environment or target provenance.', 'CONFLICT')
-    if (receipt.accessMode === 'AUTHENTICATED_INTENT') {
-      if (
-        receipt.authPolicyHash !== binding.discoveryAuthTransitPolicyHash ||
-        !receipt.authFlowId ||
-        !hasSelectedFrozenAuthFlow(binding, receipt.authFlowId)
-      )
-        throw new ServiceError('Authenticated Scout evidence receipt has stale transit-policy provenance.', 'CONFLICT')
-      if (!hasValidHumanReturnReceiptProvenance(receipt))
-        throw new ServiceError(
-          'Authenticated Scout evidence receipt lacks valid one-shot human-return provenance.',
-          'CONFLICT',
-        )
-    }
+    assertReceiptMatchesDiscovery(artifact, receipt, revision, environmentBindings)
     receipts.set(receipt.artifactId, receipt)
   }
+  if (
+    snapshot &&
+    !artifacts.some(
+      artifact =>
+        artifact.contentHash === snapshot.contentHash &&
+        receipts.get(artifact.artifactId)?.capturedAt === snapshot.capturedAt,
+    )
+  )
+    throw new ServiceError('Scout target snapshot does not match its Appraise browser receipt.', 'CONFLICT')
+  assertObservationReceiptBindings(bundle, receipts)
+}
+
+function assertObservationReceiptBindings(bundle: ScoutEvidenceBundle, receipts: Map<string, DiscoveryBrowserReceipt>) {
   for (const observation of bundle.observations) {
     for (const receiptId of observation.evidenceReceiptIds) {
       const receipt = receipts.get(receiptId)

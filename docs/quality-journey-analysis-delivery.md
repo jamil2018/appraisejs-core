@@ -1,5 +1,9 @@
 # Internal Analysis delivery (M06)
 
+> M06 repository work merged in PR #307. The qualification STOP, spent attempts and unresolved physical evidence below
+> retain their original status. M07 is merged and [M08 internal Discovery](quality-journey-internal-discovery.md) is
+> implemented for disposable verification. `runtimeQualified=false`.
+
 M06 connects an explicitly selected disposable `APP_SERVER_LOCAL_V1` Journey to the existing Requirement Analyzer assignment, M03 session fencing, M04 durable provider intent and M05 private owned transport. Only the repository Node fixture adapter is enabled. No public route, MCP operation, background production scheduler or managed opt-in is added. The production launcher still refuses.
 
 The fixture receives canonical assigned requirement content and a scoped role envelope. Requirement lookup uses `REQUIREMENT_REVISION:<assignment.artifactId>` and checks the exact artifact ID and source content hash; the library display ordinal is not the assignment revision ID. Assignment secrets stay in the trusted parent. Candidate output is untrusted until the specialized Analysis validator transaction accepts its exact assignment, revision, charter, questions and durable outcome. Provider completion and owned cleanup establish no artifact acceptance. Lost submission replies use the existing specialized outcome lookup under the original submission identity.

@@ -1,3 +1,8 @@
+> M08 implements [internal Discovery](../../docs/quality-journey-internal-discovery.md) from M07 merge
+> `84fce1cd` with M06 merge `e8adf05b` in its ancestry. M06 STOP and spent-attempt evidence remain historical.
+> The M08 fixture scope covers anonymous discovery and protected-access denial. A live protected-access run needs
+> separate authorization. Runtime and provider qualification remain open.
+
 > 2026-10-20 M06 continuation: M05 shipped through PR #305 at `bf5efff400bac764960ce69c7c9df01b462bb86d` (freshly fetched base). M06 repository implementation is authorized in an isolated worktree; [bounded plan](m06-analysis-plan-01.md) and [partial implementation evidence](M06-CURRENT-WORK-01.md). Initial fixture delivery, blocked observation and the form correction are implemented; actual answer-driven reissue/scheduling and successor delivery remain pending. Full M06 remains incomplete: a consumed predecessor needs authoritative physical outcome and original-sender exclusion before follow-up dispatch. Real providers, production dispatch, M07+ and shipping remain blocked. Earlier scope headers are historical.
 
 > M04 implementation authorized (2026-10-19): the user approved the [bounded plan](m04-provider-dispatch-wake-intent-plan-01.md) and all implementation slices in the isolated M04 worktree. See [current evidence and limits](M04-CURRENT-WORK-01.md). Provider launches, production dispatch, M05 and shipping remain out of scope. Earlier checkpoints below retain historical meaning.
@@ -159,7 +164,7 @@ This evidence does not qualify providers or the managed runtime.
 
 ### M08: Enable Scout and Resource Explorer
 
-- [ ] Implement and verify this slice.
+- [x] Implement and verify the disposable internal slice.
 
 **Dependencies:** M06. **Estimated scope:** M; split further before implementation if the actual diff spans independent concerns.
 
@@ -167,7 +172,10 @@ This evidence does not qualify providers or the managed runtime.
 
 **Acceptance:** Both roles consume frozen scope and Appraise-issued evidence; authenticated discovery stays in its human browser panel. Missing access parks work without invented evidence.
 
-**Verification:** Anonymous discovery path plus separately authorized protected-access path; reject raw browser evidence, changed environment and expired grant.
+**Verification:** Fresh migrated SQLite covers anonymous Appraise browser capture, both role outputs, protected-access
+denial and parking, and rejection of raw evidence, changed Environment and expired grant. Playwright CLI verified the
+existing human browser panel and blocker because the bundled Browser host was unavailable. Live protected access
+remains a separate qualification gate.
 
 ### M09: Enable Scenario Designer and Automator
 

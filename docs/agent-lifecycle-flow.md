@@ -1,4 +1,8 @@
-> Current shipping checkpoint: [M02 scripted qualification accepted](../tasks/codex-app-server-journeys/M02-SHIPPED-SCRIPTED-QUALIFICATION-01.md). T2 R51 passed24/24 andT3 R55 passed2/2; final exact evidence review accepted within TA02/TA03 limits. `runtimeQualified` remains false; helper lifetime/global inventory and historical cleanup remain unobserved. No M03 or production dispatch authority follows. Older status passages below remain historical.
+> Current repository checkpoint: M06 PR #307 and M07 PR #308 are merged. [M08 internal Discovery](quality-journey-internal-discovery.md)
+> is implemented for disposable managed Journeys. `runtimeQualified=false`. The M06 STOP and spent attempts
+> remain historical evidence. Earlier checkpoints below describe their own qualification scopes.
+
+> Historical M02 shipping checkpoint: [M02 scripted qualification accepted](../tasks/codex-app-server-journeys/M02-SHIPPED-SCRIPTED-QUALIFICATION-01.md). T2 R51 passed24/24 andT3 R55 passed2/2; final exact evidence review accepted within TA02/TA03 limits. `runtimeQualified` remains false; helper lifetime/global inventory and historical cleanup remain unobserved. No M03 or production dispatch authority follows. Older status passages below remain historical.
 
 > Latest M02 R24 checkpoint (2026-10-17): the separately approved one p10 native invocation is consumed UNKNOWN/B01 with zero T2 completions and cleanup UNKNOWN. Evidence-only review is accepted; T2/T3/M02 are incomplete. No retry, successor or T3 is authorized by that exact request. Current handoff: `tasks/codex-app-server-journeys/M02-R24-CURRENT-WORK.md`. Older rejection/approval-pending addenda below are historical.
 

@@ -98,6 +98,11 @@ target project authority fields. It writes target-owned authored records and pre
 `automation/` wrappers, TestRuns, or execution consent. Product-code repair is outside this operation. An uncertain
 reply uses `quality_journey_external_work_outcome_get_v1` before exact replay.
 
+For disposable managed Journeys, the [M08 internal Discovery gateway](quality-journey-internal-discovery.md)
+composes the versioned claim, admission and submission services with a signed attempt grant. Its Discovery read returns
+only the current role's frozen inputs. The public coordinator tool inventory and external admission protocol retain
+their existing scope.
+
 Discovery browser sessions are local-UI operations rather than MCP capabilities. They are ephemeral human surfaces,
 not worker authority or reusable credentials. The existing `quality_journey_target_observation_submit` and
 `quality_journey_external_scout_target_observation_submit_v1` operations remain the only Scout submission paths.

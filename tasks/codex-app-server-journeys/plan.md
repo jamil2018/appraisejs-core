@@ -1,3 +1,8 @@
+> M08 implements [internal Discovery](../../docs/quality-journey-internal-discovery.md) from M07 merge
+> `84fce1cd` with M06 merge `e8adf05b` in its ancestry. M06 STOP and spent-attempt evidence remain historical.
+> The M08 fixture scope covers anonymous discovery and protected-access denial. A live protected-access run needs
+> separate authorization. Runtime and provider qualification remain open.
+
 > M07 implementation follows merged M06 PR #307 (`e8adf05b`) on `codex/m07-journey-runtime-status`.
 > The [Journey observation contract](../../docs/agent-lifecycle-flow.md#journey-presentation-and-observation) describes
 > the internal status surface. M06 runtime/provider qualification is still unverified. The historical STOP and spent
