@@ -99,6 +99,9 @@ Its ordinary Node/SQLite fixtures are offline repository verification. Native co
 
 The M06 SQLite suites that require a fresh owned case run through their generated harness configs. Default Vitest
 discovery excludes those seven suites because a normal checkout has no case manifest or case-scoped mirror.
+The three source-custody suites are also opt-in through `APPRAISE_PINNED_SOURCE_CUSTODY=1` when running Vitest.
+Use that mode only on the reviewed macOS ARM64 and migration input tuple. The source-custody runner checks the
+exact input and retains its STOP boundary if that input changes.
 
 ### M06 retained Journey source capture (R07/R08)
 
