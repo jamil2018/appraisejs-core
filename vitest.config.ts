@@ -5,6 +5,7 @@ const sourceCustodySuites = [
   'src/lib/quality-journey/codex-app-server/outcome-source-sqlite-journal.test.ts',
   'src/lib/quality-journey/codex-app-server/outcome-source.sqlite.test.ts',
   'src/lib/quality-journey/provider-source-database.sqlite.test.ts',
+  'src/services/coordinator/quality-journey-outcome-source.sqlite.integration.test.ts',
 ]
 const runPinnedSourceCustody = process.env.APPRAISE_PINNED_SOURCE_CUSTODY === '1'
 
