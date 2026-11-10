@@ -9,7 +9,7 @@ import { collaborationHash } from '@/lib/repository-collaboration'
 import { hashQualityJourneyRequirement } from '@/lib/quality-journey'
 import { confirmQualityJourneyDraft } from '@/services/coordinator/quality-journey-draft-service'
 import { claimQualityJourneyWork } from '@/services/coordinator/quality-journey-service'
-import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
+import { copyMigratedTestDatabase, createTargetProjectFixture } from '@/test/migrated-test-database'
 import {
   createQualityJourneyDraftFromReuseBrief,
   listQualityJourneyReuseAssets,
@@ -38,15 +38,13 @@ async function fixture() {
   const databasePath = path.join(workspace, 'appraise.db')
   await copyMigratedTestDatabase(databasePath)
   const client = new PrismaClient({ datasources: { db: { url: `file:${databasePath}` } } })
-  await client.targetProject.create({
-    data: {
-      id: 'reuse-project',
-      kind: 'LOCAL_WORKSPACE',
-      canonicalIdentity: `path:${workspace}`,
-      canonicalPath: workspace,
-      displayName: 'Reuse fixture',
-      fingerprint: `sha256:${'f'.repeat(64)}`,
-    },
+  await createTargetProjectFixture(client, {
+    id: 'reuse-project',
+    kind: 'LOCAL_WORKSPACE',
+    canonicalIdentity: `path:${workspace}`,
+    canonicalPath: workspace,
+    displayName: 'Reuse fixture',
+    fingerprint: `sha256:${'f'.repeat(64)}`,
   })
   await client.environment.create({
     data: {

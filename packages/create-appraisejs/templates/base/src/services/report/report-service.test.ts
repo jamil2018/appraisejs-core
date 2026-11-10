@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs'
 import path from 'path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { TagType, TestRunTestCaseStatus } from '@prisma/client'
+import { TagType, TestRunIntent, TestRunTestCaseStatus } from '@prisma/client'
 import { RECENT_PERIOD_DAYS } from '@/services/shared/constants'
 
 const {
@@ -111,6 +111,7 @@ describe('storeReportFromFileService', () => {
     mockTestRunFindUnique.mockResolvedValue({
       id: 'db-run-1',
       runId: 'run-1',
+      intent: TestRunIntent.INDEPENDENT,
       name: 'Nightly',
       targetProjectId: 'project-1',
       runtimeCapsule: { id: 'capsule-1' },

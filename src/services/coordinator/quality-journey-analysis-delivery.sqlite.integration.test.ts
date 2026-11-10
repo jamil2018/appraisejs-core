@@ -162,16 +162,15 @@ describe('internal owned Analysis fixture delivery', () => {
     await expectRetained(fixture, delivery)
   })
 
-  it('does not launch a replacement after reconnect while the original intent occupies the slot', async () => {
+  it('refuses replacement construction without an exact issuance and retains the original occupied slot', async () => {
     const { fixture, delivery, options } = await setup()
     await delivery.start()
-    const replacement = await createQualityJourneyAnalysisFixtureDelivery(
-      fixture.prepareInput,
-      options,
-      fixture.connect(),
-    )
-    deliveries.push(replacement)
-    await expect(replacement.start()).rejects.toThrow()
+    await expect(
+      createQualityJourneyAnalysisFixtureDelivery(fixture.prepareInput, options, fixture.connect()),
+    ).rejects.toMatchObject({
+      code: 'CONFLICT',
+      message: 'Managed Analysis follow-up issuance requires recovery.',
+    })
     expect(await fixture.client.qualityJourneyWorkAttempt.count()).toBe(1)
     await expectRetained(fixture, delivery)
   })

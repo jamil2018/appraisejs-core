@@ -3,7 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { PrismaClient } from '@prisma/client'
 import { afterEach, describe, expect, it } from 'vitest'
-import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
+import { copyMigratedTestDatabase, createTargetProjectFixture } from '@/test/migrated-test-database'
 import {
   AgentFactoryDispatchNotStartedError,
   clearAgentFactoryProviderAdaptersForTest,
@@ -45,15 +45,13 @@ async function fixture() {
   const databasePath = path.join(workspace, 'appraise.db')
   await copyMigratedTestDatabase(databasePath)
   const client = new PrismaClient({ datasources: { db: { url: `file:${databasePath}` } } })
-  await client.targetProject.create({
-    data: {
-      id: 'target-journey-1',
-      kind: 'LOCAL_WORKSPACE',
-      canonicalIdentity: `path:${workspace}`,
-      canonicalPath: workspace,
-      displayName: 'Quality Journey fixture',
-      fingerprint: digest('a'),
-    },
+  await createTargetProjectFixture(client, {
+    id: 'target-journey-1',
+    kind: 'LOCAL_WORKSPACE',
+    canonicalIdentity: `path:${workspace}`,
+    canonicalPath: workspace,
+    displayName: 'Quality Journey fixture',
+    fingerprint: digest('a'),
   })
   return client
 }
@@ -1193,15 +1191,13 @@ describe('Quality Journey Phase 2 durable Factory service', () => {
         },
         client,
       )
-      await client.targetProject.create({
-        data: {
-          id: 'target-journey-2',
-          kind: 'LOCAL_WORKSPACE',
-          canonicalIdentity: 'path:/quality-journey-isolation-target',
-          canonicalPath: '/quality-journey-isolation-target',
-          displayName: 'Other Quality Journey fixture',
-          fingerprint: digest('z'),
-        },
+      await createTargetProjectFixture(client, {
+        id: 'target-journey-2',
+        kind: 'LOCAL_WORKSPACE',
+        canonicalIdentity: 'path:/quality-journey-isolation-target',
+        canonicalPath: '/quality-journey-isolation-target',
+        displayName: 'Other Quality Journey fixture',
+        fingerprint: digest('z'),
       })
       await expect(
         inspectQualityJourneyFactoryEvidence(

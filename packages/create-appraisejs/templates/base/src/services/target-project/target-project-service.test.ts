@@ -7,29 +7,43 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const {
   mockEnvironmentUpsert,
-  mockTargetProjectUpsert,
+  mockTargetProjectCreate,
   mockTargetProjectFindMany,
   mockTargetProjectFindUnique,
   mockTargetProjectUpdate,
 } = vi.hoisted(() => ({
   mockEnvironmentUpsert: vi.fn(),
-  mockTargetProjectUpsert: vi.fn(),
+  mockTargetProjectCreate: vi.fn(),
   mockTargetProjectFindMany: vi.fn(),
-  mockTargetProjectFindUnique: vi.fn(),
+  mockTargetProjectFindUnique: vi.fn().mockResolvedValue(null),
   mockTargetProjectUpdate: vi.fn(),
 }))
 
-vi.mock('@/config/db-config', () => ({
-  default: {
+vi.mock('@/config/db-config', () => {
+  const emptyCollection = { findFirst: vi.fn().mockResolvedValue(null) }
+  const client = {
+    $transaction: (effect: (tx: unknown) => unknown) => effect(client),
     environment: { upsert: mockEnvironmentUpsert },
     targetProject: {
-      upsert: mockTargetProjectUpsert,
+      create: mockTargetProjectCreate,
       findMany: mockTargetProjectFindMany,
       findUnique: mockTargetProjectFindUnique,
       update: mockTargetProjectUpdate,
     },
-  },
-}))
+    qualityJourneySharedResourceCoverage: { ...emptyCollection, create: vi.fn() },
+    qualityJourneySharedResourceGuard: emptyCollection,
+    qualityJourneySharedResourceUse: emptyCollection,
+    qualityJourneySharedResourceClaim: emptyCollection,
+    qualityJourneyLocatorEnsureReceipt: emptyCollection,
+    qualityJourney: emptyCollection,
+    module: emptyCollection,
+    locatorGroup: emptyCollection,
+    locator: emptyCollection,
+    testSuite: emptyCollection,
+    testCase: emptyCollection,
+  }
+  return { default: client }
+})
 
 import {
   initializeTargetGitRepository,
@@ -46,6 +60,7 @@ const workspaces: string[] = []
 
 afterEach(async () => {
   vi.clearAllMocks()
+  mockTargetProjectFindUnique.mockReset().mockResolvedValue(null)
   await Promise.all(workspaces.splice(0).map(directory => fs.rm(directory, { recursive: true, force: true })))
 })
 
@@ -65,7 +80,7 @@ async function createWorkspace(
 describe('target project service', () => {
   it('registers a canonical target project without writing into the target repo', async () => {
     const workspace = await createWorkspace()
-    mockTargetProjectUpsert.mockImplementation(async args => ({ id: 'target-1', ...args.create }))
+    mockTargetProjectCreate.mockImplementation(async args => ({ id: 'target-1', ...args.data }))
 
     const result = await registerTargetProject({ path: workspace })
 
@@ -74,11 +89,11 @@ describe('target project service', () => {
       displayName: 'target-app',
       packageName: 'target-app',
     })
-    expect(mockTargetProjectUpsert).toHaveBeenCalledWith(
+    expect(mockTargetProjectCreate).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { canonicalIdentity: `path:${await fs.realpath(workspace)}` },
-        create: expect.objectContaining({
+        data: expect.objectContaining({
           kind: 'LOCAL_WORKSPACE',
+          canonicalIdentity: `path:${await fs.realpath(workspace)}`,
           packageJson: expect.stringContaining('"scripts"'),
           fingerprint: expect.stringMatching(/^sha256:/),
         }),
@@ -89,7 +104,7 @@ describe('target project service', () => {
 
   it('registers empty writable directories as planning targets', async () => {
     const workspace = await createWorkspace(null)
-    mockTargetProjectUpsert.mockImplementation(async args => ({ id: 'target-empty', ...args.create }))
+    mockTargetProjectCreate.mockImplementation(async args => ({ id: 'target-empty', ...args.data }))
 
     const result = await registerTargetProject({ path: workspace, displayName: 'Empty target' })
 
@@ -98,9 +113,9 @@ describe('target project service', () => {
       displayName: 'Empty target',
       packageName: undefined,
     })
-    expect(mockTargetProjectUpsert).toHaveBeenCalledWith(
+    expect(mockTargetProjectCreate).toHaveBeenCalledWith(
       expect.objectContaining({
-        create: expect.objectContaining({
+        data: expect.objectContaining({
           packageJson: expect.stringContaining('"scripts":{}'),
           fingerprint: expect.stringMatching(/^sha256:/),
         }),
@@ -109,17 +124,17 @@ describe('target project service', () => {
   })
 
   it('normalizes a remote target origin and creates its initial environment', async () => {
-    mockTargetProjectUpsert.mockResolvedValue({ id: 'remote-target', kind: 'REMOTE_BLACK_BOX' })
+    mockTargetProjectCreate.mockResolvedValue({ id: 'remote-target', kind: 'REMOTE_BLACK_BOX' })
 
     await expect(
       registerTargetProject({ url: 'https://example.test/path?ignored=true', displayName: 'Example' }),
     ).resolves.toMatchObject({ id: 'remote-target' })
 
-    expect(mockTargetProjectUpsert).toHaveBeenCalledWith(
+    expect(mockTargetProjectCreate).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { canonicalIdentity: 'url:https://example.test' },
-        create: expect.objectContaining({
+        data: expect.objectContaining({
           kind: 'REMOTE_BLACK_BOX',
+          canonicalIdentity: 'url:https://example.test',
           normalizedRemoteOrigin: 'https://example.test',
         }),
       }),
@@ -160,7 +175,7 @@ describe('target project service', () => {
 
   it('reads launch metadata created after an empty target was registered', async () => {
     const workspace = await createWorkspace(null)
-    mockTargetProjectUpsert.mockImplementation(async args => ({ id: 'target-empty', ...args.create }))
+    mockTargetProjectCreate.mockImplementation(async args => ({ id: 'target-empty', ...args.data }))
     const targetProject = await registerTargetProject({ path: workspace, displayName: 'Empty target' })
     await fs.writeFile(
       path.join(workspace, 'package.json'),

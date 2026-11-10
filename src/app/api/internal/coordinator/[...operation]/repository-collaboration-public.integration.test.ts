@@ -9,7 +9,7 @@ import { PrismaClient } from '@prisma/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { createCoordinatorClient } from '../../../../../../packages/appraisejs/src/coordinator-client'
-import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
+import { copyMigratedTestDatabase, createTargetProjectFixture } from '@/test/migrated-test-database'
 import {
   buildCollaborationSnapshotFiles,
   readCollaborationSnapshot,
@@ -206,15 +206,13 @@ describe('repository collaboration public worker ingress', () => {
     const client = new PrismaClient({ datasources: { db: { url: `file:${databasePath}?connection_limit=1` } } })
     prismaState.client = client as unknown as Record<PropertyKey, unknown>
     try {
-      const target = await client.targetProject.create({
-        data: {
-          id: 'public-divergent-target',
-          kind: 'LOCAL_WORKSPACE',
-          canonicalIdentity: `path:${local}`,
-          canonicalPath: local,
-          displayName: 'Public divergent receive target',
-          fingerprint: `sha256:${'d'.repeat(64)}`,
-        },
+      const target = await createTargetProjectFixture(client, {
+        id: 'public-divergent-target',
+        kind: 'LOCAL_WORKSPACE',
+        canonicalIdentity: `path:${local}`,
+        canonicalPath: local,
+        displayName: 'Public divergent receive target',
+        fingerprint: `sha256:${'d'.repeat(64)}`,
       })
       const connected = await connectCollaboration(
         {

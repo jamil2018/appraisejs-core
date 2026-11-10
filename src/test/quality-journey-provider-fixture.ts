@@ -2,7 +2,7 @@ import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 import { PrismaClient } from '@prisma/client'
-import { copyMigratedTestDatabase } from './migrated-test-database'
+import { copyMigratedTestDatabase, createTargetProjectFixture } from './migrated-test-database'
 import { trustedHumanCoordinatorSession } from '@/services/coordinator/quality-journey-coordinator-session'
 import {
   registerQualityJourneyCoordinatorSession,
@@ -113,15 +113,13 @@ export async function createProviderFixture() {
   }
   const client = connect()
   const targetProjectId = 'm04-target'
-  await client.targetProject.create({
-    data: {
-      id: targetProjectId,
-      kind: 'LOCAL_WORKSPACE',
-      canonicalIdentity: `path:${workspace}`,
-      canonicalPath: workspace,
-      displayName: 'M04 SQLite regressions',
-      fingerprint: `sha256:${'a'.repeat(64)}`,
-    },
+  await createTargetProjectFixture(client, {
+    id: targetProjectId,
+    kind: 'LOCAL_WORKSPACE',
+    canonicalIdentity: `path:${workspace}`,
+    canonicalPath: workspace,
+    displayName: 'M04 SQLite regressions',
+    fingerprint: `sha256:${'a'.repeat(64)}`,
   })
   try {
     const assignment = await addManagedProviderAssignment(client, targetProjectId)

@@ -183,6 +183,7 @@ function fixture(requiredAnswered = true) {
     qualityJourneyArtifact: { findMany: vi.fn(async (): Promise<unknown[]> => []) },
     qualityJourneyCommand: { findUnique: vi.fn(async (): Promise<unknown> => null) },
     qualityJourneyDraft: { findFirst: vi.fn(async () => null) },
+    qualityJourneyE2Retirement: { findFirst: vi.fn(async () => null) },
     qualityJourneyCoordinatorSession: {
       findUnique: vi.fn(async () => ({
         id: 'session',
@@ -190,6 +191,9 @@ function fixture(requiredAnswered = true) {
         status: 'ACTIVE',
         generation: 1,
         hostKind: 'APP_SERVER_LOCAL_V1',
+        e2EnrollmentKind: null,
+        e2EnrollmentDigest: null,
+        e2EnrolledAt: null,
         fencedAt: null as Date | null,
       })),
     },

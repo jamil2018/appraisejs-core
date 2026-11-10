@@ -51,7 +51,10 @@ const input = (): AnalysisFollowupSchedulerInput => ({
   fixture: { fixturePath: '/never-executed/mock-fixture.mjs' },
 })
 function fixture(receipt = false, status = 'WORKER_REQUESTED') {
-  const tx = { qualityJourneyProviderSlot: { findUnique: vi.fn().mockResolvedValue(null) } }
+  const tx = {
+    qualityJourneyProviderSlot: { findUnique: vi.fn().mockResolvedValue(null) },
+    qualityJourneyE2Retirement: { findFirst: vi.fn().mockResolvedValue(null) },
+  }
   const client = {
     $transaction: async (cb: (tx: unknown) => unknown) => cb(tx),
     qualityJourneyExternalWorkClaimReceipt: { findUnique: vi.fn().mockResolvedValue(receipt ? {} : null) },
@@ -76,7 +79,7 @@ beforeEach(() => {
   vi.resetAllMocks()
   mocks.session.mockResolvedValue({
     journey: { hostingMode: 'APP_SERVER_LOCAL_V1', status: 'ACTIVE' },
-    session: { id: 'session' },
+    session: { id: 'session', e2EnrollmentKind: null, e2EnrollmentDigest: null, e2EnrolledAt: null },
   })
   mocks.compile.mockResolvedValue({ status: 'ISSUED', expected: input().expected })
   mocks.outcome.mockRejectedValue(new ServiceError('No durable outcome.', 'NOT_FOUND'))

@@ -88,7 +88,12 @@ function frozenFixture() {
   const definition = stepDefinitionSchema.parse({
     schemaVersion: '1',
     identity: { id: 'fixture.assert', version: '1', status: 'ready' },
-    provenance: { creationMethod: 'human-form', createdBy: 'offline-test', createdAt: '2026-10-29T00:00:00.000Z' },
+    provenance: {
+      creationMethod: 'human-form',
+      createdBy: 'offline-test',
+      createdAt: '2026-10-29T00:00:00.000Z',
+      reviewedBy: 'offline-reviewer',
+    },
     intent: {
       title: 'Fixture assertion',
       description: 'Offline immutable identity fixture',

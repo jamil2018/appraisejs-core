@@ -80,11 +80,49 @@ const discoveryEnvelope = {
   bundle: {},
 }
 
+const resolutionBundle = {
+  schemaVersion: 'appraise.quality-journey/v1',
+  journeyId: ids.journeyId,
+  targetProjectId: ids.targetProjectId,
+  cycleId: 'cycle-1',
+  analysisRevision: { artifactId: 'charter-1', revisionId: 'analysis-1', contentHash: digest },
+  analysisApproval: { artifactId: 'approval-1', contentHash: digest },
+  workItemId: ids.workItemId,
+  attemptId: ids.attemptId,
+  authorizationId: 'authorization-1',
+  inputHash: digest,
+  assignmentScopeHash: digest,
+  approvedRequirementSetHash: digest,
+  inputArtifacts: [
+    { kind: 'ANALYSIS_CHARTER_REVISION', artifactId: 'charter-1', revisionId: 'analysis-1', contentHash: digest },
+    { kind: 'JOURNEY_APPROVAL', artifactId: 'approval-1', contentHash: digest },
+  ],
+  evidenceReceipts: [{ artifactId: 'evidence-1', contentHash: digest }],
+  bundleId: 'resolution-1',
+  resolvedAt: '2026-09-13T00:00:00.000Z',
+  destinationModuleId: 'module-1',
+  approvedRequirementIds: ['requirement-1'],
+  reusable: [],
+  incompatible: [],
+  stale: [],
+  crossTarget: [],
+  missing: [
+    {
+      requirementId: 'requirement-1',
+      capabilityId: 'capability-1',
+      reasonCode: 'NOT_FOUND',
+      explanation: 'No reusable resource was found.',
+      evidenceReceiptIds: ['evidence-1'],
+    },
+  ],
+}
+
 it.each([
   ['Scout', (client: unknown) => submitQualityJourneyTargetObservation(discoveryEnvelope, client as never)],
   [
     'Resource Explorer',
-    (client: unknown) => submitQualityJourneyResourceResolution(discoveryEnvelope, client as never),
+    (client: unknown) =>
+      submitQualityJourneyResourceResolution({ ...discoveryEnvelope, bundle: resolutionBundle }, client as never),
   ],
   [
     'Test Scenario Designer',

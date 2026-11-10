@@ -7,7 +7,7 @@ import { promisify } from 'node:util'
 import { PrismaClient } from '@prisma/client'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
+import { copyMigratedTestDatabase, createTargetProjectFixture } from '@/test/migrated-test-database'
 import {
   buildCollaborationSnapshotFiles,
   collaborationHash,
@@ -17,6 +17,7 @@ import {
 } from '@/lib/repository-collaboration'
 
 import { connectCollaboration, updateCollaborationPolicy } from './binding-service'
+import { completeCollaborationFixtureCoverage } from './collaboration-coverage.test-fixture'
 import {
   assertDivergentCollaborationReadyForIntegration,
   decideDivergentCollaborationProposal,
@@ -108,15 +109,13 @@ async function fixture(options: { git?: boolean } = {}) {
   const databasePath = path.join(workspace, 'appraise.db')
   await copyMigratedTestDatabase(databasePath)
   const client = new PrismaClient({ datasources: { db: { url: `file:${databasePath}?connection_limit=1` } } })
-  const target = await client.targetProject.create({
-    data: {
-      id: `target-${path.basename(workspace)}`,
-      kind: 'LOCAL_WORKSPACE',
-      canonicalIdentity: `path:${workspace}`,
-      canonicalPath: workspace,
-      displayName: 'Operation fixture',
-      fingerprint: `sha256:${'a'.repeat(64)}`,
-    },
+  const target = await createTargetProjectFixture(client, {
+    id: `target-${path.basename(workspace)}`,
+    kind: 'LOCAL_WORKSPACE',
+    canonicalIdentity: `path:${workspace}`,
+    canonicalPath: workspace,
+    displayName: 'Operation fixture',
+    fingerprint: `sha256:${'a'.repeat(64)}`,
   })
   const binding = await connectCollaboration(
     {
@@ -438,6 +437,7 @@ describe('durable collaboration operations', () => {
         },
         client,
       )
+      await completeCollaborationFixtureCoverage(client, target.id, ['MODULE'])
       await client.module.updateMany({ where: { targetProjectId: target.id }, data: { name: 'Local edit' } })
       const conflicted = await prepareReceive(client, binding, 'conflicted', [
         moduleRecord('module-one', 'Incoming edit'),
@@ -1116,15 +1116,13 @@ describe('durable collaboration operations', () => {
     await copyMigratedTestDatabase(databasePath)
     const client = new PrismaClient({ datasources: { db: { url: `file:${databasePath}?connection_limit=1` } } })
     try {
-      const target = await client.targetProject.create({
-        data: {
-          id: 'reconcile-target',
-          kind: 'LOCAL_WORKSPACE',
-          canonicalIdentity: `path:${local}`,
-          canonicalPath: local,
-          displayName: 'Reconciliation fixture',
-          fingerprint: `sha256:${'b'.repeat(64)}`,
-        },
+      const target = await createTargetProjectFixture(client, {
+        id: 'reconcile-target',
+        kind: 'LOCAL_WORKSPACE',
+        canonicalIdentity: `path:${local}`,
+        canonicalPath: local,
+        displayName: 'Reconciliation fixture',
+        fingerprint: `sha256:${'b'.repeat(64)}`,
       })
       const connected = await connectCollaboration(
         {

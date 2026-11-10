@@ -4,13 +4,11 @@ import os from 'node:os'
 import path from 'node:path'
 import { PrismaClient, type QualityJourney } from '@prisma/client'
 import { afterEach, describe, expect, it } from 'vitest'
-import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
+import { copyMigratedTestDatabase, createTargetProjectFixture } from '@/test/migrated-test-database'
 import { managedSpecializedFixture } from '@/test/managed-journey-specialized-fixture'
 import { clearAgentFactoryProviderAdaptersForTest, registerAgentFactoryProviderAdapter } from '@/lib/quality-journey'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import {
-  claimExternalQualityJourneyAnalysisFollowup,
-  ensureQualityJourneyAnalysisFollowupInTransaction,
   acceptExternalQualityJourneySubmissionInTransaction,
   admitExternalQualityJourneyAnalyzer,
   cancelQualityJourneyWork,
@@ -154,15 +152,13 @@ async function fixture() {
   await copyMigratedTestDatabase(databasePath)
   const client = new PrismaClient({ datasources: { db: { url: `file:${databasePath}` } } })
   databasePaths.set(client, databasePath)
-  await client.targetProject.create({
-    data: {
-      id: 'target-analysis-1',
-      kind: 'LOCAL_WORKSPACE',
-      canonicalIdentity: `path:${workspace}`,
-      canonicalPath: workspace,
-      displayName: 'Analysis fixture',
-      fingerprint: digest('a'),
-    },
+  await createTargetProjectFixture(client, {
+    id: 'target-analysis-1',
+    kind: 'LOCAL_WORKSPACE',
+    canonicalIdentity: `path:${workspace}`,
+    canonicalPath: workspace,
+    displayName: 'Analysis fixture',
+    fingerprint: digest('a'),
   })
   await client.environment.create({
     data: {
@@ -2678,15 +2674,13 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
         return { suiteId, testCaseId }
       }
       const reusableTarget = await seedReusableTarget('target-analysis-1', 'module-analysis-1', 'local')
-      await client.targetProject.create({
-        data: {
-          id: 'target-semantic-foreign',
-          kind: 'LOCAL_WORKSPACE',
-          canonicalIdentity: 'path:/semantic-foreign',
-          canonicalPath: '/semantic-foreign',
-          displayName: 'Foreign semantic fixture',
-          fingerprint: digest('f'),
-        },
+      await createTargetProjectFixture(client, {
+        id: 'target-semantic-foreign',
+        kind: 'LOCAL_WORKSPACE',
+        canonicalIdentity: 'path:/semantic-foreign',
+        canonicalPath: '/semantic-foreign',
+        displayName: 'Foreign semantic fixture',
+        fingerprint: digest('f'),
       })
       await client.module.create({
         data: { id: 'module-semantic-foreign', name: 'Checkout', targetProjectId: 'target-semantic-foreign' },
@@ -3591,7 +3585,7 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
           expectedReportHash: unchangedReportHash,
           expectedStateHash: unchangedReviewState.stateHash,
           idempotencyKey: 'approve-remediation-unchanged-source',
-          feedback: 'Confirm that a non-change must use rerun authority.',
+          feedback: 'Confirm that a legacy correction cannot attach a new owner to the existing target.',
         },
         client,
       )
@@ -3614,6 +3608,13 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
         },
         client,
       )
+      const successfulMaterializationScope = { journeyId: created.journey.journeyId, status: 'MATERIALIZED' as const }
+      const unchangedMaterializationCount = await client.qualityJourneyAutomationMaterialization.count({
+        where: successfulMaterializationScope,
+      })
+      const unchangedAttempt = await client.qualityJourneyWorkAttempt.findUniqueOrThrow({
+        where: { id: unchangedClaim.attempt.id },
+      })
       await expect(
         materializeQualityJourneyApprovedScenarios(
           {
@@ -3639,8 +3640,14 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
         ),
       ).rejects.toMatchObject({
         code: 'CONFLICT',
-        message: 'Unchanged automation requires a rerun, not an automation correction.',
+        details: { reason: 'UNSUPPORTED_LEGACY_MATERIALIZATION_OWNER_LINEAGE' },
       })
+      expect(
+        await client.qualityJourneyAutomationMaterialization.count({ where: successfulMaterializationScope }),
+      ).toBe(unchangedMaterializationCount)
+      expect(
+        await client.qualityJourneyWorkAttempt.findUniqueOrThrow({ where: { id: unchangedClaim.attempt.id } }),
+      ).toEqual({ ...unchangedAttempt, failureJson: expect.any(String) })
       const mixedSourceCycleId = 'execution-remediation-mixed-source'
       const mixedFrozenCapsules = sourceCapsules.map(capsule => ({
         preparedCapsuleId: capsule.id,
@@ -3784,7 +3791,16 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
             expectedInputHash: mixedContext.inputHash,
             expectedScopeHash: mixedContext.scopeHash,
             scenarios: [
-              correctedProposal,
+              {
+                ...correctedProposal,
+                steps: correctedProposal.steps.map(step => ({
+                  ...step,
+                  parameters: step.parameters.map(parameter => ({
+                    ...parameter,
+                    value: parameter.name === 'route' ? '/mixed-corrected-checkout' : parameter.value,
+                  })),
+                })),
+              },
               proposals.find(proposal => proposal.scenarioRevisionId === 'scenario-2-r1')!,
             ],
             result: {
@@ -3801,13 +3817,16 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
         ),
       ).rejects.toMatchObject({
         code: 'CONFLICT',
-        message: 'Unchanged automation requires a rerun, not an automation correction.',
+        details: {
+          reason: 'UNSUPPORTED_LEGACY_MATERIALIZATION_OWNER_LINEAGE',
+          failedScenarioRevisionIds: ['scenario-2-r1'],
+        },
       })
-      expect(
-        await client.qualityJourneyAutomationMaterialization.count({
-          where: { journeyId: created.journey.journeyId, cycleId: mixedCorrectionCycleId },
-        }),
-      ).toBe(0)
+      const mixedMaterializations = await client.qualityJourneyAutomationMaterialization.findMany({
+        where: { journeyId: created.journey.journeyId, attemptId: mixedClaim.attempt.id },
+        select: { scenarioRevisionId: true, status: true },
+      })
+      expect(mixedMaterializations).toEqual([{ scenarioRevisionId: 'scenario-2-r1', status: 'FAILED' }])
       expect(
         await client.qualityJourneyArtifactLink.count({
           where: { journeyId: created.journey.journeyId, cycleId: mixedCorrectionCycleId, relation: 'SUPERSEDES' },

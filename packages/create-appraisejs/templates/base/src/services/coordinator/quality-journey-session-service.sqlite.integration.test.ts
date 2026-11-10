@@ -5,7 +5,7 @@ import path from 'node:path'
 import { PrismaClient } from '@prisma/client'
 import { afterEach, describe, expect, it } from 'vitest'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
-import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
+import { copyMigratedTestDatabase, createTargetProjectFixture } from '@/test/migrated-test-database'
 import {
   assertCoordinatorMutationSession,
   assertCurrentCoordinatorSession,
@@ -47,15 +47,13 @@ async function fixture() {
     return client
   }
   const client = connect()
-  await client.targetProject.create({
-    data: {
-      id: 'session-target',
-      kind: 'LOCAL_WORKSPACE',
-      canonicalIdentity: `path:${workspace}`,
-      canonicalPath: workspace,
-      displayName: 'Session regressions',
-      fingerprint: `sha256:${'a'.repeat(64)}`,
-    },
+  await createTargetProjectFixture(client, {
+    id: 'session-target',
+    kind: 'LOCAL_WORKSPACE',
+    canonicalIdentity: `path:${workspace}`,
+    canonicalPath: workspace,
+    displayName: 'Session regressions',
+    fingerprint: `sha256:${'a'.repeat(64)}`,
   })
   const create = (key = 'managed', hostingMode: 'EXTERNAL_LEGACY' | 'APP_SERVER_LOCAL_V1' = 'APP_SERVER_LOCAL_V1') =>
     createQualityJourney(
@@ -131,15 +129,13 @@ describe('M03 persisted host-neutral coordinator sessions', () => {
   it('does not let foreign credential scope override the canonical Journey and target', async () => {
     const f = await managedFixture()
     await activate(f.initial, f.client)
-    await f.client.targetProject.create({
-      data: {
-        id: 'foreign-target',
-        kind: 'LOCAL_WORKSPACE',
-        canonicalIdentity: 'path:/tmp/m03-foreign-scope',
-        canonicalPath: '/tmp/m03-foreign-scope',
-        displayName: 'Foreign scope',
-        fingerprint: `sha256:${'f'.repeat(64)}`,
-      },
+    await createTargetProjectFixture(f.client, {
+      id: 'foreign-target',
+      kind: 'LOCAL_WORKSPACE',
+      canonicalIdentity: 'path:/tmp/m03-foreign-scope',
+      canonicalPath: '/tmp/m03-foreign-scope',
+      displayName: 'Foreign scope',
+      fingerprint: `sha256:${'f'.repeat(64)}`,
     })
     const foreign = await createQualityJourney(
       {
