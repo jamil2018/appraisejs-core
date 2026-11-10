@@ -1,6 +1,18 @@
+import {
+  assertExternalAnalysisGeneration,
+  assertCurrentExternalAnalysisAuthorization,
+  assertManagedAnalysisAssignmentEvidence,
+  assertManagedAnalysisRoleContract,
+  assertManagedAnalysisArtifactBindings,
+  assertManagedAnalysisCurrentInputs,
+  assertManagedAnalysisSuccessorInputs,
+  assertPublishableAnalysisLeaf,
+  assertPublishableAnalysisWork,
+  assertPublishableAnalysisAttempt,
+} from './quality-journey-analysis-authority'
 import { projectExternalQualityJourneySubmission } from './quality-journey-external-submission-input'
 import { createHash } from 'node:crypto'
-import type { Prisma, PrismaClient } from '@prisma/client'
+import type { Prisma, PrismaClient, QualityJourneyWorkItem, QualityJourneyWorkAttempt } from '@prisma/client'
 import { z } from 'zod'
 import prisma from '@/config/db-config'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
@@ -24,12 +36,22 @@ import {
   type CoordinatorSessionCredentials,
 } from './quality-journey-coordinator-session'
 import {
+  assertJourneyBusinessGroupSupportsNoInvalidationInTransaction,
+  withJourneyBusinessWriteJoinInTransaction,
+  type AttemptTerminalInput,
+  type BeforeJourneyBusinessWrite,
+  type QueueAttemptTerminal,
+} from './quality-journey-business-write-join'
+import {
+  ensureQualityJourneyAnalysisFollowupWithBusinessJoinInTransaction,
+  readQualityJourneyAnalysisFollowupInTransaction,
+  readQualityJourneyAnalysisFollowupIssuanceInTransaction,
   assertExternalAnalyzerAttemptPrincipal,
   acceptExternalQualityJourneySubmissionInTransaction,
-  completeExternalAnalyzerWorkInTransaction,
-  completeQualityJourneyWorkInTransaction,
+  completeExternalAnalyzerWorkWithBusinessJoinInTransaction,
+  completeQualityJourneyWorkWithBusinessJoinInTransaction,
   externalAnalyzerAdmissionProtocol,
-  submitDurableQualityJourneyCommandInTransaction,
+  submitDurableQualityJourneyCommandWithBusinessJoinInTransaction,
   type ExternalAnalyzerProjectPrincipal,
   type WorkCompletionInput,
 } from './quality-journey-service'
@@ -315,18 +337,12 @@ function assertAnalysisSubmissionMatchesJourney(
   const activeIds = JSON.parse(journey.activeRevisionIdsJson) as Record<string, string>
   if (charter.requirementRevisionId !== activeIds.journey)
     throw new ServiceError('Analysis charter does not bind the active requirement revision.', 'CONFLICT')
-  if (
-    submission.predecessorAnalysisRevisionId !== activeIds.analysis &&
-    (activeIds.analysis || submission.predecessorAnalysisRevisionId)
-  )
-    throw new ServiceError('Analysis successor does not bind the current reviewed analysis revision.', 'CONFLICT')
 }
 
 function assertAnalyzerAttemptAuthority(
   submission: AnyAnalysisSubmission,
   item: { id: string; role: string; status: string; inputHash: string },
   attempt: { id: string; workItemId: string; ownerTokenHash: string; leaseExpiresAt: Date; status: string },
-  journeyStateHash: string,
 ) {
   if (attempt.id !== submission.attemptId || attempt.workItemId !== item.id)
     throw new ServiceError('Analysis submission does not bind a current work attempt.', 'UNAUTHORIZED')
@@ -339,8 +355,29 @@ function assertAnalyzerAttemptAuthority(
     throw new ServiceError('Analysis submission lease authority is invalid.', 'UNAUTHORIZED')
   if (attempt.leaseExpiresAt <= new Date() || item.status !== 'IN_PROGRESS' || attempt.status !== 'IN_PROGRESS')
     throw new ServiceError('Analysis submission work attempt is stale.', 'CONFLICT')
-  if (item.inputHash !== journeyStateHash)
-    throw new ServiceError('Analysis submission input hash is stale.', 'CONFLICT')
+}
+
+async function assertCurrentExternalAnalysisAuthority(
+  submission: Extract<AnyAnalysisSubmission, { external: unknown }>,
+  item: QualityJourneyWorkItem,
+  attempt: QualityJourneyWorkAttempt,
+  tx: Prisma.TransactionClient,
+) {
+  assertExternalAnalysisGeneration(submission.attemptId, submission.external, attempt)
+  assertExternalAnalyzerAttemptPrincipal(attempt, submission.external.principal, submission.ownerToken)
+  const authorization = attempt.authorizationId
+    ? await tx.qualityJourneyWorkAuthorization.findUnique({ where: { id: attempt.authorizationId } })
+    : null
+  const currentAuthorization = await tx.qualityJourneyWorkAuthorization.findFirst({
+    where: { workItemId: item.id, successorAuthorization: { is: null } },
+    select: { id: true },
+  })
+  assertCurrentExternalAnalysisAuthorization(
+    authorization,
+    currentAuthorization,
+    submission.external.principal,
+    externalAnalyzerAdmissionProtocol,
+  )
 }
 
 async function validatedAnalysisSubmissionContext(
@@ -356,34 +393,99 @@ async function validatedAnalysisSubmissionContext(
   const attempt = await tx.qualityJourneyWorkAttempt.findUnique({ where: { leaseId: submission.leaseId } })
   if (!item || !attempt)
     throw new ServiceError('Analysis submission does not bind a current work attempt.', 'UNAUTHORIZED')
-  if ('external' in submission) {
+  if ('external' in submission) await assertCurrentExternalAnalysisAuthority(submission, item, attempt, tx)
+  assertAnalyzerAttemptAuthority(submission, item, attempt)
+  const managedFollowup = await validatedManagedAnalysisFollowupContext(submission, charter, journey, item, attempt, tx)
+  if (!managedFollowup) {
+    if (item.inputHash !== journey.stateHash)
+      throw new ServiceError('Analysis submission input hash is stale.', 'CONFLICT')
+    const activeIds = JSON.parse(journey.activeRevisionIdsJson) as Record<string, string>
     if (
-      attempt.id !== submission.attemptId ||
-      attempt.assignmentId !== submission.external.assignmentId ||
-      attempt.assignmentGeneration !== submission.external.assignmentGeneration
+      submission.predecessorAnalysisRevisionId !== activeIds.analysis &&
+      (activeIds.analysis || submission.predecessorAnalysisRevisionId)
     )
-      throw new ServiceError('External Analysis submission generation is stale.', 'CONFLICT')
-    assertExternalAnalyzerAttemptPrincipal(attempt, submission.external.principal, submission.ownerToken)
-    const authorization = attempt.authorizationId
-      ? await tx.qualityJourneyWorkAuthorization.findUnique({ where: { id: attempt.authorizationId } })
-      : null
-    const currentAuthorization = await tx.qualityJourneyWorkAuthorization.findFirst({
-      where: { workItemId: item.id, successorAuthorization: { is: null } },
-      select: { id: true },
-    })
-    if (
-      !authorization ||
-      authorization.revokedAt ||
-      authorization.cancelledAt ||
-      authorization.externalAdmissionProtocol !== externalAnalyzerAdmissionProtocol ||
-      authorization.externalPrincipalId !== submission.external.principal.principalId ||
-      authorization.externalPrincipalAssurance !== submission.external.principal.assurance ||
-      currentAuthorization?.id !== authorization.id
-    )
-      throw new ServiceError('External Analysis submission authority is not current.', 'UNAUTHORIZED')
+      throw new ServiceError('Analysis successor does not bind the current reviewed analysis revision.', 'CONFLICT')
   }
-  assertAnalyzerAttemptAuthority(submission, item, attempt, journey.stateHash)
   return { journey, item, attempt }
+}
+
+type ManagedAnalysisIssuance = Awaited<ReturnType<typeof readQualityJourneyAnalysisFollowupIssuanceInTransaction>>
+function assertManagedAnalysisAssignmentBindings(
+  issued: ManagedAnalysisIssuance,
+  item: QualityJourneyWorkItem,
+  attempt: QualityJourneyWorkAttempt,
+  authorization: { authorizationHash: string; roleContractDigest: string },
+  manifest: Record<string, unknown>,
+  authorized: Record<string, unknown>,
+) {
+  assertManagedAnalysisAssignmentEvidence(issued, attempt, authorization, manifest, authorized)
+  assertManagedAnalysisRoleContract(issued, item, authorization, manifest)
+  assertManagedAnalysisArtifactBindings(issued, item, manifest, authorized)
+}
+
+function assertManagedAnalysisFollowupAssignment(
+  journey: Awaited<ReturnType<typeof journeyOrThrow>>,
+  item: QualityJourneyWorkItem,
+  attempt: QualityJourneyWorkAttempt,
+): asserts attempt is QualityJourneyWorkAttempt & {
+  authorizationId: string
+  assignmentJson: string
+  assignmentHash: string
+} {
+  if (
+    !attempt.authorizationId ||
+    journey.status !== 'ACTIVE' ||
+    item.currentAttempt !== attempt.attempt ||
+    item.cycleId !== journey.activeCycleId ||
+    !attempt.externalAdmissionId ||
+    !attempt.externalAdmittedAt ||
+    !attempt.assignmentJson ||
+    !attempt.assignmentHash
+  )
+    throw new ServiceError('Managed Analysis follow-up assignment requires recovery.', 'CONFLICT')
+}
+
+async function validatedManagedAnalysisFollowupContext(
+  submission: AnyAnalysisSubmission,
+  charter: AnalysisCharter,
+  journey: Awaited<ReturnType<typeof journeyOrThrow>>,
+  item: QualityJourneyWorkItem,
+  attempt: QualityJourneyWorkAttempt,
+  tx: Prisma.TransactionClient,
+) {
+  if (journey.hostingMode !== 'APP_SERVER_LOCAL_V1' || !('external' in submission)) return null
+  const accepted = await tx.qualityJourneyAnalysisRevision.count({
+    where: { journeyId: journey.id, cycleId: journey.activeCycleId },
+  })
+  if (!accepted) return null
+  assertManagedAnalysisFollowupAssignment(journey, item, attempt)
+  const issued = await readQualityJourneyAnalysisFollowupIssuanceInTransaction(
+    {
+      journeyId: journey.id,
+      targetProjectId: journey.targetProjectId,
+      workItemId: item.id,
+      authorizationId: attempt.authorizationId,
+    },
+    tx,
+  )
+  const snapshot = await readQualityJourneyAnalysisFollowupInTransaction(
+    { journeyId: journey.id, targetProjectId: journey.targetProjectId },
+    tx,
+  )
+  const authorization = await tx.qualityJourneyWorkAuthorization.findUniqueOrThrow({
+    where: { id: attempt.authorizationId },
+  })
+  const manifest = JSON.parse(attempt.assignmentJson)
+  const authorized = JSON.parse(authorization.authorizationJson)
+  assertManagedAnalysisCurrentInputs(snapshot, issued, item)
+  assertManagedAnalysisAssignmentBindings(issued, item, attempt, authorization, manifest, authorized)
+  assertManagedAnalysisSuccessorInputs(
+    submission.predecessorAnalysisRevisionId,
+    charter.requirementRevisionId,
+    journey,
+    issued,
+  )
+  return issued
 }
 
 function assertStableRequirementLineage(charter: AnalysisCharter, predecessorCharter: AnalysisCharter) {
@@ -556,6 +658,8 @@ async function completeAnalysisSubmission(
     outputRefs: AnalysisOutputReference[]
   },
   tx: Prisma.TransactionClient,
+  beforeWrite: BeforeJourneyBusinessWrite,
+  queueAttemptTerminal: QueueAttemptTerminal,
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
   const result: WorkCompletionInput['result'] = {
@@ -588,8 +692,8 @@ async function completeAnalysisSubmission(
     result,
   }
   return 'external' in input.submission
-    ? completeExternalAnalyzerWorkInTransaction(completionInput, tx)
-    : completeQualityJourneyWorkInTransaction(completionInput, tx)
+    ? completeExternalAnalyzerWorkWithBusinessJoinInTransaction(completionInput, tx, beforeWrite, queueAttemptTerminal)
+    : completeQualityJourneyWorkWithBusinessJoinInTransaction(completionInput, tx, beforeWrite, queueAttemptTerminal)
 }
 
 async function reconcileSubmittedAnalysisReview(
@@ -597,10 +701,19 @@ async function reconcileSubmittedAnalysisReview(
   charter: AnalysisCharter,
   revisionId: string,
   tx: Prisma.TransactionClient,
+  beforeWrite: BeforeJourneyBusinessWrite,
+  terminal: AttemptTerminalInput | undefined,
 ) {
   const unresolvedQuestionIds = charter.questions
     .filter(question => question.required)
     .map(question => question.questionId)
+  // Only the finite review projection and ANALYSIS_SUBMITTED event follow
+  // terminal completion. This helper never issues follow-up work.
+  await beforeWrite(tx, { journeyId: journey.id, targetProjectId: journey.targetProjectId }, terminal && {
+    kind: 'ROLE_OUTPUT_FINALIZATION',
+    terminalAttemptId: terminal.attemptId,
+    terminalResultHash: terminal.resultHash,
+  })
   await setAnalysisReviewProjection(
     journey,
     { unresolvedQuestionIds, reviewHash: await currentAnalysisReviewHash(revisionId, tx) },
@@ -615,6 +728,8 @@ async function submitQualityJourneyAnalysisSuccessorInTransaction(
   charter: AnalysisCharter,
   submissionHash: string,
   tx: Prisma.TransactionClient,
+  beforeWrite: BeforeJourneyBusinessWrite,
+  queueAttemptTerminal: QueueAttemptTerminal,
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
   const replay = await replayedAnalysisSubmission(submission, submissionHash, tx)
@@ -622,6 +737,8 @@ async function submitQualityJourneyAnalysisSuccessorInTransaction(
   const { journey, item, attempt } = await validatedAnalysisSubmissionContext(submission, charter, tx)
   await assertStructuredIntakeTraceability(charter, journey.id, tx)
   const lineage = await validatedAnalysisSuccessorLineage(submission, charter, journey.id, tx)
+  await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, submission)
+  await beforeWrite(tx, submission)
   const { revision, contentHash } = await createAnalysisRevision(
     {
       submission,
@@ -637,9 +754,17 @@ async function submitQualityJourneyAnalysisSuccessorInTransaction(
   )
   const outputRefs: AnalysisOutputReference[] = [exactCharterRef(charter, contentHash)]
   outputRefs.push(...(await createAnalysisQuestions(charter, revision, journey, tx)))
+  let terminal: AttemptTerminalInput | undefined
+  const queueAnalysisTerminal: QueueAttemptTerminal = async (actualTx, scope, input) => {
+    const exact = Object.freeze({ ...input })
+    await queueAttemptTerminal(actualTx, scope, exact)
+    terminal = exact
+  }
   const completion = await completeAnalysisSubmission(
     { submission, charter, journey, item, attempt, outputRefs },
     tx,
+    beforeWrite,
+    queueAnalysisTerminal,
     coordinatorSession,
   )
   await reconcileSubmittedAnalysisReview(
@@ -647,6 +772,8 @@ async function submitQualityJourneyAnalysisSuccessorInTransaction(
     charter,
     revision.id,
     tx,
+    beforeWrite,
+    terminal,
   )
   return { replayed: completion.replayed, analysisRevision: revision }
 }
@@ -665,13 +792,10 @@ export async function submitQualityJourneyAnalysisSuccessor(
   const submissionHash = hash({ ...submission, ownerToken: undefined })
   return client.$transaction(async tx => {
     await assertCoordinatorMutationSession(coordinatorSession, submission, tx)
-    return submitQualityJourneyAnalysisSuccessorInTransaction(
-      submission,
-      charter,
-      submissionHash,
-      tx,
-      coordinatorSession,
-    )
+    return withJourneyBusinessWriteJoinInTransaction(tx, submission, coordinatorSession, (beforeWrite, queueAttemptTerminal) =>
+      submitQualityJourneyAnalysisSuccessorInTransaction(
+        submission, charter, submissionHash, tx, beforeWrite, queueAttemptTerminal, coordinatorSession,
+      ))
   })
 }
 
@@ -744,7 +868,7 @@ export async function submitExternalQualityJourneyAnalysisSuccessor(
   }
   const submissionHash = hash({ ...submission, ownerToken: undefined })
   return client.$transaction(async tx => {
-    const accepted = await acceptExternalQualityJourneySubmissionInTransaction(acceptance, tx, async () => {
+    const accepted = await acceptExternalQualityJourneySubmissionInTransaction(acceptance, tx, async (beforeWrite, queueAttemptTerminal) => {
       await assertCoordinatorMutationSession(coordinatorSession, submission, tx)
       await authenticateExternalAnalysisReplay(submission, tx)
       const replay = await replayedAnalysisSubmission(submission, submissionHash, tx)
@@ -754,6 +878,8 @@ export async function submitExternalQualityJourneyAnalysisSuccessor(
         parsed.charter,
         submissionHash,
         tx,
+        beforeWrite,
+        queueAttemptTerminal,
         coordinatorSession,
       )
     })
@@ -780,17 +906,29 @@ async function replayedAnalysisAnswer(
   return { replayed: true, answer: existing }
 }
 
-async function assertAnswerTargetsCurrentAnalysis(
+async function assertAnswerBindsCurrentAcceptedLeaf(
   answer: AnalysisAnswer,
   journey: Awaited<ReturnType<typeof journeyOrThrow>>,
   tx: Prisma.TransactionClient,
 ) {
-  if (journey.stage !== 'ANALYSIS' && journey.stage !== 'ANALYSIS_REVIEW')
-    throw new ServiceError('Analysis questions may only be answered before or during review.', 'CONFLICT')
-  const activeIds = JSON.parse(journey.activeRevisionIdsJson) as Record<string, string>
-  if (journey.stage === 'ANALYSIS_REVIEW' && activeIds.analysis !== answer.analysisRevisionId)
-    throw new ServiceError('Analysis answer is not for the current exact review revision.', 'CONFLICT')
-  if (journey.stage !== 'ANALYSIS') return
+  const leaves = await tx.qualityJourneyAnalysisRevision.findMany({
+    where: {
+      journeyId: journey.id,
+      targetProjectId: journey.targetProjectId,
+      cycleId: journey.activeCycleId,
+      successors: { none: {} },
+    },
+    select: { id: true },
+  })
+  if (leaves.length !== 1 || leaves[0]!.id !== answer.analysisRevisionId)
+    throw new ServiceError('Analysis answer must bind the current accepted leaf in the active cycle.', 'CONFLICT')
+}
+
+async function assertAnswerTargetsUnreplacedCandidate(
+  answer: AnalysisAnswer,
+  journey: Awaited<ReturnType<typeof journeyOrThrow>>,
+  tx: Prisma.TransactionClient,
+) {
   const pendingAnalyzer = await tx.qualityJourneyWorkItem.findFirst({
     where: {
       journeyId: journey.id,
@@ -812,6 +950,23 @@ async function assertAnswerTargetsCurrentAnalysis(
     ? (await tx.qualityJourneyAnalysisRevision.count({ where: { predecessorRevisionId: candidate.id } })) > 0
     : true
   if (hasSuccessor) throw new ServiceError('Analysis answer is not for the current submitted successor.', 'CONFLICT')
+}
+
+async function assertAnswerTargetsCurrentAnalysis(
+  answer: AnalysisAnswer,
+  journey: Awaited<ReturnType<typeof journeyOrThrow>>,
+  tx: Prisma.TransactionClient,
+) {
+  if (journey.stage !== 'ANALYSIS' && journey.stage !== 'ANALYSIS_REVIEW')
+    throw new ServiceError('Analysis questions may only be answered before or during review.', 'CONFLICT')
+  if (['CANCELLED', 'CLOSED'].includes(journey.status))
+    throw new ServiceError('Inactive Analysis cannot accept new answers.', 'CONFLICT')
+  if (journey.hostingMode === 'APP_SERVER_LOCAL_V1') await assertAnswerBindsCurrentAcceptedLeaf(answer, journey, tx)
+  const activeIds = JSON.parse(journey.activeRevisionIdsJson) as Record<string, string>
+  if (journey.stage === 'ANALYSIS_REVIEW' && activeIds.analysis !== answer.analysisRevisionId)
+    throw new ServiceError('Analysis answer is not for the current exact review revision.', 'CONFLICT')
+  if (journey.stage !== 'ANALYSIS') return
+  await assertAnswerTargetsUnreplacedCandidate(answer, journey, tx)
 }
 
 async function answerQuestionOrThrow(answer: AnalysisAnswer, journeyId: string, tx: Prisma.TransactionClient) {
@@ -889,6 +1044,7 @@ async function answerQualityJourneyAnalysisQuestionInTransaction(
   request: AnalysisAnswerRequest,
   requestHash: string,
   tx: Prisma.TransactionClient,
+  beforeWrite: BeforeJourneyBusinessWrite,
 ) {
   const replay = await replayedAnalysisAnswer(request, requestHash, tx)
   if (replay) return replay
@@ -896,6 +1052,7 @@ async function answerQualityJourneyAnalysisQuestionInTransaction(
   const journey = await journeyOrThrow(answer.journeyId, answer.targetProjectId, tx)
   await assertAnswerTargetsCurrentAnalysis(answer, journey, tx)
   const { question, corrected } = await answerQuestionOrThrow(answer, journey.id, tx)
+  await beforeWrite(tx, answer)
   const persisted = await persistAnalysisAnswer(
     { request, requestHash, journey, question, correctedId: corrected?.id },
     tx,
@@ -909,6 +1066,9 @@ async function answerQualityJourneyAnalysisQuestionInTransaction(
     'ANALYSIS_ANSWERED',
     { analysisRevisionId: answer.analysisRevisionId, questionId: question.questionId, answerId: persisted.answerId },
     tx,
+  )
+  await ensureQualityJourneyAnalysisFollowupWithBusinessJoinInTransaction(
+    { journeyId: journey.id, targetProjectId: journey.targetProjectId }, tx, beforeWrite,
   )
   return { replayed: false, answer: persisted }
 }
@@ -924,7 +1084,8 @@ export async function answerQualityJourneyAnalysisQuestion(
   const requestHash = hash(request)
   return client.$transaction(async tx => {
     await assertCoordinatorMutationSession(coordinatorSession, request.answer, tx)
-    return answerQualityJourneyAnalysisQuestionInTransaction(request, requestHash, tx)
+    return withJourneyBusinessWriteJoinInTransaction(tx, request.answer, coordinatorSession, beforeWrite =>
+      answerQualityJourneyAnalysisQuestionInTransaction(request, requestHash, tx, beforeWrite))
   })
 }
 
@@ -950,17 +1111,19 @@ async function replayedAnalysisPublication(
   command: PublishAnalysisCommand,
   journeyId: string,
   tx: Prisma.TransactionClient,
+  beforeWrite: BeforeJourneyBusinessWrite,
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
   const existingCommand = await tx.qualityJourneyCommand.findUnique({
     where: { journeyId_idempotencyKey: { journeyId, idempotencyKey: command.idempotencyKey } },
   })
   if (!existingCommand) return null
-  const replay = await submitDurableQualityJourneyCommandInTransaction(command, tx, true, true, coordinatorSession)
+  const replay = await submitDurableQualityJourneyCommandWithBusinessJoinInTransaction(
+    command, tx, beforeWrite, true, true, coordinatorSession,
+  )
   if (replay.outcome !== 'COMMITTED' || !replay.replayed) return replay
   const publication = await tx.qualityJourneyAnalysisPublication.findUnique({ where: { commandId: command.commandId } })
-  if (!publication)
-    throw new ServiceError('Published analysis command has no immutable publication record.', 'CONFLICT')
+  if (!publication) return null
   return { ...replay, publication }
 }
 
@@ -975,6 +1138,19 @@ async function publicationRevisionOrThrow(
   if (!revision || revision.contentHash !== command.payload.artifactHash)
     throw new ServiceError('Analysis publication does not bind an exact immutable charter revision.', 'CONFLICT')
   assertExactCommandArtifact(command, revision)
+  const journey = await tx.qualityJourney.findUniqueOrThrow({ where: { id: journeyId } })
+  if (journey.hostingMode === 'APP_SERVER_LOCAL_V1') {
+    const leaves = await tx.qualityJourneyAnalysisRevision.findMany({
+      where: { journeyId, cycleId: journey.activeCycleId, successors: { none: {} } },
+    })
+    const work = await tx.qualityJourneyWorkItem.findUnique({ where: { id: revision.submittedWorkItemId } })
+    const submittedAttempt = await tx.qualityJourneyWorkAttempt.findUnique({
+      where: { id: revision.submittedAttemptId },
+    })
+    assertPublishableAnalysisLeaf(journey.activeCycleId, revision, leaves)
+    assertPublishableAnalysisWork(journey.activeCycleId, revision, work)
+    assertPublishableAnalysisAttempt(work, submittedAttempt)
+  }
   const unanswered = await tx.qualityJourneyAnalysisQuestion.count({
     where: { analysisRevisionId: revision.id, required: true, answers: { none: {} } },
   })
@@ -1018,17 +1194,21 @@ async function ensureAnalysisPublication(
 async function publishQualityJourneyAnalysisInTransaction(
   command: PublishAnalysisCommand,
   tx: Prisma.TransactionClient,
+  beforeWrite: BeforeJourneyBusinessWrite,
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
   const journey = await journeyOrThrow(command.journeyId, command.targetProjectId, tx)
-  const replay = await replayedAnalysisPublication(command, journey.id, tx, coordinatorSession)
+  const replay = await replayedAnalysisPublication(command, journey.id, tx, beforeWrite, coordinatorSession)
   if (replay) return replay
   const revision = await publicationRevisionOrThrow(command, journey.id, tx)
   const reviewHash = await currentAnalysisReviewHash(revision.id, tx)
   if (journey.analysisReviewHash !== reviewHash)
     throw new ServiceError('Analysis review identity is stale; refresh the current charter and Q&A.', 'CONFLICT')
-  const result = await submitDurableQualityJourneyCommandInTransaction(command, tx, true, true, coordinatorSession)
+  const result = await submitDurableQualityJourneyCommandWithBusinessJoinInTransaction(
+    command, tx, beforeWrite, true, true, coordinatorSession,
+  )
   if (result.outcome !== 'COMMITTED') return result
+  await beforeWrite(tx, command)
   const publication = await ensureAnalysisPublication({ command, journey, revision, reviewHash }, tx)
   return { ...result, publication }
 }
@@ -1043,7 +1223,8 @@ export async function publishQualityJourneyAnalysis(
     throw new ServiceError('Only the Runner may publish an Analysis Charter.', 'UNAUTHORIZED')
   return client.$transaction(async tx => {
     await assertCoordinatorMutationSession(coordinatorSession, command, tx)
-    return publishQualityJourneyAnalysisInTransaction(command, tx, coordinatorSession)
+    return withJourneyBusinessWriteJoinInTransaction(tx, command, coordinatorSession, beforeWrite =>
+      publishQualityJourneyAnalysisInTransaction(command, tx, beforeWrite, coordinatorSession))
   })
 }
 
@@ -1151,16 +1332,35 @@ async function ensureAnalysisDecision(
 async function decideQualityJourneyAnalysisInTransaction(
   command: DecideAnalysisCommand,
   tx: Prisma.TransactionClient,
+  beforeWrite: BeforeJourneyBusinessWrite,
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
   const journey = await journeyOrThrow(command.journeyId, command.targetProjectId, tx)
   const { revision, reviewHash } = await decidableAnalysisRevisionOrThrow(command, journey, tx)
-  const result = await submitDurableQualityJourneyCommandInTransaction(command, tx, true, true, coordinatorSession)
+  const priorCommand = await tx.qualityJourneyCommand.findUnique({
+    where: { journeyId_idempotencyKey: { journeyId: journey.id, idempotencyKey: command.idempotencyKey } },
+  })
+  const priorDecision = priorCommand
+    ? await tx.qualityJourneyAnalysisDecision.findUnique({ where: { commandId: command.commandId } })
+    : null
+  const priorArtifact = priorDecision
+    ? await tx.qualityJourneyArtifact.findUnique({ where: { id: priorDecision.artifactRecordId } })
+    : null
+  const priorDiscovery = journey.activeDiscoveryRevisionId
+    ? await tx.qualityJourneyDiscoveryRevision.findUnique({ where: { id: journey.activeDiscoveryRevisionId } })
+    : null
+  // The generic command joins before its first write. An absent sidecar is a
+  // protected repair even when the command itself is an exact durable replay.
+  const result = await submitDurableQualityJourneyCommandWithBusinessJoinInTransaction(
+    command, tx, beforeWrite, true, true, coordinatorSession,
+  )
   if (result.outcome === 'COMMITTED') {
+    if (!priorDecision || !priorArtifact || !priorDiscovery) await beforeWrite(tx, command)
     await ensureAnalysisDecision({ command, journey, revision, reviewHash }, tx)
     await ensureQualityJourneyDiscoveryForApprovedAnalysis(
       { journeyId: journey.id, targetProjectId: journey.targetProjectId },
       tx,
+      beforeWrite,
     )
   }
   return result
@@ -1176,7 +1376,8 @@ export async function decideQualityJourneyAnalysis(
     throw new ServiceError('Only a user may approve an Analysis Charter.', 'UNAUTHORIZED')
   return client.$transaction(async tx => {
     await assertCoordinatorMutationSession(coordinatorSession, command, tx)
-    return decideQualityJourneyAnalysisInTransaction(command, tx, coordinatorSession)
+    return withJourneyBusinessWriteJoinInTransaction(tx, command, coordinatorSession, beforeWrite =>
+      decideQualityJourneyAnalysisInTransaction(command, tx, beforeWrite, coordinatorSession))
   })
 }
 
@@ -1197,27 +1398,31 @@ export async function requestQualityJourneyAnalysisRevision(
     throw new ServiceError('Only a user may request an Analysis Charter revision.', 'UNAUTHORIZED')
   return client.$transaction(async tx => {
     await assertCoordinatorMutationSession(coordinatorSession, command, tx)
-    const journey = await journeyOrThrow(command.journeyId, command.targetProjectId, tx)
-    const revision = await tx.qualityJourneyAnalysisRevision.findFirst({
-      where: { journeyId: journey.id, artifactRevisionId: command.payload.reviewedRevisionId },
-    })
-    if (!revision || revision.contentHash !== command.payload.reviewedHash)
-      throw new ServiceError('Analysis revision request does not bind an exact immutable charter revision.', 'CONFLICT')
-    assertExactCommandArtifact(command, revision)
-    const activeIds = JSON.parse(journey.activeRevisionIdsJson) as Record<string, string>
-    if (activeIds.analysis !== revision.artifactRevisionId)
-      throw new ServiceError('Analysis revision request does not bind the active analysis revision.', 'CONFLICT')
-    const publication = await tx.qualityJourneyAnalysisPublication.findUnique({
-      where: { analysisRevisionId: revision.id },
-    })
-    if (!publication || publication.artifactHash !== revision.contentHash)
-      throw new ServiceError('Analysis revision request requires an exact published analysis revision.', 'CONFLICT')
-    const reviewHash = await currentAnalysisReviewHash(revision.id, tx)
-    if (request.expectedReviewHash !== reviewHash)
-      throw new ServiceError(
-        'Analysis revision request review identity is stale; refresh the current charter and Q&A.',
-        'CONFLICT',
+    return withJourneyBusinessWriteJoinInTransaction(tx, command, coordinatorSession, async beforeWrite => {
+      const journey = await journeyOrThrow(command.journeyId, command.targetProjectId, tx)
+      const revision = await tx.qualityJourneyAnalysisRevision.findFirst({
+        where: { journeyId: journey.id, artifactRevisionId: command.payload.reviewedRevisionId },
+      })
+      if (!revision || revision.contentHash !== command.payload.reviewedHash)
+        throw new ServiceError('Analysis revision request does not bind an exact immutable charter revision.', 'CONFLICT')
+      assertExactCommandArtifact(command, revision)
+      const activeIds = JSON.parse(journey.activeRevisionIdsJson) as Record<string, string>
+      if (activeIds.analysis !== revision.artifactRevisionId)
+        throw new ServiceError('Analysis revision request does not bind the active analysis revision.', 'CONFLICT')
+      const publication = await tx.qualityJourneyAnalysisPublication.findUnique({
+        where: { analysisRevisionId: revision.id },
+      })
+      if (!publication || publication.artifactHash !== revision.contentHash)
+        throw new ServiceError('Analysis revision request requires an exact published analysis revision.', 'CONFLICT')
+      const reviewHash = await currentAnalysisReviewHash(revision.id, tx)
+      if (request.expectedReviewHash !== reviewHash)
+        throw new ServiceError(
+          'Analysis revision request review identity is stale; refresh the current charter and Q&A.',
+          'CONFLICT',
+        )
+      return submitDurableQualityJourneyCommandWithBusinessJoinInTransaction(
+        command, tx, beforeWrite, true, true, coordinatorSession,
       )
-    return submitDurableQualityJourneyCommandInTransaction(command, tx, true, true, coordinatorSession)
+    })
   })
 }

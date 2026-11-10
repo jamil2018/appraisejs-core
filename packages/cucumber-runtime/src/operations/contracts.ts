@@ -1,57 +1,21 @@
 import { createHash } from 'node:crypto'
 import { z } from 'zod'
 
+import { canonicalOperationJson } from '../canonical-json.ts'
+import { boundedOperationValueSchema } from './value-schema.ts'
+
+export { canonicalOperationJson } from '../canonical-json.ts'
+export { boundedOperationValueSchema } from './value-schema.ts'
+
 export const OPERATION_CONTRACT_VERSION = '1' as const
 export const operationIdSchema = z.string().regex(/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/)
 export const operationVersionSchema = z.string().regex(/^\d+(?:\.\d+){0,2}$/)
 export const operationHashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/)
 const identifierSchema = z.string().regex(/^[a-z][a-zA-Z0-9-]*$/)
 
-export function canonicalOperationJson(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(canonicalOperationJson).join(',')}]`
-  if (value && typeof value === 'object') {
-    const entries = Object.entries(value as Record<string, unknown>)
-      .filter(([, item]) => item !== undefined)
-      .sort(([left], [right]) => left.localeCompare(right))
-    return `{${entries.map(([key, item]) => `${JSON.stringify(key)}:${canonicalOperationJson(item)}`).join(',')}}`
-  }
-  return JSON.stringify(value)
-}
-
 export function operationContentHash(value: unknown): string {
   return `sha256:${createHash('sha256').update(canonicalOperationJson(value)).digest('hex')}`
 }
-
-const operationValueSchema: z.ZodType<unknown> = z.lazy(() =>
-  z.union([
-    z.string().max(16_384),
-    z.number().finite(),
-    z.boolean(),
-    z.null(),
-    z.array(operationValueSchema).max(100),
-    z.record(z.string().max(128), operationValueSchema),
-  ]),
-)
-
-function validateBoundedValue(value: unknown, context: z.RefinementCtx) {
-  const visit = (candidate: unknown, depth: number, nodes: { count: number }) => {
-    nodes.count += 1
-    if (nodes.count > 1_000) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: 'Operation value exceeds 1,000 nodes.' })
-      return
-    }
-    if (depth > 10) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: 'Operation value exceeds depth 10.' })
-      return
-    }
-    if (Array.isArray(candidate)) candidate.forEach(item => visit(item, depth + 1, nodes))
-    else if (candidate && typeof candidate === 'object')
-      Object.values(candidate as Record<string, unknown>).forEach(item => visit(item, depth + 1, nodes))
-  }
-  visit(value, 0, { count: 0 })
-}
-
-export const boundedOperationValueSchema = operationValueSchema.superRefine(validateBoundedValue)
 
 export const operationInputSchema = z.object({
   name: identifierSchema,

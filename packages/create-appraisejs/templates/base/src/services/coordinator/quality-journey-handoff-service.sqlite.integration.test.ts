@@ -4,7 +4,7 @@ import path from 'node:path'
 import { PrismaClient } from '@prisma/client'
 import { afterEach, expect, it, vi } from 'vitest'
 
-import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
+import { copyMigratedTestDatabase, createTargetProjectFixture } from '@/test/migrated-test-database'
 
 import {
   claimQualityJourneyWork,
@@ -38,15 +38,13 @@ async function fixture() {
     await client.$disconnect()
     await rm(directory, { recursive: true, force: true })
   })
-  await client.targetProject.create({
-    data: {
-      id: 'target-handoff',
-      kind: 'LOCAL_WORKSPACE',
-      canonicalIdentity: 'workspace:handoff',
-      canonicalPath: directory,
-      displayName: 'Handoff target',
-      fingerprint: 'handoff',
-    },
+  await createTargetProjectFixture(client, {
+    id: 'target-handoff',
+    kind: 'LOCAL_WORKSPACE',
+    canonicalIdentity: 'workspace:handoff',
+    canonicalPath: directory,
+    displayName: 'Handoff target',
+    fingerprint: 'handoff',
   })
   const created = await createQualityJourney(
     {
@@ -134,15 +132,13 @@ it('prepares a safe prompt, launches through the registered provider, and redeem
   ).resolves.toMatchObject({
     handoff: { status: 'CONNECTED' },
   })
-  await client.targetProject.create({
-    data: {
-      id: 'other-target',
-      kind: 'LOCAL_WORKSPACE',
-      canonicalIdentity: 'workspace:other-handoff',
-      canonicalPath: path.join(directory, 'other'),
-      displayName: 'Other handoff target',
-      fingerprint: 'other-handoff',
-    },
+  await createTargetProjectFixture(client, {
+    id: 'other-target',
+    kind: 'LOCAL_WORKSPACE',
+    canonicalIdentity: 'workspace:other-handoff',
+    canonicalPath: path.join(directory, 'other'),
+    displayName: 'Other handoff target',
+    fingerprint: 'other-handoff',
   })
   await expect(inspectQualityJourneyHandoff({ journeyId, targetProjectId: 'other-target' }, client)).resolves.toEqual({
     handoff: null,

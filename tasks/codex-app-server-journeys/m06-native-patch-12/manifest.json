@@ -1,0 +1,93 @@
+{
+  "version": 2,
+  "status": "CANDIDATE_COMPILE_UNVERIFIED",
+  "sourceRevision": "4ebc485ca321243727539187169425fcf972f2c4",
+  "sourceTree": "0cab0734fd471b47b59ecc4d7b257ab5034aad77",
+  "existingManifestSha256": "9cd1999a6bca340b593537bbd6263098170a1ba12be42145ebafa390df756bf4",
+  "additions": [
+    {
+      "path": "codex-rs/app-server/src/m06_outcome.rs",
+      "preimage": "ABSENT",
+      "mode": "100644",
+      "length": 2791,
+      "sha256": "2dd10c256663d2a0b4608351e55976b2d43ca1793235fa1fde15579483f1a1b2",
+      "payload": "additions/codex-rs/app-server/src/m06_outcome.rs"
+    },
+    {
+      "path": "codex-rs/app-server/src/m06_outcome_tests.rs",
+      "preimage": "ABSENT",
+      "mode": "100644",
+      "length": 301,
+      "sha256": "52ed67dabbe0d0b8575e2b9d8272dd922c3376eb2d3b27aa871e410a9d4c9e2e",
+      "payload": "additions/codex-rs/app-server/src/m06_outcome_tests.rs"
+    },
+    {
+      "path": "codex-rs/http-client/src/m06_outcome.rs",
+      "preimage": "ABSENT",
+      "mode": "100644",
+      "length": 84370,
+      "sha256": "eea8066f07c8ed3b0d536d7433b89eb92704e1cde4398edfd6e211cb9d5370ee",
+      "payload": "additions/codex-rs/http-client/src/m06_outcome.rs"
+    },
+    {
+      "path": "codex-rs/http-client/src/m06_outcome_tests.rs",
+      "preimage": "ABSENT",
+      "mode": "100644",
+      "length": 27520,
+      "sha256": "a062a9674b7767b2856a75cb1680fa17f85225e5cf8663e63b3764f1e73073ea",
+      "payload": "additions/codex-rs/http-client/src/m06_outcome_tests.rs"
+    },
+    {
+      "path": "codex-rs/rmcp-client/src/inherited_owner_transport.rs",
+      "preimage": "ABSENT",
+      "mode": "100644",
+      "length": 3074,
+      "sha256": "3228cb9138d14d295ba05d8e039e344030fd7e7c15420e8eadd75aa9975b8246",
+      "payload": "additions/codex-rs/rmcp-client/src/inherited_owner_transport.rs"
+    },
+    {
+      "path": "codex-rs/rmcp-client/src/inherited_owner_transport_tests.rs",
+      "preimage": "ABSENT",
+      "mode": "100644",
+      "length": 1551,
+      "sha256": "d9056de81a76b7c24a55b3c8d583df6625fa1e8d13745b191310504ac689e970",
+      "payload": "additions/codex-rs/rmcp-client/src/inherited_owner_transport_tests.rs"
+    },
+    {
+      "path": "codex-rs/websocket-client/src/m06_io.rs",
+      "preimage": "ABSENT",
+      "mode": "100644",
+      "length": 4658,
+      "sha256": "382b6575bbd08a24ed78ed75c7ee44f656cf80b703344f83614a7914003376bc",
+      "payload": "additions/codex-rs/websocket-client/src/m06_io.rs"
+    },
+    {
+      "path": "codex-rs/websocket-client/src/m06_io_tests.rs",
+      "preimage": "ABSENT",
+      "mode": "100644",
+      "length": 2334,
+      "sha256": "1c2b2613cb1cff8d5005aba079597bbf1f80c10915a1869c6ffc461de0bb6bd7",
+      "payload": "additions/codex-rs/websocket-client/src/m06_io_tests.rs"
+    }
+  ],
+  "verification": {
+    "rustCompilation": "UNEXECUTED",
+    "rustTests": "AUTHORED_UNEXECUTED",
+    "rustFormatting": "UNEXECUTED",
+    "lockedBuildCoherence": "UNEXECUTED",
+    "nativeExecution": false,
+    "runtimeQualified": false,
+    "productionIssuerAvailable": false,
+    "reason": "Source edits and offline byte/syntax checks only. No Cargo/rustc/rustfmt/native executable, auth, inference, network, qualification, installation or shipping is authorized.",
+    "protocolDigest": "sha256:3cd7c891648eb64484f713e31b57815961384ad59c6eefb865d979270e16b0f9",
+    "changedExistingFiles": 48,
+    "additions": 8,
+    "changedRustFiles": 54,
+    "new12AuthoredTestCases": 49,
+    "newVsOriginalTestAttributes": 53,
+    "inherited11NewTestAttributes": 4,
+    "fiveCorrected11Files": "BYTE_IDENTICAL",
+    "treeSitterSyntax": "ZERO_NEW_ERROR_NODES_VS_PINNED_ORIGINAL; existing main.rs cfg grammar error preserved; syntax only",
+    "tomlParsing": "PARSED_EXACT_ALREADY_LOCKED_LOCAL_CODEX_HTTP_CLIENT_EDGE_ONLY"
+  }
+}

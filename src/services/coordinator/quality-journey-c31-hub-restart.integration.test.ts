@@ -6,7 +6,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { PrismaClient } from '@prisma/client'
 import { expect, it } from 'vitest'
-import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
+import { copyMigratedTestDatabase, createTargetProjectFixture } from '@/test/migrated-test-database'
 import { createQualityJourney } from './quality-journey-service'
 
 function host(database: string, mode: string) {
@@ -28,15 +28,13 @@ it('recovers a committed pause after a lost reply and service-host process resta
   const client = new PrismaClient({ datasources: { db: { url: `file:${database}` } } })
   const children: ChildProcess[] = []
   try {
-    await client.targetProject.create({
-      data: {
-        id: 'c31-restart-target',
-        kind: 'LOCAL_WORKSPACE',
-        canonicalIdentity: `path:${directory}`,
-        canonicalPath: directory,
-        displayName: 'C3.1 restart fixture',
-        fingerprint: 'c31-restart',
-      },
+    await createTargetProjectFixture(client, {
+      id: 'c31-restart-target',
+      kind: 'LOCAL_WORKSPACE',
+      canonicalIdentity: `path:${directory}`,
+      canonicalPath: directory,
+      displayName: 'C3.1 restart fixture',
+      fingerprint: 'c31-restart',
     })
     const created = await createQualityJourney(
       {

@@ -1,0 +1,1553 @@
+diff --git a/codex-rs/core/src/client_common.rs b/codex-rs/core/src/client_common.rs
+index a19431c5de83..8dd0b142df86 100644
+--- a/codex-rs/core/src/client_common.rs
++++ b/codex-rs/core/src/client_common.rs
+@@ -123,6 +123,48 @@
+     pub(crate) consumer_dropped: CancellationToken,
+ }
+ 
++impl ResponseStream {
++    // This synchronous boundary must precede every cancellation-cleanup await.
++    pub(crate) fn request_cancel(&mut self, deadline: tokio::time::Instant) -> bool {
++        self.interrupt.take().is_some_and(|interrupt| {
++            interrupt.send(codex_api::ResponseInterrupt::Cancel { deadline }).is_ok()
++        })
++    }
++
++    #[cfg(test)]
++    async fn cancel_and_drain(
++        &mut self,
++        deadline: tokio::time::Instant,
++        received: Option<Result<ResponseEvent>>,
++    ) -> Option<Result<ResponseEvent>> {
++        let sent = self.request_cancel(deadline);
++        if matches!(received.as_ref(), Some(Ok(ResponseEvent::Completed { .. })) | Some(Err(_))) {
++            return received;
++        }
++        if !sent { return None; }
++        self.drain_cancelled(deadline).await
++    }
++
++    // Original consumer only; no ordinary events or provider-finality claim.
++    pub(crate) async fn drain_cancelled(
++        &mut self,
++        deadline: tokio::time::Instant,
++    ) -> Option<Result<ResponseEvent>> {
++        use futures::StreamExt;
++        loop {
++            let event = tokio::select! {
++                biased;
++                _ = tokio::time::sleep_until(deadline) => return None,
++                event = self.next() => event,
++            };
++            match event {
++                Some(Ok(ResponseEvent::Completed { .. })) | Some(Err(_)) | None => return event,
++                Some(Ok(_)) => {}
++            }
++        }
++    }
++}
++
+ impl Stream for ResponseStream {
+     type Item = Result<ResponseEvent>;
+ 
+diff --git a/codex-rs/core/src/client_common_tests.rs b/codex-rs/core/src/client_common_tests.rs
+index e4f431ad4546..25d2b5ab887b 100644
+--- a/codex-rs/core/src/client_common_tests.rs
++++ b/codex-rs/core/src/client_common_tests.rs
+@@ -268,3 +268,85 @@
+         Some("flex")
+     );
+ }
++
++// Candidate source tests: execution requires the unavailable Rust toolchain.
++fn cancellation_stream() -> (
++    ResponseStream,
++    mpsc::Sender<Result<ResponseEvent>>,
++    oneshot::Receiver<codex_api::ResponseInterrupt>,
++) {
++    let (tx, rx_event) = mpsc::channel(8);
++    let (interrupt, interrupted) = oneshot::channel();
++    (ResponseStream {
++        rx_event,
++        interrupt: Some(interrupt),
++        consumer_dropped: CancellationToken::new(),
++    }, tx, interrupted)
++}
++
++#[tokio::test]
++async fn ordinary_cancel_sends_once_and_retains_original_consumer_through_cleanup() {
++    let (mut stream, tx, interrupted) = cancellation_stream();
++    let dropped = stream.consumer_dropped.clone();
++    let deadline = tokio::time::Instant::now() + std::time::Duration::from_millis(100);
++    let cleanup = stream.cancel_and_drain(deadline, None);
++    let producer = async {
++        assert!(matches!(interrupted.await, Ok(codex_api::ResponseInterrupt::Cancel {
++            deadline: actual,
++        }) if actual == deadline));
++        assert!(!dropped.is_cancelled());
++        tx.send(Ok(ResponseEvent::OutputTextDelta("suppressed".into()))).await.unwrap();
++        assert!(!dropped.is_cancelled());
++        tx.send(Err(codex_protocol::error::CodexErr::Stream("cleanup stopped".into())))
++            .await.unwrap();
++    };
++    let (event, ()) = tokio::join!(cleanup, producer);
++    assert!(matches!(event, Some(Err(_))));
++    assert!(!dropped.is_cancelled());
++    assert!(stream.interrupt.is_none());
++    assert!(stream.cancel_and_drain(deadline, None).await.is_none());
++    drop(stream);
++    assert!(dropped.is_cancelled());
++}
++
++#[tokio::test]
++async fn ordinary_cancel_missing_or_failed_interrupt_does_not_poll_or_retry() {
++    let (mut stream, tx, interrupted) = cancellation_stream();
++    drop(interrupted);
++    tx.send(Ok(ResponseEvent::OutputTextDelta("queued".into()))).await.unwrap();
++    let deadline = tokio::time::Instant::now() + std::time::Duration::from_millis(100);
++    assert!(stream.cancel_and_drain(deadline, None).await.is_none());
++    assert!(stream.interrupt.is_none());
++    assert_eq!(stream.rx_event.len(), 1);
++    assert!(stream.cancel_and_drain(deadline, None).await.is_none());
++    assert_eq!(stream.rx_event.len(), 1);
++}
++
++#[tokio::test]
++async fn ordinary_cancel_expired_deadline_suppresses_even_ready_events() {
++    let (mut stream, tx, interrupted) = cancellation_stream();
++    tx.send(Ok(ResponseEvent::OutputTextDelta("queued".into()))).await.unwrap();
++    let deadline = tokio::time::Instant::now();
++    assert!(stream.cancel_and_drain(deadline, None).await.is_none());
++    assert!(matches!(interrupted.await, Ok(codex_api::ResponseInterrupt::Cancel { .. })));
++    assert_eq!(stream.rx_event.len(), 1);
++}
++
++#[tokio::test]
++async fn ordinary_cancel_preserves_already_received_usage_completion_only() {
++    let (mut stream, _tx, interrupted) = cancellation_stream();
++    let deadline = tokio::time::Instant::now() + std::time::Duration::from_millis(100);
++    let completion = ResponseEvent::Completed {
++        response_id: "usage-only".into(),
++        token_usage: Some(codex_protocol::protocol::TokenUsage {
++            total_tokens: 7,
++            ..Default::default()
++        }),
++        usage_metadata: None,
++        end_turn: Some(false),
++    };
++    let event = stream.cancel_and_drain(deadline, Some(Ok(completion))).await;
++    assert!(matches!(event, Some(Ok(ResponseEvent::Completed { token_usage: Some(usage), .. }))
++        if usage.total_tokens == 7));
++    assert!(matches!(interrupted.await, Ok(codex_api::ResponseInterrupt::Cancel { .. })));
++}
+diff --git a/codex-rs/core/src/session/turn.rs b/codex-rs/core/src/session/turn.rs
+index d1d43621210c..449e601e6c54 100644
+--- a/codex-rs/core/src/session/turn.rs
++++ b/codex-rs/core/src/session/turn.rs
+@@ -1,4 +1,7 @@
+ use std::collections::HashMap;
++use std::future::Future;
++use std::ops::ControlFlow;
++use std::pin::Pin;
+ use std::collections::HashSet;
+ use std::sync::Arc;
+ use std::sync::atomic::Ordering;
+@@ -6,6 +9,7 @@
+ use crate::client::ModelClientSession;
+ use crate::client_common::Prompt;
+ use crate::client_common::ResponseEvent;
++use crate::client_common::ResponseStream;
+ use crate::compact::AutoCompactionDisabled;
+ use crate::compact::run_inline_auto_compact_task;
+ use crate::compact_remote_v2::BackgroundCompactionCandidate;
+@@ -104,6 +108,7 @@
+ use codex_protocol::protocol::InternalSessionSource;
+ use codex_protocol::protocol::PlanDeltaEvent;
+ use codex_protocol::protocol::ReasoningContentDeltaEvent;
++use codex_protocol::protocol::RawResponseCompletedEvent;
+ use codex_protocol::protocol::ReasoningRawContentDeltaEvent;
+ use codex_protocol::protocol::SafetyBufferingEvent;
+ use codex_protocol::protocol::SessionSource;
+@@ -1790,6 +1795,7 @@
+                 return Ok((output, original_input.unwrap_or(prompt.input)));
+             }
+             Err(err) => match err.details() {
++                CodexErrorDetails::TurnAborted => return Err(err),
+                 CodexErrorDetails::ContextWindowExceeded => {
+                     sess.set_total_tokens_full(&turn_context).await;
+                     return Err(err);
+@@ -2607,6 +2613,201 @@
+     Session::assign_missing_response_item_id(item);
+ }
+ 
++fn cancellation_cleanup_deadline() -> tokio::time::Instant {
++    tokio::time::Instant::now()
++        + std::time::Duration::from_millis(crate::tasks::GRACEFULL_INTERRUPTION_TIMEOUT_MS)
++}
++
++// The owning consumer guards every directly awaited ordinary operation. It does
++// not claim to reverse effects or fence detached/transitive work inside helpers.
++trait SamplingOrdinaryFutureExt: Future + Sized {
++    fn ordinary<'a>(self, cancellation: &'a CancellationToken)
++        -> impl Future<Output = Result<Self::Output, tokio::time::Instant>> + Send + 'a
++    where Self: Send + 'a, Self::Output: Send {
++        async move {
++            let value = tokio::select! {
++                biased;
++                _ = cancellation.cancelled() => return Err(cancellation_cleanup_deadline()),
++                value = self => value,
++            };
++            if cancellation.is_cancelled() {
++                return Err(cancellation_cleanup_deadline());
++            }
++            Ok(value)
++        }
++    }
++}
++impl<F: Future> SamplingOrdinaryFutureExt for F {}
++
++#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
++enum SamplingAccountingState {
++    #[default]
++    Empty,
++    NotStarted,
++    Running,
++    Completed,
++    Interrupted,
++}
++
++#[derive(Default)]
++struct SamplingAccounting {
++    state: SamplingAccountingState,
++    job: Option<Pin<Box<dyn Future<Output = CodexResult<()>> + Send>>>,
++    result: Option<CodexResult<()>>,
++    conflicting_terminal: bool,
++}
++
++impl SamplingAccounting {
++    fn observe(
++        &mut self,
++        event: Option<&CodexResult<ResponseEvent>>,
++        sess: &Arc<Session>,
++        step_context: &Arc<StepContext>,
++    ) {
++        let job: Pin<Box<dyn Future<Output = CodexResult<()>> + Send>> = match event {
++            Some(Ok(ResponseEvent::Completed { response_id, token_usage, .. })) => {
++                if self.state != SamplingAccountingState::Empty {
++                    self.conflicting_terminal = true;
++                    return;
++                }
++                let response_id = response_id.clone();
++                let token_usage = token_usage.clone();
++                let sess = Arc::clone(sess);
++                let step_context = Arc::clone(step_context);
++                Box::pin(async move {
++                    sess.record_response_token_usage(
++                        &step_context.turn, &response_id, token_usage.as_ref(),
++                    ).await;
++                    sess.record_token_usage_info(
++                        &step_context.turn, &step_context.settings, token_usage.as_ref(),
++                        super::TokenUsageContext::Sampling,
++                    ).await
++                })
++            }
++            Some(Err(err)) => {
++                let CodexErrorDetails::ResponseIncomplete(incomplete) = err.details() else {
++                    return;
++                };
++                if self.state != SamplingAccountingState::Empty {
++                    self.conflicting_terminal = true;
++                    return;
++                }
++                // Own only bounded accounting fields; preserve the original error
++                // separately in the consumer. This is the one construction site.
++                let incomplete = codex_protocol::error::ResponseIncompleteError {
++                    reason: incomplete.reason.clone(),
++                    response_id: incomplete.response_id.clone(),
++                    token_usage: incomplete.token_usage.clone(),
++                };
++                let sess = Arc::clone(sess);
++                let step_context = Arc::clone(step_context);
++                Box::pin(async move {
++                    sess.record_incomplete_response_usage(
++                        &step_context.turn, &step_context.settings, &incomplete,
++                    ).await;
++                    Ok(())
++                })
++            }
++            _ => return,
++        };
++        self.job = Some(job);
++        self.state = SamplingAccountingState::NotStarted;
++    }
++
++    fn complete(&mut self, result: CodexResult<()>) {
++        // Record completion before any post-ready cancellation check.
++        self.result = Some(result);
++        self.state = SamplingAccountingState::Completed;
++        self.job = None;
++    }
++
++    async fn poll_normal(&mut self, cancellation: &CancellationToken)
++        -> Result<(), tokio::time::Instant> {
++        let Some(job) = self.job.as_mut() else { return Ok(()) };
++        self.state = SamplingAccountingState::Running;
++        let result = tokio::select! {
++            biased;
++            _ = cancellation.cancelled() => return Err(cancellation_cleanup_deadline()),
++            result = job.as_mut() => result,
++        };
++        self.complete(result);
++        if cancellation.is_cancelled() {
++            return Err(cancellation_cleanup_deadline());
++        }
++        Ok(())
++    }
++
++    fn take_result(&mut self) -> Option<CodexResult<()>> {
++        self.result.take()
++    }
++
++    fn interrupt(&mut self) {
++        if matches!(self.state, SamplingAccountingState::NotStarted | SamplingAccountingState::Running) {
++            self.state = SamplingAccountingState::Interrupted;
++            self.job = None;
++            warn!("sampling accounting interrupted; partial ledger/spending retained, remaining work UNKNOWN; no replay");
++        }
++    }
++}
++
++impl Drop for SamplingAccounting {
++    fn drop(&mut self) {
++        // Synchronous process-local observation only, including outer task abort.
++        self.interrupt();
++    }
++}
++
++async fn cancel_sampling_response(
++    stream: &mut ResponseStream,
++    accounting: &mut SamplingAccounting,
++    sess: &Arc<Session>,
++    step_context: &Arc<StepContext>,
++    deadline: tokio::time::Instant,
++    received: Option<CodexResult<ResponseEvent>>,
++) -> CodexResult<SamplingRequestResult> {
++    // Once-only original Cancel happens synchronously, before accounting or any
++    // cleanup await. No helper reconstructs a partially polled accounting call.
++    let sent = stream.request_cancel(deadline);
++    accounting.observe(received.as_ref(), sess, step_context);
++    let drain = stream.drain_cancelled(deadline);
++    tokio::pin!(drain);
++    let mut drain_done = !sent;
++    loop {
++        if drain_done && accounting.job.is_none() { break; }
++        if accounting.job.is_some() { accounting.state = SamplingAccountingState::Running; }
++        enum Progress {
++            Deadline,
++            Accounting(CodexResult<()>),
++            Drain(Option<CodexResult<ResponseEvent>>),
++        }
++        let progress = {
++            let usage = async {
++                match accounting.job.as_mut() {
++                    Some(job) => job.as_mut().await,
++                    None => std::future::pending().await,
++                }
++            };
++            tokio::select! {
++                biased;
++                _ = tokio::time::sleep_until(deadline) => Progress::Deadline,
++                result = usage => Progress::Accounting(result),
++                event = &mut drain, if !drain_done => Progress::Drain(event),
++            }
++        };
++        match progress {
++            Progress::Deadline => { accounting.interrupt(); break; }
++            Progress::Accounting(result) => accounting.complete(result),
++            Progress::Drain(event) => {
++                drain_done = true;
++                accounting.observe(event.as_ref(), sess, step_context);
++            }
++        }
++    }
++    // Both owners stayed here until settled/deadline. EOF, usage completion and
++    // interrupt send are not provider witnesses. Outer abort may truncate sooner.
++    Err(CodexErr::TurnAborted)
++}
++
+ #[allow(clippy::too_many_arguments)]
+ #[instrument(level = "trace",
+     skip_all,
+@@ -2656,12 +2857,6 @@
+         conversation.id = %sess.thread_id,
+         turn.id = %turn_context.sub_id,
+     );
+-    let uses_sequential_cutoff_reasoning_summaries = turn_context
+-        .config
+-        .features
+-        .enabled(Feature::ConcurrentReasoningSummaries)
+-        && turn_context.provider.info().is_openai();
+-    let mut preempt = step_context.preempt.clone().unwrap_or_default();
+     let effort = sess
+         .reasoning_effort_for_request(&step_context.settings, super::RequestEffortUsage::Sampling)
+         .await;
+@@ -2679,8 +2874,36 @@
+         .instrument(trace_span!("stream_request"))
+         .or_cancel(&cancellation_token)
+         .await??;
++    let mut accounting = SamplingAccounting::default();
++    consume_sampling_response(
++        &mut stream, &mut accounting, tool_runtime, sess, step_context,
++        turn_store, turn_diff_tracker, cancellation_token,
++        sampling_span, sampling_timing_guard,
++    ).await
++}
++
++#[allow(clippy::too_many_arguments)]
++async fn consume_sampling_response(
++    stream: &mut ResponseStream,
++    accounting: &mut SamplingAccounting,
++    tool_runtime: ToolCallRuntime,
++    sess: Arc<Session>,
++    step_context: Arc<StepContext>,
++    turn_store: Arc<codex_extension_api::ExtensionData>,
++    turn_diff_tracker: SharedTurnDiffTracker,
++    cancellation_token: CancellationToken,
++    sampling_span: tracing::Span,
++    sampling_timing_guard: crate::turn_timing::TurnProfileTimingGuard,
++) -> CodexResult<SamplingRequestResult> {
++    let turn_context = Arc::clone(&step_context.turn);
++    let uses_sequential_cutoff_reasoning_summaries = turn_context
++        .config
++        .features
++        .enabled(Feature::ConcurrentReasoningSummaries)
++        && turn_context.provider.info().is_openai();
++    let mut preempt = step_context.preempt.clone().unwrap_or_default();
+     if cancellation_token.is_cancelled() {
+-        return Err(CodexErr::TurnAborted);
++        return cancel_sampling_response(stream, accounting, &sess, &step_context, cancellation_cleanup_deadline(), None).await;
+     }
+     let mut in_flight: FuturesOrdered<InFlightFuture<'static>> = FuturesOrdered::new();
+     let mut needs_follow_up = false;
+@@ -2727,53 +2950,51 @@
+             codex.usage.total_tokens = field::Empty,
+         );
+ 
+-        let event = stream
+-            .next()
+-            .instrument(trace_span!(parent: &handle_responses, "receiving"))
+-            .or_cancel(&preempt)
+-            .or_cancel(&cancellation_token)
+-            .await;
+-        // Account for an already-received terminal error even if cancellation raced it.
+-        // Cancellation still stops ordinary stream events before they can run tools.
+-        let event = match event {
++        let read = async {
++            tokio::select! {
++                biased;
++                _ = cancellation_token.cancelled() => Err(cancellation_cleanup_deadline()),
++                event = stream.next()
++                    .instrument(trace_span!(parent: &handle_responses, "receiving"))
++                    .or_cancel(&preempt) => Ok(event),
++            }
++        }.await;
++        let event = match read {
++            Err(deadline) => return cancel_sampling_response(stream, accounting, &sess, &step_context, deadline, None).await,
+             Ok(Ok(event)) => event,
+             Ok(Err(_)) => {
++                if cancellation_token.is_cancelled() {
++                    return cancel_sampling_response(stream, accounting, &sess, &step_context, cancellation_cleanup_deadline(), None).await;
++                }
+                 if let Some(interrupt) = stream.interrupt.take() {
+                     if step_context.settings.model_info.use_responses_lite {
+                         let _ = interrupt.send(codex_api::ResponseInterrupt::Drain);
+                     }
+-                    // Drain the response normally before reusing its connection and history.
+                     preempt = CancellationToken::new();
+                     needs_follow_up = true;
+                     continue;
+                 }
+-                // TODO: Reconcile any response item already being presented to the client.
+-                drop(stream);
++                stream.consumer_dropped.cancel();
+                 break Ok(SamplingRequestResult {
+                     needs_follow_up: true,
+                     last_agent_message,
+                 });
+             }
+-            Err(_) => break Err(CodexErr::TurnAborted),
+         };
+-
+-        if cancellation_token.is_cancelled()
+-            && !matches!(event.as_ref(), Some(Err(err))
+-                if matches!(err.details(), CodexErrorDetails::ResponseIncomplete(_)))
+-        {
+-            break Err(CodexErr::TurnAborted);
+-        }
++        // Classify terminal usage before the cancellation/ordinary-phase gate.
++        accounting.observe(event.as_ref(), &sess, &step_context);
++        if cancellation_token.is_cancelled() {
++            return cancel_sampling_response(stream, accounting, &sess, &step_context, cancellation_cleanup_deadline(), None).await;
++        }
++        if let Err(deadline) = accounting.poll_normal(&cancellation_token).await {
++            return cancel_sampling_response(stream, accounting, &sess, &step_context, deadline, None).await;
++        }
++        let mut terminal_budget_result = accounting.take_result();
+ 
+         let event = match event {
+             Some(Ok(event)) => event,
+             Some(Err(err)) => {
+                 if let CodexErrorDetails::ResponseIncomplete(incomplete) = err.details() {
+-                    sess.record_incomplete_response_usage(
+-                        &turn_context,
+-                        &step_context.settings,
+-                        incomplete,
+-                    )
+-                    .await;
+                     should_emit_token_count |= incomplete.token_usage.is_some();
+                 }
+                 break Err(err);
+@@ -2785,10 +3006,12 @@
+             }
+         };
+ 
++        let phase_result = {
++            let phase = async {
+         sess.services
+             .session_telemetry
+             .record_responses(&handle_responses, &event);
+-        record_turn_ttft_metric(&turn_context, &event).await;
++        record_turn_ttft_metric(&turn_context, &event).ordinary(&cancellation_token).await?;
+ 
+         match event {
+             ResponseEvent::Created { response_id } => {
+@@ -2801,7 +3024,7 @@
+             ResponseEvent::OutputItemDone(mut item) => {
+                 assign_missing_streamed_response_item_id(&mut item, active_item.as_ref());
+                 sess.reserve_assistant_message_order(&turn_context, &item)
+-                    .await;
++                    .ordinary(&cancellation_token).await?;
+                 if analytics_tool_call_ids.len() < MAX_ANALYTICS_TOOL_CALL_IDS_PER_RESPONSE {
+                     let call_id = match &item {
+                         ResponseItem::FunctionCall { call_id, .. }
+@@ -2821,7 +3044,7 @@
+                 if let Some((_, mut consumer)) = active_tool_argument_diff_consumer.take()
+                     && let Ok(Some(event)) = consumer.finish()
+                 {
+-                    sess.send_event(&turn_context, event).await;
++                    sess.send_event(&turn_context, event).ordinary(&cancellation_token).await?;
+                 }
+                 let previously_active_item = active_item.take();
+                 let previously_streamed_item = if active_item_is_streaming_to_client {
+@@ -2841,7 +3064,7 @@
+                         &mut assistant_message_stream_parsers,
+                         &item_id,
+                     )
+-                    .await;
++                    .ordinary(&cancellation_token).await?;
+                 }
+                 if let Some(state) = plan_mode_state.as_mut()
+                     && handle_assistant_item_done_in_plan_mode(
+@@ -2853,9 +3076,9 @@
+                         previously_streamed_item.as_ref(),
+                         &mut last_agent_message,
+                     )
+-                    .await
++                    .ordinary(&cancellation_token).await?
+                 {
+-                    continue;
++                    return Ok(ControlFlow::Continue(()));
+                 }
+ 
+                 let mut ctx = HandleOutputCtx {
+@@ -2896,10 +3119,10 @@
+                 let output_result =
+                     match handle_output_item_done(&mut ctx, item, previously_streamed_item)
+                         .instrument(handle_responses)
+-                        .await
++                        .ordinary(&cancellation_token).await?
+                     {
+                         Ok(output_result) => output_result,
+-                        Err(err) => break Err(err),
++                        Err(err) => return Ok(ControlFlow::Break(Err(err))),
+                     };
+                 if let Some(tool_future) = output_result.tool_future {
+                     in_flight.push_back(tool_future);
+@@ -2915,7 +3138,7 @@
+                         .config
+                         .features
+                         .enabled(Feature::DeferMailboxPreemption)
+-                    && sess.input_queue.has_pending_mailbox_items().await
++                    && sess.input_queue.has_pending_mailbox_items().ordinary(&cancellation_token).await?
+                 {
+                     tracing::event!(
+                         name: "codex.mailbox_preemption",
+@@ -2925,16 +3148,16 @@
+                         conversation.id = %sess.thread_id,
+                         turn.id = %turn_context.sub_id,
+                     );
+-                    break Ok(SamplingRequestResult {
++                    return Ok(ControlFlow::Break(Ok(SamplingRequestResult {
+                         needs_follow_up: true,
+-                        last_agent_message,
+-                    });
++                        last_agent_message: last_agent_message.take(),
++                    })));
+                 }
+             }
+             ResponseEvent::OutputItemAdded(mut item) => {
+                 assign_missing_streamed_response_item_id(&mut item, /*active_item*/ None);
+                 sess.reserve_assistant_message_order(&turn_context, &item)
+-                    .await;
++                    .ordinary(&cancellation_token).await?;
+                 if let ResponseItem::CustomToolCall {
+                     call_id,
+                     name,
+@@ -2955,7 +3178,7 @@
+                     &item,
+                     plan_mode,
+                 )
+-                .await
++                .ordinary(&cancellation_token).await?
+                 {
+                     let mut turn_item = turn_item;
+                     let stream_item_to_client = !defer_streamed_turn_items_for_contributors;
+@@ -2990,7 +3213,7 @@
+                                 .pending_agent_message_items
+                                 .insert(item_id, turn_item.clone());
+                         } else {
+-                            sess.emit_turn_item_started(&turn_context, &turn_item).await;
++                            sess.emit_turn_item_started(&turn_context, &turn_item).ordinary(&cancellation_token).await?;
+                         }
+                         if let (Some(state), Some(item_id), Some(parsed)) = (
+                             plan_mode_state.as_mut(),
+@@ -3004,7 +3227,7 @@
+                                 item_id,
+                                 parsed,
+                             )
+-                            .await;
++                            .ordinary(&cancellation_token).await?;
+                         }
+                     }
+                     active_item = Some(turn_item);
+@@ -3017,7 +3240,7 @@
+                     .load(Ordering::Relaxed)
+                     && sess
+                         .maybe_warn_on_server_model_mismatch(&step_context, server_model)
+-                        .await
++                        .ordinary(&cancellation_token).await?
+                 {
+                     turn_context
+                         .server_model_warning_emitted
+@@ -3030,12 +3253,12 @@
+                     .swap(true, Ordering::Relaxed)
+                 {
+                     sess.emit_model_verification(&turn_context, verifications)
+-                        .await;
++                        .ordinary(&cancellation_token).await?;
+                 }
+             }
+             ResponseEvent::TurnModerationMetadata(metadata) => {
+                 sess.emit_turn_moderation_metadata(&turn_context, metadata)
+-                    .await;
++                    .ordinary(&cancellation_token).await?;
+             }
+             ResponseEvent::SafetyBuffering(buffering) => {
+                 sess.send_event(
+@@ -3048,15 +3271,15 @@
+                         faster_model: buffering.faster_model,
+                     }),
+                 )
+-                .await;
++                .ordinary(&cancellation_token).await?;
+             }
+             ResponseEvent::ServerReasoningIncluded(included) => {
+-                sess.set_server_reasoning_included(included).await;
++                sess.set_server_reasoning_included(included).ordinary(&cancellation_token).await?;
+             }
+             ResponseEvent::RateLimits(snapshot) => {
+                 // Update internal state with latest rate limits, but defer sending until
+                 // token usage is available to avoid duplicate TokenCount events.
+-                sess.record_rate_limits_info(snapshot).await;
++                sess.record_rate_limits_info(snapshot).ordinary(&cancellation_token).await?;
+                 should_emit_token_count = true;
+             }
+             ResponseEvent::ModelsEtag(etag) => {
+@@ -3064,7 +3287,7 @@
+                 sess.services
+                     .models_manager
+                     .refresh_if_new_etag(etag, turn_context.config.http_client_factory())
+-                    .await;
++                    .ordinary(&cancellation_token).await?;
+             }
+             ResponseEvent::Completed {
+                 response_id,
+@@ -3088,41 +3311,34 @@
+                     plan_mode_state.as_mut(),
+                     &mut assistant_message_stream_parsers,
+                 )
+-                .await;
+-                sess.record_observed_response_completed(
++                .ordinary(&cancellation_token).await?;
++                sess.send_event(
+                     &turn_context,
+-                    &response_id,
+-                    token_usage.as_ref(),
+-                    usage_metadata.as_ref(),
+-                )
+-                .await;
+-                let budget_result = sess
+-                    .record_token_usage_info(
+-                        &turn_context,
+-                        &step_context.settings,
+-                        token_usage.as_ref(),
+-                        super::TokenUsageContext::Sampling,
+-                    )
+-                    .await;
++                    EventMsg::RawResponseCompleted(RawResponseCompletedEvent {
++                        response_id,
++                        token_usage,
++                        usage_metadata,
++                    }),
++                ).ordinary(&cancellation_token).await?;
+                 should_emit_token_count = true;
+                 should_emit_turn_diff = true;
+-                if let Err(err) = budget_result {
+-                    break Err(err);
++                if let Some(Err(err)) = terminal_budget_result.take() {
++                    return Ok(ControlFlow::Break(Err(err)));
+                 }
+                 if let Some(false) = end_turn {
+                     needs_follow_up = true;
+                 }
+-                break Ok(SamplingRequestResult {
++                return Ok(ControlFlow::Break(Ok(SamplingRequestResult {
+                     needs_follow_up,
+-                    last_agent_message,
+-                });
++                    last_agent_message: last_agent_message.take(),
++                })));
+             }
+             ResponseEvent::OutputTextDelta(delta) => {
+                 // In review child threads, suppress assistant text deltas; the
+                 // UI will show a selection popup from the final ReviewOutput.
+                 if let Some(active) = active_item.as_ref() {
+                     if !active_item_is_streaming_to_client {
+-                        continue;
++                        return Ok(ControlFlow::Continue(()));
+                     }
+                     let item_id = active.id();
+                     if matches!(active, TurnItem::AgentMessage(_)) {
+@@ -3134,7 +3350,7 @@
+                             &item_id,
+                             parsed,
+                         )
+-                        .await;
++                        .ordinary(&cancellation_token).await?;
+                     } else {
+                         let event = AgentMessageContentDeltaEvent {
+                             thread_id: sess.thread_id.to_string(),
+@@ -3143,7 +3359,7 @@
+                             delta,
+                         };
+                         sess.send_event(&turn_context, EventMsg::AgentMessageContentDelta(event))
+-                            .await;
++                            .ordinary(&cancellation_token).await?;
+                     }
+                 } else {
+                     error_or_panic("OutputTextDelta without active item".to_string());
+@@ -3156,15 +3372,15 @@
+             } => {
+                 let Some((active_call_id, consumer)) = active_tool_argument_diff_consumer.as_mut()
+                 else {
+-                    continue;
++                    return Ok(ControlFlow::Continue(()));
+                 };
+                 let call_id = match call_id {
+-                    Some(call_id) if call_id.as_str() != active_call_id.as_str() => continue,
++                    Some(call_id) if call_id.as_str() != active_call_id.as_str() => return Ok(ControlFlow::Continue(())),
+                     Some(call_id) => call_id,
+                     None => active_call_id.clone(),
+                 };
+                 if let Some(event) = consumer.consume_diff(turn_context.as_ref(), call_id, &delta) {
+-                    sess.send_event(&turn_context, event).await;
++                    sess.send_event(&turn_context, event).ordinary(&cancellation_token).await?;
+                 }
+             }
+             ResponseEvent::ReasoningSummaryDelta {
+@@ -3172,11 +3388,11 @@
+                 summary_index,
+             } => {
+                 if uses_sequential_cutoff_reasoning_summaries {
+-                    continue;
++                    return Ok(ControlFlow::Continue(()));
+                 }
+                 if let Some(active) = active_item.as_ref() {
+                     if !active_item_is_streaming_to_client {
+-                        continue;
++                        return Ok(ControlFlow::Continue(()));
+                     }
+                     let event = ReasoningContentDeltaEvent {
+                         thread_id: sess.thread_id.to_string(),
+@@ -3186,25 +3402,25 @@
+                         summary_index,
+                     };
+                     sess.send_event(&turn_context, EventMsg::ReasoningContentDelta(event))
+-                        .await;
++                        .ordinary(&cancellation_token).await?;
+                 } else {
+                     error_or_panic("ReasoningSummaryDelta without active item".to_string());
+                 }
+             }
+             ResponseEvent::ReasoningSummaryPartAdded { summary_index } => {
+                 if uses_sequential_cutoff_reasoning_summaries {
+-                    continue;
++                    return Ok(ControlFlow::Continue(()));
+                 }
+                 if let Some(active) = active_item.as_ref() {
+                     if !active_item_is_streaming_to_client {
+-                        continue;
++                        return Ok(ControlFlow::Continue(()));
+                     }
+                     let event =
+                         EventMsg::AgentReasoningSectionBreak(AgentReasoningSectionBreakEvent {
+                             item_id: active.id(),
+                             summary_index,
+                         });
+-                    sess.send_event(&turn_context, event).await;
++                    sess.send_event(&turn_context, event).ordinary(&cancellation_token).await?;
+                 } else {
+                     error_or_panic("ReasoningSummaryPartAdded without active item".to_string());
+                 }
+@@ -3215,13 +3431,13 @@
+                 summary_index,
+             } => {
+                 if !uses_sequential_cutoff_reasoning_summaries {
+-                    continue;
++                    return Ok(ControlFlow::Continue(()));
+                 }
+                 let Some(active) = active_item.as_ref() else {
+-                    continue;
++                    return Ok(ControlFlow::Continue(()));
+                 };
+                 if !active_item_is_streaming_to_client || active.id() != item_id {
+-                    continue;
++                    return Ok(ControlFlow::Continue(()));
+                 }
+                 if summary_index > 0 {
+                     sess.send_event(
+@@ -3231,7 +3447,7 @@
+                             summary_index,
+                         }),
+                     )
+-                    .await;
++                    .ordinary(&cancellation_token).await?;
+                 }
+                 let event = ReasoningContentDeltaEvent {
+                     thread_id: sess.thread_id.to_string(),
+@@ -3241,7 +3457,7 @@
+                     summary_index,
+                 };
+                 sess.send_event(&turn_context, EventMsg::ReasoningContentDelta(event))
+-                    .await;
++                    .ordinary(&cancellation_token).await?;
+             }
+             ResponseEvent::ReasoningContentDelta {
+                 delta,
+@@ -3249,7 +3465,7 @@
+             } => {
+                 if let Some(active) = active_item.as_ref() {
+                     if !active_item_is_streaming_to_client {
+-                        continue;
++                        return Ok(ControlFlow::Continue(()));
+                     }
+                     let event = ReasoningRawContentDeltaEvent {
+                         thread_id: sess.thread_id.to_string(),
+@@ -3259,23 +3475,45 @@
+                         content_index,
+                     };
+                     sess.send_event(&turn_context, EventMsg::ReasoningRawContentDelta(event))
+-                        .await;
++                        .ordinary(&cancellation_token).await?;
+                 } else {
+                     error_or_panic("ReasoningRawContentDelta without active item".to_string());
+                 }
+             }
+         }
++                Ok::<_, tokio::time::Instant>(ControlFlow::Continue(()))
++            };
++            tokio::pin!(phase);
++            tokio::select! {
++                biased;
++                _ = cancellation_token.cancelled() => Err(cancellation_cleanup_deadline()),
++                result = &mut phase => result,
++            }
++        }; // The phase and every mutable state borrow are dropped before cleanup.
++        let phase_result = match phase_result {
++            Err(deadline) => return cancel_sampling_response(stream, accounting, &sess, &step_context, deadline, None).await,
++            Ok(_) if cancellation_token.is_cancelled() => {
++                return cancel_sampling_response(stream, accounting, &sess, &step_context, cancellation_cleanup_deadline(), None).await;
++            }
++            Ok(result) => result,
++        };
++        if let ControlFlow::Break(result) = phase_result {
++            break result;
++        }
++
+     };
+     drop(sampling_span);
+     drop(sampling_timing_guard);
+ 
++    let post_result = {
++        let phase = async {
+     flush_assistant_text_segments_all(
+         &sess,
+         &turn_context,
+         plan_mode_state.as_mut(),
+         &mut assistant_message_stream_parsers,
+     )
+-    .await;
++    .ordinary(&cancellation_token).await?;
+ 
+     if !in_flight.is_empty() {
+         let _tool_blocking_timing_guard = turn_context.turn_timing_state.begin_tool_blocking();
+@@ -3285,33 +3523,47 @@
+             conversation.id = %sess.thread_id,
+             turn.id = %turn_context.sub_id,
+         );
+-        drain_in_flight(&mut in_flight, sess.clone(), &step_context).await?;
++        if let Err(err) = drain_in_flight(&mut in_flight, sess.clone(), &step_context).ordinary(&cancellation_token).await? {
++            return Ok(Err(err));
++        }
+     }
+ 
+     if should_emit_token_count {
+         // A tool call such as request_user_input can intentionally pause the turn. Emit token
+         // counts only after pending tools resolve so clients do not see progress events while the
+-        // turn is waiting on the user. This also needs to happen before returning cancellation so
+-        // token usage already recorded from the completed response is still persisted.
+-        sess.send_token_count_event(&turn_context).await;
+-    }
+-
+-    if cancellation_token.is_cancelled() {
+-        return Err(CodexErr::TurnAborted);
+-    }
++        // turn is waiting on the user. Cancellation suppresses this ordinary notification;
++        // the retained accounting job owns ledger/spending completion separately.
++        sess.send_token_count_event(&turn_context).ordinary(&cancellation_token).await?;
++    }
++
+ 
+     if should_emit_turn_diff {
+         let unified_diff = {
+-            let tracker = turn_diff_tracker.lock().await;
++            let tracker = turn_diff_tracker.lock().ordinary(&cancellation_token).await?;
+             tracker.get_unified_diff()
+         };
+         if let Some(unified_diff) = unified_diff {
+             let msg = EventMsg::TurnDiff(TurnDiffEvent { unified_diff });
+-            sess.clone().send_event(&turn_context, msg).await;
+-        }
+-    }
+-
+-    outcome
++            sess.clone().send_event(&turn_context, msg).ordinary(&cancellation_token).await?;
++        }
++    }
++
++            Ok::<_, tokio::time::Instant>(outcome)
++        };
++        tokio::pin!(phase);
++        tokio::select! {
++            biased;
++            _ = cancellation_token.cancelled() => Err(cancellation_cleanup_deadline()),
++            result = &mut phase => result,
++        }
++    };
++    match post_result {
++        Err(deadline) => cancel_sampling_response(stream, accounting, &sess, &step_context, deadline, None).await,
++        Ok(_) if cancellation_token.is_cancelled() => {
++            cancel_sampling_response(stream, accounting, &sess, &step_context, cancellation_cleanup_deadline(), None).await
++        }
++        Ok(outcome) => outcome,
++    }
+ }
+ 
+ pub(crate) fn get_last_assistant_message_from_turn<'a>(
+diff --git a/codex-rs/core/src/session/turn_tests.rs b/codex-rs/core/src/session/turn_tests.rs
+index c1554d79c024..001d8900c80d 100644
+--- a/codex-rs/core/src/session/turn_tests.rs
++++ b/codex-rs/core/src/session/turn_tests.rs
+@@ -115,3 +115,554 @@
+         )),
+     );
+ }
++
++// These fixtures call the production post-acquisition consumer, not a substitute
++// dispatcher. All Rust tests are authored only: compilation/execution UNEXECUTED.
++#[derive(Default)]
++struct SamplingGate {
++    entered: tokio::sync::Notify,
++    release: tokio::sync::Notify,
++    calls: std::sync::atomic::AtomicUsize,
++    cancel_on_release: std::sync::Mutex<Option<CancellationToken>>,
++    ready_returns: std::sync::atomic::AtomicUsize,
++}
++
++impl codex_extension_api::TokenUsageContributor for SamplingGate {
++    fn on_token_usage<'a>(
++        &'a self,
++        _session: &'a ExtensionData,
++        _thread: &'a ExtensionData,
++        _turn: &'a ExtensionData,
++        _usage: &'a codex_protocol::protocol::TokenUsageInfo,
++    ) -> codex_extension_api::ExtensionFuture<'a, ()> {
++        Box::pin(async move {
++            self.calls.fetch_add(1, Ordering::SeqCst);
++            self.entered.notify_one();
++            self.release.notified().await;
++            if let Some(cancel) = self.cancel_on_release.lock().unwrap().as_ref() {
++                cancel.cancel();
++            }
++        })
++    }
++}
++
++impl TurnItemContributor for SamplingGate {
++    fn contribute<'a>(
++        &'a self,
++        _thread: &'a ExtensionData,
++        _turn: &'a ExtensionData,
++        _item: &'a mut TurnItem,
++    ) -> codex_extension_api::ExtensionFuture<'a, Result<(), String>> {
++        Box::pin(async move {
++            self.calls.fetch_add(1, Ordering::SeqCst);
++            self.entered.notify_one();
++            self.release.notified().await;
++            if let Some(cancel) = self.cancel_on_release.lock().unwrap().as_ref() {
++                cancel.cancel();
++            }
++            self.ready_returns.fetch_add(1, Ordering::SeqCst);
++            Ok(())
++        })
++    }
++}
++
++struct SamplingFixture {
++    session: Arc<Session>,
++    step: Arc<StepContext>,
++    events: async_channel::Receiver<codex_protocol::protocol::Event>,
++    tracker: SharedTurnDiffTracker,
++}
++
++async fn sampling_fixture(
++    builder: codex_extension_api::ExtensionRegistryBuilder<crate::config::Config>,
++) -> SamplingFixture {
++    let (mut session, context) = crate::session::tests::make_session_and_context().await;
++    let (tx, events) = async_channel::unbounded();
++    session.tx_event = tx;
++    session.services.extensions = Arc::new(builder.build());
++    SamplingFixture {
++        session: Arc::new(session),
++        step: StepContext::for_test(Arc::new(context)),
++        events,
++        tracker: Arc::new(tokio::sync::Mutex::new(TurnDiffTracker::new())),
++    }
++}
++
++fn sampling_stream() -> (
++    ResponseStream,
++    tokio::sync::mpsc::Sender<CodexResult<ResponseEvent>>,
++    tokio::sync::oneshot::Receiver<codex_api::ResponseInterrupt>,
++) {
++    let (tx, rx_event) = tokio::sync::mpsc::channel(32);
++    let (interrupt, interrupted) = tokio::sync::oneshot::channel();
++    (ResponseStream {
++        rx_event,
++        interrupt: Some(interrupt),
++        consumer_dropped: CancellationToken::new(),
++    }, tx, interrupted)
++}
++
++async fn consume_fixture(
++    fixture: &SamplingFixture,
++    stream: &mut ResponseStream,
++    accounting: &mut SamplingAccounting,
++    cancel: CancellationToken,
++) -> CodexResult<SamplingRequestResult> {
++    let runtime = ToolCallRuntime::new(
++        Arc::clone(&fixture.session), Arc::clone(&fixture.step), Arc::clone(&fixture.tracker),
++    );
++    consume_sampling_response(
++        stream, accounting, runtime, Arc::clone(&fixture.session), Arc::clone(&fixture.step),
++        Arc::new(ExtensionData::new(fixture.step.turn.sub_id.clone())),
++        Arc::clone(&fixture.tracker), cancel, tracing::Span::none(),
++        fixture.step.turn.turn_timing_state.begin_sampling(),
++    ).await
++}
++
++fn terminal_usage(incomplete: bool) -> CodexResult<ResponseEvent> {
++    let usage = Some(codex_protocol::protocol::TokenUsage {
++        total_tokens: 7,
++        ..Default::default()
++    });
++    if incomplete {
++        Err(CodexErrorDetails::ResponseIncomplete(Box::new(
++            codex_protocol::error::ResponseIncompleteError {
++                reason: "fixture-incomplete".into(),
++                response_id: Some("fixture-response".into()),
++                token_usage: usage,
++            },
++        )).into())
++    } else {
++        Ok(ResponseEvent::Completed {
++            response_id: "fixture-response".into(), token_usage: usage,
++            usage_metadata: None, end_turn: Some(true),
++        })
++    }
++}
++
++fn take_sampling_events(fixture: &SamplingFixture) -> Vec<EventMsg> {
++    let mut events = Vec::new();
++    while let Ok(event) = fixture.events.try_recv() { events.push(event.msg); }
++    events
++}
++
++fn assert_sampling_aborted(result: CodexResult<SamplingRequestResult>) {
++    assert!(matches!(result, Err(err) if matches!(err.details(), CodexErrorDetails::TurnAborted)));
++}
++
++fn assert_original_cancel(
++    interrupt: codex_api::ResponseInterrupt,
++    observed: tokio::time::Instant,
++) -> tokio::time::Instant {
++    let codex_api::ResponseInterrupt::Cancel { deadline } = interrupt else {
++        panic!("ordinary cancellation must not send Drain");
++    };
++    assert_eq!(deadline, observed + std::time::Duration::from_millis(
++        crate::tasks::GRACEFULL_INTERRUPTION_TIMEOUT_MS,
++    ));
++    deadline
++}
++
++#[tokio::test(start_paused = true)]
++async fn sampling11_ttft_pending_delta_cancels_before_ordinary_dispatch() {
++    let fixture = sampling_fixture(Default::default()).await;
++    let (mut stream, tx, mut interrupted) = sampling_stream();
++    let retained = stream.consumer_dropped.clone();
++    let cancel = CancellationToken::new();
++    let mut accounting = SamplingAccounting::default();
++    tx.send(Ok(ResponseEvent::OutputItemAdded(assistant_output_text("")))).await.unwrap();
++    let mut consumer = Box::pin(consume_fixture(&fixture, &mut stream, &mut accounting, cancel.clone()));
++    // Drive the real added-item branch to its emitted start, then its next read.
++    tokio::select! {
++        biased;
++        event = fixture.events.recv() => { assert!(matches!(event.unwrap().msg, EventMsg::ItemStarted(_))); }
++        _ = &mut consumer => panic!("consumer must wait for streamed delta"),
++    }
++    assert!(futures::poll!(consumer.as_mut()).is_pending());
++    take_sampling_events(&fixture); // Already emitted before cancellation is observed.
++    let timing_lock = fixture.step.turn.turn_timing_state.lock_for_sampling_test().await;
++    tx.send(Ok(ResponseEvent::OutputTextDelta("must not emit".into()))).await.unwrap();
++    assert!(futures::poll!(consumer.as_mut()).is_pending());
++    assert_eq!(tx.capacity(), 32, "delta consumed and pending at the actual TTFT lock");
++    let observed = tokio::time::Instant::now();
++    cancel.cancel();
++    assert!(futures::poll!(consumer.as_mut()).is_pending());
++    assert_original_cancel(interrupted.try_recv().unwrap(), observed);
++    assert!(!retained.is_cancelled());
++    drop(timing_lock);
++    // Even a queued actual tool-call item is only drained after cancellation.
++    tx.send(Ok(ResponseEvent::OutputItemDone(ResponseItem::FunctionCall {
++        status: None, encrypted_content: None, id: None, name: "m06_never_registered".into(),
++        namespace: None, arguments: "{}".into(), call_id: "never-dispatch".into(),
++        encrypted_function_args: None, internal_chat_message_metadata_passthrough: None,
++    }))).await.unwrap();
++    drop(tx);
++    assert_sampling_aborted(consumer.await);
++    assert!(take_sampling_events(&fixture).is_empty(), "no text/item/tool dispatch after cancellation");
++    assert!(!retained.is_cancelled());
++    assert!(stream.interrupt.is_none());
++}
++
++#[test_case::test_case(false; "pending_contributor")]
++#[test_case::test_case(true; "simultaneously_ready_contributor")]
++#[tokio::test(start_paused = true)]
++async fn sampling11_actual_item_contributor_cancellation_drops_ordinary_phase(simultaneous: bool) {
++    let gate = Arc::new(SamplingGate::default());
++    let mut builder = codex_extension_api::ExtensionRegistryBuilder::new();
++    builder.turn_item_contributor(gate.clone());
++    let fixture = sampling_fixture(builder).await;
++    let (mut stream, tx, mut interrupted) = sampling_stream();
++    let mut accounting = SamplingAccounting::default();
++    let cancel = CancellationToken::new();
++    tx.send(Ok(ResponseEvent::OutputItemDone(assistant_output_text("contributed text")))).await.unwrap();
++    let mut consumer = Box::pin(consume_fixture(&fixture, &mut stream, &mut accounting, cancel.clone()));
++    tokio::select! {
++        biased;
++        _ = gate.entered.notified() => {}
++        _ = &mut consumer => panic!("must wait inside actual turn-item contributor"),
++    }
++    take_sampling_events(&fixture);
++    if simultaneous { gate.release.notify_one(); }
++    let observed = tokio::time::Instant::now();
++    cancel.cancel();
++    assert!(futures::poll!(consumer.as_mut()).is_pending());
++    assert_original_cancel(interrupted.try_recv().unwrap(), observed);
++    gate.release.notify_one();
++    drop(tx);
++    assert_sampling_aborted(consumer.await);
++    assert_eq!(gate.calls.load(Ordering::SeqCst), 1);
++    assert!(take_sampling_events(&fixture).is_empty(), "dropped ordinary phase must not emit after contributor");
++}
++
++#[test_case::test_case(false, 0; "completed_pending")]
++#[test_case::test_case(true, 0; "incomplete_pending")]
++#[test_case::test_case(false, 1; "completed_simultaneous")]
++#[test_case::test_case(true, 1; "incomplete_simultaneous")]
++#[test_case::test_case(false, 2; "completed_post_ready")]
++#[test_case::test_case(true, 2; "incomplete_post_ready")]
++#[tokio::test(start_paused = true)]
++async fn sampling11_terminal_accounting_retains_original_after_mutation(incomplete: bool, mode: u8) {
++    let gate = Arc::new(SamplingGate::default());
++    let mut builder = codex_extension_api::ExtensionRegistryBuilder::new();
++    builder.token_usage_contributor(gate.clone());
++    let fixture = sampling_fixture(builder).await;
++    let (mut stream, tx, mut interrupted) = sampling_stream();
++    let retained = stream.consumer_dropped.clone();
++    let mut accounting = SamplingAccounting::default();
++    let cancel = CancellationToken::new();
++    tx.send(terminal_usage(incomplete)).await.unwrap();
++    let mut consumer = Box::pin(consume_fixture(&fixture, &mut stream, &mut accounting, cancel.clone()));
++    tokio::select! {
++        biased;
++        _ = gate.entered.notified() => {}
++        _ = &mut consumer => panic!("real accounting must stay pending at contributor"),
++    }
++    assert_eq!(fixture.session.get_total_token_usage().await, 7, "actual aggregate already mutated once");
++    assert_eq!(gate.calls.load(Ordering::SeqCst), 1);
++    assert!(take_sampling_events(&fixture).is_empty());
++    if mode == 1 { gate.release.notify_one(); }
++    if mode == 2 {
++        *gate.cancel_on_release.lock().unwrap() = Some(cancel.clone());
++        gate.release.notify_one();
++    }
++    let observed = tokio::time::Instant::now();
++    if mode != 2 { cancel.cancel(); }
++    assert!(futures::poll!(consumer.as_mut()).is_pending());
++    assert_original_cancel(interrupted.try_recv().unwrap(), observed);
++    // In the pending case Cancel has been received before opening the gate.
++    assert!(!retained.is_cancelled());
++    assert_eq!(fixture.session.get_total_token_usage().await, 7);
++    gate.release.notify_one();
++    drop(tx);
++    assert_sampling_aborted(consumer.await);
++    assert_eq!(accounting.state, SamplingAccountingState::Completed);
++    assert!(accounting.job.is_none());
++    assert_eq!(gate.calls.load(Ordering::SeqCst), 1);
++    assert_eq!(fixture.session.get_total_token_usage().await, 7);
++    assert!(take_sampling_events(&fixture).is_empty(), "no RawResponseCompleted, ordinary output or follow-up");
++}
++
++#[test_case::test_case(false; "completed_deadline")]
++#[test_case::test_case(true; "incomplete_deadline")]
++#[tokio::test(start_paused = true)]
++async fn sampling11_terminal_deadline_marks_interrupted_without_replay(incomplete: bool) {
++    let gate = Arc::new(SamplingGate::default());
++    let mut builder = codex_extension_api::ExtensionRegistryBuilder::new();
++    builder.token_usage_contributor(gate.clone());
++    let fixture = sampling_fixture(builder).await;
++    let (mut stream, tx, mut interrupted) = sampling_stream();
++    let mut accounting = SamplingAccounting::default();
++    let cancel = CancellationToken::new();
++    tx.send(terminal_usage(incomplete)).await.unwrap();
++    let mut consumer = Box::pin(consume_fixture(&fixture, &mut stream, &mut accounting, cancel.clone()));
++    tokio::select! {
++        biased;
++        _ = gate.entered.notified() => {}
++        _ = &mut consumer => panic!("must await real usage contributor"),
++    }
++    assert_eq!(fixture.session.get_total_token_usage().await, 7);
++    let observed = tokio::time::Instant::now();
++    cancel.cancel();
++    assert!(futures::poll!(consumer.as_mut()).is_pending());
++    let deadline = assert_original_cancel(interrupted.try_recv().unwrap(), observed);
++    // Keep the drain pending too: neither owner can finish the other early.
++    tokio::time::advance(deadline - tokio::time::Instant::now()).await;
++    assert_sampling_aborted(consumer.await);
++    assert_eq!(accounting.state, SamplingAccountingState::Interrupted);
++    assert!(accounting.job.is_none());
++    gate.release.notify_one();
++    tokio::task::yield_now().await;
++    assert_eq!(gate.calls.load(Ordering::SeqCst), 1);
++    assert_eq!(fixture.session.get_total_token_usage().await, 7);
++    assert!(take_sampling_events(&fixture).is_empty());
++    drop(tx);
++}
++
++#[test_case::test_case(false; "normal_completed")]
++#[test_case::test_case(true; "normal_incomplete")]
++#[tokio::test(start_paused = true)]
++async fn sampling11_normal_terminal_accounting_and_error_semantics(incomplete: bool) {
++    let gate = Arc::new(SamplingGate::default());
++    let mut builder = codex_extension_api::ExtensionRegistryBuilder::new();
++    builder.token_usage_contributor(gate.clone());
++    let fixture = sampling_fixture(builder).await;
++    let (mut stream, tx, mut interrupted) = sampling_stream();
++    let mut accounting = SamplingAccounting::default();
++    tx.send(terminal_usage(incomplete)).await.unwrap();
++    let mut consumer = Box::pin(consume_fixture(&fixture, &mut stream, &mut accounting, CancellationToken::new()));
++    tokio::select! {
++        biased;
++        _ = gate.entered.notified() => {}
++        _ = &mut consumer => panic!("must enter real usage contributor"),
++    }
++    assert_eq!(fixture.session.get_total_token_usage().await, 7);
++    assert!(take_sampling_events(&fixture).is_empty(), "ordinary completion must follow accounting");
++    gate.release.notify_one();
++    let result = consumer.await;
++    if incomplete {
++        assert!(matches!(result, Err(err) if matches!(err.details(), CodexErrorDetails::ResponseIncomplete(value)
++            if value.reason == "fixture-incomplete")));
++    } else {
++        assert!(!result.unwrap().needs_follow_up);
++    }
++    assert!(interrupted.try_recv().is_err());
++    assert_eq!(gate.calls.load(Ordering::SeqCst), 1);
++    assert_eq!(fixture.session.get_total_token_usage().await, 7);
++    assert_eq!(accounting.state, SamplingAccountingState::Completed);
++    let raw = take_sampling_events(&fixture).into_iter().filter(|event| matches!(event, EventMsg::RawResponseCompleted(_))).count();
++    assert_eq!(raw, usize::from(!incomplete));
++    drop(tx);
++}
++
++#[tokio::test(start_paused = true)]
++async fn sampling11_pre_read_cancel_and_conflicting_cleanup_terminal_never_replays_usage() {
++    let fixture = sampling_fixture(Default::default()).await;
++    let (mut stream, tx, mut interrupted) = sampling_stream();
++    let mut accounting = SamplingAccounting::default();
++    let first = terminal_usage(false);
++    accounting.observe(Some(&first), &fixture.session, &fixture.step);
++    accounting.poll_normal(&CancellationToken::new()).await.unwrap();
++    assert_eq!(fixture.session.get_total_token_usage().await, 7);
++    tx.send(terminal_usage(true)).await.unwrap();
++    let cancel = CancellationToken::new();
++    cancel.cancel();
++    let observed = tokio::time::Instant::now();
++    assert_sampling_aborted(consume_fixture(&fixture, &mut stream, &mut accounting, cancel).await);
++    assert_original_cancel(interrupted.try_recv().unwrap(), observed);
++    assert!(accounting.conflicting_terminal);
++    assert_eq!(accounting.state, SamplingAccountingState::Completed);
++    assert_eq!(fixture.session.get_total_token_usage().await, 7);
++    assert!(take_sampling_events(&fixture).is_empty());
++}
++
++#[tokio::test(start_paused = true)]
++async fn sampling11_read_cancel_and_missing_failed_interrupt_do_not_dispatch() {
++    for absent in [false, true] {
++        let fixture = sampling_fixture(Default::default()).await;
++        let (mut stream, tx, interrupted) = sampling_stream();
++        drop(interrupted); // Failed send, or absent sender, never creates a retry.
++        if absent { stream.interrupt = None; }
++        let mut accounting = SamplingAccounting::default();
++        let cancel = CancellationToken::new();
++        let mut consumer = Box::pin(consume_fixture(&fixture, &mut stream, &mut accounting, cancel.clone()));
++        assert!(futures::poll!(consumer.as_mut()).is_pending());
++        cancel.cancel();
++        assert_sampling_aborted(consumer.await);
++        assert_eq!(accounting.state, SamplingAccountingState::Empty);
++        assert!(take_sampling_events(&fixture).is_empty());
++        drop(tx);
++    }
++}
++
++#[tokio::test(start_paused = true)]
++async fn sampling11_normal_output_and_steering_drain_remain_distinct() {
++    let mut fixture = sampling_fixture(Default::default()).await;
++    let preempt = CancellationToken::new();
++    Arc::get_mut(&mut fixture.step).unwrap().preempt = Some(preempt.clone());
++    let (mut stream, tx, mut interrupted) = sampling_stream();
++    let mut accounting = SamplingAccounting::default();
++    tx.send(Ok(ResponseEvent::OutputItemAdded(assistant_output_text("")))).await.unwrap();
++    tx.send(Ok(ResponseEvent::OutputTextDelta("ordinary text".into()))).await.unwrap();
++    tx.send(terminal_usage(false)).await.unwrap();
++    let result = consume_fixture(&fixture, &mut stream, &mut accounting, CancellationToken::new()).await.unwrap();
++    assert!(!result.needs_follow_up);
++    assert!(take_sampling_events(&fixture).iter().any(|event| matches!(event, EventMsg::AgentMessageContentDelta(_))));
++    assert!(interrupted.try_recv().is_err());
++    drop(tx);
++    // Explicit steering consumes the same original interrupt capability using
++    // existing lite Drain semantics, never the ordinary-cancellation path.
++    let mut fixture = sampling_fixture(Default::default()).await;
++    let mut settings = (*fixture.step.settings).clone();
++    Arc::make_mut(&mut settings.model_info).use_responses_lite = true;
++    let step = Arc::get_mut(&mut fixture.step).unwrap();
++    step.settings = Arc::new(settings);
++    step.preempt = Some(preempt.clone());
++    preempt.cancel();
++    let (mut stream, tx, mut interrupted) = sampling_stream();
++    let mut accounting = SamplingAccounting::default();
++    let mut consumer = Box::pin(consume_fixture(&fixture, &mut stream, &mut accounting, CancellationToken::new()));
++    // Empty stream makes the existing preemption branch deterministic.
++    assert!(futures::poll!(consumer.as_mut()).is_pending());
++    assert!(matches!(interrupted.try_recv(), Ok(codex_api::ResponseInterrupt::Drain)));
++    tx.send(terminal_usage(false)).await.unwrap();
++    let result = consumer.await.unwrap();
++    assert!(result.needs_follow_up);
++    drop(tx);
++}
++
++#[test_case::test_case(false; "completed_late_drain")]
++#[test_case::test_case(true; "incomplete_late_drain")]
++#[tokio::test(start_paused = true)]
++async fn sampling11_late_drain_usage_uses_only_remaining_original_deadline(incomplete: bool) {
++    let gate = Arc::new(SamplingGate::default());
++    let mut builder = codex_extension_api::ExtensionRegistryBuilder::new();
++    builder.token_usage_contributor(gate.clone());
++    let fixture = sampling_fixture(builder).await;
++    let (mut stream, tx, mut interrupted) = sampling_stream();
++    let mut accounting = SamplingAccounting::default();
++    let cancel = CancellationToken::new();
++    cancel.cancel();
++    let observed = tokio::time::Instant::now();
++    let mut consumer = Box::pin(consume_fixture(&fixture, &mut stream, &mut accounting, cancel));
++    assert!(futures::poll!(consumer.as_mut()).is_pending());
++    let deadline = assert_original_cancel(interrupted.try_recv().unwrap(), observed);
++    tokio::time::advance(std::time::Duration::from_millis(50)).await;
++    tx.send(terminal_usage(incomplete)).await.unwrap();
++    tokio::select! {
++        biased;
++        _ = gate.entered.notified() => {}
++        _ = &mut consumer => panic!("late accounting must await real contributor"),
++    }
++    assert_eq!(fixture.session.get_total_token_usage().await, 7);
++    tokio::time::advance(deadline - tokio::time::Instant::now()).await;
++    assert_sampling_aborted(consumer.await);
++    assert_eq!(accounting.state, SamplingAccountingState::Interrupted);
++    assert!(accounting.job.is_none());
++    gate.release.notify_one();
++    tokio::task::yield_now().await;
++    assert_eq!(gate.calls.load(Ordering::SeqCst), 1);
++    assert_eq!(fixture.session.get_total_token_usage().await, 7);
++    assert!(take_sampling_events(&fixture).is_empty());
++}
++
++#[tokio::test(start_paused = true)]
++async fn sampling11_post_loop_diff_await_cannot_resume_ordinary_emission() {
++    let fixture = sampling_fixture(Default::default()).await;
++    let tracker_lock = fixture.tracker.lock().await;
++    let (mut stream, tx, mut interrupted) = sampling_stream();
++    let retained = stream.consumer_dropped.clone();
++    let cancel = CancellationToken::new();
++    let mut accounting = SamplingAccounting::default();
++    tx.send(terminal_usage(false)).await.unwrap();
++    let mut consumer = Box::pin(consume_fixture(&fixture, &mut stream, &mut accounting, cancel.clone()));
++    // The real completed branch and post-loop TokenCount run before the held
++    // diff lock. Poll to pending with the terminal consumed; clear prior output.
++    assert!(futures::poll!(consumer.as_mut()).is_pending());
++    assert_eq!(tx.capacity(), 32);
++    let before = take_sampling_events(&fixture);
++    assert!(before.iter().any(|event| matches!(event, EventMsg::RawResponseCompleted(_))),
++        "must reach the real completed branch before post-loop cancellation");
++    let observed = tokio::time::Instant::now();
++    cancel.cancel();
++    assert!(futures::poll!(consumer.as_mut()).is_pending());
++    assert_original_cancel(interrupted.try_recv().unwrap(), observed);
++    assert!(!retained.is_cancelled());
++    drop(tracker_lock);
++    drop(tx);
++    assert_sampling_aborted(consumer.await);
++    assert_eq!(accounting.state, SamplingAccountingState::Completed);
++    assert_eq!(fixture.session.get_total_token_usage().await, 7);
++    assert!(take_sampling_events(&fixture).is_empty());
++}
++
++#[tokio::test(start_paused = true)]
++async fn sampling11_blocked_read_retains_original_stream_until_cleanup() {
++    let fixture = sampling_fixture(Default::default()).await;
++    let (mut stream, tx, mut interrupted) = sampling_stream();
++    let retained = stream.consumer_dropped.clone();
++    let mut accounting = SamplingAccounting::default();
++    let cancel = CancellationToken::new();
++    let mut consumer = Box::pin(consume_fixture(&fixture, &mut stream, &mut accounting, cancel.clone()));
++    assert!(futures::poll!(consumer.as_mut()).is_pending());
++    let observed = tokio::time::Instant::now();
++    cancel.cancel();
++    assert!(futures::poll!(consumer.as_mut()).is_pending());
++    assert_original_cancel(interrupted.try_recv().unwrap(), observed);
++    assert!(!retained.is_cancelled());
++    drop(tx);
++    assert_sampling_aborted(consumer.await);
++    assert!(stream.interrupt.is_none());
++    assert!(!retained.is_cancelled());
++    assert!(take_sampling_events(&fixture).is_empty());
++}
++
++#[tokio::test(start_paused = true)]
++async fn sampling11_ready_ordinary_contributor_cancels_before_next_owned_dispatch() {
++    let gate = Arc::new(SamplingGate::default());
++    let mut builder = codex_extension_api::ExtensionRegistryBuilder::new();
++    builder.turn_item_contributor(gate.clone());
++    let fixture = sampling_fixture(builder).await;
++    let (mut stream, tx, mut interrupted) = sampling_stream();
++    let retained = stream.consumer_dropped.clone();
++    let mut accounting = SamplingAccounting::default();
++    let cancel = CancellationToken::new();
++    tx.send(Ok(ResponseEvent::OutputItemDone(assistant_output_text("same-poll helper item")))).await.unwrap();
++    let mut consumer = Box::pin(consume_fixture(&fixture, &mut stream, &mut accounting, cancel.clone()));
++    tokio::select! {
++        biased;
++        _ = gate.entered.notified() => {}
++        _ = &mut consumer => panic!("must enter the real ordinary contributor"),
++    }
++    assert!(!cancel.is_cancelled());
++    assert_eq!(gate.ready_returns.load(Ordering::SeqCst), 0);
++    *gate.cancel_on_release.lock().unwrap() = Some(cancel.clone());
++    tx.send(Ok(ResponseEvent::ServerReasoningIncluded(true))).await.unwrap();
++    tx.send(Ok(ResponseEvent::OutputItemDone(ResponseItem::FunctionCall {
++        status: None, encrypted_content: None, id: None, name: "m06_never_registered".into(),
++        namespace: None, arguments: "{}".into(), call_id: "post-ready-never-dispatch".into(),
++        encrypted_function_args: None, internal_chat_message_metadata_passthrough: None,
++    }))).await.unwrap();
++    tx.send(terminal_usage(false)).await.unwrap();
++    let observed = tokio::time::Instant::now();
++    assert!(!cancel.is_cancelled(), "token must remain live until the contributor itself returns Ready");
++    gate.release.notify_one();
++    assert_sampling_aborted(consumer.await);
++    assert!(cancel.is_cancelled());
++    assert_eq!(gate.ready_returns.load(Ordering::SeqCst), 1, "exclude a pre-poll cancellation pass");
++    assert_eq!(gate.calls.load(Ordering::SeqCst), 1);
++    assert_original_cancel(interrupted.try_recv().unwrap(), observed);
++    assert!(interrupted.try_recv().is_err(), "original interrupt is once-only");
++    assert!(!retained.is_cancelled());
++    // Helper-internal same-poll item events/history can already have happened;
++    // invariant6 does not reverse them. Assert the next consumer-owned branches.
++    assert!(!fixture.session.state.lock().await.server_reasoning_included(),
++        "queued ordinary metadata dispatch must only be drained");
++    let history = fixture.session.clone_history().await;
++    assert!(history.raw_items().any(|item| matches!(item, ResponseItem::Message { role, .. } if role == "assistant")),
++        "the real helper completed its same-poll item continuation");
++    assert!(!history.raw_items().any(|item| matches!(item, ResponseItem::FunctionCall { call_id, .. }
++        if call_id == "post-ready-never-dispatch")), "next owned tool item must not be scheduled/recorded");
++    assert!(!take_sampling_events(&fixture).iter().any(|event| matches!(event, EventMsg::RawResponseCompleted(_))));
++    assert_eq!(accounting.state, SamplingAccountingState::Completed);
++    assert_eq!(fixture.session.get_total_token_usage().await, 7);
++}
+diff --git a/codex-rs/core/src/turn_timing.rs b/codex-rs/core/src/turn_timing.rs
+index 75a2bf9bf04b..4c027e847568 100644
+--- a/codex-rs/core/src/turn_timing.rs
++++ b/codex-rs/core/src/turn_timing.rs
+@@ -88,6 +88,12 @@
+ }
+ 
+ impl TurnTimingState {
++    // Opaque guard exposes no production delay or timing-state mutation.
++    #[cfg(test)]
++    pub(crate) async fn lock_for_sampling_test(&self) -> impl Sized + '_ {
++        self.state.lock().await
++    }
++
+     pub(crate) async fn mark_turn_started(&self, started_at: Instant) -> i64 {
+         let started_at_unix_ms = now_unix_timestamp_ms();
+         let mut state = self.state.lock().await;

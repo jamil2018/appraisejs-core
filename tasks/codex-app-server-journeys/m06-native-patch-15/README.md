@@ -1,0 +1,5 @@
+# Native15 source-only package
+
+New artifact15 packages the independently reviewed production source with phaseA and the owned WebSocket Close flush correction. Full9184 inventory SHA256: d881bb6861f6b9b7cc6f1fe8b78235b45797d6ea79743ca4ef62530ab6176c44. The complete accepted inventory is source-inventory.json; manifest.json binds the existing-file manifest and eight ABSENT addition payloads. Source assembly uses scripts/m06-native-patch-15.mjs over generic12, with an independently accepted authentic clean Git input at original4eb/0cab and fresh destination/receipt paths.
+
+All five packaging tests require APPRAISE_M06_UPSTREAM_SOURCE as a nonempty absolute path; no fallback, skip or acquisition is added. Tests and assemblers remain UNEXECUTED by this proposal. Rust compilation/tests/formatting, type resolution, locked-build coherence, native/provider execution and qualification remain UNEXECUTED or blocked. Source-only inventories and preparation receipts grant no native trust, lifecycle completion or shipping authority. Canonical scaffold exclusion and overlay15 qualification evidence remain separate gates. See docs/m06-native-source-15.md.

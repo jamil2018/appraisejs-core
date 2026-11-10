@@ -1,4 +1,4 @@
-import {
+import type {
   TemplateTestCase,
   TemplateTestCaseStep,
   TemplateTestCaseStepParameter,
@@ -6,8 +6,8 @@ import {
   TemplateTestCaseFlowBlockNode,
   StepIcon,
 } from '@prisma/client'
-import { FlowBlock, NodeOrderMap } from '@/types/diagram/diagram'
-import { stepInvocationSchema } from '../../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
+import type { FlowBlock, NodeOrderMap } from '@/types/diagram/diagram'
+import { stepInvocationSchema } from '../../../packages/cucumber-runtime/src/step-definitions/invocation-contracts.ts'
 
 export interface ConvertedTestCaseData {
   title: string

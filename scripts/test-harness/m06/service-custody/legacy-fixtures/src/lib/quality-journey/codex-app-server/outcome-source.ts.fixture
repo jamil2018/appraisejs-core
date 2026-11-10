@@ -1,0 +1,180 @@
+import { randomBytes, randomUUID } from 'node:crypto'
+import {
+  inspectProviderSenderExcluded,
+  type ProviderSendIdentity,
+  type ProviderSenderExcluded,
+} from '../provider-intent-contract'
+import type { ProviderPhysicalOutcomeRecord, ProviderReconciliationContext } from '../provider-reconciliation-contract'
+import { inspectRpcTransportOwner, inspectRpcTransportSeal, type RpcTransportSeal } from './rpc-transport'
+import { SyntheticOutcomeCustodian } from './outcome-custodian'
+import { OutcomeSourceJournal } from './outcome-source-journal'
+import { encodeOutcomeEnvelope, verifyOutcomeEnvelope, type OutcomeEnvelopeBody } from './outcome-source-envelope'
+import {
+  assertOutcomeIdentity,
+  canonicalOutcomeJson,
+  outcomeDigest,
+  outcomeSourceBounds,
+  outcomeSourceProtocolDigest,
+  outcomeSourceQualificationDigest,
+  OutcomeSourceUnknownError,
+  type OutcomeActivationRoute,
+} from './outcome-source-contract'
+
+export type SyntheticOutcomeCustodianOptions = Readonly<{
+  identity: ProviderSendIdentity & { providerNamespace: string; configurationDigest: string }
+  journalPath: string
+  /** Host-private synthetic authentication material, never provider credentials. Copied on entry. */
+  key?: Uint8Array
+}>
+
+type OwnedOutcomeEvidence = { encoded: string; record: ProviderPhysicalOutcomeRecord }
+
+const usedNamespaces = new Set<string>()
+
+/** Dormant repository candidate. No native constructor, registration, ports or TERMINAL issuer. */
+export function createSyntheticOutcomeCustodian(options: SyntheticOutcomeCustodianOptions) {
+  const identity = Object.freeze({
+    runId: options.identity.runId,
+    intentId: options.identity.intentId,
+    sendBoundaryId: options.identity.sendBoundaryId,
+    claimEpoch: options.identity.claimEpoch,
+    providerNamespace: options.identity.providerNamespace,
+    configurationDigest: options.identity.configurationDigest,
+  })
+  assertOutcomeIdentity({
+    ...identity,
+    transportId: 'pending',
+    transportIncarnation: 'pending',
+    threadId: null,
+    turnId: null,
+  })
+  if (usedNamespaces.has(identity.providerNamespace)) throw new OutcomeSourceUnknownError('namespace_already_owned')
+  usedNamespaces.add(identity.providerNamespace)
+  const key = options.key === undefined ? randomBytes(32) : Buffer.from(options.key)
+  if (key.length !== 32) throw new OutcomeSourceUnknownError('key_loss')
+  const journal = new OutcomeSourceJournal(options.journalPath)
+  const sourceId = `synthetic_custodian_${randomUUID()}`
+  const sourceIncarnation = randomUUID()
+  try {
+    journal.append('CREATED', { ...identity, sourceId, sourceIncarnation })
+  } catch (error) {
+    key.fill(0)
+    journal.dispose()
+    throw error
+  }
+  const custody = new SyntheticOutcomeCustodian(journal)
+  const transportIdentity = inspectRpcTransportOwner(custody.transport.owner)
+  const binding = Object.freeze({ ...identity, ...transportIdentity, threadId: null, turnId: null })
+  const proofs = new WeakMap<object, OwnedOutcomeEvidence>()
+  let issued: { exclusion: ProviderSenderExcluded; seal: RpcTransportSeal; proof: object } | undefined
+  let receiptReserved = false
+  let queries = 0
+  let disposed = false
+  const healthy = () => {
+    if (disposed) throw new OutcomeSourceUnknownError('key_loss_or_disposed')
+    journal.assertHealthy()
+    if (receiptReserved && !issued) throw new OutcomeSourceUnknownError('receipt_lost')
+  }
+  const assertProofBinding = (body: OutcomeEnvelopeBody, owned: OwnedOutcomeEvidence): void => {
+    if (
+      body.sourceIncarnation !== sourceIncarnation ||
+      body.ledgerHead !== journal.head ||
+      body.senderEvidenceId !== inspectProviderSenderExcluded(issued!.exclusion).senderEvidenceId ||
+      canonicalOutcomeJson({ ...body.record, evidenceDigest: outcomeDigest(owned.encoded) }) !==
+        canonicalOutcomeJson(owned.record)
+    )
+      throw new OutcomeSourceUnknownError('source_binding')
+  }
+  const assertObservedRange = (body: OutcomeEnvelopeBody): void => {
+    const range = custody.capture(issued!.seal)
+    if (
+      canonicalOutcomeJson(range) !== canonicalOutcomeJson(body.finalWatermark) ||
+      Object.entries(binding).some(([field, value]) => body.record[field as keyof typeof binding] !== value)
+    )
+      throw new OutcomeSourceUnknownError('source_range_binding')
+  }
+  const context: ProviderReconciliationContext = Object.freeze({
+    selection: 'SYNTHETIC_REPOSITORY',
+    source: Object.freeze({
+      sourceId,
+      provenance: 'SYNTHETIC_REPOSITORY' as const,
+      qualificationDigest: outcomeSourceQualificationDigest,
+      protocolDigest: outcomeSourceProtocolDigest,
+      providerNamespace: identity.providerNamespace,
+      configurationDigest: identity.configurationDigest,
+      inspect(proof: unknown): ProviderPhysicalOutcomeRecord {
+        healthy()
+        if (++queries > outcomeSourceBounds.queries) throw new OutcomeSourceUnknownError('query_limit')
+        const owned = proof && typeof proof === 'object' ? proofs.get(proof) : undefined
+        if (!owned) throw new OutcomeSourceUnknownError('original_source_proof_required')
+        const body = verifyOutcomeEnvelope(owned.encoded, key)
+        assertProofBinding(body, owned)
+        assertObservedRange(body)
+        return owned.record
+      },
+    }),
+  })
+  return Object.freeze({
+    transport: custody.transport,
+    context,
+    reserveActivation: (route: OutcomeActivationRoute) => custody.reserveActivation(route),
+    close: () => custody.close(),
+    snapshot: () => custody.snapshot(),
+    dispose() {
+      if (disposed) return
+      try {
+        custody.close()
+      } finally {
+        disposed = true
+        key.fill(0)
+        journal.dispose()
+      }
+    },
+    issueNonstart(exclusion: ProviderSenderExcluded, seal: RpcTransportSeal): unknown {
+      healthy()
+      if (issued) {
+        if (issued.exclusion !== exclusion || issued.seal !== seal)
+          throw new OutcomeSourceUnknownError('conflicting_evidence')
+        return issued.proof
+      }
+      const sender = inspectProviderSenderExcluded(exclusion)
+      const range = custody.capture(seal)
+      const originalSeal = inspectRpcTransportSeal(seal)
+      if (
+        Object.entries(binding).some(([field, value]) => sender[field as keyof typeof binding] !== value) ||
+        originalSeal.issuedRequests !== sender.finalWatermark.issuedRequests ||
+        originalSeal.writtenBytes !== sender.finalWatermark.writtenBytes ||
+        canonicalOutcomeJson(range) !== canonicalOutcomeJson(sender.finalWatermark)
+      )
+        throw new OutcomeSourceUnknownError('sender_binding')
+      const record = Object.freeze({
+        ...binding,
+        sourceId,
+        provenance: 'SYNTHETIC_REPOSITORY' as const,
+        qualificationDigest: outcomeSourceQualificationDigest,
+        protocolDigest: outcomeSourceProtocolDigest,
+        evidenceId: `custody_${randomUUID()}`,
+        evidenceClass: 'AUTHORITATIVE_OPERATION_RANGE' as const,
+        outcome: 'NONSTART' as const,
+        conflictStatus: 'CLEAR' as const,
+        coveredThrough: range,
+      })
+      // Receipt reservation is durable before the proof becomes observable. No receipt status input exists.
+      receiptReserved = true
+      journal.append('RECEIPT_RESERVED', { evidenceId: record.evidenceId, senderEvidenceId: sender.senderEvidenceId })
+      const body: OutcomeEnvelopeBody = Object.freeze({
+        version: 'M06_OUTCOME_SOURCE_V1',
+        sourceIncarnation,
+        senderEvidenceId: sender.senderEvidenceId,
+        finalWatermark: range,
+        ledgerHead: journal.head,
+        record,
+      })
+      const encoded = encodeOutcomeEnvelope(body, key)
+      const proof = Object.freeze({})
+      proofs.set(proof, { encoded, record: Object.freeze({ ...record, evidenceDigest: outcomeDigest(encoded) }) })
+      issued = { exclusion, seal, proof }
+      return proof
+    },
+  })
+}

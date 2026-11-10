@@ -5,6 +5,7 @@ import { PrismaClient } from '@prisma/client'
 import { afterEach, expect, it } from 'vitest'
 import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
 import { createQualityJourney } from './quality-journey-service'
+import { initializeNewTargetSharedResourceCoverage } from './quality-journey-shared-resource-guard-service'
 import {
   exportQualityJourney,
   getQualityJourneyLibraryArtifact,
@@ -24,17 +25,21 @@ async function fixture() {
     await client.$disconnect()
     await rm(directory, { recursive: true, force: true })
   })
-  for (const id of ['project-a', 'project-b'])
-    await client.targetProject.create({
-      data: {
-        id,
-        kind: 'LOCAL_WORKSPACE',
-        canonicalIdentity: id,
-        canonicalPath: `${directory}/${id}`,
-        displayName: id,
-        fingerprint: id,
-      },
+  for (const id of ['project-a', 'project-b']) {
+    await client.$transaction(async tx => {
+      await initializeNewTargetSharedResourceCoverage(tx, id)
+      await tx.targetProject.create({
+        data: {
+          id,
+          kind: 'LOCAL_WORKSPACE',
+          canonicalIdentity: id,
+          canonicalPath: `${directory}/${id}`,
+          displayName: id,
+          fingerprint: id,
+        },
+      })
     })
+  }
   const owner = await createQualityJourney(
     {
       targetProjectId: 'project-a',

@@ -2,40 +2,50 @@ import { promises as fs } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
-import type { PrismaClient } from '@prisma/client'
-import { PrismaClient as TestPrismaClient } from '@prisma/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
 
 const {
   mockEnvironmentUpsert,
-  mockTargetProjectUpsert,
+  mockTargetProjectCreate,
   mockTargetProjectFindMany,
   mockTargetProjectFindUnique,
   mockTargetProjectUpdate,
 } = vi.hoisted(() => ({
   mockEnvironmentUpsert: vi.fn(),
-  mockTargetProjectUpsert: vi.fn(),
+  mockTargetProjectCreate: vi.fn(),
   mockTargetProjectFindMany: vi.fn(),
-  mockTargetProjectFindUnique: vi.fn(),
+  mockTargetProjectFindUnique: vi.fn().mockResolvedValue(null),
   mockTargetProjectUpdate: vi.fn(),
 }))
 
-vi.mock('@/config/db-config', () => ({
-  default: {
+vi.mock('@/config/db-config', () => {
+  const emptyCollection = { findFirst: vi.fn().mockResolvedValue(null) }
+  const client = {
+    $transaction: (effect: (tx: unknown) => unknown) => effect(client),
     environment: { upsert: mockEnvironmentUpsert },
     targetProject: {
-      upsert: mockTargetProjectUpsert,
+      create: mockTargetProjectCreate,
       findMany: mockTargetProjectFindMany,
       findUnique: mockTargetProjectFindUnique,
       update: mockTargetProjectUpdate,
     },
-  },
-}))
+    qualityJourneySharedResourceCoverage: { ...emptyCollection, create: vi.fn() },
+    qualityJourneySharedResourceGuard: emptyCollection,
+    qualityJourneySharedResourceUse: emptyCollection,
+    qualityJourneySharedResourceClaim: emptyCollection,
+    qualityJourneyLocatorEnsureReceipt: emptyCollection,
+    qualityJourney: emptyCollection,
+    module: emptyCollection,
+    locatorGroup: emptyCollection,
+    locator: emptyCollection,
+    testSuite: emptyCollection,
+    testCase: emptyCollection,
+  }
+  return { default: client }
+})
 
 import {
-  deleteTargetProject,
   initializeTargetGitRepository,
   listTargetProjects,
   renameTargetProject,
@@ -50,6 +60,7 @@ const workspaces: string[] = []
 
 afterEach(async () => {
   vi.clearAllMocks()
+  mockTargetProjectFindUnique.mockReset().mockResolvedValue(null)
   await Promise.all(workspaces.splice(0).map(directory => fs.rm(directory, { recursive: true, force: true })))
 })
 
@@ -69,7 +80,7 @@ async function createWorkspace(
 describe('target project service', () => {
   it('registers a canonical target project without writing into the target repo', async () => {
     const workspace = await createWorkspace()
-    mockTargetProjectUpsert.mockImplementation(async args => ({ id: 'target-1', ...args.create }))
+    mockTargetProjectCreate.mockImplementation(async args => ({ id: 'target-1', ...args.data }))
 
     const result = await registerTargetProject({ path: workspace })
 
@@ -78,11 +89,11 @@ describe('target project service', () => {
       displayName: 'target-app',
       packageName: 'target-app',
     })
-    expect(mockTargetProjectUpsert).toHaveBeenCalledWith(
+    expect(mockTargetProjectCreate).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { canonicalIdentity: `path:${await fs.realpath(workspace)}` },
-        create: expect.objectContaining({
+        data: expect.objectContaining({
           kind: 'LOCAL_WORKSPACE',
+          canonicalIdentity: `path:${await fs.realpath(workspace)}`,
           packageJson: expect.stringContaining('"scripts"'),
           fingerprint: expect.stringMatching(/^sha256:/),
         }),
@@ -93,7 +104,7 @@ describe('target project service', () => {
 
   it('registers empty writable directories as planning targets', async () => {
     const workspace = await createWorkspace(null)
-    mockTargetProjectUpsert.mockImplementation(async args => ({ id: 'target-empty', ...args.create }))
+    mockTargetProjectCreate.mockImplementation(async args => ({ id: 'target-empty', ...args.data }))
 
     const result = await registerTargetProject({ path: workspace, displayName: 'Empty target' })
 
@@ -102,9 +113,9 @@ describe('target project service', () => {
       displayName: 'Empty target',
       packageName: undefined,
     })
-    expect(mockTargetProjectUpsert).toHaveBeenCalledWith(
+    expect(mockTargetProjectCreate).toHaveBeenCalledWith(
       expect.objectContaining({
-        create: expect.objectContaining({
+        data: expect.objectContaining({
           packageJson: expect.stringContaining('"scripts":{}'),
           fingerprint: expect.stringMatching(/^sha256:/),
         }),
@@ -113,17 +124,17 @@ describe('target project service', () => {
   })
 
   it('normalizes a remote target origin and creates its initial environment', async () => {
-    mockTargetProjectUpsert.mockResolvedValue({ id: 'remote-target', kind: 'REMOTE_BLACK_BOX' })
+    mockTargetProjectCreate.mockResolvedValue({ id: 'remote-target', kind: 'REMOTE_BLACK_BOX' })
 
     await expect(
       registerTargetProject({ url: 'https://example.test/path?ignored=true', displayName: 'Example' }),
     ).resolves.toMatchObject({ id: 'remote-target' })
 
-    expect(mockTargetProjectUpsert).toHaveBeenCalledWith(
+    expect(mockTargetProjectCreate).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { canonicalIdentity: 'url:https://example.test' },
-        create: expect.objectContaining({
+        data: expect.objectContaining({
           kind: 'REMOTE_BLACK_BOX',
+          canonicalIdentity: 'url:https://example.test',
           normalizedRemoteOrigin: 'https://example.test',
         }),
       }),
@@ -164,7 +175,7 @@ describe('target project service', () => {
 
   it('reads launch metadata created after an empty target was registered', async () => {
     const workspace = await createWorkspace(null)
-    mockTargetProjectUpsert.mockImplementation(async args => ({ id: 'target-empty', ...args.create }))
+    mockTargetProjectCreate.mockImplementation(async args => ({ id: 'target-empty', ...args.data }))
     const targetProject = await registerTargetProject({ path: workspace, displayName: 'Empty target' })
     await fs.writeFile(
       path.join(workspace, 'package.json'),
@@ -288,98 +299,4 @@ describe('target project service', () => {
     })
   })
 
-  it('removes project-owned records transactionally before deleting the project', async () => {
-    const calls: string[] = []
-    const idsByModel: Record<string, Array<{ id: string }>> = {
-      validationAstPublishOperation: [{ id: 'operation-1' }],
-      runtimeCapsule: [{ id: 'capsule-1' }],
-      runtimeCapsuleBlob: [{ id: 'blob-1' }],
-      testCase: [{ id: 'case-1' }],
-      templateTestCase: [{ id: 'template-case-1' }],
-    }
-    const transaction = new Proxy(
-      {},
-      {
-        get: (_target, model: string) => ({
-          findMany: vi.fn(async () => idsByModel[model] ?? []),
-          deleteMany: vi.fn(async () => {
-            calls.push(`${model}.deleteMany`)
-            return { count: 0 }
-          }),
-          delete: vi.fn(async () => {
-            calls.push(`${model}.delete`)
-            return { id: 'target-1' }
-          }),
-        }),
-      },
-    )
-    const client = {
-      targetProject: {
-        findUnique: vi.fn(async () => ({
-          id: 'target-1',
-          displayName: 'Target',
-          canonicalPath: '/target',
-          fingerprint: 'sha256:target',
-        })),
-      },
-      $transaction: vi.fn(async callback => callback(transaction)),
-    } as unknown as PrismaClient
-
-    await expect(deleteTargetProject('target-1', client)).resolves.toMatchObject({ id: 'target-1' })
-
-    expect(calls).toContain('runtimeCapsule.deleteMany')
-    expect(calls).toContain('testCase.deleteMany')
-    expect(calls).toContain('report.deleteMany')
-    expect(calls.at(-1)).toBe('targetProject.delete')
-  })
-
-  it('does not start a deletion transaction for an unknown project', async () => {
-    const transaction = vi.fn()
-    const client = {
-      targetProject: { findUnique: vi.fn(async () => null) },
-      $transaction: transaction,
-    } as unknown as PrismaClient
-
-    await expect(deleteTargetProject('missing', client)).rejects.toMatchObject({ statusCode: 404 })
-    expect(transaction).not.toHaveBeenCalled()
-  })
-
-  it('deletes persisted authored and run records with their project', async () => {
-    const workspace = await createWorkspace()
-    const databasePath = path.join(workspace, 'project-deletion.db')
-    await copyMigratedTestDatabase(databasePath)
-    const client = new TestPrismaClient({ datasources: { db: { url: `file:${databasePath}` } } })
-    const targetProjectId = '00000000-0000-4000-8000-000000000099'
-    try {
-      await client.targetProject.create({
-        data: {
-          id: targetProjectId,
-          kind: 'LOCAL_WORKSPACE',
-          canonicalIdentity: `path:${workspace}`,
-          canonicalPath: workspace,
-          displayName: 'Deletion target',
-          fingerprint: `sha256:${'9'.repeat(64)}`,
-        },
-      })
-      const environment = await client.environment.create({
-        data: { name: 'deletion-local', baseUrl: 'http://localhost:3000', targetProjectId },
-      })
-      const appModule = await client.module.create({ data: { name: 'Deletion module', targetProjectId } })
-      await Promise.all([
-        client.testSuite.create({ data: { name: 'Deletion suite', moduleId: appModule.id, targetProjectId } }),
-        client.testCase.create({ data: { title: 'Deletion case', description: 'Owned case', targetProjectId } }),
-        client.testRun.create({ data: { name: 'Deletion run', environmentId: environment.id, targetProjectId } }),
-      ])
-
-      await deleteTargetProject(targetProjectId, client)
-
-      await expect(client.targetProject.findUnique({ where: { id: targetProjectId } })).resolves.toBeNull()
-      await expect(client.environment.count({ where: { targetProjectId } })).resolves.toBe(0)
-      await expect(client.module.count({ where: { targetProjectId } })).resolves.toBe(0)
-      await expect(client.testCase.count({ where: { targetProjectId } })).resolves.toBe(0)
-      await expect(client.testRun.count({ where: { targetProjectId } })).resolves.toBe(0)
-    } finally {
-      await client.$disconnect()
-    }
-  })
 })

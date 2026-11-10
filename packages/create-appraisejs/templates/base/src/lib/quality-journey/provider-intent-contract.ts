@@ -1,3 +1,11 @@
+import {
+  inspectRpcTransportOwner,
+  inspectRpcTransportSeal,
+  type RpcTransportOwner,
+  type RpcTransportSeal,
+  type RpcDeliveryWatermark,
+} from './codex-app-server/rpc-transport'
+import { randomUUID } from 'node:crypto'
 import { ServiceError } from '@/services/shared/errors'
 
 /** Frozen M00 D05. These are persisted limits, not transport qualification. */
@@ -31,7 +39,30 @@ declare const permitBrand: unique symbol
 export type ProviderSendPermit = ProviderSendIdentity & { readonly [permitBrand]: true }
 declare const disabledBrand: unique symbol
 export type ProviderSenderDisabled = ProviderSendIdentity & { readonly [disabledBrand]: true }
-type Sender = { identity: ProviderSendIdentity; consumed: boolean; disabled: boolean }
+export type ProviderReconciliationIdentity = ProviderSendIdentity &
+  Readonly<{
+    providerNamespace: string
+    configurationDigest: string
+    transportId: string
+    transportIncarnation: string
+    threadId: string | null
+    turnId: string | null
+  }>
+declare const excludedBrand: unique symbol
+export type ProviderSenderExcluded = { readonly [excludedBrand]: true }
+export type ProviderSenderExclusionRecord = ProviderReconciliationIdentity &
+  Readonly<{
+    senderEvidenceId: string
+    finalWatermark: RpcDeliveryWatermark
+  }>
+type Sender = {
+  identity: ProviderSendIdentity
+  consumed: boolean
+  disabled: boolean
+  transport?: { owner: RpcTransportOwner; providerNamespace: string; configurationDigest: string }
+  exclusion?: ProviderSenderExcluded
+}
+const exclusions = new WeakMap<object, ProviderSenderExclusionRecord>()
 const permits = new WeakMap<object, Sender>()
 const senderBoundaries = new Set<string>()
 const disabledProofs = new WeakMap<object, Sender>()
@@ -46,8 +77,13 @@ export function createProviderSendPermit(
   if (senderBoundaries.has(identity.sendBoundaryId))
     throw new ServiceError('Provider send boundary already has an original sender.', 'CONFLICT')
   senderBoundaries.add(identity.sendBoundaryId)
-  const permit = Object.freeze({ ...identity }) as ProviderSendPermit
-  permits.set(permit, { identity, consumed: false, disabled: false })
+  const permit = Object.freeze({
+    runId: identity.runId,
+    intentId: identity.intentId,
+    sendBoundaryId: identity.sendBoundaryId,
+    claimEpoch: identity.claimEpoch,
+  }) as ProviderSendPermit
+  permits.set(permit, { identity: permit, consumed: false, disabled: false })
   return permit
 }
 
@@ -94,4 +130,76 @@ export function assertProviderSenderDisabled(proof: ProviderSenderDisabled, iden
     sender.identity.claimEpoch !== identity.claimEpoch
   )
     throw new ServiceError('Exact original provider sender must be disabled before release.', 'CONFLICT')
+}
+
+/** Bind the original owner once, before any handshake. No durable row can reconstruct it. */
+export function bindProviderSendPermitTransport(
+  permit: ProviderSendPermit,
+  owner: RpcTransportOwner,
+  binding: { providerNamespace: string; configurationDigest: string },
+): void {
+  assertProviderSendPermitOwned(permit)
+  const sender = permits.get(permit)!
+  if (sender.consumed || sender.transport)
+    throw new ServiceError('Original provider transport is already bound or consumed.', 'CONFLICT')
+  inspectRpcTransportOwner(owner)
+  sender.transport = Object.freeze({
+    owner,
+    providerNamespace: binding.providerNamespace,
+    configurationDigest: binding.configurationDigest,
+  })
+}
+
+/** Trusted original binding lookup only; neither consumes nor reconstructs a permit. */
+export function inspectProviderSendPermitTransport(permit: ProviderSendPermit): Readonly<{
+  owner: RpcTransportOwner
+  providerNamespace: string
+  configurationDigest: string
+  identity: ProviderSendIdentity
+}> {
+  assertProviderSendPermitOwned(permit)
+  const sender = permits.get(permit)!
+  if (!sender.transport) throw new ServiceError('Original provider transport is not bound.', 'CONFLICT')
+  return Object.freeze({ ...sender.transport, identity: sender.identity })
+}
+
+/** The original owned transport has already synchronously fenced its only write gate. */
+export function sealConsumedProviderSender(
+  permit: ProviderSendPermit,
+  seal: RpcTransportSeal,
+  native: { threadId: string | null; turnId: string | null },
+): ProviderSenderExcluded {
+  const sender = permits.get(permit)
+  const transport = inspectRpcTransportSeal(seal)
+  if (!sender?.consumed || !sender.transport || sender.transport.owner !== transport.owner)
+    throw new ServiceError('Exact consumed provider sender and original transport are required.', 'CONFLICT')
+  // Mutate the ORIGINAL WeakMap entry, not a copied permit. This never reopens.
+  sender.disabled = true
+  if (!sender.exclusion) {
+    sender.exclusion = Object.freeze({}) as ProviderSenderExcluded
+    exclusions.set(
+      sender.exclusion,
+      Object.freeze({
+        ...sender.identity,
+        providerNamespace: sender.transport.providerNamespace,
+        configurationDigest: sender.transport.configurationDigest,
+        transportId: transport.transportId,
+        transportIncarnation: transport.transportIncarnation,
+        threadId: native.threadId,
+        turnId: native.turnId,
+        senderEvidenceId: `sender_${randomUUID()}`,
+        finalWatermark: Object.freeze({
+          issuedRequests: transport.issuedRequests,
+          writtenBytes: transport.writtenBytes,
+        }),
+      }),
+    )
+  }
+  return sender.exclusion
+}
+
+export function inspectProviderSenderExcluded(proof: ProviderSenderExcluded): ProviderSenderExclusionRecord {
+  const record = exclusions.get(proof)
+  if (!record) throw new ServiceError('Exact original provider sender exclusion is required.', 'CONFLICT')
+  return record
 }

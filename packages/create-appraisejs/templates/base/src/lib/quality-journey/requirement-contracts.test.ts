@@ -4,14 +4,17 @@ import {
   parseQualityJourneyRequirement,
   qualityJourneyRequirementSchema,
   qualityJourneyRequirementVersion,
+  type QualityJourneyRequirementV1,
 } from './requirement-contracts'
+
+import * as requirementValues from './requirement-values'
 
 const completeRequirement = {
   schemaVersion: qualityJourneyRequirementVersion,
   objective: 'A shopper can complete checkout with a saved payment method.',
   context: 'The checkout is hosted in the production-like staging environment.',
   coverageRigor: 'COMPREHENSIVE' as const,
-  testDimensions: ['VISUAL', 'FUNCTIONAL', 'END_TO_END', 'ACCESSIBILITY'] as const,
+  testDimensions: ['VISUAL', 'FUNCTIONAL', 'END_TO_END', 'ACCESSIBILITY'],
   includedScope: ['Payment confirmation', 'Saved payment method'],
   excludedScope: ['Gift cards'],
   environmentIds: ['environment-staging', 'environment-browser'],
@@ -20,9 +23,15 @@ const completeRequirement = {
   constraints: ['Do not create real charges'],
   risks: ['Payment provider intermittency'],
   desiredEvidenceSignals: ['Order confirmation is visible', 'No payment authorization error is recorded'],
-}
+} satisfies QualityJourneyRequirementV1
 
 describe('Quality Journey requirement intake contract', () => {
+  it('retains the same schema and parser through the existing server contract exports', () => {
+    expect(qualityJourneyRequirementSchema).toBe(requirementValues.qualityJourneyRequirementSchema)
+    expect(parseQualityJourneyRequirement).toBe(requirementValues.parseQualityJourneyRequirement)
+    expect(qualityJourneyRequirementVersion).toBe(requirementValues.qualityJourneyRequirementVersion)
+  })
+
   it('accepts objective-only compatibility input and the complete v1 structured intake', () => {
     expect(parseQualityJourneyRequirement({ objective: 'Verify checkout.' })).toEqual({ objective: 'Verify checkout.' })
     expect(parseQualityJourneyRequirement(completeRequirement)).toMatchObject({

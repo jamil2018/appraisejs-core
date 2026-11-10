@@ -1,3 +1,4 @@
+import { readAnalysisFollowupAttemptBudget } from './quality-journey-analysis-followup-budget'
 import { createHash, randomUUID } from 'node:crypto'
 import type {
   Prisma,
@@ -10,6 +11,12 @@ import type {
 import prisma from '@/config/db-config'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { ServiceError } from '@/services/shared/errors'
+import {
+  selectAnalysisFollowupIssuance,
+  analysisFollowupIssuancePayloadsForAuthorization,
+  assertAnalysisFollowupAttemptBudget,
+  type AnalysisFollowupExpectedWork,
+} from './quality-journey-analysis-followup'
 import {
   assertCoordinatorAttemptSession,
   assertCoordinatorRecoverySession,
@@ -257,6 +264,8 @@ async function canonicalWork(input: WakeScope, tx: Prisma.TransactionClient, now
       highWaterSequence,
       admittedWithoutRun: [],
       pendingProviderIntents: [],
+      analysisFollowups: [],
+      analysisFollowupBlocks: [],
       outcome: 'RECONCILIATION_REQUIRED' as const,
     }
   const attempts = await tx.qualityJourneyWorkAttempt.findMany({
@@ -281,14 +290,164 @@ async function canonicalWork(input: WakeScope, tx: Prisma.TransactionClient, now
     take: pageSize,
   })
   const hints = await eligibleWorkHints(attempts, journey, input, tx, now)
+  const { hints: analysisFollowups, blocks: analysisFollowupBlocks } = await currentAnalysisFollowupHints(
+    journey,
+    input,
+    tx,
+    now,
+  )
   return {
     highWaterSequence,
     ...hints,
+    analysisFollowups,
+    analysisFollowupBlocks,
     outcome:
-      hints.admittedWithoutRun.length + hints.pendingProviderIntents.length
+      hints.admittedWithoutRun.length + hints.pendingProviderIntents.length + analysisFollowups.length
         ? ('ADMITTED_WORK_DISCOVERED' as const)
         : ('CANONICAL_STATE_OBSERVED' as const),
   }
+}
+
+/** Persisted issuance/assignment hints only. The scheduler revalidates the full current snapshot. */
+type AnalysisWakeItem = Prisma.QualityJourneyWorkItemGetPayload<{ include: { authorizations: true; attempts: true } }>
+async function hasCurrentAnalysisWakeAttempt(
+  item: AnalysisWakeItem,
+  authorizationId: string,
+  input: WakeScope,
+  tx: Prisma.TransactionClient,
+  now: Date,
+) {
+  if (item.status === 'ELIGIBLE') return true
+  const attempt = item.attempts[0]
+  if (
+    !attempt ||
+    attempt.attempt !== item.currentAttempt ||
+    attempt.authorizationId !== authorizationId ||
+    attempt.executionMode !== 'EXTERNAL_V1' ||
+    attempt.externalPrincipalId !== input.coordinatorPrincipalId ||
+    attempt.leaseExpiresAt <= now ||
+    attempt.cancelledAt
+  )
+    return false
+  return hasCurrentAttemptSession(attempt.id, input, tx)
+}
+
+type AnalysisFollowupWakeHint = {
+  expected: AnalysisFollowupExpectedWork
+  workStatus: string
+  observedWorkItemVersion: number
+  attemptId: string | null
+  phase: 'ELIGIBLE' | 'CLAIMED' | 'ADMITTED'
+}
+async function hasAnalysisFollowupWakeBudget(
+  item: AnalysisWakeItem,
+  authorization: AnalysisWakeItem['authorizations'][number],
+  tx: Prisma.TransactionClient,
+) {
+  const budget = await readAnalysisFollowupAttemptBudget(item, authorization, tx)
+  try {
+    assertAnalysisFollowupAttemptBudget(budget)
+  } catch (error) {
+    if (!(error instanceof ServiceError)) throw error
+    return false
+  }
+  return true
+}
+
+function projectAnalysisFollowupWakeHint(
+  item: AnalysisWakeItem,
+  authorizationId: string,
+  issued: ReturnType<typeof selectAnalysisFollowupIssuance>,
+  attempt: AnalysisWakeItem['attempts'][number] | undefined,
+): AnalysisFollowupWakeHint {
+  return {
+    expected: {
+      workItemId: item.id,
+      cycleId: item.cycleId,
+      version: issued.issuance.issuedWorkItemVersion,
+      inputHash: item.inputHash,
+      authorizationId: authorizationId,
+      causeHash: issued.causeHash,
+    },
+    workStatus: item.status,
+    observedWorkItemVersion: item.version,
+    attemptId: item.status === 'ELIGIBLE' ? null : attempt!.id,
+    phase: item.status === 'ELIGIBLE' ? 'ELIGIBLE' : item.status === 'WORKER_REQUESTED' ? 'CLAIMED' : 'ADMITTED',
+  }
+}
+
+/** An initial or unrecorded assignment cannot be promoted by wake discovery. */
+function readRecordedAnalysisWakeAuthorization(item: AnalysisWakeItem, payloads: unknown[]) {
+  if (item.authorizations.length !== 1) return null
+  const authorization = item.authorizations[0]!
+  if (authorization.revokedAt || authorization.cancelledAt) return null
+  // Initial/legacy work has no compiler event and is outside this hint family.
+  if (!analysisFollowupIssuancePayloadsForAuthorization(payloads, authorization.id).length) return null
+  return authorization
+}
+
+async function readAnalysisFollowupWakeHint(
+  item: AnalysisWakeItem,
+  journey: QualityJourney,
+  input: WakeScope,
+  payloads: unknown[],
+  tx: Prisma.TransactionClient,
+  now: Date,
+): Promise<AnalysisFollowupWakeHint | 'AUTHORITY_BLOCKED' | null> {
+  const authorization = readRecordedAnalysisWakeAuthorization(item, payloads)
+  if (!authorization) return null
+  if (item.status === 'ELIGIBLE' && !(await hasAnalysisFollowupWakeBudget(item, authorization, tx)))
+    return 'AUTHORITY_BLOCKED'
+  const issued = selectAnalysisFollowupIssuance(payloads, {
+    journeyId: journey.id,
+    targetProjectId: journey.targetProjectId,
+    workItemId: item.id,
+    authorizationId: authorization.id,
+  })
+  if (
+    issued.inputHash !== item.inputHash ||
+    issued.descriptor.cycleId !== journey.activeCycleId ||
+    issued.descriptor.roleContractDigest !== item.roleContractDigest
+  )
+    return null
+  const attempt = item.attempts[0]
+  if (!(await hasCurrentAnalysisWakeAttempt(item, authorization.id, input, tx, now))) return null
+  return projectAnalysisFollowupWakeHint(item, authorization.id, issued, attempt)
+}
+
+async function currentAnalysisFollowupHints(
+  journey: QualityJourney,
+  input: WakeScope,
+  tx: Prisma.TransactionClient,
+  now: Date,
+) {
+  if (journey.stage !== 'ANALYSIS') return { hints: [], blocks: [] }
+  const items = await tx.qualityJourneyWorkItem.findMany({
+    where: {
+      journeyId: journey.id,
+      targetProjectId: journey.targetProjectId,
+      cycleId: journey.activeCycleId,
+      role: 'REQUIREMENT_ANALYZER',
+      status: { in: ['ELIGIBLE', 'WORKER_REQUESTED', 'IN_PROGRESS'] },
+    },
+    include: {
+      authorizations: { where: { successorAuthorization: { is: null } } },
+      attempts: { orderBy: { attempt: 'desc' }, take: 1 },
+    },
+    take: pageSize,
+  })
+  const events = await tx.qualityJourneyEvent.findMany({
+    where: { journeyId: journey.id, targetProjectId: journey.targetProjectId, eventType: 'ANALYSIS_FOLLOWUP_ISSUED' },
+  })
+  const payloads: unknown[] = events.map(event => JSON.parse(event.payloadJson))
+  const hints: AnalysisFollowupWakeHint[] = []
+  const blocks: { workItemId: string; reason: 'AUTHORITY_BLOCKED' }[] = []
+  for (const item of items) {
+    const hint = await readAnalysisFollowupWakeHint(item, journey, input, payloads, tx, now)
+    if (hint === 'AUTHORITY_BLOCKED') blocks.push({ workItemId: item.id, reason: hint })
+    else if (hint) hints.push(hint)
+  }
+  return { hints, blocks }
 }
 
 /** Poll on startup and after notifications. Results are hints, never send/claim authority. */

@@ -28,7 +28,19 @@ import { freezeJourneyExecutionEnvironment } from '@/lib/quality-journey/executi
 import { classifyJourneyExecutionEffects } from '@/lib/quality-journey/execution-effects'
 import { processManager } from '@/lib/test-run/process-manager'
 import { stepInvocationSchema } from '../../../packages/cucumber-runtime/src/step-definitions/contracts'
-import { submitDurableQualityJourneyCommandInTransaction } from './quality-journey-service'
+import { submitDurableQualityJourneyCommandWithBusinessJoinInTransaction } from './quality-journey-service'
+import {
+  assertJourneyBusinessGroupSupportsNoInvalidationInTransaction,
+  readJourneyBusinessEnrollmentKindInTransaction,
+  withJourneyBusinessWriteJoinInTransaction,
+  type BeforeJourneyBusinessWrite,
+} from './quality-journey-business-write-join'
+import type { E2BusinessScope } from './quality-journey-e2-retirement-service'
+import {
+  acquireSharedResourceUseInBusinessGroupInTransaction,
+  resolveExecutionCycleUseRequestInTransaction,
+  validateActiveSharedResourceUseInTransaction,
+} from './quality-journey-shared-resource-use-service'
 
 type Db = PrismaClient | Prisma.TransactionClient
 type FrozenPreparedCapsules = Awaited<ReturnType<typeof freezePreparedCapsules>>
@@ -74,6 +86,45 @@ export function resetQualityJourneyExecutionRuntimeAdapter() {
 
 function conflict(message: string) {
   return new ServiceError(message, 'CONFLICT', 409)
+}
+
+/** Snapshot original authentication fields before the first await. */
+function snapshotExecutionCredentials(
+  value: CoordinatorSessionCredentials | undefined,
+): CoordinatorSessionCredentials | undefined {
+  if (!value || typeof value !== 'object') return value
+  return Object.freeze({
+    journeyId: value.journeyId,
+    targetProjectId: value.targetProjectId,
+    coordinatorSessionId: value.coordinatorSessionId,
+    coordinatorGeneration: value.coordinatorGeneration,
+    coordinatorHandoffId: value.coordinatorHandoffId,
+    coordinatorPrincipalId: value.coordinatorPrincipalId,
+  })
+}
+
+async function executionSharedUseScope(
+  tx: Prisma.TransactionClient,
+  input: { journeyId: string; targetProjectId: string },
+  original: CoordinatorSessionCredentials | undefined,
+): Promise<E2BusinessScope | null> {
+  if ((await readJourneyBusinessEnrollmentKindInTransaction(tx, input)) === 'LEGACY') return null
+  if (
+    !original ||
+    typeof original !== 'object' ||
+    !original.coordinatorSessionId ||
+    !original.coordinatorGeneration ||
+    original.journeyId !== input.journeyId ||
+    original.targetProjectId !== input.targetProjectId
+  )
+    throw new ServiceError('E2 execution requires the original current coordinator binding.', 'UNAUTHORIZED')
+  return {
+    journeyId: input.journeyId,
+    targetProjectId: input.targetProjectId,
+    coordinatorSessionId: original.coordinatorSessionId,
+    generation: original.coordinatorGeneration,
+    credentials: { ...original, journeyId: original.journeyId, targetProjectId: original.targetProjectId },
+  }
 }
 
 async function scopedJourney(input: { journeyId: string; targetProjectId: string }, db: Db) {
@@ -198,11 +249,12 @@ async function ensureConsent(
     executionCycleId: string
   },
   tx: Prisma.TransactionClient,
+  beforeWrite: BeforeJourneyBusinessWrite,
 ) {
   const scopeHash = hash(input.scope)
   const consent = await findGrantedExecutionConsent(input, scopeHash, tx)
-  if (!consent) return requestExecutionConsent(input, scopeHash, tx)
-  await consumeExecutionConsent(consent, input.scope, scopeHash, tx)
+  if (!consent) return requestExecutionConsent(input, scopeHash, tx, beforeWrite)
+  await consumeExecutionConsent(consent, input.scope, scopeHash, tx, beforeWrite, input)
   return { required: false as const, consentId: consent.id }
 }
 
@@ -242,12 +294,14 @@ async function requestExecutionConsent(
   },
   scopeHash: string,
   tx: Prisma.TransactionClient,
+  beforeWrite: BeforeJourneyBusinessWrite,
 ) {
   const existing = await tx.qualityJourneyExecutionConsent.findFirst({
     where: { journeyId: input.journeyId, scopeHash, status: 'REQUESTED', usedAt: null, revokedAt: null },
   })
   const id = existing?.id ?? stableId('qjec', input.journeyId, scopeHash, input.executionCycleId, randomUUID())
-  if (!existing)
+  if (!existing) {
+    await beforeWrite(tx, input)
     await tx.qualityJourneyExecutionConsent.create({
       data: {
         id,
@@ -259,6 +313,7 @@ async function requestExecutionConsent(
         status: 'REQUESTED',
       },
     })
+  }
   return { required: true as const, executionConsentId: id, scopeHash }
 }
 
@@ -276,8 +331,12 @@ async function consumeExecutionConsent(
   scope: ReturnType<typeof consentScope>,
   scopeHash: string,
   tx: Prisma.TransactionClient,
+  beforeWrite: BeforeJourneyBusinessWrite,
+  businessScope: { journeyId: string; targetProjectId: string },
 ) {
   assertConsumableExecutionConsent(consent, scope, scopeHash)
+  await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, businessScope)
+  await beforeWrite(tx, businessScope)
   const consumed = await tx.qualityJourneyExecutionConsent.updateMany({
     where: {
       id: consent.id,
@@ -319,10 +378,12 @@ function assertConsumableExecutionConsent(
 async function reserveExecution(
   input: ReturnType<typeof qualityJourneyExecutionStartSchema.parse>,
   tx: Prisma.TransactionClient,
+  beforeWrite: BeforeJourneyBusinessWrite,
   extra: { proposalId?: string; predecessorExecutionCycleId?: string; allowSubset?: boolean } = {},
-  coordinatorSession?: CoordinatorSessionCredentials,
+  coordinatorSession: CoordinatorSessionCredentials | undefined,
+  executionScope: E2BusinessScope | null,
 ) {
-  const prepared = await prepareExecutionReservation(input, tx, extra)
+  const prepared = await prepareExecutionReservation(input, tx, extra, executionScope)
   if (!('journey' in prepared)) return prepared
   const { journey, source, frozen, requestHash, rerun } = prepared
   if (!extra.allowSubset) await assertInitialPreparedSelection(input, journey, frozen, tx)
@@ -356,10 +417,22 @@ async function reserveExecution(
           executionCycleId,
         },
         tx,
+        beforeWrite,
       )
     : null
   if (consent?.required) return { replayed: false, consentRequired: consent }
-  const lifecycle = await reserveRerunLifecycle({ input, journey, source, extra, frozen, tx, coordinatorSession })
+  // A reservation can dispatch a physical runtime after commit. E2 requires its qualified admission owner.
+  await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, input)
+  const lifecycle = await reserveRerunLifecycle({
+    input,
+    journey,
+    source,
+    extra,
+    frozen,
+    tx,
+    beforeWrite,
+    coordinatorSession,
+  })
   return persistExecutionReservation({
     input,
     tx,
@@ -374,6 +447,8 @@ async function reserveExecution(
     consumedConsentId: consent?.consentId,
     rerun,
     coordinatorSession,
+    executionScope,
+    beforeWrite,
   })
 }
 
@@ -381,8 +456,9 @@ async function prepareExecutionReservation(
   input: ReturnType<typeof qualityJourneyExecutionStartSchema.parse>,
   tx: Prisma.TransactionClient,
   extra: { proposalId?: string; predecessorExecutionCycleId?: string },
+  executionScope: E2BusinessScope | null,
 ): Promise<ExecutionReservationReplay | ExecutionReservationReady> {
-  const initial = await validateExecutionReservationRequest(input, tx, extra)
+  const initial = await validateExecutionReservationRequest(input, tx, extra, executionScope)
   if ('replayed' in initial) return initial
   const source = await loadRerunPredecessor(input, tx, extra.predecessorExecutionCycleId)
   const frozen = source
@@ -403,6 +479,7 @@ async function validateExecutionReservationRequest(
   input: ReturnType<typeof qualityJourneyExecutionStartSchema.parse>,
   tx: Prisma.TransactionClient,
   extra: { proposalId?: string; predecessorExecutionCycleId?: string },
+  executionScope: E2BusinessScope | null,
 ): Promise<ExecutionReservationReplay | Omit<ExecutionReservationReady, 'source' | 'frozen'>> {
   const journey = await scopedJourney(input, tx)
   assertQualityJourneyMutable(journey)
@@ -418,6 +495,15 @@ async function validateExecutionReservationRequest(
   if (replay) {
     if (replay.requestHash !== requestHash)
       throw conflict('Execution idempotency key was reused with a different request.')
+    if (executionScope) {
+      const use = await resolveExecutionCycleUseRequestInTransaction(tx, {
+        scope: executionScope,
+        executionCycleId: replay.id,
+        preparedCapsulesHash: replay.preparedCapsulesHash,
+      })
+      // Read-only validation, never acquisition/adoption of a missing replay Use.
+      await validateActiveSharedResourceUseInTransaction(tx, use)
+    }
     return { replayed: true as const, executionCycleId: replay.id }
   }
   if (journey.stateHash !== input.expectedStateHash)
@@ -491,6 +577,7 @@ async function reserveRerunLifecycle(input: {
   extra: { proposalId?: string }
   frozen: Awaited<ReturnType<typeof freezePreparedCapsules>>
   tx: Prisma.TransactionClient
+  beforeWrite: BeforeJourneyBusinessWrite
   coordinatorSession?: CoordinatorSessionCredentials
 }) {
   if (!input.extra.proposalId) return { cycleId: input.journey.activeCycleId, stateHash: input.journey.stateHash }
@@ -501,6 +588,7 @@ async function reserveRerunLifecycle(input: {
     where: { journeyId: input.input.journeyId },
     orderBy: { sequence: 'desc' },
   })
+  await input.beforeWrite(input.tx, input.input)
   await input.tx.qualityJourneyCycle.create({
     data: {
       id: cycleId,
@@ -513,7 +601,7 @@ async function reserveRerunLifecycle(input: {
       }),
     },
   })
-  const command = await submitDurableQualityJourneyCommandInTransaction(
+  const command = await submitDurableQualityJourneyCommandWithBusinessJoinInTransaction(
     {
       schemaVersion: 'appraise.quality-journey/v1',
       command: 'START_RERUN_CYCLE',
@@ -527,6 +615,7 @@ async function reserveRerunLifecycle(input: {
       payload: { cycleId },
     },
     input.tx,
+    input.beforeWrite,
     true,
     false,
     input.coordinatorSession,
@@ -538,7 +627,9 @@ async function reserveRerunLifecycle(input: {
 async function persistExecutionReservation(input: {
   input: ReturnType<typeof qualityJourneyExecutionStartSchema.parse>
   tx: Prisma.TransactionClient
+  beforeWrite: BeforeJourneyBusinessWrite
   coordinatorSession?: CoordinatorSessionCredentials
+  executionScope: E2BusinessScope | null
   extra: { proposalId?: string; predecessorExecutionCycleId?: string }
   frozen: Awaited<ReturnType<typeof freezePreparedCapsules>>
   environmentSnapshot: ReturnType<typeof freezeJourneyExecutionEnvironment>
@@ -564,6 +655,7 @@ async function persistExecutionReservation(input: {
     consumedConsentId,
     rerun,
   } = input
+  await input.beforeWrite(tx, request)
   const cycle = await tx.qualityJourneyExecutionCycle.create({
     data: {
       id: executionCycleId,
@@ -584,6 +676,14 @@ async function persistExecutionReservation(input: {
       requestHash,
     },
   })
+  if (input.executionScope) {
+    const use = await resolveExecutionCycleUseRequestInTransaction(tx, {
+      scope: input.executionScope,
+      executionCycleId: cycle.id,
+      preparedCapsulesHash: cycle.preparedCapsulesHash,
+    })
+    await acquireSharedResourceUseInBusinessGroupInTransaction(tx, use, input.beforeWrite)
+  }
   if (consumedConsentId)
     await tx.qualityJourneyExecutionConsent.update({
       where: { id: consumedConsentId },
@@ -619,7 +719,7 @@ async function persistExecutionReservation(input: {
   }
   const command = rerun
     ? null
-    : await submitDurableQualityJourneyCommandInTransaction(
+    : await submitDurableQualityJourneyCommandWithBusinessJoinInTransaction(
         {
           schemaVersion: 'appraise.quality-journey/v1',
           command: 'START_EXECUTION',
@@ -640,6 +740,7 @@ async function persistExecutionReservation(input: {
           },
         },
         tx,
+        input.beforeWrite,
         true,
         false,
         input.coordinatorSession,
@@ -659,11 +760,19 @@ export async function startQualityJourneyExecution(
   client: PrismaClient = prisma,
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
+  const originalCredentials = snapshotExecutionCredentials(coordinatorSession)
   const input = qualityJourneyExecutionStartSchema.parse(value)
-  const result = await client.$transaction(async tx => {
-    await assertCoordinatorMutationSession(coordinatorSession, input, tx)
-    return reserveExecution(input, tx, {}, coordinatorSession)
-  })
+  const result = await client.$transaction(tx =>
+    withJourneyBusinessWriteJoinInTransaction(tx, input, originalCredentials, async beforeWrite => {
+      await assertCoordinatorMutationSession(originalCredentials, input, tx)
+      const executionScope = await executionSharedUseScope(tx, input, originalCredentials)
+      const reservation = await reserveExecution(input, tx, beforeWrite, {}, originalCredentials, executionScope)
+      // A reservation replay would otherwise re-enter the runtime adapter after this transaction.
+      if ('executionCycleId' in reservation)
+        await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, input)
+      return reservation
+    }),
+  )
   if ('consentRequired' in result) return result
   if (!result.executionCycleId) throw conflict('Execution reservation did not produce a cycle identifier.')
   await runtimeAdapter.start({ executionCycleId: result.executionCycleId })
@@ -752,22 +861,25 @@ export async function grantQualityJourneyExecutionConsent(
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
   const input = qualityJourneyExecutionConsentGrantSchema.parse(value)
-  return client.$transaction(async tx => {
-    await assertCoordinatorMutationSession(coordinatorSession, input, tx)
-    const consent = await mutableExecutionConsent(input, tx)
-    if (
-      !consent ||
-      consent.scopeHash !== input.expectedScopeHash ||
-      consent.status !== 'REQUESTED' ||
-      consent.grantSource !== 'UI' ||
-      consent.revokedAt
-    )
-      throw conflict('Execution consent cannot be granted for this scope.')
-    return tx.qualityJourneyExecutionConsent.update({
-      where: { id: consent.id },
-      data: { status: 'GRANTED', grantedAt: new Date(), expiresAt: new Date(Date.now() + 15 * 60_000) },
-    })
-  })
+  return client.$transaction(tx =>
+    withJourneyBusinessWriteJoinInTransaction(tx, input, coordinatorSession, async beforeWrite => {
+      await assertCoordinatorMutationSession(coordinatorSession, input, tx)
+      const consent = await mutableExecutionConsent(input, tx)
+      if (
+        !consent ||
+        consent.scopeHash !== input.expectedScopeHash ||
+        consent.status !== 'REQUESTED' ||
+        consent.grantSource !== 'UI' ||
+        consent.revokedAt
+      )
+        throw conflict('Execution consent cannot be granted for this scope.')
+      await beforeWrite(tx, input)
+      return tx.qualityJourneyExecutionConsent.update({
+        where: { id: consent.id },
+        data: { status: 'GRANTED', grantedAt: new Date(), expiresAt: new Date(Date.now() + 15 * 60_000) },
+      })
+    }),
+  )
 }
 
 export async function revokeQualityJourneyExecutionConsent(
@@ -784,6 +896,8 @@ export async function revokeQualityJourneyExecutionConsent(
     if (consent.status === 'REVOKED' && consent.revokedAt) return consent
     if (!['REQUESTED', 'GRANTED'].includes(consent.status) || consent.usedAt || consent.executionCycleId)
       throw conflict('Consumed execution consent requires execution cancellation.')
+    // Consent revocation needs its exact E2 invalidator owner; this is not business admission.
+    await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, input)
     const changed = await tx.qualityJourneyExecutionConsent.updateMany({
       where: { id: consent.id, status: consent.status, usedAt: null, revokedAt: null, executionCycleId: null },
       data: { status: 'REVOKED', revokedAt: new Date() },
@@ -811,6 +925,8 @@ export async function cancelQualityJourneyExecution(
     if (replay) {
       if (replay.requestHash !== requestHash)
         throw conflict('Cancellation idempotency key was reused with a different request.')
+      // Replay currently re-enters the physical adapter after this transaction.
+      await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, input)
       return replay.executionCycle
     }
     if (journey.stateHash !== input.expectedStateHash)
@@ -825,6 +941,8 @@ export async function cancelQualityJourneyExecution(
     })
     if (!target) throw conflict('No active Quality Journey execution exists.')
     const cancelsWholeCycle = await cancelsEntireExecutionCycle(target.id, input.testRunIds, tx)
+    // Keep cancellation separate from ordinary business until its exact latch/control route is integrated.
+    await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, input)
     if (cancelsWholeCycle && (target.status === 'RESERVED' || target.status === 'RUNNING'))
       await tx.qualityJourneyExecutionCycle.update({
         where: { id: target.id },
@@ -871,7 +989,10 @@ export async function reconcileQualityJourneyExecution(
   const cycle = await client.$transaction(async tx => {
     await assertCoordinatorRecoverySession(coordinatorSession, input, tx)
     assertQualityJourneyRecoverable(await scopedJourney(input, tx))
-    return scopedExecutionCycle(input, tx)
+    const current = await scopedExecutionCycle(input, tx)
+    // The outer adapter can publish terminal effects; it is not an inert evidence read.
+    await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, input)
+    return current
   })
   await runtimeAdapter.reconcile({ executionCycleId: cycle.id })
   return getQualityJourneyExecution(
@@ -886,59 +1007,62 @@ export async function proposeQualityJourneyRerun(
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
   const input = qualityJourneyRerunProposalSchema.parse(value)
-  return client.$transaction(async tx => {
-    await assertCoordinatorMutationSession(coordinatorSession, input, tx)
-    assertQualityJourneyMutable(await scopedJourney(input, tx))
-    const source = await tx.qualityJourneyExecutionCycle.findFirst({
-      where: {
-        id: input.sourceCycleId,
-        journeyId: input.journeyId,
-        targetProjectId: input.targetProjectId,
-        status: { in: ['COMPLETED', 'CANCELLED'] },
-      },
-      include: { evidenceReceipts: true },
-    })
-    if (!source) throw conflict('Rerun predecessor must be a terminal execution cycle.')
-    const receiptIds = source.evidenceReceipts.map(item => item.id).sort()
-    if (json(receiptIds) !== json(input.sourceEvidenceReceiptIds))
-      throw conflict('Rerun scope must name exactly the predecessor evidence receipts.')
-    const selectedScenarioRevisionIds = JSON.parse(source.preparedCapsulesJson).map(
-      (capsule: { scenarioRevisionId: string }) => capsule.scenarioRevisionId,
-    )
-    if (!input.selectedScenarioRevisionIds.every(id => selectedScenarioRevisionIds.includes(id)))
-      throw conflict('Rerun selection is outside the predecessor immutable execution scope.')
-    const requestHash = hash(input)
-    const existing = await tx.qualityJourneyExecutionRerunProposal.findFirst({
-      where: { journeyId: input.journeyId, idempotencyKey: input.idempotencyKey },
-    })
-    if (existing) {
-      if (existing.requestHash !== requestHash) throw conflict('Rerun proposal idempotency key was reused.')
-      return existing
-    }
-    const reportBinding = await currentRerunReportBinding(input.journeyId, source.id, tx)
-    const proposal = {
-      ...reportBinding,
-      sourceCycleId: input.sourceCycleId,
-      sourceEvidenceReceiptIds: input.sourceEvidenceReceiptIds,
-      selectedScenarioRevisionIds: input.selectedScenarioRevisionIds,
-      reason: input.reason,
-    }
-    return tx.qualityJourneyExecutionRerunProposal.create({
-      data: {
-        id: stableId('qjrp', input.journeyId, input.idempotencyKey),
-        journeyId: input.journeyId,
-        targetProjectId: input.targetProjectId,
-        sourceExecutionCycleId: input.sourceCycleId,
+  return client.$transaction(tx =>
+    withJourneyBusinessWriteJoinInTransaction(tx, input, coordinatorSession, async beforeWrite => {
+      await assertCoordinatorMutationSession(coordinatorSession, input, tx)
+      assertQualityJourneyMutable(await scopedJourney(input, tx))
+      const source = await tx.qualityJourneyExecutionCycle.findFirst({
+        where: {
+          id: input.sourceCycleId,
+          journeyId: input.journeyId,
+          targetProjectId: input.targetProjectId,
+          status: { in: ['COMPLETED', 'CANCELLED'] },
+        },
+        include: { evidenceReceipts: true },
+      })
+      if (!source) throw conflict('Rerun predecessor must be a terminal execution cycle.')
+      const receiptIds = source.evidenceReceipts.map(item => item.id).sort()
+      if (json(receiptIds) !== json(input.sourceEvidenceReceiptIds))
+        throw conflict('Rerun scope must name exactly the predecessor evidence receipts.')
+      const selectedScenarioRevisionIds = JSON.parse(source.preparedCapsulesJson).map(
+        (capsule: { scenarioRevisionId: string }) => capsule.scenarioRevisionId,
+      )
+      if (!input.selectedScenarioRevisionIds.every(id => selectedScenarioRevisionIds.includes(id)))
+        throw conflict('Rerun selection is outside the predecessor immutable execution scope.')
+      const requestHash = hash(input)
+      const existing = await tx.qualityJourneyExecutionRerunProposal.findFirst({
+        where: { journeyId: input.journeyId, idempotencyKey: input.idempotencyKey },
+      })
+      if (existing) {
+        if (existing.requestHash !== requestHash) throw conflict('Rerun proposal idempotency key was reused.')
+        return existing
+      }
+      const reportBinding = await currentRerunReportBinding(input.journeyId, source.id, tx)
+      const proposal = {
         ...reportBinding,
-        sourceEvidenceJson: json(input.sourceEvidenceReceiptIds),
-        selectedScenariosJson: json(input.selectedScenarioRevisionIds),
+        sourceCycleId: input.sourceCycleId,
+        sourceEvidenceReceiptIds: input.sourceEvidenceReceiptIds,
+        selectedScenarioRevisionIds: input.selectedScenarioRevisionIds,
         reason: input.reason,
-        proposalHash: hash(proposal),
-        idempotencyKey: input.idempotencyKey,
-        requestHash,
-      },
-    })
-  })
+      }
+      await beforeWrite(tx, input)
+      return tx.qualityJourneyExecutionRerunProposal.create({
+        data: {
+          id: stableId('qjrp', input.journeyId, input.idempotencyKey),
+          journeyId: input.journeyId,
+          targetProjectId: input.targetProjectId,
+          sourceExecutionCycleId: input.sourceCycleId,
+          ...reportBinding,
+          sourceEvidenceJson: json(input.sourceEvidenceReceiptIds),
+          selectedScenariosJson: json(input.selectedScenarioRevisionIds),
+          reason: input.reason,
+          proposalHash: hash(proposal),
+          idempotencyKey: input.idempotencyKey,
+          requestHash,
+        },
+      })
+    }),
+  )
 }
 
 export async function approveQualityJourneyRerun(
@@ -947,32 +1071,35 @@ export async function approveQualityJourneyRerun(
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
   const input = qualityJourneyRerunApprovalSchema.parse(value)
-  return client.$transaction(async tx => {
-    await assertCoordinatorMutationSession(coordinatorSession, input, tx)
-    assertQualityJourneyMutable(await scopedJourney(input, tx))
-    const proposal = await tx.qualityJourneyExecutionRerunProposal.findFirst({
-      where: { id: input.proposalId, journeyId: input.journeyId, targetProjectId: input.targetProjectId },
-    })
-    if (!proposal || proposal.proposalHash !== input.expectedProposalHash || proposal.status !== 'PROPOSED')
-      throw conflict('Rerun proposal cannot be approved.')
-    await assertRerunReportCurrent(proposal, tx)
-    if (proposal.reportRevisionId)
-      await tx.qualityJourneyReportReview.create({
-        data: {
-          id: stableId('qjrr', proposal.id),
-          journeyId: input.journeyId,
-          reportRevisionId: proposal.reportRevisionId,
-          kind: 'RERUN_APPROVED',
-          feedback: input.reason ?? proposal.reason,
-          idempotencyKey: `rerun:${proposal.id}`,
-          requestHash: hash({ proposalId: proposal.id, proposalHash: proposal.proposalHash }),
-        },
+  return client.$transaction(tx =>
+    withJourneyBusinessWriteJoinInTransaction(tx, input, coordinatorSession, async beforeWrite => {
+      await assertCoordinatorMutationSession(coordinatorSession, input, tx)
+      assertQualityJourneyMutable(await scopedJourney(input, tx))
+      const proposal = await tx.qualityJourneyExecutionRerunProposal.findFirst({
+        where: { id: input.proposalId, journeyId: input.journeyId, targetProjectId: input.targetProjectId },
       })
-    return tx.qualityJourneyExecutionRerunProposal.update({
-      where: { id: proposal.id },
-      data: { status: 'APPROVED', approvedAt: new Date() },
-    })
-  })
+      if (!proposal || proposal.proposalHash !== input.expectedProposalHash || proposal.status !== 'PROPOSED')
+        throw conflict('Rerun proposal cannot be approved.')
+      await assertRerunReportCurrent(proposal, tx)
+      await beforeWrite(tx, input)
+      if (proposal.reportRevisionId)
+        await tx.qualityJourneyReportReview.create({
+          data: {
+            id: stableId('qjrr', proposal.id),
+            journeyId: input.journeyId,
+            reportRevisionId: proposal.reportRevisionId,
+            kind: 'RERUN_APPROVED',
+            feedback: input.reason ?? proposal.reason,
+            idempotencyKey: `rerun:${proposal.id}`,
+            requestHash: hash({ proposalId: proposal.id, proposalHash: proposal.proposalHash }),
+          },
+        })
+      return tx.qualityJourneyExecutionRerunProposal.update({
+        where: { id: proposal.id },
+        data: { status: 'APPROVED', approvedAt: new Date() },
+      })
+    }),
+  )
 }
 
 export async function startQualityJourneyRerun(
@@ -980,44 +1107,54 @@ export async function startQualityJourneyRerun(
   client: PrismaClient = prisma,
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
+  const originalCredentials = snapshotExecutionCredentials(coordinatorSession)
   const input = qualityJourneyRerunStartSchema.parse(value)
-  const result = await client.$transaction(async tx => {
-    await assertCoordinatorMutationSession(coordinatorSession, input, tx)
-    const proposal = await tx.qualityJourneyExecutionRerunProposal.findFirst({
-      where: { id: input.proposalId, journeyId: input.journeyId, targetProjectId: input.targetProjectId },
-    })
-    if (!proposal || !['APPROVED', 'STARTED'].includes(proposal.status))
-      throw new ServiceError('A persisted UI approval is required before rerunning.', 'UNAUTHORIZED', 403)
-    if (proposal.status !== 'STARTED') await assertRerunReportCurrent(proposal, tx)
-    const source = await tx.qualityJourneyExecutionCycle.findUniqueOrThrow({
-      where: { id: proposal.sourceExecutionCycleId },
-    })
-    const frozen = JSON.parse(source.preparedCapsulesJson) as Array<{
-      preparedCapsuleId: string
-      scenarioRevisionId: string
-    }>
-    const selected = JSON.parse(proposal.selectedScenariosJson) as string[]
-    const preparedRuntimeCapsuleIds = frozen
-      .filter(item => selected.includes(item.scenarioRevisionId))
-      .map(item => item.preparedCapsuleId)
-      .sort()
-    if (!preparedRuntimeCapsuleIds.length) throw conflict('Rerun approval does not select any frozen prepared capsule.')
-    return reserveExecution(
-      {
-        journeyId: input.journeyId,
-        targetProjectId: input.targetProjectId,
-        preparedRuntimeCapsuleIds,
-        environmentId: input.environmentId,
-        browserEngine: input.browserEngine,
-        executionConsentId: input.executionConsentId,
-        expectedStateHash: input.expectedStateHash,
-        idempotencyKey: input.idempotencyKey,
-      },
-      tx,
-      { proposalId: proposal.id, predecessorExecutionCycleId: source.id, allowSubset: true },
-      coordinatorSession,
-    )
-  })
+  const result = await client.$transaction(tx =>
+    withJourneyBusinessWriteJoinInTransaction(tx, input, originalCredentials, async beforeWrite => {
+      await assertCoordinatorMutationSession(originalCredentials, input, tx)
+      const executionScope = await executionSharedUseScope(tx, input, originalCredentials)
+      const proposal = await tx.qualityJourneyExecutionRerunProposal.findFirst({
+        where: { id: input.proposalId, journeyId: input.journeyId, targetProjectId: input.targetProjectId },
+      })
+      if (!proposal || !['APPROVED', 'STARTED'].includes(proposal.status))
+        throw new ServiceError('A persisted UI approval is required before rerunning.', 'UNAUTHORIZED', 403)
+      if (proposal.status !== 'STARTED') await assertRerunReportCurrent(proposal, tx)
+      const source = await tx.qualityJourneyExecutionCycle.findUniqueOrThrow({
+        where: { id: proposal.sourceExecutionCycleId },
+      })
+      const frozen = JSON.parse(source.preparedCapsulesJson) as Array<{
+        preparedCapsuleId: string
+        scenarioRevisionId: string
+      }>
+      const selected = JSON.parse(proposal.selectedScenariosJson) as string[]
+      const preparedRuntimeCapsuleIds = frozen
+        .filter(item => selected.includes(item.scenarioRevisionId))
+        .map(item => item.preparedCapsuleId)
+        .sort()
+      if (!preparedRuntimeCapsuleIds.length)
+        throw conflict('Rerun approval does not select any frozen prepared capsule.')
+      const reservation = await reserveExecution(
+        {
+          journeyId: input.journeyId,
+          targetProjectId: input.targetProjectId,
+          preparedRuntimeCapsuleIds,
+          environmentId: input.environmentId,
+          browserEngine: input.browserEngine,
+          executionConsentId: input.executionConsentId,
+          expectedStateHash: input.expectedStateHash,
+          idempotencyKey: input.idempotencyKey,
+        },
+        tx,
+        beforeWrite,
+        { proposalId: proposal.id, predecessorExecutionCycleId: source.id, allowSubset: true },
+        originalCredentials,
+        executionScope,
+      )
+      if ('executionCycleId' in reservation)
+        await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, input)
+      return reservation
+    }),
+  )
   if ('consentRequired' in result) return result
   if (!result.executionCycleId) throw conflict('Rerun reservation did not produce a cycle identifier.')
   await runtimeAdapter.start({ executionCycleId: result.executionCycleId })

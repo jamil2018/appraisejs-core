@@ -159,6 +159,55 @@ describe('AnalysisReviewControls', () => {
     )
   })
 
+  it('retains exact retry identity but gives a correction its own identity after refresh', async () => {
+    const user = userEvent.setup()
+    mocks.answer.mockResolvedValueOnce({ success: false, error: 'Reply lost; retry exact input.' })
+    const props = {
+      analysisReviewHash: digest('c'),
+      answerable: true,
+      journeyId: 'journey-1',
+      stage: 'ANALYSIS_REVIEW',
+      stateHash: digest('c'),
+      unresolvedQuestionIds: ['payment-method'],
+    }
+    const { rerender } = render(<AnalysisReviewControls {...props} analysis={analysis} />)
+    await user.type(screen.getByLabelText('Answer'), 'Card payment.')
+    await user.click(screen.getByRole('button', { name: 'Record answer' }))
+    const original = mocks.answer.mock.calls[0][0]
+    expect(screen.getByLabelText('Answer')).toHaveValue('Card payment.')
+    await user.click(screen.getByRole('button', { name: 'Record answer' }))
+    expect(mocks.answer.mock.calls[1][0]).toEqual(original)
+    rerender(
+      <AnalysisReviewControls
+        {...props}
+        analysis={{
+          ...analysis,
+          questions: [
+            {
+              ...analysis.questions[0],
+              answers: [
+                {
+                  answerId: original.answerId,
+                  answer: 'Card payment.',
+                  contentHash: digest('d'),
+                  correctionOfAnswerId: null,
+                  createdAt: new Date('2026-10-20T00:00:00.000Z'),
+                },
+              ],
+            },
+          ],
+        }}
+      />,
+    )
+    await user.clear(screen.getByLabelText('Correct answer'))
+    await user.type(screen.getByLabelText('Correct answer'), 'Debit card payment.')
+    await user.click(screen.getByRole('button', { name: 'Record correction' }))
+    const correction = mocks.answer.mock.calls[2][0]
+    expect(correction.correctionOfAnswerId).toBe(original.answerId)
+    expect(correction.answerId).not.toBe(original.answerId)
+    expect(correction.idempotencyKey).not.toBe(original.idempotencyKey)
+  })
+
   it('keeps a published predecessor readable but disables Q&A while waiting for a successor draft', () => {
     render(
       <AnalysisReviewControls

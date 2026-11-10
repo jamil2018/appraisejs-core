@@ -364,6 +364,30 @@
     {
       "name": "20261019030000_add_journey_wake_producers",
       "checksum": "8ec5fb0f79ec8bec63eb4d7b186ae633edb669b189f5cf3f7ef8de8bef2e696f"
+    },
+    {
+      "name": "20261021000000_add_provider_source_custody",
+      "checksum": "a8c881f6453771a22addfbc6f8c04ae6f24b9a0cbc277ad040b097b236de6a22"
+    },
+    {
+      "name": "20261021010000_add_provider_reconciliation_receipt",
+      "checksum": "c9480c49e9561da1f9f5a9b948bc71993cf8637faaa9cec7c12b9f8c33e233df"
+    },
+    {
+      "name": "20261024010000_add_journey_e2_effect_admission",
+      "checksum": "f54d625b6eb796ec6da549bc2b3c59afbd5514c6ffb670a7d6c8bb847314c5ee"
+    },
+    {
+      "name": "20261024020000_add_journey_shared_resource_claims",
+      "checksum": "11c873bb8ec51ab5d543f23d5cbb6c656ce88ab0f09dfff9a77afd26548f2839"
+    },
+    {
+      "name": "20261024030000_add_journey_e2_operation_preparation",
+      "checksum": "aa90486a4809fe1632b4ea0292c56c3012a0569a2cc847d55e141c5ae243248c"
+    },
+    {
+      "name": "20261024040000_add_automation_materialization_source_proof",
+      "checksum": "285498de5ba5a96235ebc20c1a8576443688445499da7fc0f01259942e01e518"
     }
   ]
 }

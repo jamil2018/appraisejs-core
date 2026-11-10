@@ -1,0 +1,34 @@
+{
+  "source": "accepted inert nonstart-lifetime-reproduction15b/runtime/candidate",
+  "reviewSha256": "7f0245b0e4e79bf6b69ad8bd023f53416dcff377a638c6fc27f82cbf9bc4688c",
+  "bodies": [
+    {
+      "path": "src/lib/quality-journey/codex-app-server/outcome-source.ts",
+      "sha256": "009d0161e1156d98f65260d22419e854211711cba9415f3eee34bafaeccdbdbb"
+    },
+    {
+      "path": "src/lib/quality-journey/codex-app-server/outcome-custodian.ts",
+      "sha256": "1c08b109367423d38a6255a728c4b911da6a32dd3f3f870f327b658a824887ae"
+    },
+    {
+      "path": "src/lib/quality-journey/codex-app-server/outcome-source-journal.ts",
+      "sha256": "150cd3027e417533af0bef82c25a328a086a545f59ed82c38508b5baba32b607"
+    },
+    {
+      "path": "src/lib/quality-journey/codex-app-server/outcome-source-contract.ts",
+      "sha256": "b9db4ad8dfad5a4785ec89f28809a8bc13d101cb4d985188fa4beda6c5fb05b0"
+    },
+    {
+      "path": "src/lib/quality-journey/codex-app-server/outcome-source-envelope.ts",
+      "sha256": "afefab966ee09397e9169e7515beaa3231dbe4327961ab073da1337339efa61f"
+    },
+    {
+      "path": "src/lib/quality-journey/provider-reconciliation-contract.ts",
+      "sha256": "a47778c722a27996788a8315811137937143a652faf6735df417c67a55fdbc33"
+    },
+    {
+      "path": "src/services/coordinator/quality-journey-provider-run-service.ts",
+      "sha256": "b279f3d77ac64c34228dd7122e87c7d29559f887acd3421ed50d4dc7ce89122b"
+    }
+  ]
+}

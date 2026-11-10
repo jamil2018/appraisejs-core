@@ -14,6 +14,7 @@ import {
   type PrepareQualityJourneyProviderRunInput,
 } from './quality-journey-provider-run-service'
 
+type OriginalStartState = 'NOT_CALLED' | 'PENDING' | 'FULFILLED' | 'REJECTED'
 type SupervisionState = 'startup' | 'readiness' | 'active' | 'draining' | 'stopped' | 'uncertain'
 type Child = Awaited<ReturnType<typeof launchOwnedFixtureChild>>
 type Armed = Awaited<ReturnType<typeof armQualityJourneyProviderIntent>>
@@ -74,6 +75,8 @@ export function createQualityJourneyProcessSupervisor(
   binding.envelopeDigest = digest(envelope)
   const transportId = randomUUID()
   let state: SupervisionState = 'startup'
+  let originalStartState: OriginalStartState = 'NOT_CALLED'
+  let childLaunchEntered = false
   let fenced = false
   let reason: string | null = null
   let child: Child | undefined
@@ -85,7 +88,7 @@ export function createQualityJourneyProcessSupervisor(
   let stopFlight: Promise<ReturnType<typeof snapshot>> | undefined
   let poll: ReturnType<typeof setInterval> | undefined
   let turnTimer: ReturnType<typeof setTimeout> | undefined
-  let checking = false
+  let heartbeatFlight: Promise<void> | undefined
   let completed = false
   let threadStartEntered = false
   let turnStartEntered = false
@@ -96,6 +99,8 @@ export function createQualityJourneyProcessSupervisor(
   function snapshot() {
     return Object.freeze({
       state,
+      originalStartState,
+      childLaunchEntered,
       fenced,
       reason,
       transportId,
@@ -125,7 +130,9 @@ export function createQualityJourneyProcessSupervisor(
   async function observe(kind: string) {
     if (!armed?.intent.sendBoundaryId) return
     const observationKey = `transport:${transportId}:${++observationSequence}:${kind}`
-    const identity = { ...snapshot(), cleanup: undefined, transport: undefined }
+    // Local launch/start diagnostics do not change the durable observation contract.
+    const { childLaunchEntered: _childLaunchEntered, originalStartState: _originalStartState, ...observed } = snapshot()
+    const identity = { ...observed, cleanup: undefined, transport: undefined }
     await client.qualityJourneyProviderObservation.create({
       data: {
         id: `qjpo_${randomUUID()}`,
@@ -153,6 +160,14 @@ export function createQualityJourneyProcessSupervisor(
     if (turnTimer) clearTimeout(turnTimer)
   }
 
+  async function joinOriginalLaunch(originalLaunch: Promise<Child>) {
+    try {
+      child = await originalLaunch
+    } catch {
+      /* launch failure remains uncertain */
+    }
+  }
+
   async function stop(code = 'CANCELLED') {
     fence(code)
     stopFlight ??= (async () => {
@@ -160,12 +175,12 @@ export function createQualityJourneyProcessSupervisor(
       // A concurrent launch may still be completing. start checks the closed gate
       // before any writes and joins this same owned cleanup path below.
       if (launchFlight && !child) {
-        try {
-          child = await launchFlight
-        } catch {
-          /* launch failure remains uncertain */
-        }
+        await joinOriginalLaunch(launchFlight)
       }
+      // Join the original complete heartbeat chain after fencing admission.
+      // Its rejection handler calls fault without awaiting this stop flight.
+      const originalHeartbeat = heartbeatFlight
+      if (originalHeartbeat) await originalHeartbeat
       if (child) cleanup = await child.stop()
       state = child && cleanup?.status === 'stopped' ? 'stopped' : 'uncertain'
       await observe(state === 'stopped' ? 'DRAINED_UNCERTAIN' : 'FENCED')
@@ -258,6 +273,7 @@ export function createQualityJourneyProcessSupervisor(
   async function readyOwnedChild() {
     if (fenced) throw new Error('fenced before child launch')
     if (!armed) throw new Error('missing owned intent')
+    childLaunchEntered = true
     launchFlight = launch({ transportId, onNotification: notification, onFault: fault })
     child = await launchFlight
     if (fenced) {
@@ -346,13 +362,15 @@ export function createQualityJourneyProcessSupervisor(
     await observe('ACTIVE')
     if (fenced) return snapshot()
     poll = setInterval(() => {
-      if (checking || fenced) return
-      checking = true
-      void write(false, () => Promise.resolve())
-        .catch(() => fault('AUTHORITY_REVOKED'))
-        .finally(() => {
-          checking = false
+      if (heartbeatFlight || fenced) return
+      const flight = write(false, () => Promise.resolve())
+        .catch(() => {
+          fault('AUTHORITY_REVOKED')
         })
+        .finally(() => {
+          if (heartbeatFlight === flight) heartbeatFlight = undefined
+        })
+      heartbeatFlight = flight
     }, providerIntentPolicy.heartbeatSeconds * 1000)
     if (completed) await stop('LOGICAL_COMPLETION')
     return snapshot()
@@ -373,7 +391,21 @@ export function createQualityJourneyProcessSupervisor(
 
   return Object.freeze({
     start() {
-      startFlight ??= run()
+      if (!startFlight) {
+        originalStartState = 'PENDING'
+        startFlight = run()
+        // Observe the original native Promise without replacing it or its fulfillment value.
+        void startFlight.then(
+          () => {
+            originalStartState = 'FULFILLED'
+            return undefined
+          },
+          () => {
+            originalStartState = 'REJECTED'
+            return undefined
+          },
+        )
+      }
       return startFlight
     },
     cancel() {

@@ -14,6 +14,12 @@ import { formatLogsForStorage } from '@/lib/test-run/log-formatter'
 import { createTestRunLogger } from '@/lib/test-run/winston-logger'
 import { RuntimeCapsuleMaterializer, RuntimeCapsulePreflight, resolveRuntimeCapsulePaths } from '@/lib/runtime-capsule'
 import { canonicalRuntimeCapsuleJson, hashRuntimeCapsuleValue } from '@/lib/runtime-capsule/contracts'
+import { assertJourneyBusinessGroupSupportsNoInvalidationInTransaction } from '@/services/coordinator/quality-journey-business-write-join'
+import {
+  validateRetainedExecutionUseForTestRunInTransaction,
+  type RetainedExecutionIdentity,
+} from '@/services/coordinator/quality-journey-shared-resource-use-service'
+import { ServiceError } from '@/services/shared/errors'
 import {
   cancelRuntimeCapsuleTestRun,
   persistObservedCapsuleStop,
@@ -55,6 +61,7 @@ type ScheduledCapsule = {
   remoteScopeRequired: boolean
   label: 'Journey' | 'Independent'
   beforeSpawnError: string
+  expectedExecutionIdentity?: RetainedExecutionIdentity
   verifyRunStatusAfterSpawn: boolean
   onTerminal?: () => Promise<void>
 }
@@ -96,12 +103,35 @@ export class RuntimeCapsuleTestRunService {
     private readonly appraiseRoot = path.join(process.cwd(), '.appraise'),
   ) {}
 
-  private async assertJourneyLaunchAdmitted(tx: Prisma.TransactionClient, testRunId: string): Promise<void> {
+  private async assertExecutionIdentity(
+    tx: Prisma.TransactionClient,
+    testRunId: string,
+    expected: RetainedExecutionIdentity | undefined,
+  ) {
+    const source = await validateRetainedExecutionUseForTestRunInTransaction(tx, testRunId)
+    if (!expected || canonicalRuntimeCapsuleJson(expected) !== canonicalRuntimeCapsuleJson(source.executionIdentity))
+      throw new ServiceError('Journey execution identity changed.', 'CONFLICT', 409, {
+        protocol: 'M06_FROZEN_RUN_SELECTION_V1',
+        reason: 'FROZEN_EXECUTION_IDENTITY_MISMATCH',
+      })
+    return source
+  }
+
+  private async assertJourneyLaunchAdmitted(
+    tx: Prisma.TransactionClient,
+    testRunId: string,
+    expected: RetainedExecutionIdentity | undefined,
+  ): Promise<void> {
+    const source = await this.assertExecutionIdentity(tx, testRunId, expected)
     const binding = await tx.qualityJourneyExecutionTestRun.findUnique({
       where: { testRunId },
       select: {
         executionCycle: {
-          select: { status: true, journey: { select: { id: true, status: true, version: true } } },
+          select: {
+            targetProjectId: true,
+            status: true,
+            journey: { select: { id: true, status: true, version: true } },
+          },
         },
       },
     })
@@ -109,6 +139,17 @@ export class RuntimeCapsuleTestRunService {
     const journey = cycle?.journey
     if (!cycle || !journey || journey.status !== 'ACTIVE' || !['RESERVED', 'RUNNING'].includes(cycle.status))
       throw new Error('Journey execution is paused or cancelling; capsule launch is not admitted.')
+    await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, {
+      journeyId: journey.id,
+      targetProjectId: cycle.targetProjectId,
+    })
+    // A retained source read grants no physical effect authority, even if a later
+    // enrollment observation unexpectedly appears legacy.
+    if (source.protection !== 'LEGACY')
+      throw new ServiceError('E2 mixed invalidation requires its exact owning boundary.', 'CONFLICT', 409, {
+        protocol: 'M06_E2_BUSINESS_GROUP_V1',
+        reason: 'UNSUPPORTED_E2_INVALIDATION',
+      })
     const fenced = await tx.qualityJourney.updateMany({
       where: { id: journey.id, status: 'ACTIVE', version: journey.version },
       data: { updatedAt: new Date() },
@@ -121,10 +162,12 @@ export class RuntimeCapsuleTestRunService {
     intent: CapsuleIntent
     materialized: CapsuleMaterialization
     preflight: unknown
+    expectedExecutionIdentity?: RetainedExecutionIdentity
   }) {
     const ownerToken = crypto.randomUUID()
     const attempt = await this.client.$transaction(async tx => {
-      if (input.intent === 'QUALITY_JOURNEY') await this.assertJourneyLaunchAdmitted(tx, input.testRun.id)
+      if (input.intent === 'QUALITY_JOURNEY')
+        await this.assertJourneyLaunchAdmitted(tx, input.testRun.id, input.expectedExecutionIdentity)
       const claimedRun = await tx.testRun.updateMany({
         where: { id: input.testRun.id, status: TestRunStatus.QUEUED, intent: input.intent },
         data: { status: TestRunStatus.RUNNING },
@@ -243,7 +286,7 @@ export class RuntimeCapsuleTestRunService {
           select: { status: true },
         })
         if (run.status === TestRunStatus.RUNNING && input.testRun.intent === 'QUALITY_JOURNEY')
-          await this.assertJourneyLaunchAdmitted(tx, input.testRun.id)
+          await this.assertJourneyLaunchAdmitted(tx, input.testRun.id, input.expectedExecutionIdentity)
         return run
       })
     } catch (error) {
@@ -284,6 +327,7 @@ export class RuntimeCapsuleTestRunService {
         testRunId: input.testRun.id,
         verifyRunStatus: input.verifyRunStatusAfterSpawn,
         journey: input.testRun.intent === 'QUALITY_JOURNEY',
+        expectedExecutionIdentity: input.expectedExecutionIdentity,
       })
     } catch (error) {
       transitionError = error
@@ -309,6 +353,7 @@ export class RuntimeCapsuleTestRunService {
     testRunId: string
     verifyRunStatus: boolean
     journey: boolean
+    expectedExecutionIdentity?: RetainedExecutionIdentity
   }) {
     if (!input.verifyRunStatus) {
       const running = await this.client.runtimeCapsuleExecutionAttempt.updateMany({
@@ -318,7 +363,7 @@ export class RuntimeCapsuleTestRunService {
       return running.count === 1
     }
     return this.client.$transaction(async tx => {
-      if (input.journey) await this.assertJourneyLaunchAdmitted(tx, input.testRunId)
+      if (input.journey) await this.assertJourneyLaunchAdmitted(tx, input.testRunId, input.expectedExecutionIdentity)
       const running = await tx.runtimeCapsuleExecutionAttempt.updateMany({
         where: { id: input.attempt.id, state: 'STARTING', ownerToken: input.attempt.ownerToken },
         data: { state: 'RUNNING', startedAt: new Date(), version: { increment: 1 } },
@@ -385,11 +430,18 @@ export class RuntimeCapsuleTestRunService {
     return this.startSelectedCapsule(input, false)
   }
 
-  async startJourneyPrepared(input: { testRunDbId: string; onTerminal?: () => Promise<void> }) {
+  async startJourneyPrepared(input: {
+    testRunDbId: string
+    expectedExecutionIdentity: RetainedExecutionIdentity
+    onTerminal?: () => Promise<void>
+  }) {
     return this.startSelectedCapsule(input, true)
   }
 
-  private async selectedCapsuleContext(input: { testRunDbId: string }, journey: boolean) {
+  private async selectedCapsuleContext(
+    input: { testRunDbId: string; expectedExecutionIdentity?: RetainedExecutionIdentity },
+    journey: boolean,
+  ) {
     const persisted = await this.client.testRun.findUniqueOrThrow({
       where: { id: input.testRunDbId },
       include: {
@@ -417,11 +469,19 @@ export class RuntimeCapsuleTestRunService {
     // must never inherit mutable Environment configuration at materialization
     // or execution time.
     if (!journey) frozenEnvironmentSnapshot(testRun, { required: remoteScopeRequired })
+    if (journey)
+      await this.client.$transaction(tx =>
+        this.assertExecutionIdentity(tx, testRun.id, input.expectedExecutionIdentity),
+      )
     return { testRun, remoteScopeRequired }
   }
 
   private async startSelectedCapsule(
-    input: { testRunDbId: string; onTerminal?: () => Promise<void> },
+    input: {
+      testRunDbId: string
+      expectedExecutionIdentity?: RetainedExecutionIdentity
+      onTerminal?: () => Promise<void>
+    },
     journey: boolean,
   ) {
     let ownedAttempt: OwnedAttempt | undefined
@@ -452,6 +512,7 @@ export class RuntimeCapsuleTestRunService {
         intent: journey ? 'QUALITY_JOURNEY' : 'INDEPENDENT',
         materialized,
         preflight,
+        expectedExecutionIdentity: input.expectedExecutionIdentity,
       })
       if (attempt.ownerToken !== ownerToken)
         return { testRunId: testRun.id, runId: testRun.runId, attemptId: attempt.id, state: attempt.state }
@@ -471,6 +532,7 @@ export class RuntimeCapsuleTestRunService {
         beforeSpawnError: 'Independent capsule execution was cancelled before spawn.',
         verifyRunStatusAfterSpawn: true,
         onTerminal: input.onTerminal,
+        expectedExecutionIdentity: input.expectedExecutionIdentity,
       })
       return { testRunId: testRun.id, runId: testRun.runId, attemptId: attempt.id, preflight }
     } catch (error) {

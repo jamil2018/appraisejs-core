@@ -1,6 +1,6 @@
 import { StepParameterType, StepIcon } from '@prisma/client'
 import { z } from 'zod'
-import { stepInvocationSchema } from '../../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
+import { stepInvocationSchema } from '../../../packages/cucumber-runtime/src/step-definitions/invocation-contracts.ts'
 
 export const flowBlockSchema = z.object({
   id: z.string(),

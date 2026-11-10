@@ -7,7 +7,12 @@ import {
 } from '@/lib/test-run/report-parser'
 import type { Prisma, PrismaClient } from '@prisma/client'
 import { updateTestSuiteMetrics } from '@/lib/metrics/metric-calculator'
-import { findMatchingTestRunTestCase } from '@/lib/test-run/matching'
+import {
+  findMatchingTestRunTestCase,
+  requiresFrozenJourneyMatching,
+  validateFrozenJourneySelection,
+  reconcileFrozenJourneyReport,
+} from '@/lib/test-run/matching'
 import { RECENT_PERIOD_DAYS } from '@/services/shared/constants'
 import { ServiceError } from '@/services/shared/errors'
 import type { ReportDetailWithRelations, ReportWithRelations } from '@/types/report'
@@ -25,6 +30,7 @@ type ReportStorageTestRun = Prisma.TestRunGetPayload<{
   include: {
     targetProject: true
     runtimeCapsule: true
+    qualityJourneyExecutionBinding: { include: { executionCycle: true } }
     testCases: {
       include: {
         testCase: {
@@ -159,6 +165,7 @@ async function getReportStorageTestRun(testRunId: string, client: PrismaClient =
     include: {
       targetProject: true,
       runtimeCapsule: true,
+      qualityJourneyExecutionBinding: { include: { executionCycle: true } },
       testCases: {
         include: {
           testCase: {
@@ -298,11 +305,14 @@ async function linkReportScenarioToTestCase(
   testRun: ReportStorageTestRun,
   executedTestCases: ExecutedTestCaseSets,
   client: PrismaClient = prisma,
+  frozenLink?: { id: string; testRunId: string; testCaseId: string; testSuiteId: string | null },
 ) {
-  const matchedTestCase = findMatchingTestRunTestCase(testRun.testCases, {
-    scenarioName: scenario.name,
-    scenarioTags: scenario.tags.map(tag => tag.name),
-  })
+  const matchedTestCase = requiresFrozenJourneyMatching(testRun)
+    ? frozenLink
+    : findMatchingTestRunTestCase(testRun.testCases, {
+        scenarioName: scenario.name,
+        scenarioTags: scenario.tags.map(tag => tag.name),
+      })
 
   if (!matchedTestCase) {
     return
@@ -331,6 +341,22 @@ async function createParsedReportGraph(
   testRun: ReportStorageTestRun,
   client: PrismaClient = prisma,
 ) {
+  let frozenLinks:
+    | ReadonlyArray<{ link: { id: string; testRunId: string; testCaseId: string; testSuiteId: string | null } }>
+    | undefined
+  if (requiresFrozenJourneyMatching(testRun)) {
+    const frozen = validateFrozenJourneySelection(testRun)
+    if (!frozen.ok) throw new ServiceError('Frozen Journey report metadata refused.', 'CONFLICT', 409, frozen)
+    const reconciled = reconcileFrozenJourneyReport(
+      frozen.selection,
+      parsedReport.features.flatMap(feature =>
+        feature.scenarios.map(scenario => ({ scenarioTags: scenario.tags.map(tag => tag.name) })),
+      ),
+    )
+    if (!reconciled.ok) throw new ServiceError('Frozen Journey report scenarios refused.', 'CONFLICT', 409, reconciled)
+    frozenLinks = reconciled.matches
+  }
+  let scenarioIndex = 0
   const executedTestCases: ExecutedTestCaseSets = {
     suiteIds: new Set<string>(),
     legacyTestCaseIds: new Set<string>(),
@@ -342,7 +368,16 @@ async function createParsedReportGraph(
     for (const scenario of feature.scenarios) {
       const reportScenario = await createReportScenario(reportFeature.id, scenario, client)
       await createReportScenarioExecutionRows(reportScenario.id, scenario, client)
-      await linkReportScenarioToTestCase(reportId, reportScenario.id, scenario, testRun, executedTestCases, client)
+      await linkReportScenarioToTestCase(
+        reportId,
+        reportScenario.id,
+        scenario,
+        testRun,
+        executedTestCases,
+        client,
+        frozenLinks?.[scenarioIndex]?.link,
+      )
+      scenarioIndex += 1
     }
   }
 

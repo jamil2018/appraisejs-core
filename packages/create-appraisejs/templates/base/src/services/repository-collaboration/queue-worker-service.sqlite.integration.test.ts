@@ -5,7 +5,7 @@ import path from 'node:path'
 import { PrismaClient } from '@prisma/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
+import { copyMigratedTestDatabase, createTargetProjectFixture } from '@/test/migrated-test-database'
 
 import { connectCollaboration, updateCollaborationPolicy } from './binding-service'
 import { prepareCollaborationOperation } from './operation-service'
@@ -46,15 +46,13 @@ async function fixture() {
   const databasePath = path.join(workspace, 'appraise.db')
   await copyMigratedTestDatabase(databasePath)
   const client = new PrismaClient({ datasources: { db: { url: `file:${databasePath}?connection_limit=1` } } })
-  const target = await client.targetProject.create({
-    data: {
-      id: `target-${path.basename(workspace)}`,
-      kind: 'LOCAL_WORKSPACE',
-      canonicalIdentity: `path:${workspace}`,
-      canonicalPath: workspace,
-      displayName: 'Queue fixture',
-      fingerprint: `sha256:${'b'.repeat(64)}`,
-    },
+  const target = await createTargetProjectFixture(client, {
+    id: `target-${path.basename(workspace)}`,
+    kind: 'LOCAL_WORKSPACE',
+    canonicalIdentity: `path:${workspace}`,
+    canonicalPath: workspace,
+    displayName: 'Queue fixture',
+    fingerprint: `sha256:${'b'.repeat(64)}`,
   })
   const binding = await connectCollaboration(
     {

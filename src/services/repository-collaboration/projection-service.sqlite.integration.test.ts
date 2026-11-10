@@ -5,10 +5,11 @@ import path from 'node:path'
 import { PrismaClient } from '@prisma/client'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
+import { copyMigratedTestDatabase, createTargetProjectFixture } from '@/test/migrated-test-database'
 import { collaborationRecordSchema } from '@/lib/repository-collaboration'
 
 import { connectCollaboration, updateCollaborationPolicy } from './binding-service'
+import { completeCollaborationFixtureCoverage } from './collaboration-coverage.test-fixture'
 import { mapCollaborationEnvironment } from './environment-mapping-service'
 import { applyCollaborationRecords } from './materialization-service'
 import { projectAuthoredCollaborationSnapshot } from './projection-service'
@@ -32,15 +33,13 @@ async function fixture(suffix: string) {
   const databasePath = path.join(workspace, 'appraise.db')
   await copyMigratedTestDatabase(databasePath)
   const client = new PrismaClient({ datasources: { db: { url: `file:${databasePath}?connection_limit=1` } } })
-  const target = await client.targetProject.create({
-    data: {
-      id: `target-${suffix}`,
-      kind: 'LOCAL_WORKSPACE',
-      canonicalIdentity: `path:${workspace}`,
-      canonicalPath: workspace,
-      displayName: `Collaboration ${suffix}`,
-      fingerprint: `sha256:${suffix.padEnd(64, suffix[0])}`,
-    },
+  const target = await createTargetProjectFixture(client, {
+    id: `target-${suffix}`,
+    kind: 'LOCAL_WORKSPACE',
+    canonicalIdentity: `path:${workspace}`,
+    canonicalPath: workspace,
+    displayName: `Collaboration ${suffix}`,
+    fingerprint: `sha256:${suffix.padEnd(64, suffix[0])}`,
   })
   const binding = await connectCollaboration(
     {
@@ -170,6 +169,7 @@ async function fixture(suffix: string) {
           invocationJson,
           parameters: {
             create: {
+              id: `template-parameter-${suffix}`,
               name: 'target',
               defaultValue: 'Pay button',
               type: 'LOCATOR',
@@ -222,7 +222,19 @@ async function fixture(suffix: string) {
       },
     ],
   })
-  return { client, binding, environment }
+  await completeCollaborationFixtureCoverage(
+    client,
+    target.id,
+    ['MODULE', 'LOCATOR_GROUP', 'LOCATOR', 'TEST_CASE', 'TEST_SUITE'],
+    [
+      { kind: 'MODULE', resourceId: moduleRecord.id },
+      { kind: 'LOCATOR_GROUP', resourceId: locatorGroup.id },
+      { kind: 'LOCATOR', resourceId: locator.id },
+      { kind: 'TEST_CASE', resourceId: testCase.id },
+      { kind: 'TEST_SUITE', resourceId: suite.id },
+    ],
+  )
+  return { client, binding, environment, templateParameterId: `template-parameter-${suffix}` }
 }
 
 describe('authored collaboration projection', () => {
@@ -262,15 +274,23 @@ describe('authored collaboration projection', () => {
       const records = left.manifest.records.map(entry =>
         collaborationRecordSchema.parse(JSON.parse(left.files.get(entry.path)!) as unknown),
       )
-      await applyCollaborationRecords(
-        {
-          bindingId: second.binding.id,
-          records,
-          expectedPolicyVersion: policy.policyVersion,
-          repositoryRevision: 'source-revision',
-        },
-        second.client,
-      )
+      const input = {
+        bindingId: second.binding.id,
+        records,
+        expectedPolicyVersion: policy.policyVersion,
+        repositoryRevision: 'source-revision',
+      }
+      await expect(applyCollaborationRecords(input, second.client)).rejects.toMatchObject({
+        code: 'CONFLICT',
+        details: { reason: 'TEMPLATE_LOCATOR_DEPENDENCY_UNSUPPORTED' },
+      })
+
+      // Remove the pre-existing dependency so materialization can reconstruct it from the snapshot.
+      await second.client.templateTestCaseStepParameter.update({
+        where: { id: second.templateParameterId },
+        data: { defaultLocatorId: null },
+      })
+      await applyCollaborationRecords(input, second.client)
       const reconstructed = await projectAuthoredCollaborationSnapshot(second.binding.id, second.client)
       expect(reconstructed.snapshotHash).toBe(left.snapshotHash)
     } finally {

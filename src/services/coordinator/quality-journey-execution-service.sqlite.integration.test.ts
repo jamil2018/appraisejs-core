@@ -4,9 +4,10 @@ import path from 'node:path'
 import { createServer } from 'node:http'
 import { PrismaClient } from '@prisma/client'
 import { afterEach, describe, expect, it } from 'vitest'
-import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
+import { copyMigratedTestDatabase, createTargetProjectFixture } from '@/test/migrated-test-database'
 import { createQualityJourneyKernelState, hashQualityJourneyExecutionValue } from '@/lib/quality-journey'
 import { preparedRuntimeCapsuleSchema } from '@/lib/quality-journey/automation-contracts'
+import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { defaultOperationDefinitions } from '@/lib/operation-catalog'
 import { processManager } from '@/lib/test-run/process-manager'
 import { hashRuntimeCapsuleBytes } from '@/lib/runtime-capsule'
@@ -96,15 +97,13 @@ async function fixture(
   // SQLite PRAGMAs are connection-local. Keep fixture setup and restoration
   // on one connection on every host, including multi-core Linux CI runners.
   const client = new PrismaClient({ datasources: { db: { url: `file:${databasePath}?connection_limit=1` } } })
-  await client.targetProject.create({
-    data: {
-      id: 'target-execution',
-      kind: 'LOCAL_WORKSPACE',
-      canonicalIdentity: `path:${workspace}`,
-      canonicalPath: workspace,
-      displayName: 'execution',
-      fingerprint: digest('a'),
-    },
+  await createTargetProjectFixture(client, {
+    id: 'target-execution',
+    kind: 'LOCAL_WORKSPACE',
+    canonicalIdentity: `path:${workspace}`,
+    canonicalPath: workspace,
+    displayName: 'execution',
+    fingerprint: digest('a'),
   })
   await client.environment.create({
     data: {
@@ -520,6 +519,73 @@ describe('Quality Journey Phase 7 execution coordinator (SQLite)', () => {
       reconcile: async () => undefined,
     })
     try {
+      await value.client.$transaction(async tx => {
+        const materialization = await tx.qualityJourneyAutomationMaterialization.findUniqueOrThrow({
+          where: { id: 'materialization-execution' },
+        })
+        const { journeyId, targetProjectId, cycleId, workItemId, attemptId, leaseId, inputHash } = materialization
+        const role = 'AUTOMATOR'
+        const roleContractDigest = digest('d')
+        const authorizationId = 'legacy-automator-authorization'
+        await tx.qualityJourneyWorkItem.create({
+          data: {
+            id: workItemId,
+            journeyId,
+            targetProjectId,
+            cycleId,
+            role,
+            status: 'COMPLETED',
+            currentAttempt: 1,
+            inputHash,
+            roleContractDigest,
+          },
+        })
+        await tx.qualityJourneyWorkAuthorization.create({
+          data: {
+            id: authorizationId,
+            journeyId,
+            targetProjectId,
+            workItemId,
+            role,
+            roleContractDigest,
+            capabilityProfileId: 'legacy-automator-profile',
+            capabilityProfileHash: digest('e'),
+            authorizationJson: '{}',
+            authorizationHash: hashQualityJourneyExecutionValue({}),
+          },
+        })
+        const startedAt = new Date('2026-09-05T00:00:00.000Z')
+        const completedAt = new Date('2026-09-05T00:00:30.000Z')
+        await tx.qualityJourneyWorkAttempt.create({
+          data: {
+            id: attemptId,
+            workItemId,
+            attempt: 1,
+            status: 'COMPLETED',
+            leaseId,
+            ownerTokenHash: materialization.ownerTokenHash,
+            leaseExpiresAt: new Date('2026-09-05T00:01:00.000Z'),
+            heartbeatSeconds: 30,
+            authorizationId,
+            startedAt,
+            completedAt,
+          },
+        })
+        await tx.qualityJourneyWorkAttemptSessionBinding.create({
+          data: {
+            attemptId,
+            journeyId,
+            targetProjectId,
+            assignmentGeneration: 1,
+            workItemId,
+            role,
+            authorizationId,
+            leaseId,
+            inputHash,
+            provenance: 'CLAIM_EXPLICIT_LEGACY_NO_SESSION_V1',
+          },
+        })
+      })
       const started = startedExecution(
         await startQualityJourneyExecution(startInput(value, 'legacy-resources'), value.client),
       )
@@ -527,11 +593,7 @@ describe('Quality Journey Phase 7 execution coordinator (SQLite)', () => {
       const source = await loadJourneyCapsuleSource(value.client, testRunId)
       const owner = await value.client.qualityJourneyExecutionTestRun.findUniqueOrThrow({
         where: { testRunId },
-        include: { executionCycle: true, testRun: { include: { testCases: true } } },
-      })
-      const prepared = await value.client.qualityJourneyPreparedRuntimeCapsule.findUniqueOrThrow({
-        where: { id: owner.preparedCapsuleId },
-        include: { materialization: true },
+        include: { executionCycle: true },
       })
       const binding = await value.client.qualityJourneyAutomationTargetBinding.findUniqueOrThrow({
         where: { id: 'binding-execution' },
@@ -555,23 +617,40 @@ describe('Quality Journey Phase 7 execution coordinator (SQLite)', () => {
         const entries = structuredClone(frozen)
         resourceChanges(entries)
         const capsuleSources = JSON.parse(owner.executionCycle.preparedCapsulesJson) as Array<Record<string, unknown>>
-        const cycle =
-          side === 'source'
-            ? {
-                ...owner.executionCycle,
-                preparedCapsulesJson: json([{ ...capsuleSources[0], resourceHashes: entries }]),
-                preparedCapsulesHash: hashQualityJourneyExecutionValue([
-                  { ...capsuleSources[0], resourceHashes: entries },
-                ]),
-              }
-            : owner.executionCycle
-        const candidateBinding = side === 'binding' ? { ...binding, resourceHashJson: json(entries) } : binding
-        const client = {
-          qualityJourneyExecutionTestRun: { findUniqueOrThrow: async () => ({ ...owner, executionCycle: cycle }) },
-          qualityJourneyPreparedRuntimeCapsule: { findUniqueOrThrow: async () => prepared },
-          qualityJourneyAutomationTargetBinding: { findUniqueOrThrow: async () => candidateBinding },
-        } as unknown as PrismaClient
-        return loadJourneyCapsuleSource(client, testRunId)
+        const changed = [{ ...capsuleSources[0], resourceHashes: entries }]
+        const cycle = {
+          ...owner.executionCycle,
+          preparedCapsulesJson: canonicalContractJson(changed),
+          preparedCapsulesHash: hashQualityJourneyExecutionValue(changed),
+        }
+        // Supply the same forged read to both the retained-owner validator and source loader.
+        const client = value.client.$extends({
+          query: {
+            qualityJourneyExecutionCycle: {
+              async findUnique({ args, query }) {
+                const row = await query(args)
+                return side === 'source' && row?.id === cycle.id ? cycle : row
+              },
+            },
+            qualityJourneyExecutionTestRun: {
+              async findUniqueOrThrow({ args, query }) {
+                const row = await query(args)
+                return side === 'source' && row.id === owner.id && args.include?.executionCycle
+                  ? { ...row, executionCycle: cycle }
+                  : row
+              },
+            },
+            qualityJourneyAutomationTargetBinding: {
+              async findUniqueOrThrow({ args, query }) {
+                const row = await query(args)
+                return side === 'binding' && row.id === binding.id
+                  ? { ...row, resourceHashJson: canonicalContractJson(entries) }
+                  : row
+              },
+            },
+          },
+        })
+        return loadJourneyCapsuleSource(client as unknown as PrismaClient, testRunId)
       }
       await expect(
         loadWith(items => {
@@ -1132,15 +1211,13 @@ describe('Quality Journey Phase 7 execution coordinator (SQLite)', () => {
           `INSERT INTO "QualityJourneyExecutionTestRun" ("id", "executionCycleId", "preparedCapsuleId", "testRunId", "runId") VALUES ('forged-binding', '${cycle.id}', 'forged-prepared', '${forgedRun.id}', '${forgedRun.runId}')`,
         ),
       ).rejects.toThrow('TestRun binding is outside the frozen cycle scope')
-      await value.client.targetProject.create({
-        data: {
-          id: 'target-execution-foreign',
-          kind: 'LOCAL_WORKSPACE',
-          canonicalIdentity: 'path:foreign',
-          canonicalPath: '/foreign',
-          displayName: 'foreign',
-          fingerprint: digest('f'),
-        },
+      await createTargetProjectFixture(value.client, {
+        id: 'target-execution-foreign',
+        kind: 'LOCAL_WORKSPACE',
+        canonicalIdentity: 'path:foreign',
+        canonicalPath: '/foreign',
+        displayName: 'foreign',
+        fingerprint: digest('f'),
       })
       await value.client.environment.create({
         data: {

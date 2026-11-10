@@ -25,7 +25,10 @@ const tables = [
   'QualityJourneyCoordinatorSession',
   'QualityJourneyWorkAttemptSessionBinding',
 ]
-const snapshot = () => Object.fromEntries(tables.map(t => [t, db.prepare(`SELECT * FROM "${t}" ORDER BY rowid`).all()]))
+const snapshot = projections =>
+  Object.fromEntries(
+    tables.map(table => [table, db.prepare(`SELECT ${projections[table]} FROM "${table}" ORDER BY rowid`).all()]),
+  )
 try {
   db.exec('PRAGMA foreign_keys=ON')
   const migrations = verifiedDatabaseMigrations(process.cwd())
@@ -111,10 +114,21 @@ try {
         : {}),
     })
   }
-  const before = snapshot()
+  // Later migrations may add columns. Compare the original storage across the full upgrade.
+  const predecessorProjections = Object.fromEntries(
+    tables.map(table => [
+      table,
+      db
+        .prepare(`PRAGMA table_info("${table}")`)
+        .all()
+        .map(({ name }) => `"${name}"`)
+        .join(', '),
+    ]),
+  )
+  const before = snapshot(predecessorProjections)
   for (const m of migrations.slice(cut))
     db.exec(readFileSync(path.join('prisma/migrations', m.name, 'migration.sql'), 'utf8'))
-  assert.deepEqual(snapshot(), before)
+  assert.deepEqual(snapshot(predecessorProjections), before)
   for (const table of [
     'QualityJourneyProviderRun',
     'QualityJourneyProviderDispatchIntent',
@@ -125,7 +139,7 @@ try {
     assert.equal(db.prepare(`SELECT COUNT(*) AS n FROM "${table}"`).get().n, 0)
   db.close()
   db = new DatabaseSync(dbPath)
-  assert.deepEqual(snapshot(), before)
+  assert.deepEqual(snapshot(predecessorProjections), before)
   assert.equal(
     db.prepare('SELECT status FROM QualityJourneyWorkAttempt WHERE id=?').get('attempt:unknown').status,
     'DISPATCH_UNRESOLVED',

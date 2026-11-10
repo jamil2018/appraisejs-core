@@ -6,9 +6,10 @@ import { PrismaClient } from '@prisma/client'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import type { CollaborationRecord } from '@/lib/repository-collaboration'
-import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
+import { copyMigratedTestDatabase, createTargetProjectFixture } from '@/test/migrated-test-database'
 
 import { connectCollaboration, updateCollaborationPolicy } from './binding-service'
+import { completeCollaborationFixtureCoverage } from './collaboration-coverage.test-fixture'
 import {
   prepareCollaborationArchive,
   prepareCollaborationRestore,
@@ -43,15 +44,13 @@ async function fixture() {
   const databasePath = path.join(workspace, 'appraise.db')
   await copyMigratedTestDatabase(databasePath)
   const client = new PrismaClient({ datasources: { db: { url: `file:${databasePath}?connection_limit=1` } } })
-  const target = await client.targetProject.create({
-    data: {
-      id: `target-${path.basename(workspace)}`,
-      kind: 'LOCAL_WORKSPACE',
-      canonicalIdentity: `path:${workspace}`,
-      canonicalPath: workspace,
-      displayName: 'Archive fixture',
-      fingerprint: `sha256:${'b'.repeat(64)}`,
-    },
+  const target = await createTargetProjectFixture(client, {
+    id: `target-${path.basename(workspace)}`,
+    kind: 'LOCAL_WORKSPACE',
+    canonicalIdentity: `path:${workspace}`,
+    canonicalPath: workspace,
+    displayName: 'Archive fixture',
+    fingerprint: `sha256:${'b'.repeat(64)}`,
   })
   const binding = await connectCollaboration(
     {
@@ -91,6 +90,12 @@ describe('collaboration archive and recovery', () => {
       const localModule = await client.module.create({
         data: { id: 'module-local', name: 'Checkout', targetProjectId: target.id },
       })
+      await completeCollaborationFixtureCoverage(
+        client,
+        target.id,
+        ['MODULE'],
+        [{ kind: 'MODULE', resourceId: localModule.id }],
+      )
       const published = await client.$transaction(async transaction => {
         await projectSnapshotInTransaction(transaction, binding.id)
         return transaction.collaborationEntityMap.findFirst({
@@ -221,6 +226,15 @@ describe('collaboration archive and recovery', () => {
           targetProjectId: target.id,
         },
       })
+      await completeCollaborationFixtureCoverage(
+        client,
+        target.id,
+        ['MODULE', 'LOCATOR_GROUP'],
+        [
+          { kind: 'MODULE', resourceId: localModule.id },
+          { kind: 'LOCATOR_GROUP', resourceId: localGroup.id },
+        ],
+      )
       const groupMap = await client.$transaction(async transaction => {
         await projectSnapshotInTransaction(transaction, binding.id)
         return transaction.collaborationEntityMap.findFirst({
@@ -343,6 +357,12 @@ describe('collaboration archive and recovery', () => {
       const localModule = await client.module.create({
         data: { id: 'module-local', name: 'Checkout', targetProjectId: target.id },
       })
+      await completeCollaborationFixtureCoverage(
+        client,
+        target.id,
+        ['MODULE'],
+        [{ kind: 'MODULE', resourceId: localModule.id }],
+      )
       const map = await client.$transaction(async transaction => {
         await projectSnapshotInTransaction(transaction, binding.id)
         return transaction.collaborationEntityMap.findFirst({

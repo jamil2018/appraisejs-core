@@ -1,3 +1,5 @@
+import { fileURLToPath } from 'node:url'
+import { build } from 'esbuild'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -11,6 +13,23 @@ import {
 } from './step-definition-draft-helpers'
 
 describe('Step Definition draft helpers', () => {
+  it.each([
+    ['draft helpers', './step-definition-draft-helpers.ts'],
+    ['composition authoring', '../../../lib/step-definition/composition-authoring.ts'],
+    ['test-case step schema', '../../../constants/form-opts/test-case-step-form-opts.ts'],
+  ])('bundles %s for browsers without Node built-in dependencies', async (_label, relativePath) => {
+    await expect(
+      build({
+        entryPoints: [fileURLToPath(new URL(relativePath, import.meta.url))],
+        bundle: true,
+        platform: 'browser',
+        format: 'esm',
+        write: false,
+        logLevel: 'silent',
+      }),
+    ).resolves.toMatchObject({ errors: [] })
+  })
+
   it('creates stable named bindings and preserves input metadata across reorder', () => {
     const initial = reconcileNamedInputs(createHumanStepDraft(), 'I send {message} to {recipient}')
     const described = {

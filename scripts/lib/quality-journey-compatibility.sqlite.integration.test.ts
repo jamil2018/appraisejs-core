@@ -6,7 +6,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { PrismaClient } from '@prisma/client'
 import { expect, it } from 'vitest'
-import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
+import { copyMigratedTestDatabase, createTargetProjectFixture } from '@/test/migrated-test-database'
 import {
   admitExternalQualityJourneyWork,
   claimExternalQualityJourneyWork,
@@ -70,6 +70,14 @@ const migrationRoot = path.join(process.cwd(), 'prisma/migrations')
 const firstC31Migration = '20261002010000_add_capsule_stop_receipt'
 const hash = (letter: string) => `sha256:${letter.repeat(64)}`
 const timestamp = '2026-09-30T12:00:00.000Z'
+const fixtureTarget = {
+  id: 'target',
+  kind: 'LOCAL_WORKSPACE' as const,
+  canonicalIdentity: 'path:/tmp/c32-synthetic',
+  canonicalPath: '/tmp/c32-synthetic',
+  displayName: 'Synthetic C3.2 target',
+  fingerprint: hash('a'),
+}
 const compatibilityOptions = (filename: string) => ({
   cwd: process.cwd(),
   env: { DATABASE_URL: `file:${filename}` },
@@ -121,15 +129,7 @@ async function recordAppliedMigration(db: SqlDatabase, name: string) {
 
 function seedHistoricalRows(db: SqlDatabase) {
   // Synthetic stored-data fixture only. These rows are not live Journey qualification evidence.
-  insert(db, 'TargetProject', {
-    id: 'target',
-    kind: 'LOCAL_WORKSPACE',
-    canonicalIdentity: 'path:/tmp/c32-synthetic',
-    canonicalPath: '/tmp/c32-synthetic',
-    displayName: 'Synthetic C3.2 target',
-    fingerprint: hash('a'),
-    updatedAt: timestamp,
-  })
+  insert(db, 'TargetProject', { ...fixtureTarget, updatedAt: timestamp })
   for (const [id, status, cycle, revision] of [
     ['active', 'ACTIVE', 'active-cycle', 'active-revision'],
     ['interrupted', 'PAUSED', 'interrupted-cycle', 'interrupted-revision'],
@@ -383,15 +383,12 @@ async function createPreChangeExternalAssignment(filename: string) {
   // Prisma client must never be pointed at an older schema before its upgrade.
   const currentFilename = `${filename}.current`
   await copyMigratedTestDatabase(currentFilename)
-  const current = new SqlDatabase(currentFilename)
   const historical = new SqlDatabase(filename)
-  const target = historical.prepare('SELECT * FROM TargetProject WHERE id=?').get('target')
-  if (!target) throw new Error('Historical compatibility fixture target was not found')
-  insert(current, 'TargetProject', target)
   const client = new PrismaClient({ datasources: { db: { url: `file:${currentFilename}` } } })
   const assignmentSecret = 'u'.repeat(32)
   const principal = { principalId: 'synthetic-unexpired-principal', assurance: 'PROJECT_CREDENTIAL_ONLY' as const }
   try {
+    await createTargetProjectFixture(client, { ...fixtureTarget, updatedAt: new Date(timestamp) })
     const created = await createQualityJourney(
       {
         targetProjectId: 'target',

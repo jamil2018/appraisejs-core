@@ -13,6 +13,7 @@ import { RuntimeCapsuleTestRunService } from '@/services/test-run/runtime-capsul
 import { TestRunArtifactAccessService } from '@/services/test-run/test-run-artifact-access-service'
 import { ServiceError } from '@/services/shared/errors'
 import { submitDurableQualityJourneyCommandInTransaction } from './quality-journey-service'
+import { validateRetainedExecutionUseForTestRunInTransaction } from './quality-journey-shared-resource-use-service'
 
 type RuntimeInput = { executionCycleId: string }
 const defaultAppraiseRoot = () => path.join(process.cwd(), '.appraise')
@@ -32,18 +33,53 @@ async function launchReservedRun(
   if (binding.status !== 'RESERVED') return
   const claimed = await client.$transaction(async tx => {
     const cycle = await tx.qualityJourneyExecutionCycle.findUniqueOrThrow({ where: { id: input.executionCycleId } })
+    const current = await tx.qualityJourneyExecutionTestRun.findUniqueOrThrow({
+      where: { id: binding.id },
+      include: { testRun: true },
+    })
+    if (
+      current.executionCycleId !== cycle.id ||
+      current.testRunId !== binding.testRunId ||
+      current.preparedCapsuleId !== binding.preparedCapsuleId ||
+      current.runId !== binding.runId ||
+      current.testRun.id !== current.testRunId ||
+      current.testRun.runId !== current.runId ||
+      current.testRun.intent !== 'QUALITY_JOURNEY' ||
+      current.testRun.targetProjectId !== cycle.targetProjectId
+    )
+      throw new ServiceError('Journey launch scope changed.', 'CONFLICT', 409, {
+        protocol: 'M06_FROZEN_RUN_SELECTION_V1',
+        reason: 'FROZEN_EXECUTION_IDENTITY_MISMATCH',
+      })
+    if (current.status !== 'RESERVED' || terminal(current.testRun.status)) return null
     const journey = await tx.qualityJourney.findUniqueOrThrow({ where: { id: cycle.journeyId } })
-    if (journey.status !== 'ACTIVE' || !['RESERVED', 'RUNNING'].includes(cycle.status)) return false
+    if (journey.status !== 'ACTIVE' || !['RESERVED', 'RUNNING'].includes(cycle.status)) return null
+    const source = await validateRetainedExecutionUseForTestRunInTransaction(tx, current.testRunId)
+    if (
+      source.executionIdentity.executionCycleId !== cycle.id ||
+      source.executionIdentity.executionBindingId !== current.id ||
+      source.executionIdentity.preparedCapsuleId !== current.preparedCapsuleId ||
+      source.executionIdentity.testRunDbId !== current.testRunId ||
+      source.executionIdentity.runId !== current.runId
+    )
+      throw conflict('Journey launch identity differs from the retained execution owner.')
     const changed = await tx.qualityJourneyExecutionTestRun.updateMany({
-      where: { id: binding.id, status: 'RESERVED' },
+      where: {
+        id: current.id,
+        executionCycleId: cycle.id,
+        testRunId: current.testRunId,
+        runId: current.runId,
+        status: 'RESERVED',
+      },
       data: { status: 'LAUNCHING' },
     })
-    return changed.count === 1
+    return changed.count === 1 ? source.executionIdentity : null
   })
   if (!claimed) return
   try {
     await new RuntimeCapsuleTestRunService(client, appraiseRoot).startJourneyPrepared({
-      testRunDbId: binding.testRunId,
+      testRunDbId: claimed.testRunDbId,
+      expectedExecutionIdentity: claimed,
       onTerminal: () => reconcileQualityJourneyExecutionRuntime(input, client, appraiseRoot),
     })
     await client.qualityJourneyExecutionTestRun.updateMany({

@@ -82,6 +82,9 @@ The package is bundled-only: it does not fetch scaffold templates from a remote 
 contents are stored as one full `templates/base` scaffold plus small `templates/flavors/starter` and
 `templates/flavors/blank` overlays.
 
+Repository template preparation runs each TypeScript sync script once through TSX with the copied workspace
+configuration. A script failure propagates to preparation without retrying it through another loader.
+
 ## Common Scripts In The Generated App
 
 | Script                                       | What it does                                                                                         |

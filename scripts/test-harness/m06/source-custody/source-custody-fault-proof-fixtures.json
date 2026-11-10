@@ -1,0 +1,225 @@
+{
+  "ipc-cleanup-ready": {
+    "identity": {
+      "pid": 8,
+      "nonce": "inert-proof",
+      "faultSelector": "ipc-cleanup-ready",
+      "selectedLabel": "canonical"
+    },
+    "armed": {
+      "status": "ARMED_SOURCE_IPC_FAULT",
+      "pid": 8,
+      "nonce": "inert-proof",
+      "faultSelector": "ipc-cleanup-ready",
+      "selectedLabel": "canonical",
+      "phase": "WARMUP_READY",
+      "admission": 3,
+      "reportAfterReceiptThrows": true
+    },
+    "receipt": {
+      "value": {
+        "status": "FAIL_RETENTION_REQUESTED_LIVENESS_UNVERIFIED",
+        "pid": 8,
+        "nonce": "inert-proof",
+        "faultSelector": "ipc-cleanup-ready",
+        "selectedLabel": "canonical",
+        "phase": "WARMUP_READY",
+        "admission": 3,
+        "actualPromisesRetained": 4,
+        "passiveReferencesRetained": 7,
+        "originalCaptured": true,
+        "error": "Required source IPC channel disconnected"
+      },
+      "digest": "synthetic-receipt-reference"
+    },
+    "observed": {
+      "status": "EXPECTED_SOURCE_IPC_LOSS_RETAINED",
+      "pid": 8,
+      "nonce": "inert-proof",
+      "faultSelector": "ipc-cleanup-ready",
+      "selectedLabel": "canonical",
+      "phase": "WARMUP_READY",
+      "admission": 3,
+      "originalCaptured": true,
+      "firstCause": true,
+      "receiptDigest": "synthetic-receipt-reference",
+      "rows": {
+        "order": 12,
+        "armed": 1,
+        "waiter": 2,
+        "invoked": 3,
+        "lost": 4,
+        "actualEvent": 5,
+        "receipt": 6,
+        "release": 7,
+        "gateObserved": 8,
+        "entered": 9,
+        "fenced": 10,
+        "reportError": 5,
+        "receiptDigest": "synthetic-receipt-reference",
+        "observerRegistrations": 2,
+        "observersAtFault": 2,
+        "admissionsAtFault": 4,
+        "namedReferencesAtFault": 2,
+        "readyFulfilled": true,
+        "cleanupUnrequested": true,
+        "callbackFulfilled": false,
+        "suppressed": false,
+        "controlledFulfilled": false,
+        "outerFulfilled": false,
+        "rootFulfilled": false,
+        "sameValue": false,
+        "postRawCount": 0,
+        "published": true
+      },
+      "postFailureRaw": [],
+      "passiveIncomplete": false,
+      "cleanupRequests": 0,
+      "fixtureAdmissionsAfterFailure": 0,
+      "fixtureReferencesAfterFailure": 0,
+      "claim": "SYNTHETIC_PROTOCOL_TEST_ONLY"
+    }
+  },
+  "ipc-reserve-controlled": {
+    "identity": {
+      "pid": 8,
+      "nonce": "inert-proof",
+      "faultSelector": "ipc-reserve-controlled",
+      "selected": "ipc-reserve-controlled"
+    },
+    "armed": {
+      "status": "ARMED_SOURCE_IPC_FAULT",
+      "pid": 8,
+      "nonce": "inert-proof",
+      "faultSelector": "ipc-reserve-controlled",
+      "selected": "ipc-reserve-controlled",
+      "phase": "IPC_RESERVE_CONTROLLED",
+      "admission": 3,
+      "reportAfterReceiptThrows": true
+    },
+    "receipt": {
+      "value": {
+        "status": "FAIL_RETENTION_REQUESTED_LIVENESS_UNVERIFIED",
+        "pid": 8,
+        "nonce": "inert-proof",
+        "faultSelector": "ipc-reserve-controlled",
+        "selected": "ipc-reserve-controlled",
+        "phase": "IPC_RESERVE_CONTROLLED",
+        "admission": 3,
+        "actualPromisesRetained": 4,
+        "passiveReferencesRetained": 7,
+        "originalCaptured": true,
+        "error": "Required source IPC channel disconnected"
+      },
+      "digest": "synthetic-receipt-reference"
+    },
+    "observed": {
+      "status": "EXPECTED_SOURCE_IPC_LOSS_RETAINED",
+      "pid": 8,
+      "nonce": "inert-proof",
+      "faultSelector": "ipc-reserve-controlled",
+      "selected": "ipc-reserve-controlled",
+      "phase": "IPC_RESERVE_CONTROLLED",
+      "admission": 3,
+      "originalCaptured": true,
+      "firstCause": true,
+      "receiptDigest": "synthetic-receipt-reference",
+      "rows": {
+        "order": 12,
+        "armed": 1,
+        "waiter": 2,
+        "invoked": 3,
+        "lost": 4,
+        "actualEvent": 5,
+        "receipt": 6,
+        "release": 7,
+        "gateObserved": 8,
+        "entered": 9,
+        "fenced": 10,
+        "reportError": 5,
+        "receiptDigest": "synthetic-receipt-reference",
+        "observerRegistrations": 4,
+        "observersAtFault": 4,
+        "admissionsAtFault": 4,
+        "namedReferencesAtFault": 2,
+        "readyFulfilled": false,
+        "cleanupUnrequested": true,
+        "callbackFulfilled": true,
+        "suppressed": true,
+        "controlledFulfilled": true,
+        "outerFulfilled": true,
+        "rootFulfilled": true,
+        "sameValue": true,
+        "postRawCount": 6,
+        "published": true
+      },
+      "postFailureRaw": [
+        {
+          "order": 7,
+          "passiveCell": 0,
+          "site": "$executeRawUnsafe",
+          "failedAtEntry": true,
+          "failedAtCapture": true,
+          "genuineTx": true,
+          "admission": 3,
+          "phase": "IPC_RESERVE_CONTROLLED"
+        },
+        {
+          "order": 8,
+          "passiveCell": 1,
+          "site": "$executeRawUnsafe",
+          "failedAtEntry": true,
+          "failedAtCapture": true,
+          "genuineTx": true,
+          "admission": 3,
+          "phase": "IPC_RESERVE_CONTROLLED"
+        },
+        {
+          "order": 9,
+          "passiveCell": 2,
+          "site": "$executeRawUnsafe",
+          "failedAtEntry": true,
+          "failedAtCapture": true,
+          "genuineTx": true,
+          "admission": 3,
+          "phase": "IPC_RESERVE_CONTROLLED"
+        },
+        {
+          "order": 10,
+          "passiveCell": 3,
+          "site": "$executeRawUnsafe",
+          "failedAtEntry": true,
+          "failedAtCapture": true,
+          "genuineTx": true,
+          "admission": 3,
+          "phase": "IPC_RESERVE_CONTROLLED"
+        },
+        {
+          "order": 11,
+          "passiveCell": 4,
+          "site": "$executeRawUnsafe",
+          "failedAtEntry": true,
+          "failedAtCapture": true,
+          "genuineTx": true,
+          "admission": 3,
+          "phase": "IPC_RESERVE_CONTROLLED"
+        },
+        {
+          "order": 12,
+          "passiveCell": 5,
+          "site": "$executeRawUnsafe",
+          "failedAtEntry": true,
+          "failedAtCapture": true,
+          "genuineTx": true,
+          "admission": 3,
+          "phase": "IPC_RESERVE_CONTROLLED"
+        }
+      ],
+      "passiveIncomplete": false,
+      "cleanupRequests": 0,
+      "fixtureAdmissionsAfterFailure": 0,
+      "fixtureReferencesAfterFailure": 0,
+      "claim": "SYNTHETIC_PROTOCOL_TEST_ONLY"
+    }
+  }
+}

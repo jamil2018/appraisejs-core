@@ -15,7 +15,8 @@ import {
   assertCoordinatorMutationSession,
   type CoordinatorSessionCredentials,
 } from './quality-journey-coordinator-session'
-import { submitDurableQualityJourneyCommandInTransaction } from './quality-journey-service'
+import { submitDurableQualityJourneyCommandWithBusinessJoinInTransaction } from './quality-journey-service'
+import { withJourneyBusinessWriteJoinInTransaction } from './quality-journey-business-write-join'
 import { qualityJourneyClosureItems } from './quality-journey-closure-validation'
 import { validateQualityJourneyTriageReport } from './quality-journey-triage-validation'
 
@@ -196,137 +197,141 @@ export async function closeQualityJourney(
 ) {
   const input = qualityJourneyClosureInputSchema.parse(value)
   const requestHash = hash(input)
-  return client.$transaction(async tx => {
-    await assertCoordinatorMutationSession(coordinatorSession, input, tx)
-    const context = await readClosureContext(input, tx)
-    if (context.closure) {
-      if (context.closure.idempotencyKey !== input.idempotencyKey || context.closure.requestHash !== requestHash)
-        throw conflict('This journey already has a different immutable closure.')
-      return {
-        receipt: journeyClosureSchema.parse(JSON.parse(context.closure.closureJson)),
-        contentHash: context.closure.contentHash,
-        replayed: true,
+  return client.$transaction(tx =>
+    withJourneyBusinessWriteJoinInTransaction(tx, input, coordinatorSession, async beforeWrite => {
+      await assertCoordinatorMutationSession(coordinatorSession, input, tx)
+      const context = await readClosureContext(input, tx)
+      if (context.closure) {
+        if (context.closure.idempotencyKey !== input.idempotencyKey || context.closure.requestHash !== requestHash)
+          throw conflict('This journey already has a different immutable closure.')
+        return {
+          receipt: journeyClosureSchema.parse(JSON.parse(context.closure.closureJson)),
+          contentHash: context.closure.contentHash,
+          replayed: true,
+        }
       }
-    }
-    validateClosureRequest(context, input)
-    const { report, parsedReport, frozen } = await validateReportLineage(context, tx)
-    const unresolvedItems = qualityJourneyClosureItems(parsedReport, report.contentHash, frozen)
-    const closureId = idFor(input.journeyId, input.idempotencyKey)
-    const closedAt = new Date().toISOString()
-    const receipt = journeyClosureSchema.parse({
-      schemaVersion: 'appraise.quality-journey/v1',
-      closureId,
-      journeyId: input.journeyId,
-      cycleId: context.journey.activeCycleId,
-      reportRevision: {
-        kind: 'TEST_REPORT_ANALYSIS_REVISION',
-        artifactId: report.id,
-        revisionId: report.id,
-        contentHash: report.contentHash,
-      },
-      decision: input.decision,
-      actorId: 'USER',
-      unresolvedItems,
-      closedAt,
-      ...(input.decision === 'RISK_ACCEPTED'
-        ? {
-            riskAcceptance: {
-              rationale: input.rationale,
-              acceptedItemIds: input.acceptedItemIds,
-              acceptedAt: closedAt,
-            },
-          }
-        : {}),
-    })
-    const contentHash = hash(receipt)
-    await tx.qualityJourneyClosure.create({
-      data: {
-        id: closureId,
-        journeyId: input.journeyId,
-        reportRevisionId: report.id,
-        cycleId: receipt.cycleId,
-        reportHash: report.contentHash,
-        contentHash,
-        closureJson: json(receipt),
-        idempotencyKey: input.idempotencyKey,
-        requestHash,
-        closedAt: new Date(closedAt),
-      },
-    })
-    await tx.qualityJourneyArtifact.create({
-      data: {
-        id: closureId,
-        identityKey: `JOURNEY_CLOSURE:${closureId}:unrevisioned`,
-        journeyId: input.journeyId,
-        targetProjectId: input.targetProjectId,
-        cycleId: receipt.cycleId,
-        kind: 'JOURNEY_CLOSURE',
-        artifactId: closureId,
-        contentHash,
-        artifactJson: json(receipt),
-      },
-    })
-    await tx.qualityJourneyReportReview.create({
-      data: {
-        id: idFor('review', closureId),
-        journeyId: input.journeyId,
-        reportRevisionId: report.id,
-        kind: input.decision,
-        feedback: input.rationale ?? 'Exact report approved for terminal closure.',
-        idempotencyKey: `closure:${input.idempotencyKey}`,
-        requestHash,
-      },
-    })
-    const closureRef = { kind: 'JOURNEY_CLOSURE', artifactId: closureId, contentHash }
-    const link = journeyArtifactLinkSchema.parse({
-      schemaVersion: 'appraise.quality-journey/v1',
-      linkId: idFor('link', closureId),
-      journeyId: input.journeyId,
-      targetProjectId: input.targetProjectId,
-      cycleId: receipt.cycleId,
-      source: closureRef,
-      target: receipt.reportRevision,
-      relation: 'APPROVES',
-    })
-    await tx.qualityJourneyArtifactLink.create({
-      data: {
-        id: idFor('link', closureId),
-        journeyId: input.journeyId,
-        targetProjectId: input.targetProjectId,
-        cycleId: receipt.cycleId,
-        relation: link.relation,
-        linkHash: hash(link),
-        sourceJson: json(link.source),
-        targetJson: json(link.target),
-      },
-    })
-    const payload = {
-      closureId,
-      reportRevisionId: report.id,
-      reportHash: report.contentHash,
-      ...(receipt.riskAcceptance
-        ? { rationale: receipt.riskAcceptance.rationale, acceptedItemIds: receipt.riskAcceptance.acceptedItemIds }
-        : {}),
-    }
-    const result = await submitDurableQualityJourneyCommandInTransaction(
-      {
+      validateClosureRequest(context, input)
+      const { report, parsedReport, frozen } = await validateReportLineage(context, tx)
+      const unresolvedItems = qualityJourneyClosureItems(parsedReport, report.contentHash, frozen)
+      const closureId = idFor(input.journeyId, input.idempotencyKey)
+      const closedAt = new Date().toISOString()
+      const receipt = journeyClosureSchema.parse({
         schemaVersion: 'appraise.quality-journey/v1',
-        command: input.decision === 'CLOSED' ? 'CLOSE_JOURNEY' : 'RISK_ACCEPT_AND_CLOSE',
-        commandId: idFor('command', closureId),
+        closureId,
+        journeyId: input.journeyId,
+        cycleId: context.journey.activeCycleId,
+        reportRevision: {
+          kind: 'TEST_REPORT_ANALYSIS_REVISION',
+          artifactId: report.id,
+          revisionId: report.id,
+          contentHash: report.contentHash,
+        },
+        decision: input.decision,
+        actorId: 'USER',
+        unresolvedItems,
+        closedAt,
+        ...(input.decision === 'RISK_ACCEPTED'
+          ? {
+              riskAcceptance: {
+                rationale: input.rationale,
+                acceptedItemIds: input.acceptedItemIds,
+                acceptedAt: closedAt,
+              },
+            }
+          : {}),
+      })
+      const contentHash = hash(receipt)
+      await beforeWrite(tx, input)
+      await tx.qualityJourneyClosure.create({
+        data: {
+          id: closureId,
+          journeyId: input.journeyId,
+          reportRevisionId: report.id,
+          cycleId: receipt.cycleId,
+          reportHash: report.contentHash,
+          contentHash,
+          closureJson: json(receipt),
+          idempotencyKey: input.idempotencyKey,
+          requestHash,
+          closedAt: new Date(closedAt),
+        },
+      })
+      await tx.qualityJourneyArtifact.create({
+        data: {
+          id: closureId,
+          identityKey: `JOURNEY_CLOSURE:${closureId}:unrevisioned`,
+          journeyId: input.journeyId,
+          targetProjectId: input.targetProjectId,
+          cycleId: receipt.cycleId,
+          kind: 'JOURNEY_CLOSURE',
+          artifactId: closureId,
+          contentHash,
+          artifactJson: json(receipt),
+        },
+      })
+      await tx.qualityJourneyReportReview.create({
+        data: {
+          id: idFor('review', closureId),
+          journeyId: input.journeyId,
+          reportRevisionId: report.id,
+          kind: input.decision,
+          feedback: input.rationale ?? 'Exact report approved for terminal closure.',
+          idempotencyKey: `closure:${input.idempotencyKey}`,
+          requestHash,
+        },
+      })
+      const closureRef = { kind: 'JOURNEY_CLOSURE', artifactId: closureId, contentHash }
+      const link = journeyArtifactLinkSchema.parse({
+        schemaVersion: 'appraise.quality-journey/v1',
+        linkId: idFor('link', closureId),
         journeyId: input.journeyId,
         targetProjectId: input.targetProjectId,
-        actor: 'USER',
-        expectedStateHash: input.expectedStateHash,
-        idempotencyKey: `closure:${input.idempotencyKey}`,
-        inputArtifactRefs: [receipt.reportRevision, closureRef],
-        payload,
-      },
-      tx,
-      true,
-      false,
-      coordinatorSession,
-    )
-    if (result.outcome !== 'COMMITTED') throw conflict('Closure could not commit against the current state.')
-    return { receipt, contentHash, replayed: false }
-  })
+        cycleId: receipt.cycleId,
+        source: closureRef,
+        target: receipt.reportRevision,
+        relation: 'APPROVES',
+      })
+      await tx.qualityJourneyArtifactLink.create({
+        data: {
+          id: idFor('link', closureId),
+          journeyId: input.journeyId,
+          targetProjectId: input.targetProjectId,
+          cycleId: receipt.cycleId,
+          relation: link.relation,
+          linkHash: hash(link),
+          sourceJson: json(link.source),
+          targetJson: json(link.target),
+        },
+      })
+      const payload = {
+        closureId,
+        reportRevisionId: report.id,
+        reportHash: report.contentHash,
+        ...(receipt.riskAcceptance
+          ? { rationale: receipt.riskAcceptance.rationale, acceptedItemIds: receipt.riskAcceptance.acceptedItemIds }
+          : {}),
+      }
+      const result = await submitDurableQualityJourneyCommandWithBusinessJoinInTransaction(
+        {
+          schemaVersion: 'appraise.quality-journey/v1',
+          command: input.decision === 'CLOSED' ? 'CLOSE_JOURNEY' : 'RISK_ACCEPT_AND_CLOSE',
+          commandId: idFor('command', closureId),
+          journeyId: input.journeyId,
+          targetProjectId: input.targetProjectId,
+          actor: 'USER',
+          expectedStateHash: input.expectedStateHash,
+          idempotencyKey: `closure:${input.idempotencyKey}`,
+          inputArtifactRefs: [receipt.reportRevision, closureRef],
+          payload,
+        },
+        tx,
+        beforeWrite,
+        true,
+        false,
+        coordinatorSession,
+      )
+      if (result.outcome !== 'COMMITTED') throw conflict('Closure could not commit against the current state.')
+      return { receipt, contentHash, replayed: false }
+    }),
+  )
 }

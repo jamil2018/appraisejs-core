@@ -10,6 +10,7 @@ import {
 
 import prisma from '@/config/db-config'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
+import { isE2Digest, isE2Uint } from '@/lib/quality-journey/provider-grant-contract'
 import { ServiceError } from '@/services/shared/errors'
 import { assertCurrentCoordinatorSession, trustedHumanCoordinatorSession } from './quality-journey-coordinator-session'
 
@@ -88,6 +89,19 @@ export type TransferQualityJourneyCoordinatorSessionInput = ApprovedSessionReque
 type SessionTransitionInput =
   ActivateQualityJourneyCoordinatorSessionInput | TransferQualityJourneyCoordinatorSessionInput
 type SessionRow = QualityJourneyCoordinatorSession
+
+/** A transition cannot adopt an E2 row without the private allocation and retirement verifier. */
+function assertLegacyTransitionEnrollment(session: SessionRow, role: 'successor' | 'predecessor') {
+  const enrollment = [session.e2EnrollmentKind, session.e2EnrollmentDigest, session.e2EnrolledAt]
+  if (enrollment.every(value => value === null)) return
+  if (session.e2EnrollmentKind !== 'E2_V1' || !isE2Digest(session.e2EnrollmentDigest) ||
+    !(session.e2EnrolledAt instanceof Date) || !Number.isFinite(session.e2EnrolledAt.getTime()))
+    throw new ServiceError('Coordinator session E2 enrollment is incomplete or corrupt.', 'CONFLICT')
+  throw new ServiceError(
+    `E2 ${role} transition requires qualified private allocation and retirement effectiveness evidence.`,
+    'CONFLICT',
+  )
+}
 
 function browserStopReceiptMatchesOwner(receipt: Record<string, unknown>, browser: QualityJourneyOwnedBrowser) {
   return (
@@ -228,6 +242,7 @@ async function readTransitionPredecessor(
       tx,
     )
     const predecessorId = current.session!.id
+    assertLegacyTransitionEnrollment(current.session!, 'predecessor')
     if (predecessorId === successor.id) throw new ServiceError('A transfer requires a distinct successor.', 'CONFLICT')
     return predecessorId
   }
@@ -261,18 +276,22 @@ async function commitSessionOwnership(
   result: SessionTransitionResult,
   tx: Prisma.TransactionClient,
 ) {
+  if (!isE2Uint(journey.e2AdmissionVersion, 2_147_483_646))
+    throw new ServiceError('Coordinator E2 admission version is invalid.', 'CONFLICT')
   const acquired = await tx.qualityJourney.updateMany({
     where: {
       id: journey.id,
       targetProjectId: journey.targetProjectId,
       hostingMode: 'APP_SERVER_LOCAL_V1',
       ownershipVersion: input.expectedOwnershipVersion,
+      e2AdmissionVersion: journey.e2AdmissionVersion,
       currentCoordinatorSessionId: result.predecessorSessionId,
       stateHash: input.expectedStateHash,
     },
     data: {
       currentCoordinatorSessionId: result.coordinatorSessionId,
       ownershipVersion: { increment: 1 },
+      e2AdmissionVersion: { increment: 1 },
       updatedAt: journey.updatedAt,
     },
   })
@@ -353,6 +372,7 @@ async function transitionSession(
       const successorId = transfer ? input.successorSessionId : input.coordinatorSessionId
       const successor = await tx.qualityJourneyCoordinatorSession.findUnique({ where: { id: successorId } })
       assertTransitionSuccessor(successor, journey, input.coordinatorPrincipalId)
+      assertLegacyTransitionEnrollment(successor, 'successor')
       const replay = replaySessionTransition(successor, journey, input.requestId, requestHash)
       if (replay) return replay
       assertTransitionSnapshot(input, journey, successor)

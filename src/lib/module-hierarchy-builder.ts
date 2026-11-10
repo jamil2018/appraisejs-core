@@ -1,52 +1,102 @@
 import prisma from '@/config/db-config'
-import type { Prisma } from '@prisma/client'
+import { randomUUID } from 'node:crypto'
+import type { Module, Prisma, PrismaClient } from '@prisma/client'
+import { isSharedResourceId, sharedResourceBounds } from '@/lib/quality-journey/shared-resource-contract'
+import { prepareSharedResourceMutationInTransaction } from '@/services/coordinator/quality-journey-shared-resource-guard-service'
+import { ServiceError } from '@/services/shared/errors'
 
-type ModuleClient = Pick<Prisma.TransactionClient, 'module'>
+type PlannedModule = Readonly<{
+  id: string
+  name: string
+  parentId: string | null
+  targetProjectId: string
+  path: string
+}>
 
-/**
- * Creates or finds a module by its path
- * @param modulePath - The module path (e.g., "/module1/submodule")
- * @param moduleName - The name of the module
- * @param parentId - Optional parent module ID
- * @returns Promise<string> - The ID of the created or found module
- */
-async function createOrFindModule(
+/** Borrow one complete transaction for the whole insert-only hierarchy. */
+export async function buildModuleHierarchyInTransaction(
   modulePath: string,
-  moduleName: string,
-  parentId: string | undefined,
   targetProjectId: string,
-  client: ModuleClient,
+  tx: Prisma.TransactionClient,
 ): Promise<string> {
   try {
-    // First, try to find existing module by name and parent
-    const existingModule = await client.module.findFirst({
-      where: {
-        name: moduleName,
-        parentId: parentId || null,
-        targetProjectId,
-        archivedAt: null,
-      },
-    })
-
-    if (existingModule) {
-      return existingModule.id
+    if (
+      typeof modulePath !== 'string' ||
+      modulePath.length > sharedResourceBounds.bytes ||
+      !isSharedResourceId(targetProjectId)
+    )
+      throw new ServiceError('Module hierarchy path or target project is invalid.', 'VALIDATION', 400)
+    // Snapshot the complete path before the first asynchronous boundary. Empty
+    // paths retain the existing default-root behavior.
+    const requestedParts = modulePath.split('/').filter(Boolean)
+    const defaultRoot = requestedParts.length === 0
+    const pathParts = Object.freeze(defaultRoot ? ['root'] : requestedParts)
+    if (pathParts.length > sharedResourceBounds.keys)
+      throw new ServiceError('Module hierarchy exceeds the supported resource bound.', 'VALIDATION', 400)
+    const planned: PlannedModule[] = []
+    const visited = new Set<string>()
+    let parentId: string | null = null
+    let path = ''
+    let missingPrefix = false
+    for (const name of pathParts) {
+      path += `/${name}`
+      // Descendants of a new parent cannot already exist under its fresh ID.
+      const existing: Module | null = missingPrefix
+        ? null
+        : await tx.module.findFirst({
+            where: { name, parentId, targetProjectId, archivedAt: null },
+          })
+      if (existing) {
+        if (
+          !isSharedResourceId(existing.id) ||
+          visited.has(existing.id) ||
+          existing.targetProjectId !== targetProjectId ||
+          existing.name !== name ||
+          existing.parentId !== parentId ||
+          existing.archivedAt !== null
+        )
+          throw new ServiceError('Module hierarchy parent does not match the active target path.', 'CONFLICT', 409)
+        visited.add(existing.id)
+        parentId = existing.id
+        continue
+      }
+      missingPrefix = true
+      const id = randomUUID()
+      if (visited.has(id)) throw new ServiceError('Module hierarchy identity collision.', 'CONFLICT', 409)
+      visited.add(id)
+      planned.push(Object.freeze({ id, name, parentId, targetProjectId, path }))
+      parentId = id
     }
-
-    // Create new module
-    const newModule = await client.module.create({
-      data: {
-        name: moduleName,
-        parentId: parentId || null,
-        targetProjectId,
-        // Add description only if it's required by the schema
-        // For now, we'll leave it empty since it's optional
-      },
+    if (!planned.length) return parentId!
+    // Existing parents are FK reads only. Prepare the whole new-identity batch
+    // before the first resource insert, without claiming existing mutations.
+    await prepareSharedResourceMutationInTransaction(tx, targetProjectId, {
+      existing: [],
+      newRoots: planned.map(module => ({ kind: 'MODULE' as const, resourceId: module.id })),
+      deleted: [],
     })
-
-    console.log(`Created module: ${moduleName} (${modulePath})`)
-    return newModule.id
+    for (const plannedModule of planned) {
+      try {
+        const created = await tx.module.create({
+          data: {
+            id: plannedModule.id,
+            name: plannedModule.name,
+            parentId: plannedModule.parentId,
+            targetProjectId: plannedModule.targetProjectId,
+          },
+        })
+        if (created.id !== plannedModule.id)
+          throw new ServiceError('Created module does not match its prepared identity.', 'CONFLICT', 409)
+        if (defaultRoot) console.log('Created root module for features without module path')
+        else console.log(`Created module: ${plannedModule.name} (${plannedModule.path})`)
+      } catch (error) {
+        if (!defaultRoot) console.error(`Error creating module ${plannedModule.name}:`, error)
+        throw error
+      }
+    }
+    return parentId!
   } catch (error) {
-    console.error(`Error creating module ${moduleName}:`, error)
+    console.error(`Error building module hierarchy for path ${modulePath}:`, error)
     throw error
   }
 }
@@ -59,58 +109,9 @@ async function createOrFindModule(
 export async function buildModuleHierarchy(
   modulePath: string,
   targetProjectId: string,
-  client: ModuleClient = prisma,
+  client: PrismaClient = prisma,
 ): Promise<string> {
-  try {
-    // Parse the module path
-    const pathParts = modulePath.split('/').filter(part => part && part !== '')
-
-    // Handle empty path (root level) - create/find a default root module
-    if (pathParts.length === 0) {
-      const rootModule = await client.module.findFirst({
-        where: {
-          name: 'root',
-          parentId: null,
-          targetProjectId,
-          archivedAt: null,
-        },
-      })
-
-      if (rootModule) {
-        return rootModule.id
-      }
-
-      // Create default root module
-      const newRootModule = await client.module.create({
-        data: {
-          name: 'root',
-          parentId: null,
-          targetProjectId,
-        },
-      })
-
-      console.log(`Created root module for features without module path`)
-      return newRootModule.id
-    }
-
-    let currentParentId: string | undefined
-    let currentPath = ''
-
-    // Create or find each module in the hierarchy
-    for (let i = 0; i < pathParts.length; i++) {
-      const moduleName = pathParts[i]
-      currentPath += `/${moduleName}`
-
-      const moduleId = await createOrFindModule(currentPath, moduleName, currentParentId, targetProjectId, client)
-
-      currentParentId = moduleId
-    }
-
-    return currentParentId!
-  } catch (error) {
-    console.error(`Error building module hierarchy for path ${modulePath}:`, error)
-    throw error
-  }
+  return client.$transaction(tx => buildModuleHierarchyInTransaction(modulePath, targetProjectId, tx))
 }
 
 /**

@@ -1,0 +1,3 @@
+# Newly combined reconstruction13 metadata
+
+This bundle is a new combined packaging of the accepted reconstructed13 source. No historical whole13 bundle manifest existed, so no historical whole-artifact hash is claimed. Its existing-file patch and eight addition payloads reproduce the reconstructed9184 source inventory. Known historical/reconstructed defects and native UNEXECUTED status remain preserved. It does not include production15 phaseA and owned Close flush changes. Select artifact15 for the current accepted production source. See docs/m06-native-source-15.md; no compilation, execution, qualification or provider authority is granted.

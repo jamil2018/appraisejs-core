@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { TagType, TestRunResult, TestRunStatus, TestRunTestCaseStatus } from '@prisma/client'
+import { TagType, TestRunIntent, TestRunResult, TestRunStatus, TestRunTestCaseStatus } from '@prisma/client'
 
 const { mockTestRunFindUnique, mockTestRunUpdate, mockParseCucumberReport, mockReadTestRunArtifactText } = vi.hoisted(
   () => ({
@@ -35,6 +35,7 @@ function baseRun(overrides: Record<string, unknown> = {}) {
   return {
     id: 'run-db-id',
     runId: '11111111-1111-4111-8111-111111111111',
+    intent: TestRunIntent.INDEPENDENT,
     status: TestRunStatus.COMPLETED,
     result: TestRunResult.PASSED,
     reportPath: 'reports/cucumber.json',

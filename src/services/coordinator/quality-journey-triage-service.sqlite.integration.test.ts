@@ -8,7 +8,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { PrismaClient } from '@prisma/client'
 import { afterEach, describe, expect, it } from 'vitest'
-import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
+import { copyMigratedTestDatabase, createTargetProjectFixture } from '@/test/migrated-test-database'
 import { managedSpecializedFixture } from '@/test/managed-journey-specialized-fixture'
 import {
   clearAgentFactoryProviderAdaptersForTest,
@@ -89,15 +89,13 @@ async function fixture({
   // and restoration run through this single client connection.
   const client = new PrismaClient({ datasources: { db: { url: `file:${databasePath}?connection_limit=1` } } })
   clients.push(client)
-  await client.targetProject.create({
-    data: {
-      id: 'target-triage',
-      kind: 'LOCAL_WORKSPACE',
-      canonicalIdentity: `path:${workspace}`,
-      canonicalPath: workspace,
-      displayName: 'Triage fixture',
-      fingerprint: digest('a'),
-    },
+  await createTargetProjectFixture(client, {
+    id: 'target-triage',
+    kind: 'LOCAL_WORKSPACE',
+    canonicalIdentity: `path:${workspace}`,
+    canonicalPath: workspace,
+    displayName: 'Triage fixture',
+    fingerprint: digest('a'),
   })
   await client.environment.create({
     data: {
@@ -172,6 +170,32 @@ async function fixture({
       revisionId: 'analysis-r1',
       contentHash: analysisHash,
       artifactJson: json(analysisContent),
+    },
+  })
+  await client.qualityJourneyWorkItem.create({
+    data: {
+      id: 'antecedent-work',
+      journeyId,
+      targetProjectId: 'target-triage',
+      cycleId,
+      role: 'REQUIREMENT_ANALYZER',
+      status: 'COMPLETED',
+      inputHash: digest('e'),
+      roleContractDigest: digest('f'),
+      currentAttempt: 1,
+      attempts: {
+        create: {
+          id: 'antecedent-attempt',
+          attempt: 1,
+          status: 'COMPLETED',
+          leaseId: 'antecedent-lease',
+          ownerTokenHash: digest('a'),
+          leaseExpiresAt: new Date('2026-09-05T00:01:00.000Z'),
+          heartbeatSeconds: 30,
+          startedAt: new Date('2026-09-05T00:00:00.000Z'),
+          completedAt: new Date('2026-09-05T00:00:30.000Z'),
+        },
+      },
     },
   })
   await client.qualityJourneyAnalysisRevision.create({

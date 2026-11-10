@@ -7,7 +7,7 @@ import { PrismaClient } from '@prisma/client'
 import { afterAll, beforeAll, expect, it } from 'vitest'
 
 import { deriveCoordinatorProjectIdentity } from '@/lib/coordinator-api/project-identity'
-import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
+import { copyMigratedTestDatabase, createTargetProjectFixture } from '@/test/migrated-test-database'
 
 const ticket = `qjh_${'a'.repeat(32)}`
 const ticketHash = `sha256:${createHash('sha256').update(ticket).digest('hex')}`
@@ -57,15 +57,13 @@ beforeAll(async () => {
   const database = path.join(directory, 'test.db')
   await copyMigratedTestDatabase(database)
   client = new PrismaClient({ datasources: { db: { url: `file:${database}` } } })
-  await client.targetProject.create({
-    data: {
-      id: 'target-handoff-route',
-      kind: 'LOCAL_WORKSPACE',
-      canonicalIdentity: 'workspace:handoff-route',
-      canonicalPath: directory,
-      displayName: 'Route handoff target',
-      fingerprint: 'handoff-route',
-    },
+  await createTargetProjectFixture(client, {
+    id: 'target-handoff-route',
+    kind: 'LOCAL_WORKSPACE',
+    canonicalIdentity: 'workspace:handoff-route',
+    canonicalPath: directory,
+    displayName: 'Route handoff target',
+    fingerprint: 'handoff-route',
   })
   await client.qualityJourney.create({
     data: {

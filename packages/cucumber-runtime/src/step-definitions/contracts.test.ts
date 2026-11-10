@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
+import { boundedOperationValueSchema } from '../operations/value-schema.ts'
+import * as serverContracts from './contracts.ts'
+import * as invocationContracts from './invocation-contracts.ts'
+
 import {
   canonicalStepDefinitionJson,
   computeStepDefinitionHashes,
@@ -57,9 +61,30 @@ function definition(overrides: Partial<StepDefinition> = {}): StepDefinition {
 }
 
 describe('step definition contracts', () => {
+  it('shares the exact browser-safe schema objects through the existing contract exports', () => {
+    for (const name of [
+      'stepDefinitionIdSchema',
+      'stepDefinitionVersionSchema',
+      'stepDefinitionHashSchema',
+      'stepIdentitySchema',
+      'stepReferenceSchema',
+      'stepValueSchema',
+      'stepInputExpressionSchema',
+      'stepInvocationSchema',
+    ] as const) {
+      expect(serverContracts[name]).toBe(invocationContracts[name])
+    }
+    expect(serverContracts.stepValueSchema).toBe(boundedOperationValueSchema)
+    expect(serverContracts).not.toHaveProperty('identifierSchema')
+    expect(serverContracts).not.toHaveProperty('boundedText')
+  })
+
   it('canonicalizes and hashes object keys deterministically', () => {
     expect(canonicalStepDefinitionJson({ z: 1, a: { y: 2, x: 3 } })).toBe('{"a":{"x":3,"y":2},"z":1}')
     expect(stepDefinitionContentHash({ z: 1, a: 2 })).toBe(stepDefinitionContentHash({ a: 2, z: 1 }))
+    expect(stepDefinitionContentHash({ z: 1, a: 2 })).toBe(
+      'sha256:c2985c5ba6f7d2a55e768f92490ca09388e95bc4cccb9fdf11b15f4d42f93e73',
+    )
   })
 
   it('uses separate integrity domains for projections and execution', () => {

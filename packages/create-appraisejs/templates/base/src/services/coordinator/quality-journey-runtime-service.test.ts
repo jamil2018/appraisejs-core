@@ -63,6 +63,7 @@ function fixture() {
   }
   const binding = {
     id: 'binding-1',
+    executionCycleId: 'execution-1',
     testRunId: 'test-1',
     runId: 'run-1',
     preparedCapsuleId: 'prepared-1',
@@ -82,7 +83,11 @@ function fixture() {
   }
   const client = {
     qualityJourneyExecutionCycle: { findUniqueOrThrow: vi.fn(async () => cycle), update: vi.fn(), updateMany: vi.fn() },
-    qualityJourneyExecutionTestRun: { update: vi.fn(), updateMany: vi.fn(async () => ({ count: 1 })) },
+    qualityJourneyExecutionTestRun: {
+      findUniqueOrThrow: vi.fn(async () => binding),
+      update: vi.fn(),
+      updateMany: vi.fn(async () => ({ count: 1 })),
+    },
     qualityJourneyExecutionEvidenceReceipt: { count: vi.fn(async () => 0), create: vi.fn() },
     qualityJourney: {
       findUniqueOrThrow: vi.fn(async () => ({

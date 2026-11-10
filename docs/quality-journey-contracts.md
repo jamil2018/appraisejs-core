@@ -437,6 +437,22 @@ reports, and closure. Follow-up intake creates a new journey with a `FOLLOWS` li
 same target; it does not modify the closed predecessor. Library detail and JSON export retain source identities and
 public projection hashes without exporting worker leases, provider records, or environment snapshots.
 
+Materialized Suite/Case detail and export distinguish frozen history from current-row inspection. For E2 or
+unproven original enrollment, they verify the complete scoped retained materialization lineage, source proof,
+associations, canonical binding bytes, and semantic, suite, case, and ordered-step hashes before displaying frozen
+title and description. They do not require an ACTIVE Use or current coordinator credentials for historical
+inspection. Conflicting versions, incomplete lineage, corrupt proof, unsupported capabilities, or bounded overflow
+produce a neutral per-entry `REFUSED_FROZEN_HISTORY` result with no claimed source hash; scope and database
+failures remain request errors. They never substitute current Suite/Case rows for protected history.
+
+Successful `FROZEN_HISTORY` entries label their representation: Suite source hashes cover the canonical
+`{targetProjectId,moduleId,suite}` packet, while Case source hashes cover the entire canonical target binding.
+Public projection and export manifest hashes retain their existing recipes; worker output identity hashes are
+separate. Targeted detail and export can retain history after a live root is deleted. The metadata list remains
+nonauthoritative (`data: null`) and may omit deleted roots. Wholly positively proven legacy sources retain existing
+current-row inspection with a null source hash; absent lineage is not proof of legacy origin. Public history omits
+raw binding/invocation data, locator values, worker/session credentials, and provider or Environment snapshots.
+
 Three additive read-only MCP tools expose historical navigation: `quality_journey_library_list`,
 `quality_journey_artifact_get`, and `quality_journey_export`, corresponding to
 `GET quality/journeys/:journeyId/library`, `GET quality/journeys/:journeyId/library/:entryId`, and

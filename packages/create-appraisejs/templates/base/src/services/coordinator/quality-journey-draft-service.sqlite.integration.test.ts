@@ -4,7 +4,7 @@ import path from 'node:path'
 import { PrismaClient } from '@prisma/client'
 import { afterEach, describe, expect, it } from 'vitest'
 import { hashQualityJourneyRequirement } from '@/lib/quality-journey'
-import { copyMigratedTestDatabase } from '@/test/migrated-test-database'
+import { copyMigratedTestDatabase, createTargetProjectFixture } from '@/test/migrated-test-database'
 import {
   archiveQualityJourneyDraft,
   confirmQualityJourneyDraft,
@@ -28,15 +28,13 @@ async function fixture() {
   const databasePath = path.join(workspace, 'appraise.db')
   await copyMigratedTestDatabase(databasePath)
   const client = new PrismaClient({ datasources: { db: { url: `file:${databasePath}` } } })
-  await client.targetProject.create({
-    data: {
-      id: 'draft-project',
-      kind: 'LOCAL_WORKSPACE',
-      canonicalIdentity: `path:${workspace}`,
-      canonicalPath: workspace,
-      displayName: 'Draft fixture',
-      fingerprint: `sha256:${'a'.repeat(64)}`,
-    },
+  await createTargetProjectFixture(client, {
+    id: 'draft-project',
+    kind: 'LOCAL_WORKSPACE',
+    canonicalIdentity: `path:${workspace}`,
+    canonicalPath: workspace,
+    displayName: 'Draft fixture',
+    fingerprint: `sha256:${'a'.repeat(64)}`,
   })
   await client.environment.create({
     data: {

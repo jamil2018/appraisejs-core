@@ -3,6 +3,7 @@ import type { Prisma, PrismaClient } from '@prisma/client'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { createWorkerSpawnRequest } from '@/lib/quality-journey'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { createTargetProjectFixture } from '@/test/migrated-test-database'
 import { addManagedProviderAssignment, createProviderFixture } from '@/test/quality-journey-provider-fixture'
 import {
   consumeProviderSendPermit,
@@ -183,15 +184,13 @@ describe('managed provider intent committed SQLite boundaries', () => {
 
   it('serializes different Journeys and targets through one hub slot', async () => {
     const f = await fixture()
-    await f.client.targetProject.create({
-      data: {
-        id: 'second-target',
-        kind: 'LOCAL_WORKSPACE',
-        canonicalIdentity: `path:${f.workspace}/second`,
-        canonicalPath: `${f.workspace}/second`,
-        displayName: 'second',
-        fingerprint: `sha256:${'d'.repeat(64)}`,
-      },
+    await createTargetProjectFixture(f.client, {
+      id: 'second-target',
+      kind: 'LOCAL_WORKSPACE',
+      canonicalIdentity: `path:${f.workspace}/second`,
+      canonicalPath: `${f.workspace}/second`,
+      displayName: 'second',
+      fingerprint: `sha256:${'d'.repeat(64)}`,
     })
     const second = await addManagedProviderAssignment(f.client, 'second-target', 'second')
     const entries = []

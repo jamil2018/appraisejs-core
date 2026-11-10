@@ -37,13 +37,29 @@ import {
 } from './quality-journey-coordinator-session'
 import {
   acceptExternalQualityJourneySubmissionInTransaction,
-  completeAutomatorWorkInTransaction,
+  completeAutomatorWorkWithBusinessJoinInTransaction,
   externalAnalyzerAdmissionProtocol,
   externalAssignmentSecretHash,
-  issueQualityJourneySpecializedWorkItem,
-  setQualityJourneyActiveWorkItems,
+  issueQualityJourneySpecializedWorkItemWithBusinessJoinInTransaction,
+  setQualityJourneyActiveWorkItemsWithBusinessJoinInTransaction,
   type ExternalAnalyzerProjectPrincipal,
 } from './quality-journey-service'
+import {
+  assertJourneyBusinessGroupSupportsNoInvalidationInTransaction,
+  readJourneyBusinessEnrollmentKindInTransaction,
+  withJourneyBusinessWriteJoinInTransaction,
+  type BeforeJourneyBusinessWrite,
+  type QueueAttemptTerminal,
+} from './quality-journey-business-write-join'
+import type { E2BusinessScope } from './quality-journey-e2-retirement-service'
+import { prepareSharedResourceMutationInTransaction, type SharedResourceMutationKey } from './quality-journey-shared-resource-guard-service'
+import {
+  acquireSharedResourceUseInBusinessGroupInTransaction,
+  resolveAutomationMaterializationUseRequestInTransaction,
+  resolveResourceResolutionUseRequestInTransaction,
+  validateActiveSharedResourceUseInTransaction,
+  validateAutomationMaterializationOwnersInTransaction,
+} from './quality-journey-shared-resource-use-service'
 
 type Db = PrismaClient | Prisma.TransactionClient
 const json = canonicalContractJson
@@ -115,6 +131,7 @@ type MappedStep = {
 }
 type AutomationTargetBinding = ReturnType<typeof automationTargetBindingSchema.parse>
 type AutomationResourceAuthority = {
+  discoveryRevisionId: string
   resourceResolutionHash: string
   destinationModuleId: string
   allowedResourceIds: string[]
@@ -122,6 +139,54 @@ type AutomationResourceAuthority = {
   locatorIds: Set<string>
   operationReferences: Set<string>
   frozenResourceHashes: Array<{ id: string; contentHash: string }>
+}
+
+/** Capture original authentication scalars before any await, preserving M03 legacy credentials. */
+function snapshotAutomationCoordinatorCredentials(value: CoordinatorSessionCredentials | undefined): CoordinatorSessionCredentials | undefined {
+  if (!value || typeof value !== 'object') return value
+  return { journeyId: value.journeyId, targetProjectId: value.targetProjectId,
+    coordinatorSessionId: value.coordinatorSessionId, coordinatorGeneration: value.coordinatorGeneration,
+    coordinatorHandoffId: value.coordinatorHandoffId, coordinatorPrincipalId: value.coordinatorPrincipalId }
+}
+
+/** Original caller authority only. Retained source rows never supply credentials. */
+async function automationSharedUseScope(
+  tx: Prisma.TransactionClient,
+  request: Pick<AutomationMaterializationRequest, 'journeyId' | 'targetProjectId'>,
+  original: CoordinatorSessionCredentials | undefined,
+): Promise<E2BusinessScope | null> {
+  if (await readJourneyBusinessEnrollmentKindInTransaction(tx, request) === 'LEGACY') return null
+  if (!original || typeof original !== 'object' || !original.coordinatorSessionId || !original.coordinatorGeneration ||
+    original.journeyId !== request.journeyId || original.targetProjectId !== request.targetProjectId)
+    throw new ServiceError('E2 Automator materialization requires the original current coordinator binding.', 'UNAUTHORIZED')
+  return { journeyId: request.journeyId, targetProjectId: request.targetProjectId,
+    coordinatorSessionId: original.coordinatorSessionId, generation: original.coordinatorGeneration,
+    credentials: { ...original, journeyId: original.journeyId, targetProjectId: original.targetProjectId } }
+}
+
+async function validateSelectedAutomationResources(
+  tx: Prisma.TransactionClient, ownScope: E2BusinessScope | null, resources: AutomationResourceAuthority,
+): Promise<void> {
+  if (!ownScope) return
+  const request = await resolveResourceResolutionUseRequestInTransaction(tx, { scope: ownScope,
+    discoveryRevisionId: resources.discoveryRevisionId, resourceResolutionHash: resources.resourceResolutionHash })
+  await validateActiveSharedResourceUseInTransaction(tx, request)
+}
+
+/** Retained replay results are metadata until their exact own Use and complete root-owner closure pass. */
+async function validateRetainedAutomationMaterialization(
+  tx: Prisma.TransactionClient, ownScope: E2BusinessScope,
+  materialization: { id: string; materializationHash: string },
+): Promise<void> {
+  const request = await resolveAutomationMaterializationUseRequestInTransaction(tx, { scope: ownScope,
+    materializationId: materialization.id, materializationHash: materialization.materializationHash })
+  await validateActiveSharedResourceUseInTransaction(tx, request)
+  const associations = await tx.qualityJourneyAutomationMaterializationBinding.findMany({
+    where: { materializationId: materialization.id }, orderBy: { bindingId: 'asc' }, take: 4097,
+  })
+  if (associations.length !== 1 || associations[0]!.materializationId !== materialization.id)
+    throw new ServiceError('Retained Automator materialization requires its exact binding association.', 'CONFLICT')
+  await validateAutomationMaterializationOwnersInTransaction(tx, { scope: ownScope, targetBindingId: associations[0]!.bindingId })
 }
 
 async function activeAutomationJourney(journeyId: string, targetProjectId: string, db: Db) {
@@ -261,6 +326,7 @@ async function automationResourceAuthority(value: ApprovedInput, db: Db): Promis
   if (frozenResourceHashes.length !== allowedResourceIds.length)
     throw new ServiceError('Automator materialization has incomplete frozen Resource Explorer authority.', 'CONFLICT')
   return {
+    discoveryRevisionId: value.portfolio.discoveryRevisionId,
     resourceResolutionHash: discovery.resourceResolutionHash,
     destinationModuleId: bundle.destinationModuleId,
     allowedResourceIds,
@@ -322,11 +388,15 @@ async function scope(value: ApprovedInput, db: Db) {
 export async function ensureQualityJourneyAutomationForApprovedScenarios(
   input: { journeyId: string; targetProjectId: string },
   tx: Prisma.TransactionClient,
+  beforeWrite: BeforeJourneyBusinessWrite,
 ) {
+  if (typeof beforeWrite !== 'function')
+    throw new ServiceError('Automation bootstrap requires its owning business write join.', 'UNAUTHORIZED')
   const approved = await approvedInput(input.journeyId, input.targetProjectId, tx)
   const compiled = await scope(approved, tx)
   const workItemId = qualityJourneyWorkItemId(approved.journey.id, approved.journey.activeCycleId, 'AUTOMATOR')
-  const item = await issueQualityJourneySpecializedWorkItem(
+
+  const item = await issueQualityJourneySpecializedWorkItemWithBusinessJoinInTransaction(
     approved.journey,
     {
       id: workItemId,
@@ -353,8 +423,9 @@ export async function ensureQualityJourneyAutomationForApprovedScenarios(
       ],
     },
     tx,
+    beforeWrite,
   )
-  await setQualityJourneyActiveWorkItems(approved.journey.id, [item.id], tx)
+  await setQualityJourneyActiveWorkItemsWithBusinessJoinInTransaction(approved.journey.id, [item.id], tx, beforeWrite)
   return { workItemId: item.id, inputHash: compiled.inputHash, scopeHash: compiled.scopeHash }
 }
 
@@ -761,7 +832,12 @@ async function resolveDurableTargetBinding(
   semanticHash: string,
   resources: AutomationResourceAuthority,
   db: Prisma.TransactionClient,
+  ownScope: E2BusinessScope | null,
 ) {
+  if (!ownScope)
+    throw new ServiceError('Legacy Automator cannot add an unsupported retained materialization owner to a durable target.',
+      'CONFLICT', 409, { reason: 'UNSUPPORTED_LEGACY_MATERIALIZATION_OWNER_LINEAGE' })
+  await validateAutomationMaterializationOwnersInTransaction(db, { scope: ownScope, targetBindingId: durable.id })
   const existingCase = await loadTargetCase(durable.testCaseId, request.targetProjectId, db)
   if (!existingCase || !bindingMatchesCandidate(existingCase, request, intent, moduleId, steps))
     throw new ServiceError(
@@ -788,127 +864,82 @@ async function resolveDurableTargetBinding(
   return { suite, testCase: existingCase, binding, semanticHash, targetBindingId: durable.id }
 }
 
-async function ensureMaterializationTarget(
-  request: AutomationMaterializationRequest,
-  intent: ScenarioIntent,
-  mappedSteps: MappedStep[],
-  materializationId: string,
-  suiteId: string,
-  caseId: string,
-  moduleId: string,
-  resources: AutomationResourceAuthority,
-  db: Prisma.TransactionClient,
-) {
+type PlannedMaterializationTarget = {
+  suite: { id: string; name: string; description: string | null }
+  testCase: { id: string; title: string; description: string }
+  binding: AutomationTargetBinding
+  semanticHash: string
+  targetBindingId: string
+  fresh: boolean
+  steps: Array<ReturnType<typeof expectedTargetSteps>[number] & { id: string }>
+}
+type RetainedAutomationMaterialization = Prisma.QualityJourneyAutomationMaterializationGetPayload<{
+  include: { preparedCapsule: true }
+}>
+type MaterializationResult = { materialization: RetainedAutomationMaterialization; replayed: boolean }
+type PlannedMaterialization = {
+  scenario: ApprovedScenario
+  proposal: AutomationProposal
+  requestHash: string
+} & ({ replay: RetainedAutomationMaterialization; fresh: null } | {
+  replay: null
+  fresh: { materializationId: string; mappedSteps: MappedStep[]; target: PlannedMaterializationTarget }
+})
+
+async function planMaterializationTarget(
+  request: AutomationMaterializationRequest, intent: ScenarioIntent, mappedSteps: MappedStep[], materializationId: string,
+  moduleId: string, resources: AutomationResourceAuthority, tx: Prisma.TransactionClient,
+  ownScope: E2BusinessScope | null, targets: Map<string, PlannedMaterializationTarget>,
+): Promise<PlannedMaterializationTarget> {
   const steps = expectedTargetSteps(mappedSteps)
-  const provisional = targetBindingPacket(
-    request.targetProjectId,
-    moduleId,
-    { id: suiteId, name: intent.title, description: intent.narrative },
-    { id: caseId, title: intent.title, description: intent.narrative },
-    steps,
-  )
+  const suite = { id: idFor('suite', materializationId), name: intent.title, description: intent.narrative }
+  const testCase = { id: idFor('case', materializationId), title: intent.title, description: intent.narrative }
+  const provisional = targetBindingPacket(request.targetProjectId, moduleId, suite, testCase, steps)
   const semanticHash = targetSemanticHash(provisional)
-  const durable = await db.qualityJourneyAutomationTargetBinding.findFirst({
+  const planned = targets.get(semanticHash)
+  if (planned) return planned
+  const durable = await tx.qualityJourneyAutomationTargetBinding.findFirst({
     where: { targetProjectId: request.targetProjectId, semanticHash },
   })
-  if (durable)
-    return resolveDurableTargetBinding(durable, request, intent, moduleId, steps, semanticHash, resources, db)
-  const suite = await db.testSuite.create({
-    data: {
-      id: suiteId,
-      name: intent.title,
-      description: intent.narrative,
-      moduleId,
-      targetProjectId: request.targetProjectId,
-    },
-  })
-  const testCase = await db.testCase.create({
-    data: {
-      id: caseId,
-      title: intent.title,
-      description: intent.narrative,
-      targetProjectId: request.targetProjectId,
-      TestSuite: { connect: { id: suite.id } },
-      steps: {
-        create: steps.map((step, index) => ({
-          id: idFor('step', materializationId, String(index)),
-          ...step,
-        })),
-      },
-    },
-  })
-  const binding = targetBindingPacket(
-    request.targetProjectId,
-    moduleId,
-    { id: suite.id, name: suite.name, description: suite.description },
-    { id: testCase.id, title: testCase.title, description: testCase.description },
-    steps,
-  )
-  return { suite, testCase, binding, semanticHash, targetBindingId: null }
+  let target: PlannedMaterializationTarget
+  if (durable) {
+    const existing = await resolveDurableTargetBinding(durable, request, intent, moduleId, steps, semanticHash, resources, tx, ownScope)
+    target = { ...existing, fresh: false, steps: [] }
+  } else {
+    target = { suite, testCase, binding: provisional, semanticHash,
+      targetBindingId: idFor('target-binding', materializationId), fresh: true,
+      steps: steps.map((step, index) => ({ id: idFor('step', materializationId, String(index)), ...step })) }
+  }
+  targets.set(semanticHash, target)
+  return target
+}
+
+/** No target lookup or identity substitution occurs after the complete effect batch. */
+async function insertPlannedMaterializationTarget(
+  request: AutomationMaterializationRequest, target: PlannedMaterializationTarget, db: Prisma.TransactionClient,
+) {
+  await db.testSuite.create({ data: { ...target.suite, moduleId: target.binding.moduleId, targetProjectId: request.targetProjectId } })
+  await db.testCase.create({ data: { ...target.testCase, targetProjectId: request.targetProjectId,
+    TestSuite: { connect: { id: target.suite.id } }, steps: { create: target.steps } } })
 }
 
 async function materializeOne(
-  request: ReturnType<typeof automationMaterializationRequestSchema.parse>,
-  approved: ApprovedInput,
-  resources: AutomationResourceAuthority,
-  scenario: ApprovedInput['portfolio']['scenarios'][number],
-  proposal: ReturnType<typeof automationMaterializationRequestSchema.parse>['scenarios'][number],
-  db: Prisma.TransactionClient,
-) {
-  const decision = scenario.decisions.find(candidate => candidate.decision === 'APPROVED')!
-  const requestHash = hash({ ...request, scenarios: [proposal] })
-  const replayKey = `${request.idempotencyKey}:${scenario.scenarioRevisionId}`
-  // Idempotency is checked before any mutable catalog lookup: a caller cannot
-  // reinterpret a consumed key by submitting a malformed replacement packet.
-  const replay = await findMaterializationReplay(request, scenario, proposal, requestHash, replayKey, db)
-  if (replay) return { materialization: replay, replayed: true }
-
-  const [module, definitions, locators] = await loadMaterializationReferences(request, resources, db)
-  if (!module)
-    throw new ServiceError('Materialization requires a target-owned module before creating a suite.', 'CONFLICT')
-  assertFrozenResourceContent(resources, module, definitions, locators)
-  const intent = parseAndValidateScenarioIntent(scenario, proposal)
-  const readyDefinitions = readyDefinitionIndex(definitions)
-  const knownLocators = new Set(locators.map(locator => locator.id))
-  const mappedSteps = materializeSteps(proposal, intent, readyDefinitions, knownLocators, resources.operationReferences)
-  const materializationId = idFor(
-    'materialization',
-    request.journeyId,
-    scenario.scenarioRevisionId,
-    request.expectedInputHash,
-  )
-  const suiteId = idFor('suite', materializationId)
-  const caseId = idFor('case', materializationId)
-  const { suite, testCase, binding, semanticHash, targetBindingId } = await ensureMaterializationTarget(
-    request,
-    intent,
-    mappedSteps,
-    materializationId,
-    suiteId,
-    caseId,
-    module.id,
-    resources,
-    db,
-  )
-  return persistMaterialization(
-    {
-      request,
-      approved,
-      scenario,
-      proposal,
-      decision,
-      requestHash,
-      materializationId,
-      suite,
-      testCase,
-      binding,
-      semanticHash,
-      targetBindingId,
-      resources,
-    },
-    mappedSteps,
-    db,
-  )
+  request: AutomationMaterializationRequest, approved: ApprovedInput, resources: AutomationResourceAuthority,
+  plan: PlannedMaterialization, db: Prisma.TransactionClient, beforeWrite: BeforeJourneyBusinessWrite,
+  ownScope: E2BusinessScope | null, insertedTargets: Set<string>,
+): Promise<MaterializationResult> {
+  // The complete planning pass validated every E2 replay before any writer.
+  if (plan.replay) return { materialization: plan.replay, replayed: true }
+  const { materializationId, mappedSteps, target } = plan.fresh
+  const createTargetBinding = target.fresh && !insertedTargets.has(target.semanticHash)
+  if (createTargetBinding) {
+    await insertPlannedMaterializationTarget(request, target, db)
+    insertedTargets.add(target.semanticHash)
+  }
+  return persistMaterialization({ request, approved, resources, scenario: plan.scenario, proposal: plan.proposal,
+    decision: plan.scenario.decisions.find(candidate => candidate.decision === 'APPROVED')!, requestHash: plan.requestHash,
+    materializationId, suite: target.suite, testCase: target.testCase, binding: target.binding,
+    semanticHash: target.semanticHash, targetBindingId: target.targetBindingId, createTargetBinding }, mappedSteps, db, beforeWrite, ownScope)
 }
 
 type MaterializationPersistenceInput = {
@@ -923,7 +954,8 @@ type MaterializationPersistenceInput = {
   testCase: { id: string }
   binding: AutomationTargetBinding
   semanticHash: string
-  targetBindingId: string | null
+  targetBindingId: string
+  createTargetBinding: boolean
   resources: AutomationResourceAuthority
 }
 
@@ -931,6 +963,8 @@ async function persistMaterialization(
   value: MaterializationPersistenceInput,
   mappedSteps: MappedStep[],
   db: Prisma.TransactionClient,
+  beforeWrite: BeforeJourneyBusinessWrite,
+  ownScope: E2BusinessScope | null,
 ) {
   const {
     request,
@@ -1005,19 +1039,27 @@ async function persistMaterialization(
       idempotencyKey: `${request.idempotencyKey}:${scenario.scenarioRevisionId}`,
       requestHash,
       materializationHash: materializationContentHash(request, proposal),
+      sourceProofVersion: 'M06_MATERIALIZATION_ARTIFACT_V1',
       suiteId: suite.id,
       testCaseId: testCase.id,
       artifactRecordId: artifact.id,
       artifactJson: json(artifactJson),
     },
   })
+  await db.qualityJourneyAutomationMaterializationSourceProof.create({
+    data: {
+      materializationId,
+      expectedScopeHash: request.expectedScopeHash,
+      reconstructionVersion: 'M06_MATERIALIZATION_ARTIFACT_V1',
+    },
+  })
   const bindingHashes = targetHashes(binding)
   let resolvedTargetBindingId = targetBindingId
-  if (!resolvedTargetBindingId) {
+  if (value.createTargetBinding) {
     try {
       const targetBinding = await db.qualityJourneyAutomationTargetBinding.create({
         data: {
-          id: idFor('target-binding', materializationId),
+          id: targetBindingId,
           journeyId: request.journeyId,
           targetProjectId: request.targetProjectId,
           semanticHash,
@@ -1032,27 +1074,25 @@ async function persistMaterialization(
       })
       resolvedTargetBindingId = targetBinding.id
     } catch (error) {
-      if (!isUniqueConflict(error)) throw error
-      const concurrent = await db.qualityJourneyAutomationTargetBinding.findFirst({
-        where: { targetProjectId: request.targetProjectId, semanticHash },
-      })
-      if (
-        !concurrent ||
-        concurrent.bindingJson !== json(binding) ||
-        concurrent.suiteHash !== bindingHashes.suiteHash ||
-        concurrent.testCaseHash !== bindingHashes.testCaseHash ||
-        concurrent.stepHash !== bindingHashes.stepHash
-      )
-        throw new ServiceError(
-          'Concurrent Automator materialization created an incompatible target binding.',
-          'CONFLICT',
-        )
-      resolvedTargetBindingId = concurrent.id
+      // An E2 collision cannot change the already guarded whole-request target plan.
+      if (ownScope || !isUniqueConflict(error)) throw error
+      // Legacy cannot acquire a final Use for a newly added retained owner.
+      // Even identical future scalar IDs do not prove a concurrent binding's
+      // complete owner set. Refuse adoption and roll back the owning transaction.
+      throw new ServiceError('Concurrent Automator binding requires unsupported legacy retained-owner publication.',
+        'CONFLICT', 409, { reason: 'UNSUPPORTED_LEGACY_MATERIALIZATION_OWNER_LINEAGE' })
     }
   }
   await db.qualityJourneyAutomationMaterializationBinding.create({
     data: { materializationId, bindingId: resolvedTargetBindingId },
   })
+  if (ownScope) {
+    const useRequest = await resolveAutomationMaterializationUseRequestInTransaction(db, { scope: ownScope,
+      materializationId, materializationHash: materialization.materializationHash })
+    await acquireSharedResourceUseInBusinessGroupInTransaction(db, useRequest, beforeWrite)
+    await validateAutomationMaterializationOwnersInTransaction(db, { scope: ownScope, targetBindingId: resolvedTargetBindingId })
+    await validateSelectedAutomationResources(db, ownScope, value.resources)
+  }
   const capsulePayload = preparedRuntimeCapsuleSchema.parse({
     schemaVersion: 'appraise.quality-journey/v1',
     capsuleId: idFor('prepared', materializationId),
@@ -1229,50 +1269,57 @@ async function persistAutomationFailure(
   request: ReturnType<typeof automationMaterializationRequestSchema.parse>,
   error: unknown,
   client: PrismaClient,
+  coordinatorSession: CoordinatorSessionCredentials | undefined,
 ) {
   const failureKind = classifyAutomationFailure(error)
   const message = error instanceof Error ? error.message : 'Automator materialization failed.'
   const failure = { schemaVersion: 'appraise.quality-journey/v1', failureKind, message }
-  await client.$transaction(async tx => {
-    await tx.qualityJourneyWorkAttempt.updateMany({
-      where: { id: request.attemptId, workItemId: request.workItemId, status: { not: 'COMPLETED' } },
-      data: { failureJson: json(failure) },
-    })
-    const failedScenarioRevisionIds =
-      error instanceof ServiceError && Array.isArray(error.details?.failedScenarioRevisionIds)
-        ? new Set(error.details.failedScenarioRevisionIds.filter((value): value is string => typeof value === 'string'))
-        : null
-    const diagnosis = {
-      schemaVersion: 'appraise.quality-journey/v1',
-      failure,
-      scenarios: request.scenarios
-        .map(proposal => ({
-          scenarioRevisionId: proposal.scenarioRevisionId,
-          disposition: failedScenarioRevisionIds?.has(proposal.scenarioRevisionId) ? 'FAILED' : 'VALID_ROLLED_BACK',
-        }))
-        .sort((left, right) => left.scenarioRevisionId.localeCompare(right.scenarioRevisionId)),
-    }
-    await tx.qualityJourneyAutomationRequestReceipt.create({
-      data: {
-        id: idFor('request-failure', request.journeyId, request.attemptId, request.idempotencyKey),
-        journeyId: request.journeyId,
-        workItemId: request.workItemId,
-        attemptId: request.attemptId,
-        ownerTokenHash: tokenHash(request.ownerToken),
-        idempotencyKey: request.idempotencyKey,
-        requestHash: hash(request),
-        status: 'FAILED',
-        resultJson: json(diagnosis),
-      },
-    })
-    // A request-level failure has no trustworthy per-scenario attribution.
-    // Keep only the attempt diagnosis rather than fabricating failures for
-    // scenarios that may have been valid.
-    if (failedScenarioRevisionIds)
-      for (const proposal of request.scenarios)
-        if (failedScenarioRevisionIds.has(proposal.scenarioRevisionId))
-          await persistFailureForScenario(tx, request, proposal, failure)
-  })
+  await client.$transaction(tx =>
+    withJourneyBusinessWriteJoinInTransaction(tx, request, coordinatorSession, async beforeWrite => {
+      // Recheck original legacy diagnostic eligibility before the M03 ownership writer.
+      await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, request)
+      await assertCoordinatorMutationSession(coordinatorSession, request, tx)
+      await beforeWrite(tx, request)
+      await tx.qualityJourneyWorkAttempt.updateMany({
+        where: { id: request.attemptId, workItemId: request.workItemId, status: { not: 'COMPLETED' } },
+        data: { failureJson: json(failure) },
+      })
+      const failedScenarioRevisionIds =
+        error instanceof ServiceError && Array.isArray(error.details?.failedScenarioRevisionIds)
+          ? new Set(error.details.failedScenarioRevisionIds.filter((value): value is string => typeof value === 'string'))
+          : null
+      const diagnosis = {
+        schemaVersion: 'appraise.quality-journey/v1',
+        failure,
+        scenarios: request.scenarios
+          .map(proposal => ({
+            scenarioRevisionId: proposal.scenarioRevisionId,
+            disposition: failedScenarioRevisionIds?.has(proposal.scenarioRevisionId) ? 'FAILED' : 'VALID_ROLLED_BACK',
+          }))
+          .sort((left, right) => left.scenarioRevisionId.localeCompare(right.scenarioRevisionId)),
+      }
+      await tx.qualityJourneyAutomationRequestReceipt.create({
+        data: {
+          id: idFor('request-failure', request.journeyId, request.attemptId, request.idempotencyKey),
+          journeyId: request.journeyId,
+          workItemId: request.workItemId,
+          attemptId: request.attemptId,
+          ownerTokenHash: tokenHash(request.ownerToken),
+          idempotencyKey: request.idempotencyKey,
+          requestHash: hash(request),
+          status: 'FAILED',
+          resultJson: json(diagnosis),
+        },
+      })
+      // A request-level failure has no trustworthy per-scenario attribution.
+      // Keep only the attempt diagnosis rather than fabricating failures for
+      // scenarios that may have been valid.
+      if (failedScenarioRevisionIds)
+        for (const proposal of request.scenarios)
+          if (failedScenarioRevisionIds.has(proposal.scenarioRevisionId))
+            await persistFailureForScenario(tx, request, proposal, failure)
+    }),
+  )
   return failureKind
 }
 
@@ -1444,55 +1491,69 @@ async function authorizeMaterializationRequest(
   return { approved, compiled, approvedRows, replay: null }
 }
 
-type MaterializationResult = Awaited<ReturnType<typeof materializeOne>>
-
-async function validateAuthorizedScenarios(
-  request: AutomationMaterializationRequest,
-  approvedRows: ApprovedScenario[],
-  resources: AutomationResourceAuthority,
-  tx: Prisma.TransactionClient,
+async function planAuthorizedScenarios(
+  request: AutomationMaterializationRequest, approvedRows: ApprovedScenario[], resources: AutomationResourceAuthority,
+  tx: Prisma.TransactionClient, ownScope: E2BusinessScope | null,
 ) {
-  const [module, definitions, locators] = await loadMaterializationReferences(request, resources, tx)
-  if (!module)
-    throw new ServiceError('Materialization requires the frozen target-owned destination module.', 'CONFLICT')
-  assertFrozenResourceContent(resources, module, definitions, locators)
-  const readyDefinitions = readyDefinitionIndex(definitions)
-  const knownLocators = new Set(locators.map(locator => locator.id))
-  const failedScenarioRevisionIds: string[] = []
-  let first: ServiceError | null = null
-  for (const proposal of request.scenarios) {
+  const plans: PlannedMaterialization[] = []
+  const pending: Array<{ scenario: ApprovedScenario; proposal: AutomationProposal; requestHash: string }> = []
+  // Every immutable consumed-key conflict precedes consumer references and planning.
+  for (const proposal of [...request.scenarios].sort((left, right) => left.scenarioRevisionId.localeCompare(right.scenarioRevisionId))) {
     const scenario = approvedRows.find(candidate => candidate.scenarioRevisionId === proposal.scenarioRevisionId)!
-    try {
-      const intent = parseAndValidateScenarioIntent(scenario, proposal)
-      materializeSteps(proposal, intent, readyDefinitions, knownLocators, resources.operationReferences)
-    } catch (error) {
-      failedScenarioRevisionIds.push(proposal.scenarioRevisionId)
-      if (!first)
-        first =
-          error instanceof ServiceError ? error : new ServiceError('Automator proposal validation failed.', 'CONFLICT')
-    }
+    const requestHash = hash({ ...request, scenarios: [proposal] })
+    const replay = await findMaterializationReplay(request, scenario, proposal, requestHash,
+      `${request.idempotencyKey}:${scenario.scenarioRevisionId}`, tx)
+    if (replay) {
+      if (ownScope) await validateRetainedAutomationMaterialization(tx, ownScope, replay)
+      plans.push({ scenario, proposal, requestHash, replay, fresh: null })
+    } else pending.push({ scenario, proposal, requestHash })
   }
-  if (first)
-    throw new ServiceError(first.message, first.code, first.statusCode, {
-      ...first.details,
-      failedScenarioRevisionIds: failedScenarioRevisionIds.sort(),
-    })
+  if (pending.length) {
+    const [module, definitions, locators] = await loadMaterializationReferences(request, resources, tx)
+    if (!module) throw new ServiceError('Materialization requires the frozen target-owned destination module.', 'CONFLICT')
+    assertFrozenResourceContent(resources, module, definitions, locators)
+    const readyDefinitions = readyDefinitionIndex(definitions)
+    const knownLocators = new Set(locators.map(locator => locator.id))
+    const targets = new Map<string, PlannedMaterializationTarget>()
+    const failedScenarioRevisionIds: string[] = []
+    let first: ServiceError | null = null
+    for (const { scenario, proposal, requestHash } of pending) {
+      try {
+        const intent = parseAndValidateScenarioIntent(scenario, proposal)
+        const mappedSteps = materializeSteps(proposal, intent, readyDefinitions, knownLocators, resources.operationReferences)
+        const materializationId = idFor('materialization', request.journeyId, scenario.scenarioRevisionId, request.expectedInputHash)
+        const target = await planMaterializationTarget(request, intent, mappedSteps, materializationId,
+          module.id, resources, tx, ownScope, targets)
+        plans.push({ scenario, proposal, requestHash, replay: null, fresh: { materializationId, mappedSteps, target } })
+      } catch (error) {
+        failedScenarioRevisionIds.push(proposal.scenarioRevisionId)
+        if (!first) first = error instanceof ServiceError ? error : new ServiceError('Automator proposal validation failed.', 'CONFLICT')
+      }
+    }
+    if (first) throw new ServiceError(first.message, first.code, first.statusCode,
+      { ...first.details, failedScenarioRevisionIds: failedScenarioRevisionIds.sort() })
+  }
+  return plans.sort((left, right) => left.proposal.scenarioRevisionId.localeCompare(right.proposal.scenarioRevisionId))
 }
 
 async function materializeAuthorizedScenarios(
-  request: AutomationMaterializationRequest,
-  approved: ApprovedInput,
-  resources: AutomationResourceAuthority,
-  approvedRows: ApprovedScenario[],
-  tx: Prisma.TransactionClient,
+  request: AutomationMaterializationRequest, approved: ApprovedInput, resources: AutomationResourceAuthority,
+  plans: PlannedMaterialization[], tx: Prisma.TransactionClient, beforeWrite: BeforeJourneyBusinessWrite,
+  ownScope: E2BusinessScope | null,
 ) {
+  const targets = new Map<string, PlannedMaterializationTarget>()
+  for (const plan of plans) if (plan.fresh?.target.fresh) targets.set(plan.fresh.target.semanticHash, plan.fresh.target)
+  const newRoots: SharedResourceMutationKey[] = []
+  for (const target of targets.values()) newRoots.push(
+    { kind: 'TEST_SUITE', resourceId: target.suite.id }, { kind: 'TEST_CASE', resourceId: target.testCase.id })
+  newRoots.sort((left, right) => left.kind.localeCompare(right.kind) || left.resourceId.localeCompare(right.resourceId))
+  // The unchanged Module parent is an FK read, not a mutable collection effect.
+  // Fresh nested steps belong to their new Case roots. No existing target is changed.
+  await beforeWrite(tx, request)
+  await prepareSharedResourceMutationInTransaction(tx, request.targetProjectId, { existing: [], newRoots, deleted: [] })
   const results: MaterializationResult[] = []
-  for (const proposal of [...request.scenarios].sort((left, right) =>
-    left.scenarioRevisionId.localeCompare(right.scenarioRevisionId),
-  )) {
-    const scenario = approvedRows.find(candidate => candidate.scenarioRevisionId === proposal.scenarioRevisionId)!
-    results.push(await materializeOne(request, approved, resources, scenario, proposal, tx))
-  }
+  const insertedTargets = new Set<string>()
+  for (const plan of plans) results.push(await materializeOne(request, approved, resources, plan, tx, beforeWrite, ownScope, insertedTargets))
   return results
 }
 
@@ -1533,9 +1594,11 @@ function assertSubmittedMaterializationOutputs(
 async function completeMaterializedAutomatorWork(
   request: AutomationMaterializationRequest,
   tx: Prisma.TransactionClient,
+  beforeWrite: BeforeJourneyBusinessWrite,
+  queueAttemptTerminal: QueueAttemptTerminal,
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
-  return completeAutomatorWorkInTransaction(
+  return completeAutomatorWorkWithBusinessJoinInTransaction(
     {
       ...(typeof coordinatorSession === 'object' ? coordinatorSession : {}),
       journeyId: request.journeyId,
@@ -1546,6 +1609,8 @@ async function completeMaterializedAutomatorWork(
       result: request.result,
     },
     tx,
+    beforeWrite,
+    queueAttemptTerminal,
   )
 }
 
@@ -1553,24 +1618,42 @@ async function materializeQualityJourneyApprovedScenariosInTransaction(
   request: AutomationMaterializationRequest,
   coordinatorSession: CoordinatorSessionCredentials | undefined,
   tx: Prisma.TransactionClient,
-  onAuthorized?: () => void,
+  beforeWrite: BeforeJourneyBusinessWrite,
+  queueAttemptTerminal: QueueAttemptTerminal,
+  observeLegacyDiagnosticEligibility?: () => void,
 ) {
   await assertCoordinatorMutationSession(coordinatorSession, request, tx)
   const { approved, compiled, approvedRows, replay } = await authorizeMaterializationRequest(request, tx)
-  onAuthorized?.()
-  if (replay)
+  const ownScope = await automationSharedUseScope(tx, request, coordinatorSession)
+  await validateSelectedAutomationResources(tx, ownScope, compiled.resources)
+  if (replay) {
+    if (ownScope) for (const materialization of replay) await validateRetainedAutomationMaterialization(tx, ownScope, materialization)
+    // Legacy exact replay exposes the already retained frozen receipt metadata;
+    // it does not dereference a live target or mint an authoritative Use.
     return {
       replayed: true,
       stage: 'AUTOMATION' as const,
       materializations: replay,
       completion: { replayed: true, workItemId: request.workItemId, status: 'COMPLETED' as const },
     }
-  await validateAuthorizedScenarios(request, approvedRows, compiled.resources, tx)
-  const results = await materializeAuthorizedScenarios(request, approved, compiled.resources, approvedRows, tx)
+  }
+  if (!ownScope) observeLegacyDiagnosticEligibility?.()
+  // Retain the staged E2 terminal gate until integrated verification and exact review.
+  await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, request)
+  const plans = await planAuthorizedScenarios(request, approvedRows, compiled.resources, tx, ownScope)
+  const results = await materializeAuthorizedScenarios(request, approved, compiled.resources, plans, tx, beforeWrite, ownScope)
   await verifyRemediationChanged(approved, results, tx)
   assertCompletedAutomatorResult(request)
   assertSubmittedMaterializationOutputs(request, results)
-  const completion = await completeMaterializedAutomatorWork(request, tx, coordinatorSession)
+  await validateSelectedAutomationResources(tx, ownScope, compiled.resources)
+  if (ownScope) for (const result of results) await validateRetainedAutomationMaterialization(tx, ownScope, result.materialization)
+  const completion = await completeMaterializedAutomatorWork(
+    request,
+    tx,
+    beforeWrite,
+    queueAttemptTerminal,
+    coordinatorSession,
+  )
   return {
     replayed: results.every(result => result.replayed),
     stage: 'AUTOMATION' as const,
@@ -1584,28 +1667,43 @@ export async function materializeQualityJourneyApprovedScenarios(
   client: PrismaClient = prisma,
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
+  coordinatorSession = snapshotAutomationCoordinatorCredentials(coordinatorSession)
   const request = automationMaterializationRequestSchema.parse(input)
-  let authorizedFailureRecord = false
+  let originalLegacyDiagnosticEligibility = false
   try {
-    return await client.$transaction(async tx => {
-      const attempt = await tx.qualityJourneyWorkAttempt.findUnique({ where: { id: request.attemptId } })
-      if (attempt?.executionMode === externalAnalyzerAdmissionProtocol)
-        throw new ServiceError(
-          'EXTERNAL_V1 Automator attempts must use the versioned external materialization operation.',
-          'UNAUTHORIZED',
-        )
-      return materializeQualityJourneyApprovedScenariosInTransaction(request, coordinatorSession, tx, () => {
-        authorizedFailureRecord = true
-      })
-    })
+    return await client.$transaction(tx =>
+      withJourneyBusinessWriteJoinInTransaction(
+        tx,
+        request,
+        coordinatorSession,
+        async (beforeWrite, queueAttemptTerminal) => {
+          const attempt = await tx.qualityJourneyWorkAttempt.findUnique({ where: { id: request.attemptId } })
+          if (attempt?.executionMode === externalAnalyzerAdmissionProtocol)
+            throw new ServiceError(
+              'EXTERNAL_V1 Automator attempts must use the versioned external materialization operation.',
+              'UNAUTHORIZED',
+            )
+          return materializeQualityJourneyApprovedScenariosInTransaction(
+            request,
+            coordinatorSession,
+            tx,
+            beforeWrite,
+            queueAttemptTerminal,
+            () => {
+              originalLegacyDiagnosticEligibility = true
+            },
+          )
+        },
+      ),
+    )
   } catch (error) {
-    if (!authorizedFailureRecord) throw error
+    if (!originalLegacyDiagnosticEligibility) throw error
     if (
       error instanceof ServiceError &&
       (error.details?.replayed === true || error.message.includes('idempotency key was reused'))
     )
       throw error
-    const failureKind = await persistAutomationFailure(request, error, client)
+    const failureKind = await persistAutomationFailure(request, error, client, coordinatorSession)
     if (error instanceof ServiceError)
       throw new ServiceError(error.message, error.code, error.statusCode, { ...error.details, failureKind })
     throw error
@@ -1618,6 +1716,7 @@ export async function materializeExternalQualityJourneyApprovedScenarios(
   client: PrismaClient = prisma,
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
+  coordinatorSession = snapshotAutomationCoordinatorCredentials(coordinatorSession)
   const request = externalAutomationMaterializationRequestSchema.parse(input)
   const { canonical, acceptance } = projectExternalQualityJourneySubmission(
     request,
@@ -1627,9 +1726,56 @@ export async function materializeExternalQualityJourneyApprovedScenarios(
   )
   const normalized = automationMaterializationRequestSchema.parse(canonical)
   return client.$transaction(async tx => {
-    const accepted = await acceptExternalQualityJourneySubmissionInTransaction(acceptance, tx, () =>
-      materializeQualityJourneyApprovedScenariosInTransaction(normalized, coordinatorSession, tx),
+    const accepted = await acceptExternalQualityJourneySubmissionInTransaction(
+      acceptance,
+      tx,
+      (beforeWrite, queueAttemptTerminal) =>
+        materializeQualityJourneyApprovedScenariosInTransaction(
+          normalized,
+          coordinatorSession,
+          tx,
+          beforeWrite,
+          queueAttemptTerminal,
+        ),
     )
+    if (accepted.replayed) {
+      const ownScope = await automationSharedUseScope(tx, normalized, coordinatorSession)
+      if (ownScope) {
+        if (accepted.outcome.materializations.length !== normalized.scenarios.length ||
+          new Set(accepted.outcome.materializations.map(row => row.scenarioRevisionId)).size !== normalized.scenarios.length)
+          throw new ServiceError('Retained Automator replay has incomplete scenario materializations.', 'CONFLICT')
+        const discoveries = new Set<string>()
+        for (const materialization of accepted.outcome.materializations) {
+          const retained = await tx.qualityJourneyAutomationMaterialization.findUnique({ where: { id: materialization.id },
+            select: { id: true, journeyId: true, targetProjectId: true, scenarioRevisionId: true, materializationHash: true,
+              portfolioRecordId: true, portfolioRevisionId: true, portfolioContentHash: true } })
+          if (!retained || retained.id !== materialization.id || retained.journeyId !== normalized.journeyId ||
+            retained.targetProjectId !== normalized.targetProjectId || retained.materializationHash !== materialization.materializationHash ||
+            retained.scenarioRevisionId !== materialization.scenarioRevisionId ||
+            !normalized.scenarios.some(proposal => proposal.scenarioRevisionId === retained.scenarioRevisionId))
+            throw new ServiceError('Retained Automator replay has foreign or changed materialization identity.', 'CONFLICT')
+          const portfolio = await tx.qualityJourneyScenarioPortfolioRevision.findUnique({
+            where: { id: retained.portfolioRecordId },
+            select: { journeyId: true, targetProjectId: true, discoveryRevisionId: true, artifactRevisionId: true, contentHash: true },
+          })
+          if (!portfolio || portfolio.journeyId !== normalized.journeyId || portfolio.targetProjectId !== normalized.targetProjectId ||
+            portfolio.artifactRevisionId !== retained.portfolioRevisionId || portfolio.contentHash !== retained.portfolioContentHash)
+            throw new ServiceError('Retained Automator replay has foreign or missing Discovery selection lineage.', 'CONFLICT')
+          if (!discoveries.has(portfolio.discoveryRevisionId)) {
+            const discovery = await tx.qualityJourneyDiscoveryRevision.findUnique({
+              where: { id: portfolio.discoveryRevisionId }, select: { resourceResolutionHash: true },
+            })
+            const selected = await resolveResourceResolutionUseRequestInTransaction(tx, { scope: ownScope,
+              discoveryRevisionId: portfolio.discoveryRevisionId, resourceResolutionHash: discovery?.resourceResolutionHash ?? '' })
+            await validateActiveSharedResourceUseInTransaction(tx, selected)
+            discoveries.add(portfolio.discoveryRevisionId)
+          }
+          await validateRetainedAutomationMaterialization(tx, ownScope, materialization)
+        }
+      }
+      // Legacy acceptance replay remains the existing authenticated frozen
+      // outcome projection. No live Suite/Case read or new legacy Use occurs.
+    }
     return { ...accepted.outcome, replayed: accepted.replayed || accepted.outcome.replayed }
   })
 }
