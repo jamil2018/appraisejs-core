@@ -85,7 +85,11 @@ import {
   type QualityJourneyStage,
 } from '@/lib/quality-journey'
 import { ServiceError } from '@/services/shared/errors'
-import { getInternalDiscoveryReadiness, getQualityJourneyDiscoveryBootstrap } from './quality-journey-discovery-bootstrap'
+import { getInternalScenarioAutomationReadiness } from './quality-journey-scenario-automation-readiness'
+import {
+  getInternalDiscoveryReadiness,
+  getQualityJourneyDiscoveryBootstrap,
+} from './quality-journey-discovery-bootstrap'
 
 type Db = PrismaClient | Prisma.TransactionClient
 const json = (value: unknown) => canonicalContractJson(value)
@@ -317,6 +321,15 @@ export async function readExternalQualityJourneySubmissionOutcome(
       throw new ServiceError('External submission acceptance lineage is invalid.', 'UNAUTHORIZED')
     return { replayed: true, outcome: JSON.parse(receipt.outcomeJson) }
   })
+}
+
+/** A managed gateway confirms acceptance after the canonical write closes the active assignment. */
+export async function assertManagedWorkerSubmissionOutcome(
+  input: ExternalQualityJourneySubmissionBinding & { operation: string; idempotencyKey: string },
+  client: PrismaClient,
+) {
+  await assertCoordinatorAttemptSession(input, client)
+  await readExternalQualityJourneySubmissionOutcome(input, client)
 }
 
 type FactoryAuthorization = Pick<
@@ -1210,11 +1223,14 @@ async function completedDiscoveryScenarioInputs(
       'Scenario revision work cannot be reissued without exact completed discovery authority.',
       'CONFLICT',
     )
+  const analysis = await db.qualityJourneyAnalysisRevision.findUniqueOrThrow({
+    where: { id: discovery.analysisRevisionId },
+  })
   return [
     {
       kind: 'ANALYSIS_CHARTER_REVISION',
-      artifactId: discovery.analysisArtifactId,
-      revisionId: discovery.analysisRevisionArtifactId,
+      artifactId: analysis.artifactId,
+      revisionId: analysis.artifactRevisionId,
       contentHash: discovery.analysisRevisionContentHash,
     },
     { kind: 'TARGET_OBSERVATION_BUNDLE', artifactId: discovery.id, contentHash: discovery.targetObservationHash },
@@ -2467,7 +2483,10 @@ async function prepareAuthorizedWorkClaim(
   )
   await assertClaimBudgetAvailable(authorization, tx)
   const authorizationPayload = validateFactoryAuthorization(authorization, journey, item)
-  const { inputArtifacts, inputHash, projectionHash } = await deriveClaimInput(item, authorizationPayload, tx)
+  const derived = await deriveClaimInput(item, authorizationPayload, tx)
+  const { inputArtifacts, projectionHash } = derived
+  const inputHash =
+    journey.hostingMode === 'APP_SERVER_LOCAL_V1' && item.role === 'AUTOMATOR' ? item.inputHash : derived.inputHash
   const attempt = await persistWorkClaim(item, inputHash, tx)
   return { authorizationPayload, inputArtifacts, inputHash, projectionHash, attempt }
 }
@@ -2646,6 +2665,8 @@ export async function claimQualityJourneyWork(input: WorkClaimInput, client: Pri
     if (!item) throw new ServiceError('No eligible Quality Journey work item is available.', 'CONFLICT')
     if (isInternalDiscoveryRole(journey, item.role))
       throw new ServiceError('Internal Discovery work requires versioned admission.', 'UNAUTHORIZED')
+    if (journey.hostingMode === 'APP_SERVER_LOCAL_V1' && ['TEST_SCENARIO_DESIGNER', 'AUTOMATOR'].includes(item.role))
+      throw new ServiceError('Internal Scenario and Automation work requires versioned admission.', 'UNAUTHORIZED')
     await assertSpecializedTriagerClaim(item, journey, tx)
     const authorization = await readIssuedClaimAuthorization(item, tx)
     const { authorizationPayload, inputArtifacts, inputHash, projectionHash, attempt } =
@@ -2848,11 +2869,18 @@ function isInternalDiscoveryRole(
   return journey.hostingMode === 'APP_SERVER_LOCAL_V1' && (role === 'SCOUT' || role === 'RESOURCE_EXPLORER')
 }
 
-async function assertInternalDiscoveryAssignmentReady(
+async function assertInternalAssignmentReady(
   journey: QualityJourney,
   item: QualityJourneyWorkItem,
   tx: Prisma.TransactionClient,
 ) {
+  if (journey.hostingMode !== 'APP_SERVER_LOCAL_V1') return
+  if (item.role === 'TEST_SCENARIO_DESIGNER' || item.role === 'AUTOMATOR') {
+    const assertReady = getInternalScenarioAutomationReadiness(item.role)
+    if (!assertReady) throw new ServiceError('Internal Scenario or Automation readiness is unavailable.', 'CONFLICT')
+    await assertReady(journey, item, tx)
+    return
+  }
   if (!isInternalDiscoveryRole(journey, item.role)) return
   const assertReady = getInternalDiscoveryReadiness()
   if (!assertReady) throw new ServiceError('Internal Discovery readiness is unavailable.', 'CONFLICT')
@@ -2873,7 +2901,7 @@ async function readExternalClaimWork(
     tx,
   )
   if (!item) throw new ServiceError('No eligible external Quality Journey work item is available.', 'CONFLICT')
-  await assertInternalDiscoveryAssignmentReady(journey, item, tx)
+  await assertInternalAssignmentReady(journey, item, tx)
   return { journey, item }
 }
 
@@ -3205,7 +3233,7 @@ export async function admitExternalQualityJourneyWork(
     assertExternalCoordinatorPrincipal(input)
     const journey = await readJourney(input.journeyId, input.targetProjectId, tx)
     assertQualityJourneyMutable(journey)
-    await assertInternalDiscoveryAssignmentReady(journey, item, tx)
+    await assertInternalAssignmentReady(journey, item, tx)
     const authorization = await readAttemptAuthorization(attempt, tx)
     assertFactoryAuthorityCurrent(item, authorization)
     assertExternalAuthorizationPrincipal(

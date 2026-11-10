@@ -159,6 +159,10 @@ or broad placeholder scope.
 
 ## Phase 5 scenario review control plane
 
+The [disposable managed worker gateway](quality-journey-internal-scenario-automation.md) delivers accepted Discovery
+to the Designer and exact approved scenario and resource authority to the Automator. Both use specialized Appraise
+acceptance. Publishing a candidate for review, recording a human decision, and authorizing execution remain distinct.
+
 Phase 5 persists immutable Scenario Portfolio and Scenario Revision records after an exact completed discovery
 revision. Each portfolio records its coverage rationale plus explicit dependency, branch, and shared-setup graph
 semantics; React Flow renders only those declared edges. Each scenario separates behavioral intent from feasibility
@@ -176,8 +180,8 @@ mandatory approved requirement. The final portfolio stores the approved-intent, 
 
 A Designer submission also binds the claimed Assignment Manifest's input and authorization-scope hashes and carries a
 completed `WorkerResultEnvelope` whose output references exactly the submitted portfolio and scenario revisions.
-Factory authorization, spawn receipt, role digest, lease, and input hash are revalidated by the common completion
-path before any scenario record is committed. A requested revision makes the predecessor immutable, persists durable
+The common completion path revalidates authorization, role digest, lease, and input hash before committing scenario
+records. It validates a Factory spawn receipt for Factory work and the versioned admission for the internal gateway. A requested revision makes the predecessor immutable, persists durable
 feedback, and reissues the Designer from canonical predecessor artifacts only. A decision carries forward only when
 the stable scenario ID, behavioral intent, feasibility enrichment, layout, completed discovery input, portfolio graph,
 and coverage rationale are unchanged. A new scenario revision ID alone does not invalidate that decision. Changed
@@ -209,7 +213,8 @@ authorized.
 
 The Automator receives one specialized assignment compiled from the exact approved Scenario Portfolio, each approved
 Scenario Revision and decision, and the canonical operation catalog hash. `quality_journey_automation_materialize`
-requires its current work item, attempt, lease owner, Factory receipt, input hash, and scope hash. It refuses
+requires the current work item, attempt, lease owner, input hash, and scope hash. Factory work supplies its receipt.
+The internal gateway uses versioned admission and derives output references from committed materialization. Appraise refuses
 partial, rejected, superseded, cross-target, or hash-drifted inputs. Generic completion rejects `AUTOMATOR` so a
 worker cannot publish a generic result in place of the materialization record.
 

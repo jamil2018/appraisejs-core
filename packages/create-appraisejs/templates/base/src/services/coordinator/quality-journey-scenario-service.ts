@@ -3,7 +3,7 @@ import {
   projectExternalQualityJourneySubmission,
 } from './quality-journey-external-submission-input'
 import { createHash } from 'node:crypto'
-import type { Prisma, PrismaClient } from '@prisma/client'
+import type { Prisma, PrismaClient, QualityJourney, QualityJourneyWorkItem } from '@prisma/client'
 import { z } from 'zod'
 
 import prisma from '@/config/db-config'
@@ -11,6 +11,7 @@ import { canonicalContractJson } from '@/lib/catalog-contracts'
 import {
   hashScenarioPortfolio,
   qualityJourneyContractVersion,
+  qualityJourneyWorkItemId,
   scenarioBehavioralIntentHash,
   scenarioEnrichmentHash,
   scenarioLayoutHash,
@@ -30,6 +31,11 @@ import {
   type BeforeJourneyBusinessWrite,
   type QueueAttemptTerminal,
 } from './quality-journey-business-write-join'
+import {
+  assertInternalScenarioAutomationAssignment,
+  registerInternalScenarioAutomationReadiness,
+} from './quality-journey-scenario-automation-readiness'
+import { readCompletedInternalDiscovery } from './quality-journey-discovery-service'
 import { ensureQualityJourneyAutomationForApprovedScenarios } from './quality-journey-automation-service'
 import {
   acceptExternalQualityJourneySubmissionInTransaction,
@@ -448,6 +454,96 @@ async function assertScenarioPortfolioSubmissionAuthority(
   return discovery
 }
 
+export function internalScenarioPortfolioRevisionId(journeyId: string, attemptId: string) {
+  return `qjs_candidate_${hash({ journeyId, attemptId }).slice(7, 39)}`
+}
+
+/** Read-only readiness and input projection for the exact managed Designer work item. */
+export async function readInternalScenarioDesignerAssignment(
+  journey: QualityJourney,
+  item: QualityJourneyWorkItem,
+  tx: Prisma.TransactionClient,
+) {
+  assertInternalScenarioAutomationAssignment(journey, item, 'TEST_SCENARIO_DESIGNER', 'SCENARIO_DESIGN')
+  await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, item)
+  const { revision, analysis, analysisCharter, targetObservation, resourceResolution, scope } =
+    await readCompletedInternalDiscovery(journey, tx)
+  const authorization = JSON.parse(item.authorizationScopeJson)
+  const inputArtifacts = JSON.parse(item.inputArtifactRefsJson) as Array<{
+    kind: string
+    artifactId: string
+    revisionId?: string
+    contentHash: string
+  }>
+  const requiredArtifacts = [
+    {
+      kind: 'ANALYSIS_CHARTER_REVISION',
+      artifactId: analysis.artifactId,
+      revisionId: analysis.artifactRevisionId,
+      contentHash: analysis.contentHash,
+    },
+    { kind: 'TARGET_OBSERVATION_BUNDLE', artifactId: revision.id, contentHash: revision.targetObservationHash },
+    { kind: 'RESOURCE_RESOLUTION_BUNDLE', artifactId: revision.id, contentHash: revision.resourceResolutionHash },
+  ]
+  if (
+    authorization.discoveryRevisionId !== revision.id ||
+    authorization.completionHash !== revision.completionHash ||
+    requiredArtifacts.some(required => !inputArtifacts.some(actual => json(actual) === json(required)))
+  )
+    throw new ServiceError('Scenario Designer assignment does not bind accepted Discovery artifacts.', 'CONFLICT')
+  const predecessor = journey.activeScenarioPortfolioRevisionId
+    ? await currentPortfolio(journey.id, journey.targetProjectId, tx)
+    : null
+  const feedback = inputArtifacts.find(ref => ref.kind === 'SCENARIO_REVISION_FEEDBACK')
+  let revisionContext = null
+  if (predecessor) {
+    const { portfolio } = predecessor
+    const artifact =
+      feedback &&
+      (await tx.qualityJourneyArtifact.findFirst({
+        where: {
+          journeyId: journey.id,
+          targetProjectId: journey.targetProjectId,
+          kind: feedback.kind,
+          artifactId: feedback.artifactId,
+          revisionId: feedback.revisionId,
+          contentHash: feedback.contentHash,
+        },
+      }))
+    const priorArtifact = await tx.qualityJourneyArtifact.findUniqueOrThrow({
+      where: { id: portfolio.artifactRecordId },
+    })
+    const prior = scenarioPortfolioSchema.parse(JSON.parse(priorArtifact.artifactJson))
+    if (
+      portfolio.status !== 'REVISION_REQUIRED' ||
+      !artifact ||
+      hash(JSON.parse(artifact.artifactJson)) !== artifact.contentHash ||
+      hashScenarioPortfolio(prior) !== portfolio.contentHash ||
+      !inputArtifacts.some(
+        ref =>
+          ref.kind === 'SCENARIO_PORTFOLIO_REVISION' &&
+          ref.artifactId === prior.portfolioId &&
+          ref.revisionId === prior.portfolioRevisionId &&
+          ref.contentHash === portfolio.contentHash,
+      )
+    )
+      throw new ServiceError('Scenario Designer predecessor lineage is stale.', 'CONFLICT')
+    revisionContext = { portfolio: prior, feedback: JSON.parse(artifact.artifactJson) }
+  }
+  return {
+    cycleId: journey.activeCycleId,
+    discoveryRevisionId: revision.id,
+    discoveryCompletionHash: revision.completionHash!,
+    inputArtifacts,
+    analysisCharter,
+    targetObservation,
+    resourceResolution,
+    scope,
+    revisionContext,
+    portfolioId: revisionContext?.portfolio.portfolioId ?? idFor('designer', journey.id, journey.activeCycleId),
+  }
+}
+
 async function scenarioPortfolioPredecessor(
   journey: { activeScenarioPortfolioRevisionId: string | null },
   portfolio: ScenarioPortfolio,
@@ -549,6 +645,24 @@ async function persistScenarioPortfolioSubmission(
   return created
 }
 
+async function assertManagedScenarioPortfolioAssignment(
+  journey: QualityJourney,
+  item: QualityJourneyWorkItem,
+  attemptId: string,
+  portfolio: ScenarioPortfolio,
+  tx: Prisma.TransactionClient,
+) {
+  if (journey.hostingMode !== 'APP_SERVER_LOCAL_V1') return
+  const assigned = await readInternalScenarioDesignerAssignment(journey, item, tx)
+  if (
+    portfolio.portfolioId !== assigned.portfolioId ||
+    portfolio.portfolioRevisionId !== internalScenarioPortfolioRevisionId(journey.id, attemptId) ||
+    portfolio.discoveryRevisionId !== assigned.discoveryRevisionId ||
+    portfolio.discoveryCompletionHash !== assigned.discoveryCompletionHash
+  )
+    throw new ServiceError('Scenario proposal must bind the Appraise-issued portfolio and Discovery lineage.', 'CONFLICT')
+}
+
 async function submitScenarioPortfolioInTransaction(
   request: ScenarioSubmission,
   portfolio: ScenarioPortfolio,
@@ -577,6 +691,7 @@ async function submitScenarioPortfolioInTransaction(
   if (portfolio.cycleId !== journey.activeCycleId)
     throw new ServiceError('Scenario portfolio cycle does not match the active journey cycle.', 'CONFLICT')
   const { item, attempt } = await scenarioSubmissionLease(request, journey.id, tx)
+  await assertManagedScenarioPortfolioAssignment(journey, item, attempt.id, portfolio, tx)
   const discovery = await assertScenarioPortfolioSubmissionAuthority(portfolio, journey.id, tx)
   const predecessor = await scenarioPortfolioPredecessor(journey, portfolio, tx)
   // Staged E2 gate remains until terminal wiring passes its required exact validation.
@@ -697,11 +812,10 @@ export async function submitExternalQualityJourneyScenarioPortfolio(
 }
 
 async function configureScenarioDesignerAssignment(
-  journey: { id: string },
+  journey: Pick<QualityJourney, 'id' | 'activeCycleId'>,
   discovery: {
     id: string
-    analysisArtifactId: string
-    analysisRevisionArtifactId: string
+    analysisRevisionId: string
     analysisRevisionContentHash: string
     completionHash: string | null
     targetObservationHash: string | null
@@ -709,19 +823,18 @@ async function configureScenarioDesignerAssignment(
   },
   tx: Prisma.TransactionClient,
 ) {
-  const item = await tx.qualityJourneyWorkItem.findFirst({
-    where: { journeyId: journey.id, role: 'TEST_SCENARIO_DESIGNER' },
-    orderBy: { createdAt: 'desc' },
+  const workItemId = qualityJourneyWorkItemId(journey.id, journey.activeCycleId, 'TEST_SCENARIO_DESIGNER')
+  const analysis = await tx.qualityJourneyAnalysisRevision.findUniqueOrThrow({
+    where: { id: discovery.analysisRevisionId },
   })
-  if (!item) return
   await tx.qualityJourneyWorkItem.update({
-    where: { id: item.id },
+    where: { id: workItemId },
     data: {
       inputArtifactRefsJson: json([
         {
           kind: 'ANALYSIS_CHARTER_REVISION',
-          artifactId: discovery.analysisArtifactId,
-          revisionId: discovery.analysisRevisionArtifactId,
+          artifactId: analysis.artifactId,
+          revisionId: analysis.artifactRevisionId,
           contentHash: discovery.analysisRevisionContentHash,
         },
         {
@@ -738,11 +851,11 @@ async function configureScenarioDesignerAssignment(
       authorizationScopeJson: json({
         discoveryRevisionId: discovery.id,
         completionHash: discovery.completionHash,
-        permittedTools: ['artifact.read', 'evidence.publish'],
+        permittedTools: ['artifact.read', 'scenario.propose'],
       }),
     },
   })
-  await refreshQualityJourneyWorkAuthorizationInTransaction(journey.id, item.id, tx)
+  await refreshQualityJourneyWorkAuthorizationInTransaction(journey.id, workItemId, tx)
 }
 
 export async function startQualityJourneyScenarioDesign(
@@ -1398,3 +1511,5 @@ export async function disposeQualityJourneyScenarioComment(
     }),
   )
 }
+
+registerInternalScenarioAutomationReadiness('TEST_SCENARIO_DESIGNER', readInternalScenarioDesignerAssignment)

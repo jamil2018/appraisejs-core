@@ -179,7 +179,7 @@ remains a separate qualification gate.
 
 ### M09: Enable Scenario Designer and Automator
 
-- [ ] Implement and verify this slice.
+- [x] Implement and verify the disposable internal slice.
 
 **Dependencies:** M08. **Estimated scope:** M; split further before implementation if the actual diff spans independent concerns.
 
@@ -187,7 +187,12 @@ remains a separate qualification gate.
 
 **Acceptance:** Designer publishes a candidate for existing human review; only exact approval permits materialization. Automator writes through canonical services and never edits product code or generated automation wrappers.
 
-**Verification:** Scenario revision/approval carry-forward tests, unapproved materialization rejection, canonical operation/capsule bindings and no implicit execution consent.
+**Verification:** Fresh migrated SQLite and scoped worker MCP cover accepted Discovery, exact portfolio publication,
+human approval, and frozen canonical operation and capsule bindings. Stale or foreign assignments, stale or unapproved
+scenarios, unauthorized resource mappings, and expired grants are rejected. Worker reads preserve coordinator ownership
+versions. The bundled Browser exercised exact approval and rejection on a disposable Journey whose approved scenario
+was then materialized through scoped MCP. The Browser displayed the prepared capsule without execution consent.
+Provider and runtime qualification remain open.
 
 ### M10: Enable Triager and complete the lifecycle
 

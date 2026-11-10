@@ -1,3 +1,7 @@
+> M09 implements [internal Scenario Designer and Automator](../../docs/quality-journey-internal-scenario-automation.md)
+> from M08 merge `308660c7`. Verification covers disposable scoped MCP and exact Browser review through preparation.
+> Runtime and provider qualification remain open. The earlier implementation checkpoints below are historical.
+
 > M08 implements [internal Discovery](../../docs/quality-journey-internal-discovery.md) from M07 merge
 > `84fce1cd` with M06 merge `e8adf05b` in its ancestry. M06 STOP and spent-attempt evidence remain historical.
 > The M08 fixture scope covers anonymous discovery and protected-access denial. A live protected-access run needs

@@ -85,6 +85,10 @@ actions; the project-credential coordinator and MCP routes cannot submit them. T
 does not authenticate a separate natural-person reviewer or prove an independent Codex task. Treat the local action
 boundary and exact-version fence as enforced, and reviewer identity or independence as unverified.
 
+In disposable managed Journeys, the [internal Designer and Automator profiles](quality-journey-internal-scenario-automation.md)
+read their exact assignments and submit through the same specialized Appraise services. Scenario publication, human
+review, and execution consent still use their respective Appraise controls.
+
 After scenario approval, the stock Codex Automator uses an admitted `EXTERNAL_V1` assignment and the specialized
 `quality_journey_external_automator_materialize_v1` operation. Appraise resolves the target and Journey, checks the
 exact approved scenario and frozen resource authority, and writes target-owned suites, cases, Step Invocations, and

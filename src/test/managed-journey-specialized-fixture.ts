@@ -85,6 +85,7 @@ export async function managedSpecializedFixture(client: PrismaClient, scope: Sco
   }
   return {
     credentials,
+    principal,
     human: trustedHumanCoordinatorSession as typeof trustedHumanCoordinatorSession,
     async claim(role: QualityJourneyRole) {
       const assignmentSecret = `managed-specialized-secret-${role}-0123456789`

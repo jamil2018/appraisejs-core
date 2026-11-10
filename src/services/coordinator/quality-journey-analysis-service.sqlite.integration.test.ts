@@ -45,6 +45,7 @@ import {
   decideQualityJourneyScenarios,
   disposeQualityJourneyScenarioComment,
   getQualityJourneyScenarioPortfolio,
+  internalScenarioPortfolioRevisionId,
   publishQualityJourneyScenarioPortfolio,
   requestQualityJourneyScenarioRevision,
   startQualityJourneyScenarioDesign,
@@ -791,10 +792,15 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
         authority.credentials,
       )
       const designerClaim = await authority.claim('TEST_SCENARIO_DESIGNER')
+      const portfolioId = `qjs_designer_${createHash('sha256')
+        .update(`${created.journey.journeyId}:${created.journey.activeCycleId}`)
+        .digest('hex')
+        .slice(0, 24)}`
+      const portfolioRevisionId = internalScenarioPortfolioRevisionId(created.journey.journeyId, designerClaim.attempt.id)
       const scenarioPortfolio = {
         schemaVersion: 'appraise.quality-journey/v1' as const,
-        portfolioId: 'portfolio-1',
-        portfolioRevisionId: 'portfolio-r1',
+        portfolioId,
+        portfolioRevisionId,
         journeyId: created.journey.journeyId,
         targetProjectId: 'target-analysis-1',
         cycleId: created.journey.activeCycleId,
@@ -845,8 +851,8 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
       const scenarioOutputs = [
         {
           kind: 'SCENARIO_PORTFOLIO_REVISION' as const,
-          artifactId: 'portfolio-1',
-          revisionId: 'portfolio-r1',
+          artifactId: portfolioId,
+          revisionId: portfolioRevisionId,
           contentHash: portfolioHash,
         },
         ...scenarioPortfolio.scenarios.map(scenario => ({
@@ -885,6 +891,45 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
         portfolio: scenarioPortfolio,
         result,
       }
+      const externalSubmission = <T extends { ownerToken: string }>(
+        { ownerToken, ...payload }: T,
+        claim: typeof designerClaim,
+      ) => ({
+        ...payload,
+        assignmentId: claim.assignment.assignmentId,
+        assignmentGeneration: claim.assignmentGeneration,
+        assignmentSecret: ownerToken,
+      })
+      for (const override of [{ portfolioId: 'foreign-portfolio' }, { portfolioRevisionId: 'foreign-revision' }]) {
+        const portfolio = { ...scenarioPortfolio, ...override }
+        await expect(
+          submitExternalQualityJourneyScenarioPortfolio(
+            externalSubmission(
+              {
+                ...scenarioSubmission,
+                portfolio,
+                result: {
+                  ...result,
+                  outputs: [
+                    {
+                      kind: 'SCENARIO_PORTFOLIO_REVISION',
+                      artifactId: portfolio.portfolioId,
+                      revisionId: portfolio.portfolioRevisionId,
+                      contentHash: hashScenarioPortfolio(portfolio),
+                    },
+                    ...scenarioOutputs.slice(1),
+                  ],
+                },
+              },
+              designerClaim,
+            ),
+            authority.principal,
+            client,
+            authority.credentials,
+          ),
+        ).rejects.toMatchObject({ code: 'CONFLICT', message: expect.stringContaining('Appraise-issued portfolio') })
+      }
+      expect(await client.qualityJourneyScenarioPortfolioRevision.count()).toBe(0)
       await authority.write(
         'SCENARIO_PORTFOLIO_SUBMIT',
         scenarioSubmission,
@@ -896,8 +941,8 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
       )
       const portfolioRef = {
         kind: 'SCENARIO_PORTFOLIO_REVISION' as const,
-        artifactId: 'portfolio-1',
-        revisionId: 'portfolio-r1',
+        artifactId: portfolioId,
+        revisionId: portfolioRevisionId,
         contentHash: portfolioHash,
       }
       await publishQualityJourneyScenarioPortfolio(
@@ -911,7 +956,7 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
           expectedStateHash: submittedScenarioState.journey.stateHash,
           idempotencyKey: 'publish-scenarios-1',
           inputArtifactRefs: [portfolioRef],
-          payload: { artifactRevisionId: 'portfolio-r1', artifactHash: portfolioHash },
+          payload: { artifactRevisionId: portfolioRevisionId, artifactHash: portfolioHash },
         },
         client,
         authority.credentials,
@@ -942,7 +987,7 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
             idempotencyKey: 'managed-decide-scenarios',
             inputArtifactRefs: [portfolioRef],
             payload: {
-              portfolioRevisionId: 'portfolio-r1',
+              portfolioRevisionId,
               portfolioHash,
               approvedScenarioRevisionIds: ['scenario-1-r1', 'scenario-2-r1'],
               rejectedScenarioRevisionIds: ['scenario-3-r1'],
@@ -1097,6 +1142,21 @@ describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
           submittedAt: '2026-09-05T00:00:00.000Z',
         },
       }
+      const environment = await client.environment.findUniqueOrThrow({ where: { id: 'environment-analysis-1' } })
+      await client.environment.update({
+        where: { id: environment.id },
+        data: { baseUrl: 'https://changed-after-admission.example.test' },
+      })
+      await expect(
+        materializeExternalQualityJourneyApprovedScenarios(
+          externalSubmission(materializeInput, automatorClaim),
+          authority.principal,
+          client,
+          authority.credentials,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT', message: expect.stringContaining('Discovery registry authority is stale') })
+      expect(await client.qualityJourneyAutomationMaterialization.count()).toBe(0)
+      await client.environment.update({ where: { id: environment.id }, data: { baseUrl: environment.baseUrl } })
       await authority.write(
         'AUTOMATION_MATERIALIZE',
         materializeInput,

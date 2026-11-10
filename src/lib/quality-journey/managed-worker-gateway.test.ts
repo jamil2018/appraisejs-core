@@ -38,7 +38,7 @@ const exactRoleMaps = {
     'work.output.submit': ['quality_journey_scenarios_submit'],
   },
   AUTOMATOR: {
-    'catalog.search': ['operation_search'],
+    'catalog.search': ['quality_journey_automation_context_get'],
     'automation.write': ['quality_journey_automation_materialize'],
     'runtime-capsule.publish': ['quality_journey_automation_materialize'],
     'work.output.submit': ['quality_journey_automation_materialize'],
