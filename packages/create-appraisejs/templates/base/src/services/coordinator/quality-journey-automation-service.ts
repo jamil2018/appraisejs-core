@@ -3,10 +3,15 @@ import {
   projectExternalQualityJourneySubmission,
 } from './quality-journey-external-submission-input'
 import { createHash } from 'node:crypto'
-import type { Prisma, PrismaClient } from '@prisma/client'
+import type { Prisma, PrismaClient, QualityJourney, QualityJourneyWorkItem } from '@prisma/client'
 import { z } from 'zod'
 
 import prisma from '@/config/db-config'
+import {
+  assertInternalScenarioAutomationAssignment,
+  registerInternalScenarioAutomationReadiness,
+} from './quality-journey-scenario-automation-readiness'
+import { readCompletedInternalDiscovery } from './quality-journey-discovery-service'
 import { qualityJourneyRemediationScope } from './quality-journey-remediation-scope'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { defaultOperationDefinitions } from '@/lib/operation-catalog'
@@ -25,10 +30,14 @@ import {
   automationTargetBindingSchema,
   hashAutomationMaterialization,
   hashAutomationTargetBinding,
+  hashScenarioPortfolio,
+  scenarioPortfolioSchema,
+  workerResultEnvelopeSchema,
   preparedRuntimeCapsuleSchema,
   qualityJourneyWorkItemId,
   resourceResolutionBundleSchema,
   type AssignmentManifest,
+  type WorkerResultEnvelope,
 } from '@/lib/quality-journey'
 import { ServiceError } from '@/services/shared/errors'
 import {
@@ -70,18 +79,13 @@ const tokenHash = (value: string) => createHash('sha256').update(value).digest('
 
 type ApprovedInput = {
   remediation?: NonNullable<Awaited<ReturnType<typeof qualityJourneyRemediationScope>>>
-  journey: {
-    id: string
-    targetProjectId: string
-    activeCycleId: string
-    stage: string
-    activeScenarioPortfolioRevisionId: string | null
-  }
+  journey: QualityJourney
   portfolio: {
     id: string
     artifactId: string
     artifactRevisionId: string
     discoveryRevisionId: string
+    discoveryCompletionHash: string
     contentHash: string
     approvedIntentHash: string | null
     decisionSetHash: string | null
@@ -430,7 +434,7 @@ export async function ensureQualityJourneyAutomationForApprovedScenarios(
 }
 
 async function loadMaterializationReferences(
-  request: AutomationMaterializationRequest,
+  request: Pick<AutomationMaterializationRequest, 'targetProjectId'>,
   resources: AutomationResourceAuthority,
   db: Prisma.TransactionClient,
 ) {
@@ -481,6 +485,66 @@ function assertFrozenResourceContent(
     current.set(`operation:${operation.id}:${operation.version}`, hash(operation))
   if (resources.frozenResourceHashes.some(resource => current.get(resource.id) !== resource.contentHash))
     throw new ServiceError('Automator materialization resource authority is stale or mutated.', 'CONFLICT')
+}
+
+/** Current assignment inputs only. Locator values remain with Appraise. */
+export async function readInternalAutomatorAssignment(
+  journey: QualityJourney,
+  item: QualityJourneyWorkItem,
+  tx: Prisma.TransactionClient,
+) {
+  assertInternalScenarioAutomationAssignment(journey, item, 'AUTOMATOR', 'AUTOMATION')
+  await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, item)
+  const approved = await approvedInput(journey.id, journey.targetProjectId, tx)
+  const { revision } = await readCompletedInternalDiscovery(journey, tx)
+  if (
+    approved.portfolio.discoveryRevisionId !== revision.id ||
+    approved.portfolio.discoveryCompletionHash !== revision.completionHash
+  )
+    throw new ServiceError('Automator assignment does not bind accepted Discovery.', 'CONFLICT')
+  const { frozen, resources, inputHash, scopeHash } = await scope(approved, tx)
+  const refs = inputArtifacts(approved, resources)
+  if (item.inputHash !== inputHash || json(JSON.parse(item.inputArtifactRefsJson)) !== json(refs))
+    throw new ServiceError(
+      'Automator assignment does not bind current approved scenario and resource authority.',
+      'CONFLICT',
+    )
+  const artifact = await tx.qualityJourneyArtifact.findFirstOrThrow({
+    where: {
+      journeyId: journey.id,
+      targetProjectId: journey.targetProjectId,
+      kind: 'SCENARIO_PORTFOLIO_REVISION',
+      artifactId: approved.portfolio.artifactId,
+      revisionId: approved.portfolio.artifactRevisionId,
+      contentHash: approved.portfolio.contentHash,
+    },
+  })
+  const portfolio = scenarioPortfolioSchema.parse(JSON.parse(artifact.artifactJson))
+  if (hashScenarioPortfolio(portfolio) !== approved.portfolio.contentHash)
+    throw new ServiceError('Approved Scenario Portfolio content has changed.', 'CONFLICT')
+  const scenarios = approvedScenarios(approved).map(row => {
+    const scenario = portfolio.scenarios.find(candidate => candidate.scenarioRevisionId === row.scenarioRevisionId)
+    if (!scenario || hash(scenario) !== row.contentHash || json(scenario.behavioralIntent) !== row.behavioralIntentJson)
+      throw new ServiceError('Approved scenario revision content has changed.', 'CONFLICT')
+    return scenario
+  })
+  const [module, definitions, locators] = await loadMaterializationReferences(item, resources, tx)
+  assertFrozenResourceContent(resources, module, definitions, locators)
+  return {
+    inputHash,
+    scopeHash,
+    scope: frozen,
+    inputArtifacts: refs,
+    scenarios,
+    resourceBindings: resources.frozenResourceHashes,
+    stepDefinitions: [...readyDefinitionIndex(definitions).values()].map(({ definition }) => ({
+      definition,
+      definitionHash: computeStepReferenceHash(definition),
+    })),
+    operations: defaultOperationDefinitions.filter(operation =>
+      resources.operationReferences.has(`operation:${operation.id}:${operation.version}`),
+    ),
+  }
 }
 
 function parseAndValidateScenarioIntent(scenario: ApprovedScenario, proposal: AutomationProposal): ScenarioIntent {
@@ -1562,25 +1626,32 @@ function assertCompletedAutomatorResult(request: AutomationMaterializationReques
     throw new ServiceError('Automator materialization requires a completed Automator worker result.', 'CONFLICT')
 }
 
-function assertSubmittedMaterializationOutputs(
-  request: AutomationMaterializationRequest,
-  results: MaterializationResult[],
-) {
-  const expectedOutputs = results
+function materializedOutputReferences(results: MaterializationResult[]): WorkerResultEnvelope['outputs'] {
+  return results
     .flatMap(({ materialization }) => [
-      { kind: 'TEST_SUITE', artifactId: materialization.suiteId!, contentHash: hash({ id: materialization.suiteId }) },
       {
-        kind: 'TEST_CASE',
+        kind: 'TEST_SUITE' as const,
+        artifactId: materialization.suiteId!,
+        contentHash: hash({ id: materialization.suiteId }),
+      },
+      {
+        kind: 'TEST_CASE' as const,
         artifactId: materialization.testCaseId!,
         contentHash: hash({ id: materialization.testCaseId }),
       },
       {
-        kind: 'RUNTIME_CAPSULE',
+        kind: 'RUNTIME_CAPSULE' as const,
         artifactId: materialization.preparedCapsule!.id,
         contentHash: materialization.preparedCapsule!.capsuleHash,
       },
     ])
     .sort((left, right) => json(left).localeCompare(json(right)))
+}
+
+function assertSubmittedMaterializationOutputs(
+  request: AutomationMaterializationRequest,
+  expectedOutputs: WorkerResultEnvelope['outputs'],
+) {
   const submittedOutputs = request.result.outputs
     .map(output => ({ kind: output.kind, artifactId: output.artifactId, contentHash: output.contentHash }))
     .sort((left, right) => json(left).localeCompare(json(right)))
@@ -1614,6 +1685,31 @@ async function completeMaterializedAutomatorWork(
   )
 }
 
+async function assertManagedMaterializationAssignment(
+  request: AutomationMaterializationRequest,
+  journey: QualityJourney,
+  tx: Prisma.TransactionClient,
+  deriveManagedOutputs: boolean,
+  replayed: boolean,
+) {
+  if (!deriveManagedOutputs && (replayed || journey.hostingMode !== 'APP_SERVER_LOCAL_V1')) return
+  const item = await tx.qualityJourneyWorkItem.findUniqueOrThrow({ where: { id: request.workItemId } })
+  await readInternalAutomatorAssignment(journey, item, tx)
+}
+
+function materializedAutomationResult(
+  request: AutomationMaterializationRequest,
+  results: MaterializationResult[],
+  deriveManagedOutputs: boolean,
+) {
+  assertCompletedAutomatorResult(request)
+  const outputs = materializedOutputReferences(results)
+  if (deriveManagedOutputs)
+    return { ...request, result: workerResultEnvelopeSchema.parse({ ...request.result, outputs }) }
+  assertSubmittedMaterializationOutputs(request, outputs)
+  return request
+}
+
 async function materializeQualityJourneyApprovedScenariosInTransaction(
   request: AutomationMaterializationRequest,
   coordinatorSession: CoordinatorSessionCredentials | undefined,
@@ -1621,9 +1717,11 @@ async function materializeQualityJourneyApprovedScenariosInTransaction(
   beforeWrite: BeforeJourneyBusinessWrite,
   queueAttemptTerminal: QueueAttemptTerminal,
   observeLegacyDiagnosticEligibility?: () => void,
+  deriveManagedOutputs = false,
 ) {
   await assertCoordinatorMutationSession(coordinatorSession, request, tx)
   const { approved, compiled, approvedRows, replay } = await authorizeMaterializationRequest(request, tx)
+  await assertManagedMaterializationAssignment(request, approved.journey, tx, deriveManagedOutputs, Boolean(replay))
   const ownScope = await automationSharedUseScope(tx, request, coordinatorSession)
   await validateSelectedAutomationResources(tx, ownScope, compiled.resources)
   if (replay) {
@@ -1643,12 +1741,11 @@ async function materializeQualityJourneyApprovedScenariosInTransaction(
   const plans = await planAuthorizedScenarios(request, approvedRows, compiled.resources, tx, ownScope)
   const results = await materializeAuthorizedScenarios(request, approved, compiled.resources, plans, tx, beforeWrite, ownScope)
   await verifyRemediationChanged(approved, results, tx)
-  assertCompletedAutomatorResult(request)
-  assertSubmittedMaterializationOutputs(request, results)
+  const completedRequest = materializedAutomationResult(request, results, deriveManagedOutputs)
   await validateSelectedAutomationResources(tx, ownScope, compiled.resources)
   if (ownScope) for (const result of results) await validateRetainedAutomationMaterialization(tx, ownScope, result.materialization)
   const completion = await completeMaterializedAutomatorWork(
-    request,
+    completedRequest,
     tx,
     beforeWrite,
     queueAttemptTerminal,
@@ -1716,6 +1813,26 @@ export async function materializeExternalQualityJourneyApprovedScenarios(
   client: PrismaClient = prisma,
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
+  return acceptExternalAutomation(input, principal, client, coordinatorSession, false)
+}
+
+/** Trusted managed ingress. Appraise derives output identities inside the acceptance transaction. */
+export function materializeInternalQualityJourneyApprovedScenarios(
+  input: unknown,
+  principal: ExternalAnalyzerProjectPrincipal,
+  client: PrismaClient,
+  coordinatorSession: CoordinatorSessionCredentials,
+) {
+  return acceptExternalAutomation(input, principal, client, coordinatorSession, true)
+}
+
+async function acceptExternalAutomation(
+  input: unknown,
+  principal: ExternalAnalyzerProjectPrincipal,
+  client: PrismaClient,
+  coordinatorSession: CoordinatorSessionCredentials | undefined,
+  deriveManagedOutputs: boolean,
+) {
   coordinatorSession = snapshotAutomationCoordinatorCredentials(coordinatorSession)
   const request = externalAutomationMaterializationRequestSchema.parse(input)
   const { canonical, acceptance } = projectExternalQualityJourneySubmission(
@@ -1727,7 +1844,7 @@ export async function materializeExternalQualityJourneyApprovedScenarios(
   const normalized = automationMaterializationRequestSchema.parse(canonical)
   return client.$transaction(async tx => {
     const accepted = await acceptExternalQualityJourneySubmissionInTransaction(
-      acceptance,
+      deriveManagedOutputs ? { ...acceptance, payload: { managed: true, request: acceptance.payload } } : acceptance,
       tx,
       (beforeWrite, queueAttemptTerminal) =>
         materializeQualityJourneyApprovedScenariosInTransaction(
@@ -1736,6 +1853,8 @@ export async function materializeExternalQualityJourneyApprovedScenarios(
           tx,
           beforeWrite,
           queueAttemptTerminal,
+          undefined,
+          deriveManagedOutputs,
         ),
     )
     if (accepted.replayed) {
@@ -1888,3 +2007,5 @@ async function verifyRemediationChanged(
     })
   }
 }
+
+registerInternalScenarioAutomationReadiness('AUTOMATOR', readInternalAutomatorAssignment)

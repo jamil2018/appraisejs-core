@@ -10,15 +10,14 @@ import {
   type CanonicalMcpDefinition,
 } from '@/lib/quality-journey/managed-worker-gateway'
 import { ServiceError } from '@/services/shared/errors'
-import { assertCoordinatorAttemptSession } from './quality-journey-coordinator-session'
 import {
   readInternalDiscoveryAssignment,
   submitExternalQualityJourneyResourceResolution,
   submitExternalQualityJourneyTargetObservation,
 } from './quality-journey-discovery-service'
 import {
+  assertManagedWorkerSubmissionOutcome,
   readCurrentExternalWorkAuthority,
-  readExternalQualityJourneySubmissionOutcome,
   type ExternalQualityJourneySubmissionBinding,
 } from './quality-journey-service'
 
@@ -117,11 +116,7 @@ export async function createQualityJourneyInternalDiscoveryGateway(
         profile,
         async authorize({ stage, requestHash }) {
           if (stage === 'after_io' && acceptedKey) {
-            await assertCoordinatorAttemptSession(binding, client)
-            await readExternalQualityJourneySubmissionOutcome(
-              { ...binding, operation, idempotencyKey: acceptedKey },
-              client,
-            )
+            await assertManagedWorkerSubmissionOutcome({ ...binding, operation, idempotencyKey: acceptedKey }, client)
           } else {
             assignment = await readCurrent()
           }

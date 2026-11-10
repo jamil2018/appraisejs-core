@@ -600,6 +600,48 @@ export async function readInternalDiscoveryAssignment(
   return { ...common, role: item.role, scope: { environmentIds: scope.environmentIds, routes: scope.routes }, evidence }
 }
 
+/** Exact, accepted Discovery inputs for downstream managed scenario design. */
+export async function readCompletedInternalDiscovery(journey: QualityJourney, tx: Prisma.TransactionClient) {
+  const revision = await getDiscoveryRevision(journeyScope(journey), tx)
+  if (
+    revision.status !== 'COMPLETED' ||
+    revision.cycleId !== journey.activeCycleId ||
+    !revision.targetObservationJson ||
+    !revision.resourceResolutionJson
+  )
+    throw new ServiceError('Scenario design requires completed Discovery for the active cycle.', 'CONFLICT')
+  const { analysis } = await registryStillCurrent(revision, tx)
+  const charter = await tx.qualityJourneyArtifact.findUniqueOrThrow({ where: { id: revision.analysisArtifactId } })
+  const analysisCharter = JSON.parse(charter.artifactJson)
+  const targetObservation = targetObservationBundleSchema.parse(JSON.parse(revision.targetObservationJson))
+  const resourceResolution = resourceResolutionBundleSchema.parse(JSON.parse(revision.resourceResolutionJson))
+  if (
+    hashAnalysisCharter(analysisCharter) !== revision.analysisRevisionContentHash ||
+    hashTargetObservationBundle(targetObservation) !== revision.targetObservationHash ||
+    hashResourceResolutionBundle(resourceResolution) !== revision.resourceResolutionHash ||
+    hash({
+      discoveryRevisionId: revision.id,
+      targetObservationHash: revision.targetObservationHash,
+      resourceResolutionHash: revision.resourceResolutionHash,
+      scopeHash: revision.scopeHash,
+    }) !== revision.completionHash
+  )
+    throw new ServiceError('Completed Discovery artifact lineage has changed.', 'CONFLICT')
+  const scoutScope = JSON.parse(revision.scoutScopeJson) as { environmentIds: string[]; routes: string[] }
+  return {
+    revision,
+    analysis,
+    analysisCharter,
+    targetObservation,
+    resourceResolution,
+    scope: {
+      environmentIds: scoutScope.environmentIds,
+      routes: scoutScope.routes,
+      resources: JSON.parse(revision.resourceScopeJson) as { resources: FrozenResource[]; operationIds: string[] },
+    },
+  }
+}
+
 function journeyScope(journey: QualityJourney) {
   return { journeyId: journey.id, targetProjectId: journey.targetProjectId }
 }

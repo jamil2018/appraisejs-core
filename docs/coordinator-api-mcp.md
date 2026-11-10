@@ -83,13 +83,17 @@ generation, graph state, authorization, ownership, target/Journey, immutable inp
 transaction. It atomically commits the canonical artifact/transition with a durable external-submission acceptance
 receipt. The receipt is replayable only to its authenticated principal and exact assignment/operation/payload identity;
 conflicting reuse is rejected. `quality_journey_external_work_outcome_get_v1` is the read-only lost-ack reconciliation
-operation and accepts the same binding plus role, operation, and idempotency key. Managed
-`quality_journey_work_claim` and Factory receipt semantics remain unchanged.
+operation and accepts the same binding plus role, operation, and idempotency key. Disposable internal Discovery,
+Scenario Designer, and Automator use versioned admission. External legacy claims retain their Factory receipt semantics.
 
 Scenario Designer submission and publication remain coordinator operations. Scenario approval, rejection, review
 comments and dispositions, and revision requests are local Journey UI actions. Project-credential API and MCP callers
 cannot record those human review mutations; the generic command route also rejects scenario decisions and revision
 requests. The UI records `actor=USER` but does not independently identify a natural person.
+
+For disposable internal Journeys, the [managed Designer and Automator profiles](quality-journey-internal-scenario-automation.md)
+expose assignment-scoped reads and submissions. The trusted gateway binds the versioned admission, and Appraise
+derives the accepted terminal artifact references from its specialized service transaction.
 
 `quality_journey_external_automator_materialize_v1` is the stock Codex preparation ingress after exact scenario
 approval. It accepts one complete, admitted `AUTOMATOR` packet for the route-resolved Journey and target, using the

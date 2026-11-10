@@ -20,6 +20,8 @@ const REPOSITORY_ONLY_TEMPLATE_PREFIXES = [
   'tests/p0-',
   'lib/quality-journey/managed-worker-gateway.',
   'src/lib/quality-journey/managed-worker-gateway.',
+  'services/coordinator/quality-journey-internal-scenario-automation-gateway.',
+  'src/services/coordinator/quality-journey-internal-scenario-automation-gateway.',
   'services/coordinator/quality-journey-internal-discovery-gateway.',
   'src/services/coordinator/quality-journey-internal-discovery-gateway.',
 ]

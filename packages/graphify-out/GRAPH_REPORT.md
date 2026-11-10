@@ -1,15 +1,15 @@
-# Graph Report - packages  (2026-10-23)
+# Graph Report - packages  (2026-11-11)
 
 ## Corpus Check
 - cluster-only mode — file stats not available
 
 ## Summary
-- 1337 nodes · 2552 edges · 77 communities (71 shown, 6 thin omitted)
+- 1337 nodes · 2552 edges · 78 communities (72 shown, 6 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 22 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `fd2e2a30`
+- Built from commit: `308660c7`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -86,6 +86,7 @@
 - [[_COMMUNITY_Community 69|Community 69]]
 - [[_COMMUNITY_Community 70|Community 70]]
 - [[_COMMUNITY_Community 71|Community 71]]
+- [[_COMMUNITY_Community 77|Community 77]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `CustomWorld` - 40 edges
@@ -117,7 +118,7 @@
 ## Hyperedges (group relationships)
 - **Appraise Planning Lifecycle Flow** — appraise_planning_standby_skill_mcp_setup_and_diagnostics, appraise_planning_standby_skill_target_workspace_registration, appraise_planning_standby_skill_plan_creation, appraise_planning_standby_skill_review_readiness, appraise_planning_standby_skill_approval_standby, appraise_planning_standby_skill_approval_outcomes, appraise_planning_standby_skill_validation_preparation [EXTRACTED 1.00]
 
-## Communities (77 total, 6 thin omitted)
+## Communities (78 total, 6 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.06
@@ -144,8 +145,8 @@ Cohesion: 0.08
 Nodes (29): builtinBrowserOperations, BrowserOperationContext, BrowserOperationHandler, browserOperationHandlerDescriptors, BrowserOperationRef, builtinHandlers, canonicalInputAliases, enforceLocatorCardinality() (+21 more)
 
 ### Community 6 - "Community 6"
-Cohesion: 0.10
-Nodes (31): identifier, registerQualityJourneyLibraryOperations(), scope, registerStepDefinitionOperations(), canonicalMcpResourceAnnotations, canonicalMcpResourceNames, canonicalMcpResourceUris, canonicalMcpToolAnnotations (+23 more)
+Cohesion: 0.12
+Nodes (25): canonicalMcpResourceAnnotations, canonicalMcpResourceNames, canonicalMcpResourceUris, canonicalMcpToolAnnotations, canonicalMcpToolNames, durableLifecycleMutation, externalCollaborationMutation, externalExecution (+17 more)
 
 ### Community 7 - "Community 7"
 Cohesion: 0.12
@@ -212,8 +213,8 @@ Cohesion: 0.10
 Nodes (20): compilerOptions, baseUrl, declaration, declarationMap, esModuleInterop, forceConsistentCasingInFileNames, lib, module (+12 more)
 
 ### Community 23 - "Community 23"
-Cohesion: 0.14
-Nodes (16): nullableOptionalPositiveInteger(), nullableOptionalString(), operationSearchInputSchema, registerProjectOperations(), registerRuntimeOperations(), toolError(), applyCapsuleDiagnosticMode(), applyResponseMode() (+8 more)
+Cohesion: 0.27
+Nodes (8): applyCapsuleDiagnosticMode(), applyResponseMode(), commonJourneyResponse(), MCP_RESPONSE_TOKEN_BUDGETS, project(), record(), responseModeEnum, diagnostic
 
 ### Community 24 - "Community 24"
 Cohesion: 0.17
@@ -382,6 +383,10 @@ Nodes (3): registerQualityJourneyOperations(), assignment, harness()
 ### Community 65 - "Community 65"
 Cohesion: 0.67
 Nodes (3): allowScripts, esbuild@0.28.1, fsevents@2.3.3
+
+### Community 77 - "Community 77"
+Cohesion: 0.16
+Nodes (14): nullableOptionalPositiveInteger(), nullableOptionalString(), operationSearchInputSchema, registerProjectOperations(), identifier, registerQualityJourneyLibraryOperations(), scope, registerRuntimeOperations() (+6 more)
 
 ## Knowledge Gaps
 - **476 isolated node(s):** `name`, `version`, `description`, `license`, `author` (+471 more)

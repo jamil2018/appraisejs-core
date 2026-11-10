@@ -112,7 +112,7 @@ const roleToolMap = Object.freeze({
     'work.output.submit': Object.freeze(['quality_journey_scenarios_submit']),
   }),
   AUTOMATOR: Object.freeze({
-    'catalog.search': Object.freeze(['operation_search']),
+    'catalog.search': Object.freeze(['quality_journey_automation_context_get']),
     'automation.write': Object.freeze(['quality_journey_automation_materialize']),
     'runtime-capsule.publish': Object.freeze(['quality_journey_automation_materialize']),
     'work.output.submit': Object.freeze(['quality_journey_automation_materialize']),
@@ -154,7 +154,13 @@ export function createManagedWorkerRegistrationProfile(
     if (!canonical || canonical.inputSchema === undefined) {
       throw new Error(`Worker gateway tool is absent from the canonical MCP registry: ${name}`)
     }
-    const transformed = omitPrincipalArguments(canonical.inputSchema)
+    const managedSubmission =
+      name === 'quality_journey_scenarios_submit' || name === 'quality_journey_automation_materialize'
+    const transformed = omitPrincipalArguments(
+      canonical.inputSchema,
+      [],
+      managedSubmission ? managedSubmissionFields : undefined,
+    )
     return Object.freeze({
       name,
       ...(canonical.description ? { description: canonical.description } : {}),
@@ -398,9 +404,18 @@ function canonicalError(error: unknown) {
   return { name: 'NonErrorThrow', message: String(error), code: null }
 }
 
+const managedSubmissionFields = new Set([
+  'result',
+  'coordinatorSessionId',
+  'coordinatorGeneration',
+  'coordinatorHandoffId',
+  'coordinatorPrincipalId',
+])
+
 function omitPrincipalArguments(
   schema: unknown,
   path: readonly string[] = [],
+  omitted?: ReadonlySet<string>,
 ): { schema: unknown; bindings: { path: string[]; source: PrincipalBindingSource }[] } {
   if (!schema || typeof schema !== 'object' || Array.isArray(schema)) return { schema, bindings: [] }
   const value = schema as Record<string, unknown>
@@ -409,6 +424,7 @@ function omitPrincipalArguments(
   if (properties && typeof properties === 'object' && !Array.isArray(properties)) {
     properties = Object.fromEntries(
       Object.entries(properties as Record<string, unknown>).flatMap(([key, propertySchema]) => {
+        if (omitted?.has(key)) return []
         const source = principalBindingSources[key as keyof typeof principalBindingSources]
         if (source) {
           bindings.push({ path: [...path, key], source })
@@ -421,7 +437,7 @@ function omitPrincipalArguments(
     )
   }
   const required = Array.isArray(value.required)
-    ? value.required.filter(key => typeof key !== 'string' || !(key in principalBindingSources))
+    ? value.required.filter(key => typeof key !== 'string' || (!(key in principalBindingSources) && !omitted?.has(key)))
     : value.required
   return {
     schema: {
