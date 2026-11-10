@@ -143,7 +143,7 @@ containment and product authority are unqualified. See [M02-A evidence](m02-a-qu
 
 Coordinate with the [transition UI tasks](../quality-journey-transition-ui/todo.md), especially U01–U04 and U10. Render status through the single current-task projection; do not add a parallel status dashboard.
 
-- [ ] Implement and verify this slice.
+- [x] Implement and verify this slice on disposable/internal Journeys.
 
 **Dependencies:** M06. **Estimated scope:** M; split further before implementation if the actual diff spans independent concerns.
 
@@ -151,7 +151,11 @@ Coordinate with the [transition UI tasks](../quality-journey-transition-ui/todo.
 
 **Acceptance:** Show queued/running/waiting/blocked/recovery states without chat or raw tool output. Preserve edited forms and exact-version decisions; desktop handoff remains only for external mode.
 
-**Verification:** Component tests for refresh, project switch, stale status, pending edits and failure; Browser-plugin review. Retain polling first; SSE is optional later scope.
+**Verification:** The focused Journey suite covers refresh, project switching, stale responses, pending edits,
+failed reads and recovery. The bundled Browser host was unavailable, so the local Playwright CLI exercised the
+normal Journey list and detail route with disposable SQLite fixtures. It observed Waiting and Recovery required,
+preserved unsaved text during polling, and verified external handoff isolation. Polling remains the transport.
+This evidence does not qualify providers or the managed runtime.
 
 ### M08: Enable Scout and Resource Explorer
 

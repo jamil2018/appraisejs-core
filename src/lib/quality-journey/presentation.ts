@@ -145,6 +145,7 @@ export type QualityJourneyNextActionInput = {
   requestedExecutionConsentCount?: number
   hasObservedWorkerProgress?: boolean
   handoffStatus?: string
+  allowDesktopHandoff?: boolean
 }
 
 type ObservationTimestamp = string | Date
@@ -306,7 +307,11 @@ function observedProgressAction(
   attention: AttentionItem[],
 ): QualityJourneyNextAction {
   const displayStage = displayStageForQualityJourney(input.stage)
-  if (['ANALYSIS', 'ANALYSIS_REVIEW'].includes(input.stage) && !input.hasObservedWorkerProgress) {
+  if (
+    input.allowDesktopHandoff !== false &&
+    ['ANALYSIS', 'ANALYSIS_REVIEW'].includes(input.stage) &&
+    !input.hasObservedWorkerProgress
+  ) {
     const guidance = codexHandoffGuidance(input.handoffStatus ?? 'NOT_PREPARED')
     return {
       title: guidance.label,
@@ -411,7 +416,7 @@ function isRecoveryHandoff(status: string | undefined) {
 }
 
 function handoffCandidate(input: QualityJourneyStatusProjectionInput): StatusCandidate | null {
-  if (input.hasObservedWorkerProgress) return null
+  if (input.allowDesktopHandoff === false || input.hasObservedWorkerProgress) return null
   if (input.stage !== 'ANALYSIS' && !isRecoveryHandoff(input.handoffStatus)) return null
   return candidateForHandoffStatus(input.handoffStatus)
 }
@@ -466,7 +471,9 @@ function inProgressCandidate(input: QualityJourneyStatusProjectionInput): Status
   return {
     summary: input.hasObservedWorkerProgress
       ? 'Appraise has observed submitted work for the current test approach.'
-      : `${displayStage.label} is in progress.`,
+      : input.allowDesktopHandoff === false
+        ? `Current task: ${displayStage.label}.`
+        : `${displayStage.label} is in progress.`,
     nextActor: 'Appraise',
     secondarySummary: `${displayStage.label} is in progress`,
   }
@@ -517,6 +524,9 @@ function lastObservation(input: QualityJourneyStatusProjectionInput): QualityJou
       checkedAt,
     }
   }
+
+  if (input.allowDesktopHandoff === false)
+    return { summary: 'No submitted analysis work has been observed.', checkedAt }
 
   const evidenceByHandoffStatus: Record<string, { summary: string; at?: ObservationTimestamp | null }> = {
     PREPARED: { summary: 'A Codex prompt was prepared; no connection has been observed.' },

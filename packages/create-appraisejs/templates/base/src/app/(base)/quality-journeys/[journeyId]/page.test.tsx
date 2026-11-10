@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
 
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   getAnalysis: vi.fn(),
+  readStatus: vi.fn(),
   getJourney: vi.fn(),
   getScenarios: vi.fn(),
   getAutomation: vi.fn(),
@@ -37,6 +38,7 @@ vi.mock('@/config/db-config', () => ({
 vi.mock('@/services/coordinator/quality-journey-execution-service', () => ({
   getQualityJourneyExecution: vi.fn().mockResolvedValue({ cycles: [], consents: [], proposals: [] }),
 }))
+vi.mock('../quality-journey-status-actions', () => ({ readQualityJourneyStatusAction: mocks.readStatus }))
 vi.mock('../quality-journey-execution-actions', () => ({ qualityJourneyExecutionAction: vi.fn() }))
 
 vi.mock('next/navigation', () => ({
@@ -73,6 +75,8 @@ const journey = (overrides: Record<string, unknown> = {}) => ({
   journey: {
     journeyId: 'journey-1',
     stage: 'ANALYSIS_REVIEW',
+    hostingMode: 'EXTERNAL_LEGACY',
+    version: 1,
     stateHash: digest('a'),
     activeRevisionIds: {},
     analysisReviewHash: digest('b'),
@@ -366,4 +370,29 @@ describe('QualityJourneyDetailPage', () => {
 
     await expect(renderPage()).rejects.toThrow('not found')
   })
+})
+
+it('shows managed runtime inside the current focus and omits desktop handoff', async () => {
+  mocks.getJourney.mockResolvedValue(
+    journey({
+      hostingMode: 'APP_SERVER_LOCAL_V1',
+      stage: 'ANALYSIS',
+      unresolvedQuestionIds: [],
+    }),
+  )
+  mocks.getAnalysis.mockResolvedValue({ revisions: [] })
+  mocks.readStatus.mockResolvedValue({
+    success: true,
+    data: {
+      journeyId: 'journey-1',
+      targetProjectId: 'project-1',
+      runtimeStatus: 'QUEUED',
+      lifecycle: { stage: 'ANALYSIS', version: 1, stateHash: digest('a') },
+    },
+  })
+  render(await QualityJourneyDetailPage({ params: Promise.resolve({ journeyId: 'journey-1' }) }))
+  const focus = screen.getByRole('region', { name: 'Current journey focus' })
+  expect(await within(focus).findByText(/Queued · Appraise/)).toBeInTheDocument()
+  expect(screen.queryByText(/Prepare a Codex prompt/)).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: /Codex/ })).not.toBeInTheDocument()
 })

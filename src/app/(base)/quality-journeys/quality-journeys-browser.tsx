@@ -24,6 +24,7 @@ import { copyQualityJourneyBriefToDraftAction } from './quality-journey-actions'
 
 type QualityJourneyListItem = {
   id: string
+  hostingMode: string
   stage: string
   status: string
   activeCycleId: string
@@ -111,6 +112,7 @@ function JourneyListCard({ item, projectId }: { item: QualityJourneyListItem; pr
     pendingReportDecision: item.stage === 'REPORT_REVIEW',
     requestedExecutionConsentCount: item.requestedExecutionConsentCount,
     hasObservedWorkerProgress: item.analysisRevisionCount > 0,
+    allowDesktopHandoff: item.hostingMode === 'EXTERNAL_LEGACY',
     handoffStatus: item.handoff?.status,
     handoffLaunchedAt: item.handoff?.launchedAt,
     handoffConnectedAt: item.handoff?.connectedAt,

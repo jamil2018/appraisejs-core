@@ -2,9 +2,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({ findMany: vi.fn(), findFirst: vi.fn() }))
 
-vi.mock('@/config/db-config', () => ({
-  default: { qualityJourney: { findMany: mocks.findMany, findFirst: mocks.findFirst } },
-}))
+vi.mock('@/config/db-config', () => {
+  const qualityJourney = { findMany: mocks.findMany, findFirst: mocks.findFirst }
+  return {
+    default: {
+      qualityJourney,
+      $transaction: (read: (tx: { qualityJourney: typeof qualityJourney }) => unknown) => read({ qualityJourney }),
+    },
+  }
+})
 
 import { getQualityJourneyStatusSnapshot, listQualityJourneys } from './quality-journey-query-service'
 
@@ -17,6 +23,7 @@ describe('listQualityJourneys', () => {
     mocks.findMany.mockResolvedValue([
       {
         id: 'journey-1',
+        hostingMode: 'EXTERNAL_LEGACY',
         stage: 'ANALYSIS_REVIEW',
         status: 'ACTIVE',
         activeCycleId: 'cycle-1',
@@ -87,6 +94,7 @@ describe('listQualityJourneys', () => {
     mocks.findMany.mockResolvedValue([
       {
         id: 'journey-expired',
+        hostingMode: 'EXTERNAL_LEGACY',
         stage: 'ANALYSIS',
         status: 'ACTIVE',
         activeCycleId: 'cycle-1',
@@ -118,6 +126,8 @@ describe('getQualityJourneyStatusSnapshot', () => {
   it('returns only project-scoped lifecycle observation and presentation-safe attention', async () => {
     mocks.findFirst.mockResolvedValue({
       id: 'journey-1',
+      targetProjectId: 'project-1',
+      hostingMode: 'EXTERNAL_LEGACY',
       stage: 'ANALYSIS_REVIEW',
       status: 'ACTIVE',
       version: 4,
@@ -173,5 +183,141 @@ describe('getQualityJourneyStatusSnapshot', () => {
     await expect(
       getQualityJourneyStatusSnapshot({ journeyId: 'journey-1', targetProjectId: 'other-project' }),
     ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+  })
+
+  const future = new Date('2099-01-01')
+  const expired = new Date('2000-01-01')
+  const item = {
+    id: 'work-1',
+    cycleId: 'cycle-1',
+    currentAttempt: 1,
+    role: 'REQUIREMENT_ANALYZER',
+    status: 'IN_PROGRESS',
+    updatedAt: expired,
+    attempts: [],
+  }
+  const run = {
+    status: 'ACKNOWLEDGED',
+    sessionId: 'session-1',
+    unresolvedRetentionAt: future,
+    attempt: { attempt: 1, status: 'IN_PROGRESS', leaseExpiresAt: future, workItem: item },
+    intents: [{ acknowledgedAt: expired, acknowledgementDueAt: future, turnDueAt: future }],
+    threadId: 'private-provider-thread',
+    policyJson: 'private-provider-policy',
+  }
+
+  it.each([
+    ['eligible work', { workItems: [{ ...item, status: 'ELIGIBLE' }] }, 'QUEUED'],
+    ['acknowledgement pending within its window', { providerRuns: [{ ...run, status: 'UNKNOWN' }] }, 'QUEUED'],
+    ['current acknowledged work', { providerRuns: [run] }, 'RUNNING'],
+    ['structured input', { unresolvedQuestionIdsJson: '["question-1"]' }, 'WAITING'],
+    ['canonical review', { stage: 'ANALYSIS_REVIEW' }, 'WAITING'],
+    ['execution consent', { executionConsents: [{ id: 'consent-1' }] }, 'WAITING'],
+    ['durable blocker', { blockers: [{ id: 'blocker-1' }] }, 'BLOCKED'],
+    ['paused lifecycle', { status: 'PAUSED', providerRuns: [run] }, 'RECOVERY'],
+    ['fenced session', { providerRuns: [{ ...run, sessionId: 'old-session' }] }, 'RECOVERY'],
+    [
+      'overdue acknowledgement',
+      {
+        providerRuns: [{ ...run, status: 'UNKNOWN', intents: [{ acknowledgementDueAt: expired }] }],
+      },
+      'RECOVERY',
+    ],
+    [
+      'overdue acknowledged turn',
+      { providerRuns: [{ ...run, intents: [{ ...run.intents[0], turnDueAt: expired }] }] },
+      'RECOVERY',
+    ],
+    [
+      'late acknowledgement with time left on the turn',
+      {
+        providerRuns: [{ ...run, intents: [{ ...run.intents[0], acknowledgementDueAt: expired }] }],
+      },
+      'RECOVERY',
+    ],
+    ['expired unresolved retention', { providerRuns: [{ ...run, unresolvedRetentionAt: expired }] }, 'RECOVERY'],
+    [
+      'reissued Analysis with an unreconciled completed predecessor',
+      {
+        providerRuns: [
+          {
+            ...run,
+            attempt: { ...run.attempt, status: 'COMPLETED', workItem: { ...item, status: 'ELIGIBLE' } },
+          },
+        ],
+      },
+      'RECOVERY',
+    ],
+    [
+      'reissued Analysis with a reconciled completed predecessor',
+      {
+        workItems: [
+          {
+            ...item,
+            status: 'ELIGIBLE',
+            attempts: [
+              {
+                attempt: 1,
+                status: 'COMPLETED',
+                leaseExpiresAt: expired,
+                providerRun: { status: 'NONSTART_RECONCILED' },
+              },
+            ],
+          },
+        ],
+      },
+      'QUEUED',
+    ],
+    [
+      'physical completion without acceptance',
+      {
+        workItems: [
+          {
+            ...item,
+            attempts: [
+              {
+                attempt: 1,
+                status: 'IN_PROGRESS',
+                leaseExpiresAt: future,
+                providerRun: { status: 'TERMINAL_RECONCILED' },
+              },
+            ],
+          },
+        ],
+      },
+      'RECOVERY',
+    ],
+    ['prior cycle work without active effects', { workItems: [{ ...item, cycleId: 'old-cycle' }] }, 'UNOBSERVED'],
+    ['unresolved hosting ownership', { hostingMode: 'LEGACY_UNRESOLVED' }, 'RECOVERY'],
+    ['external hosting', { hostingMode: 'EXTERNAL_LEGACY', providerRuns: [run] }, null],
+    ['closed journey', { stage: 'CLOSED', providerRuns: [run] }, null],
+  ])('projects %s as %s using scoped Appraise records', async (_case, overrides, expected) => {
+    mocks.findFirst.mockResolvedValue({
+      id: 'journey-1',
+      targetProjectId: 'project-1',
+      hostingMode: 'APP_SERVER_LOCAL_V1',
+      currentCoordinatorSessionId: 'session-1',
+      stage: 'ANALYSIS',
+      status: 'ACTIVE',
+      version: 4,
+      stateHash: 'sha256:state',
+      activeCycleId: 'cycle-1',
+      activeRevisionIdsJson: '{}',
+      unresolvedQuestionIdsJson: '[]',
+      blockers: [],
+      workItems: [],
+      providerRuns: [],
+      executionConsents: [],
+      ...overrides,
+    })
+    const snapshot = await getQualityJourneyStatusSnapshot({ journeyId: 'journey-1', targetProjectId: 'project-1' })
+    expect(snapshot.runtimeStatus).toBe(expected)
+    expect(snapshot.lifecycle).toMatchObject({ version: 4, stateHash: 'sha256:state' })
+    expect(JSON.stringify(snapshot)).not.toContain('private-provider')
+    expect(snapshot).not.toHaveProperty('providerRuns')
+    expect(mocks.findFirst.mock.calls[0][0].select.providerRuns).toMatchObject({
+      where: { targetProjectId: 'project-1' },
+      select: { intents: { where: { sendBoundaryId: { not: null }, reconciledAt: null } } },
+    })
   })
 })

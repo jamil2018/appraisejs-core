@@ -31,6 +31,7 @@ const journey = {
   id: 'journey-1',
   stage: 'ANALYSIS_REVIEW',
   status: 'ACTIVE',
+  hostingMode: 'EXTERNAL_LEGACY',
   activeCycleId: 'cycle-1',
   activeRevisionIds: { journey: 'journey-revision-1' },
   unresolvedQuestionIds: [],

@@ -1,3 +1,8 @@
+> M07 implementation follows merged M06 PR #307 (`e8adf05b`) on `codex/m07-journey-runtime-status`.
+> The [Journey observation contract](../../docs/agent-lifecycle-flow.md#journey-presentation-and-observation) describes
+> the internal status surface. M06 runtime/provider qualification is still unverified. The historical STOP and spent
+> attempts remain evidence. M07 does not authorize provider activity, managed opt-in, or shipping.
+
 > 2026-10-20 M06 continuation: M05 shipped through PR #305 at `bf5efff400bac764960ce69c7c9df01b462bb86d` (freshly fetched base). M06 repository implementation is authorized in an isolated worktree; [bounded plan](m06-analysis-plan-01.md) and [partial implementation evidence](M06-CURRENT-WORK-01.md). Initial fixture delivery, blocked observation and the form correction are implemented; actual answer-driven reissue/scheduling and successor delivery remain pending. Full M06 remains incomplete: a consumed predecessor needs authoritative physical outcome and original-sender exclusion before follow-up dispatch. Real providers, production dispatch, M07+ and shipping remain blocked. Earlier scope headers are historical.
 
 > M04 implementation authorized (2026-10-19): the user approved the [bounded plan](m04-provider-dispatch-wake-intent-plan-01.md) and all implementation slices in the isolated M04 worktree. See [current evidence and limits](M04-CURRENT-WORK-01.md). Provider launches, production dispatch, M05 and shipping remain out of scope. Earlier checkpoints below retain historical meaning.
