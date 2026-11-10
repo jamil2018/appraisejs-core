@@ -35,6 +35,7 @@ import { AutomationMaterializationStatus } from './automation-materialization-st
 import { JourneyAnchorNavigation } from './journey-anchor-navigation'
 import { JourneyProgressNotice } from './journey-progress-notice'
 import { JourneyProgress } from './journey-progress'
+import { JourneyRuntimeStatus } from './journey-runtime-status'
 import { JourneyStatusObservationProvider } from './journey-status-observation'
 import { ScenarioPortfolioReview } from './scenario-portfolio-review'
 import { DiscoveryBrowserPanel } from './discovery-browser-panel'
@@ -91,6 +92,16 @@ async function loadJourneySupplementalArtifacts(journeyId: string, projectId: st
   return { scenarios: scenarioPortfolio, automation: automationContext }
 }
 
+function showDesktopHandoff(journey: JourneyDetail['journey']) {
+  return journey.hostingMode === 'EXTERNAL_LEGACY' && journey.stage !== 'CLOSED'
+}
+
+async function loadDesktopHandoff(journey: JourneyDetail['journey'], projectId: string) {
+  if (!showDesktopHandoff(journey)) return null
+  const { handoff } = await inspectQualityJourneyHandoff({ journeyId: journey.journeyId, targetProjectId: projectId })
+  return handoff
+}
+
 async function loadJourneyDetail(journeyId: string, projectId: string) {
   const [journey, analysis] = await Promise.all([
     getQualityJourney({ journeyId, targetProjectId: projectId }).then(
@@ -123,7 +134,7 @@ async function loadJourneyDetail(journeyId: string, projectId: string) {
       loadActiveDiscovery(journey.journey.stage, journeyId, projectId),
       getQualityJourneyExecution({ journeyId, targetProjectId: projectId }),
       getQualityJourneyTriage({ journeyId, targetProjectId: projectId }),
-      inspectQualityJourneyHandoff({ journeyId, targetProjectId: projectId }),
+      loadDesktopHandoff(journey.journey, projectId),
       prisma.environment.findMany({
         where: { targetProjectId: projectId, archivedAt: null },
         select: { id: true, name: true },
@@ -150,7 +161,7 @@ async function loadJourneyDetail(journeyId: string, projectId: string) {
     automation,
     execution,
     triage,
-    handoff: handoff.handoff,
+    handoff,
     environments,
     attempts,
     requirementSummary: requirement
@@ -221,7 +232,7 @@ function detailPresentation(
       Boolean(portfolio?.reviewHash) &&
       Boolean(portfolio?.scenarios.some(scenario => !scenario.decisions.length)),
     requestedExecutionConsentCount: detail.execution.consents.filter(consent => consent.status === 'REQUESTED').length,
-    showCoordinatorHandoff: detail.journey.journey.stage !== 'CLOSED',
+    showCoordinatorHandoff: showDesktopHandoff(detail.journey.journey),
     hasObservedWorkerProgress: Boolean(detail.activeAnalysis),
     hasClosureReceipt: Boolean(closure.receipt),
     capsuleIds: materializations.flatMap(item =>
@@ -256,8 +267,10 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
   return (
     <JourneyStatusObservationProvider
       journeyId={journeyId}
+      projectId={project.id}
       stage={journey.journey.stage}
       stateHash={journey.journey.stateHash}
+      version={journey.journey.version}
     >
       <main className="space-y-6 pb-10">
         <JourneyHeader journey={journey} project={project} requirementSummary={requirementSummary} />
@@ -276,6 +289,7 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
             blockerResponsibleActor={journey.blockers[0]?.responsibleActor}
             hasObservedWorkerProgress={presentation.hasObservedWorkerProgress}
             handoffStatus={handoff?.status}
+            allowDesktopHandoff={presentation.showCoordinatorHandoff}
             journeyId={journeyId}
             pendingAnalysisDecision={presentation.pendingAnalysisDecision}
             pendingReportDecision={presentation.pendingReportDecision}
@@ -435,6 +449,7 @@ function JourneyHeader({
 }
 
 function JourneyNextAction({
+  allowDesktopHandoff,
   blockerCount,
   blockerResponsibleActor,
   hasObservedWorkerProgress,
@@ -448,6 +463,7 @@ function JourneyNextAction({
   stage,
   unresolvedRequiredQuestionCount,
 }: {
+  allowDesktopHandoff: boolean
   blockerCount: number
   blockerResponsibleActor?: string
   hasObservedWorkerProgress: boolean
@@ -462,6 +478,7 @@ function JourneyNextAction({
   unresolvedRequiredQuestionCount: number
 }) {
   const status = qualityJourneyStatusProjection({
+    allowDesktopHandoff,
     stage,
     blockerCount,
     blockerResponsibleActor,
@@ -481,6 +498,7 @@ function JourneyNextAction({
         <CardTitle className="text-lg">{status.summary}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
+        <JourneyRuntimeStatus />
         <p className="text-sm text-muted-foreground">Next actor: {status.nextActor}</p>
         <Button asChild>
           <Link href={href}>{status.action.label}</Link>

@@ -153,6 +153,10 @@ Use existing Server Actions and validators. Load active-task data and cheap hist
 
 See [todo.md](todo.md) and [screen sketches](screens.md). The UI projection and shell can ship against the current backend, with desktop setup shown only when necessary. Backend readiness cannot be fabricated by removing its controls. Managed mode replaces setup with runtime status only after its qualification and recovery gates pass.
 
-The prior app-server M07 must consume this state-driven task UI, rather than add another status panel to the existing dashboard. Define the shared task envelope before parallel UI/supervisor work. All-role state fixtures and a complete read-only history escape path are required before the guided UI becomes the default. Existing source/template changes still require scaffold sync and normal verification.
+The internal app-server M07 slice displays its sanitized runtime observation inside the existing Current journey focus.
+U01 and U02 still own the complete guided task envelope and shell. U10 will consume the scoped observation in that
+envelope after its backend qualification gates pass. All-role state fixtures and a complete read-only history
+escape path are required before the guided UI becomes the default. Existing source/template changes still require
+scaffold sync and normal verification.
 
 Rough scope: 1–2 days to settle screen contracts/prototype and fixtures; 1–2 weeks for a focused guided-shell/Analysis slice; 2–4 weeks total for all-role forms, history, freshness/recovery and usability checks, assuming existing component reuse. This overlaps the backend effort and is not simply additive; durable review-draft storage and combined consent/run behavior may expand it. Re-estimate after the first slice. No UI implementation, screenshots, usability measurements or live lifecycle validation were produced in this review.

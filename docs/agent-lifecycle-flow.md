@@ -52,11 +52,22 @@ action are presentation-only; they do not grant permissions or replace canonical
 commands, or approval gates. IDs, hashes, Runner nodes, attempts, receipts, and internal event names remain available
 under technical details.
 
-Journey pages observe a compact project-scoped status snapshot every ten seconds while visible. Observation never
-silently replaces editable answers, feedback, scenario choices, or consent inputs. When canonical state advances, the
-page reports that a newer version is available and requires an explicit load before any exact-version decision.
-Polling stops after closure, prevents overlapping reads, preserves the last known snapshot on failure, and backs off
-to at most sixty seconds. The manual **Check for updates** control uses the same observation boundary.
+The Journey detail page polls a project- and Journey-scoped snapshot every ten seconds while visible. The current
+task shows a sanitized runtime observation for internally hosted Journeys: queued, running, waiting, blocked,
+recovery required, or no observed activity. Queue and acknowledgement evidence comes from durable Appraise records.
+Waiting follows canonical questions, review gates, and consent requests. An ambiguous or expired dispatch requires
+recovery, and a physically reconciled turn with outstanding work still needs canonical acceptance. Desktop handoff
+guidance and controls are available only for external hosting.
+
+Polling preserves editable answers, feedback, scenario choices, and consent inputs. It refreshes runtime status
+independently of the loaded form. A newer lifecycle version prompts an explicit load, and every decision still binds
+the exact canonical state and revision. Project or Journey navigation resets the observation. A response for another
+scope or an older lifecycle version cannot replace the current observation. On a read failure the last valid same-scope
+status is marked as outdated, and polling backs off to at most sixty seconds. **Check for updates** uses the same
+read-only boundary. Polling stops after closure.
+
+M07 presentation is available for disposable/internal managed Journeys. Runtime and provider qualification and the
+M11 recovery gate remain prerequisites for user-facing managed opt-in.
 
 Agents must use the dedicated `quality_journey_*` coordinator operations for lifecycle transitions. Work leases,
 artifact hashes, review decisions, execution-cycle identities, and evidence receipts are exact Journey-scoped

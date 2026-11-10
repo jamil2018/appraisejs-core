@@ -15,7 +15,7 @@ beforeEach(() => {
   mocks.status.mockResolvedValue({ journeyId: 'journey-1', closed: false })
 })
 
-it('reads a status snapshot in the active project without accepting caller project scope', async () => {
+it('reads a status snapshot in the active project and rejects arbitrary target project fields', async () => {
   await expect(readQualityJourneyStatusAction({ journeyId: 'journey-1' })).resolves.toMatchObject({
     success: true,
     data: { journeyId: 'journey-1' },
@@ -26,4 +26,11 @@ it('reads a status snapshot in the active project without accepting caller proje
     readQualityJourneyStatusAction({ journeyId: 'journey-1', targetProjectId: 'other-project' }),
   ).resolves.toMatchObject({ success: false, status: 400 })
   expect(mocks.status).toHaveBeenCalledTimes(1)
+})
+
+it('resolves explicit route scope using the same resolver as the detail page', async () => {
+  mocks.project.mockResolvedValue({ id: 'route-project' })
+  await readQualityJourneyStatusAction({ journeyId: 'journey-1', projectId: 'route-project' })
+  expect(mocks.project).toHaveBeenCalledWith('route-project')
+  expect(mocks.status).toHaveBeenCalledWith({ journeyId: 'journey-1', targetProjectId: 'route-project' })
 })

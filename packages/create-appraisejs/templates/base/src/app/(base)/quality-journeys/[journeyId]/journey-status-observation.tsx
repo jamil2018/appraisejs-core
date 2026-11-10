@@ -20,15 +20,12 @@ const MAX_POLL_DELAY_MS = 60_000
 
 type ObservationState = {
   snapshot: QualityJourneyStatusSnapshot | null
-  lastCheckedAt: string | null
   isChecking: boolean
   isOutdated: boolean
-  automaticPollingStopped: boolean
 }
 
 type ObservationControl = {
   inFlight: boolean
-  stopped: boolean
   pollDelay: number
   nextAutomaticCheck: number
 }
@@ -41,37 +38,35 @@ type JourneyStatusFreshness = {
 
 const JourneyStatusFreshnessContext = createContext<JourneyStatusFreshness | null>(null)
 
-function initialState(stage: string): ObservationState {
+function initialState(): ObservationState {
   return {
     snapshot: null,
-    lastCheckedAt: null,
     isChecking: false,
     isOutdated: false,
-    automaticPollingStopped: stage === 'CLOSED',
   }
 }
 
-function initialControl(stage: string): ObservationControl {
+function initialControl(): ObservationControl {
   return {
     inFlight: false,
-    stopped: stage === 'CLOSED',
     pollDelay: INITIAL_POLL_DELAY_MS,
     nextAutomaticCheck: 0,
   }
 }
 
 function mayCheck(control: ObservationControl, manual: boolean): boolean {
-  return !control.inFlight && !control.stopped && (manual || document.visibilityState === 'visible')
+  return !control.inFlight && (manual || document.visibilityState === 'visible')
 }
 
 function automaticCheckIsDue(control: ObservationControl, manual: boolean): boolean {
   return manual || Date.now() >= control.nextAutomaticCheck
 }
 
-async function readSnapshot(journeyId: string): Promise<QualityJourneyStatusSnapshot | null> {
+async function readSnapshot(journeyId: string, projectId: string): Promise<QualityJourneyStatusSnapshot | null> {
   try {
-    const result = await readQualityJourneyStatusAction({ journeyId })
-    return result.success && result.data ? (result.data as QualityJourneyStatusSnapshot) : null
+    const result = await readQualityJourneyStatusAction({ journeyId, projectId })
+    const snapshot = result.success ? (result.data as QualityJourneyStatusSnapshot | undefined) : null
+    return snapshot?.journeyId === journeyId && snapshot.targetProjectId === projectId ? snapshot : null
   } catch {
     return null
   }
@@ -82,37 +77,46 @@ function nextPollDelay(control: ObservationControl, snapshot: QualityJourneyStat
 }
 
 function nextState(current: ObservationState, snapshot: QualityJourneyStatusSnapshot | null): ObservationState {
-  if (!snapshot) return { ...current, isChecking: false, isOutdated: true }
+  if (!snapshot || (current.snapshot && snapshot.lifecycle.version < current.snapshot.lifecycle.version))
+    return { ...current, isChecking: false, isOutdated: true }
   return {
     snapshot,
-    lastCheckedAt: snapshot.observedAt,
     isChecking: false,
     isOutdated: false,
-    automaticPollingStopped: snapshot.closed,
   }
 }
 
-function useJourneyStatusObservation({ journeyId, stage }: { journeyId: string; stage: string }) {
-  const [state, setState] = useState(() => initialState(stage))
-  const control = useRef(initialControl(stage))
+type ObservationScope = { journeyId: string; projectId: string; stage: string; version: number }
+
+function useJourneyStatusObservation({ journeyId, projectId, stage, version }: ObservationScope) {
+  const [state, setState] = useState(initialState)
+  const control = useRef(initialControl())
+  const snapshot = state.snapshot && state.snapshot.lifecycle.version >= version ? state.snapshot : null
+  const stopped = stage === 'CLOSED' || Boolean(snapshot?.closed)
 
   const checkForUpdates = useCallback(
     async (manual = false) => {
-      if (!mayCheck(control.current, manual) || !automaticCheckIsDue(control.current, manual)) return
+      if (stopped || !mayCheck(control.current, manual) || !automaticCheckIsDue(control.current, manual)) return
 
       control.current.inFlight = true
       setState(current => ({ ...current, isChecking: true }))
-      const snapshot = await readSnapshot(journeyId)
+      const response = await readSnapshot(journeyId, projectId)
+      const snapshot = response && response.lifecycle.version >= version ? response : null
       control.current.inFlight = false
       control.current.pollDelay = nextPollDelay(control.current, snapshot)
       control.current.nextAutomaticCheck = Date.now() + control.current.pollDelay
-      if (snapshot?.closed) control.current.stopped = true
       setState(current => nextState(current, snapshot))
     },
-    [journeyId],
+    [journeyId, projectId, stopped, version],
   )
 
-  return { ...state, checkForUpdates }
+  return {
+    ...state,
+    snapshot,
+    lastCheckedAt: snapshot?.observedAt ?? null,
+    automaticPollingStopped: stopped,
+    checkForUpdates,
+  }
 }
 
 function useVisibleJourneyStatusPolling({
@@ -137,25 +141,24 @@ function useVisibleJourneyStatusPolling({
   }, [checkForUpdates, stopped])
 }
 
-export function JourneyStatusObservationProvider({
-  journeyId,
-  stage,
-  stateHash,
-  children,
-}: {
-  journeyId: string
-  stage: string
-  stateHash: string
-  children: ReactNode
-}) {
-  const observation = useJourneyStatusObservation({ journeyId, stage })
+type ProviderProps = ObservationScope & { stateHash: string; children: ReactNode }
+
+export function JourneyStatusObservationProvider(props: ProviderProps) {
+  return <ScopedJourneyStatusObservation key={JSON.stringify([props.projectId, props.journeyId])} {...props} />
+}
+
+function ScopedJourneyStatusObservation({ stateHash, children, ...scope }: ProviderProps) {
+  const observation = useJourneyStatusObservation(scope)
   useVisibleJourneyStatusPolling({
     stopped: observation.automaticPollingStopped,
     checkForUpdates: observation.checkForUpdates,
   })
   const router = useRouter()
   const [loadingNewerVersion, startTransition] = useTransition()
-  const newerVersionAvailable = Boolean(observation.snapshot && observation.snapshot.lifecycle.stateHash !== stateHash)
+  const newerVersionAvailable = Boolean(
+    observation.snapshot &&
+    (observation.snapshot.lifecycle.version > scope.version || observation.snapshot.lifecycle.stateHash !== stateHash),
+  )
   const loadNewerVersion = useCallback(() => startTransition(() => router.refresh()), [router, startTransition])
 
   return (

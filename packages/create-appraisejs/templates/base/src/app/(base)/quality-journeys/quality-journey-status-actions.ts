@@ -7,21 +7,18 @@ import { getQualityJourneyStatusSnapshot } from '@/services/coordinator/quality-
 import { ServiceError, serviceErrorToActionResponse, unknownErrorToActionResponse } from '@/services/shared/errors'
 import type { ActionResponse } from '@/types/form/actionHandler'
 
-const statusRequestSchema = z
-  .object({
-    journeyId: z
-      .string()
-      .min(1)
-      .max(200)
-      .regex(/^[A-Za-z0-9._:-]+$/),
-  })
-  .strict()
+const scopeId = z
+  .string()
+  .min(1)
+  .max(200)
+  .regex(/^[A-Za-z0-9._:-]+$/)
+const statusRequestSchema = z.object({ journeyId: scopeId, projectId: scopeId.optional() }).strict()
 
-/** Project ownership is resolved from the active workspace, never client input. */
+/** Resolve the same project scope as the detail route and verify Journey ownership in the query. */
 export async function readQualityJourneyStatusAction(input: unknown): Promise<ActionResponse> {
   try {
     const request = statusRequestSchema.parse(input)
-    const project = await requireActiveProject()
+    const project = await requireActiveProject(request.projectId)
     const data = await getQualityJourneyStatusSnapshot({
       journeyId: request.journeyId,
       targetProjectId: project.id,
