@@ -85,7 +85,7 @@ import {
   type QualityJourneyStage,
 } from '@/lib/quality-journey'
 import { ServiceError } from '@/services/shared/errors'
-import { getQualityJourneyDiscoveryBootstrap } from './quality-journey-discovery-bootstrap'
+import { getInternalDiscoveryReadiness, getQualityJourneyDiscoveryBootstrap } from './quality-journey-discovery-bootstrap'
 
 type Db = PrismaClient | Prisma.TransactionClient
 const json = (value: unknown) => canonicalContractJson(value)
@@ -188,12 +188,11 @@ async function readAttemptAuthorization(
     : null
 }
 
-async function assertCurrentExternalSubmissionAuthority(
+async function assertExternalSubmissionAuthority(
   input: ExternalQualityJourneySubmissionBinding,
   tx: Prisma.TransactionClient,
 ) {
   const { item, attempt } = await authenticateExternalQualityJourneySubmission(input, tx)
-  await assertCoordinatorMutationSession(input, { ...input, attemptId: attempt.id }, tx)
   assertExternalCoordinatorPrincipal(input)
   assertQualityJourneyMutable(await readJourney(input.journeyId, input.targetProjectId, tx))
   const authorization = await readAttemptAuthorization(attempt, tx)
@@ -209,6 +208,15 @@ async function assertCurrentExternalSubmissionAuthority(
   if (attempt.leaseExpiresAt <= new Date())
     throw new ServiceError('External work submission lease has expired.', 'CONFLICT')
   return { item, attempt }
+}
+
+/** Read the active assignment without advancing the coordinator's ownership version. */
+export async function readCurrentExternalWorkAuthority(
+  input: ExternalQualityJourneySubmissionBinding,
+  tx: Prisma.TransactionClient,
+) {
+  await assertCoordinatorAttemptSession(input, tx)
+  return assertExternalSubmissionAuthority(input, tx)
 }
 
 /**
@@ -247,7 +255,8 @@ export async function acceptExternalQualityJourneySubmissionInTransaction<T>(
       throw new ServiceError('External submission acceptance lineage is invalid.', 'UNAUTHORIZED')
     return { replayed: true as const, outcome: JSON.parse(existing.outcomeJson) as T }
   }
-  await assertCurrentExternalSubmissionAuthority(input, tx)
+  await assertCoordinatorMutationSession(input, input, tx)
+  await assertExternalSubmissionAuthority(input, tx)
   let queuedTerminal: AttemptTerminalInput | undefined
   const queueForAcceptance: QueueAttemptTerminal = async (actualTx, actualScope, terminal) => {
     const snapshot = Object.freeze({ ...terminal })
@@ -2635,6 +2644,8 @@ export async function claimQualityJourneyWork(input: WorkClaimInput, client: Pri
     const journey = await readClaimableJourney(input, tx, beforeWrite)
     const item = await findClaimableWorkItem(journey, input, tx)
     if (!item) throw new ServiceError('No eligible Quality Journey work item is available.', 'CONFLICT')
+    if (isInternalDiscoveryRole(journey, item.role))
+      throw new ServiceError('Internal Discovery work requires versioned admission.', 'UNAUTHORIZED')
     await assertSpecializedTriagerClaim(item, journey, tx)
     const authorization = await readIssuedClaimAuthorization(item, tx)
     const { authorizationPayload, inputArtifacts, inputHash, projectionHash, attempt } =
@@ -2830,6 +2841,24 @@ async function readExpectedAnalysisClaimWork(
   assertExpectedAnalysisClaimItem(input, expected, journey, item)
   return { journey, item }
 }
+function isInternalDiscoveryRole(
+  journey: QualityJourney,
+  role: QualityJourneyRole,
+): role is 'SCOUT' | 'RESOURCE_EXPLORER' {
+  return journey.hostingMode === 'APP_SERVER_LOCAL_V1' && (role === 'SCOUT' || role === 'RESOURCE_EXPLORER')
+}
+
+async function assertInternalDiscoveryAssignmentReady(
+  journey: QualityJourney,
+  item: QualityJourneyWorkItem,
+  tx: Prisma.TransactionClient,
+) {
+  if (!isInternalDiscoveryRole(journey, item.role)) return
+  const assertReady = getInternalDiscoveryReadiness()
+  if (!assertReady) throw new ServiceError('Internal Discovery readiness is unavailable.', 'CONFLICT')
+  await assertReady(journey, { ...item, role: item.role }, tx)
+}
+
 async function readExternalClaimWork(
   input: ExternalQualityJourneyWorkClaimInput,
   expected: AnalysisFollowupExpectedWork | undefined,
@@ -2844,6 +2873,7 @@ async function readExternalClaimWork(
     tx,
   )
   if (!item) throw new ServiceError('No eligible external Quality Journey work item is available.', 'CONFLICT')
+  await assertInternalDiscoveryAssignmentReady(journey, item, tx)
   return { journey, item }
 }
 
@@ -3173,7 +3203,9 @@ export async function admitExternalQualityJourneyWork(
     await assertCoordinatorMutationSession(input, input, tx)
     await assertCoordinatorAttemptSession({ ...input, attemptId: attempt.id }, tx)
     assertExternalCoordinatorPrincipal(input)
-    assertQualityJourneyMutable(await readJourney(input.journeyId, input.targetProjectId, tx))
+    const journey = await readJourney(input.journeyId, input.targetProjectId, tx)
+    assertQualityJourneyMutable(journey)
+    await assertInternalDiscoveryAssignmentReady(journey, item, tx)
     const authorization = await readAttemptAuthorization(attempt, tx)
     assertFactoryAuthorityCurrent(item, authorization)
     assertExternalAuthorizationPrincipal(

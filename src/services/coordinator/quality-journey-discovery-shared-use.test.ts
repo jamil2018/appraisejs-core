@@ -298,7 +298,7 @@ function fixture(mode: 'MANAGED' | 'EXTERNAL_V1' = 'MANAGED') {
     assignmentScopeHash,
     approvedRequirementSetHash: revision.approvedRequirementSetHash,
     inputArtifacts,
-    evidenceReceipts: [{ artifactId: 'evidence-use', contentHash: hash('evidence') }],
+    evidenceReceipts: [{ artifactId: 'analysis-artifact', contentHash: hash('analysis') }],
     bundleId: 'bundle-discovery-use',
     resolvedAt: '2026-10-26T00:00:00.000Z',
     destinationModuleId: selectedModule.id,
@@ -311,7 +311,7 @@ function fixture(mode: 'MANAGED' | 'EXTERNAL_V1' = 'MANAGED') {
         rank: 1,
         reasonCode: 'COMPATIBLE',
         explanation: 'Selected module',
-        evidenceReceiptIds: ['evidence-use'],
+        evidenceReceiptIds: ['analysis-artifact'],
       },
     ],
     incompatible: [],
@@ -410,6 +410,7 @@ function fixture(mode: 'MANAGED' | 'EXTERNAL_V1' = 'MANAGED') {
   const journey = {
     id: credentials.journeyId,
     targetProjectId: credentials.targetProjectId,
+    hostingMode: 'APP_SERVER_LOCAL_V1',
     stage: 'DISCOVERY',
     status: 'ACTIVE',
     activeDiscoveryRevisionId: revision.id,
@@ -424,6 +425,7 @@ function fixture(mode: 'MANAGED' | 'EXTERNAL_V1' = 'MANAGED') {
     contentHash: hash('analysis'),
   }
   const tx = {
+    qualityJourneyBlocker: { findMany: vi.fn(async () => []) },
     qualityJourney: {
       findFirst: vi.fn(async () => detached(journey)),
       findUniqueOrThrow: vi.fn(async () => detached(journey)),

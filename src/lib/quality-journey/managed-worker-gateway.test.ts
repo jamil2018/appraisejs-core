@@ -28,7 +28,7 @@ const exactRoleMaps = {
     'work.output.submit': ['quality_journey_target_observation_submit'],
   },
   RESOURCE_EXPLORER: {
-    'catalog.search': ['operation_search'],
+    'catalog.search': ['quality_journey_discovery_get'],
     'artifact.read': ['quality_journey_discovery_get'],
     'work.output.submit': ['quality_journey_resource_resolution_submit'],
   },

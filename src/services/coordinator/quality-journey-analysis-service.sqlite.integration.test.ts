@@ -418,6 +418,16 @@ function registerStartedAnalyzerAdapter(
 /** Builds the smallest real Phase 3/4 lineage needed by the Phase 5 successor
  * tests.  It deliberately goes through the public services: a revision
  * successor must not be tested against synthetic discovery authority. */
+function fixtureResolutionEvidence(
+  managed: boolean,
+  discovery: { analysisRevisionArtifactId: string; analysisRevisionContentHash: string },
+  observationReceipt: { artifactId: string; contentHash: string },
+) {
+  return managed
+    ? { artifactId: discovery.analysisRevisionArtifactId, contentHash: discovery.analysisRevisionContentHash }
+    : observationReceipt
+}
+
 async function completedDiscovery(client: PrismaClient, suffix: string, managed = false) {
   const { created, claim, authority } = await readyAnalyzer(client, managed)
   type WorkerInput = Parameters<NonNullable<typeof authority>['write']>[1]
@@ -533,6 +543,15 @@ async function completedDiscovery(client: PrismaClient, suffix: string, managed 
       client,
     )
   ).revisions[0]
+  const observationReceipt = await seedDiscoveryBrowserReceipt(client, {
+    artifactId: `${suffix}-evidence`,
+    journeyId: created.journey.journeyId,
+    targetProjectId: 'target-analysis-1',
+    cycleId: created.journey.activeCycleId,
+    discoveryRevisionId: discovery.id,
+    workItemId: discovery.scoutWorkItemId,
+    snapshotId: `${suffix}-snapshot`,
+  })
   const [scout, resource] = await Promise.all([
     authority
       ? authority.claim('SCOUT')
@@ -565,15 +584,6 @@ async function completedDiscovery(client: PrismaClient, suffix: string, managed 
       ),
     )
   const inputArtifacts = JSON.parse(discovery.scoutWorkItem.inputArtifactRefsJson)
-  const observationReceipt = await seedDiscoveryBrowserReceipt(client, {
-    artifactId: `${suffix}-evidence`,
-    journeyId: created.journey.journeyId,
-    targetProjectId: 'target-analysis-1',
-    cycleId: created.journey.activeCycleId,
-    discoveryRevisionId: discovery.id,
-    workItemId: scout.workItem.id,
-    snapshotId: `${suffix}-snapshot`,
-  })
   const baseBundle = {
     schemaVersion: 'appraise.quality-journey/v1' as const,
     journeyId: created.journey.journeyId,
@@ -617,7 +627,7 @@ async function completedDiscovery(client: PrismaClient, suffix: string, managed 
         targetSnapshot: {
           snapshotId: `${suffix}-snapshot`,
           capturedAt: '2026-09-04T00:00:00.000Z',
-          contentHash: digest('c'),
+          contentHash: observationReceipt.contentHash,
         },
         observations: [
           {
@@ -646,6 +656,7 @@ async function completedDiscovery(client: PrismaClient, suffix: string, managed 
   const frozenResource = frozenResources.find(resource => resource.kind !== 'MODULE')!
   const frozenModule = frozenResources.find(resource => resource.kind === 'MODULE')!
   const resourceScope = JSON.parse(discovery.resourceWorkItem.authorizationScopeJson)
+  const resolutionEvidence = fixtureResolutionEvidence(managed, discovery, observationReceipt)
   await submitResources(
     {
       journeyId: created.journey.journeyId,
@@ -666,6 +677,7 @@ async function completedDiscovery(client: PrismaClient, suffix: string, managed 
         authorizationId: resource.attempt.authorizationId!,
         inputHash: discovery.resourceInputHash,
         assignmentScopeHash: hash(resourceScope),
+        evidenceReceipts: [resolutionEvidence],
         resolvedAt: '2026-09-04T00:00:00.000Z',
         destinationModuleId: frozenModule.id.slice('module:'.length),
         approvedRequirementIds: ['REQ-CHECKOUT-1'],
@@ -675,7 +687,7 @@ async function completedDiscovery(client: PrismaClient, suffix: string, managed 
           requirementId: 'REQ-CHECKOUT-1',
           rank: index + 1,
           explanation: 'The frozen resource is compatible.',
-          evidenceReceiptIds: [`${suffix}-evidence`],
+          evidenceReceiptIds: [resolutionEvidence.artifactId],
           reasonCode: 'COMPATIBLE' as const,
         })),
         incompatible: [],

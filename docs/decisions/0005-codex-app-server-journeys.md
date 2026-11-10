@@ -1,4 +1,8 @@
-> Current shipping checkpoint: [M02 scripted qualification accepted](../../tasks/codex-app-server-journeys/M02-SHIPPED-SCRIPTED-QUALIFICATION-01.md). T2 R51 passed24/24 andT3 R55 passed2/2; final exact evidence review accepted within TA02/TA03 limits. `runtimeQualified` remains false; helper lifetime/global inventory and historical cleanup remain unobserved. No M03 or production dispatch authority follows. Older status passages below remain historical.
+> Current repository checkpoint: M06 PR #307 and M07 PR #308 are merged. [M08 internal Discovery](../quality-journey-internal-discovery.md)
+> is implemented for disposable managed Journeys. `runtimeQualified=false`. The M06 STOP and spent attempts
+> remain historical evidence. Earlier checkpoints below describe their own qualification scopes.
+
+> Historical M02 shipping checkpoint: [M02 scripted qualification accepted](../../tasks/codex-app-server-journeys/M02-SHIPPED-SCRIPTED-QUALIFICATION-01.md). T2 R51 passed24/24 andT3 R55 passed2/2; final exact evidence review accepted within TA02/TA03 limits. `runtimeQualified` remains false; helper lifetime/global inventory and historical cleanup remain unobserved. No M03 or production dispatch authority follows. Older status passages below remain historical.
 
 # ADR-0005: Run Codex app-server behind AppraiseJS Journeys
 

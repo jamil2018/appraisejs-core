@@ -4,7 +4,7 @@ import {
 } from './quality-journey-external-submission-input'
 import { assertQualityJourneyMutable } from './quality-journey-terminal'
 import { createHash } from 'node:crypto'
-import type { Prisma, PrismaClient, QualityJourney } from '@prisma/client'
+import type { Prisma, PrismaClient, QualityJourney, QualityJourneyWorkItem } from '@prisma/client'
 import { z } from 'zod'
 import prisma from '@/config/db-config'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
@@ -14,6 +14,7 @@ import {
 } from '@/lib/quality-journey/discovery-auth-transit-policy'
 import { defaultOperationDefinitions } from '@/lib/operation-catalog'
 import {
+  hashAnalysisCharter,
   hashResourceResolutionBundle,
   hashTargetObservationBundle,
   resourceResolutionBundleSchema,
@@ -46,7 +47,10 @@ import {
   validateActiveSharedResourceUseInTransaction,
 } from './quality-journey-shared-resource-use-service'
 import { registerQualityJourneyDiscoveryBootstrap } from './quality-journey-discovery-bootstrap'
-import { assertDiscoveryBrowserReceiptAdmission } from './quality-journey-discovery-browser-service'
+import {
+  assertDiscoveryBrowserReceiptAdmission,
+  readInternalScoutEvidence,
+} from './quality-journey-discovery-browser-service'
 import {
   acceptExternalQualityJourneySubmissionInTransaction,
   assertDiscoverySubmissionModeLineageInTransaction,
@@ -522,9 +526,101 @@ async function registryStillCurrent(revision: Awaited<ReturnType<typeof getDisco
     [revision.resourceInputHash, compiled.resourceInputHash],
     [revision.scopeHash, compiled.scopeHash],
   ]
+  if (journey.hostingMode === 'APP_SERVER_LOCAL_V1')
+    current.push(
+      [revision.scoutScopeJson, json(compiled.scoutScope)],
+      [revision.resourceScopeJson, json(compiled.resourceScope)],
+    )
   if (current.some(([actual, expected]) => actual !== expected))
     throw new ServiceError('Discovery registry authority is stale; revalidate before using this revision.', 'CONFLICT')
   return { journey, analysis, decision, frozen }
+}
+
+/**
+ * Internal workers see a single current assignment. Scout waits before claim
+ * until the human browser has produced admissible evidence for that assignment.
+ */
+export async function readInternalDiscoveryAssignment(
+  journey: QualityJourney,
+  item: Pick<QualityJourneyWorkItem, 'id' | 'inputHash'> & { role: 'SCOUT' | 'RESOURCE_EXPLORER' },
+  tx: Prisma.TransactionClient,
+) {
+  if (journey.hostingMode !== 'APP_SERVER_LOCAL_V1' || journey.stage !== 'DISCOVERY')
+    throw new ServiceError('Internal Discovery requires an active managed Journey.', 'CONFLICT')
+  // Preserve the staged E2 invalidation fence before spending an attempt.
+  await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, journeyScope(journey))
+  const revision = await getDiscoveryRevision(journeyScope(journey), tx)
+  const scout = item.role === 'SCOUT'
+  if (
+    revision.status !== 'COLLECTING' ||
+    revision.cycleId !== journey.activeCycleId ||
+    item.id !== (scout ? revision.scoutWorkItemId : revision.resourceWorkItemId) ||
+    item.inputHash !== (scout ? revision.scoutInputHash : revision.resourceInputHash)
+  )
+    throw new ServiceError('Internal Discovery assignment is stale.', 'CONFLICT')
+  await assertInternalDiscoveryAccess(revision, tx)
+  const { analysis } = await registryStillCurrent(revision, tx)
+  const inputArtifacts = canonicalArtifacts(analysis, {
+    artifactId: revision.analysisApprovalArtifactId,
+    contentHash: revision.analysisApprovalContentHash,
+  })
+  const charter = await tx.qualityJourneyArtifact.findUniqueOrThrow({ where: { id: revision.analysisArtifactId } })
+  const analysisCharter = JSON.parse(charter.artifactJson)
+  if (hashAnalysisCharter(analysisCharter) !== revision.analysisRevisionContentHash)
+    throw new ServiceError('Frozen Discovery charter content changed.', 'CONFLICT')
+  const common = {
+    discoveryRevisionId: revision.id,
+    cycleId: revision.cycleId,
+    analysisCharter,
+    analysisRevision: {
+      artifactId: analysis.artifactId,
+      revisionId: analysis.artifactRevisionId,
+      contentHash: analysis.contentHash,
+    },
+    analysisApproval: {
+      artifactId: revision.analysisApprovalArtifactId,
+      contentHash: revision.analysisApprovalContentHash,
+    },
+    inputArtifacts,
+    approvedRequirementSetHash: revision.approvedRequirementSetHash,
+  }
+  if (!scout)
+    return {
+      ...common,
+      role: item.role,
+      scope: JSON.parse(revision.resourceScopeJson) as { resources: FrozenResource[]; operationIds: string[] },
+    }
+
+  const scope = JSON.parse(revision.scoutScopeJson) as { environmentIds: string[]; routes: string[] }
+  const evidence = await readInternalScoutEvidence(revision, tx)
+  if (!evidence.length)
+    throw new ServiceError('Scout is waiting for evidence from the Appraise Discovery browser.', 'CONFLICT', 409, {
+      reason: 'DISCOVERY_BROWSER_EVIDENCE_REQUIRED',
+    })
+  return { ...common, role: item.role, scope: { environmentIds: scope.environmentIds, routes: scope.routes }, evidence }
+}
+
+function journeyScope(journey: QualityJourney) {
+  return { journeyId: journey.id, targetProjectId: journey.targetProjectId }
+}
+
+async function assertInternalDiscoveryAccess(
+  revision: { id: string; journeyId: string; targetProjectId: string },
+  tx: Prisma.TransactionClient,
+) {
+  const blockers = await tx.qualityJourneyBlocker.findMany({
+    where: {
+      journeyId: revision.journeyId,
+      targetProjectId: revision.targetProjectId,
+      reasonCode: 'DISCOVERY_MISSING_ACCESS',
+      status: 'ACTIVE',
+    },
+    select: { evidenceJson: true },
+  })
+  if (blockers.some(blocker => JSON.parse(blocker.evidenceJson ?? 'null')?.discoveryRevisionId === revision.id))
+    throw new ServiceError('Discovery work is parked until the human confirms access.', 'CONFLICT', 409, {
+      reason: 'DISCOVERY_MISSING_ACCESS',
+    })
 }
 
 async function getDiscoveryRevision(
@@ -816,13 +912,22 @@ async function prepareDiscoverySubmission(
     bundleHash,
     targetObservation ? 'Scout' : 'Resource',
   )
-  if (replayed) return { revision, replayed, analysis: null }
+  if (replayed) return { revision, replayed, analysis: null, internal: false }
   assertQualityJourneyMutable(await tx.qualityJourney.findUniqueOrThrow({ where: { id: revision.journeyId } }))
-  await registryStillCurrent(revision, tx)
+  const { journey } = await registryStillCurrent(revision, tx)
+  if (journey.hostingMode === 'APP_SERVER_LOCAL_V1') {
+    if (
+      journey.stage !== 'DISCOVERY' ||
+      journey.activeDiscoveryRevisionId !== revision.id ||
+      journey.activeCycleId !== revision.cycleId
+    )
+      throw new ServiceError('Internal Discovery revision is no longer active.', 'CONFLICT')
+    await assertInternalDiscoveryAccess(revision, tx)
+  }
   const analysis = await tx.qualityJourneyAnalysisRevision.findUniqueOrThrow({
     where: { id: revision.analysisRevisionId },
   })
-  return { revision, replayed, analysis }
+  return { revision, replayed, analysis, internal: journey.hostingMode === 'APP_SERVER_LOCAL_V1' }
 }
 
 async function completeIfReady(
@@ -907,7 +1012,7 @@ async function submitQualityJourneyTargetObservationInTransaction(
   externalBinding?: ExternalQualityJourneySubmissionBinding,
 ) {
   assertSubmissionEnvelopeMatchesBundle(request, bundle, 'Scout')
-  const { revision, replayed, analysis } = await prepareDiscoverySubmission(
+  const { revision, replayed, analysis, internal } = await prepareDiscoverySubmission(
     request,
     bundleHash,
     'TARGET_OBSERVATION',
@@ -934,7 +1039,7 @@ async function submitQualityJourneyTargetObservationInTransaction(
     )
   )
     throw new ServiceError('Scout observations exceed the frozen target scope.', 'CONFLICT')
-  await assertDiscoveryBrowserReceiptAdmission(bundle, revision, tx)
+  await assertDiscoveryBrowserReceiptAdmission(bundle, revision, tx, internal ? bundle.targetSnapshot : undefined)
   await assertDiscoverySubmissionModeLineageInTransaction(
     {
       journeyId: request.journeyId,
@@ -1052,6 +1157,23 @@ async function selectedResourceResolutionUseRequest(
   })
 }
 
+function assertInternalResourceEvidence(bundle: ResourceResolutionBundle, requirementSetHash: string) {
+  if (hash({ requirementIds: bundle.approvedRequirementIds }) !== requirementSetHash)
+    throw new ServiceError('Resource Explorer requirements do not match the approved charter.', 'CONFLICT')
+  if (
+    bundle.evidenceReceipts.some(
+      receipt =>
+        !bundle.inputArtifacts.some(
+          artifact => artifact.artifactId === receipt.artifactId && artifact.contentHash === receipt.contentHash,
+        ),
+    )
+  )
+    throw new ServiceError(
+      'Resource Explorer evidence must reference exact Appraise-issued assignment artifacts.',
+      'CONFLICT',
+    )
+}
+
 async function submitQualityJourneyResourceResolutionInTransaction(
   request: z.infer<typeof submissionEnvelopeSchema>,
   bundle: ReturnType<typeof resourceResolutionBundleSchema.parse>,
@@ -1063,7 +1185,7 @@ async function submitQualityJourneyResourceResolutionInTransaction(
   externalBinding?: ExternalQualityJourneySubmissionBinding,
 ) {
   assertSubmissionEnvelopeMatchesBundle(request, bundle, 'Resource')
-  const { revision, replayed, analysis } = await prepareDiscoverySubmission(
+  const { revision, replayed, analysis, internal } = await prepareDiscoverySubmission(
     request,
     bundleHash,
     'RESOURCE_RESOLUTION',
@@ -1086,6 +1208,7 @@ async function submitQualityJourneyResourceResolutionInTransaction(
     throw new ServiceError('Resource Explorer assignment scope hash is stale.', 'CONFLICT')
   const scope = JSON.parse(revision.resourceScopeJson) as { resources: FrozenResource[] }
   assertResourceResolutionWithinFrozenScope(bundle, scope, request.targetProjectId)
+  if (internal) assertInternalResourceEvidence(bundle, revision.approvedRequirementSetHash)
   await assertDiscoverySubmissionModeLineageInTransaction(
     {
       journeyId: request.journeyId,
@@ -1277,7 +1400,10 @@ export async function retryQualityJourneyDiscovery(
   })
 }
 
-registerQualityJourneyDiscoveryBootstrap(ensureQualityJourneyDiscoveryForApprovedAnalysis)
+registerQualityJourneyDiscoveryBootstrap(
+  ensureQualityJourneyDiscoveryForApprovedAnalysis,
+  readInternalDiscoveryAssignment,
+)
 
 export async function revalidateQualityJourneyDiscovery(
   input: { journeyId: string; targetProjectId: string; expectedActiveDiscoveryRevisionId: string },

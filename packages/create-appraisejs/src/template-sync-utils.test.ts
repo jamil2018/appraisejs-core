@@ -116,6 +116,14 @@ describe('shouldExcludeTemplatePath', () => {
     expect(shouldExcludeTemplatePath('lib/p0-r2d-canonical-bridge.ts')).toBe(true)
     expect(shouldExcludeTemplatePath('qualify-managed-journey-provider.mjs')).toBe(true)
     expect(shouldExcludeTemplatePath('src/lib/quality-journey/managed-worker-gateway.ts')).toBe(true)
+    expect(shouldExcludeTemplatePath('src/services/coordinator/quality-journey-internal-discovery-gateway.ts')).toBe(
+      true,
+    )
+    expect(
+      shouldExcludeTemplatePath(
+        'services/coordinator/quality-journey-internal-discovery-gateway.sqlite.integration.test.ts',
+      ),
+    ).toBe(true)
   })
 
   it('keeps normal source files and config files', () => {

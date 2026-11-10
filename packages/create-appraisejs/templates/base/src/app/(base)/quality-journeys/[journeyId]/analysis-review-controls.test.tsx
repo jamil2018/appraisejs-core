@@ -174,8 +174,9 @@ describe('AnalysisReviewControls', () => {
     await user.type(screen.getByLabelText('Answer'), 'Card payment.')
     await user.click(screen.getByRole('button', { name: 'Record answer' }))
     const original = mocks.answer.mock.calls[0][0]
+    const retry = await screen.findByRole('button', { name: 'Record answer' })
     expect(screen.getByLabelText('Answer')).toHaveValue('Card payment.')
-    await user.click(screen.getByRole('button', { name: 'Record answer' }))
+    await user.click(retry)
     expect(mocks.answer.mock.calls[1][0]).toEqual(original)
     rerender(
       <AnalysisReviewControls
