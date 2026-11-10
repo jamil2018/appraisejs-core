@@ -410,6 +410,8 @@ function fixture(mode: 'MANAGED' | 'EXTERNAL_V1' = 'MANAGED') {
   const journey = {
     id: credentials.journeyId,
     targetProjectId: credentials.targetProjectId,
+    // Factory MANAGED is an attempt mode within this legacy-hosted Journey.
+    hostingMode: 'EXTERNAL_LEGACY',
     stage: 'DISCOVERY',
     status: 'ACTIVE',
     activeDiscoveryRevisionId: revision.id,
