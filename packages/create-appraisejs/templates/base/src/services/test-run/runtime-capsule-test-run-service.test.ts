@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { OwnedProcessStopError } from '@/lib/process/owned-process-stop'
 import { RuntimeCapsuleTestRunService } from './runtime-capsule-test-run-service'
 import { persistObservedCapsuleStop } from './runtime-capsule-stop-service'
+import type { RetainedExecutionIdentity } from '@/services/coordinator/quality-journey-shared-resource-use-service'
 
 const { stopOwned, getOwned, executeCapsule, scheduleCompletion, releaseCapsule } = vi.hoisted(() => ({
   stopOwned: vi.fn(),
@@ -25,6 +26,17 @@ vi.mock('@/lib/executor/capsule-executor-adapter', () => ({
 }))
 vi.mock('./test-run-service', () => ({ scheduleTestRunCompletion: scheduleCompletion }))
 vi.mock('@/lib/test-run/winston-logger', () => ({ createTestRunLogger: vi.fn(async () => ({})) }))
+// These existing scheduling/stop unit fakes do not model retained source rows.
+// This inert substitute preserves their failure-control coverage only; fresh
+// R09 tests separately cover refusal and exact caller placement. It proves no
+// legacy source integrity, persisted rollback or protected effect authority.
+vi.mock('@/services/coordinator/quality-journey-shared-resource-use-service', () => ({
+  validateRetainedExecutionUseForTestRunInTransaction: vi.fn(async () => ({
+    protection: 'LEGACY',
+    runSourceHash: 'inert-existing-scheduling-unit-only',
+    executionIdentity: inertDelayedLaunchIdentity,
+  })),
+}))
 
 beforeEach(() => vi.clearAllMocks())
 
@@ -44,6 +56,39 @@ function queuedRun(input: { intent: 'INDEPENDENT' | 'QUALITY_JOURNEY'; journeyBo
   }
 }
 
+// Input shape only for the two early binding/intent rejection tests below.
+// These paths reject before retained-use validation; this fixture proves no
+// retained source integrity and grants no resource or physical effect authority.
+const inertNegativeLaunchIdentity: RetainedExecutionIdentity = Object.freeze({
+  intent: 'QUALITY_JOURNEY',
+  journeyId: 'inert-negative-journey',
+  targetProjectId: 'target',
+  executionCycleId: 'inert-negative-execution',
+  executionJourneyCycleId: 'inert-negative-phase-cycle',
+  executionBindingId: 'binding',
+  preparedCapsuleId: 'inert-negative-prepared',
+  testRunDbId: 'run-db',
+  runId: 'run-public',
+  preparedCapsulesHash: 'sha256:0000000000000000000000000000000000000000000000000000000000000000',
+  resourceUse: Object.freeze({ kind: 'LEGACY_UNPROTECTED' }),
+})
+
+// Deterministic scheduling-unit scope only. Caller and inert retained reader
+// select this value before launch; it is not persisted identity or effect authority.
+const inertDelayedLaunchIdentity: RetainedExecutionIdentity = Object.freeze({
+  intent: 'QUALITY_JOURNEY',
+  journeyId: 'journey',
+  targetProjectId: 'target',
+  executionCycleId: 'inert-delayed-execution-cycle',
+  executionJourneyCycleId: 'inert-delayed-journey-cycle',
+  executionBindingId: 'inert-delayed-binding',
+  preparedCapsuleId: 'capsule',
+  testRunDbId: 'run-db',
+  runId: 'run-public',
+  preparedCapsulesHash: 'sha256:1111111111111111111111111111111111111111111111111111111111111111',
+  resourceUse: Object.freeze({ kind: 'LEGACY_UNPROTECTED' }),
+})
+
 describe('TestRun Journey authority invariants', () => {
   it('rejects Journey intent without an exact Journey execution binding', async () => {
     const client = {
@@ -52,7 +97,10 @@ describe('TestRun Journey authority invariants', () => {
       },
     }
     await expect(
-      new RuntimeCapsuleTestRunService(client as never).startJourneyPrepared({ testRunDbId: 'run-db' }),
+      new RuntimeCapsuleTestRunService(client as never).startJourneyPrepared({
+        testRunDbId: 'run-db',
+        expectedExecutionIdentity: inertNegativeLaunchIdentity,
+      }),
     ).rejects.toThrow('specialized frozen execution boundary')
   })
 
@@ -74,7 +122,10 @@ describe('TestRun Journey authority invariants', () => {
       },
     }
     await expect(
-      new RuntimeCapsuleTestRunService(client as never).startJourneyPrepared({ testRunDbId: 'run-db' }),
+      new RuntimeCapsuleTestRunService(client as never).startJourneyPrepared({
+        testRunDbId: 'run-db',
+        expectedExecutionIdentity: inertNegativeLaunchIdentity,
+      }),
     ).rejects.toThrow('invalid execution intent')
   })
 })
@@ -227,10 +278,18 @@ describe('owned capsule cancellation', () => {
       },
       qualityJourneyExecutionTestRun: {
         findUnique: vi.fn(async () => ({
-          executionCycle: { status: 'RUNNING', journey: { id: 'journey', status: journeyStatus, version: 1 } },
+          executionCycle: {
+            targetProjectId: 'target',
+            status: 'RUNNING',
+            journey: { id: 'journey', status: journeyStatus, version: 1 },
+          },
         })),
       },
-      qualityJourney: { updateMany: vi.fn(async () => ({ count: journeyStatus === 'ACTIVE' ? 1 : 0 })) },
+      qualityJourney: {
+        findFirst: vi.fn(async () => ({ id: 'journey', targetProjectId: 'target', currentCoordinatorSessionId: null })),
+        updateMany: vi.fn(async () => ({ count: journeyStatus === 'ACTIVE' ? 1 : 0 })),
+      },
+      qualityJourneyE2Retirement: { findFirst: vi.fn(async () => null) },
       $transaction: vi.fn(async (callback: (tx: unknown) => Promise<unknown>) => callback(client)),
     }
     const service = new RuntimeCapsuleTestRunService(client as never)
@@ -254,6 +313,7 @@ describe('owned capsule cancellation', () => {
       remoteScopeRequired: false,
       label: 'Journey',
       beforeSpawnError: 'before spawn',
+      expectedExecutionIdentity: inertDelayedLaunchIdentity,
       verifyRunStatusAfterSpawn: true,
     })
     await vi.waitFor(() => expect(executeCapsule).toHaveBeenCalledTimes(1))

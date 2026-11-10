@@ -22,10 +22,11 @@ import {
 } from './quality-journey-coordinator-session'
 import {
   acceptExternalQualityJourneySubmissionInTransaction,
-  completeTriagerWorkInTransaction,
-  issueQualityJourneySpecializedWorkItem,
-  setQualityJourneyActiveWorkItems,
-  submitDurableQualityJourneyCommandInTransaction,
+  completeTriagerWorkWithBusinessJoinInTransaction,
+  issueQualityJourneySpecializedWorkItemWithBusinessJoinInTransaction,
+  publishTriageReportWithBusinessJoinInTransaction,
+  setQualityJourneyActiveWorkItemsWithBusinessJoinInTransaction,
+  submitDurableQualityJourneyCommandWithBusinessJoinInTransaction,
   type ExternalAnalyzerProjectPrincipal,
 } from './quality-journey-service'
 import {
@@ -35,6 +36,13 @@ import {
 } from './quality-journey-triage-input'
 import { validateQualityJourneyTriageReport } from './quality-journey-triage-validation'
 import { ensureQualityJourneyAutomationForApprovedScenarios } from './quality-journey-automation-service'
+
+import {
+  assertJourneyBusinessGroupSupportsNoInvalidationInTransaction,
+  withJourneyBusinessWriteJoinInTransaction,
+  type BeforeJourneyBusinessWrite,
+  type QueueAttemptTerminal,
+} from './quality-journey-business-write-join'
 
 const idFor = (...parts: string[]) => `qjt_${createHash('sha256').update(json(parts)).digest('hex').slice(0, 24)}`
 const conflict = (message: string) => new ServiceError(message, 'CONFLICT')
@@ -85,7 +93,11 @@ export async function getQualityJourneyTriage(value: unknown, client: PrismaClie
   }
 }
 
-async function issueTriage(input: TriageInput, tx: Prisma.TransactionClient) {
+async function issueTriage(
+  input: TriageInput,
+  tx: Prisma.TransactionClient,
+  beforeWrite: BeforeJourneyBusinessWrite,
+) {
   const journey = await journeyScope(input, tx)
   if (journey.stage !== 'TRIAGE' || journey.activeCycleId !== input.cycleId)
     throw conflict('Triage assignment requires the active sealed cycle.')
@@ -101,7 +113,9 @@ async function issueTriage(input: TriageInput, tx: Prisma.TransactionClient) {
     if (existing.inputHash !== inputHash) throw conflict('Triage assignment conflicts with frozen input.')
     return existing
   }
-  const item = await issueQualityJourneySpecializedWorkItem(
+  // Fresh issuance also supersedes legacy work; E2 requires a successor owner.
+  await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, input)
+  const item = await issueQualityJourneySpecializedWorkItemWithBusinessJoinInTransaction(
     journey,
     {
       id: idFor('work', assignmentId),
@@ -127,6 +141,7 @@ async function issueTriage(input: TriageInput, tx: Prisma.TransactionClient) {
       ],
     },
     tx,
+    beforeWrite,
   )
   // Legacy generic items never become accepted report authority.
   const legacy = await tx.qualityJourneyWorkItem.findMany({
@@ -140,6 +155,7 @@ async function issueTriage(input: TriageInput, tx: Prisma.TransactionClient) {
     select: { id: true },
   })
   const legacyIds = legacy.map(i => i.id)
+  await beforeWrite(tx, input)
   await tx.qualityJourneyWorkAuthorization.updateMany({
     where: { workItemId: { in: legacyIds }, revokedAt: null },
     data: {
@@ -181,7 +197,7 @@ async function issueTriage(input: TriageInput, tx: Prisma.TransactionClient) {
       inputJson: json(input),
     },
   })
-  await setQualityJourneyActiveWorkItems(journey.id, [item.id], tx)
+  await setQualityJourneyActiveWorkItemsWithBusinessJoinInTransaction(journey.id, [item.id], tx, beforeWrite)
   return assignment
 }
 
@@ -191,21 +207,23 @@ export async function prepareQualityJourneyTriage(
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
   const input = qualityJourneyTriagePrepareSchema.parse(value)
-  await client.$transaction(async tx => {
-    await assertCoordinatorMutationSession(coordinatorSession, input, tx)
-    const journey = await journeyScope(input, tx)
-    if (journey.stage !== 'TRIAGE') throw conflict('Triage is not active.')
-    const existing = await tx.qualityJourneyTriageAssignment.findFirst({
-      where: { journeyId: input.journeyId, executionCycleId: input.executionCycleId },
-      orderBy: { createdAt: 'desc' },
-    })
-    if (existing) {
-      if ((JSON.parse(existing.inputJson) as TriageInput).cycleId !== journey.activeCycleId)
-        throw conflict('Triage cycle is stale.')
-      return
-    }
-    await issueTriage(await compileQualityJourneyTriageInput(input, tx), tx)
-  })
+  await client.$transaction(tx =>
+    withJourneyBusinessWriteJoinInTransaction(tx, input, coordinatorSession, async beforeWrite => {
+      await assertCoordinatorMutationSession(coordinatorSession, input, tx)
+      const journey = await journeyScope(input, tx)
+      if (journey.stage !== 'TRIAGE') throw conflict('Triage is not active.')
+      const existing = await tx.qualityJourneyTriageAssignment.findFirst({
+        where: { journeyId: input.journeyId, executionCycleId: input.executionCycleId },
+        orderBy: { createdAt: 'desc' },
+      })
+      if (existing) {
+        if ((JSON.parse(existing.inputJson) as TriageInput).cycleId !== journey.activeCycleId)
+          throw conflict('Triage cycle is stale.')
+        return
+      }
+      await issueTriage(await compileQualityJourneyTriageInput(input, tx), tx, beforeWrite)
+    }),
+  )
   return getQualityJourneyTriage({ journeyId: input.journeyId, targetProjectId: input.targetProjectId }, client)
 }
 
@@ -315,83 +333,113 @@ function assertReportResult(
     throw conflict('Triager result must identify exactly the complete report and frozen source hash.')
 }
 
+async function submitQualityJourneyTriageReportInTransaction(
+  input: ReportSubmission,
+  tx: Prisma.TransactionClient,
+  beforeWrite: BeforeJourneyBusinessWrite,
+  queueAttemptTerminal: QueueAttemptTerminal,
+  coordinatorSession: CoordinatorSessionCredentials | undefined,
+  admission?: typeof externalTriageAdmission,
+) {
+  await assertCoordinatorMutationSession(coordinatorSession, input, tx)
+  const attempt = await tx.qualityJourneyWorkAttempt.findUnique({ where: { id: input.attemptId } })
+  if (attempt?.executionMode === 'EXTERNAL_V1' && admission !== externalTriageAdmission)
+    throw new ServiceError(
+      'EXTERNAL_V1 Triager attempts must use the versioned external submission operation.',
+      'UNAUTHORIZED',
+    )
+  const journey = await journeyScope(input, tx)
+  const requestHash = hash(input)
+  const replay = await tx.qualityJourneyTriageReport.findUnique({
+    where: { journeyId_idempotencyKey: { journeyId: input.journeyId, idempotencyKey: input.idempotencyKey } },
+  })
+  if (replay) {
+    if (replay.requestHash !== requestHash)
+      throw conflict('Report idempotency key was reused with different content.')
+    return { reportRevisionId: replay.id, contentHash: replay.contentHash, replayed: true }
+  }
+  const { assignment, frozen } = await activeReportAssignment(input, journey, tx)
+  validateQualityJourneyTriageReport(input.report, frozen)
+  const contentHash = hash({ report: input.report, source: frozen })
+  const output = {
+    kind: 'TEST_REPORT_ANALYSIS_REVISION',
+    artifactId: input.report.reportRevisionId,
+    revisionId: input.report.reportRevisionId,
+    contentHash,
+  }
+  assertReportResult(input, output)
+  // Retain the staged E2 terminal gate until integrated verification and exact review.
+  await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, input)
+  await beforeWrite(tx, input)
+  const ref = await persistReportArtifact(frozen, input.report, contentHash, tx)
+  const completion = await completeTriagerWorkWithBusinessJoinInTransaction(
+    { ...(typeof coordinatorSession === 'object' ? coordinatorSession : {}), ...input },
+    tx,
+    beforeWrite,
+    queueAttemptTerminal,
+  )
+  const publication = completion.replayed
+    ? undefined
+    : {
+        kind: 'ROLE_OUTPUT_FINALIZATION' as const,
+        terminalAttemptId: input.attemptId,
+        terminalResultHash: hash(input.result),
+      }
+  // Classify this result's report and fixed publication-command business writes.
+  // The fixed child classifies the M03 ownership guard before its CAS and disables issuance.
+  // A completion replay has no terminal marker.
+  const beforeReportFinalization: BeforeJourneyBusinessWrite = (actualTx, actualScope) =>
+    beforeWrite(actualTx, actualScope, publication)
+  await beforeReportFinalization(tx, input)
+  await tx.qualityJourneyTriageReport.create({
+    data: {
+      id: input.report.reportRevisionId,
+      journeyId: journey.id,
+      assignmentId: assignment.id,
+      contentHash,
+      reportJson: json(input.report),
+      idempotencyKey: input.idempotencyKey,
+      requestHash,
+    },
+  })
+  const after = await tx.qualityJourney.findUniqueOrThrow({ where: { id: journey.id } })
+  const command = await publishTriageReportWithBusinessJoinInTransaction(
+    {
+      commandId: idFor('publish', input.report.reportRevisionId),
+      journeyId: journey.id,
+      targetProjectId: journey.targetProjectId,
+      expectedStateHash: after.stateHash,
+      idempotencyKey: `report:${input.idempotencyKey}`,
+      report: ref,
+    },
+    tx,
+    beforeReportFinalization,
+    coordinatorSession,
+  )
+  if (command.outcome !== 'COMMITTED') throw conflict('Report publication could not commit.')
+  await beforeReportFinalization(tx, input)
+  await tx.qualityJourney.update({
+    where: { id: journey.id },
+    data: { activeTriageReportId: input.report.reportRevisionId },
+  })
+  return { reportRevisionId: input.report.reportRevisionId, contentHash, replayed: false }
+}
+
 export async function submitQualityJourneyTriageReport(
   value: unknown,
   client: Db = prisma,
   coordinatorSession?: CoordinatorSessionCredentials,
-  admission?: typeof externalTriageAdmission,
 ) {
   const input = qualityJourneyTriageSubmitSchema.parse(value)
-  return withTransaction(client, async tx => {
-    await assertCoordinatorMutationSession(coordinatorSession, input, tx)
-    const attempt = await tx.qualityJourneyWorkAttempt.findUnique({ where: { id: input.attemptId } })
-    if (attempt?.executionMode === 'EXTERNAL_V1' && admission !== externalTriageAdmission)
-      throw new ServiceError(
-        'EXTERNAL_V1 Triager attempts must use the versioned external submission operation.',
-        'UNAUTHORIZED',
-      )
-    const journey = await journeyScope(input, tx)
-    const requestHash = hash(input)
-    const replay = await tx.qualityJourneyTriageReport.findUnique({
-      where: { journeyId_idempotencyKey: { journeyId: input.journeyId, idempotencyKey: input.idempotencyKey } },
-    })
-    if (replay) {
-      if (replay.requestHash !== requestHash)
-        throw conflict('Report idempotency key was reused with different content.')
-      return { reportRevisionId: replay.id, contentHash: replay.contentHash, replayed: true }
-    }
-    const { assignment, frozen } = await activeReportAssignment(input, journey, tx)
-    validateQualityJourneyTriageReport(input.report, frozen)
-    const contentHash = hash({ report: input.report, source: frozen })
-    const output = {
-      kind: 'TEST_REPORT_ANALYSIS_REVISION',
-      artifactId: input.report.reportRevisionId,
-      revisionId: input.report.reportRevisionId,
-      contentHash,
-    }
-    assertReportResult(input, output)
-    const ref = await persistReportArtifact(frozen, input.report, contentHash, tx)
-    await completeTriagerWorkInTransaction(
-      { ...(typeof coordinatorSession === 'object' ? coordinatorSession : {}), ...input },
+  return withTransaction(client, tx =>
+    withJourneyBusinessWriteJoinInTransaction(
       tx,
-    )
-    await tx.qualityJourneyTriageReport.create({
-      data: {
-        id: input.report.reportRevisionId,
-        journeyId: journey.id,
-        assignmentId: assignment.id,
-        contentHash,
-        reportJson: json(input.report),
-        idempotencyKey: input.idempotencyKey,
-        requestHash,
-      },
-    })
-    const after = await tx.qualityJourney.findUniqueOrThrow({ where: { id: journey.id } })
-    const command = await submitDurableQualityJourneyCommandInTransaction(
-      {
-        schemaVersion: 'appraise.quality-journey/v1',
-        command: 'PUBLISH_TRIAGE_REPORT',
-        commandId: idFor('publish', input.report.reportRevisionId),
-        journeyId: journey.id,
-        targetProjectId: journey.targetProjectId,
-        actor: 'RUNNER',
-        expectedStateHash: after.stateHash,
-        idempotencyKey: `report:${input.idempotencyKey}`,
-        inputArtifactRefs: [ref],
-        payload: { artifactRevisionId: ref.revisionId, artifactHash: ref.contentHash },
-      },
-      tx,
-      true,
-      false,
+      input,
       coordinatorSession,
-    )
-    if (command.outcome !== 'COMMITTED') throw conflict('Report publication could not commit.')
-    await tx.qualityJourney.update({
-      where: { id: journey.id },
-      data: { activeTriageReportId: input.report.reportRevisionId },
-    })
-    return { reportRevisionId: input.report.reportRevisionId, contentHash, replayed: false }
-  })
+      (beforeWrite, queueAttemptTerminal) =>
+        submitQualityJourneyTriageReportInTransaction(input, tx, beforeWrite, queueAttemptTerminal, coordinatorSession),
+    ),
+  )
 }
 
 export async function submitExternalQualityJourneyTriageReport(
@@ -408,8 +456,18 @@ export async function submitExternalQualityJourneyTriageReport(
     coordinatorSession,
   )
   return client.$transaction(async tx => {
-    const accepted = await acceptExternalQualityJourneySubmissionInTransaction(acceptance, tx, () =>
-      submitQualityJourneyTriageReport(canonical, tx, coordinatorSession, externalTriageAdmission),
+    const accepted = await acceptExternalQualityJourneySubmissionInTransaction(
+      acceptance,
+      tx,
+      (beforeWrite, queueAttemptTerminal) =>
+        submitQualityJourneyTriageReportInTransaction(
+          qualityJourneyTriageSubmitSchema.parse(canonical),
+          tx,
+          beforeWrite,
+          queueAttemptTerminal,
+          coordinatorSession,
+          externalTriageAdmission,
+        ),
     )
     return { ...accepted.outcome, replayed: accepted.replayed || accepted.outcome.replayed }
   })
@@ -453,9 +511,10 @@ async function reportReviewCommand(
   command: 'REQUEST_REPORT_REVISION' | 'START_REMEDIATION_CYCLE',
   payload: unknown,
   tx: Prisma.TransactionClient,
+  beforeWrite: BeforeJourneyBusinessWrite,
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
-  const result = await submitDurableQualityJourneyCommandInTransaction(
+  const result = await submitDurableQualityJourneyCommandWithBusinessJoinInTransaction(
     {
       schemaVersion: 'appraise.quality-journey/v1',
       command,
@@ -476,6 +535,7 @@ async function reportReviewCommand(
       payload,
     },
     tx,
+    beforeWrite,
     true,
     false,
     coordinatorSession,
@@ -490,56 +550,62 @@ export async function requestQualityJourneyReportRevision(
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
   const input = qualityJourneyReportReviewSchema.parse(value)
-  return client.$transaction(async tx => {
-    const context = await exactReview(input, 'FULL_REPORT_REVISION', tx, coordinatorSession)
-    if (context.replay) return context.replay
-    const { report, requestHash } = context
-    const receipt = await tx.qualityJourneyReportReview.create({
-      data: {
-        id: idFor('review', input.journeyId, input.idempotencyKey),
-        journeyId: input.journeyId,
-        reportRevisionId: report.id,
-        kind: 'FULL_REPORT_REVISION',
-        feedback: input.feedback,
-        idempotencyKey: input.idempotencyKey,
-        requestHash,
-      },
-    })
-    await reportReviewCommand(
-      input,
-      'REQUEST_REPORT_REVISION',
-      { reviewedRevisionId: report.id, reviewedHash: report.contentHash, feedback: input.feedback },
-      tx,
-      coordinatorSession,
-    )
-    const source = JSON.parse(report.assignment.inputJson) as TriageInput
-    await tx.qualityJourneyArtifact.create({
-      data: {
-        id: idFor('feedback', report.id),
-        identityKey: `REPORT_REVISION_FEEDBACK:${report.id}:unrevisioned`,
-        journeyId: input.journeyId,
-        targetProjectId: input.targetProjectId,
-        cycleId: source.cycleId,
-        kind: 'REPORT_REVISION_FEEDBACK',
-        artifactId: report.id,
-        contentHash: hash(input.feedback),
-        artifactJson: json(input.feedback),
-      },
-    })
-    await issueTriage(
-      {
-        ...source,
-        predecessorReport: {
+  return client.$transaction(tx =>
+    withJourneyBusinessWriteJoinInTransaction(tx, input, coordinatorSession, async beforeWrite => {
+      const context = await exactReview(input, 'FULL_REPORT_REVISION', tx, coordinatorSession)
+      if (context.replay) return context.replay
+      const { report, requestHash } = context
+      await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, input)
+      await beforeWrite(tx, input)
+      const receipt = await tx.qualityJourneyReportReview.create({
+        data: {
+          id: idFor('review', input.journeyId, input.idempotencyKey),
+          journeyId: input.journeyId,
           reportRevisionId: report.id,
-          contentHash: report.contentHash,
-          report: JSON.parse(report.reportJson),
+          kind: 'FULL_REPORT_REVISION',
           feedback: input.feedback,
+          idempotencyKey: input.idempotencyKey,
+          requestHash,
         },
-      },
-      tx,
-    )
-    return receipt
-  })
+      })
+      await reportReviewCommand(
+        input,
+        'REQUEST_REPORT_REVISION',
+        { reviewedRevisionId: report.id, reviewedHash: report.contentHash, feedback: input.feedback },
+        tx,
+        beforeWrite,
+        coordinatorSession,
+      )
+      const source = JSON.parse(report.assignment.inputJson) as TriageInput
+      await tx.qualityJourneyArtifact.create({
+        data: {
+          id: idFor('feedback', report.id),
+          identityKey: `REPORT_REVISION_FEEDBACK:${report.id}:unrevisioned`,
+          journeyId: input.journeyId,
+          targetProjectId: input.targetProjectId,
+          cycleId: source.cycleId,
+          kind: 'REPORT_REVISION_FEEDBACK',
+          artifactId: report.id,
+          contentHash: hash(input.feedback),
+          artifactJson: json(input.feedback),
+        },
+      })
+      await issueTriage(
+        {
+          ...source,
+          predecessorReport: {
+            reportRevisionId: report.id,
+            contentHash: report.contentHash,
+            report: JSON.parse(report.reportJson),
+            feedback: input.feedback,
+          },
+        },
+        tx,
+        beforeWrite,
+      )
+      return receipt
+    }),
+  )
 }
 
 /** UI approval atomically consumes this report's explicit correction proposal. */
@@ -549,68 +615,73 @@ export async function approveQualityJourneyRemediation(
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
   const input = qualityJourneyReportReviewSchema.parse(value)
-  return client.$transaction(async tx => {
-    const context = await exactReview(input, 'AUTOMATION_CORRECTION_APPROVED', tx, coordinatorSession)
-    if (context.replay) return context.replay
-    const { journey, report, requestHash } = context
-    const content = qualityJourneyTriageReportSchema.parse(JSON.parse(report.reportJson))
-    if (!content.remediation) throw conflict('The reviewed report has no bounded automation correction proposal.')
-    const cycleId = idFor('cycle', input.journeyId, report.id)
-    const scope = {
-      reportRevisionId: report.id,
-      reportHash: report.contentHash,
-      sourceExecutionCycleId: report.assignment.executionCycleId,
-      ...content.remediation,
-    }
-    const latest = await tx.qualityJourneyCycle.findFirst({
-      where: { journeyId: journey.id },
-      orderBy: { sequence: 'desc' },
-    })
-    await tx.qualityJourneyCycle.create({
-      data: {
-        id: cycleId,
-        journeyId: journey.id,
-        sequence: (latest?.sequence ?? 0) + 1,
-        predecessorCycleId: journey.activeCycleId,
-        scopeJson: json({ remediation: scope, scopeHash: hash(scope) }),
-      },
-    })
-    const receipt = await tx.qualityJourneyReportReview.create({
-      data: {
-        id: idFor('review', input.journeyId, input.idempotencyKey),
-        journeyId: journey.id,
+  return client.$transaction(tx =>
+    withJourneyBusinessWriteJoinInTransaction(tx, input, coordinatorSession, async beforeWrite => {
+      const context = await exactReview(input, 'AUTOMATION_CORRECTION_APPROVED', tx, coordinatorSession)
+      if (context.replay) return context.replay
+      const { journey, report, requestHash } = context
+      const content = qualityJourneyTriageReportSchema.parse(JSON.parse(report.reportJson))
+      if (!content.remediation) throw conflict('The reviewed report has no bounded automation correction proposal.')
+      const cycleId = idFor('cycle', input.journeyId, report.id)
+      const scope = {
         reportRevisionId: report.id,
-        kind: 'AUTOMATION_CORRECTION_APPROVED',
-        feedback: input.feedback,
-        successorCycleId: cycleId,
-        idempotencyKey: input.idempotencyKey,
-        requestHash,
-      },
-    })
-    await tx.qualityJourneyArtifact.create({
-      data: {
-        id: idFor('remediation', report.id),
-        identityKey: `REMEDIATION_APPROVAL:remediation:${report.id}:unrevisioned`,
-        journeyId: journey.id,
-        targetProjectId: journey.targetProjectId,
-        cycleId,
-        kind: 'REMEDIATION_APPROVAL',
-        artifactId: `remediation:${report.id}`,
-        contentHash: hash(scope),
-        artifactJson: json(scope),
-      },
-    })
-    await reportReviewCommand(
-      input,
-      'START_REMEDIATION_CYCLE',
-      { reportRevisionId: report.id, remediationScope: json(scope), cycleId },
-      tx,
-      coordinatorSession,
-    )
-    await ensureQualityJourneyAutomationForApprovedScenarios(
-      { journeyId: journey.id, targetProjectId: journey.targetProjectId },
-      tx,
-    )
-    return receipt
-  })
+        reportHash: report.contentHash,
+        sourceExecutionCycleId: report.assignment.executionCycleId,
+        ...content.remediation,
+      }
+      const latest = await tx.qualityJourneyCycle.findFirst({
+        where: { journeyId: journey.id },
+        orderBy: { sequence: 'desc' },
+      })
+      await beforeWrite(tx, input)
+      await tx.qualityJourneyCycle.create({
+        data: {
+          id: cycleId,
+          journeyId: journey.id,
+          sequence: (latest?.sequence ?? 0) + 1,
+          predecessorCycleId: journey.activeCycleId,
+          scopeJson: json({ remediation: scope, scopeHash: hash(scope) }),
+        },
+      })
+      const receipt = await tx.qualityJourneyReportReview.create({
+        data: {
+          id: idFor('review', input.journeyId, input.idempotencyKey),
+          journeyId: journey.id,
+          reportRevisionId: report.id,
+          kind: 'AUTOMATION_CORRECTION_APPROVED',
+          feedback: input.feedback,
+          successorCycleId: cycleId,
+          idempotencyKey: input.idempotencyKey,
+          requestHash,
+        },
+      })
+      await tx.qualityJourneyArtifact.create({
+        data: {
+          id: idFor('remediation', report.id),
+          identityKey: `REMEDIATION_APPROVAL:remediation:${report.id}:unrevisioned`,
+          journeyId: journey.id,
+          targetProjectId: journey.targetProjectId,
+          cycleId,
+          kind: 'REMEDIATION_APPROVAL',
+          artifactId: `remediation:${report.id}`,
+          contentHash: hash(scope),
+          artifactJson: json(scope),
+        },
+      })
+      await reportReviewCommand(
+        input,
+        'START_REMEDIATION_CYCLE',
+        { reportRevisionId: report.id, remediationScope: json(scope), cycleId },
+        tx,
+        beforeWrite,
+        coordinatorSession,
+      )
+      await ensureQualityJourneyAutomationForApprovedScenarios(
+        { journeyId: journey.id, targetProjectId: journey.targetProjectId },
+        tx,
+        beforeWrite,
+      )
+      return receipt
+    }),
+  )
 }

@@ -536,6 +536,9 @@ model QualityJourney {
   hostingProvenance                 String                                       @default("M03_SQL_V1:CLASSIFICATION_PENDING")
   currentCoordinatorSessionId       String?                                      @unique
   ownershipVersion                  Int                                          @default(0)
+  e2AdmissionVersion                Int                                          @default(0)
+  e2NativeStartsReserved            Int                                          @default(0)
+  e2TurnStartsReserved              Int                                          @default(0)
   currentCoordinatorSession         QualityJourneyCoordinatorSession?            @relation("CurrentCoordinatorSession", fields: [currentCoordinatorSessionId], references: [id], onDelete: Restrict)
   coordinatorSessions               QualityJourneyCoordinatorSession[]           @relation("JourneyCoordinatorSessions")
   stage                             QualityJourneyStage                          @default(INTAKE)
@@ -584,9 +587,17 @@ model QualityJourney {
   externalWorkClaimReceipts         QualityJourneyExternalWorkClaimReceipt[]
   ownedBrowsers                     QualityJourneyOwnedBrowser[]
   providerRuns                      QualityJourneyProviderRun[]
+  e2Retirements                     QualityJourneyE2Retirement[]
+  e2ActorCustodies                   QualityJourneyE2ActorCustody[]
+  e2Grants                          QualityJourneyE2Grant[]
+  e2CampaignPolicies                QualityJourneyE2CampaignPolicy[]
+  e2OperationPreparations           QualityJourneyE2OperationPreparation[]
+  sharedResourceUses                QualityJourneySharedResourceUse[]
+  locatorEnsureReceipts              QualityJourneyLocatorEnsureReceipt[]
   wakeIntents                       QualityJourneyWakeIntent[]
   sourceDraft                       QualityJourneyDraft?                         @relation("ConfirmedQualityJourneyDraft")
 
+  @@unique([id, targetProjectId], map: "QualityJourney_e2_lineage_key")
   @@unique([targetProjectId, rootIdempotencyKey])
   @@index([targetProjectId, status])
   @@index([targetProjectId, stage])
@@ -703,6 +714,9 @@ model QualityJourneyCoordinatorSession {
   generation              Int?
   registrationKey         String
   registrationRequestHash String
+  e2EnrollmentKind        String?
+  e2EnrollmentDigest      String?
+  e2EnrolledAt            DateTime?
   predecessorSessionId    String?
   legacyHandoffId         String?                                   @unique
   transitionRequestId     String?
@@ -720,7 +734,14 @@ model QualityJourneyCoordinatorSession {
   successors              QualityJourneyCoordinatorSession[]        @relation("SessionPredecessor")
   attemptBindings         QualityJourneyWorkAttemptSessionBinding[]
   providerRuns            QualityJourneyProviderRun[]
+  e2Retirements           QualityJourneyE2Retirement[]
+  e2ActorCustodies         QualityJourneyE2ActorCustody[]
+  e2Grants                QualityJourneyE2Grant[]
+  e2OperationPreparations QualityJourneyE2OperationPreparation[]
+  sharedResourceUses      QualityJourneySharedResourceUse[]
+  locatorEnsureReceipts   QualityJourneyLocatorEnsureReceipt[]
 
+  @@unique([id, journeyId, targetProjectId, generation], map: "QualityJourneyCoordinatorSession_e2_lineage_key")
   @@unique([journeyId, targetProjectId, generation])
   @@unique([journeyId, targetProjectId, registrationKey])
   @@unique([journeyId, targetProjectId, transitionRequestId])
@@ -1120,6 +1141,7 @@ model QualityJourneyAutomationMaterialization {
   idempotencyKey            String
   requestHash               String
   materializationHash       String
+  sourceProofVersion        String?
   status                    String                                           @default("MATERIALIZED")
   failureKind               String?
   failureJson               String?
@@ -1138,6 +1160,7 @@ model QualityJourneyAutomationMaterialization {
   attempt                   QualityJourneyWorkAttempt                        @relation(fields: [attemptId], references: [id], onDelete: Restrict)
   preparedCapsule           QualityJourneyPreparedRuntimeCapsule?
   targetBindingAssociations QualityJourneyAutomationMaterializationBinding[]
+  sourceProof               QualityJourneyAutomationMaterializationSourceProof?
 
   @@unique([journeyId, idempotencyKey])
   // A classified failure is durable per input-bound request. A fresh Factory
@@ -1145,6 +1168,16 @@ model QualityJourneyAutomationMaterialization {
   @@unique([journeyId, scenarioRevisionId, inputHash, status, failureKind, idempotencyKey])
   @@index([workItemId, attemptId])
   @@index([targetProjectId, cycleId])
+}
+
+/// Insert-only scope input retained by the original successful materialization transaction.
+/// The row is reconstruction metadata, never a source or effect capability on its own.
+model QualityJourneyAutomationMaterializationSourceProof {
+  materializationId     String @id
+  expectedScopeHash     String
+  reconstructionVersion String
+  createdAt             DateTime @default(now())
+  materialization       QualityJourneyAutomationMaterialization @relation(fields: [materializationId], references: [id], onDelete: Restrict, onUpdate: Restrict)
 }
 
 /// A target-owned semantic reservation for an Automator materialization. The
@@ -1541,6 +1574,7 @@ model QualityJourneyWorkAuthorization {
   attempts                  QualityJourneyWorkAttempt[]
   externalWorkClaimReceipts QualityJourneyExternalWorkClaimReceipt[]
   providerRuns             QualityJourneyProviderRun[]
+  e2Grants                 QualityJourneyE2Grant[]
 
   @@index([targetProjectId, role])
   @@index([journeyId, workItemId])
@@ -1604,6 +1638,7 @@ model QualityJourneyWorkAttempt {
   externalWorkClaimReceipt   QualityJourneyExternalWorkClaimReceipt?
   externalSubmissionAcceptances QualityJourneyExternalSubmissionAcceptance[]
   providerRun                QualityJourneyProviderRun?
+  e2Grants                   QualityJourneyE2Grant[]
 
   @@unique([workItemId, attempt])
   @@unique([assignmentId])
@@ -2890,7 +2925,12 @@ model QualityJourneyProviderRun {
   intents               QualityJourneyProviderDispatchIntent[]
   slot                  QualityJourneyProviderSlot?
   custodySources        QualityJourneyProviderSourceState[]
+  e2ActorCustodies       QualityJourneyE2ActorCustody[]
+  e2Grants              QualityJourneyE2Grant[]
+  e2OperationPreparations QualityJourneyE2OperationPreparation[]
 
+  @@unique([id, journeyId, targetProjectId, sessionId, coordinatorGeneration], map: "QualityJourneyProviderRun_e2_actor_lineage_key")
+  @@unique([id, journeyId, targetProjectId, sessionId, coordinatorGeneration, attemptId, authorizationId], map: "QualityJourneyProviderRun_e2_grant_lineage_key")
   @@unique([journeyId, targetProjectId, prepareKey])
   @@unique([providerNamespace, threadId])
   @@index([journeyId, targetProjectId, status])
@@ -2922,11 +2962,311 @@ model QualityJourneyProviderDispatchIntent {
   observations         QualityJourneyProviderObservation[]
   slot                 QualityJourneyProviderSlot?
   custodySource        QualityJourneyProviderSourceState?
+  e2ActorCustodies      QualityJourneyE2ActorCustody[]
+  e2Grants             QualityJourneyE2Grant[]
+  e2OperationPreparations QualityJourneyE2OperationPreparation[]
 
+  @@unique([id, providerRunId], map: "QualityJourneyProviderDispatchIntent_e2_lineage_key")
   @@unique([providerRunId, turnOrdinal])
   @@unique([providerRunId, operationKey])
   @@unique([providerNamespace, threadId, turnId])
   @@index([status, claimExpiresAt])
+}
+
+/// Retained domain coverage has no mutable TargetProject foreign key.
+model QualityJourneySharedResourceCoverage {
+  targetProjectId      String
+  kind                 String
+  protocolVersion      Int      @default(1)
+  state                String   @default("UNKNOWN")
+  epoch                Int      @default(0)
+  writerClosureDigest  String?
+  readerClosureDigest  String?
+  sourceUniverseDigest String?
+  reconciliationDigest String?
+  proofKind            String?
+  completedAt          DateTime?
+  createdAt            DateTime @default(now())
+
+  @@id([targetProjectId, kind, protocolVersion])
+}
+
+/// Guard identities survive resource deletion; a tombstone never becomes LIVE.
+model QualityJourneySharedResourceGuard {
+  targetProjectId String
+  kind            String
+  resourceId      String
+  epoch           Int                               @default(0)
+  coverageState   String                            @default("UNKNOWN")
+  coverageDigest  String?
+  resourceState   String                            @default("LIVE")
+  deletedAt       DateTime?
+  createdAt       DateTime                          @default(now())
+  claims          QualityJourneySharedResourceClaim[]
+
+  @@id([targetProjectId, kind, resourceId])
+}
+
+/// An immutable source and its exact claim set. PREPARING never admits work.
+model QualityJourneySharedResourceUse {
+  id                      String                            @id
+  journeyId               String
+  targetProjectId         String
+  sourceKind              String
+  sourceOwnerId           String
+  sourceDigest            String
+  dependencyDigest        String
+  claimSetDigest          String
+  claimSetCount           Int
+  coordinatorSessionId    String?
+  generation              Int?
+  state                   String                            @default("PREPARING")
+  version                 Int                               @default(0)
+  createdAt               DateTime                          @default(now())
+  releasedAt              DateTime?
+  releaseEvidenceDigest   String?
+  releaseReason           String?
+  journey                 QualityJourney                    @relation(fields: [journeyId, targetProjectId], references: [id, targetProjectId], onDelete: Restrict, onUpdate: Restrict)
+  session                 QualityJourneyCoordinatorSession? @relation(fields: [coordinatorSessionId, journeyId, targetProjectId, generation], references: [id, journeyId, targetProjectId, generation], onDelete: Restrict, onUpdate: Restrict)
+  claims                  QualityJourneySharedResourceClaim[]
+
+  @@unique([journeyId, targetProjectId, sourceKind, sourceOwnerId, sourceDigest], map: "QualityJourneySharedResourceUse_source_key")
+  @@unique([id, journeyId, targetProjectId], map: "QualityJourneySharedResourceUse_lineage_key")
+}
+
+/// Claims protect a resource while either claim or parent use is unreleased.
+model QualityJourneySharedResourceClaim {
+  id                    String                          @id
+  useId                 String
+  journeyId             String
+  targetProjectId       String
+  kind                  String
+  resourceId            String
+  dependencyDigest      String
+  state                 String                          @default("ACTIVE")
+  claimEpoch            Int
+  releaseEpoch          Int?
+  createdAt             DateTime                        @default(now())
+  releasedAt            DateTime?
+  releaseEvidenceDigest String?
+  releaseReason         String?
+  use                   QualityJourneySharedResourceUse @relation(fields: [useId, journeyId, targetProjectId], references: [id, journeyId, targetProjectId], onDelete: Restrict, onUpdate: Restrict)
+  guard                 QualityJourneySharedResourceGuard @relation(fields: [targetProjectId, kind, resourceId], references: [targetProjectId, kind, resourceId], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([useId, kind, resourceId], map: "QualityJourneySharedResourceClaim_use_resource_key")
+  @@index([targetProjectId, kind, resourceId, state], map: "QualityJourneySharedResourceClaim_resource_state_idx")
+  @@index([useId, state], map: "QualityJourneySharedResourceClaim_use_state_idx")
+}
+
+/// Read-only idempotency receipt, published atomically with its ENSURE use.
+model QualityJourneyLocatorEnsureReceipt {
+  id                   String                            @id
+  journeyId            String
+  targetProjectId      String
+  coordinatorSessionId String?
+  generation           Int?
+  requestHash          String
+  resultHash           String
+  moduleId             String
+  locatorGroupId       String
+  locatorId            String
+  createdAt            DateTime                          @default(now())
+  journey              QualityJourney                    @relation(fields: [journeyId, targetProjectId], references: [id, targetProjectId], onDelete: Restrict, onUpdate: Restrict)
+  session              QualityJourneyCoordinatorSession? @relation(fields: [coordinatorSessionId, journeyId, targetProjectId, generation], references: [id, journeyId, targetProjectId, generation], onDelete: Restrict, onUpdate: Restrict)
+}
+
+/// Original one-Journey allocation. Rows and digests never qualify an issuer.
+model QualityJourneyE2CampaignPolicy {
+  id                      String                                 @id
+  allocationDigest        String                                 @unique
+  journeyId               String
+  targetProjectId         String
+  sourceTupleDigest       String
+  policyVersion           String
+  policyDigest            String
+  nativeStartWindowMs     Int
+  dnsWindowMs             Int
+  tcpWindowMs             Int
+  tlsWindowMs             Int
+  upgradeWindowMs         Int
+  providerRequestWindowMs Int
+  mcpCallWindowMs         Int
+  actorMaxOperations      Int
+  actorMaxBytes           Int
+  actorMaxFrames          Int
+  actorMaxSetup           Int
+  actorMaxProviderRequests Int
+  actorMaxMcpCalls        Int
+  journeyMaxNativeStarts  Int
+  journeyMaxTurnStarts    Int
+  maxNativeStarts         Int
+  maxProviderRequests     Int
+  maxOperations           Int
+  maxBytes                Int
+  maxFrames               Int
+  maxSetup                Int
+  maxMcpCalls             Int
+  nativeStartsReserved    Int                                    @default(0)
+  providerRequestsReserved Int                                   @default(0)
+  operationsReserved      Int                                    @default(0)
+  bytesReserved           Int                                    @default(0)
+  framesReserved          Int                                    @default(0)
+  setupReserved           Int                                    @default(0)
+  mcpCallsReserved        Int                                    @default(0)
+  version                 Int                                    @default(0)
+  createdAt               DateTime                               @default(now())
+  journey                 QualityJourney                         @relation(fields: [journeyId, targetProjectId], references: [id, targetProjectId], onDelete: Restrict, onUpdate: Restrict)
+  retirements             QualityJourneyE2Retirement[]
+  operationPreparations   QualityJourneyE2OperationPreparation[]
+
+  @@unique([journeyId, targetProjectId], map: "QualityJourneyE2CampaignPolicy_journey_target_key")
+  @@unique([id, journeyId, targetProjectId], map: "QualityJourneyE2CampaignPolicy_lineage_key")
+  @@unique([id, journeyId, targetProjectId, sourceTupleDigest], map: "QualityJourneyE2CampaignPolicy_source_lineage_key")
+}
+
+/// Immutable event-bound source window prepared before the grant transaction.
+model QualityJourneyE2OperationPreparation {
+  id                      String                               @id
+  journeyId               String
+  targetProjectId         String
+  coordinatorSessionId    String
+  generation              Int
+  providerRunId           String
+  intentId                String
+  campaignPolicyId        String
+  operationId             String
+  kind                    String
+  setupStage              String?
+  sourceTupleDigest       String
+  requestDigest           String
+  envelopeDigest          String
+  sourceEventDigest       String
+  preparedAtEpochMs       BigInt
+  windowDurationMs        Int
+  windowDueAtEpochMs      BigInt
+  createdAt               DateTime                             @default(now())
+  journey                 QualityJourney                       @relation(fields: [journeyId, targetProjectId], references: [id, targetProjectId], onDelete: Restrict, onUpdate: Restrict)
+  session                 QualityJourneyCoordinatorSession     @relation(fields: [coordinatorSessionId, journeyId, targetProjectId, generation], references: [id, journeyId, targetProjectId, generation], onDelete: Restrict, onUpdate: Restrict)
+  run                     QualityJourneyProviderRun            @relation(fields: [providerRunId, journeyId, targetProjectId, coordinatorSessionId, generation], references: [id, journeyId, targetProjectId, sessionId, coordinatorGeneration], onDelete: Restrict, onUpdate: Restrict)
+  intent                  QualityJourneyProviderDispatchIntent @relation(fields: [intentId, providerRunId], references: [id, providerRunId], onDelete: Restrict, onUpdate: Restrict)
+  campaignPolicy          QualityJourneyE2CampaignPolicy       @relation(fields: [campaignPolicyId, journeyId, targetProjectId, sourceTupleDigest], references: [id, journeyId, targetProjectId, sourceTupleDigest], onDelete: Restrict, onUpdate: Restrict)
+  grants                  QualityJourneyE2Grant[]
+
+  @@unique([providerRunId, operationId], map: "QualityJourneyE2OperationPreparation_run_operation_key")
+  @@unique([id, providerRunId, operationId], map: "QualityJourneyE2OperationPreparation_grant_lineage_key")
+}
+
+/// E2 generation latch. Absence never enrolls a historical session.
+model QualityJourneyE2Retirement {
+  id                      String                           @id
+  journeyId               String
+  targetProjectId         String
+  coordinatorSessionId    String
+  generation              Int
+  state                   String                           @default("ACTIVE")
+  requestId               String?
+  requestedAt             DateTime?
+  requestReason           String?
+  effectiveAt             DateTime?
+  effectiveEvidenceDigest String?
+  campaignPolicyId        String?
+  version                 Int                              @default(0)
+  createdAt               DateTime                         @default(now())
+  journey                 QualityJourney                   @relation(fields: [journeyId, targetProjectId], references: [id, targetProjectId], onDelete: Restrict, onUpdate: Restrict)
+  session                 QualityJourneyCoordinatorSession @relation(fields: [coordinatorSessionId, journeyId, targetProjectId, generation], references: [id, journeyId, targetProjectId, generation], onDelete: Restrict, onUpdate: Restrict)
+  campaignPolicy          QualityJourneyE2CampaignPolicy?  @relation(fields: [campaignPolicyId, journeyId, targetProjectId], references: [id, journeyId, targetProjectId], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([journeyId, targetProjectId, coordinatorSessionId, generation], map: "QualityJourneyE2Retirement_scope_key")
+  @@unique([coordinatorSessionId, generation], map: "QualityJourneyE2Retirement_session_generation_key")
+}
+
+/// Original actor identity and nonrefundable finite reservations; no raw secrets.
+model QualityJourneyE2ActorCustody {
+  id                             String                              @id
+  providerRunId                  String                              @unique
+  journeyId                      String
+  targetProjectId                String
+  coordinatorSessionId           String
+  generation                     Int
+  intentId                       String
+  slotId                         String                              @default("HUB")
+  sourceTupleDigest              String
+  constructorDigest              String
+  parentIncarnationDigest        String
+  prospectiveChildNonceDigest    String
+  privateChannelDigest           String
+  originalChildIncarnationDigest String?
+  state                          String                              @default("PRESPAWN_COMMITTED")
+  operationsReserved             Int                                 @default(1)
+  bytesReserved                  Int                                 @default(0)
+  framesReserved                 Int                                 @default(0)
+  setupReserved                  Int                                 @default(0)
+  providerRequestsReserved       Int                                 @default(0)
+  mcpCallsReserved               Int                                 @default(0)
+  recoveryControlsReserved       Int                                 @default(0)
+  createdAt                      DateTime                            @default(now())
+  journey                        QualityJourney                      @relation(fields: [journeyId, targetProjectId], references: [id, targetProjectId], onDelete: Restrict, onUpdate: Restrict)
+  session                        QualityJourneyCoordinatorSession    @relation(fields: [coordinatorSessionId, journeyId, targetProjectId, generation], references: [id, journeyId, targetProjectId, generation], onDelete: Restrict, onUpdate: Restrict)
+  run                            QualityJourneyProviderRun           @relation(fields: [providerRunId, journeyId, targetProjectId, coordinatorSessionId, generation], references: [id, journeyId, targetProjectId, sessionId, coordinatorGeneration], onDelete: Restrict, onUpdate: Restrict)
+  intent                         QualityJourneyProviderDispatchIntent @relation(fields: [intentId, providerRunId], references: [id, providerRunId], onDelete: Restrict, onUpdate: Restrict)
+  grants                         QualityJourneyE2Grant[]
+
+  @@unique([parentIncarnationDigest, prospectiveChildNonceDigest], map: "QualityJourneyE2ActorCustody_original_parent_nonce_key")
+  @@unique([id, providerRunId, intentId], map: "QualityJourneyE2ActorCustody_e2_lineage_key")
+}
+
+/// Inert committed receipt. A persisted grant cannot recreate dispatch authority.
+model QualityJourneyE2Grant {
+  id                      String                               @id
+  providerRunId           String
+  actorCustodyId          String
+  intentId                String
+  journeyId               String
+  targetProjectId         String
+  coordinatorSessionId    String
+  generation              Int
+  attemptId               String
+  authorizationId         String
+  leaseId                 String
+  assignmentGeneration    Int
+  operationId             String
+  operationPreparationId  String?
+  sequence                Int
+  kind                    String
+  setupStage              String?
+  rangeId                 String
+  parentOperationId       String?
+  sourceTupleDigest       String
+  envelopeDigest          String
+  payloadDigest           String?
+  payloadByteLength       Int?
+  payloadReceiveTimeoutMs Int?
+  requestDigest           String
+  earliestDueAt           DateTime
+  dueAtSourceDigest       String
+  eligibilitySampleAt     DateTime
+  admissionVersion        Int
+  maxBytes                Int
+  maxFrames               Int
+  maxControlFrames        Int
+  maxDescendants          Int
+  handoffId               String                               @unique
+  state                   String                               @default("COMMITTED_UNDELIVERED")
+  handedAt                DateTime?
+  reconciledAt            DateTime?
+  reconciliationDigest    String?
+  createdAt               DateTime                             @default(now())
+  journey                 QualityJourney                       @relation(fields: [journeyId, targetProjectId], references: [id, targetProjectId], onDelete: Restrict, onUpdate: Restrict)
+  session                 QualityJourneyCoordinatorSession     @relation(fields: [coordinatorSessionId, journeyId, targetProjectId, generation], references: [id, journeyId, targetProjectId, generation], onDelete: Restrict, onUpdate: Restrict)
+  run                     QualityJourneyProviderRun            @relation(fields: [providerRunId, journeyId, targetProjectId, coordinatorSessionId, generation, attemptId, authorizationId], references: [id, journeyId, targetProjectId, sessionId, coordinatorGeneration, attemptId, authorizationId], onDelete: Restrict, onUpdate: Restrict)
+  intent                  QualityJourneyProviderDispatchIntent @relation(fields: [intentId, providerRunId], references: [id, providerRunId], onDelete: Restrict, onUpdate: Restrict)
+  actorCustody            QualityJourneyE2ActorCustody          @relation(fields: [actorCustodyId, providerRunId, intentId], references: [id, providerRunId, intentId], onDelete: Restrict, onUpdate: Restrict)
+  attempt                 QualityJourneyWorkAttempt            @relation(fields: [attemptId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  authorization           QualityJourneyWorkAuthorization      @relation(fields: [authorizationId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  operationPreparation    QualityJourneyE2OperationPreparation? @relation(fields: [operationPreparationId, providerRunId, operationId], references: [id, providerRunId, operationId], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([providerRunId, operationId], map: "QualityJourneyE2Grant_run_operation_key")
+  @@unique([actorCustodyId, sequence], map: "QualityJourneyE2Grant_actor_sequence_key")
 }
 
 /// Singleton hub exclusion. UNKNOWN ownership is retained until exact reconciliation.

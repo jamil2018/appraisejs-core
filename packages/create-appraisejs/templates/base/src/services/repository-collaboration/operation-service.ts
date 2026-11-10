@@ -1810,6 +1810,7 @@ export async function executeCollaborationOperation(
   client: PrismaClient = prisma,
   hooks?: FilesystemGitMutationHooks,
 ) {
+  input = { ...input }
   const operation = await client.collaborationOperation.findUnique({ where: { id: input.operationId } })
   if (!operation) throw new ServiceError('Collaboration operation was not found.', 'NOT_FOUND', 404)
   // A lost response is retried with the request version that began the step,

@@ -1,9 +1,8 @@
-import { randomUUID } from 'node:crypto'
-
 import type { CollaborationEntityKind, Prisma } from '@prisma/client'
 
 import { canonicalJson, collaborationHash, recordKey, type CollaborationRecord } from '@/lib/repository-collaboration'
 import { ServiceError } from '@/services/shared/errors'
+import type { MaterializationPlan } from './materialization-plan'
 import {
   canonicalStepDefinitionJson,
   computeStepReferenceHash,
@@ -32,9 +31,23 @@ export interface MaterializationContext {
   binding: { id: string; targetProjectId: string }
   now: Date
   repositoryRevision?: string
-  localIdFor: LocalIdFor
-  entityMapIdFor: (record: Pick<CollaborationRecord, 'kind' | 'portableId'>) => string
-  assertNoCollision: CollisionCheck
+  plan: MaterializationPlan
+}
+
+function plannedLocalId(context: MaterializationContext, record: Pick<CollaborationRecord, 'kind' | 'portableId'>) {
+  const id = context.plan.localIdByKey.get(recordKey(record))
+  if (!id) throw new ServiceError(`Missing local identity for ${recordKey(record)}.`, 'INTERNAL', 500)
+  return id
+}
+function plannedMapId(context: MaterializationContext, record: Pick<CollaborationRecord, 'kind' | 'portableId'>) {
+  const id = context.plan.entityMapIdByKey.get(recordKey(record))
+  if (!id) throw new ServiceError(`Missing collaboration map for ${recordKey(record)}.`, 'INTERNAL', 500)
+  return id
+}
+function plannedChildren(context: MaterializationContext, record: CollaborationRecord) {
+  const children = context.plan.childrenByKey.get(recordKey(record))
+  if (!children) throw new ServiceError(`Missing prepared children for ${recordKey(record)}.`, 'INTERNAL', 500)
+  return children
 }
 
 function stepReferences(records: CollaborationRecord[]) {
@@ -42,7 +55,11 @@ function stepReferences(records: CollaborationRecord[]) {
   for (const record of records) {
     if (record.archived || (record.kind !== 'test-case' && record.kind !== 'template')) continue
     for (const step of record.payload.steps) {
-      references.set(`${step.invocation.step.id}@${step.invocation.step.version}`, step.invocation.step.definitionHash)
+      const reference = `${step.invocation.step.id}@${step.invocation.step.version}`
+      const previous = references.get(reference)
+      if (previous && previous !== step.invocation.step.definitionHash)
+        throw new ServiceError(`Required Step Definition ${reference} has conflicting shared hashes.`, 'CONFLICT', 409)
+      references.set(reference, step.invocation.step.definitionHash)
     }
   }
   return references
@@ -52,8 +69,9 @@ async function validateStepReference(transaction: Transaction, reference: string
   const separator = reference.lastIndexOf('@')
   const id = reference.slice(0, separator)
   const version = reference.slice(separator + 1)
-  const definition = await transaction.stepDefinition.findUnique({ where: { id_version: { id, version } } })
-  if (!definition || definition.status !== 'ready') {
+  const definition = await transaction.stepDefinition.findUnique({ where: { id_version: { id, version } },
+    select: { id: true, version: true, status: true, definitionJson: true } })
+  if (!definition || definition.id !== id || definition.version !== version || definition.status !== 'ready') {
     throw new ServiceError(`Required Step Definition ${reference} is not ready locally.`, 'CONFLICT', 409)
   }
   const actualHash = computeStepReferenceHash(
@@ -120,8 +138,8 @@ async function materializeModules(context: MaterializationContext, records: Reco
   const materialize = async (record: RecordWithKind<'module'>): Promise<void> => {
     if (completed.has(record.portableId)) return
     if (record.payload.parentPortableId) await materialize(moduleById.get(record.payload.parentPortableId)!)
-    const id = context.localIdFor(record)
-    const existing = await context.transaction.module.findUnique({ where: { id } })
+    const id = plannedLocalId(context, record)
+    const existing = context.plan.existingByKey.get(recordKey(record)) ?? null
     if (record.archived) {
       if (existing) {
         await context.transaction.module.update({
@@ -130,14 +148,10 @@ async function materializeModules(context: MaterializationContext, records: Reco
         })
       }
     } else {
-      await context.assertNoCollision(record, {
-        targetProjectId: context.binding.targetProjectId,
-        name: record.payload.name,
-      })
       const data = {
         name: record.payload.name,
         parentId: record.payload.parentPortableId
-          ? context.localIdFor({ kind: 'module', portableId: record.payload.parentPortableId })
+          ? plannedLocalId(context, { kind: 'module', portableId: record.payload.parentPortableId })
           : null,
         archivedAt: null,
         collaborationManaged: true,
@@ -159,8 +173,8 @@ async function materializeModules(context: MaterializationContext, records: Reco
 }
 
 async function materializeTag(context: MaterializationContext, record: RecordWithKind<'tag'>) {
-  const id = context.localIdFor(record)
-  const existing = await context.transaction.tag.findUnique({ where: { id } })
+  const id = plannedLocalId(context, record)
+  const existing = context.plan.existingByKey.get(recordKey(record)) ?? null
   if (
     await archiveIfRequested(record, existing, () =>
       context.transaction.tag.update({
@@ -170,11 +184,6 @@ async function materializeTag(context: MaterializationContext, record: RecordWit
     )
   )
     return
-  await context.assertNoCollision(record, {
-    targetProjectId: context.binding.targetProjectId,
-    name: record.payload.name,
-    type: record.payload.type,
-  })
   const data = {
     name: record.payload.name,
     tagExpression: record.payload.expression,
@@ -187,8 +196,8 @@ async function materializeTag(context: MaterializationContext, record: RecordWit
 }
 
 async function materializeLocatorGroup(context: MaterializationContext, record: RecordWithKind<'locator-group'>) {
-  const id = context.localIdFor(record)
-  const existing = await context.transaction.locatorGroup.findUnique({ where: { id } })
+  const id = plannedLocalId(context, record)
+  const existing = context.plan.existingByKey.get(recordKey(record)) ?? null
   if (
     await archiveIfRequested(record, existing, () =>
       context.transaction.locatorGroup.update({
@@ -198,14 +207,10 @@ async function materializeLocatorGroup(context: MaterializationContext, record: 
     )
   )
     return
-  await context.assertNoCollision(record, {
-    targetProjectId: context.binding.targetProjectId,
-    name: record.payload.name,
-  })
   const data = {
     name: record.payload.name,
     route: record.payload.route,
-    moduleId: context.localIdFor({ kind: 'module', portableId: record.payload.modulePortableId }),
+    moduleId: plannedLocalId(context, { kind: 'module', portableId: record.payload.modulePortableId }),
     archivedAt: null,
     collaborationManaged: true,
   }
@@ -217,8 +222,8 @@ async function materializeLocatorGroup(context: MaterializationContext, record: 
 }
 
 async function materializeLocator(context: MaterializationContext, record: RecordWithKind<'locator'>) {
-  const id = context.localIdFor(record)
-  const existing = await context.transaction.locator.findUnique({ where: { id } })
+  const id = plannedLocalId(context, record)
+  const existing = context.plan.existingByKey.get(recordKey(record)) ?? null
   if (
     await archiveIfRequested(record, existing, () =>
       context.transaction.locator.update({
@@ -228,14 +233,10 @@ async function materializeLocator(context: MaterializationContext, record: Recor
     )
   )
     return
-  await context.assertNoCollision(record, {
-    targetProjectId: context.binding.targetProjectId,
-    name: record.payload.name,
-  })
   const data = {
     name: record.payload.name,
     value: record.payload.value,
-    locatorGroupId: context.localIdFor({ kind: 'locator-group', portableId: record.payload.locatorGroupPortableId }),
+    locatorGroupId: plannedLocalId(context, { kind: 'locator-group', portableId: record.payload.locatorGroupPortableId }),
     archivedAt: null,
     collaborationManaged: true,
   }
@@ -247,8 +248,8 @@ async function materializeLocator(context: MaterializationContext, record: Recor
 }
 
 async function materializeTestCase(context: MaterializationContext, record: RecordWithKind<'test-case'>) {
-  const id = context.localIdFor(record)
-  const existing = await context.transaction.testCase.findUnique({ where: { id } })
+  const id = plannedLocalId(context, record)
+  const existing = context.plan.existingByKey.get(recordKey(record)) ?? null
   if (
     await archiveIfRequested(record, existing, () =>
       context.transaction.testCase.update({
@@ -258,17 +259,13 @@ async function materializeTestCase(context: MaterializationContext, record: Reco
     )
   )
     return
-  await context.assertNoCollision(record, {
-    targetProjectId: context.binding.targetProjectId,
-    title: record.payload.title,
-  })
   const data = {
     title: record.payload.title,
     description: record.payload.description,
     archivedAt: null,
     collaborationManaged: true,
     tags: {
-      set: record.payload.tagPortableIds.map(portableId => ({ id: context.localIdFor({ kind: 'tag', portableId }) })),
+      set: record.payload.tagPortableIds.map(portableId => ({ id: plannedLocalId(context, { kind: 'tag', portableId }) })),
     },
   }
   if (existing) {
@@ -289,8 +286,8 @@ async function materializeTestCase(context: MaterializationContext, record: Reco
     await context.transaction.testCase.update({ where: { id }, data: { tags: data.tags } })
   }
   await context.transaction.testCaseStep.createMany({
-    data: record.payload.steps.map(step => ({
-      id: randomUUID(),
+    data: record.payload.steps.map((step, index) => ({
+      id: plannedChildren(context, record).steps[index],
       testCaseId: id,
       collaborationPortableId: step.portableId,
       flowNodeId: step.flowNodeId,
@@ -301,39 +298,42 @@ async function materializeTestCase(context: MaterializationContext, record: Reco
       invocationJson: canonicalStepDefinitionJson(step.invocation),
     })),
   })
-  const createdSteps = await context.transaction.testCaseStep.findMany({ where: { testCaseId: id } })
-  const stepIdByPortableId = new Map(createdSteps.map(step => [step.collaborationPortableId!, step.id]))
-  for (const step of record.payload.steps) {
+  const stepIdByPortableId = new Map(record.payload.steps.map((step, index) =>
+    [step.portableId, plannedChildren(context, record).steps[index]]))
+  for (const [stepIndex, step] of record.payload.steps.entries()) {
     await context.transaction.testCaseStepParameter.createMany({
-      data: step.parameters.map(parameter => ({
+      data: step.parameters.map((parameter, parameterIndex) => ({
+        id: plannedChildren(context, record).parameters[stepIndex][parameterIndex],
         testCaseStepId: stepIdByPortableId.get(step.portableId)!,
         name: parameter.name,
         value: parameter.value,
         type: parameter.type,
         order: parameter.order,
         locatorId: parameter.locatorPortableId
-          ? context.localIdFor({ kind: 'locator', portableId: parameter.locatorPortableId })
+          ? plannedLocalId(context, { kind: 'locator', portableId: parameter.locatorPortableId })
           : null,
       })),
     })
   }
-  for (const block of record.payload.flowBlocks) {
+  for (const [blockIndex, block] of record.payload.flowBlocks.entries()) {
     await context.transaction.testCaseFlowBlock.create({
       data: {
-        id: randomUUID(),
+        id: plannedChildren(context, record).blocks[blockIndex],
         testCaseId: id,
         collaborationPortableId: block.portableId,
         name: block.name,
         order: block.order,
-        nodes: { create: block.flowNodeIds.map(flowNodeId => ({ flowNodeId })) },
+        nodes: { create: block.flowNodeIds.map((flowNodeId, nodeIndex) => ({
+          id: plannedChildren(context, record).nodes[blockIndex][nodeIndex], flowNodeId,
+        })) },
       },
     })
   }
 }
 
 async function materializeTemplate(context: MaterializationContext, record: RecordWithKind<'template'>) {
-  const id = context.localIdFor(record)
-  const existing = await context.transaction.templateTestCase.findUnique({ where: { id } })
+  const id = plannedLocalId(context, record)
+  const existing = context.plan.existingByKey.get(recordKey(record)) ?? null
   if (
     await archiveIfRequested(record, existing, () =>
       context.transaction.templateTestCase.update({
@@ -343,10 +343,6 @@ async function materializeTemplate(context: MaterializationContext, record: Reco
     )
   )
     return
-  await context.assertNoCollision(record, {
-    targetProjectId: context.binding.targetProjectId,
-    name: record.payload.name,
-  })
   const data = {
     name: record.payload.name,
     description: record.payload.description,
@@ -363,8 +359,8 @@ async function materializeTemplate(context: MaterializationContext, record: Reco
     })
   }
   await context.transaction.templateTestCaseStep.createMany({
-    data: record.payload.steps.map(step => ({
-      id: randomUUID(),
+    data: record.payload.steps.map((step, index) => ({
+      id: plannedChildren(context, record).steps[index],
       templateTestCaseId: id,
       collaborationPortableId: step.portableId,
       flowNodeId: step.flowNodeId,
@@ -375,39 +371,42 @@ async function materializeTemplate(context: MaterializationContext, record: Reco
       invocationJson: canonicalStepDefinitionJson(step.invocation),
     })),
   })
-  const createdSteps = await context.transaction.templateTestCaseStep.findMany({ where: { templateTestCaseId: id } })
-  const stepIdByPortableId = new Map(createdSteps.map(step => [step.collaborationPortableId!, step.id]))
-  for (const step of record.payload.steps) {
+  const stepIdByPortableId = new Map(record.payload.steps.map((step, index) =>
+    [step.portableId, plannedChildren(context, record).steps[index]]))
+  for (const [stepIndex, step] of record.payload.steps.entries()) {
     await context.transaction.templateTestCaseStepParameter.createMany({
-      data: step.parameters.map(parameter => ({
+      data: step.parameters.map((parameter, parameterIndex) => ({
+        id: plannedChildren(context, record).parameters[stepIndex][parameterIndex],
         testCaseStepId: stepIdByPortableId.get(step.portableId)!,
         name: parameter.name,
         defaultValue: parameter.value,
         type: parameter.type,
         order: parameter.order,
         defaultLocatorId: parameter.locatorPortableId
-          ? context.localIdFor({ kind: 'locator', portableId: parameter.locatorPortableId })
+          ? plannedLocalId(context, { kind: 'locator', portableId: parameter.locatorPortableId })
           : null,
       })),
     })
   }
-  for (const block of record.payload.flowBlocks) {
+  for (const [blockIndex, block] of record.payload.flowBlocks.entries()) {
     await context.transaction.templateTestCaseFlowBlock.create({
       data: {
-        id: randomUUID(),
+        id: plannedChildren(context, record).blocks[blockIndex],
         templateTestCaseId: id,
         collaborationPortableId: block.portableId,
         name: block.name,
         order: block.order,
-        nodes: { create: block.flowNodeIds.map(flowNodeId => ({ flowNodeId })) },
+        nodes: { create: block.flowNodeIds.map((flowNodeId, nodeIndex) => ({
+          id: plannedChildren(context, record).nodes[blockIndex][nodeIndex], flowNodeId,
+        })) },
       },
     })
   }
 }
 
 async function materializeSuite(context: MaterializationContext, record: RecordWithKind<'test-suite'>) {
-  const id = context.localIdFor(record)
-  const existing = await context.transaction.testSuite.findUnique({ where: { id } })
+  const id = plannedLocalId(context, record)
+  const existing = context.plan.existingByKey.get(recordKey(record)) ?? null
   if (
     await archiveIfRequested(record, existing, () =>
       context.transaction.testSuite.update({
@@ -417,23 +416,19 @@ async function materializeSuite(context: MaterializationContext, record: RecordW
     )
   )
     return
-  await context.assertNoCollision(record, {
-    targetProjectId: context.binding.targetProjectId,
-    name: record.payload.name,
-  })
   const data = {
     name: record.payload.name,
     description: record.payload.description,
-    moduleId: context.localIdFor({ kind: 'module', portableId: record.payload.modulePortableId }),
+    moduleId: plannedLocalId(context, { kind: 'module', portableId: record.payload.modulePortableId }),
     archivedAt: null,
     collaborationManaged: true,
     testCases: {
       set: record.payload.testCasePortableIds.map(portableId => ({
-        id: context.localIdFor({ kind: 'test-case', portableId }),
+        id: plannedLocalId(context, { kind: 'test-case', portableId }),
       })),
     },
     tags: {
-      set: record.payload.tagPortableIds.map(portableId => ({ id: context.localIdFor({ kind: 'tag', portableId }) })),
+      set: record.payload.tagPortableIds.map(portableId => ({ id: plannedLocalId(context, { kind: 'tag', portableId }) })),
     },
   }
   if (existing) await context.transaction.testSuite.update({ where: { id }, data })
@@ -458,21 +453,11 @@ async function materializeEnvironmentReference(
   record: RecordWithKind<'environment-reference'>,
 ) {
   if (record.archived) return
-  const mapping = await context.transaction.collaborationEnvironmentMapping.findUnique({
-    where: { bindingId_portableId: { bindingId: context.binding.id, portableId: record.portableId } },
-  })
-  if (!mapping) {
-    throw new ServiceError(`Environment ${record.portableId} requires an explicit local mapping.`, 'CONFLICT', 409)
-  }
-  const environment = await context.transaction.environment.findFirst({
-    where: { id: mapping.localEnvironmentId, targetProjectId: context.binding.targetProjectId, archivedAt: null },
-  })
-  if (!environment || environment.scopeVersion !== mapping.localScopeVersion) {
-    throw new ServiceError(`Environment mapping ${record.portableId} is stale.`, 'CONFLICT', 409)
-  }
+  const environmentId = context.plan.environmentIdByKey.get(recordKey(record))
+  if (!environmentId) throw new ServiceError(`Missing prepared environment ${record.portableId}.`, 'INTERNAL', 500)
   await context.transaction.collaborationEntityMap.update({
-    where: { id: context.entityMapIdFor(record) },
-    data: { localEntityId: environment.id },
+    where: { id: plannedMapId(context, record) },
+    data: { localEntityId: environmentId },
   })
 }
 
@@ -514,7 +499,8 @@ export async function materializeRecords(context: MaterializationContext, record
     else if (record.kind === 'template') await materializeTemplate(context, record)
     else if (record.kind === 'test-suite') await materializeSuite(context, record)
     else if (record.kind === 'environment-reference') await materializeEnvironmentReference(context, record)
-    else await materializeJourneyReuseAsset(context, record)
+    else if (record.kind === 'journey-reuse-asset') await materializeJourneyReuseAsset(context, record)
+    else throw new ServiceError('Unsupported collaboration record kind.', 'CONFLICT', 409)
   }
 }
 

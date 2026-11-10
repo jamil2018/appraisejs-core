@@ -1,4 +1,12 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+
+vi.mock('@/config/db-config', () => ({ default: new Proxy({}, { get() { throw new Error('DEFAULT_DATABASE_FORBIDDEN') } }) }))
+vi.mock('@/lib/operation-catalog', () => ({ defaultOperationDefinitions: [] }))
+vi.mock('../../../packages/cucumber-runtime/src/step-definitions', async () => {
+  const contracts = await import('../../../packages/cucumber-runtime/src/step-definitions/contracts')
+  return { computeStepReferenceHash: contracts.computeStepReferenceHash,
+    stepDefinitionSchema: contracts.stepDefinitionSchema, stepInvocationSchema: contracts.stepInvocationSchema }
+})
 
 import { ServiceError } from '@/services/shared/errors'
 
@@ -13,9 +21,33 @@ function clientFixture() {
   const groups = new Map<string, Group>()
   const locators = new Map<string, Locator>()
   const writes = { modules: 0, groups: 0, locators: 0 }
+  const coverageEpochs = new Map<string, number>()
+  const guards = new Map<string, { kind: string; resourceId: string }>()
   let effectiveHandoff: { id: string; generation: number; status: string; fencedAt: Date | null } | null = null
   const targetProject = { id: 'target-login', fingerprint: `sha256:${'a'.repeat(64)}` }
   const client = {
+    targetProject: { findUnique: async ({ where }: { where: { id: string } }) => where.id === targetProject.id ? targetProject : null },
+    qualityJourneyE2Retirement: { findFirst: async () => null },
+    qualityJourneySharedResourceCoverage: {
+      findUnique: async ({ where }: { where: { targetProjectId_kind_protocolVersion: { kind: string } } }) => {
+        const { kind } = where.targetProjectId_kind_protocolVersion
+        return { targetProjectId: targetProject.id, kind, protocolVersion: 1, state: 'UNKNOWN',
+          epoch: coverageEpochs.get(kind) ?? 0, writerClosureDigest: null, readerClosureDigest: null,
+          sourceUniverseDigest: null, reconciliationDigest: null, proofKind: null, completedAt: null, createdAt: new Date(0) }
+      },
+      updateMany: async ({ where, data }: { where: { kind: string; epoch: number }; data: { epoch: number } }) => {
+        if ((coverageEpochs.get(where.kind) ?? 0) !== where.epoch) return { count: 0 }
+        coverageEpochs.set(where.kind, data.epoch); return { count: 1 }
+      },
+    },
+    qualityJourneySharedResourceGuard: {
+      findFirst: async ({ where }: { where: { kind: string; resourceId: string } }) => guards.get(`${where.kind}:${where.resourceId}`) ?? null,
+      create: async ({ data }: { data: { kind: string; resourceId: string } }) => {
+        const key = `${data.kind}:${data.resourceId}`
+        if (guards.has(key)) throw new Error('Guard identity already retained')
+        guards.set(key, data); return data
+      },
+    },
     qualityJourney: {
       findFirst: async ({ where }: { where: { id: string } }) =>
         where.id === 'journey-login'
@@ -52,9 +84,11 @@ function clientFixture() {
           hostKind: 'EXTERNAL_LEGACY',
           fencedAt: null,
           legacyHandoffId: effectiveHandoff.id,
+          e2EnrollmentKind: null, e2EnrollmentDigest: null, e2EnrolledAt: null,
         },
     },
     module: {
+      findUnique: async ({ where }: { where: { id: string } }) => modules.get(where.id) ?? null,
       findFirst: async ({ where }: { where: Record<string, unknown> }) => {
         const id = typeof where.id === 'string' ? where.id : undefined
         return (
@@ -71,6 +105,7 @@ function clientFixture() {
       },
     },
     locatorGroup: {
+      findUnique: async ({ where }: { where: { id: string } }) => groups.get(where.id) ?? null,
       findFirst: async ({ where }: { where: Record<string, unknown> }) => {
         if (typeof where.name === 'string')
           return (
@@ -92,6 +127,7 @@ function clientFixture() {
       },
     },
     locator: {
+      findUnique: async ({ where }: { where: { id: string } }) => locators.get(where.id) ?? null,
       findMany: async ({ where }: { where: Record<string, unknown> }) =>
         [...locators.values()].filter(
           row =>

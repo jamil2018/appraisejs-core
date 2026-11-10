@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto'
-
 import type { Prisma, PrismaClient } from '@prisma/client'
 
 import prisma from '@/config/db-config'
@@ -11,9 +9,9 @@ import {
 } from '@/lib/repository-collaboration'
 import { requireCollaborationPermission } from '@/services/repository-collaboration/binding-service'
 import { ServiceError } from '@/services/shared/errors'
+import { prepareSharedResourceMutationInTransaction } from '@/services/coordinator/quality-journey-shared-resource-guard-service'
+import { planCollaborationMaterialization } from './materialization-plan'
 import {
-  createCollisionChecker,
-  entityKindByRecordKind,
   materializeRecords,
   persistMaterializationBaselines,
   validateExactSteps,
@@ -27,63 +25,17 @@ export interface ApplyCollaborationRecordsInput {
   adoptedLocalIds?: Map<string, string>
 }
 
-function recordMapKey(record: Pick<CollaborationRecord, 'kind' | 'portableId'>) {
-  return `${entityKindByRecordKind[record.kind]}:${record.portableId}`
-}
-
-async function ensureIdentityMaps(
-  transaction: Prisma.TransactionClient,
-  bindingId: string,
-  records: CollaborationRecord[],
-  adoptedLocalIds: Map<string, string> | undefined,
-  now: Date,
-) {
-  const existingMaps = await transaction.collaborationEntityMap.findMany({ where: { bindingId } })
-  const localIdByKey = new Map(
-    existingMaps.map(mapping => [`${mapping.kind}:${mapping.portableId}`, mapping.localEntityId]),
-  )
-  const entityMapIdByKey = new Map(existingMaps.map(mapping => [`${mapping.kind}:${mapping.portableId}`, mapping.id]))
-  for (const record of records) {
-    const key = recordMapKey(record)
-    if (entityMapIdByKey.has(key)) {
-      if (!localIdByKey.get(key) && !record.archived) {
-        const localEntityId = adoptedLocalIds?.get(recordKey(record)) ?? randomUUID()
-        await transaction.collaborationEntityMap.update({
-          where: { id: entityMapIdByKey.get(key)! },
-          data: { localEntityId, archivedAt: null },
-        })
-        localIdByKey.set(key, localEntityId)
-      }
-      continue
-    }
-    const localEntityId = adoptedLocalIds?.get(recordKey(record)) ?? (record.archived ? null : randomUUID())
-    const mapping = await transaction.collaborationEntityMap.create({
-      data: {
-        bindingId,
-        kind: entityKindByRecordKind[record.kind],
-        portableId: record.portableId,
-        localEntityId,
-        archivedAt: record.archived ? now : null,
-      },
-    })
-    entityMapIdByKey.set(key, mapping.id)
-    localIdByKey.set(key, localEntityId)
-  }
-  return { localIdByKey, entityMapIdByKey }
-}
-
-function localIdResolver(localIdByKey: Map<string, string | null>) {
-  return (record: Pick<CollaborationRecord, 'kind' | 'portableId'>) => {
-    const localId = localIdByKey.get(recordMapKey(record))
-    if (!localId) throw new ServiceError(`Missing local identity for ${recordKey(record)}.`, 'INTERNAL', 500)
-    return localId
-  }
+function snapshotInput(input: ApplyCollaborationRecordsInput): ApplyCollaborationRecordsInput {
+  return { bindingId: input.bindingId, expectedPolicyVersion: input.expectedPolicyVersion,
+    records: structuredClone(input.records), repositoryRevision: input.repositoryRevision,
+    adoptedLocalIds: input.adoptedLocalIds ? new Map(input.adoptedLocalIds) : undefined }
 }
 
 export async function applyCollaborationRecordsInTransaction(
   transaction: Prisma.TransactionClient,
   input: ApplyCollaborationRecordsInput,
 ) {
+  input = snapshotInput(input)
   const { binding } = await requireCollaborationPermission(
     transaction,
     input.bindingId,
@@ -96,43 +48,36 @@ export async function applyCollaborationRecordsInTransaction(
   const { ordered } = validateCollaborationGraph(input.records)
   await validateExactSteps(transaction, ordered)
   const now = new Date()
-  const { localIdByKey, entityMapIdByKey } = await ensureIdentityMaps(
-    transaction,
-    binding.id,
-    ordered,
-    input.adoptedLocalIds,
-    now,
-  )
-  const localIdFor = localIdResolver(localIdByKey)
-  const entityMapIdFor = (record: Pick<CollaborationRecord, 'kind' | 'portableId'>) => {
-    const id = entityMapIdByKey.get(recordMapKey(record))
-    if (!id) throw new ServiceError(`Missing collaboration map for ${recordKey(record)}.`, 'INTERNAL', 500)
-    return id
-  }
-  const assertNoCollision = createCollisionChecker(transaction, input.adoptedLocalIds, localIdFor)
+  const plan = await planCollaborationMaterialization(transaction, binding, ordered, input.adoptedLocalIds, now)
+  const snapshotHash = collaborationHash(ordered)
+  await prepareSharedResourceMutationInTransaction(transaction, binding.targetProjectId, plan.batch)
+  // Mapping identities and every semantic branch/child ID were fixed before this first mapping writer.
+  for (const data of plan.mapCreates) await transaction.collaborationEntityMap.create({ data })
+  for (const mapping of plan.mapUpdates) await transaction.collaborationEntityMap.update({
+    where: { id: mapping.id }, data: { localEntityId: mapping.localEntityId, archivedAt: null },
+  })
   await materializeRecords(
     {
       transaction,
       binding,
       now,
       repositoryRevision: input.repositoryRevision,
-      localIdFor,
-      entityMapIdFor,
-      assertNoCollision,
+      plan,
     },
     ordered,
   )
   await persistMaterializationBaselines(
     transaction,
     ordered,
-    entityMapIdByKey,
-    recordMapKey,
+    plan.entityMapIdByKey,
+    recordKey,
     now,
     input.repositoryRevision,
   )
-  return { applied: ordered.length, snapshotHash: collaborationHash(ordered) }
+  return { applied: ordered.length, snapshotHash }
 }
 
 export async function applyCollaborationRecords(input: ApplyCollaborationRecordsInput, client: PrismaClient = prisma) {
-  return client.$transaction(transaction => applyCollaborationRecordsInTransaction(transaction, input))
+  const request = snapshotInput(input)
+  return client.$transaction(transaction => applyCollaborationRecordsInTransaction(transaction, request))
 }

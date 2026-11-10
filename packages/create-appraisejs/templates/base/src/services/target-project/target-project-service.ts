@@ -1,13 +1,16 @@
-import { createHash } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { execFile } from 'node:child_process'
 import { existsSync, promises as fs } from 'node:fs'
 import path from 'node:path'
 import { promisify } from 'node:util'
 
-import type { Prisma, PrismaClient, TargetProject } from '@prisma/client'
+import type { PrismaClient, TargetProject } from '@prisma/client'
 
 import prisma from '@/config/db-config'
 import { ServiceError } from '@/services/shared/errors'
+import { initializeNewTargetSharedResourceCoverage, prepareSharedResourceMutationInTransaction } from '@/services/coordinator/quality-journey-shared-resource-guard-service'
+import { isSharedResourceId } from '@/lib/quality-journey/shared-resource-contract'
+import { collectTargetProjectDeletionEffects } from './target-project-deletion-effects'
 
 type PackageMetadata = {
   name?: string
@@ -203,9 +206,22 @@ export async function registerTargetProject(
       packageManager,
     })
 
-    return client.targetProject.upsert({
-      where: { canonicalIdentity },
-      create: {
+    return client.$transaction(async tx => {
+      const existing = await tx.targetProject.findUnique({ where: { canonicalIdentity } })
+      const metadataUpdate = {
+        displayName,
+        description: input.description?.trim() || null,
+        packageName: metadata.name,
+        packageManager,
+        packageJson,
+        fingerprint: fingerprintTargetProject(canonicalIdentity, metadata.name),
+        lastDetectedAt: new Date(),
+      }
+      if (existing) return tx.targetProject.update({ where: { id: existing.id }, data: metadataUpdate })
+      const id = randomUUID()
+      await initializeNewTargetSharedResourceCoverage(tx, id)
+      return tx.targetProject.create({ data: {
+        id,
         kind: 'LOCAL_WORKSPACE',
         canonicalIdentity,
         canonicalPath,
@@ -215,47 +231,39 @@ export async function registerTargetProject(
         packageManager,
         packageJson,
         fingerprint: fingerprintTargetProject(canonicalIdentity, metadata.name),
-      },
-      update: {
-        displayName,
-        description: input.description?.trim() || null,
-        packageName: metadata.name,
-        packageManager,
-        packageJson,
-        fingerprint: fingerprintTargetProject(canonicalIdentity, metadata.name),
-        lastDetectedAt: new Date(),
-      },
+      } })
     })
   }
 
   const normalizedRemoteOrigin = normalizeRemoteOrigin(input.url)
   const canonicalIdentity = remoteCanonicalIdentity(normalizedRemoteOrigin)
   const displayName = input.displayName?.trim() || new URL(normalizedRemoteOrigin).hostname
-  const targetProject = await client.targetProject.upsert({
-    where: { canonicalIdentity },
-    create: {
+  return client.$transaction(async tx => {
+    const existing = await tx.targetProject.findUnique({ where: { canonicalIdentity } })
+    const id = existing?.id ?? randomUUID()
+    if (!existing) await initializeNewTargetSharedResourceCoverage(tx, id)
+    const targetProject = existing ? await tx.targetProject.update({
+      where: { id },
+      data: { displayName, description: input.description?.trim() || null, lastDetectedAt: new Date() },
+    }) : await tx.targetProject.create({ data: {
+      id,
       kind: 'REMOTE_BLACK_BOX',
       canonicalIdentity,
       normalizedRemoteOrigin,
       displayName,
       description: input.description?.trim() || null,
       fingerprint: fingerprintTargetProject(canonicalIdentity),
-    },
-    update: {
-      displayName,
-      description: input.description?.trim() || null,
-      lastDetectedAt: new Date(),
-    },
-  })
-  await client.environment.upsert({
+    } })
+    await tx.environment.upsert({
     where: { targetProjectId_name: { targetProjectId: targetProject.id, name: 'default' } },
     create: { targetProjectId: targetProject.id, name: 'default', baseUrl: normalizedRemoteOrigin },
     // Registration refresh is an Environment write too. Preserve the remote
     // scope invariant even when the origin happens to be unchanged: callers
     // must issue a new scope after a target registration refresh.
     update: { baseUrl: normalizedRemoteOrigin, scopeVersion: { increment: 1 } },
+    })
+    return targetProject
   })
-  return targetProject
 }
 
 export async function writeTargetProjectMarker(
@@ -345,80 +353,98 @@ export async function renameTargetProject(
   })
 }
 
-async function deleteProjectRuntimeRecords(targetProjectId: string, tx: Prisma.TransactionClient) {
-  const [capsules, blobs] = await Promise.all([
-    tx.runtimeCapsule.findMany({ where: { targetProjectId }, select: { id: true } }),
-    tx.runtimeCapsuleBlob.findMany({ where: { targetProjectId }, select: { id: true } }),
-  ])
-  const capsuleIds = capsules.map(capsule => capsule.id)
-  const blobIds = blobs.map(blob => blob.id)
-
-  if (capsuleIds.length)
-    await tx.runtimeCapsuleExecutionAttempt.deleteMany({ where: { capsuleId: { in: capsuleIds } } })
-  if (capsuleIds.length || blobIds.length) {
-    await tx.runtimeCapsuleBlobReference.deleteMany({
-      where: { OR: [{ capsuleId: { in: capsuleIds } }, { blobId: { in: blobIds } }] },
+function assertTargetDeletionCount(result: { count: number }, expected: number) {
+  if (result.count !== expected)
+    throw new ServiceError('Target deletion count changed inside its owning transaction.', 'CONFLICT', 409, {
+      protocol: 'M06_TARGET_DELETION_EFFECTS_V1', reason: 'DELETE_COUNT',
     })
-  }
-  await tx.runtimeCapsule.deleteMany({ where: { targetProjectId } })
-  await tx.runtimeCapsuleBlob.deleteMany({ where: { targetProjectId } })
-  await tx.runtimeCapsuleLease.deleteMany({ where: { targetProjectId } })
-  await tx.report.deleteMany({ where: { targetProjectId } })
-  await tx.testRun.deleteMany({ where: { targetProjectId } })
-}
-
-async function deleteProjectAuthoredRecords(targetProjectId: string, tx: Prisma.TransactionClient) {
-  const [testCases, templateTestCases] = await Promise.all([
-    tx.testCase.findMany({ where: { targetProjectId }, select: { id: true } }),
-    tx.templateTestCase.findMany({ where: { targetProjectId }, select: { id: true } }),
-  ])
-  const testCaseIds = testCases.map(testCase => testCase.id)
-  const templateTestCaseIds = templateTestCases.map(testCase => testCase.id)
-
-  if (testCaseIds.length) {
-    await tx.review.deleteMany({ where: { testCaseId: { in: testCaseIds } } })
-    await tx.linkedJiraTicket.deleteMany({ where: { testCaseId: { in: testCaseIds } } })
-    await tx.testCaseStep.deleteMany({ where: { testCaseId: { in: testCaseIds } } })
-    await tx.testCaseFlowBlock.deleteMany({ where: { testCaseId: { in: testCaseIds } } })
-  }
-  if (templateTestCaseIds.length) {
-    await tx.templateTestCaseStep.deleteMany({ where: { templateTestCaseId: { in: templateTestCaseIds } } })
-    await tx.templateTestCaseFlowBlock.deleteMany({ where: { templateTestCaseId: { in: templateTestCaseIds } } })
-  }
-
-  await tx.testCaseMetrics.deleteMany({ where: { targetProjectId } })
-  await tx.testSuiteMetrics.deleteMany({ where: { targetProjectId } })
-  await tx.dashboardMetrics.deleteMany({ where: { targetProjectId } })
-  await tx.testCase.deleteMany({ where: { targetProjectId } })
-  await tx.templateTestCase.deleteMany({ where: { targetProjectId } })
-  await tx.testSuite.deleteMany({ where: { targetProjectId } })
-  await tx.locator.deleteMany({ where: { targetProjectId } })
-  await tx.locatorGroup.deleteMany({ where: { targetProjectId } })
-  await tx.module.deleteMany({ where: { targetProjectId } })
-  await tx.environment.deleteMany({ where: { targetProjectId } })
-  await tx.tag.deleteMany({ where: { targetProjectId } })
 }
 
 export async function deleteTargetProject(
   targetProjectId: string,
   client: PrismaClient = prisma,
 ): Promise<TargetProject> {
-  const existing = await client.targetProject.findUnique({ where: { id: targetProjectId } })
-  if (!existing) throw new ServiceError('Target project not found.', 'NOT_FOUND', 404)
-
-  await client.$transaction(async tx => {
-    await deleteProjectRuntimeRecords(existing.id, tx)
-    await tx.projectResourceImport.deleteMany({
-      where: {
-        OR: [{ destinationProjectId: existing.id }, { sourceOwnership: { targetProjectId: existing.id } }],
-      },
-    })
-    await tx.projectResourceOwnership.deleteMany({ where: { targetProjectId: existing.id } })
-    await deleteProjectAuthoredRecords(existing.id, tx)
-    await tx.targetProject.delete({ where: { id: existing.id } })
+  const id = targetProjectId
+  if (!isSharedResourceId(id)) throw new ServiceError('Target project id is invalid.', 'VALIDATION', 400)
+  if (typeof client.$transaction !== 'function')
+    throw new ServiceError('Target deletion requires a supported owning transaction.', 'CONFLICT', 409)
+  return client.$transaction(async tx => {
+    const existing = await tx.targetProject.findUnique({ where: { id } })
+    if (!existing) throw new ServiceError('Target project not found.', 'NOT_FOUND', 404)
+    if (existing.id !== id) throw new ServiceError('Target project scope changed.', 'CONFLICT', 409)
+    const plan = await collectTargetProjectDeletionEffects(tx, id)
+    await prepareSharedResourceMutationInTransaction(tx, id, { existing: plan.roots, newRoots: [], deleted: plan.roots })
+    // Every deletion below is a precomputed finite effect in this exact owner.
+    // Retained runtime/history/lineage, coverage, guards, Uses and Claims have no
+    // deletion or reset path here. Preparation tombstones each actual root once.
+    if (plan.imports.length) assertTargetDeletionCount(await tx.projectResourceImport.deleteMany({
+      where: { id: { in: [...plan.imports] } },
+    }), plan.imports.length)
+    if (plan.ownerships.length) assertTargetDeletionCount(await tx.projectResourceOwnership.deleteMany({
+      where: { id: { in: [...plan.ownerships] }, targetProjectId: id },
+    }), plan.ownerships.length)
+    if (plan.parameters.length) assertTargetDeletionCount(await tx.testCaseStepParameter.deleteMany({
+      where: { id: { in: [...plan.parameters] } },
+    }), plan.parameters.length)
+    if (plan.templateParameters.length) assertTargetDeletionCount(await tx.templateTestCaseStepParameter.deleteMany({
+      where: { id: { in: [...plan.templateParameters] } },
+    }), plan.templateParameters.length)
+    if (plan.nodes.length) assertTargetDeletionCount(await tx.testCaseFlowBlockNode.deleteMany({
+      where: { id: { in: [...plan.nodes] } },
+    }), plan.nodes.length)
+    if (plan.templateNodes.length) assertTargetDeletionCount(await tx.templateTestCaseFlowBlockNode.deleteMany({
+      where: { id: { in: [...plan.templateNodes] } },
+    }), plan.templateNodes.length)
+    if (plan.steps.length) assertTargetDeletionCount(await tx.testCaseStep.deleteMany({
+      where: { id: { in: [...plan.steps] } },
+    }), plan.steps.length)
+    if (plan.templateSteps.length) assertTargetDeletionCount(await tx.templateTestCaseStep.deleteMany({
+      where: { id: { in: [...plan.templateSteps] } },
+    }), plan.templateSteps.length)
+    if (plan.blocks.length) assertTargetDeletionCount(await tx.testCaseFlowBlock.deleteMany({
+      where: { id: { in: [...plan.blocks] } },
+    }), plan.blocks.length)
+    if (plan.templateBlocks.length) assertTargetDeletionCount(await tx.templateTestCaseFlowBlock.deleteMany({
+      where: { id: { in: [...plan.templateBlocks] } },
+    }), plan.templateBlocks.length)
+    if (plan.caseMetrics.length) assertTargetDeletionCount(await tx.testCaseMetrics.deleteMany({
+      where: { id: { in: [...plan.caseMetrics] }, targetProjectId: id },
+    }), plan.caseMetrics.length)
+    if (plan.suiteMetrics.length) assertTargetDeletionCount(await tx.testSuiteMetrics.deleteMany({
+      where: { id: { in: [...plan.suiteMetrics] }, targetProjectId: id },
+    }), plan.suiteMetrics.length)
+    if (plan.dashboardMetrics.length) assertTargetDeletionCount(await tx.dashboardMetrics.deleteMany({
+      where: { id: { in: [...plan.dashboardMetrics] }, targetProjectId: id },
+    }), plan.dashboardMetrics.length)
+    if (plan.cases.length) assertTargetDeletionCount(await tx.testCase.deleteMany({
+      where: { id: { in: [...plan.cases] }, targetProjectId: id },
+    }), plan.cases.length)
+    if (plan.templates.length) assertTargetDeletionCount(await tx.templateTestCase.deleteMany({
+      where: { id: { in: [...plan.templates] }, targetProjectId: id },
+    }), plan.templates.length)
+    if (plan.suites.length) assertTargetDeletionCount(await tx.testSuite.deleteMany({
+      where: { id: { in: [...plan.suites] }, targetProjectId: id },
+    }), plan.suites.length)
+    if (plan.conflicts.length) assertTargetDeletionCount(await tx.conflictResolution.deleteMany({
+      where: { id: { in: [...plan.conflicts] } },
+    }), plan.conflicts.length)
+    if (plan.locators.length) assertTargetDeletionCount(await tx.locator.deleteMany({
+      where: { id: { in: [...plan.locators] }, targetProjectId: id },
+    }), plan.locators.length)
+    if (plan.groups.length) assertTargetDeletionCount(await tx.locatorGroup.deleteMany({
+      where: { id: { in: [...plan.groups] }, targetProjectId: id },
+    }), plan.groups.length)
+    for (const moduleId of plan.moduleDeleteOrder)
+      assertTargetDeletionCount(await tx.module.deleteMany({ where: { id: moduleId, targetProjectId: id } }), 1)
+    if (plan.environments.length) assertTargetDeletionCount(await tx.environment.deleteMany({
+      where: { id: { in: [...plan.environments] }, targetProjectId: id },
+    }), plan.environments.length)
+    if (plan.tags.length) assertTargetDeletionCount(await tx.tag.deleteMany({
+      where: { id: { in: [...plan.tags] }, targetProjectId: id },
+    }), plan.tags.length)
+    assertTargetDeletionCount(await tx.targetProject.deleteMany({ where: { id } }), 1)
+    return existing
   })
-
-  return existing
 }
 
 export async function resolveTargetProject(reference: string, client: PrismaClient = prisma): Promise<TargetProject> {

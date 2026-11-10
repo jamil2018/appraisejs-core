@@ -95,7 +95,7 @@ const stepMaterializationSchema = z
     locatorRequirements: z.array(locatorRequirementSchema).max(128),
   })
   .strict()
-const automationScenarioMaterializationSchema = z
+export const automationScenarioMaterializationSchema = z
   .object({ scenarioRevisionId: id, steps: z.array(stepMaterializationSchema).min(1).max(128) })
   .strict()
 

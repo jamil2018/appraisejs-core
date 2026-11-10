@@ -3,11 +3,9 @@ import { createHash } from 'node:crypto'
 import { z } from 'zod'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { ServiceError } from '@/services/shared/errors'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
-import {
-  frozenEnvironmentSnapshot,
-  runtimeEnvironmentFromFrozenPacket,
-} from './frozen-environment-snapshot'
+import { frozenEnvironmentSnapshot, runtimeEnvironmentFromFrozenPacket } from './frozen-environment-snapshot'
 import { compiledCustomExtensionSchema } from '@/lib/validation-ast/custom-extension-compiler'
 import {
   canonicalRuntimeCapsuleJson,
@@ -29,7 +27,11 @@ import { resolveRuntimeStepDefinitionClosure, type SealedRuntimeStepDefinition }
 import { stepDefinitionContentHash } from '../../../packages/cucumber-runtime/src/step-definitions/contracts.ts'
 import { createCustomExtensionPolicy } from '@/lib/validation-ast/extension-policy'
 import { defaultOperationDefinitions } from '@/lib/operation-catalog/default-operation-registry'
-import { loadJourneyCapsuleSource, verifyJourneyResourceBytes, type JourneyCapsuleSource } from './journey-source'
+import {
+  loadJourneyCapsuleSourceInTransaction,
+  verifyJourneyResourceBytes,
+  type JourneyCapsuleSource,
+} from './journey-source'
 import { restoreJourneyExecutionEnvironment } from '@/lib/quality-journey/execution-environment'
 import {
   stepInvocationSchema,
@@ -129,7 +131,19 @@ function authoredSelection(testRun: AuthoredPersistedTestRun): AuthoredSelection
   })
 }
 
-function authoredSourceSnapshot(testRun: AuthoredPersistedTestRun, selected: AuthoredSelection[]) {
+function authoredSourceSnapshot(
+  testRun: Pick<
+    AuthoredPersistedTestRun,
+    | 'targetProjectId'
+    | 'targetProject'
+    | 'environmentId'
+    | 'environment'
+    | 'environmentSnapshotHash'
+    | 'environmentSnapshotVersion'
+    | 'browserEngine'
+  >,
+  selected: AuthoredSelection[],
+) {
   return {
     schemaVersion: '1',
     targetProjectId: testRun.targetProjectId,
@@ -162,7 +176,10 @@ function authoredSourceSnapshot(testRun: AuthoredPersistedTestRun, selected: Aut
   }
 }
 
-async function resolveAuthoredDefinitions(input: { invocations: StepInvocation[]; prisma: PrismaClient }) {
+async function resolveAuthoredDefinitions(input: {
+  invocations: StepInvocation[]
+  prisma: Pick<Prisma.TransactionClient, 'stepDefinition'>
+}) {
   const sealedDefinitions = await resolveRuntimeStepDefinitionClosure(
     input.invocations.map(invocation => invocation.step),
     async step =>
@@ -387,7 +404,7 @@ function runtimeExtensionArtifact(value: unknown, allowVerifiedCompact = false):
   return artifact
 }
 
- function reviewedExtensionBindings(sealedDefinitions: SealedRuntimeStepDefinition[]) {
+function reviewedExtensionBindings(sealedDefinitions: SealedRuntimeStepDefinition[]) {
   const bindings = new Map<string, ReviewedExtensionBinding>()
   for (const sealed of sealedDefinitions) {
     const execution = sealed.definition.execution
@@ -406,7 +423,7 @@ function runtimeExtensionArtifact(value: unknown, allowVerifiedCompact = false):
   return bindings
 }
 
- async function authoredExtensionArtifacts(sealedDefinitions: SealedRuntimeStepDefinition[], prisma: PrismaClient) {
+async function authoredExtensionArtifacts(sealedDefinitions: SealedRuntimeStepDefinition[], prisma: PrismaClient) {
   const bindings = reviewedExtensionBindings(sealedDefinitions)
   if (bindings.size === 0) return []
   const artifacts = await prisma.stepReviewedExtension.findMany({
@@ -443,12 +460,11 @@ function runtimeExtensionArtifact(value: unknown, allowVerifiedCompact = false):
     })
 }
 
- export class RuntimeCapsuleMaterializer {
+export class RuntimeCapsuleMaterializer {
   constructor(
     private readonly prisma: PrismaClient,
     private readonly appraiseRoot: string,
   ) {}
-
 
   /** Authoring is executable only after it is frozen as a target-owned snapshot.
    * The snapshot is deliberately not a Quality publication and can never be
@@ -458,12 +474,105 @@ function runtimeExtensionArtifact(value: unknown, allowVerifiedCompact = false):
   }
 
   async materializeJourneyPrepared(input: { testRunId: string }) {
-    const source = await loadJourneyCapsuleSource(this.prisma, input.testRunId)
-    return this.materializeSelected(input, source)
+    const captured = await this.prisma.$transaction(async tx => {
+      const source = await loadJourneyCapsuleSourceInTransaction(tx, input.testRunId)
+      const context = await this.selectedSourceContext(input, source, tx)
+      const invocations = context.selected.flatMap(item => item.testCase.steps.map(step => step.invocation))
+      const resolved = await resolveAuthoredDefinitions({ invocations, prisma: tx })
+      for (const resource of source.resourceHashes)
+        if (resource.id.startsWith('locator:')) resolved.locatorIds.add(resource.id.slice('locator:'.length))
+      const readLocators = () =>
+        tx.locator.findMany({
+          where: { id: { in: [...resolved.locatorIds] } },
+          select: {
+            id: true,
+            name: true,
+            value: true,
+            locatorGroupId: true,
+            updatedAt: true,
+            targetProjectId: true,
+            archivedAt: true,
+          },
+          orderBy: { id: 'asc' },
+        })
+      const locators = await readLocators()
+      if (
+        locators.length !== resolved.locatorIds.size ||
+        new Set(locators.map(row => row.id)).size !== locators.length ||
+        locators.some(
+          row =>
+            !resolved.locatorIds.has(row.id) ||
+            row.targetProjectId !== context.testRun.targetProjectId ||
+            row.archivedAt !== null,
+        )
+      )
+        throw new Error('Journey locator capture is missing, ambiguous, archived or cross-target.')
+      verifyJourneyResourceBytes(source, resolved.sealedDefinitions, locators)
+      // Reconstruct integrity after capturing the actual live bytes, in this same
+      // transaction. No current authored row supplies selection/compiler content.
+      const reread = await loadJourneyCapsuleSourceInTransaction(tx, input.testRunId)
+      const redefinitions = await resolveAuthoredDefinitions({ invocations, prisma: tx })
+      const relocators = await readLocators()
+      const recontext = await this.selectedSourceContext(input, reread, tx)
+      if (
+        canonicalContractJson(reread) !== canonicalContractJson(source) ||
+        canonicalContractJson(redefinitions.sealedDefinitions) !== canonicalContractJson(resolved.sealedDefinitions) ||
+        canonicalContractJson(relocators) !== canonicalContractJson(locators) ||
+        canonicalContractJson(recontext) !== canonicalContractJson(context)
+      )
+        throw new Error('Journey source or resource bytes changed during capture.')
+      // Copy only compiler fields. Archive/target checks above do not change the
+      // legacy compiler hash representation with an extra archivedAt property.
+      const compilerLocators = locators.map(({ id, name, value, locatorGroupId, updatedAt, targetProjectId }) => ({
+        id,
+        name,
+        value,
+        locatorGroupId,
+        updatedAt,
+        targetProjectId,
+      }))
+      return { context, ...resolved, locators: compilerLocators, protection: source.sharedResourceProtection }
+    })
+    if (captured.protection === 'PROTECTED_E2')
+      throw new ServiceError('E2 capsule publication requires its exact owning admission boundary.', 'CONFLICT', 409, {
+        protocol: 'M06_SHARED_USE_V1',
+        reason: 'UNSUPPORTED_E2_CAPSULE_PUBLICATION',
+      })
+    return this.materializeSelected(input, captured)
   }
 
-  private async selectedSourceContext(input: { testRunId: string }, journeySource?: JourneyCapsuleSource) {
-    const persistedTestRun = await this.prisma.testRun.findUniqueOrThrow({
+  private async selectedSourceContext(
+    input: { testRunId: string },
+    journeySource?: JourneyCapsuleSource,
+    client: Prisma.TransactionClient = this.prisma,
+  ) {
+    if (journeySource) {
+      const persisted = await client.testRun.findUniqueOrThrow({
+        where: { id: input.testRunId },
+        include: {
+          qualityJourneyExecutionBinding: true,
+          environment: true,
+          targetProject: true,
+          testCases: { select: { id: true, testCaseId: true, testSuiteId: true }, orderBy: { id: 'asc' } },
+        },
+      })
+      if (!persisted.qualityJourneyExecutionBinding || persisted.intent !== 'QUALITY_JOURNEY')
+        throw new Error('Journey-owned runs require their exact persisted frozen binding.')
+      const testRun = {
+        ...persisted,
+        targetProject: { ...persisted.targetProject, fingerprint: journeySource.identity.targetFingerprint },
+        environment: restoreJourneyExecutionEnvironment(persisted),
+      }
+      const selected = journeySource.selection
+      const sourceSnapshot = {
+        ...authoredSourceSnapshot(testRun, selected),
+        journey: journeySource.identity,
+        environmentSnapshotHash: testRun.environmentSnapshotHash,
+      }
+      const validationId = `authored_${hashRuntimeCapsuleValue(sourceSnapshot).slice('sha256:'.length)}`
+      return { testRun, selected, sourceSnapshot, validationId }
+    }
+    const persistedTestRun = await client.testRun.findUniqueOrThrow({
       where: { id: input.testRunId },
       include: {
         qualityJourneyExecutionBinding: true,
@@ -482,46 +591,49 @@ function runtimeExtensionArtifact(value: unknown, allowVerifiedCompact = false):
         },
       },
     })
-    if (Boolean(persistedTestRun.qualityJourneyExecutionBinding) !== Boolean(journeySource))
+    if (persistedTestRun.qualityJourneyExecutionBinding)
       throw new Error('Journey-owned runs require their frozen prepared capsule source.')
-    // A REMOTE_BLACK_BOX authored run is just as scope-bound as a published
-    // remote run.  Validate and substitute its immutable packet before any
-    // selected-case, locator, command-receipt, or capsule work can read the
-    // mutable Environment relation.
-    const testRun = journeySource
-      ? {
-          ...persistedTestRun,
-          targetProject: { ...persistedTestRun.targetProject, fingerprint: journeySource.identity.targetFingerprint },
-          environment: restoreJourneyExecutionEnvironment(persistedTestRun),
-        }
-      : withFrozenEnvironment(persistedTestRun, persistedTestRun.targetProject.kind === 'REMOTE_BLACK_BOX')
-    const expectedIntent = journeySource ? 'QUALITY_JOURNEY' : 'INDEPENDENT'
-    if (testRun.intent !== expectedIntent) throw new Error()
-    const selected = journeySource ? journeySource.selection : authoredSelection(testRun)
-    const sourceSnapshot = {
-      ...authoredSourceSnapshot(testRun, selected),
-      ...(journeySource
-        ? { journey: journeySource.identity, environmentSnapshotHash: testRun.environmentSnapshotHash }
-        : {}),
-    }
+    const testRun = withFrozenEnvironment(persistedTestRun, persistedTestRun.targetProject.kind === 'REMOTE_BLACK_BOX')
+    if (testRun.intent !== 'INDEPENDENT') throw new Error()
+    const selected = authoredSelection(testRun)
+    const sourceSnapshot = authoredSourceSnapshot(testRun, selected)
     const validationId = `authored_${hashRuntimeCapsuleValue(sourceSnapshot).slice('sha256:'.length)}`
     if (new Set(selected.map(item => item.testCase.id)).size !== selected.length)
       throw new Error('Authored runtime selection cannot include one case through multiple suites.')
     return { testRun, selected, sourceSnapshot, validationId }
   }
 
-  private async materializeSelected(input: { testRunId: string }, journeySource?: JourneyCapsuleSource) {
-    const { testRun, selected, sourceSnapshot, validationId } = await this.selectedSourceContext(input, journeySource)
+  private async materializeSelected(
+    input: { testRunId: string },
+    captured?: {
+      context: Awaited<ReturnType<RuntimeCapsuleMaterializer['selectedSourceContext']>>
+      sealedDefinitions: SealedRuntimeStepDefinition[]
+      definitionByRef: Awaited<ReturnType<typeof resolveAuthoredDefinitions>>['definitionByRef']
+      locators: Array<{
+        id: string
+        name: string
+        value: string
+        locatorGroupId: string | null
+        updatedAt: Date
+        targetProjectId: string
+      }>
+    },
+  ) {
+    const { testRun, selected, sourceSnapshot, validationId } =
+      captured?.context ?? (await this.selectedSourceContext(input))
     const allInvocations = selected.flatMap(item => item.testCase.steps.map(step => step.invocation))
-    const { sealedDefinitions, definitionByRef, locatorIds } = await resolveAuthoredDefinitions({
-      invocations: allInvocations,
-      prisma: this.prisma,
-    })
-    const locators = await this.prisma.locator.findMany({
-      where: { id: { in: [...locatorIds] }, targetProjectId: testRun.targetProjectId, archivedAt: null },
-      select: { id: true, name: true, value: true, locatorGroupId: true, updatedAt: true, targetProjectId: true },
-    })
-    if (journeySource) verifyJourneyResourceBytes(journeySource, sealedDefinitions, locators)
+    const { sealedDefinitions, definitionByRef, locatorIds } = captured
+      ? { ...captured, locatorIds: new Set(captured.locators.map(row => row.id)) }
+      : await resolveAuthoredDefinitions({
+          invocations: allInvocations,
+          prisma: this.prisma,
+        })
+    const locators =
+      captured?.locators ??
+      (await this.prisma.locator.findMany({
+        where: { id: { in: [...locatorIds] }, targetProjectId: testRun.targetProjectId, archivedAt: null },
+        select: { id: true, name: true, value: true, locatorGroupId: true, updatedAt: true, targetProjectId: true },
+      }))
     if (locators.length !== locatorIds.size)
       throw new Error('Authored runtime selection references an unavailable or cross-project locator.')
     const snapshotWithLocators = {
@@ -641,7 +753,7 @@ function runtimeExtensionArtifact(value: unknown, allowVerifiedCompact = false):
       receiptHash: sealedSourceHash,
       runtimeInputHash: hashRuntimeCapsuleValue(runtimeInput),
     }
-    const extensionArtifacts = await authoredExtensionArtifacts(sealedDefinitions, this.prisma)
+    const extensionArtifacts = captured ? [] : await authoredExtensionArtifacts(sealedDefinitions, this.prisma)
     const built = buildReviewedRuntimeCapsuleFiles({
       node,
       runtimeInput,

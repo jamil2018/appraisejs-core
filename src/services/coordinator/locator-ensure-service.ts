@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import type { Prisma } from '@prisma/client'
 
 import prisma from '@/config/db-config'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
@@ -8,56 +9,19 @@ import {
   type CoordinatorSessionCredentials,
 } from '@/services/coordinator/quality-journey-coordinator-session'
 
-type LocatorEnsureClient = {
-  qualityJourney: {
-    findFirst(args: unknown): Promise<{
-      id: string
-      targetProjectId: string
-      targetProject: { id: string; fingerprint: string }
-    } | null>
-  }
-  module: {
-    findFirst(args: unknown): Promise<{ id: string; name: string; targetProjectId: string | null } | null>
-    create(args: unknown): Promise<{ id: string; name: string; targetProjectId: string | null }>
-  }
-  locatorGroup: {
-    findFirst(args: unknown): Promise<{
-      id: string
-      name: string
-      route: string
-      moduleId: string
-      targetProjectId: string | null
-      module: { id: string; name: string; targetProjectId: string | null }
-    } | null>
-    create(args: unknown): Promise<{
-      id: string
-      name: string
-      route: string
-      moduleId: string
-      targetProjectId: string | null
-      module: { id: string; name: string; targetProjectId: string | null }
-    }>
-  }
-  locator: {
-    findMany(args: unknown): Promise<
-      Array<{
-        id: string
-        name: string
-        value: string
-        locatorGroupId: string | null
-        targetProjectId: string | null
-      }>
-    >
-    create(args: unknown): Promise<{
-      id: string
-      name: string
-      value: string
-      locatorGroupId: string | null
-      targetProjectId: string | null
-    }>
-  }
-  $transaction<T>(operation: (transaction: LocatorEnsureClient) => Promise<T>): Promise<T>
-}
+import { sharedResourceDigest } from '@/lib/quality-journey/shared-resource-contract'
+import { readJourneyBusinessEnrollmentKindInTransaction, withJourneyBusinessWriteJoinInTransaction } from './quality-journey-business-write-join'
+import { type E2BusinessScope } from './quality-journey-e2-retirement-service'
+import { prepareSharedResourceMutationInTransaction, type SharedResourceMutationKey } from './quality-journey-shared-resource-guard-service'
+import { resolveSharedResourceDescriptors } from './quality-journey-shared-resource-descriptor-service'
+import {
+  createLocatorEnsureReceiptAndAcquireUseInBusinessGroupInTransaction,
+  sharedLocatorEnsureReceiptId,
+  sharedLocatorEnsureSourceDigest,
+  validateActiveSharedResourceUseInTransaction,
+} from './quality-journey-shared-resource-use-service'
+
+type LocatorEnsureClient = Prisma.TransactionClient
 
 type ExistingModule = { mode: 'existing'; id: string }
 type EnsuredModule = { mode: 'ensure'; name: string }
@@ -153,54 +117,129 @@ function locatorContentHash(locator: {
   })
 }
 
+function ensureUseConflict(reason: string): never {
+  throw new ServiceError('Locator ensure requires its exact retained resource Use.', 'CONFLICT', 409,
+    { protocol: 'M06_SHARED_USE_V1', reason })
+}
+
+function assertE2EnsureModels(tx: Prisma.TransactionClient) {
+  // A typed custom client is not proof of complete runtime capabilities. There
+  // is no model-absence fallback to legacy admission or partial descriptors.
+  const methods = [tx.targetProject?.findUnique, tx.module?.findUnique, tx.module?.create,
+    tx.locatorGroup?.findUnique, tx.locatorGroup?.create, tx.locator?.findUnique, tx.locator?.create,
+    tx.qualityJourney?.updateMany, tx.qualityJourneyCoordinatorSession?.findUnique,
+    tx.qualityJourneyE2Retirement?.findMany, tx.qualityJourneyE2CampaignPolicy?.findUnique,
+    tx.qualityJourneySharedResourceCoverage?.findUnique, tx.qualityJourneySharedResourceCoverage?.updateMany,
+    tx.qualityJourneySharedResourceGuard?.findUnique, tx.qualityJourneySharedResourceGuard?.updateMany,
+    tx.qualityJourneySharedResourceGuard?.create, tx.qualityJourneySharedResourceGuard?.findFirst,
+    tx.qualityJourneySharedResourceClaim?.findFirst, tx.qualityJourneyLocatorEnsureReceipt?.findUnique,
+    tx.qualityJourneyLocatorEnsureReceipt?.create, tx.qualityJourneySharedResourceUse?.findFirst,
+    tx.qualityJourneySharedResourceUse?.findMany, tx.qualityJourneySharedResourceUse?.findUnique,
+    tx.qualityJourneySharedResourceUse?.create, tx.qualityJourneySharedResourceUse?.updateMany,
+    tx.qualityJourneySharedResourceClaim?.findMany, tx.qualityJourneySharedResourceClaim?.create]
+  if (methods.some(method => typeof method !== 'function')) ensureUseConflict('ENSURE_FULL_MODEL_REQUIRED')
+}
+
+function ensureScope(input: LocatorEnsureInput, targetProjectId: string): E2BusinessScope {
+  if (!input.coordinatorSessionId || !input.coordinatorGeneration)
+    throw new ServiceError('E2 locator ensure requires the original current coordinator binding.', 'UNAUTHORIZED')
+  return { journeyId: input.journeyId, targetProjectId, coordinatorSessionId: input.coordinatorSessionId,
+    generation: input.coordinatorGeneration,
+    credentials: { journeyId: input.journeyId, targetProjectId, coordinatorSessionId: input.coordinatorSessionId,
+      coordinatorGeneration: input.coordinatorGeneration, coordinatorPrincipalId: input.coordinatorPrincipalId,
+      coordinatorHandoffId: input.coordinatorHandoffId } }
+}
+
+/** Request V1 hashes the owned semantic request, with allowCreate normalized to
+ * its existing boolean meaning. Authentication provenance is independently bound
+ * by the receipt's Journey/target/session/generation identity. No raw bytes persist.
+ */
+function ensureRequestHash(input: LocatorEnsureInput, targetProjectId: string) {
+  return sharedResourceDigest('M06_LOCATOR_ENSURE_REQUEST_V1', { journeyId: input.journeyId, targetProjectId,
+    allowCreate: input.allowCreate === true, group: input.group, locator: input.locator })
+}
+
+function ensureResponse(
+  journey: Awaited<ReturnType<typeof readJourneyOrThrow>>,
+  persisted: Awaited<ReturnType<typeof persistLocatorClosure>>,
+) {
+  const outcome: ResourceOutcome = [persisted.module.outcome, persisted.group.outcome, persisted.locator.outcome]
+    .includes('created') ? 'created' : 'reused'
+  return { journeyId: journey.id, targetProjectId: journey.targetProjectId,
+    targetFingerprint: journey.targetProject.fingerprint, outcome,
+    resources: { module: persisted.module, locatorGroup: persisted.group,
+      locator: { ...persisted.locator, contentHash: locatorContentHash(persisted.locator) } },
+    selectorVerification: 'pending_runtime' as const,
+    nextRecommendedAction: 'Use locator_search to bind this target-owned locator into the Quality Journey.' }
+}
+
 async function ensureOnce(
   input: LocatorEnsureInput,
-  expectedTarget: LocatorEnsureTargetIdentity,
   client: LocatorEnsureClient,
+  journey: Awaited<ReturnType<typeof readJourneyOrThrow>>,
+  e2Scope: E2BusinessScope | null,
 ) {
-  const journey = await readJourneyOrThrow(client, input.journeyId)
-  assertJourneyTarget(journey, expectedTarget)
-  await assertCoordinatorMutationSession(
-    {
-      ...(input.coordinatorSessionId ? { coordinatorSessionId: input.coordinatorSessionId } : {}),
-      ...(input.coordinatorPrincipalId ? { coordinatorPrincipalId: input.coordinatorPrincipalId } : {}),
-      ...(input.coordinatorHandoffId ? { coordinatorHandoffId: input.coordinatorHandoffId } : {}),
-      ...(input.coordinatorGeneration ? { coordinatorGeneration: input.coordinatorGeneration } : {}),
-    } satisfies CoordinatorSessionCredentials,
-    { journeyId: journey.id, targetProjectId: journey.targetProjectId },
-    client as never,
-  )
   const targetProjectId = journey.targetProjectId
   const allowCreate = input.allowCreate === true
+  const requestHash = e2Scope ? ensureRequestHash(input, targetProjectId) : null
+  const receiptId = e2Scope && requestHash ? sharedLocatorEnsureReceiptId({ ...e2Scope, requestHash }) : null
+  const retained = receiptId ? await client.qualityJourneyLocatorEnsureReceipt.findUnique({ where: { id: receiptId } }) : null
+  const retainedUse = receiptId ? await client.qualityJourneySharedResourceUse.findFirst({
+    where: { sourceKind: 'ENSURE', sourceOwnerId: receiptId }, select: { id: true },
+  }) : null
+  if (!retained && retainedUse) ensureUseConflict('ENSURE_ORPHAN_USE')
   const groupResolution = await resolveGroup(client, input.group, targetProjectId, allowCreate)
-  const locatorResolution = await resolveLocator(
-    client,
-    input.locator,
-    groupResolution.group,
-    targetProjectId,
-    allowCreate,
-  )
-  const persisted = await persistLocatorClosure(client, groupResolution, locatorResolution, targetProjectId)
-  const outcome: ResourceOutcome = [
-    persisted.module.outcome,
-    persisted.group.outcome,
-    persisted.locator.outcome,
-  ].includes('created')
-    ? 'created'
-    : 'reused'
-  return {
-    journeyId: journey.id,
-    targetProjectId,
-    targetFingerprint: journey.targetProject.fingerprint,
-    outcome,
-    resources: {
-      module: persisted.module,
-      locatorGroup: persisted.group,
-      locator: { ...persisted.locator, contentHash: locatorContentHash(persisted.locator) },
-    },
-    selectorVerification: 'pending_runtime' as const,
-    nextRecommendedAction: 'Use locator_search to bind this target-owned locator into the Quality Journey.',
+  const locatorResolution = await resolveLocator(client, input.locator, groupResolution.group, targetProjectId, allowCreate)
+  const newRoots: SharedResourceMutationKey[] = [
+    ...(groupResolution.moduleNeedsCreate ? [{ kind: 'MODULE' as const, resourceId: groupResolution.module.id }] : []),
+    ...(groupResolution.groupNeedsCreate ? [{ kind: 'LOCATOR_GROUP' as const, resourceId: groupResolution.group.id }] : []),
+    ...(locatorResolution.needsCreate ? [{ kind: 'LOCATOR' as const, resourceId: locatorResolution.locator.id }] : []),
+  ]
+  const descriptorFor = () => resolveSharedResourceDescriptors(client, targetProjectId, [
+    { kind: 'MODULE', resourceId: groupResolution.module.id },
+    { kind: 'LOCATOR_GROUP', resourceId: groupResolution.group.id },
+    { kind: 'LOCATOR', resourceId: locatorResolution.locator.id },
+  ])
+  // Result V1 binds complete live semantic dependencies and stable identities.
+  // Per-invocation created/reused outcomes and response-only hashes are excluded.
+  const resultHashFor = (dependencyDigest: string) => sharedResourceDigest('M06_LOCATOR_ENSURE_RESULT_V1', {
+    moduleId: groupResolution.module.id, locatorGroupId: groupResolution.group.id,
+    locatorId: locatorResolution.locator.id, dependencyDigest,
+  })
+  if (retained && e2Scope) {
+    if (newRoots.length || retained.journeyId !== e2Scope.journeyId || retained.targetProjectId !== targetProjectId ||
+      retained.coordinatorSessionId !== e2Scope.coordinatorSessionId || retained.generation !== e2Scope.generation ||
+      retained.requestHash !== requestHash || retained.moduleId !== groupResolution.module.id ||
+      retained.locatorGroupId !== groupResolution.group.id || retained.locatorId !== locatorResolution.locator.id)
+      ensureUseConflict('ENSURE_RETAINED_RESULT_MISMATCH')
+    const descriptor = await descriptorFor()
+    if (retained.resultHash !== resultHashFor(descriptor.dependencyDigest)) ensureUseConflict('ENSURE_RETAINED_RESULT_MISMATCH')
+    await validateActiveSharedResourceUseInTransaction(client, { scope: e2Scope,
+      source: { sourceKind: 'ENSURE', sourceOwnerId: retained.id,
+        expectedSourceDigest: sharedLocatorEnsureSourceDigest(retained) }, expectedDependencyDigest: descriptor.dependencyDigest })
+    // All flags are false here; this response projection performs no root write.
+    return ensureResponse(journey, await persistLocatorClosure(client, groupResolution, locatorResolution, targetProjectId))
   }
+  if (!e2Scope && !newRoots.length)
+    return ensureResponse(journey, await persistLocatorClosure(client, groupResolution, locatorResolution, targetProjectId))
+  const credentials = { journeyId: input.journeyId, targetProjectId,
+    coordinatorSessionId: input.coordinatorSessionId, coordinatorGeneration: input.coordinatorGeneration,
+    coordinatorPrincipalId: input.coordinatorPrincipalId, coordinatorHandoffId: input.coordinatorHandoffId }
+  return withJourneyBusinessWriteJoinInTransaction(client, { journeyId: journey.id, targetProjectId }, credentials,
+    async beforeWrite => {
+      await beforeWrite(client, { journeyId: journey.id, targetProjectId })
+      if (newRoots.length) await prepareSharedResourceMutationInTransaction(client, targetProjectId,
+        { existing: [], newRoots, deleted: [] })
+      const persisted = await persistLocatorClosure(client, groupResolution, locatorResolution, targetProjectId)
+      if (e2Scope && requestHash) {
+        const descriptor = await descriptorFor()
+        await createLocatorEnsureReceiptAndAcquireUseInBusinessGroupInTransaction(client, { scope: e2Scope,
+          requestHash, resultHash: resultHashFor(descriptor.dependencyDigest), moduleId: persisted.module.id,
+          locatorGroupId: persisted.group.id, locatorId: persisted.locator.id, createdAt: new Date(),
+          expectedDependencyDigest: descriptor.dependencyDigest }, beforeWrite)
+      }
+      return ensureResponse(journey, persisted)
+    })
 }
 
 function assertJourneyTarget(
@@ -370,13 +409,36 @@ function isUniqueConflict(error: unknown) {
 export async function ensureTargetLocator(
   input: LocatorEnsureInput,
   expectedTarget: LocatorEnsureTargetIdentity,
-  client = prisma as unknown as LocatorEnsureClient,
+  client = prisma,
 ) {
+  const request: LocatorEnsureInput = { journeyId: input.journeyId,
+    coordinatorSessionId: input.coordinatorSessionId, coordinatorPrincipalId: input.coordinatorPrincipalId,
+    coordinatorHandoffId: input.coordinatorHandoffId, coordinatorGeneration: input.coordinatorGeneration,
+    allowCreate: input.allowCreate,
+    group: input.group.mode === 'existing' ? { mode: 'existing', id: input.group.id } : {
+      mode: 'ensure', name: input.group.name, route: input.group.route,
+      module: input.group.module.mode === 'existing' ? { mode: 'existing', id: input.group.module.id } :
+        { mode: 'ensure', name: input.group.module.name } },
+    locator: { name: input.locator.name, selector: input.locator.selector } }
+  const target = { id: expectedTarget.id, fingerprint: expectedTarget.fingerprint }
   for (let attempt = 0; attempt < 2; attempt += 1) {
+    let positivelyLegacy = false
     try {
-      return await client.$transaction(transaction => ensureOnce(input, expectedTarget, transaction))
+      return await client.$transaction(async transaction => {
+        const journey = await readJourneyOrThrow(transaction, request.journeyId)
+        assertJourneyTarget(journey, target)
+        await assertCoordinatorMutationSession({ journeyId: request.journeyId, targetProjectId: target.id,
+          coordinatorSessionId: request.coordinatorSessionId, coordinatorPrincipalId: request.coordinatorPrincipalId,
+          coordinatorHandoffId: request.coordinatorHandoffId, coordinatorGeneration: request.coordinatorGeneration,
+        } satisfies CoordinatorSessionCredentials, { journeyId: journey.id, targetProjectId: journey.targetProjectId }, transaction)
+        const enrollment = await readJourneyBusinessEnrollmentKindInTransaction(transaction, {
+          journeyId: journey.id, targetProjectId: journey.targetProjectId })
+        positivelyLegacy = enrollment === 'LEGACY'
+        if (!positivelyLegacy) assertE2EnsureModels(transaction)
+        return ensureOnce(request, transaction, journey, positivelyLegacy ? null : ensureScope(request, target.id))
+      })
     } catch (error) {
-      if (attempt === 0 && isUniqueConflict(error)) continue
+      if (attempt === 0 && positivelyLegacy && isUniqueConflict(error)) continue
       throw error
     }
   }

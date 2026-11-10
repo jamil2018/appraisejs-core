@@ -1,5 +1,10 @@
 import prisma from '@/config/db-config'
-import { findMatchingTestRunTestCase } from '@/lib/test-run/matching'
+import {
+  findMatchingTestRunTestCase,
+  requiresFrozenJourneyMatching,
+  validateFrozenJourneySelection,
+  reconcileFrozenJourneyReport,
+} from '@/lib/test-run/matching'
 import { findHumanVerificationEvent, type HumanVerificationEvent } from '@/lib/test-run/human-verification-event'
 import { parseCucumberReportText, type ParsedReport } from '@/lib/test-run/report-parser'
 import { ServiceError } from '@/services/shared/errors'
@@ -115,7 +120,23 @@ function hasPlaceholderBinary(logExcerpt: string[]) {
   return logExcerpt.some(line => PLACEHOLDER_BINARY_PATTERN.test(line))
 }
 
+function expectedEvidenceCaseCount(testRun: TestRunForEvidence): number {
+  if (!requiresFrozenJourneyMatching(testRun)) return testRun.testCases.length
+  const frozen = validateFrozenJourneySelection(testRun)
+  return frozen.ok ? frozen.selection.expectedCases.length : 0
+}
+
 function reconcileScenarioMatches(testRun: TestRunForEvidence, scenarios: ScenarioForEvidence[]) {
+  if (requiresFrozenJourneyMatching(testRun)) {
+    const frozen = validateFrozenJourneySelection(testRun)
+    if (!frozen.ok) return { matchedScenarios: 0, unmatchedScenarios: scenarios.length, unexecutedExpectedTestCases: 0 }
+    return reconcileFrozenJourneyReport(
+      frozen.selection,
+      scenarios.map(scenario => ({
+        scenarioTags: scenario.tags.map(tag => tag.name),
+      })),
+    )
+  }
   const matchedExpectedIds = new Set<string>()
   let unmatchedScenarios = 0
 
@@ -143,7 +164,7 @@ function classifyExpectedCaseEvidence(
   scenarios: ScenarioForEvidence[],
   counts: RunEvidenceSummary['counts'],
 ) {
-  if (testRun.testCases.length === 0) {
+  if (!requiresFrozenJourneyMatching(testRun) && testRun.testCases.length === 0) {
     return null
   }
 
@@ -162,6 +183,7 @@ async function loadTestRunForEvidence(runId: string, client: EvidenceClient = pr
     include: {
       targetProject: true,
       runtimeCapsule: true,
+      qualityJourneyExecutionBinding: { include: { executionCycle: true } },
       testCases: {
         include: {
           testCase: {
@@ -185,13 +207,19 @@ function classifyReportEvidence(testRun: TestRunForEvidence, report: ParsedRepor
   const blockers: string[] = []
   const missingArtifacts: string[] = []
   const scenarios = flattenScenarios(report)
+  const frozen = requiresFrozenJourneyMatching(testRun) ? validateFrozenJourneySelection(testRun) : null
   const counts: RunEvidenceSummary['counts'] = {
     ...emptyCounts(),
-    expectedTestCases: testRun.testCases.length,
+    expectedTestCases: frozen ? (frozen.ok ? frozen.selection.expectedCases.length : 0) : testRun.testCases.length,
     features: report.features.length,
     scenarios: scenarios.length,
     steps: countSteps(scenarios),
     hooks: countHooks(scenarios),
+  }
+
+  if (frozen && !frozen.ok) {
+    blockers.push(`${frozen.protocol}: ${frozen.reason}`)
+    return { evidenceHealth: 'invalid_stale_runtime' as const, blockers, missingArtifacts, counts }
   }
 
   if (hasPlaceholderBinary(logExcerpt)) {
@@ -306,7 +334,7 @@ export async function summarizeRunEvidence(
         evidenceHealth: hasInfrastructureFailure(logExcerpt) ? 'infrastructure_failure' : 'invalid_missing_report',
         blockers,
         missingArtifacts,
-        counts: { ...emptyCounts(), expectedTestCases: testRun.testCases.length },
+        counts: { ...emptyCounts(), expectedTestCases: expectedEvidenceCaseCount(testRun) },
       },
       logExcerpt,
     )
@@ -337,7 +365,7 @@ export async function summarizeRunEvidence(
         evidenceHealth: hasInfrastructureFailure(logExcerpt) ? 'infrastructure_failure' : 'invalid_missing_report',
         blockers,
         missingArtifacts,
-        counts: { ...emptyCounts(), expectedTestCases: testRun.testCases.length },
+        counts: { ...emptyCounts(), expectedTestCases: expectedEvidenceCaseCount(testRun) },
       },
       logExcerpt,
     )

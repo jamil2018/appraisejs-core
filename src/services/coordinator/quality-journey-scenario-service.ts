@@ -24,19 +24,27 @@ import {
   assertCoordinatorMutationSession,
   type CoordinatorSessionCredentials,
 } from './quality-journey-coordinator-session'
+import {
+  assertJourneyBusinessGroupSupportsNoInvalidationInTransaction,
+  withJourneyBusinessWriteJoinInTransaction,
+  type BeforeJourneyBusinessWrite,
+  type QueueAttemptTerminal,
+} from './quality-journey-business-write-join'
 import { ensureQualityJourneyAutomationForApprovedScenarios } from './quality-journey-automation-service'
 import {
   acceptExternalQualityJourneySubmissionInTransaction,
-  completeScenarioDesignerWorkInTransaction,
-  ensureEligibleQualityJourneyWorkItemsInTransaction,
+  completeScenarioDesignerWorkWithBusinessJoinInTransaction,
+  ensureEligibleQualityJourneyWorkItemsWithBusinessJoinInTransaction,
   externalAnalyzerAdmissionProtocol,
   externalAssignmentSecretHash,
   refreshQualityJourneyWorkAuthorizationInTransaction,
   submitDurableQualityJourneyCommandInTransaction,
+  submitDurableQualityJourneyCommandWithBusinessJoinInTransaction,
   type ExternalAnalyzerProjectPrincipal,
 } from './quality-journey-service'
 
 type Db = PrismaClient | Prisma.TransactionClient
+
 const json = canonicalContractJson
 const hash = (value: unknown) => `sha256:${createHash('sha256').update(json(value)).digest('hex')}`
 const idFor = (kind: string, ...parts: string[]) =>
@@ -547,6 +555,8 @@ async function submitScenarioPortfolioInTransaction(
   contentHash: string,
   submissionHash: string,
   tx: Prisma.TransactionClient,
+  beforeWrite: BeforeJourneyBusinessWrite,
+  queueAttemptTerminal: QueueAttemptTerminal,
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
   const journey = await tx.qualityJourney.findFirst({
@@ -569,6 +579,9 @@ async function submitScenarioPortfolioInTransaction(
   const { item, attempt } = await scenarioSubmissionLease(request, journey.id, tx)
   const discovery = await assertScenarioPortfolioSubmissionAuthority(portfolio, journey.id, tx)
   const predecessor = await scenarioPortfolioPredecessor(journey, portfolio, tx)
+  // Staged E2 gate remains until terminal wiring passes its required exact validation.
+  await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, request)
+  await beforeWrite(tx, request)
   const created = await persistScenarioPortfolioSubmission(
     request,
     portfolio,
@@ -581,9 +594,22 @@ async function submitScenarioPortfolioInTransaction(
     attempt,
     tx,
   )
-  await completeScenarioDesignerWorkInTransaction(
+  const completion = await completeScenarioDesignerWorkWithBusinessJoinInTransaction(
     { ...(typeof coordinatorSession === 'object' ? coordinatorSession : {}), ...scenarioCompletionInput(request) },
     tx,
+    beforeWrite,
+    queueAttemptTerminal,
+  )
+  await beforeWrite(
+    tx,
+    request,
+    completion.replayed
+      ? undefined
+      : {
+          kind: 'ROLE_OUTPUT_FINALIZATION',
+          terminalAttemptId: request.attemptId,
+          terminalResultHash: hash(request.result),
+        },
   )
   await tx.qualityJourney.update({ where: { id: journey.id }, data: { activeScenarioPortfolioRevisionId: created.id } })
   return { replayed: false, portfolio: created }
@@ -595,17 +621,33 @@ export async function submitQualityJourneyScenarioPortfolio(
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
   const request = scenarioSubmissionSchema.parse(input)
-  return client.$transaction(async tx => {
-    await assertCoordinatorMutationSession(coordinatorSession, request, tx)
-    await assertManagedScenarioSubmissionAttempt(request, tx)
-    const portfolio = scenarioPortfolioSchema.parse(request.portfolio)
-    if (portfolio.journeyId !== request.journeyId || portfolio.targetProjectId !== request.targetProjectId)
-      throw new ServiceError('Scenario portfolio scope does not match the leased journey.', 'CONFLICT')
-    const contentHash = hashScenarioPortfolio(portfolio)
-    assertExactDesignerResult(request.result, portfolio, contentHash)
-    const submissionHash = hash({ ...request, ownerToken: undefined })
-    return submitScenarioPortfolioInTransaction(request, portfolio, contentHash, submissionHash, tx, coordinatorSession)
-  })
+  return client.$transaction(tx =>
+    withJourneyBusinessWriteJoinInTransaction(
+      tx,
+      request,
+      coordinatorSession,
+      async (beforeWrite, queueAttemptTerminal) => {
+        await assertCoordinatorMutationSession(coordinatorSession, request, tx)
+        await assertManagedScenarioSubmissionAttempt(request, tx)
+        const portfolio = scenarioPortfolioSchema.parse(request.portfolio)
+        if (portfolio.journeyId !== request.journeyId || portfolio.targetProjectId !== request.targetProjectId)
+          throw new ServiceError('Scenario portfolio scope does not match the leased journey.', 'CONFLICT')
+        const contentHash = hashScenarioPortfolio(portfolio)
+        assertExactDesignerResult(request.result, portfolio, contentHash)
+        const submissionHash = hash({ ...request, ownerToken: undefined })
+        return submitScenarioPortfolioInTransaction(
+          request,
+          portfolio,
+          contentHash,
+          submissionHash,
+          tx,
+          beforeWrite,
+          queueAttemptTerminal,
+          coordinatorSession,
+        )
+      },
+    ),
+  )
 }
 
 /** External admission is authenticated before a durable replay is exposed;
@@ -633,17 +675,23 @@ export async function submitExternalQualityJourneyScenarioPortfolio(
   assertExactDesignerResult(canonical.result, portfolio, contentHash)
   const submissionHash = hash({ ...canonical, ownerToken: undefined })
   return client.$transaction(async tx => {
-    const accepted = await acceptExternalQualityJourneySubmissionInTransaction(acceptance, tx, async () => {
-      await assertCoordinatorMutationSession(coordinatorSession, canonical, tx)
-      return submitScenarioPortfolioInTransaction(
-        canonical,
-        portfolio,
-        contentHash,
-        submissionHash,
-        tx,
-        coordinatorSession,
-      )
-    })
+    const accepted = await acceptExternalQualityJourneySubmissionInTransaction(
+      acceptance,
+      tx,
+      async (beforeWrite, queueAttemptTerminal) => {
+        await assertCoordinatorMutationSession(coordinatorSession, canonical, tx)
+        return submitScenarioPortfolioInTransaction(
+          canonical,
+          portfolio,
+          contentHash,
+          submissionHash,
+          tx,
+          beforeWrite,
+          queueAttemptTerminal,
+          coordinatorSession,
+        )
+      },
+    )
     return { ...accepted.outcome, replayed: accepted.replayed || accepted.outcome.replayed }
   })
 }
@@ -703,23 +751,36 @@ export async function startQualityJourneyScenarioDesign(
   coordinatorSession?: CoordinatorSessionCredentials,
   beforeTransactionForTest?: () => Promise<void>,
 ) {
+  const value = command as { journeyId: string; targetProjectId: string; idempotencyKey: string }
   await beforeTransactionForTest?.()
-  return client.$transaction(async tx => {
-    const value = command as { journeyId: string; targetProjectId: string }
-    await assertCoordinatorMutationSession(coordinatorSession, value, tx)
-    const journey = await tx.qualityJourney.findFirst({
-      where: { id: value.journeyId, targetProjectId: value.targetProjectId },
-    })
-    const discovery = journey?.activeDiscoveryRevisionId
-      ? await tx.qualityJourneyDiscoveryRevision.findUnique({ where: { id: journey.activeDiscoveryRevisionId } })
-      : null
-    if (!journey || !discovery || discovery.status !== 'COMPLETED')
-      throw new ServiceError('Scenario design requires exact completed discovery authority.', 'CONFLICT')
-    const result = await submitDurableQualityJourneyCommandInTransaction(command, tx, true, true, coordinatorSession)
-    if (result.outcome === 'COMMITTED' && !result.replayed)
-      await configureScenarioDesignerAssignment(journey, discovery, tx)
-    return result
-  })
+  return client.$transaction(tx =>
+    withJourneyBusinessWriteJoinInTransaction(tx, value, coordinatorSession, async beforeWrite => {
+      await assertCoordinatorMutationSession(coordinatorSession, value, tx)
+      const journey = await tx.qualityJourney.findFirst({
+        where: { id: value.journeyId, targetProjectId: value.targetProjectId },
+      })
+      const discovery = journey?.activeDiscoveryRevisionId
+        ? await tx.qualityJourneyDiscoveryRevision.findUnique({ where: { id: journey.activeDiscoveryRevisionId } })
+        : null
+      if (!journey || !discovery || discovery.status !== 'COMPLETED')
+        throw new ServiceError('Scenario design requires exact completed discovery authority.', 'CONFLICT')
+      const replay = await replayDurableScenarioCommand(value, tx, coordinatorSession)
+      if (replay) return replay
+      // Designer configuration supersedes authorization; E2 needs a successor owner.
+      await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, value)
+      const result = await submitDurableQualityJourneyCommandWithBusinessJoinInTransaction(
+        command,
+        tx,
+        beforeWrite,
+        true,
+        true,
+        coordinatorSession,
+      )
+      if (result.outcome === 'COMMITTED' && !result.replayed)
+        await configureScenarioDesignerAssignment(journey, discovery, tx)
+      return result
+    }),
+  )
 }
 
 export async function publishQualityJourneyScenarioPortfolio(
@@ -727,65 +788,78 @@ export async function publishQualityJourneyScenarioPortfolio(
   client: PrismaClient = prisma,
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
-  return client.$transaction(async tx => {
-    const value = command as {
-      journeyId: string
-      targetProjectId: string
-      idempotencyKey: string
-      payload: { artifactRevisionId: string; artifactHash: string }
-    }
-    await assertCoordinatorMutationSession(coordinatorSession, value, tx)
-    const context = await currentScenarioCommandContext(value, tx, coordinatorSession)
-    if ('replay' in context) return context.replay
-    const { journey, portfolio } = context
-    if (
-      journey.stage !== 'SCENARIO_DESIGN' ||
-      portfolio.artifactRevisionId !== value.payload.artifactRevisionId ||
-      portfolio.contentHash !== value.payload.artifactHash
-    )
-      throw new ServiceError('Only the exact current scenario portfolio may be published.', 'CONFLICT')
-    const result = requireCommittedScenarioCommand(
-      await submitDurableQualityJourneyCommandInTransaction(command, tx, true, true, coordinatorSession),
-    )
-    const reviewHash = await currentScenarioReviewHash(portfolio, tx)
-    await tx.qualityJourneyScenarioPortfolioRevision.update({
-      where: { id: portfolio.id },
-      data: { status: 'IN_REVIEW', reviewHash, reviewedAt: new Date() },
-    })
-    const reviewed = await currentPortfolio(journey.id, journey.targetProjectId, tx)
-    if (reviewed.portfolio.decisions.length !== reviewed.portfolio.scenarios.length) return result
-    return finalizeScenarioDecisions(
-      {
-        command: {
-          schemaVersion: qualityJourneyContractVersion,
-          commandId: `finalize-carried-scenarios:${portfolio.id}`,
-          journeyId: journey.id,
-          targetProjectId: journey.targetProjectId,
-          actor: 'USER',
-          command: 'DECIDE_SCENARIOS',
-          expectedStateHash: reviewed.journey.stateHash,
-          idempotencyKey: `finalize-carried-scenarios:${portfolio.id}`,
-          inputArtifactRefs: [
-            {
-              kind: 'SCENARIO_PORTFOLIO_REVISION',
-              artifactId: portfolio.artifactId,
-              revisionId: portfolio.artifactRevisionId,
-              contentHash: portfolio.contentHash,
-            },
-          ],
-          payload: { portfolioHash: portfolio.contentHash },
+  const value = command as {
+    journeyId: string
+    targetProjectId: string
+    idempotencyKey: string
+    payload: { artifactRevisionId: string; artifactHash: string }
+  }
+  return client.$transaction(tx =>
+    withJourneyBusinessWriteJoinInTransaction(tx, value, coordinatorSession, async beforeWrite => {
+      await assertCoordinatorMutationSession(coordinatorSession, value, tx)
+      const context = await currentScenarioCommandContext(value, tx, coordinatorSession)
+      if ('replay' in context) return context.replay
+      const { journey, portfolio } = context
+      if (
+        journey.stage !== 'SCENARIO_DESIGN' ||
+        portfolio.artifactRevisionId !== value.payload.artifactRevisionId ||
+        portfolio.contentHash !== value.payload.artifactHash
+      )
+        throw new ServiceError('Only the exact current scenario portfolio may be published.', 'CONFLICT')
+      if (portfolio.decisions.length === portfolio.scenarios.length)
+        await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, value)
+      await beforeWrite(tx, value)
+      const result = requireCommittedScenarioCommand(
+        await submitDurableQualityJourneyCommandWithBusinessJoinInTransaction(
+          command,
+          tx,
+          beforeWrite,
+          true,
+          true,
+          coordinatorSession,
+        ),
+      )
+      const reviewHash = await currentScenarioReviewHash(portfolio, tx)
+      await tx.qualityJourneyScenarioPortfolioRevision.update({
+        where: { id: portfolio.id },
+        data: { status: 'IN_REVIEW', reviewHash, reviewedAt: new Date() },
+      })
+      const reviewed = await currentPortfolio(journey.id, journey.targetProjectId, tx)
+      if (reviewed.portfolio.decisions.length !== reviewed.portfolio.scenarios.length) return result
+      return finalizeScenarioDecisions(
+        {
+          command: {
+            schemaVersion: qualityJourneyContractVersion,
+            commandId: `finalize-carried-scenarios:${portfolio.id}`,
+            journeyId: journey.id,
+            targetProjectId: journey.targetProjectId,
+            actor: 'USER',
+            command: 'DECIDE_SCENARIOS',
+            expectedStateHash: reviewed.journey.stateHash,
+            idempotencyKey: `finalize-carried-scenarios:${portfolio.id}`,
+            inputArtifactRefs: [
+              {
+                kind: 'SCENARIO_PORTFOLIO_REVISION',
+                artifactId: portfolio.artifactId,
+                revisionId: portfolio.artifactRevisionId,
+                contentHash: portfolio.contentHash,
+              },
+            ],
+            payload: { portfolioHash: portfolio.contentHash },
+          },
+          expectedReviewHash: reviewHash,
+          approvedScenarioRevisionIds: [],
+          rejectedScenarioRevisionIds: [],
         },
-        expectedReviewHash: reviewHash,
-        approvedScenarioRevisionIds: [],
-        rejectedScenarioRevisionIds: [],
-      },
-      journey.id,
-      reviewed.portfolio,
-      reviewed.portfolio.comments.filter(comment => comment.blocking && comment.disposition === 'OPEN'),
-      tx,
-      coordinatorSession,
-    )
-  })
+        journey.id,
+        reviewed.portfolio,
+        reviewed.portfolio.comments.filter(comment => comment.blocking && comment.disposition === 'OPEN'),
+        tx,
+        beforeWrite,
+        coordinatorSession,
+      )
+    }),
+  )
 }
 
 const scenarioRevisionRequestSchema = z
@@ -850,17 +924,25 @@ async function persistScenarioRevisionRequest(
   requestHash: string,
   context: Awaited<ReturnType<typeof currentPortfolio>>,
   tx: Prisma.TransactionClient,
+  beforeWrite: BeforeJourneyBusinessWrite,
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
   const { journey, portfolio } = context
   const result = requireCommittedScenarioCommand(
-    await submitDurableQualityJourneyCommandInTransaction(value, tx, true, false, coordinatorSession),
+    await submitDurableQualityJourneyCommandWithBusinessJoinInTransaction(
+      value,
+      tx,
+      beforeWrite,
+      true,
+      false,
+      coordinatorSession,
+    ),
   )
   await tx.qualityJourneyScenarioPortfolioRevision.update({
     where: { id: portfolio.id },
     data: { status: 'REVISION_REQUIRED', supersededAt: new Date() },
   })
-  await ensureEligibleQualityJourneyWorkItemsInTransaction(journey.id, tx)
+  await ensureEligibleQualityJourneyWorkItemsWithBusinessJoinInTransaction(journey.id, tx, beforeWrite)
   await tx.qualityJourneyScenarioDecisionReceipt.create({
     data: {
       id: idFor('scenario-revision-receipt', portfolio.id, value.idempotencyKey),
@@ -877,6 +959,7 @@ async function persistScenarioRevisionRequest(
 async function requestScenarioRevisionInTransaction(
   request: ScenarioRevisionRequest,
   tx: Prisma.TransactionClient,
+  beforeWrite: BeforeJourneyBusinessWrite,
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
   const value = request.command as ScenarioRevisionCommand
@@ -885,7 +968,9 @@ async function requestScenarioRevisionInTransaction(
   const context = await currentScenarioCommandContext(value, tx, coordinatorSession)
   if ('replay' in context) return context.replay
   assertScenarioRevisionRequestIdentity(request, value, context)
-  return persistScenarioRevisionRequest(value, replay.requestHash, context, tx, coordinatorSession)
+  // Revision reissues Designer work with superseding authorization.
+  await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, value)
+  return persistScenarioRevisionRequest(value, replay.requestHash, context, tx, beforeWrite, coordinatorSession)
 }
 
 export async function requestQualityJourneyScenarioRevision(
@@ -894,14 +979,13 @@ export async function requestQualityJourneyScenarioRevision(
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
   const request = scenarioRevisionRequestSchema.parse(command)
-  return client.$transaction(async tx => {
-    await assertCoordinatorMutationSession(
-      coordinatorSession,
-      request.command as { journeyId: string; targetProjectId: string },
-      tx,
-    )
-    return requestScenarioRevisionInTransaction(request, tx, coordinatorSession)
-  })
+  const scope = request.command as { journeyId: string; targetProjectId: string }
+  return client.$transaction(tx =>
+    withJourneyBusinessWriteJoinInTransaction(tx, scope, coordinatorSession, async beforeWrite => {
+      await assertCoordinatorMutationSession(coordinatorSession, scope, tx)
+      return requestScenarioRevisionInTransaction(request, tx, beforeWrite, coordinatorSession)
+    }),
+  )
 }
 
 type ScenarioDecisionInput = {
@@ -1038,6 +1122,7 @@ async function finalizeScenarioDecisions(
   portfolio: CurrentScenarioPortfolio,
   openBlocking: CurrentScenarioPortfolio['comments'],
   tx: Prisma.TransactionClient,
+  beforeWrite: BeforeJourneyBusinessWrite,
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
   const all = await tx.qualityJourneyScenarioDecision.findMany({ where: { portfolioRevisionId: portfolio.id } })
@@ -1062,6 +1147,9 @@ async function finalizeScenarioDecisions(
       'Final scenario approval requires approved coverage for every mandatory requirement.',
       'CONFLICT',
     )
+  // Final approval remains an unresolved E2 work-issuance/supersession group.
+  await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, value.command)
+  await beforeWrite(tx, value.command)
   const completeCommand = {
     ...value.command,
     payload: {
@@ -1077,7 +1165,14 @@ async function finalizeScenarioDecisions(
     },
   }
   const result = requireCommittedScenarioCommand(
-    await submitDurableQualityJourneyCommandInTransaction(completeCommand, tx, true, true, coordinatorSession),
+    await submitDurableQualityJourneyCommandWithBusinessJoinInTransaction(
+      completeCommand,
+      tx,
+      beforeWrite,
+      true,
+      true,
+      coordinatorSession,
+    ),
   )
   await tx.qualityJourneyScenarioPortfolioRevision.update({
     where: { id: portfolio.id },
@@ -1106,6 +1201,7 @@ async function finalizeScenarioDecisions(
   await ensureQualityJourneyAutomationForApprovedScenarios(
     { journeyId: value.command.journeyId, targetProjectId: value.command.targetProjectId },
     tx,
+    beforeWrite,
   )
   return result
 }
@@ -1113,6 +1209,7 @@ async function finalizeScenarioDecisions(
 async function decideQualityJourneyScenariosInTransaction(
   value: ScenarioDecisionInput,
   tx: Prisma.TransactionClient,
+  beforeWrite: BeforeJourneyBusinessWrite,
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
   const receipt = await tx.qualityJourneyScenarioDecisionReceipt.findUnique({
@@ -1139,8 +1236,23 @@ async function decideQualityJourneyScenariosInTransaction(
   const { journey, portfolio } = await exactScenarioDecisionContext(value, tx)
   const decisions = scenarioDecisionMap(value, portfolio)
   const openBlocking = assertScenarioDecisionNotBlocked(decisions, portfolio)
+  const classified = new Set([
+    ...portfolio.decisions.map(decision => decision.scenarioRevisionId),
+    ...decisions.keys(),
+  ])
+  if (classified.size === portfolio.scenarios.length)
+    await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, value.command)
+  await beforeWrite(tx, value.command)
   await persistScenarioDecisions(value, decisions, portfolio, tx)
-  const result = await finalizeScenarioDecisions(value, journey.id, portfolio, openBlocking, tx, coordinatorSession)
+  const result = await finalizeScenarioDecisions(
+    value,
+    journey.id,
+    portfolio,
+    openBlocking,
+    tx,
+    beforeWrite,
+    coordinatorSession,
+  )
   await tx.qualityJourneyScenarioDecisionReceipt.create({
     data: {
       id: idFor('decision-receipt', portfolio.id, value.command.idempotencyKey),
@@ -1159,11 +1271,13 @@ export async function decideQualityJourneyScenarios(
   client: PrismaClient = prisma,
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
-  return client.$transaction(async tx => {
-    const value = input as ScenarioDecisionInput
-    await assertCoordinatorMutationSession(coordinatorSession, value.command, tx)
-    return decideQualityJourneyScenariosInTransaction(value, tx, coordinatorSession)
-  })
+  const value = input as ScenarioDecisionInput
+  return client.$transaction(tx =>
+    withJourneyBusinessWriteJoinInTransaction(tx, value.command, coordinatorSession, async beforeWrite => {
+      await assertCoordinatorMutationSession(coordinatorSession, value.command, tx)
+      return decideQualityJourneyScenariosInTransaction(value, tx, beforeWrite, coordinatorSession)
+    }),
+  )
 }
 
 export async function getQualityJourneyScenarioPortfolio(
@@ -1180,50 +1294,53 @@ export async function commentQualityJourneyScenarioPortfolio(
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
   const value = scenarioCommentInputSchema.parse(input)
-  return client.$transaction(async tx => {
-    await assertCoordinatorMutationSession(coordinatorSession, value, tx)
-    const reviewed = await reviewedScenarioPortfolio(value, tx)
-    const requestHash = hash(value)
-    const existing = await tx.qualityJourneyScenarioReviewComment.findUnique({
-      where: {
-        portfolioRevisionId_idempotencyKey: { portfolioRevisionId: reviewed.id, idempotencyKey: value.idempotencyKey },
-      },
-    })
-    if (existing) {
-      if (existing.requestHash !== requestHash)
-        throw new ServiceError('Scenario comment idempotency key was reused.', 'CONFLICT')
-      if (existing.createResponseJson)
-        return { ...(JSON.parse(existing.createResponseJson) as Record<string, unknown>), replayed: true }
-      return { replayed: true, comment: existing, reviewHash: reviewed.reviewHash }
-    }
-    const { portfolio } = await exactScenarioPortfolioUnderReview(value, tx, 'comment')
-    if (
-      value.scenarioRevisionId &&
-      !portfolio.scenarios.some(scenario => scenario.scenarioRevisionId === value.scenarioRevisionId)
-    )
-      throw new ServiceError('Scenario comment references a foreign scenario revision.', 'CONFLICT')
-    const comment = await tx.qualityJourneyScenarioReviewComment.create({
-      data: {
-        id: idFor('comment', portfolio.id, value.idempotencyKey),
-        portfolioRevisionId: portfolio.id,
-        scenarioRevisionId: value.scenarioRevisionId ?? null,
-        comment: value.comment,
-        blocking: value.blocking,
-        disposition: 'OPEN',
-        actor: value.actor,
-        idempotencyKey: value.idempotencyKey,
-        requestHash,
-      },
-    })
-    const reviewHash = await currentScenarioReviewHash(portfolio, tx)
-    await tx.qualityJourneyScenarioPortfolioRevision.update({ where: { id: portfolio.id }, data: { reviewHash } })
-    const response = { replayed: false, comment, reviewHash }
-    await tx.qualityJourneyScenarioReviewComment.update({
-      where: { id: comment.id },
-      data: { createResponseJson: json(response) },
-    })
-    return response
-  })
+  return client.$transaction(tx =>
+    withJourneyBusinessWriteJoinInTransaction(tx, value, coordinatorSession, async beforeWrite => {
+      await assertCoordinatorMutationSession(coordinatorSession, value, tx)
+      const reviewed = await reviewedScenarioPortfolio(value, tx)
+      const requestHash = hash(value)
+      const existing = await tx.qualityJourneyScenarioReviewComment.findUnique({
+        where: {
+          portfolioRevisionId_idempotencyKey: { portfolioRevisionId: reviewed.id, idempotencyKey: value.idempotencyKey },
+        },
+      })
+      if (existing) {
+        if (existing.requestHash !== requestHash)
+          throw new ServiceError('Scenario comment idempotency key was reused.', 'CONFLICT')
+        if (existing.createResponseJson)
+          return { ...(JSON.parse(existing.createResponseJson) as Record<string, unknown>), replayed: true }
+        return { replayed: true, comment: existing, reviewHash: reviewed.reviewHash }
+      }
+      const { portfolio } = await exactScenarioPortfolioUnderReview(value, tx, 'comment')
+      if (
+        value.scenarioRevisionId &&
+        !portfolio.scenarios.some(scenario => scenario.scenarioRevisionId === value.scenarioRevisionId)
+      )
+        throw new ServiceError('Scenario comment references a foreign scenario revision.', 'CONFLICT')
+      await beforeWrite(tx, value)
+      const comment = await tx.qualityJourneyScenarioReviewComment.create({
+        data: {
+          id: idFor('comment', portfolio.id, value.idempotencyKey),
+          portfolioRevisionId: portfolio.id,
+          scenarioRevisionId: value.scenarioRevisionId ?? null,
+          comment: value.comment,
+          blocking: value.blocking,
+          disposition: 'OPEN',
+          actor: value.actor,
+          idempotencyKey: value.idempotencyKey,
+          requestHash,
+        },
+      })
+      const reviewHash = await currentScenarioReviewHash(portfolio, tx)
+      await tx.qualityJourneyScenarioPortfolioRevision.update({ where: { id: portfolio.id }, data: { reviewHash } })
+      const response = { replayed: false, comment, reviewHash }
+      await tx.qualityJourneyScenarioReviewComment.update({
+        where: { id: comment.id },
+        data: { createResponseJson: json(response) },
+      })
+      return response
+    }),
+  )
 }
 
 export async function disposeQualityJourneyScenarioComment(
@@ -1232,49 +1349,52 @@ export async function disposeQualityJourneyScenarioComment(
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
   const value = scenarioCommentDispositionInputSchema.parse(input)
-  return client.$transaction(async tx => {
-    await assertCoordinatorMutationSession(coordinatorSession, value, tx)
-    const reviewed = await reviewedScenarioPortfolio(value, tx)
-    const requestHash = hash(value)
-    const priorReceipt = await tx.qualityJourneyScenarioReviewComment.findUnique({
-      where: {
-        portfolioRevisionId_dispositionIdempotencyKey: {
-          portfolioRevisionId: reviewed.id,
-          dispositionIdempotencyKey: value.idempotencyKey,
+  return client.$transaction(tx =>
+    withJourneyBusinessWriteJoinInTransaction(tx, value, coordinatorSession, async beforeWrite => {
+      await assertCoordinatorMutationSession(coordinatorSession, value, tx)
+      const reviewed = await reviewedScenarioPortfolio(value, tx)
+      const requestHash = hash(value)
+      const priorReceipt = await tx.qualityJourneyScenarioReviewComment.findUnique({
+        where: {
+          portfolioRevisionId_dispositionIdempotencyKey: {
+            portfolioRevisionId: reviewed.id,
+            dispositionIdempotencyKey: value.idempotencyKey,
+          },
         },
-      },
-    })
-    if (priorReceipt) {
-      if (priorReceipt.dispositionRequestHash !== requestHash)
-        throw new ServiceError('Scenario comment disposition idempotency key was reused.', 'CONFLICT')
-      if (priorReceipt.dispositionResponseJson)
-        return { ...(JSON.parse(priorReceipt.dispositionResponseJson) as Record<string, unknown>), replayed: true }
-      return { replayed: true, comment: priorReceipt, reviewHash: reviewed.reviewHash }
-    }
-    const { portfolio } = await exactScenarioPortfolioUnderReview(value, tx, 'comment disposition')
-    const comment = await tx.qualityJourneyScenarioReviewComment.findFirst({
-      where: { id: value.commentId, portfolioRevisionId: portfolio.id },
-    })
-    if (!comment) throw new ServiceError('Scenario review comment was not found for this portfolio.', 'NOT_FOUND')
-    if (comment.disposition !== 'OPEN')
-      throw new ServiceError('Scenario comment disposition has already been recorded with another receipt.', 'CONFLICT')
-    const disposed = await tx.qualityJourneyScenarioReviewComment.update({
-      where: { id: comment.id },
-      data: {
-        disposition: 'DISPOSED',
-        disposedAt: new Date(),
-        disposedBy: value.actor,
-        dispositionIdempotencyKey: value.idempotencyKey,
-        dispositionRequestHash: requestHash,
-      },
-    })
-    const reviewHash = await currentScenarioReviewHash(portfolio, tx)
-    await tx.qualityJourneyScenarioPortfolioRevision.update({ where: { id: portfolio.id }, data: { reviewHash } })
-    const response = { replayed: false, comment: disposed, reviewHash }
-    await tx.qualityJourneyScenarioReviewComment.update({
-      where: { id: comment.id },
-      data: { dispositionResponseJson: json(response) },
-    })
-    return response
-  })
+      })
+      if (priorReceipt) {
+        if (priorReceipt.dispositionRequestHash !== requestHash)
+          throw new ServiceError('Scenario comment disposition idempotency key was reused.', 'CONFLICT')
+        if (priorReceipt.dispositionResponseJson)
+          return { ...(JSON.parse(priorReceipt.dispositionResponseJson) as Record<string, unknown>), replayed: true }
+        return { replayed: true, comment: priorReceipt, reviewHash: reviewed.reviewHash }
+      }
+      const { portfolio } = await exactScenarioPortfolioUnderReview(value, tx, 'comment disposition')
+      const comment = await tx.qualityJourneyScenarioReviewComment.findFirst({
+        where: { id: value.commentId, portfolioRevisionId: portfolio.id },
+      })
+      if (!comment) throw new ServiceError('Scenario review comment was not found for this portfolio.', 'NOT_FOUND')
+      if (comment.disposition !== 'OPEN')
+        throw new ServiceError('Scenario comment disposition has already been recorded with another receipt.', 'CONFLICT')
+      await beforeWrite(tx, value)
+      const disposed = await tx.qualityJourneyScenarioReviewComment.update({
+        where: { id: comment.id },
+        data: {
+          disposition: 'DISPOSED',
+          disposedAt: new Date(),
+          disposedBy: value.actor,
+          dispositionIdempotencyKey: value.idempotencyKey,
+          dispositionRequestHash: requestHash,
+        },
+      })
+      const reviewHash = await currentScenarioReviewHash(portfolio, tx)
+      await tx.qualityJourneyScenarioPortfolioRevision.update({ where: { id: portfolio.id }, data: { reviewHash } })
+      const response = { replayed: false, comment: disposed, reviewHash }
+      await tx.qualityJourneyScenarioReviewComment.update({
+        where: { id: comment.id },
+        data: { dispositionResponseJson: json(response) },
+      })
+      return response
+    }),
+  )
 }

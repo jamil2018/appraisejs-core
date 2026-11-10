@@ -12,6 +12,17 @@ import {
 import { qualityJourneyArtifactMetadataSql, type JourneyArtifactMetadata } from './quality-journey-artifact-metadata'
 import { artifactReferenceContractSchema } from '@/lib/quality-journey'
 import { createHash } from 'node:crypto'
+import {
+  automationTargetBindingSchema,
+  hashAutomationMaterialization,
+  hashAutomationTargetBinding,
+} from '@/lib/quality-journey/automation-contracts'
+import {
+  MaterializationSourceContractError,
+  reconstructMaterializationSource,
+} from '@/lib/quality-journey/materialization-source-contract'
+import { isE2Digest, isE2Uint } from '@/lib/quality-journey/provider-grant-contract'
+import { qualityJourneyIdentifierSchema } from '@/lib/quality-journey/contracts'
 
 import { Prisma, type PrismaClient } from '@prisma/client'
 
@@ -144,6 +155,281 @@ function sortEntries(entries: QualityJourneyArtifactLibraryEntrySeed[]): Quality
     )
 }
 
+// Immutable history is an inspection projection, never a source-use or effect capability.
+const historyRepresentation = 'M06_MATERIALIZATION_HISTORY_V1'
+const historyLimit = 4096
+type HistoryKind = 'TEST_SUITE' | 'TEST_CASE'
+type HistorySource = Prisma.QualityJourneyAutomationMaterializationGetPayload<object>
+type HistoryBinding = Prisma.QualityJourneyAutomationTargetBindingGetPayload<object>
+type HistoryRefusalReason =
+  | 'HISTORICAL_LINEAGE_UNPROVEN'
+  | 'ENROLLMENT_PROVENANCE_UNPROVEN'
+  | 'FROZEN_SOURCE_MISSING_OR_UNSUPPORTED'
+  | 'FROZEN_BINDING_CORRUPT_OR_HASH_MISMATCH'
+  | 'AMBIGUOUS_FROZEN_VERSIONS'
+  | 'HISTORY_SOURCE_BOUNDS_EXCEEDED'
+  | 'HISTORY_QUERY_CAPABILITY_UNAVAILABLE'
+
+class HistoryRefusal extends Error {
+  constructor(readonly reasonCode: HistoryRefusalReason) {
+    super(reasonCode)
+  }
+}
+
+function refuseHistory(reasonCode: HistoryRefusalReason): never {
+  throw new HistoryRefusal(reasonCode)
+}
+
+function validHistoryDate(value: unknown): value is Date {
+  return value instanceof Date && Number.isFinite(value.getTime())
+}
+
+function historyMetadata(kind: HistoryKind, id: string, scope: { journeyId: string; targetProjectId: string }, sources: HistorySource[]) {
+  if (!sources.length || sources.some(source =>
+    source.journeyId !== scope.journeyId || source.targetProjectId !== scope.targetProjectId ||
+    (kind === 'TEST_SUITE' ? source.suiteId : source.testCaseId) !== id ||
+    typeof source.id !== 'string' || !source.id || !validHistoryDate(source.createdAt))) {
+    throw new ServiceError('Quality Journey history scope metadata is unavailable.', 'CONFLICT', 409)
+  }
+  const lineage: Record<string, string> = { targetProjectId: scope.targetProjectId }
+  if (sources.length <= historyLimit) lineage.materializedBy = [...new Set(sources.map(source => source.id))].sort().join(',')
+  return {
+    entryId: entryId(kind, id), kind, artifactId: id, revisionId: null, cycleId: null,
+    createdAt: new Date(sources.reduce((earliest, source) => Math.min(earliest, source.createdAt.getTime()), Infinity)),
+    lineage,
+  }
+}
+
+async function historicalEnrollment(source: HistorySource, db: Db): Promise<'LEGACY' | 'E2'> {
+  if (![source.journeyId, source.targetProjectId, source.cycleId, source.workItemId, source.attemptId, source.leaseId]
+    .every(value => qualityJourneyIdentifierSchema.safeParse(value).success) ||
+    typeof source.inputHash !== 'string' || !/^sha256:[a-f0-9]{64}$/.test(source.inputHash)) {
+    return refuseHistory('HISTORICAL_LINEAGE_UNPROVEN')
+  }
+  if (typeof db.qualityJourneyWorkAttempt?.findUnique !== 'function' ||
+    typeof db.qualityJourneyWorkItem?.findUnique !== 'function' ||
+    typeof db.qualityJourneyWorkAuthorization?.findUnique !== 'function' ||
+    typeof db.qualityJourneyWorkAttemptSessionBinding?.findUnique !== 'function') {
+    return refuseHistory('HISTORY_QUERY_CAPABILITY_UNAVAILABLE')
+  }
+  const [attempt, work, binding] = await Promise.all([
+    db.qualityJourneyWorkAttempt.findUnique({
+      where: { id: source.attemptId },
+      select: { id: true, workItemId: true, leaseId: true, authorizationId: true, assignmentId: true, assignmentGeneration: true },
+    }),
+    db.qualityJourneyWorkItem.findUnique({
+      where: { id: source.workItemId },
+      select: { id: true, journeyId: true, targetProjectId: true, cycleId: true, role: true, inputHash: true },
+    }),
+    db.qualityJourneyWorkAttemptSessionBinding.findUnique({
+      where: { attemptId: source.attemptId },
+      select: {
+        attemptId: true, journeyId: true, targetProjectId: true, sessionId: true, coordinatorGeneration: true,
+        assignmentGeneration: true, workItemId: true, role: true, authorizationId: true, leaseId: true,
+        inputHash: true, assignmentId: true, provenance: true,
+      },
+    }),
+  ])
+  if (!attempt || !work || !binding ||
+    !qualityJourneyIdentifierSchema.safeParse(attempt.authorizationId).success ||
+    !isE2Uint(attempt.assignmentGeneration) || !attempt.assignmentGeneration ||
+    !(attempt.assignmentId === null || qualityJourneyIdentifierSchema.safeParse(attempt.assignmentId).success) ||
+    attempt.id !== source.attemptId || attempt.workItemId !== source.workItemId || attempt.leaseId !== source.leaseId ||
+    work.id !== source.workItemId || work.journeyId !== source.journeyId || work.targetProjectId !== source.targetProjectId ||
+    work.cycleId !== source.cycleId || work.role !== 'AUTOMATOR' || work.inputHash !== source.inputHash ||
+    binding.attemptId !== attempt.id || binding.workItemId !== work.id || binding.journeyId !== source.journeyId ||
+    binding.targetProjectId !== source.targetProjectId || binding.role !== 'AUTOMATOR' ||
+    binding.authorizationId !== attempt.authorizationId || binding.leaseId !== attempt.leaseId ||
+    binding.assignmentId !== attempt.assignmentId || binding.assignmentGeneration !== attempt.assignmentGeneration ||
+    binding.inputHash !== source.inputHash) return refuseHistory('HISTORICAL_LINEAGE_UNPROVEN')
+  // The schema permits a null authorization; that absence cannot prove complete historical lineage.
+  if (!attempt.authorizationId) return refuseHistory('HISTORICAL_LINEAGE_UNPROVEN')
+  const authorization = await db.qualityJourneyWorkAuthorization.findUnique({
+    where: { id: attempt.authorizationId },
+    select: { id: true, journeyId: true, targetProjectId: true, workItemId: true, role: true },
+  })
+  if (!authorization || authorization.id !== attempt.authorizationId || authorization.workItemId !== work.id ||
+    authorization.journeyId !== source.journeyId || authorization.targetProjectId !== source.targetProjectId ||
+    authorization.role !== 'AUTOMATOR') return refuseHistory('HISTORICAL_LINEAGE_UNPROVEN')
+  if (binding.sessionId === null && binding.coordinatorGeneration === null) {
+    if (binding.provenance === 'CLAIM_EXPLICIT_LEGACY_NO_SESSION_V1') return 'LEGACY'
+    return refuseHistory('ENROLLMENT_PROVENANCE_UNPROVEN')
+  }
+  if (!qualityJourneyIdentifierSchema.safeParse(binding.sessionId).success ||
+    !isE2Uint(binding.coordinatorGeneration) || !binding.coordinatorGeneration ||
+    binding.provenance !== 'CLAIM_SESSION_V1') return refuseHistory('ENROLLMENT_PROVENANCE_UNPROVEN')
+  if (typeof db.qualityJourneyCoordinatorSession?.findUnique !== 'function') {
+    return refuseHistory('HISTORY_QUERY_CAPABILITY_UNAVAILABLE')
+  }
+  const session = await db.qualityJourneyCoordinatorSession.findUnique({
+    where: { id: binding.sessionId! },
+    select: { id: true, journeyId: true, targetProjectId: true, generation: true,
+      e2EnrollmentKind: true, e2EnrollmentDigest: true, e2EnrolledAt: true },
+  })
+  if (!session || session.id !== binding.sessionId || session.journeyId !== source.journeyId ||
+    session.targetProjectId !== source.targetProjectId || session.generation !== binding.coordinatorGeneration) {
+    return refuseHistory('ENROLLMENT_PROVENANCE_UNPROVEN')
+  }
+  if ([session.e2EnrollmentKind, session.e2EnrollmentDigest, session.e2EnrolledAt].every(value => value === null)) {
+    if (typeof db.qualityJourneyE2Retirement?.findFirst !== 'function') {
+      return refuseHistory('HISTORY_QUERY_CAPABILITY_UNAVAILABLE')
+    }
+    const orphan = await db.qualityJourneyE2Retirement.findFirst({
+      where: { coordinatorSessionId: session.id }, select: { id: true },
+    })
+    if (orphan) return refuseHistory('ENROLLMENT_PROVENANCE_UNPROVEN')
+    return 'LEGACY'
+  }
+  if (session.e2EnrollmentKind !== 'E2_V1' || !isE2Digest(session.e2EnrollmentDigest) ||
+    !validHistoryDate(session.e2EnrolledAt) || !isE2Uint(session.generation) || !session.generation) {
+    return refuseHistory('ENROLLMENT_PROVENANCE_UNPROVEN')
+  }
+  return 'E2'
+}
+
+function verifiedHistoryPacket(binding: HistoryBinding, source: HistorySource) {
+  const corrupt = (): never => refuseHistory('FROZEN_BINDING_CORRUPT_OR_HASH_MISMATCH')
+  if (typeof binding.bindingJson !== 'string') return corrupt()
+  if (Buffer.byteLength(binding.bindingJson, 'utf8') > 1_048_576) return refuseHistory('HISTORY_SOURCE_BOUNDS_EXCEEDED')
+  let value: unknown
+  try { value = JSON.parse(binding.bindingJson) } catch { return corrupt() }
+  let nodes = 0
+  const visit = (node: unknown, depth: number): void => {
+    if (++nodes > 65_536 || depth > 32) refuseHistory('HISTORY_SOURCE_BOUNDS_EXCEEDED')
+    if (Array.isArray(node)) for (const item of node) visit(item, depth + 1)
+    else if (node && typeof node === 'object') for (const item of Object.values(node)) visit(item, depth + 1)
+  }
+  visit(value, 0)
+  const parsedBinding = automationTargetBindingSchema.safeParse(value)
+  if (!parsedBinding.success) return corrupt()
+  const packet = parsedBinding.data
+  if (canonicalContractJson(packet) !== binding.bindingJson || packet.targetProjectId !== source.targetProjectId ||
+    binding.targetProjectId !== packet.targetProjectId || binding.suiteId !== packet.suite.id ||
+    binding.testCaseId !== packet.testCase.id || packet.suite.id !== source.suiteId || packet.testCase.id !== source.testCaseId ||
+    binding.stepHash !== hashAutomationMaterialization(packet.testCase.steps) ||
+    binding.suiteHash !== hashAutomationMaterialization({ targetProjectId: packet.targetProjectId, moduleId: packet.moduleId, suite: packet.suite }) ||
+    binding.testCaseHash !== hashAutomationTargetBinding(packet) ||
+    binding.semanticHash !== hashAutomationMaterialization({
+      schemaVersion: packet.schemaVersion, targetProjectId: packet.targetProjectId, moduleId: packet.moduleId,
+      suite: { name: packet.suite.name, description: packet.suite.description },
+      testCase: { title: packet.testCase.title, description: packet.testCase.description, steps: packet.testCase.steps },
+    })) return corrupt()
+  return packet
+}
+
+async function materializedHistoryEntry(
+  kind: HistoryKind,
+  id: string,
+  scope: { journeyId: string; targetProjectId: string },
+  seeds: HistorySource[],
+  db: Db,
+): Promise<QualityJourneyArtifactLibraryEntrySeed | null> {
+  // Null means positively proven legacy; only that result may enter the live inspection branch.
+  let metadata = historyMetadata(kind, id, scope, seeds)
+  try {
+    if (typeof db.qualityJourneyAutomationMaterialization?.findMany !== 'function') {
+      return refuseHistory('HISTORY_QUERY_CAPABILITY_UNAVAILABLE')
+    }
+    const sources = await db.qualityJourneyAutomationMaterialization.findMany({
+      where: { journeyId: scope.journeyId, targetProjectId: scope.targetProjectId,
+        ...(kind === 'TEST_SUITE' ? { suiteId: id } : { testCaseId: id }) },
+      orderBy: { id: 'asc' }, take: historyLimit + 1,
+    })
+    // A disappearing set or invalid scope/time is an infrastructure/integrity error, not an empty successful history.
+    metadata = historyMetadata(kind, id, scope, sources)
+    if (sources.length > historyLimit || new Set(sources.map(source => source.id)).size !== sources.length) {
+      return refuseHistory('HISTORY_SOURCE_BOUNDS_EXCEEDED')
+    }
+    const enrollments: Array<'LEGACY' | 'E2'> = []
+    for (const source of sources) enrollments.push(await historicalEnrollment(source, db))
+    if (enrollments.every(enrollment => enrollment === 'LEGACY')) return null
+    if (typeof db.qualityJourneyAutomationMaterializationSourceProof?.findUnique !== 'function' ||
+      typeof db.qualityJourneyArtifact?.findUnique !== 'function' ||
+      typeof db.qualityJourneyAutomationMaterializationBinding?.findMany !== 'function' ||
+      typeof db.qualityJourneyAutomationTargetBinding?.findUnique !== 'function') {
+      return refuseHistory('HISTORY_QUERY_CAPABILITY_UNAVAILABLE')
+    }
+    const associationIds = new Set<string>()
+    const bindingIds = new Set<string>()
+    const projections = []
+    let sourceBytes: string | undefined
+    let selectedPacket: ReturnType<typeof verifiedHistoryPacket> | undefined
+    let sourceContentHash: string | undefined
+    for (const source of sources) {
+      if (!qualityJourneyIdentifierSchema.safeParse(source.artifactRecordId).success) {
+        return refuseHistory('FROZEN_SOURCE_MISSING_OR_UNSUPPORTED')
+      }
+      const associations = await db.qualityJourneyAutomationMaterializationBinding.findMany({
+        where: { materializationId: source.id }, orderBy: { bindingId: 'asc' }, take: historyLimit + 1,
+      })
+      if (associations.length > historyLimit) return refuseHistory('HISTORY_SOURCE_BOUNDS_EXCEEDED')
+      for (const association of associations) {
+        if (association.materializationId !== source.id || !qualityJourneyIdentifierSchema.safeParse(association.bindingId).success) {
+          return refuseHistory('FROZEN_SOURCE_MISSING_OR_UNSUPPORTED')
+        }
+        const identity = canonicalContractJson([association.materializationId, association.bindingId])
+        if (associationIds.has(identity)) return refuseHistory('FROZEN_SOURCE_MISSING_OR_UNSUPPORTED')
+        associationIds.add(identity)
+        bindingIds.add(association.bindingId)
+      }
+      if (associationIds.size > historyLimit || bindingIds.size > historyLimit) {
+        return refuseHistory('HISTORY_SOURCE_BOUNDS_EXCEEDED')
+      }
+      // Read every returned endpoint, without filtering by its owning Journey or current live resources.
+      const [proof, artifact, bindings] = await Promise.all([
+        db.qualityJourneyAutomationMaterializationSourceProof.findUnique({ where: { materializationId: source.id } }),
+        db.qualityJourneyArtifact.findUnique({ where: { id: source.artifactRecordId } }),
+        Promise.all(associations.map(association =>
+          db.qualityJourneyAutomationTargetBinding.findUnique({ where: { id: association.bindingId } }))),
+      ])
+      if (!proof || !artifact || bindings.some(binding => !binding) ||
+        associations.length !== 1 || bindings.length !== 1 ||
+        bindings.some((binding, index) => binding?.id !== associations[index].bindingId)) {
+        return refuseHistory('FROZEN_SOURCE_MISSING_OR_UNSUPPORTED')
+      }
+      const binding = bindings[0]!
+      try {
+        reconstructMaterializationSource({ materialization: source, proof, artifact,
+          materializationBindings: associations, targetBindings: [binding] })
+      } catch (error) {
+        if (error instanceof MaterializationSourceContractError) return refuseHistory('FROZEN_SOURCE_MISSING_OR_UNSUPPORTED')
+        throw error
+      }
+      const packet = verifiedHistoryPacket(binding, source)
+      const bytes = kind === 'TEST_SUITE'
+        ? canonicalContractJson({ targetProjectId: packet.targetProjectId, moduleId: packet.moduleId, suite: packet.suite })
+        : binding.bindingJson
+      if (sourceBytes !== undefined && sourceBytes !== bytes) return refuseHistory('AMBIGUOUS_FROZEN_VERSIONS')
+      sourceBytes = bytes
+      selectedPacket = packet
+      sourceContentHash = kind === 'TEST_SUITE' ? binding.suiteHash : binding.testCaseHash
+      projections.push({ materializationId: source.id, bindingId: binding.id, cycleId: source.cycleId,
+        scenarioRevisionId: source.scenarioRevisionId, materializationHash: source.materializationHash,
+        bindingHash: binding.testCaseHash, suiteHash: binding.suiteHash, stepHash: binding.stepHash })
+    }
+    if (!selectedPacket || !sourceContentHash) return refuseHistory('FROZEN_SOURCE_MISSING_OR_UNSUPPORTED')
+    return { ...metadata,
+      title: kind === 'TEST_SUITE' ? selectedPacket.suite.name : selectedPacket.testCase.title,
+      contentHash: sourceContentHash,
+      data: { status: 'FROZEN_HISTORY', representation: historyRepresentation,
+        description: kind === 'TEST_SUITE' ? selectedPacket.suite.description : selectedPacket.testCase.description,
+        sourceRepresentation: kind === 'TEST_SUITE' ? 'SUITE_CANONICAL_PACKET' : 'CANONICAL_TARGET_BINDING_PACKET',
+        timestampBasis: 'EARLIEST_SCOPED_MATERIALIZATION',
+        sources: projections.sort((left, right) => left.materializationId.localeCompare(right.materializationId) ||
+          left.bindingId.localeCompare(right.bindingId)),
+      },
+    }
+  } catch (error) {
+    if (!(error instanceof HistoryRefusal)) throw error
+    return { ...metadata,
+      title: kind === 'TEST_SUITE' ? 'Test suite history unavailable' : 'Test case history unavailable',
+      contentHash: null,
+      data: { status: 'REFUSED_FROZEN_HISTORY', representation: historyRepresentation,
+        reasonCode: error.reasonCode, sourceRepresentation: 'UNAVAILABLE' },
+    }
+  }
+}
+
 async function collect(
   input: { journeyId: string; targetProjectId: string; source?: string; recordId?: string },
   db: Db,
@@ -273,7 +559,8 @@ async function collect(
               ? { testCaseId: input.recordId }
               : recordFilter),
         },
-        orderBy: { createdAt: 'asc' },
+        orderBy: input.source === 'TEST_SUITE' || input.source === 'TEST_CASE' ? { id: 'asc' } : { createdAt: 'asc' },
+        ...(input.source === 'TEST_SUITE' || input.source === 'TEST_CASE' ? { take: historyLimit + 1 } : {}),
       }),
     ),
     readSource(['PREPARED_RUNTIME_CAPSULE'], () =>
@@ -353,18 +640,36 @@ async function collect(
     ),
   ])
 
-  const materializedSuiteIds = materializations.flatMap(item => (item.suiteId ? [item.suiteId] : []))
-  const materializedCaseIds = materializations.flatMap(item => (item.testCaseId ? [item.testCaseId] : []))
+  const materializedSuiteIds = input.source && input.source !== 'TEST_SUITE'
+    ? [] : [...new Set(materializations.flatMap(item => item.suiteId ? [item.suiteId] : []))].sort()
+  const materializedCaseIds = input.source && input.source !== 'TEST_CASE'
+    ? [] : [...new Set(materializations.flatMap(item => item.testCaseId ? [item.testCaseId] : []))].sort()
+  const historyEntries: QualityJourneyArtifactLibraryEntrySeed[] = []
+  const legacySuiteIds: string[] = []
+  const legacyCaseIds: string[] = []
+  for (const id of materializedSuiteIds) {
+    const entry = await materializedHistoryEntry('TEST_SUITE', id, input,
+      materializations.filter(source => source.suiteId === id), db)
+    if (entry) historyEntries.push(entry)
+    else legacySuiteIds.push(id)
+  }
+  for (const id of materializedCaseIds) {
+    const entry = await materializedHistoryEntry('TEST_CASE', id, input,
+      materializations.filter(source => source.testCaseId === id), db)
+    if (entry) historyEntries.push(entry)
+    else legacyCaseIds.push(id)
+  }
   const [suites, cases] = await Promise.all([
-    materializedSuiteIds.length
-      ? db.testSuite.findMany({ where: { id: { in: materializedSuiteIds }, targetProjectId: input.targetProjectId } })
+    legacySuiteIds.length
+      ? db.testSuite.findMany({ where: { id: { in: legacySuiteIds }, targetProjectId: input.targetProjectId } })
       : Promise.resolve([]),
-    materializedCaseIds.length
-      ? db.testCase.findMany({ where: { id: { in: materializedCaseIds }, targetProjectId: input.targetProjectId } })
+    legacyCaseIds.length
+      ? db.testCase.findMany({ where: { id: { in: legacyCaseIds }, targetProjectId: input.targetProjectId } })
       : Promise.resolve([]),
   ])
 
   const entries: QualityJourneyArtifactLibraryEntrySeed[] = [
+    ...historyEntries,
     ...closures.map(item => ({
       entryId: entryId('CLOSURE', item.id),
       kind: 'JOURNEY_CLOSURE',
@@ -918,6 +1223,13 @@ export async function getQualityJourneyLibraryArtifact(
   client: Db = prisma,
 ) {
   await scopedJourney(input, client)
+  const typedRoot = /^(TEST_SUITE|TEST_CASE):(.+)$/.exec(input.entryId)
+  if (typedRoot && qualityJourneyIdentifierSchema.safeParse(typedRoot[2]).success) {
+    const { journey, entries } = await collect({ ...input, source: typedRoot[1], recordId: typedRoot[2] }, client)
+    const entry = entries.find(candidate => candidate.entryId === input.entryId)
+    if (!entry) throw new ServiceError('Quality Journey artifact was not found.', 'NOT_FOUND', 404)
+    return { journey, entry }
+  }
   const sql = qualityJourneyArtifactMetadataSql(input)
   const [metadata] = await client.$queryRaw<JourneyArtifactMetadata[]>(
     Prisma.sql`WITH metadata AS (${sql}) SELECT * FROM metadata WHERE entryId=${input.entryId} LIMIT 1`,

@@ -28,24 +28,41 @@ import {
   computeStepDefinitionHashes,
 } from '../../../packages/cucumber-runtime/src/step-definitions/index.ts'
 import {
+  assertCoordinatorAttemptSession,
   assertCoordinatorMutationSession,
   type CoordinatorSessionCredentials,
 } from './quality-journey-coordinator-session'
+import {
+  assertJourneyBusinessGroupSupportsNoInvalidationInTransaction,
+  readJourneyBusinessEnrollmentKindInTransaction,
+  withJourneyBusinessWriteJoinInTransaction,
+  type AttemptTerminalInput,
+  type BeforeJourneyBusinessWrite,
+  type QueueAttemptTerminal,
+} from './quality-journey-business-write-join'
+import {
+  acquireSharedResourceUseInBusinessGroupInTransaction,
+  resolveResourceResolutionUseRequestInTransaction,
+  validateActiveSharedResourceUseInTransaction,
+} from './quality-journey-shared-resource-use-service'
 import { registerQualityJourneyDiscoveryBootstrap } from './quality-journey-discovery-bootstrap'
 import { assertDiscoveryBrowserReceiptAdmission } from './quality-journey-discovery-browser-service'
 import {
   acceptExternalQualityJourneySubmissionInTransaction,
+  assertDiscoverySubmissionModeLineageInTransaction,
   externalAnalyzerAdmissionProtocol,
   externalAssignmentSecretHash,
-  issueQualityJourneyDiscoveryWorkItems,
+  issueQualityJourneyDiscoveryWorkItemsWithBusinessJoinInTransaction,
   setQualityJourneyActiveWorkItems,
   type ExternalAnalyzerProjectPrincipal,
+  type ExternalQualityJourneySubmissionBinding,
 } from './quality-journey-service'
 
 type Db = PrismaClient | Prisma.TransactionClient
 async function withTransaction<T>(client: Db, effect: (tx: Prisma.TransactionClient) => Promise<T>) {
   return '$transaction' in client ? client.$transaction(effect) : effect(client)
 }
+
 function json(value: unknown) {
   return canonicalContractJson(value)
 }
@@ -54,6 +71,41 @@ function hash(value: unknown) {
 }
 const idFor = (kind: string, ...parts: string[]) =>
   `qjd_${kind}_${createHash('sha256').update(parts.join(':')).digest('hex').slice(0, 24)}`
+
+
+function snapshotDiscoveryCoordinatorSession(credentials: CoordinatorSessionCredentials | undefined) {
+  if (!credentials || typeof credentials !== 'object') return credentials
+  return Object.freeze({
+    journeyId: credentials.journeyId,
+    targetProjectId: credentials.targetProjectId,
+    coordinatorSessionId: credentials.coordinatorSessionId,
+    coordinatorHandoffId: credentials.coordinatorHandoffId,
+    coordinatorGeneration: credentials.coordinatorGeneration,
+    coordinatorPrincipalId: credentials.coordinatorPrincipalId,
+  })
+}
+
+/** Original trusted facade context only; no persisted row supplies authentication. */
+function snapshotExternalDiscoverySubmissionBinding(
+  binding: ExternalQualityJourneySubmissionBinding,
+): ExternalQualityJourneySubmissionBinding {
+  return Object.freeze({
+    journeyId: binding.journeyId,
+    targetProjectId: binding.targetProjectId,
+    workItemId: binding.workItemId,
+    attemptId: binding.attemptId,
+    role: binding.role,
+    assignmentId: binding.assignmentId,
+    assignmentGeneration: binding.assignmentGeneration,
+    leaseId: binding.leaseId,
+    assignmentSecret: binding.assignmentSecret,
+    principal: Object.freeze({ principalId: binding.principal.principalId, assurance: binding.principal.assurance }),
+    coordinatorSessionId: binding.coordinatorSessionId,
+    coordinatorHandoffId: binding.coordinatorHandoffId,
+    coordinatorGeneration: binding.coordinatorGeneration,
+    coordinatorPrincipalId: binding.coordinatorPrincipalId,
+  })
+}
 
 type FrozenResource = {
   id: string
@@ -317,6 +369,7 @@ export async function ensureQualityJourneyDiscoveryForApprovedAnalysis(
     retryRequestHash?: string
   },
   tx: Prisma.TransactionClient,
+  beforeWrite: BeforeJourneyBusinessWrite,
 ) {
   const journey = await tx.qualityJourney.findFirst({
     where: { id: input.journeyId, targetProjectId: input.targetProjectId },
@@ -372,7 +425,8 @@ export async function ensureQualityJourneyDiscoveryForApprovedAnalysis(
       targetAccess: 'NONE' as const,
     },
   }
-  await issueQualityJourneyDiscoveryWorkItems(
+  await beforeWrite(tx, input)
+  await issueQualityJourneyDiscoveryWorkItemsWithBusinessJoinInTransaction(
     journey,
     [
       {
@@ -393,6 +447,7 @@ export async function ensureQualityJourneyDiscoveryForApprovedAnalysis(
       },
     ],
     tx,
+    beforeWrite,
   )
   const revision = await tx.qualityJourneyDiscoveryRevision.create({
     data: {
@@ -541,7 +596,16 @@ function assertBundleBase(
 }
 
 async function assertAttempt(
-  bundle: { workItemId: string; attemptId: string; authorizationId: string; ownerToken: string; leaseId: string },
+  bundle: {
+    journeyId: string
+    targetProjectId: string
+    workItemId: string
+    attemptId: string
+    authorizationId: string
+    inputHash: string
+    ownerToken: string
+    leaseId: string
+  },
   expectedRole: 'SCOUT' | 'RESOURCE_EXPLORER',
   tx: Prisma.TransactionClient,
 ) {
@@ -551,11 +615,19 @@ async function assertAttempt(
   if (!item || !attempt || !authorization)
     throw new ServiceError('Discovery submission lease or authorization is invalid.', 'UNAUTHORIZED')
   const bindings = [
+    [item.journeyId, bundle.journeyId],
+    [item.targetProjectId, bundle.targetProjectId],
+    [item.inputHash, bundle.inputHash],
     [item.role, expectedRole],
+    [item.currentAttempt, attempt.attempt],
     [attempt.workItemId, item.id],
     [attempt.leaseId, bundle.leaseId],
     [attempt.authorizationId, authorization.id],
     [authorization.workItemId, item.id],
+    [authorization.journeyId, item.journeyId],
+    [authorization.targetProjectId, item.targetProjectId],
+    [authorization.role, item.role],
+    [authorization.roleContractDigest, item.roleContractDigest],
     [
       attempt.ownerTokenHash,
       attempt.executionMode === externalAnalyzerAdmissionProtocol
@@ -572,7 +644,7 @@ async function assertAttempt(
     attempt.leaseExpiresAt <= new Date()
   )
     throw new ServiceError('Discovery submission lease or authorization is invalid.', 'UNAUTHORIZED')
-  return { item, attempt }
+  return { item, attempt, authorization }
 }
 
 async function assertReplayAuthority(
@@ -633,11 +705,56 @@ function assertSubmissionEnvelopeMatchesBundle(
 }
 
 async function completeDiscoveryAttempt(
-  input: { leaseId: string; itemId: string; bundle: unknown; bundleHash: string },
+  input: {
+    journeyId: string
+    targetProjectId: string
+    attemptId: string
+    authorizationId: string
+    leaseId: string
+    itemId: string
+    bundle: unknown
+    bundleHash: string
+  },
   tx: Prisma.TransactionClient,
+  beforeWrite: BeforeJourneyBusinessWrite,
+  queueAttemptTerminal: QueueAttemptTerminal,
+  coordinatorSession?: CoordinatorSessionCredentials,
 ) {
-  await tx.qualityJourneyWorkAttempt.update({
-    where: { leaseId: input.leaseId },
+  const scope = { journeyId: input.journeyId, targetProjectId: input.targetProjectId }
+  const attempt = await tx.qualityJourneyWorkAttempt.findUnique({
+    where: { id: input.attemptId }, include: { workItem: true, authorization: true },
+  })
+  if (!attempt || attempt.workItemId !== input.itemId || attempt.leaseId !== input.leaseId ||
+    attempt.authorizationId !== input.authorizationId ||
+    attempt.workItem.journeyId !== scope.journeyId || attempt.workItem.targetProjectId !== scope.targetProjectId ||
+    attempt.workItem.currentAttempt !== attempt.attempt || attempt.workItem.status !== 'IN_PROGRESS' ||
+    attempt.status !== 'IN_PROGRESS' || attempt.leaseExpiresAt <= new Date() ||
+    !attempt.authorization || attempt.authorization.workItemId !== input.itemId ||
+    attempt.authorization.journeyId !== scope.journeyId || attempt.authorization.targetProjectId !== scope.targetProjectId ||
+    attempt.authorization.role !== attempt.workItem.role ||
+    attempt.authorization.roleContractDigest !== attempt.workItem.roleContractDigest ||
+    attempt.authorization.revokedAt || attempt.authorization.cancelledAt || hash(input.bundle) !== input.bundleHash)
+    throw new ServiceError('Discovery terminal attempt lineage changed.', 'CONFLICT')
+  if (typeof coordinatorSession === 'object')
+    await assertCoordinatorAttemptSession({ ...coordinatorSession, ...scope, attemptId: attempt.id }, tx)
+  const terminal: AttemptTerminalInput = Object.freeze({
+    attemptId: attempt.id,
+    workItemId: input.itemId,
+    authorizationId: input.authorizationId,
+    resultHash: input.bundleHash,
+    terminalStatus: 'COMPLETED',
+  })
+  // Queue every newly terminal attempt, including the first Discovery sibling.
+  // Revision readiness is a projection and never controls generation retirement.
+  await queueAttemptTerminal(tx, scope, terminal)
+  await beforeWrite(tx, scope, {
+    kind: 'ATTEMPT_TERMINAL_ROW', terminalAttemptId: terminal.attemptId, terminalResultHash: terminal.resultHash,
+  })
+  const completed = await tx.qualityJourneyWorkAttempt.updateMany({
+    where: {
+      id: terminal.attemptId, workItemId: terminal.workItemId, authorizationId: terminal.authorizationId,
+      leaseId: input.leaseId, status: 'IN_PROGRESS', resultHash: null, resultJson: null, completedAt: null,
+    },
     data: {
       status: 'COMPLETED',
       resultJson: json(input.bundle),
@@ -645,10 +762,19 @@ async function completeDiscoveryAttempt(
       completedAt: new Date(),
     },
   })
-  await tx.qualityJourneyWorkItem.update({
-    where: { id: input.itemId },
+  if (completed.count !== 1) throw new ServiceError('Discovery terminal attempt changed concurrently.', 'CONFLICT')
+  await beforeWrite(tx, scope, {
+    kind: 'WORK_ITEM_TERMINAL_ROW', terminalAttemptId: terminal.attemptId, terminalResultHash: terminal.resultHash,
+  })
+  const itemCompleted = await tx.qualityJourneyWorkItem.updateMany({
+    where: {
+      id: terminal.workItemId, ...scope, currentAttempt: attempt.attempt,
+      status: 'IN_PROGRESS', version: attempt.workItem.version,
+    },
     data: { status: 'COMPLETED', version: { increment: 1 } },
   })
+  if (itemCompleted.count !== 1) throw new ServiceError('Discovery terminal work item changed concurrently.', 'CONFLICT')
+  return terminal
 }
 
 function scopeHashForAuthorization(authorizationScopeJson: string) {
@@ -699,7 +825,12 @@ async function prepareDiscoverySubmission(
   return { revision, replayed, analysis }
 }
 
-async function completeIfReady(revisionId: string, tx: Prisma.TransactionClient) {
+async function completeIfReady(
+  revisionId: string,
+  tx: Prisma.TransactionClient,
+  beforeWrite: BeforeJourneyBusinessWrite,
+  terminal: AttemptTerminalInput,
+) {
   const revision = await tx.qualityJourneyDiscoveryRevision.findUniqueOrThrow({ where: { id: revisionId } })
   if (!revision.targetObservationHash || !revision.resourceResolutionHash) return revision
   const completionHash = hash({
@@ -707,6 +838,10 @@ async function completeIfReady(revisionId: string, tx: Prisma.TransactionClient)
     targetObservationHash: revision.targetObservationHash,
     resourceResolutionHash: revision.resourceResolutionHash,
     scopeHash: revision.scopeHash,
+  })
+  // Finite sidecars: this revision completion and its DISCOVERY_COMPLETED event.
+  await beforeWrite(tx, revision, {
+    kind: 'ROLE_OUTPUT_FINALIZATION', terminalAttemptId: terminal.attemptId, terminalResultHash: terminal.resultHash,
   })
   const completed = await tx.qualityJourneyDiscoveryRevision.updateMany({
     where: { id: revision.id, status: 'COLLECTING', completionHash: null },
@@ -766,6 +901,10 @@ async function submitQualityJourneyTargetObservationInTransaction(
   bundle: ReturnType<typeof targetObservationBundleSchema.parse>,
   bundleHash: string,
   tx: Prisma.TransactionClient,
+  beforeWrite: BeforeJourneyBusinessWrite,
+  queueAttemptTerminal: QueueAttemptTerminal,
+  coordinatorSession?: CoordinatorSessionCredentials,
+  externalBinding?: ExternalQualityJourneySubmissionBinding,
 ) {
   assertSubmissionEnvelopeMatchesBundle(request, bundle, 'Scout')
   const { revision, replayed, analysis } = await prepareDiscoverySubmission(
@@ -780,7 +919,7 @@ async function submitQualityJourneyTargetObservationInTransaction(
   }
   if (!analysis) throw new ServiceError('Discovery analysis authority is unavailable.', 'CONFLICT')
   assertBundleBase(bundle, revision, analysis, revision.scoutWorkItemId, revision.scoutInputHash)
-  const { item } = await assertAttempt(
+  const { item, attempt, authorization } = await assertAttempt(
     { ...bundle, ownerToken: request.ownerToken, leaseId: request.leaseId },
     'SCOUT',
     tx,
@@ -796,6 +935,24 @@ async function submitQualityJourneyTargetObservationInTransaction(
   )
     throw new ServiceError('Scout observations exceed the frozen target scope.', 'CONFLICT')
   await assertDiscoveryBrowserReceiptAdmission(bundle, revision, tx)
+  await assertDiscoverySubmissionModeLineageInTransaction(
+    {
+      journeyId: request.journeyId,
+      targetProjectId: request.targetProjectId,
+      workItemId: item.id,
+      attemptId: attempt.id,
+      authorizationId: authorization.id,
+      leaseId: request.leaseId,
+      inputHash: bundle.inputHash,
+      expectedRole: 'SCOUT',
+    },
+    tx,
+    coordinatorSession,
+    externalBinding,
+  )
+  // Retain the staged E2 terminal gate until integrated verification and exact review.
+  await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, request)
+  await beforeWrite(tx, request)
   const updated = await tx.qualityJourneyDiscoveryRevision.updateMany({
     where: { id: revision.id, status: 'COLLECTING', targetObservationHash: null },
     data: {
@@ -807,8 +964,12 @@ async function submitQualityJourneyTargetObservationInTransaction(
     },
   })
   if (!updated.count) throw new ServiceError('Scout output raced with another submission.', 'CONFLICT')
-  await completeDiscoveryAttempt({ leaseId: request.leaseId, itemId: item.id, bundle, bundleHash }, tx)
-  return { replayed: false, discoveryRevision: await completeIfReady(revision.id, tx) }
+  const terminal = await completeDiscoveryAttempt({
+    journeyId: request.journeyId, targetProjectId: request.targetProjectId,
+    attemptId: attempt.id, authorizationId: authorization.id,
+    leaseId: request.leaseId, itemId: item.id, bundle, bundleHash,
+  }, tx, beforeWrite, queueAttemptTerminal, coordinatorSession)
+  return { replayed: false, discoveryRevision: await completeIfReady(revision.id, tx, beforeWrite, terminal) }
 }
 
 export async function submitQualityJourneyTargetObservation(
@@ -817,12 +978,16 @@ export async function submitQualityJourneyTargetObservation(
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
   const request = submissionEnvelopeSchema.parse(input)
+  const originalCoordinatorSession = snapshotDiscoveryCoordinatorSession(coordinatorSession)
   return withTransaction(client, async tx => {
-    await assertCoordinatorMutationSession(coordinatorSession, request, tx)
+    await assertCoordinatorMutationSession(originalCoordinatorSession, request, tx)
     await assertManagedDiscoverySubmissionAttempt(request, tx)
     const bundle = targetObservationBundleSchema.parse(request.bundle)
     const bundleHash = hashTargetObservationBundle(bundle)
-    return submitQualityJourneyTargetObservationInTransaction(request, bundle, bundleHash, tx)
+    return withJourneyBusinessWriteJoinInTransaction(tx, request, originalCoordinatorSession, (beforeWrite, queueAttemptTerminal) =>
+      submitQualityJourneyTargetObservationInTransaction(
+        request, bundle, bundleHash, tx, beforeWrite, queueAttemptTerminal, originalCoordinatorSession,
+      ))
   })
 }
 
@@ -839,18 +1004,51 @@ export async function submitExternalQualityJourneyTargetObservation(
     principal,
     coordinatorSession,
   )
+  const originalBinding = snapshotExternalDiscoverySubmissionBinding(acceptance)
   return client.$transaction(async tx => {
-    const accepted = await acceptExternalQualityJourneySubmissionInTransaction(acceptance, tx, async () => {
-      await assertCoordinatorMutationSession(coordinatorSession, canonical, tx)
-      const bundle = targetObservationBundleSchema.parse(canonical.bundle)
-      return submitQualityJourneyTargetObservationInTransaction(
-        canonical,
-        bundle,
-        hashTargetObservationBundle(bundle),
-        tx,
-      )
-    })
+    const accepted = await acceptExternalQualityJourneySubmissionInTransaction(
+      { ...acceptance, ...originalBinding },
+      tx,
+      async (beforeWrite, queueAttemptTerminal) => {
+        await assertCoordinatorMutationSession(originalBinding, canonical, tx)
+        const bundle = targetObservationBundleSchema.parse(canonical.bundle)
+        return submitQualityJourneyTargetObservationInTransaction(
+          canonical,
+          bundle,
+          hashTargetObservationBundle(bundle),
+          tx,
+          beforeWrite,
+          queueAttemptTerminal,
+          originalBinding,
+          originalBinding,
+        )
+      },
+    )
     return { ...accepted.outcome, replayed: accepted.replayed || accepted.outcome.replayed }
+  })
+}
+
+/** Only selected, accepted resolution publication participates in resource Use.
+ * Inventory compilation is inspection and never creates claims for visible rows.
+ */
+async function selectedResourceResolutionUseRequest(
+  tx: Prisma.TransactionClient,
+  revision: Awaited<ReturnType<typeof getDiscoveryRevision>>,
+  originalCredentials: CoordinatorSessionCredentials | undefined,
+) {
+  if (await readJourneyBusinessEnrollmentKindInTransaction(tx, revision) === 'LEGACY') return null
+  if (!originalCredentials || typeof originalCredentials !== 'object' ||
+    !originalCredentials.coordinatorSessionId || !originalCredentials.coordinatorGeneration ||
+    originalCredentials.journeyId !== revision.journeyId ||
+    originalCredentials.targetProjectId !== revision.targetProjectId)
+    throw new ServiceError('E2 resource resolution requires the original current coordinator binding.', 'UNAUTHORIZED')
+  return resolveResourceResolutionUseRequestInTransaction(tx, {
+    scope: { journeyId: revision.journeyId, targetProjectId: revision.targetProjectId,
+      coordinatorSessionId: originalCredentials.coordinatorSessionId,
+      generation: originalCredentials.coordinatorGeneration,
+      credentials: { ...originalCredentials, journeyId: revision.journeyId, targetProjectId: revision.targetProjectId } },
+    discoveryRevisionId: revision.id,
+    resourceResolutionHash: revision.resourceResolutionHash ?? '',
   })
 }
 
@@ -859,6 +1057,10 @@ async function submitQualityJourneyResourceResolutionInTransaction(
   bundle: ReturnType<typeof resourceResolutionBundleSchema.parse>,
   bundleHash: string,
   tx: Prisma.TransactionClient,
+  beforeWrite: BeforeJourneyBusinessWrite,
+  queueAttemptTerminal: QueueAttemptTerminal,
+  coordinatorSession?: CoordinatorSessionCredentials,
+  externalBinding?: ExternalQualityJourneySubmissionBinding,
 ) {
   assertSubmissionEnvelopeMatchesBundle(request, bundle, 'Resource')
   const { revision, replayed, analysis } = await prepareDiscoverySubmission(
@@ -869,11 +1071,13 @@ async function submitQualityJourneyResourceResolutionInTransaction(
   )
   if (replayed) {
     await assertReplayAuthority(bundle, request, 'RESOURCE_EXPLORER', tx)
+    const useRequest = await selectedResourceResolutionUseRequest(tx, revision, coordinatorSession)
+    if (useRequest) await validateActiveSharedResourceUseInTransaction(tx, useRequest)
     return { replayed: true, discoveryRevision: revision }
   }
   if (!analysis) throw new ServiceError('Discovery analysis authority is unavailable.', 'CONFLICT')
   assertBundleBase(bundle, revision, analysis, revision.resourceWorkItemId, revision.resourceInputHash)
-  const { item } = await assertAttempt(
+  const { item, attempt, authorization } = await assertAttempt(
     { ...bundle, ownerToken: request.ownerToken, leaseId: request.leaseId },
     'RESOURCE_EXPLORER',
     tx,
@@ -882,6 +1086,22 @@ async function submitQualityJourneyResourceResolutionInTransaction(
     throw new ServiceError('Resource Explorer assignment scope hash is stale.', 'CONFLICT')
   const scope = JSON.parse(revision.resourceScopeJson) as { resources: FrozenResource[] }
   assertResourceResolutionWithinFrozenScope(bundle, scope, request.targetProjectId)
+  await assertDiscoverySubmissionModeLineageInTransaction(
+    {
+      journeyId: request.journeyId,
+      targetProjectId: request.targetProjectId,
+      workItemId: item.id,
+      attemptId: attempt.id,
+      authorizationId: authorization.id,
+      leaseId: request.leaseId,
+      inputHash: bundle.inputHash,
+      expectedRole: 'RESOURCE_EXPLORER',
+    },
+    tx,
+    coordinatorSession,
+    externalBinding,
+  )
+  await beforeWrite(tx, request)
   const updated = await tx.qualityJourneyDiscoveryRevision.updateMany({
     where: { id: revision.id, status: 'COLLECTING', resourceResolutionHash: null },
     data: {
@@ -893,8 +1113,17 @@ async function submitQualityJourneyResourceResolutionInTransaction(
     },
   })
   if (!updated.count) throw new ServiceError('Resource output raced with another submission.', 'CONFLICT')
-  await completeDiscoveryAttempt({ leaseId: request.leaseId, itemId: item.id, bundle, bundleHash }, tx)
-  return { replayed: false, discoveryRevision: await completeIfReady(revision.id, tx) }
+  // Typed source must exist before acquisition; terminal retirement remains OPEN
+  // until the owning join's awaited finalizer runs after this callback returns.
+  const retained = await tx.qualityJourneyDiscoveryRevision.findUniqueOrThrow({ where: { id: revision.id } })
+  const useRequest = await selectedResourceResolutionUseRequest(tx, retained, coordinatorSession)
+  if (useRequest) await acquireSharedResourceUseInBusinessGroupInTransaction(tx, useRequest, beforeWrite)
+  const terminal = await completeDiscoveryAttempt({
+    journeyId: request.journeyId, targetProjectId: request.targetProjectId,
+    attemptId: attempt.id, authorizationId: authorization.id,
+    leaseId: request.leaseId, itemId: item.id, bundle, bundleHash,
+  }, tx, beforeWrite, queueAttemptTerminal, coordinatorSession)
+  return { replayed: false, discoveryRevision: await completeIfReady(revision.id, tx, beforeWrite, terminal) }
 }
 
 export async function submitQualityJourneyResourceResolution(
@@ -903,12 +1132,16 @@ export async function submitQualityJourneyResourceResolution(
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
   const request = submissionEnvelopeSchema.parse(input)
+  const originalCoordinatorSession = snapshotDiscoveryCoordinatorSession(coordinatorSession)
+  const bundle = resourceResolutionBundleSchema.parse(request.bundle)
+  const bundleHash = hashResourceResolutionBundle(bundle)
   return withTransaction(client, async tx => {
-    await assertCoordinatorMutationSession(coordinatorSession, request, tx)
+    await assertCoordinatorMutationSession(originalCoordinatorSession, request, tx)
     await assertManagedDiscoverySubmissionAttempt(request, tx)
-    const bundle = resourceResolutionBundleSchema.parse(request.bundle)
-    const bundleHash = hashResourceResolutionBundle(bundle)
-    return submitQualityJourneyResourceResolutionInTransaction(request, bundle, bundleHash, tx)
+    return withJourneyBusinessWriteJoinInTransaction(tx, request, originalCoordinatorSession, (beforeWrite, queueAttemptTerminal) =>
+      submitQualityJourneyResourceResolutionInTransaction(
+        request, bundle, bundleHash, tx, beforeWrite, queueAttemptTerminal, originalCoordinatorSession,
+      ))
   })
 }
 
@@ -925,17 +1158,33 @@ export async function submitExternalQualityJourneyResourceResolution(
     principal,
     coordinatorSession,
   )
+  const originalBinding = snapshotExternalDiscoverySubmissionBinding(acceptance)
+  const bundle = resourceResolutionBundleSchema.parse(canonical.bundle)
   return client.$transaction(async tx => {
-    const accepted = await acceptExternalQualityJourneySubmissionInTransaction(acceptance, tx, async () => {
-      await assertCoordinatorMutationSession(coordinatorSession, canonical, tx)
-      const bundle = resourceResolutionBundleSchema.parse(canonical.bundle)
-      return submitQualityJourneyResourceResolutionInTransaction(
-        canonical,
-        bundle,
-        hashResourceResolutionBundle(bundle),
-        tx,
-      )
-    })
+    const accepted = await acceptExternalQualityJourneySubmissionInTransaction(
+      { ...acceptance, ...originalBinding },
+      tx,
+      async (beforeWrite, queueAttemptTerminal) => {
+        await assertCoordinatorMutationSession(originalBinding, canonical, tx)
+        return submitQualityJourneyResourceResolutionInTransaction(
+          canonical,
+          bundle,
+          hashResourceResolutionBundle(bundle),
+          tx,
+          beforeWrite,
+          queueAttemptTerminal,
+          originalBinding,
+          originalBinding,
+        )
+      },
+    )
+    // Existing external acceptance can return before its specialized callback.
+    // Validate its retained selected Use on that replay path as well.
+    if (accepted.replayed) {
+      const revision = await getDiscoveryRevision(canonical, tx)
+      const useRequest = await selectedResourceResolutionUseRequest(tx, revision, originalBinding)
+      if (useRequest) await validateActiveSharedResourceUseInTransaction(tx, useRequest)
+    }
     return { ...accepted.outcome, replayed: accepted.replayed || accepted.outcome.replayed }
   })
 }
@@ -978,48 +1227,53 @@ export async function retryQualityJourneyDiscovery(
     if (predecessor.status === 'COLLECTING')
       throw new ServiceError('Discovery retry requires a terminal or invalidated predecessor.', 'CONFLICT')
     const journey = await tx.qualityJourney.findUniqueOrThrow({ where: { id: predecessor.journeyId } })
-    await tx.qualityJourney.update({ where: { id: journey.id }, data: { activeDiscoveryRevisionId: null } })
-    await tx.qualityJourneyDiscoveryRevision.update({
-      where: { id: predecessor.id },
-      data: { status: 'SUPERSEDED', supersededAt: new Date(), rowVersion: { increment: 1 } },
+    await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, request)
+    return withJourneyBusinessWriteJoinInTransaction(tx, request, coordinatorSession, async beforeWrite => {
+      await beforeWrite(tx, request)
+      await tx.qualityJourney.update({ where: { id: journey.id }, data: { activeDiscoveryRevisionId: null } })
+      await tx.qualityJourneyDiscoveryRevision.update({
+        where: { id: predecessor.id },
+        data: { status: 'SUPERSEDED', supersededAt: new Date(), rowVersion: { increment: 1 } },
+      })
+      const predecessorWorkItemIds = [predecessor.scoutWorkItemId, predecessor.resourceWorkItemId]
+      const cancelledAt = new Date()
+      await tx.qualityJourneyWorkAttempt.updateMany({
+        where: {
+          workItemId: { in: predecessorWorkItemIds },
+          status: { notIn: ['COMPLETED', 'CANCELLED', 'REFUSED', 'FAILED', 'EXPIRED'] },
+        },
+        data: {
+          status: 'CANCELLED',
+          cancelledAt,
+          cancelledBy: 'RUNNER',
+          cancellationReason: 'Discovery revision superseded by an authorized retry.',
+        },
+      })
+      await tx.qualityJourneyWorkAuthorization.updateMany({
+        where: { workItemId: { in: predecessorWorkItemIds }, revokedAt: null },
+        data: {
+          revokedAt: cancelledAt,
+          revokedBy: 'RUNNER',
+          revocationReason: 'Discovery revision superseded by an authorized retry.',
+        },
+      })
+      await tx.qualityJourneyWorkItem.updateMany({
+        where: { id: { in: predecessorWorkItemIds }, status: { not: 'COMPLETED' } },
+        data: { status: 'SUPERSEDED', version: { increment: 1 } },
+      })
+      const fresh = await ensureQualityJourneyDiscoveryForApprovedAnalysis(
+        {
+          journeyId: journey.id,
+          targetProjectId: journey.targetProjectId,
+          predecessorRevisionId: predecessor.id,
+          retryIdempotencyKey: request.idempotencyKey,
+          retryRequestHash: requestHash,
+        },
+        tx,
+        beforeWrite,
+      )
+      return { replayed: false, discoveryRevision: fresh }
     })
-    const predecessorWorkItemIds = [predecessor.scoutWorkItemId, predecessor.resourceWorkItemId]
-    const cancelledAt = new Date()
-    await tx.qualityJourneyWorkAttempt.updateMany({
-      where: {
-        workItemId: { in: predecessorWorkItemIds },
-        status: { notIn: ['COMPLETED', 'CANCELLED', 'REFUSED', 'FAILED', 'EXPIRED'] },
-      },
-      data: {
-        status: 'CANCELLED',
-        cancelledAt,
-        cancelledBy: 'RUNNER',
-        cancellationReason: 'Discovery revision superseded by an authorized retry.',
-      },
-    })
-    await tx.qualityJourneyWorkAuthorization.updateMany({
-      where: { workItemId: { in: predecessorWorkItemIds }, revokedAt: null },
-      data: {
-        revokedAt: cancelledAt,
-        revokedBy: 'RUNNER',
-        revocationReason: 'Discovery revision superseded by an authorized retry.',
-      },
-    })
-    await tx.qualityJourneyWorkItem.updateMany({
-      where: { id: { in: predecessorWorkItemIds }, status: { not: 'COMPLETED' } },
-      data: { status: 'SUPERSEDED', version: { increment: 1 } },
-    })
-    const fresh = await ensureQualityJourneyDiscoveryForApprovedAnalysis(
-      {
-        journeyId: journey.id,
-        targetProjectId: journey.targetProjectId,
-        predecessorRevisionId: predecessor.id,
-        retryIdempotencyKey: request.idempotencyKey,
-        retryRequestHash: requestHash,
-      },
-      tx,
-    )
-    return { replayed: false, discoveryRevision: fresh }
   })
 }
 
@@ -1030,10 +1284,13 @@ export async function revalidateQualityJourneyDiscovery(
   client: PrismaClient = prisma,
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
+  const request = { journeyId: input.journeyId, targetProjectId: input.targetProjectId,
+    expectedActiveDiscoveryRevisionId: input.expectedActiveDiscoveryRevisionId }
+  const originalCoordinatorSession = snapshotDiscoveryCoordinatorSession(coordinatorSession)
   return client.$transaction(async tx => {
-    await assertCoordinatorMutationSession(coordinatorSession, input, tx)
+    await assertCoordinatorMutationSession(originalCoordinatorSession, request, tx)
     const revision = await getDiscoveryRevision(
-      { ...input, discoveryRevisionId: input.expectedActiveDiscoveryRevisionId },
+      { ...request, discoveryRevisionId: request.expectedActiveDiscoveryRevisionId },
       tx,
     )
     const journey = await tx.qualityJourney.findUniqueOrThrow({ where: { id: revision.journeyId } })
@@ -1042,9 +1299,14 @@ export async function revalidateQualityJourneyDiscovery(
       throw new ServiceError('Discovery revalidation does not bind the active discovery revision.', 'CONFLICT')
     try {
       await registryStillCurrent(revision, tx)
+      if (revision.resourceResolutionHash) {
+        const useRequest = await selectedResourceResolutionUseRequest(tx, revision, originalCoordinatorSession)
+        if (useRequest) await validateActiveSharedResourceUseInTransaction(tx, useRequest)
+      }
       return { valid: true, discoveryRevision: revision }
     } catch (error) {
       if (!(error instanceof ServiceError)) throw error
+      await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, request)
       const invalidated = await tx.qualityJourneyDiscoveryRevision.update({
         where: { id: revision.id },
         data: { status: 'INVALIDATED', invalidatedAt: new Date(), rowVersion: { increment: 1 } },

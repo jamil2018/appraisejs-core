@@ -1,5 +1,6 @@
 import type { Prisma, PrismaClient } from '@prisma/client'
 import { z } from 'zod'
+import { validateRetainedExecutionUseForTestRunInTransaction } from '@/services/coordinator/quality-journey-shared-resource-use-service'
 import { automationTargetBindingSchema, preparedRuntimeCapsuleSchema } from '@/lib/quality-journey/automation-contracts'
 import { defaultOperationDefinitions } from '@/lib/operation-catalog'
 import { hashRuntimeCapsuleValue } from './contracts'
@@ -42,7 +43,7 @@ const sourceSchema = z
 type FrozenSource = z.infer<typeof sourceSchema>
 type ExecutionCycle = Prisma.QualityJourneyExecutionCycleGetPayload<Record<string, never>>
 
-async function verifyPreparedSource(client: PrismaClient, source: FrozenSource, cycle: ExecutionCycle) {
+async function verifyPreparedSource(client: Prisma.TransactionClient, source: FrozenSource, cycle: ExecutionCycle) {
   const prepared = await client.qualityJourneyPreparedRuntimeCapsule.findUniqueOrThrow({
     where: { id: source.preparedCapsuleId },
     include: { materialization: true },
@@ -101,11 +102,37 @@ function verifyRunEnvironmentSnapshot(
 }
 
 export async function loadJourneyCapsuleSource(client: PrismaClient, testRunId: string) {
+  return client.$transaction(tx => loadJourneyCapsuleSourceInTransaction(tx, testRunId))
+}
+
+/** Internal transaction-local capture; returns inert data, never publication authority. */
+export async function loadJourneyCapsuleSourceInTransaction(client: Prisma.TransactionClient, testRunId: string) {
+  const checked = await validateRetainedExecutionUseForTestRunInTransaction(client, testRunId)
+  const sharedResourceProtection = checked.protection
   const owner = await client.qualityJourneyExecutionTestRun.findUniqueOrThrow({
     where: { testRunId },
-    include: { executionCycle: true, testRun: { include: { testCases: true } } },
+    include: {
+      executionCycle: true,
+      testRun: {
+        include: { testCases: { select: { id: true, testCaseId: true, testSuiteId: true }, orderBy: { id: 'asc' } } },
+      },
+    },
   })
-  const cycle = owner.executionCycle
+  const { executionCycle: cycle, testRun: run, ...bindingIdentity } = owner
+  const capturedRun = {
+    id: run.id,
+    intent: run.intent,
+    runId: run.runId,
+    targetProjectId: run.targetProjectId,
+    environmentId: run.environmentId,
+    browserEngine: run.browserEngine,
+    environmentSnapshotJson: run.environmentSnapshotJson,
+    environmentSnapshotHash: run.environmentSnapshotHash,
+    environmentSnapshotVersion: run.environmentSnapshotVersion,
+    testCases: run.testCases,
+  }
+  if (hashRuntimeCapsuleValue({ run: capturedRun, binding: bindingIdentity, cycle }) !== checked.runSourceHash)
+    throw new Error('Journey copied run/cycle rows differ from the validated persisted join.')
   verifyRunEnvironmentSnapshot(owner.testRun, cycle)
   const sources = z.array(sourceSchema).parse(JSON.parse(cycle.preparedCapsulesJson))
   if (hashRuntimeCapsuleValue(JSON.parse(cycle.preparedCapsulesJson)) !== cycle.preparedCapsulesHash)
@@ -138,7 +165,14 @@ export async function loadJourneyCapsuleSource(client: PrismaClient, testRunId: 
   const links = owner.testRun.testCases
   if (links.length !== 1 || links[0].testCaseId !== binding.testCase.id || links[0].testSuiteId !== binding.suite.id)
     throw new Error('Journey runtime case selection differs from its immutable source.')
+  const recheckedProtection = await validateRetainedExecutionUseForTestRunInTransaction(client, testRunId)
+  if (
+    recheckedProtection.protection !== sharedResourceProtection ||
+    recheckedProtection.runSourceHash !== checked.runSourceHash
+  )
+    throw new Error('Journey source identity or protection changed during capture.')
   return {
+    sharedResourceProtection,
     identity: {
       targetFingerprint: cycle.targetFingerprint,
       journeyId: cycle.journeyId,

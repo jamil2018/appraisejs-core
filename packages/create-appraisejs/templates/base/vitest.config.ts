@@ -1,5 +1,5 @@
 import path from 'path'
-import { defineConfig } from 'vitest/config'
+import { configDefaults, defineConfig } from 'vitest/config'
 
 export default defineConfig({
   resolve: {
@@ -11,6 +11,17 @@ export default defineConfig({
   test: {
     environment: 'node',
     setupFiles: ['./vitest.setup.ts'],
+    exclude: [
+      ...configDefaults.exclude,
+      // These suites require a fresh owned case and run through the M06 harness configs.
+      'src/services/coordinator/quality-journey-authoring-owner.sqlite.integration.test.ts',
+      'src/services/coordinator/quality-journey-discovery-selected-use.sqlite.integration.test.ts',
+      'src/services/coordinator/quality-journey-e2-retirement-service.sqlite.integration.test.ts',
+      'src/services/coordinator/quality-journey-remaining-authoring-owner.sqlite.integration.test.ts',
+      'src/services/coordinator/quality-journey-selected-use.sqlite.integration.test.ts',
+      'src/services/locator-group/locator-group-service.e2.sqlite.integration.test.ts',
+      'src/services/module/module-service.e2.sqlite.integration.test.ts',
+    ],
     include: [
       'packages/cucumber-runtime/src/**/*.test.ts',
       'scripts/lib/**/*.test.ts',

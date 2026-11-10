@@ -30,7 +30,12 @@ import path from 'path'
 import { updateTestCaseMetrics, updateMetricsForTestRun } from '@/lib/metrics/metric-calculator'
 import { ensureTestSuiteIdentifierTags } from '@/lib/test-suite-identifier-service'
 import { getIdentifierTagByPrefix } from '@/lib/tag-filters'
-import { findMatchingTestRunTestCase } from '@/lib/test-run/matching'
+import {
+  findMatchingTestRunTestCase,
+  requiresFrozenJourneyMatching,
+  validateFrozenJourneySelection,
+  matchFrozenJourneyScenario,
+} from '@/lib/test-run/matching'
 import { storeReportFromFileService } from '@/services/report/report-service'
 import {
   createTestRunArtifactAccess,
@@ -386,10 +391,13 @@ function resolvePartialSuiteSelectionFilter(
 }
 
 type UpdateScenarioStatusResult =
-  { kind: 'updated' } | { kind: 'no_match'; message: string } | { kind: 'test_run_not_found' }
+  | { kind: 'updated' }
+  | { kind: 'no_match'; message: string }
+  | { kind: 'test_run_not_found' }
+  | { kind: 'evidence_refused'; protocol: 'M06_FROZEN_RUN_SELECTION_V1'; reason: string }
 
 async function updateTestRunTestCaseStatusFromScenario(
-  testRunId: string,
+  owner: { id: string; runId: string; executionAttempt?: { id: string; ownerToken: string } },
   scenario: {
     scenarioName: string
     status: 'passed' | 'failed' | 'skipped' | 'unknown'
@@ -400,8 +408,10 @@ async function updateTestRunTestCaseStatusFromScenario(
   client: PrismaClient = prisma,
 ): Promise<UpdateScenarioStatusResult> {
   const testRun = await client.testRun.findUnique({
-    where: { runId: testRunId },
+    where: { id: owner.id, runId: owner.runId },
     include: {
+      runtimeCapsule: true,
+      qualityJourneyExecutionBinding: { include: { executionCycle: true } },
       testCases: {
         include: {
           testCase: {
@@ -421,6 +431,75 @@ async function updateTestRunTestCaseStatusFromScenario(
 
   if (!testRun) {
     return { kind: 'test_run_not_found' }
+  }
+
+  if (requiresFrozenJourneyMatching(testRun)) {
+    return client.$transaction(async tx => {
+      const current = await tx.testRun.findUnique({
+        where: { id: owner.id, runId: owner.runId },
+        include: {
+          runtimeCapsule: true,
+          runtimeCapsuleExecutionAttempt: true,
+          qualityJourneyExecutionBinding: { include: { executionCycle: true } },
+          testCases: true,
+        },
+      })
+      const refused = (reason: string): UpdateScenarioStatusResult => ({
+        kind: 'evidence_refused',
+        protocol: 'M06_FROZEN_RUN_SELECTION_V1',
+        reason,
+      })
+      if (!current) return refused('FROZEN_RUN_BINDING_MISMATCH')
+      const frozen = validateFrozenJourneySelection(current)
+      if (!frozen.ok) return refused(frozen.reason)
+      const matched = matchFrozenJourneyScenario(frozen.selection, scenario.scenarioTags)
+      if (!matched.ok) return refused(matched.reason)
+      const attempt = current.runtimeCapsuleExecutionAttempt
+      if (
+        !owner.executionAttempt ||
+        !attempt ||
+        attempt.id !== owner.executionAttempt.id ||
+        attempt.ownerToken !== owner.executionAttempt.ownerToken ||
+        attempt.testRunId !== current.id ||
+        attempt.capsuleId !== current.runtimeCapsule?.id ||
+        attempt.outputCompletedAt !== null ||
+        !['STARTING', 'RUNNING'].includes(attempt.state) ||
+        current.status !== TestRunStatus.RUNNING
+      )
+        return refused('FROZEN_RUN_BINDING_MISMATCH')
+      const result =
+        scenario.status === 'passed'
+          ? TestRunTestCaseResult.PASSED
+          : scenario.status === 'failed'
+            ? TestRunTestCaseResult.FAILED
+            : TestRunTestCaseResult.UNTESTED
+      const changed = await tx.testRunTestCase.updateMany({
+        where: {
+          id: matched.expectedCase.link.id,
+          testRunId: current.id,
+          testCaseId: matched.expectedCase.caseId,
+          testSuiteId: matched.expectedCase.suiteId,
+          testRun: {
+            id: owner.id,
+            runId: owner.runId,
+            intent: 'QUALITY_JOURNEY',
+            status: TestRunStatus.RUNNING,
+            runtimeCapsuleExecutionAttempt: {
+              is: {
+                id: attempt.id,
+                ownerToken: owner.executionAttempt.ownerToken,
+                version: attempt.version,
+                capsuleId: attempt.capsuleId,
+                outputCompletedAt: null,
+                state: { in: ['STARTING', 'RUNNING'] },
+              },
+            },
+          },
+        },
+        data: { status: TestRunTestCaseStatus.COMPLETED, result, tracePath: scenario.tracePath || null },
+      })
+      return changed.count === 1 ? { kind: 'updated' } : refused('FROZEN_RUN_BINDING_MISMATCH')
+    })
   }
 
   const matchingTestCase = findMatchingTestRunTestCase(testRun.testCases, {
@@ -737,7 +816,7 @@ export async function scheduleTestRunCompletion(args: {
       }
       const mappedStatus = statusMap[eventData.status] || 'unknown'
       await updateTestRunTestCaseStatusFromScenario(
-        testRun.runId,
+        { id: testRun.id, runId: testRun.runId, executionAttempt },
         {
           scenarioName: eventData.scenarioName,
           status: mappedStatus,

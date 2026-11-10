@@ -21,6 +21,7 @@ import {
   claimExternalQualityJourneyAnalysisFollowup,
   admitExternalQualityJourneyWork,
   ensureQualityJourneyAnalysisFollowupInTransaction,
+  observeQualityJourneyAnalysisFollowupInTransaction,
   readExternalQualityJourneySubmissionOutcome,
   type ExternalAnalyzerProjectPrincipal,
 } from './quality-journey-service'
@@ -82,8 +83,20 @@ async function readCurrentFollowupReadiness(
     const { journey, session } = await assertCurrentCoordinatorSession(request, tx)
     if (!session || journey.hostingMode !== 'APP_SERVER_LOCAL_V1') return { reason: 'MANAGED_SESSION_REQUIRED' }
     if (journey.status !== 'ACTIVE') return { reason: 'INACTIVE' }
-    const compiled = await ensureQualityJourneyAnalysisFollowupInTransaction(request, tx)
-    if (!compiled.expected) return { reason: compiled.status }
+    // Observing an existing E2 issuance neither schedules a wake nor issues
+    // fresh superseding work. Claim/admission retain their own owning fences.
+    const enrollment = [session.e2EnrollmentKind, session.e2EnrollmentDigest, session.e2EnrolledAt]
+    const legacy = enrollment.every(value => value === null)
+    const orphan = legacy
+      ? await tx.qualityJourneyE2Retirement.findFirst({
+          where: { coordinatorSessionId: session.id }, select: { id: true },
+        })
+      : null
+    if (orphan) return { reason: 'E2_FOLLOWUP_LINEAGE_REQUIRES_RECOVERY' }
+    const compiled = legacy
+      ? await ensureQualityJourneyAnalysisFollowupInTransaction(request, tx)
+      : await observeQualityJourneyAnalysisFollowupInTransaction(request, tx)
+    if (!compiled.expected) return { reason: 'reason' in compiled ? compiled.reason : compiled.status }
     if (canonicalContractJson(compiled.expected) !== canonicalContractJson(expected))
       return { reason: 'STALE_EXPECTED_WORK' }
     return readAnalysisFollowupPhysicalReadiness(request, expected, tx)
