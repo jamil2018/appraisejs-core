@@ -11,7 +11,12 @@ const mocks = vi.hoisted(() => ({
   journeyFindFirst: vi.fn(),
   receiptFindFirst: vi.fn(),
   readBytes: vi.fn(),
+  session: vi.fn(),
+  readiness: vi.fn(),
 }))
+
+vi.mock('./quality-journey-coordinator-session', () => ({ assertCoordinatorAttemptSession: mocks.session }))
+vi.mock('./quality-journey-triage-service', () => ({ readInternalTriagerAssignment: mocks.readiness }))
 
 vi.mock('@/services/test-run/test-run-artifact-access-service', () => ({
   TestRunArtifactAccessService: class {
@@ -109,7 +114,10 @@ function authority(overrides: Record<string, unknown> = {}) {
     journey: { id: 'journey-1', stage: 'TRIAGE', activeCycleId: 'cycle-1', activeWorkItemIdsJson: '["work-1"]' },
     assignment: {
       workItemId: 'work-1',
-      inputJson: JSON.stringify({ cycleId: 'cycle-1', runs: [{ evidenceReceiptId: 'receipt-1' }] }),
+      inputJson: JSON.stringify({
+        cycleId: 'cycle-1',
+        runs: [{ evidenceReceiptId: 'receipt-1', receiptHash: receipt().receiptHash }],
+      }),
       workItem: item,
     },
     ...overrides,
@@ -214,6 +222,7 @@ function client() {
     qualityJourney: { findFirst: mocks.journeyFindFirst },
     qualityJourneyTriageAssignment: { findFirst: mocks.assignmentFindFirst },
     qualityJourneyExecutionEvidenceReceipt: { findFirst: mocks.receiptFindFirst },
+    $transaction: async (effect: (tx: unknown) => Promise<unknown>) => effect({}),
   } as never
 }
 
@@ -262,6 +271,37 @@ describe('readQualityJourneyTriageEvidence', () => {
     expect(mocks.assignmentFindFirst).toHaveBeenCalledTimes(2)
   })
 
+  it.each(['transfer', 'pause'])(
+    'refuses internal evidence when %s fences authority during artifact I/O',
+    async kind => {
+      const valid = authority()
+      mocks.journeyFindFirst.mockResolvedValue({ ...valid.journey, hostingMode: 'APP_SERVER_LOCAL_V1' })
+      mocks.session.mockResolvedValue(undefined)
+      mocks.readiness.mockResolvedValue(undefined)
+      const failure = new Error(kind === 'transfer' ? 'stale worker session' : 'paused assignment')
+      mocks.readBytes.mockImplementationOnce(async () => {
+        if (kind === 'transfer') mocks.session.mockRejectedValueOnce(failure)
+        else mocks.readiness.mockRejectedValueOnce(failure)
+        return { bytes, contentType: 'application/json' }
+      })
+      await expect(
+        readQualityJourneyTriageEvidence(request(), client(), {
+          coordinatorSessionId: 'session-1',
+          coordinatorGeneration: 1,
+          coordinatorPrincipalId: 'principal-1',
+        }),
+      ).rejects.toThrow(failure.message)
+      expect(mocks.session).toHaveBeenCalledTimes(2)
+    },
+  )
+
+  it('requires internal evidence session credentials before reading bytes', async () => {
+    const valid = authority()
+    mocks.journeyFindFirst.mockResolvedValue({ ...valid.journey, hostingMode: 'APP_SERVER_LOCAL_V1' })
+    await expect(readQualityJourneyTriageEvidence(request(), client())).rejects.toThrow('current worker session')
+    expect(mocks.readBytes).not.toHaveBeenCalled()
+  })
+
   it('does not dereference a receipt outside the exact journey target scope', async () => {
     mocks.receiptFindFirst.mockResolvedValue(null)
 
@@ -270,11 +310,26 @@ describe('readQualityJourneyTriageEvidence', () => {
   })
 
   it('does not dereference an artifact absent from the sealed receipt', async () => {
-    mocks.receiptFindFirst.mockResolvedValue(receipt([]))
+    const sealed = receipt([])
+    const valid = authority()
+    mocks.assignmentFindFirst.mockResolvedValue({
+      ...valid.assignment,
+      inputJson: JSON.stringify({
+        cycleId: 'cycle-1',
+        runs: [{ evidenceReceiptId: 'receipt-1', receiptHash: sealed.receiptHash }],
+      }),
+    })
+    mocks.receiptFindFirst.mockResolvedValue(sealed)
 
     await expect(readQualityJourneyTriageEvidence(request({ artifactKind: 'log' }), client())).rejects.toThrow(
       'no requested artifact',
     )
+    expect(mocks.readBytes).not.toHaveBeenCalled()
+  })
+
+  it('rejects a self-consistent replacement receipt that differs from the assigned hash', async () => {
+    mocks.receiptFindFirst.mockResolvedValue(receipt([]))
+    await expect(readQualityJourneyTriageEvidence(request(), client())).rejects.toThrow('frozen assignment')
     expect(mocks.readBytes).not.toHaveBeenCalled()
   })
 

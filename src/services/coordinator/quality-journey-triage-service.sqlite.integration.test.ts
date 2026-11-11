@@ -26,6 +26,7 @@ import {
 } from './quality-journey-service'
 import {
   getQualityJourneyTriage,
+  internalTriageReportRevisionId,
   prepareQualityJourneyTriage,
   requestQualityJourneyReportRevision,
   submitQualityJourneyTriageReport,
@@ -589,7 +590,7 @@ describe('Quality Journey triage service on migrated SQLite', () => {
     )
     const assignment = prepared.assignments[0]!
     const claim = await authority.claim('TRIAGER')
-    const document = report(assignment.input, 'managed-triage-report')
+    const document = report(assignment.input, internalTriageReportRevisionId(journeyId, claim.attempt.id))
     const contentHash = hash({ report: document, source: assignment.input })
     await authority.write(
       'TRIAGE_REPORT_SUBMIT',

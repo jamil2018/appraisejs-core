@@ -3,7 +3,13 @@ import {
   projectExternalQualityJourneySubmission,
 } from './quality-journey-external-submission-input'
 import { createHash } from 'node:crypto'
-import type { Prisma, PrismaClient } from '@prisma/client'
+import type {
+  Prisma,
+  PrismaClient,
+  QualityJourney,
+  QualityJourneyWorkItem,
+  QualityJourneyTriageAssignment,
+} from '@prisma/client'
 import prisma from '@/config/db-config'
 import { canonicalContractJson as json } from '@/lib/catalog-contracts'
 import {
@@ -34,6 +40,7 @@ import {
   triageInputArtifacts,
   type TriageInput,
 } from './quality-journey-triage-input'
+import { registerInternalTriagerReadiness } from './quality-journey-triage-readiness'
 import { validateQualityJourneyTriageReport } from './quality-journey-triage-validation'
 import { ensureQualityJourneyAutomationForApprovedScenarios } from './quality-journey-automation-service'
 
@@ -227,6 +234,126 @@ export async function prepareQualityJourneyTriage(
   return getQualityJourneyTriage({ journeyId: input.journeyId, targetProjectId: input.targetProjectId }, client)
 }
 
+/** Appraise issues a distinct report identity for each admitted internal attempt. */
+export function internalTriageReportRevisionId(journeyId: string, attemptId: string) {
+  return idFor('internal-report', journeyId, attemptId)
+}
+
+function matchesTriageFields<T extends object>(actual: T, expected: Partial<T>) {
+  return (Object.keys(expected) as Array<keyof T>).every(field => actual[field] === expected[field])
+}
+
+function assertInternalTriagerScope(journey: QualityJourney, item: QualityJourneyWorkItem) {
+  const journeyIsActive = matchesTriageFields(journey, {
+    hostingMode: 'APP_SERVER_LOCAL_V1',
+    status: 'ACTIVE',
+    stage: 'TRIAGE',
+  })
+  const itemIsCurrent = matchesTriageFields(item, {
+    role: 'TRIAGER',
+    journeyId: journey.id,
+    targetProjectId: journey.targetProjectId,
+    cycleId: journey.activeCycleId,
+  })
+  if (!journeyIsActive || !itemIsCurrent || !JSON.parse(journey.activeWorkItemIdsJson).includes(item.id))
+    throw conflict('Internal Triager assignment is stale.')
+}
+
+function assertFrozenTriagerLineage(
+  journey: QualityJourney,
+  item: QualityJourneyWorkItem,
+  assignment: QualityJourneyTriageAssignment,
+  frozen: TriageInput,
+) {
+  if (
+    !matchesTriageFields(frozen, {
+      journeyId: journey.id,
+      targetProjectId: journey.targetProjectId,
+      cycleId: journey.activeCycleId,
+      executionCycleId: assignment.executionCycleId,
+    })
+  )
+    throw conflict('Internal Triager frozen assignment lineage is corrupt.')
+  if (
+    hash(frozen) !== assignment.inputHash ||
+    item.inputHash !== assignment.inputHash ||
+    json(JSON.parse(item.inputArtifactRefsJson)) !== json(triageInputArtifacts(frozen))
+  )
+    throw conflict('Internal Triager frozen assignment lineage is corrupt.')
+}
+
+type InternalPredecessorReport = Prisma.QualityJourneyTriageReportGetPayload<{
+  include: { review: true; assignment: true }
+}>
+
+function assertInternalPredecessorReportLineage(
+  journey: QualityJourney,
+  assignment: QualityJourneyTriageAssignment,
+  predecessor: NonNullable<TriageInput['predecessorReport']>,
+  prior: InternalPredecessorReport,
+) {
+  if (
+    prior.id !== journey.activeTriageReportId ||
+    prior.contentHash !== predecessor.contentHash ||
+    prior.assignment.executionCycleId !== assignment.executionCycleId ||
+    prior.review?.kind !== 'FULL_REPORT_REVISION' ||
+    prior.review.feedback !== predecessor.feedback
+  )
+    throw conflict('Internal Triager predecessor report lineage is stale.')
+  const report = JSON.parse(prior.reportJson)
+  if (
+    json(report) !== json(predecessor.report) ||
+    hash({ report, source: JSON.parse(prior.assignment.inputJson) }) !== prior.contentHash
+  )
+    throw conflict('Internal Triager predecessor report lineage is stale.')
+}
+
+async function restoreInternalTriagePredecessor(
+  journey: QualityJourney,
+  assignment: QualityJourneyTriageAssignment,
+  frozen: TriageInput,
+  current: TriageInput,
+  tx: Prisma.TransactionClient,
+) {
+  const predecessor = frozen.predecessorReport
+  if (!predecessor) {
+    if (assignment.predecessorReportRevisionId) throw conflict('Internal Triager predecessor is missing.')
+    return
+  }
+  const prior = await tx.qualityJourneyTriageReport.findFirst({
+    where: { id: predecessor.reportRevisionId, journeyId: journey.id },
+    include: { review: true, assignment: true },
+  })
+  if (!prior) throw conflict('Internal Triager predecessor report lineage is stale.')
+  assertInternalPredecessorReportLineage(journey, assignment, predecessor, prior)
+  current.predecessorReport = predecessor
+}
+
+/** Read-only authority shared by claim, admission, reads and canonical acceptance. */
+export async function readInternalTriagerAssignment(
+  journey: QualityJourney,
+  item: QualityJourneyWorkItem,
+  tx: Prisma.TransactionClient,
+) {
+  assertInternalTriagerScope(journey, item)
+  await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, item)
+  const assignment = await tx.qualityJourneyTriageAssignment.findUnique({ where: { workItemId: item.id } })
+  if (!assignment || assignment.journeyId !== journey.id) throw conflict('Specialized Triager assignment is missing.')
+  const frozen = JSON.parse(assignment.inputJson) as TriageInput
+  assertFrozenTriagerLineage(journey, item, assignment, frozen)
+  const current = await compileQualityJourneyTriageInput(
+    { journeyId: journey.id, targetProjectId: journey.targetProjectId, executionCycleId: assignment.executionCycleId },
+    tx,
+  )
+  await restoreInternalTriagePredecessor(journey, assignment, frozen, current, tx)
+  if (
+    assignment.predecessorReportRevisionId !== (frozen.predecessorReport?.reportRevisionId ?? null) ||
+    hash(current) !== assignment.inputHash
+  )
+    throw conflict('Triage accepted input changed after issuance.')
+  return { ...frozen, inputHash: assignment.inputHash, scopeHash: hash(JSON.parse(item.authorizationScopeJson)) }
+}
+
 async function persistReportArtifact(
   input: TriageInput,
   report: QualityJourneyTriageReport,
@@ -333,6 +460,18 @@ function assertReportResult(
     throw conflict('Triager result must identify exactly the complete report and frozen source hash.')
 }
 
+async function assertInternalTriageReportIdentity(
+  input: ReportSubmission,
+  journey: QualityJourney,
+  tx: Prisma.TransactionClient,
+) {
+  if (journey.hostingMode !== 'APP_SERVER_LOCAL_V1') return
+  const item = await tx.qualityJourneyWorkItem.findUniqueOrThrow({ where: { id: input.workItemId } })
+  await readInternalTriagerAssignment(journey, item, tx)
+  if (input.report.reportRevisionId !== internalTriageReportRevisionId(journey.id, input.attemptId))
+    throw conflict('Report must bind the Appraise-issued report revision identity.')
+}
+
 async function submitQualityJourneyTriageReportInTransaction(
   input: ReportSubmission,
   tx: Prisma.TransactionClient,
@@ -354,11 +493,11 @@ async function submitQualityJourneyTriageReportInTransaction(
     where: { journeyId_idempotencyKey: { journeyId: input.journeyId, idempotencyKey: input.idempotencyKey } },
   })
   if (replay) {
-    if (replay.requestHash !== requestHash)
-      throw conflict('Report idempotency key was reused with different content.')
+    if (replay.requestHash !== requestHash) throw conflict('Report idempotency key was reused with different content.')
     return { reportRevisionId: replay.id, contentHash: replay.contentHash, replayed: true }
   }
   const { assignment, frozen } = await activeReportAssignment(input, journey, tx)
+  await assertInternalTriageReportIdentity(input, journey, tx)
   validateQualityJourneyTriageReport(input.report, frozen)
   const contentHash = hash({ report: input.report, source: frozen })
   const output = {
@@ -685,3 +824,5 @@ export async function approveQualityJourneyRemediation(
     }),
   )
 }
+
+registerInternalTriagerReadiness(readInternalTriagerAssignment)

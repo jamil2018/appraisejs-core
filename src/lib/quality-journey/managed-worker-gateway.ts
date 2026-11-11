@@ -1,4 +1,4 @@
-import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
+import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
 
 import { z } from 'zod'
 
@@ -155,7 +155,10 @@ export function createManagedWorkerRegistrationProfile(
       throw new Error(`Worker gateway tool is absent from the canonical MCP registry: ${name}`)
     }
     const managedSubmission =
-      name === 'quality_journey_scenarios_submit' || name === 'quality_journey_automation_materialize'
+      name === 'quality_journey_scenarios_submit' ||
+      name === 'quality_journey_automation_materialize' ||
+      name === 'quality_journey_triage_submit' ||
+      name === 'quality_journey_triage_evidence_read'
     const transformed = omitPrincipalArguments(
       canonical.inputSchema,
       [],
@@ -179,6 +182,39 @@ export function createManagedWorkerRegistrationProfile(
     tools: Object.freeze(tools),
   }
   return Object.freeze({ ...subject, contractDigest: hash(subject) })
+}
+
+/** Shared signing for already admitted internal role projections. */
+export function createManagedWorkerAssignmentGrant(
+  binding: Pick<
+    ManagedWorkerRuntimePrincipal,
+    'targetProjectId' | 'journeyId' | 'workItemId' | 'role' | 'attemptId' | 'leaseId'
+  > & { assignmentGeneration: number },
+  profile: ManagedWorkerRegistrationProfile,
+  authority: Pick<ManagedWorkerRuntimePrincipal, 'authorizationId' | 'expiresAt'> & {
+    assignment: Pick<ManagedWorkerRuntimePrincipal, 'inputHash' | 'scopeHash'>
+  },
+) {
+  const secret = randomBytes(32)
+  const sealedGrant = sealManagedWorkerRuntimeGrant(
+    {
+      target: binding.targetProjectId,
+      targetProjectId: binding.targetProjectId,
+      journeyId: binding.journeyId,
+      workItemId: binding.workItemId,
+      role: binding.role,
+      attemptId: binding.attemptId,
+      leaseId: binding.leaseId,
+      generation: binding.assignmentGeneration,
+      authorizationId: authority.authorizationId,
+      expiresAt: authority.expiresAt,
+      inputHash: authority.assignment.inputHash,
+      scopeHash: authority.assignment.scopeHash,
+      profileDigest: profile.contractDigest,
+    },
+    secret,
+  )
+  return { secret, sealedGrant }
 }
 
 export function sealManagedWorkerRuntimeGrant(

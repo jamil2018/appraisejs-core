@@ -65,7 +65,13 @@ export async function postQualityJourneyTriageRoute(
   const resolved = await resolveTargetProject(targetRef)
   const scoped = { ...unbound, targetProjectId: resolved.id }
   if (action === 'evidence')
-    return Response.json(await readQualityJourneyTriageEvidence(qualityJourneyTriageEvidenceReadSchema.parse(scoped)))
+    return Response.json(
+      await readQualityJourneyTriageEvidence(
+        qualityJourneyTriageEvidenceReadSchema.parse(scoped),
+        undefined,
+        coordinatorSession,
+      ),
+    )
   if (action === 'prepare')
     return Response.json(
       await prepareQualityJourneyTriage(qualityJourneyTriagePrepareSchema.parse(scoped), undefined, coordinatorSession),

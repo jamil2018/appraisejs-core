@@ -84,7 +84,7 @@ transaction. It atomically commits the canonical artifact/transition with a dura
 receipt. The receipt is replayable only to its authenticated principal and exact assignment/operation/payload identity;
 conflicting reuse is rejected. `quality_journey_external_work_outcome_get_v1` is the read-only lost-ack reconciliation
 operation and accepts the same binding plus role, operation, and idempotency key. Disposable internal Discovery,
-Scenario Designer, and Automator use versioned admission. External legacy claims retain their Factory receipt semantics.
+Scenario Designer, Automator, and [Triager](quality-journey-internal-triage.md) use versioned admission. External legacy claims retain their Factory receipt semantics.
 
 Scenario Designer submission and publication remain coordinator operations. Scenario approval, rejection, review
 comments and dispositions, and revision requests are local Journey UI actions. Project-credential API and MCP callers

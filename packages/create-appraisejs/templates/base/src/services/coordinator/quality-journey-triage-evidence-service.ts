@@ -8,6 +8,11 @@ import { hashRuntimeCapsuleBytes, hashRuntimeCapsuleValue } from '@/lib/runtime-
 import { ServiceError } from '@/services/shared/errors'
 import { TestRunArtifactAccessService } from '@/services/test-run/test-run-artifact-access-service'
 import type { TriageInput } from './quality-journey-triage-input'
+import {
+  assertCoordinatorAttemptSession,
+  type CoordinatorSessionCredentials,
+} from './quality-journey-coordinator-session'
+import { readInternalTriagerAssignment } from './quality-journey-triage-service'
 import { externalAssignmentSecretHash } from './quality-journey-service'
 
 function conflict(message: string): never {
@@ -240,7 +245,11 @@ function assertLiveAuthorization(input: EvidenceReadInput, records: LeaseRecords
 }
 
 /** The worker's lease is required for bytes, unlike historical triage context. */
-async function assertTriageEvidenceLease(input: EvidenceReadInput, client: PrismaClient) {
+async function assertTriageEvidenceLease(
+  input: EvidenceReadInput,
+  client: PrismaClient,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
   const records = await loadLeaseRecords(input, client)
   const frozen = parseFrozenTriageInput(records)
   assertActiveTriageCycle(records, frozen)
@@ -248,8 +257,24 @@ async function assertTriageEvidenceLease(input: EvidenceReadInput, client: Prism
   assertAttemptIdentity(input, records)
   assertLiveAttempt(records)
   assertLiveAuthorization(input, records)
+  if (records.journey.hostingMode === 'APP_SERVER_LOCAL_V1')
+    await client.$transaction(async tx => {
+      if (!coordinatorSession || typeof coordinatorSession !== 'object')
+        unauthorized('Triager evidence requires its current worker session.')
+      await assertCoordinatorAttemptSession(
+        {
+          ...coordinatorSession,
+          journeyId: input.journeyId,
+          targetProjectId: input.targetProjectId,
+          attemptId: input.attemptId,
+        },
+        tx,
+      )
+      await readInternalTriagerAssignment(records.journey, records.item, tx)
+    })
   if (!frozen.runs.some(run => run.evidenceReceiptId === input.receiptId))
     unauthorized('Triager evidence lease or receipt authority is invalid.')
+  return frozen.runs.find(run => run.evidenceReceiptId === input.receiptId)!
 }
 
 async function loadSealedReceipt(input: EvidenceReadInput, client: PrismaClient) {
@@ -363,10 +388,15 @@ function pageArtifact(
 
 /** Reads only a report/log descriptor that the runtime sealed into this exact
  * Journey evidence receipt. Stored paths remain internal to artifact access. */
-export async function readQualityJourneyTriageEvidence(value: unknown, client: PrismaClient = prisma) {
+export async function readQualityJourneyTriageEvidence(
+  value: unknown,
+  client: PrismaClient = prisma,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
   const input = qualityJourneyTriageEvidenceReadSchema.parse(value)
-  await assertTriageEvidenceLease(input, client)
+  const frozenRun = await assertTriageEvidenceLease(input, client, coordinatorSession)
   const receipt = await loadSealedReceipt(input, client)
+  if (frozenRun.receiptHash !== receipt.receiptHash) conflict('Sealed evidence differs from the frozen assignment.')
   const evidence = parseSealedEvidence(receipt)
   assertEvidenceScope(input, receipt, evidence)
   const run = findEvidenceRun(receipt)
@@ -374,6 +404,6 @@ export async function readQualityJourneyTriageEvidence(value: unknown, client: P
   const artifact = sealedArtifact(evidence, input)
   const read = await readVerifiedArtifact(input, evidence, artifact, client)
   // Revocation, replacement, and lease expiry can occur while artifact I/O is in progress.
-  await assertTriageEvidenceLease(input, client)
+  await assertTriageEvidenceLease(input, client, coordinatorSession)
   return pageArtifact(input, receipt, artifact, read)
 }

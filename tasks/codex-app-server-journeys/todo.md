@@ -1,3 +1,7 @@
+> M10 adds [internal Triager and lifecycle](../../docs/quality-journey-internal-triage.md) on M09 merge `38c2ca82`.
+> Disposable verification is scoped separately from runtime/provider qualification, which remains open.
+> Earlier roadmap checkpoints below are historical evidence.
+
 > M08 implements [internal Discovery](../../docs/quality-journey-internal-discovery.md) from M07 merge
 > `84fce1cd` with M06 merge `e8adf05b` in its ancestry. M06 STOP and spent-attempt evidence remain historical.
 > The M08 fixture scope covers anonymous discovery and protected-access denial. A live protected-access run needs
@@ -196,7 +200,9 @@ Provider and runtime qualification remain open.
 
 ### M10: Enable Triager and complete the lifecycle
 
-- [ ] Implement and verify this slice.
+- [x] Implement and verify this slice within disposable internal scope.
+
+See [M10 evidence and qualification limits](M10-VERIFICATION.md).
 
 **Dependencies:** M09. **Estimated scope:** M; split further before implementation if the actual diff spans independent concerns.
 

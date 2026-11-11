@@ -65,7 +65,8 @@ export class CapsuleExecutorAdapter {
       if (globalThis.process.platform === 'win32')
         throw new Error('Capsule process-group execution requires a supported POSIX host.')
       const process = await spawnOwnedProcessGroup(receipt.command.executable, receipt.command.executionArgv, {
-        supervisorPath: path.join(this.appraiseRoot, 'scripts/owned-process-supervisor.mjs'),
+        // Capsule storage is data, not the installed application runtime.
+        supervisorPath: path.join(globalThis.process.cwd(), 'scripts/owned-process-supervisor.mjs'),
         requireRuntimeBrowserClose: true,
         cwd: input.capsuleRoot,
         env: sealedEnvironment,
