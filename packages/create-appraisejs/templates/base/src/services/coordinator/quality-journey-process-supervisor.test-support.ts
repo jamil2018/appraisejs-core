@@ -75,7 +75,10 @@ export function inertSupervisorFixture(
       launch,
       validateReadiness: () => true,
     },
-    { qualityJourneyProviderObservation: { create } } as unknown as PrismaClient,
+    {
+      qualityJourneyProviderObservation: { create },
+      $queryRawUnsafe: async () => [{ name: 'main', file: process.execPath }],
+    } as unknown as PrismaClient,
   )
   return { supervisor, child, launch, create }
 }

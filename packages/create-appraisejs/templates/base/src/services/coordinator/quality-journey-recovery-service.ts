@@ -1,3 +1,4 @@
+import { stopOwnedQualityJourneyTurns, readOwnedJourneyTurnDatabaseIdentity } from './quality-journey-owned-turns'
 import { hasUnreconciledProviderEffects, invalidateUnsentProviderIntents } from './quality-journey-provider-recovery'
 import { createHash } from 'node:crypto'
 import type { Prisma, PrismaClient, QualityJourney } from '@prisma/client'
@@ -16,7 +17,12 @@ import {
 import { assertQualityJourneyRecoverable } from './quality-journey-terminal'
 
 type Scope = { journeyId: string; targetProjectId: string }
-type CleanupTargets = { browserSessionIds: string[]; executionCycleIds: string[] }
+type CleanupTargets = {
+  browserSessionIds: string[]
+  executionCycleIds: string[]
+  managedAttemptIds: string[]
+  managedDatabaseIdentity?: string
+}
 type OperationalInput = Scope & {
   expectedStateHash: string
   expectedVersion: number
@@ -44,19 +50,26 @@ type CleanupObservation = Awaited<ReturnType<typeof cleanupOwnedWork>>
 function parseCleanupTargets(payload: { cleanupTargets?: unknown }): CleanupTargets {
   const targets = payload.cleanupTargets
   if (!targets || typeof targets !== 'object') throw conflict('Operational pause cleanup targets are unavailable.')
-  const { browserSessionIds, executionCycleIds } = targets as Partial<CleanupTargets>
+  const {
+    browserSessionIds,
+    executionCycleIds,
+    managedAttemptIds = [],
+    managedDatabaseIdentity,
+  } = targets as Partial<CleanupTargets>
   if (
     !Array.isArray(browserSessionIds) ||
     !browserSessionIds.every(id => typeof id === 'string') ||
     !Array.isArray(executionCycleIds) ||
-    !executionCycleIds.every(id => typeof id === 'string')
+    !executionCycleIds.every(id => typeof id === 'string') ||
+    !Array.isArray(managedAttemptIds) ||
+    !managedAttemptIds.every(id => typeof id === 'string')
   )
     throw conflict('Operational pause cleanup targets are invalid.')
-  return { browserSessionIds, executionCycleIds }
+  return { browserSessionIds, executionCycleIds, managedAttemptIds, managedDatabaseIdentity }
 }
 
 async function captureCleanupTargets(scope: Scope, tx: Prisma.TransactionClient): Promise<CleanupTargets> {
-  const [browsers, cycles] = await Promise.all([
+  const [browsers, cycles, attempts] = await Promise.all([
     tx.qualityJourneyOwnedBrowser.findMany({
       where: {
         journeyId: scope.journeyId,
@@ -73,8 +86,24 @@ async function captureCleanupTargets(scope: Scope, tx: Prisma.TransactionClient)
       },
       select: { id: true },
     }),
+    tx.qualityJourneyWorkAttempt.findMany({
+      where: {
+        workItem: { journeyId: scope.journeyId, targetProjectId: scope.targetProjectId },
+        OR: [
+          { providerRun: { isNot: null } },
+          {
+            executionMode: 'EXTERNAL_V1',
+            status: { in: ['CLAIMED', 'WORKER_REQUESTED', 'IN_PROGRESS', 'DISPATCH_UNRESOLVED'] },
+          },
+        ],
+      },
+      select: { id: true },
+    }),
   ])
   return {
+    // Identity capture failure must not roll back the canonical pause fence. No identity means no handle selection.
+    managedDatabaseIdentity: await readOwnedJourneyTurnDatabaseIdentity(tx).catch(() => undefined),
+    managedAttemptIds: attempts.map(row => row.id).sort(),
     browserSessionIds: browsers.map(row => row.sessionId).sort(),
     executionCycleIds: cycles.map(row => row.id).sort(),
   }
@@ -275,8 +304,8 @@ async function transition(
       data: { status: to, version: { increment: 1 } },
     })
     if (changed.count !== 1) throw conflict('Quality Journey operational status changed concurrently.')
-    if (operation === 'PAUSE') await fenceExternalWork(input, tx)
     const cleanupTargets = operation === 'PAUSE' ? await captureCleanupTargets(input, tx) : null
+    if (operation === 'PAUSE') await fenceExternalWork(input, tx)
     await appendOperationalEvent(operation, input, journey, eventId, requestHash, to, tx, cleanupTargets)
     if (operation === 'RESUME') await publishSealedCyclesBeforeResumeCommit(input, tx)
     const latestJourney = await tx.qualityJourney.findUniqueOrThrow({ where: { id: journey.id } })
@@ -445,11 +474,13 @@ async function cleanupOwnedExecution(input: Scope, targets: CleanupTargets, clie
 }
 
 async function cleanupOwnedWork(input: Scope, targets: CleanupTargets, client: PrismaClient) {
+  const managed = await stopOwnedQualityJourneyTurns(input, targets.managedAttemptIds, targets.managedDatabaseIdentity)
   const browser = await cleanupOwnedBrowser(input, targets, client)
   const execution = await cleanupOwnedExecution(input, targets, client)
   return {
     ...browser,
     ...execution,
+    ...managed,
     externalCodex: 'UNKNOWN' as const,
   }
 }
@@ -535,6 +566,8 @@ export async function pauseQualityJourneyOperational(input: PauseQualityJourneyI
     transitionResult.journey.status === 'PAUSED' && transitionResult.currentOperationalReceipt
       ? await cleanupOwnedWork(input, transitionResult.cleanupTargets!, client)
       : {
+          managedTurn: 'UNKNOWN',
+          managedTurnReceipts: [],
           browser: 'UNKNOWN' as const,
           execution: 'UNKNOWN' as const,
           externalCodex: 'UNKNOWN' as const,

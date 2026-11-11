@@ -40,5 +40,5 @@ revision and state and rechecks approved Analysis, execution, blockers and unres
 
 The M08 browser-evidence and access-parking rules, staged E2 invalidation fence, M07 polling/project isolation/exact
 forms/external desktop handoff, and M09 approval/resource/consent boundaries remain applicable. Runtime and provider
-qualification, live protected access, production dispatch, public managed opt-in and M11+ remain open. The M06 STOP
+qualification, live protected access, production dispatch, public managed opt-in and M12+ remain open. [M11](../tasks/codex-app-server-journeys/M11-VERIFICATION.md) verifies deferred internal publication through pause and fresh-client resume; its synthetic terminal-state fixture does not qualify physical runtime execution. The M06 STOP
 and spent-attempt evidence retain their original meaning.

@@ -18,9 +18,9 @@ type Operation = 'pause' | 'resume'
 type PendingRequest = { operation: Operation; key: string; reason: string; stateHash: string; version: number }
 
 function cleanupSummary(data: unknown) {
-  const cleanup = (data as { cleanup?: { browser: string; execution: string } } | null)?.cleanup
+  const cleanup = (data as { cleanup?: { browser: string; execution: string; managedTurn?: string } } | null)?.cleanup
   return cleanup
-    ? `Owned browser cleanup: ${cleanup.browser.toLowerCase()}; execution cleanup: ${cleanup.execution.toLowerCase()}. External Codex task status is unknown.`
+    ? `Owned browser cleanup: ${cleanup.browser.toLowerCase()}; execution cleanup: ${cleanup.execution.toLowerCase()}.${cleanup.managedTurn ? ` Owned agent cleanup: ${cleanup.managedTurn.toLowerCase()}.` : ''} External Codex task status is unknown.`
     : 'Operational status updated.'
 }
 
@@ -72,8 +72,8 @@ export function JourneyRecoveryPanel(props: Props) {
         <CardTitle>{props.status === 'PAUSED' ? 'Journey paused' : 'Operational control'}</CardTitle>
         <CardDescription>
           {props.status === 'PAUSED'
-            ? 'Resume after owned browser and execution cleanup has been reconciled. Accepted decisions and artifacts remain available.'
-            : 'Pause new journey work and request cleanup of Appraise-owned browser and execution processes. An external Codex task cannot be stopped here.'}
+            ? 'Resume after owned browser, agent and execution cleanup has been reconciled. Accepted decisions and artifacts remain available.'
+            : 'Pause new journey work and request cleanup of Appraise-owned browser, agent and execution processes. An external Codex task cannot be stopped here.'}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">

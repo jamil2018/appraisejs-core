@@ -12,7 +12,7 @@ import {
   claimQualityJourneyWork,
   publishInternalRuntimeCycleResultInTransaction,
 } from './quality-journey-service'
-import type { Prisma } from '@prisma/client'
+import { PrismaClient, type Prisma } from '@prisma/client'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import {
   grantQualityJourneyExecutionConsent,
@@ -23,7 +23,11 @@ import {
   approveQualityJourneyRerun,
   startQualityJourneyRerun,
 } from './quality-journey-execution-service'
-import { reconcileQualityJourneyExecutionRuntime } from './quality-journey-runtime-service'
+import {
+  reconcileQualityJourneyExecutionRuntime,
+  reconcileSealedQualityJourneyExecutionRuntimeInTransaction,
+} from './quality-journey-runtime-service'
+import { pauseQualityJourneyOperational, resumeQualityJourneyOperational } from './quality-journey-recovery-service'
 import {
   getQualityJourneyTriage,
   prepareQualityJourneyTriage,
@@ -249,6 +253,126 @@ describe('M10 deterministic disposable Journey integration', () => {
     expect(await f.client.runtimeCapsule.count()).toBe(0)
     expect(await f.client.testRun.count()).toBe(0)
     expect(await f.client.qualityJourneyProviderRun.count()).toBe(0)
+  }, 30_000)
+
+  it('defers sealed synthetic internal runtime evidence while paused and publishes exactly once after a client restart', async () => {
+    const f = await preparation()
+    const { cycle, run } = await reserveSyntheticExecution(f)
+    const before = await f.client.qualityJourney.findUniqueOrThrow({ where: { id: f.scope.journeyId } })
+    expect(before).toMatchObject({ hostingMode: 'APP_SERVER_LOCAL_V1', status: 'ACTIVE', stage: 'EXECUTION' })
+    // Reuse the recovery suite's post-commit crash seam: pause authority persists,
+    // while cleanup has not yet terminalized the inert RESERVED run.
+    const crashingClient = new Proxy(f.client, {
+      get(target, property) {
+        if (property !== '$transaction') return Reflect.get(target, property)
+        return async (callback: (tx: Prisma.TransactionClient) => Promise<unknown>) => {
+          await target.$transaction(callback)
+          throw new Error('Injected process crash after pause commit, before cleanup')
+        }
+      },
+    })
+    await expect(
+      pauseQualityJourneyOperational(
+        {
+          ...f.scope,
+          expectedStateHash: before.stateHash,
+          expectedVersion: before.version,
+          idempotencyKey: 'm11-pause-synthetic-runtime',
+          reason: 'Verify deferred internal publication without physical runtime effects.',
+        },
+        crashingClient,
+      ),
+    ).rejects.toThrow('Injected process crash')
+    const paused = await f.client.qualityJourney.findUniqueOrThrow({ where: { id: f.scope.journeyId } })
+    expect(paused).toMatchObject({
+      status: 'PAUSED',
+      stage: 'EXECUTION',
+      stateHash: before.stateHash,
+      version: before.version + 1,
+    })
+    expect(await f.client.qualityJourneyExecutionEvidenceReceipt.count()).toBe(0)
+    // Only terminal status is synthetic. The production reconciler seals the bound receipt,
+    // including its honest absence of report/log bytes; no browser or provider executes.
+    await f.client.testRun.update({
+      where: { id: run.testRunId },
+      data: { status: 'COMPLETED', result: 'FAILED', evidenceHealth: 'valid' },
+    })
+    await reconcileQualityJourneyExecutionRuntime({ executionCycleId: cycle.id }, f.client)
+    const sealed = await f.client.qualityJourneyExecutionEvidenceReceipt.findFirstOrThrow({
+      where: { executionCycleId: cycle.id },
+    })
+    const storedCycle = await f.client.qualityJourneyExecutionCycle.findUniqueOrThrow({ where: { id: cycle.id } })
+    const evidence = JSON.parse(sealed.evidenceJson)
+    expect(evidence).toMatchObject({
+      ...f.scope,
+      executionCycleId: cycle.id,
+      cycleId: storedCycle.cycleId,
+      testRunId: run.testRunId,
+      runId: run.runId,
+      preparedCapsuleId: f.prepared[0]!.id,
+      preparedCapsulesHash: storedCycle.preparedCapsulesHash,
+      environmentSnapshotHash: storedCycle.environmentSnapshotHash,
+      status: 'COMPLETED',
+      result: 'FAILED',
+      artifacts: [],
+      missingArtifacts: ['report', 'log'],
+    })
+    expect(sealed.receiptHash).toBe(hash(evidence))
+    expect(storedCycle.status).toBe('COMPLETED')
+    expect(
+      await f.client.$transaction(tx => reconcileSealedQualityJourneyExecutionRuntimeInTransaction(cycle.id, tx)),
+    ).toBe(true)
+    expect(await f.client.qualityJourney.findUniqueOrThrow({ where: { id: f.scope.journeyId } })).toMatchObject({
+      status: 'PAUSED',
+      stage: 'EXECUTION',
+      stateHash: before.stateHash,
+      version: paused.version,
+    })
+    const publicationWhere = { journeyId: f.scope.journeyId, idempotencyKey: `execution-result:${cycle.id}` }
+    expect(await f.client.qualityJourneyCommand.count({ where: publicationWhere })).toBe(0)
+    expect(await f.client.qualityJourneyEvent.count({ where: { eventType: 'COMMAND_PUBLISH_RUN_RESULT' } })).toBe(0)
+    await f.client.$disconnect()
+    const restarted = new PrismaClient({ datasources: { db: { url: `file:${f.databasePath}` } } })
+    try {
+      const resume = {
+        ...f.scope,
+        expectedStateHash: paused.stateHash,
+        expectedVersion: paused.version,
+        idempotencyKey: 'm11-resume-synthetic-runtime',
+      }
+      const resumed = await resumeQualityJourneyOperational(resume, restarted)
+      expect(resumed).toMatchObject({ operationalStatus: 'ACTIVE', replayed: false, version: paused.version + 2 })
+      const journey = await restarted.qualityJourney.findUniqueOrThrow({ where: { id: f.scope.journeyId } })
+      expect(journey).toMatchObject({ status: 'ACTIVE', stage: 'TRIAGE', version: resumed.version })
+      expect(journey.stateHash).not.toBe(before.stateHash)
+      const publication = await restarted.qualityJourneyCommand.findFirstOrThrow({ where: publicationWhere })
+      expect(JSON.parse(publication.requestJson)).toMatchObject({
+        command: 'PUBLISH_RUN_RESULT',
+        actor: 'MANAGED_RUNTIME',
+        payload: { testRunIds: [run.testRunId], evidenceReceiptIds: [sealed.id] },
+      })
+      const snapshot = async () => ({
+        journey: await restarted.qualityJourney.findUniqueOrThrow({ where: { id: f.scope.journeyId } }),
+        commands: await restarted.qualityJourneyCommand.count(),
+        events: await restarted.qualityJourneyEvent.count(),
+        receipts: await restarted.qualityJourneyExecutionEvidenceReceipt.findMany(),
+      })
+      const accepted = await snapshot()
+      expect(await resumeQualityJourneyOperational(resume, restarted)).toMatchObject({
+        replayed: true,
+        eventId: resumed.eventId,
+        operationalStatus: 'ACTIVE',
+        version: resumed.version,
+      })
+      expect(await snapshot()).toEqual(accepted)
+      expect(accepted.receipts).toEqual([sealed])
+      expect(await restarted.qualityJourneyCommand.count({ where: publicationWhere })).toBe(1)
+      expect(await restarted.qualityJourneyEvent.count({ where: { eventType: 'COMMAND_PUBLISH_RUN_RESULT' } })).toBe(1)
+      expect(await restarted.qualityJourneyEvent.count({ where: { eventType: 'OPERATIONAL_RESUME' } })).toBe(1)
+      expect(await restarted.qualityJourneyProviderRun.count()).toBe(0)
+    } finally {
+      await restarted.$disconnect()
+    }
   }, 30_000)
 
   it('shares exact report identity and lineage refusal across versioned ingress and scoped MCP', async () => {

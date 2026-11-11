@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { expect, test } from '@playwright/test'
 
 import prisma from '../src/config/db-config'
+import { createTargetProjectFixture } from '../src/test/migrated-test-database'
 import { hashQualityJourneyExecutionValue as hash } from '../src/lib/quality-journey'
 import { createQualityJourney } from '../src/services/coordinator/quality-journey-service'
 
@@ -16,15 +17,13 @@ async function seedTriageReport() {
   const assignmentId = `assignment-${targetProjectId}`
   const reportRevisionId = `report-${targetProjectId}`
 
-  await prisma.targetProject.create({
-    data: {
-      id: targetProjectId,
-      kind: 'LOCAL_WORKSPACE',
-      canonicalIdentity: `e2e-triage:${targetProjectId}`,
-      canonicalPath: `/tmp/${targetProjectId}`,
-      displayName: 'Journey triage browser test',
-      fingerprint: hash(targetProjectId),
-    },
+  await createTargetProjectFixture(prisma, {
+    id: targetProjectId,
+    kind: 'LOCAL_WORKSPACE',
+    canonicalIdentity: `e2e-triage:${targetProjectId}`,
+    canonicalPath: `/tmp/${targetProjectId}`,
+    displayName: 'Journey triage browser test',
+    fingerprint: hash(targetProjectId),
   })
   await prisma.environment.create({
     data: { id: environmentId, targetProjectId, name: 'triage local', baseUrl: 'https://example.test' },

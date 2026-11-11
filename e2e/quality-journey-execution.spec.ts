@@ -1,19 +1,19 @@
 import { randomUUID } from 'node:crypto'
 import { test, expect } from '@playwright/test'
 import prisma from '../src/config/db-config'
+import { createTargetProjectFixture } from '../src/test/migrated-test-database'
+import { hashQualityJourneyExecutionValue as hash } from '../src/lib/quality-journey'
 import { createQualityJourney } from '../src/services/coordinator/quality-journey-service'
 
 test('Journey execution overview renders safely before materialization @smoke', async ({ page, context, baseURL }) => {
   const targetProjectId = randomUUID()
-  await prisma.targetProject.create({
-    data: {
-      id: targetProjectId,
-      kind: 'LOCAL_WORKSPACE',
-      canonicalIdentity: `e2e:${targetProjectId}`,
-      canonicalPath: `/tmp/${targetProjectId}`,
-      displayName: 'Journey execution browser test',
-      fingerprint: `sha256:${'a'.repeat(64)}`,
-    },
+  await createTargetProjectFixture(prisma, {
+    id: targetProjectId,
+    kind: 'LOCAL_WORKSPACE',
+    canonicalIdentity: `e2e:${targetProjectId}`,
+    canonicalPath: `/tmp/${targetProjectId}`,
+    displayName: 'Journey execution browser test',
+    fingerprint: hash(targetProjectId),
   })
   const created = await createQualityJourney({
     targetProjectId,

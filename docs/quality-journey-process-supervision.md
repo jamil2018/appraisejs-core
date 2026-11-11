@@ -1,3 +1,5 @@
+> M11 connects [human pause and recovery](quality-journey-recovery.md) to original live supervisor cancellation. The private registry is scoped to captured attempt and canonical database identities; it never reconstructs a process from persisted identifiers. Earlier milestone checkpoints below retain their historical scope.
+
 > The synthetic M06 repair adds [original source custody and exact committed replay](quality-journey-source-custody.md). Its NONSTART evidence uses the canonical writer and first-write barrier; M05 process shutdown alone still releases nothing. Real-provider/TERMINAL authority, production dispatch and full M06 remain separately blocked.
 
 > M06 repository continuation adds [internal Analysis fixture delivery and blocked follow-up observation](quality-journey-analysis-delivery.md). The consumed-slot and physical-reconciliation boundary is unchanged; full M06 remains incomplete. Earlier milestone scope statements below retain their historical meaning.
