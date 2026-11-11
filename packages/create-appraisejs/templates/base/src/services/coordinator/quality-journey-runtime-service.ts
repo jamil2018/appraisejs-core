@@ -12,7 +12,10 @@ import { processManager } from '@/lib/test-run/process-manager'
 import { RuntimeCapsuleTestRunService } from '@/services/test-run/runtime-capsule-test-run-service'
 import { TestRunArtifactAccessService } from '@/services/test-run/test-run-artifact-access-service'
 import { ServiceError } from '@/services/shared/errors'
-import { submitDurableQualityJourneyCommandInTransaction } from './quality-journey-service'
+import {
+  publishInternalRuntimeCycleResultInTransaction,
+  submitDurableQualityJourneyCommandInTransaction,
+} from './quality-journey-service'
 import { validateRetainedExecutionUseForTestRunInTransaction } from './quality-journey-shared-resource-use-service'
 
 type RuntimeInput = { executionCycleId: string }
@@ -437,12 +440,6 @@ export async function reconcileQualityJourneyExecutionRuntime(
     const state = await tx.qualityJourney.findUniqueOrThrow({ where: { id: result.cycle.journeyId } })
     assertQualityJourneyRecoverable(state)
     for (const receipt of result.receipts) await tx.qualityJourneyExecutionEvidenceReceipt.create({ data: receipt })
-    await publishTerminalCycleResult(
-      state,
-      result.cycle,
-      result.receipts.map(item => item.id),
-      tx,
-    )
     await tx.qualityJourneyExecutionCycle.update({
       where: { id: result.cycle.id },
       data: {
@@ -450,6 +447,12 @@ export async function reconcileQualityJourneyExecutionRuntime(
         completedAt: new Date(),
       },
     })
+    await publishTerminalCycleResult(
+      state,
+      result.cycle,
+      result.receipts.map(item => item.id),
+      tx,
+    )
     for (const binding of result.cycle.testRuns)
       await tx.qualityJourneyExecutionTestRun.updateMany({
         where: { id: binding.id, status: { in: ['LAUNCHING', 'RUNNING'] } },
@@ -466,32 +469,36 @@ async function publishTerminalCycleResult(
     stage: string
     activeCycleId: string
     stateHash: string
+    hostingMode: string
   },
   cycle: { id: string; cycleId: string; testRuns: Array<{ testRunId: string }> },
   receiptIds: string[],
   tx: Prisma.TransactionClient,
 ) {
   if (state.status === 'ACTIVE' && state.stage === 'EXECUTION' && state.activeCycleId === cycle.cycleId) {
-    const published = await submitDurableQualityJourneyCommandInTransaction(
-      {
-        schemaVersion: 'appraise.quality-journey/v1',
-        command: 'PUBLISH_RUN_RESULT',
-        commandId: `qjc_result_${cycle.id.slice(-24)}`,
-        journeyId: state.id,
-        targetProjectId: state.targetProjectId,
-        actor: 'MANAGED_RUNTIME',
-        expectedStateHash: state.stateHash,
-        idempotencyKey: `execution-result:${cycle.id}`,
-        inputArtifactRefs: [],
-        payload: {
-          testRunIds: cycle.testRuns.map(item => item.testRunId).sort(),
-          evidenceReceiptIds: [...receiptIds].sort(),
-        },
-      },
-      tx,
-      true,
-      false,
-    )
+    const published =
+      state.hostingMode === 'APP_SERVER_LOCAL_V1'
+        ? await publishInternalRuntimeCycleResultInTransaction(cycle.id, tx)
+        : await submitDurableQualityJourneyCommandInTransaction(
+            {
+              schemaVersion: 'appraise.quality-journey/v1',
+              command: 'PUBLISH_RUN_RESULT',
+              commandId: `qjc_result_${cycle.id.slice(-24)}`,
+              journeyId: state.id,
+              targetProjectId: state.targetProjectId,
+              actor: 'MANAGED_RUNTIME',
+              expectedStateHash: state.stateHash,
+              idempotencyKey: `execution-result:${cycle.id}`,
+              inputArtifactRefs: [],
+              payload: {
+                testRunIds: cycle.testRuns.map(item => item.testRunId).sort(),
+                evidenceReceiptIds: [...receiptIds].sort(),
+              },
+            },
+            tx,
+            true,
+            false,
+          )
     if (published.outcome !== 'COMMITTED') throw conflict('Runtime result publication did not commit.')
   }
 }

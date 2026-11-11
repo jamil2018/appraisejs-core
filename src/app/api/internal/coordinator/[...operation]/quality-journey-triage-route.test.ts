@@ -80,18 +80,22 @@ it('dereferences only a bounded artifact through target-scoped POST lease author
     limit: 9,
   })
 
-  expect(mocks.evidence).toHaveBeenCalledWith({
-    journeyId: 'journey-1',
-    targetProjectId: 'target-1',
-    workItemId: 'work-1',
-    attemptId: 'attempt-1',
-    leaseId: 'lease-1',
-    ownerToken: 'owner-token',
-    receiptId: 'receipt-1',
-    artifactKind: 'report',
-    offset: 2,
-    limit: 9,
-  })
+  expect(mocks.evidence).toHaveBeenCalledWith(
+    {
+      journeyId: 'journey-1',
+      targetProjectId: 'target-1',
+      workItemId: 'work-1',
+      attemptId: 'attempt-1',
+      leaseId: 'lease-1',
+      ownerToken: 'owner-token',
+      receiptId: 'receipt-1',
+      artifactKind: 'report',
+      offset: 2,
+      limit: 9,
+    },
+    undefined,
+    undefined,
+  )
   expect(response?.status).toBe(200)
 })
 

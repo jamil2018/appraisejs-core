@@ -43,6 +43,8 @@ to run excluded parity tests or record them in their certification receipt.
 
 The repository's swarm-routing configuration, agents, ledger utilities, development-harness catalogs, learning records,
 and harness-only commands are also excluded.
+M10 disposable lifecycle fixtures and its scoped Triager gateway are repository-only; canonical Triager readiness,
+acceptance and sealed-evidence validation are synchronized normally.
 Phase-0 and managed-Journey qualification scripts, fixtures, tests, and experimental worker gateways are likewise
 repository-only. Template preparation excludes those exact path families while retaining canonical Journey services,
 contracts, migrations, and product tests.

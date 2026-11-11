@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from 'node:crypto'
+import { createHash } from 'node:crypto'
 import type { PrismaClient } from '@prisma/client'
 import { z } from 'zod'
 
@@ -13,9 +13,10 @@ import {
 import {
   createManagedWorkerRegistrationProfile,
   executeManagedWorkerGatewayCall,
-  sealManagedWorkerRuntimeGrant,
+  createManagedWorkerAssignmentGrant,
   type CanonicalMcpDefinition,
 } from '@/lib/quality-journey/managed-worker-gateway'
+import { readInternalWorkerAuthority } from './quality-journey-internal-worker-authority'
 import { ServiceError } from '@/services/shared/errors'
 import {
   materializeInternalQualityJourneyApprovedScenarios,
@@ -28,7 +29,6 @@ import {
 } from './quality-journey-scenario-service'
 import {
   assertManagedWorkerSubmissionOutcome,
-  readCurrentExternalWorkAuthority,
   type ExternalQualityJourneySubmissionBinding,
 } from './quality-journey-service'
 
@@ -61,10 +61,7 @@ export async function createQualityJourneyInternalScenarioAutomationGateway(
   const profile = createManagedWorkerRegistrationProfile(role, canonicalDefinitions)
   const read = () =>
     client.$transaction(async tx => {
-      const { item, attempt } = await readCurrentExternalWorkAuthority(binding, tx)
-      const journey = await tx.qualityJourney.findUniqueOrThrow({ where: { id: journeyId } })
-      if (!attempt.authorizationId || !attempt.externalAdmissionId || item.currentAttempt !== attempt.attempt)
-        throw new ServiceError('Internal worker admission is stale.', 'UNAUTHORIZED')
+      const { journey, item, ...authority } = await readInternalWorkerAuthority(binding, tx)
       const assignment =
         role === 'TEST_SCENARIO_DESIGNER'
           ? {
@@ -77,32 +74,12 @@ export async function createQualityJourneyInternalScenarioAutomationGateway(
           : { role, ...(await readInternalAutomatorAssignment(journey, item, tx)) }
       return {
         assignment,
-        authorizationId: attempt.authorizationId,
-        roleContractDigest: item.roleContractDigest,
-        expiresAt: attempt.leaseExpiresAt.toISOString(),
+        ...authority,
       }
     })
   const original = await read()
   const originalDigest = hash(original.assignment)
-  const secret = randomBytes(32)
-  const sealedGrant = sealManagedWorkerRuntimeGrant(
-    {
-      target: targetProjectId,
-      targetProjectId,
-      journeyId,
-      workItemId,
-      role,
-      attemptId,
-      generation: binding.assignmentGeneration,
-      leaseId,
-      authorizationId: original.authorizationId,
-      inputHash: original.assignment.inputHash,
-      scopeHash: original.assignment.scopeHash,
-      profileDigest: profile.contractDigest,
-      expiresAt: original.expiresAt,
-    },
-    secret,
-  )
+  const { secret, sealedGrant } = createManagedWorkerAssignmentGrant(binding, profile, original)
 
   return {
     profile,

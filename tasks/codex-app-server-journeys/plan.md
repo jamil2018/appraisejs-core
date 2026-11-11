@@ -1,3 +1,7 @@
+> M10 adds [internal Triager and lifecycle](../../docs/quality-journey-internal-triage.md) on M09 merge `38c2ca82`.
+> Disposable verification is scoped separately from runtime/provider qualification, which remains open.
+> Earlier roadmap checkpoints below are historical evidence.
+
 > M09 implements [internal Scenario Designer and Automator](../../docs/quality-journey-internal-scenario-automation.md)
 > from M08 merge `308660c7`. Verification covers disposable scoped MCP and exact Browser review through preparation.
 > Runtime and provider qualification remain open. The earlier implementation checkpoints below are historical.

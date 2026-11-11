@@ -84,7 +84,9 @@ Triager text evidence reads authenticate the exact live leased attempt before re
 Managed attempts use their owner-token verifier and validated spawn receipt. Admitted `EXTERNAL_V1` attempts use
 the domain-separated assignment-secret verifier and canonical admission request/receipt bound to the Journey,
 target, work item, attempt, authorization and lease; they do not require or fabricate a Factory spawn receipt.
-Both paths reject malformed stored verifiers, expired leases and changed artifact bytes. External admission records
+Both paths reject malformed stored verifiers, expired leases and changed artifact bytes. Reads also compare the receipt
+hash with the exact frozen assignment. Internal Triager reads recompile the assigned sealed input before and after
+artifact I/O; changed or unsealed cycles cannot supply evidence. See [M10](quality-journey-internal-triage.md). External admission records
 `hostIsolation: NOT_ATTESTED`; successful evidence access does not establish host isolation.
 
 ## Operational pause and owned cleanup

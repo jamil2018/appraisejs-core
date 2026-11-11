@@ -136,6 +136,7 @@ describe('CapsuleExecutorAdapter credential handoff', () => {
     })
 
     const options = spawnOptions[0]!
+    expect(spawnOptions[0].supervisorPath).toBe(path.join(process.cwd(), 'scripts/owned-process-supervisor.mjs'))
     expect(options).toMatchObject({
       extendEnv: false,
       env: expect.objectContaining({

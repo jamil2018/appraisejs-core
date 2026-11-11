@@ -2,6 +2,16 @@ const EXCLUDED_DIRS = new Set(['node_modules', '.next', '.git', 'dist', 'graphif
 const EXCLUDED_EXTENSIONS = new Set(['.db', '.sqlite', '.sqlite3', '.tsbuildinfo'])
 const EXCLUDED_PATH_PREFIXES = ['automation/reports/']
 const REPOSITORY_ONLY_TEMPLATE_PREFIXES = [
+  'services/coordinator/quality-journey-internal-worker-authority.',
+  'src/services/coordinator/quality-journey-internal-worker-authority.',
+  'test/m10-',
+  'src/test/m10-',
+  'scripts/m10-',
+  'm10-',
+  'services/coordinator/quality-journey-internal-triage-gateway.',
+  'src/services/coordinator/quality-journey-internal-triage-gateway.',
+  'services/coordinator/quality-journey-m10-',
+  'src/services/coordinator/quality-journey-m10-',
   'scripts/test-harness/m06/',
   'test-harness/m06/',
   'fixtures/p0-',

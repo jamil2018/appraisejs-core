@@ -85,6 +85,7 @@ import {
   type QualityJourneyStage,
 } from '@/lib/quality-journey'
 import { ServiceError } from '@/services/shared/errors'
+import { getInternalTriagerReadiness } from './quality-journey-triage-readiness'
 import { getInternalScenarioAutomationReadiness } from './quality-journey-scenario-automation-readiness'
 import {
   getInternalDiscoveryReadiness,
@@ -2141,6 +2142,194 @@ export async function publishTriageReportWithBusinessJoinInTransaction(
   )
 }
 
+type InternalRuntimePublicationCycle = Prisma.QualityJourneyExecutionCycleGetPayload<{
+  include: { testRuns: { include: { testRun: true } }; evidenceReceipts: true }
+}>
+
+function matchesRuntimePublicationFields<T extends object>(actual: T, expected: Partial<T>) {
+  return (Object.keys(expected) as Array<keyof T>).every(field => actual[field] === expected[field])
+}
+
+function assertInternalRuntimePublicationScope(journey: QualityJourney, cycle: InternalRuntimePublicationCycle) {
+  if (
+    !matchesRuntimePublicationFields(journey, {
+      hostingMode: 'APP_SERVER_LOCAL_V1',
+      status: 'ACTIVE',
+      stage: 'EXECUTION',
+      activeCycleId: cycle.cycleId,
+    })
+  )
+    throw new ServiceError('Internal runtime publication requires the active sealed terminal cycle.', 'CONFLICT')
+  if (
+    !['COMPLETED', 'CANCELLED'].includes(cycle.status) ||
+    !cycle.testRuns.length ||
+    cycle.testRuns.length !== cycle.evidenceReceipts.length
+  )
+    throw new ServiceError('Internal runtime publication requires the active sealed terminal cycle.', 'CONFLICT')
+}
+
+function assertInternalRuntimeSealedResult(
+  cycle: InternalRuntimePublicationCycle,
+  binding: InternalRuntimePublicationCycle['testRuns'][number],
+) {
+  const invalid = () => new ServiceError('Internal runtime sealed result lineage is invalid.', 'CONFLICT')
+  const receipt = cycle.evidenceReceipts.find(row => row.testRunId === binding.testRunId)
+  if (!receipt) throw invalid()
+  const evidence = JSON.parse(receipt.evidenceJson) as Record<string, unknown> | null
+  if (!evidence) throw invalid()
+  if (hash(evidence) !== receipt.receiptHash) throw invalid()
+  if (hash(evidence.artifacts) !== receipt.runtimeBytesHash) throw invalid()
+  const run = binding.testRun
+  if (
+    !matchesRuntimePublicationFields(run, {
+      intent: 'QUALITY_JOURNEY',
+      targetProjectId: cycle.targetProjectId,
+      runId: binding.runId,
+    }) ||
+    !['COMPLETED', 'CANCELLED'].includes(run.status)
+  )
+    throw invalid()
+  if (
+    !matchesRuntimePublicationFields(evidence, {
+      journeyId: cycle.journeyId,
+      targetProjectId: cycle.targetProjectId,
+      cycleId: cycle.cycleId,
+      executionCycleId: cycle.id,
+      testRunId: run.id,
+      runId: run.runId,
+      preparedCapsuleId: binding.preparedCapsuleId,
+      preparedCapsulesHash: cycle.preparedCapsulesHash,
+      environmentSnapshotHash: cycle.environmentSnapshotHash,
+      status: run.status,
+      result: run.result,
+    })
+  )
+    throw invalid()
+}
+
+/** Fixed runtime-owned publication for disposable internal (non-E2) cycles.
+ * Persisted session lineage selects a CAS fence; it never supplies worker credentials.
+ * Only terminal bound TestRuns with a complete sealed receipt set can enter this child.
+ */
+export async function publishInternalRuntimeCycleResultInTransaction(
+  executionCycleId: string,
+  tx: Prisma.TransactionClient,
+) {
+  const cycle = await tx.qualityJourneyExecutionCycle.findUniqueOrThrow({
+    where: { id: executionCycleId },
+    include: { testRuns: { include: { testRun: true } }, evidenceReceipts: true },
+  })
+  const scope = { journeyId: cycle.journeyId, targetProjectId: cycle.targetProjectId }
+  await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, scope)
+  const journey = await readJourney(scope.journeyId, scope.targetProjectId, tx)
+  assertInternalRuntimePublicationScope(journey, cycle)
+  for (const binding of cycle.testRuns) assertInternalRuntimeSealedResult(cycle, binding)
+  const command = journeyCommandSchema.parse({
+    schemaVersion: 'appraise.quality-journey/v1',
+    command: 'PUBLISH_RUN_RESULT',
+    actor: 'MANAGED_RUNTIME',
+    commandId: `qjc_result_${cycle.id.slice(-24)}`,
+    ...scope,
+    expectedStateHash: journey.stateHash,
+    idempotencyKey: `execution-result:${cycle.id}`,
+    inputArtifactRefs: [],
+    payload: {
+      testRunIds: cycle.testRuns.map(row => row.testRunId).sort(),
+      evidenceReceiptIds: cycle.evidenceReceipts.map(row => row.id).sort(),
+    },
+  })
+  return withJourneyBusinessWriteJoinInTransaction(tx, scope, undefined, beforeWrite =>
+    submitDurableQualityJourneyCommandCore(
+      command,
+      tx,
+      beforeWrite,
+      true,
+      false,
+      undefined,
+      'RUNTIME_RESULT_PUBLICATION',
+    ),
+  )
+}
+
+async function fenceInternalRuntimePublication(journey: QualityJourney, tx: Prisma.TransactionClient) {
+  const session = journey.currentCoordinatorSessionId
+    ? await tx.qualityJourneyCoordinatorSession.findUnique({ where: { id: journey.currentCoordinatorSessionId } })
+    : null
+  if (
+    !session ||
+    session.journeyId !== journey.id ||
+    session.targetProjectId !== journey.targetProjectId ||
+    session.hostKind !== 'APP_SERVER_LOCAL_V1' ||
+    session.status !== 'ACTIVE' ||
+    session.fencedAt
+  )
+    throw new ServiceError('Internal runtime publication requires current ownership lineage.', 'CONFLICT')
+  const fenced = await tx.qualityJourney.updateMany({
+    where: {
+      id: journey.id,
+      targetProjectId: journey.targetProjectId,
+      ownershipVersion: journey.ownershipVersion,
+      currentCoordinatorSessionId: session.id,
+    },
+    data: { ownershipVersion: { increment: 1 }, updatedAt: journey.updatedAt },
+  })
+  if (fenced.count !== 1) throw new ServiceError('Runtime publication ownership changed concurrently.', 'CONFLICT')
+}
+
+type InternalCommandHandling = 'ORDINARY' | 'TRIAGE_REPORT_PUBLICATION' | 'RUNTIME_RESULT_PUBLICATION'
+const fixedPublicationCommands = {
+  TRIAGE_REPORT_PUBLICATION: { command: 'PUBLISH_TRIAGE_REPORT', actor: 'RUNNER', label: 'Triage' },
+  RUNTIME_RESULT_PUBLICATION: { command: 'PUBLISH_RUN_RESULT', actor: 'MANAGED_RUNTIME', label: 'Runtime' },
+} as const
+
+function assertFixedPublicationCommand(
+  command: JourneyCommand,
+  allowSpecializedCommand: boolean,
+  issueEligibleWorkItems: boolean,
+  handling: InternalCommandHandling,
+) {
+  if (handling === 'ORDINARY') return
+  const expected = fixedPublicationCommands[handling]
+  if (
+    command.command !== expected.command ||
+    command.actor !== expected.actor ||
+    !allowSpecializedCommand ||
+    issueEligibleWorkItems
+  )
+    throw new ServiceError(
+      `${expected.label} publication requires its fixed internal command boundary.`,
+      'UNAUTHORIZED',
+    )
+}
+
+async function assertCommandReplayAuthority(
+  handling: InternalCommandHandling,
+  coordinatorSession: CoordinatorSessionCredentials | undefined,
+  row: QualityJourney,
+  tx: Prisma.TransactionClient,
+) {
+  if (handling === 'RUNTIME_RESULT_PUBLICATION') return fenceInternalRuntimePublication(row, tx)
+  if (coordinatorSession === trustedHumanCoordinatorSession) return
+  await assertCurrentCoordinatorSession(
+    { ...coordinatorSession, journeyId: row.id, targetProjectId: row.targetProjectId },
+    tx,
+  )
+}
+
+async function assertCommandMutationAuthority(
+  handling: InternalCommandHandling,
+  coordinatorSession: CoordinatorSessionCredentials | undefined,
+  command: JourneyCommand,
+  row: QualityJourney,
+  tx: Prisma.TransactionClient,
+  beforeWrite: BeforeJourneyBusinessWrite,
+) {
+  const scope = { journeyId: command.journeyId, targetProjectId: command.targetProjectId }
+  if (handling === 'TRIAGE_REPORT_PUBLICATION') await beforeWrite(tx, scope)
+  if (handling === 'RUNTIME_RESULT_PUBLICATION') return fenceInternalRuntimePublication(row, tx)
+  await assertCoordinatorMutationSession(coordinatorSession, scope, tx)
+}
+
 async function submitDurableQualityJourneyCommandCore(
   value: unknown,
   tx: Prisma.TransactionClient,
@@ -2148,13 +2337,10 @@ async function submitDurableQualityJourneyCommandCore(
   allowSpecializedCommand: boolean,
   issueEligibleWorkItems: boolean,
   coordinatorSession: CoordinatorSessionCredentials | undefined,
-  handling: 'ORDINARY' | 'TRIAGE_REPORT_PUBLICATION',
+  handling: InternalCommandHandling,
 ) {
   const command = journeyCommandSchema.parse(value)
-  if (handling === 'TRIAGE_REPORT_PUBLICATION' &&
-    (command.command !== 'PUBLISH_TRIAGE_REPORT' || command.actor !== 'RUNNER' ||
-      !allowSpecializedCommand || issueEligibleWorkItems))
-    throw new ServiceError('Triage publication requires its fixed internal command boundary.', 'UNAUTHORIZED')
+  assertFixedPublicationCommand(command, allowSpecializedCommand, issueEligibleWorkItems, handling)
   if (
     !allowSpecializedCommand &&
     [
@@ -2180,20 +2366,10 @@ async function submitDurableQualityJourneyCommandCore(
     where: { journeyId_idempotencyKey: { journeyId: row.id, idempotencyKey: command.idempotencyKey } },
   })
   if (existing) {
-    if (coordinatorSession !== trustedHumanCoordinatorSession)
-      await assertCurrentCoordinatorSession(
-        { ...coordinatorSession, journeyId: row.id, targetProjectId: row.targetProjectId },
-        tx,
-      )
+    await assertCommandReplayAuthority(handling, coordinatorSession, row, tx)
     return replayCommand(command, row, existing)
   }
-  if (handling === 'TRIAGE_REPORT_PUBLICATION')
-    await beforeWrite(tx, { journeyId: command.journeyId, targetProjectId: command.targetProjectId })
-  await assertCoordinatorMutationSession(
-    coordinatorSession,
-    { journeyId: command.journeyId, targetProjectId: command.targetProjectId },
-    tx,
-  )
+  await assertCommandMutationAuthority(handling, coordinatorSession, command, row, tx, beforeWrite)
 
   assertQualityJourneyMutable(row)
   const preconditionConflict = await runnerPreconditionConflict(command, row, tx)
@@ -2665,8 +2841,8 @@ export async function claimQualityJourneyWork(input: WorkClaimInput, client: Pri
     if (!item) throw new ServiceError('No eligible Quality Journey work item is available.', 'CONFLICT')
     if (isInternalDiscoveryRole(journey, item.role))
       throw new ServiceError('Internal Discovery work requires versioned admission.', 'UNAUTHORIZED')
-    if (journey.hostingMode === 'APP_SERVER_LOCAL_V1' && ['TEST_SCENARIO_DESIGNER', 'AUTOMATOR'].includes(item.role))
-      throw new ServiceError('Internal Scenario and Automation work requires versioned admission.', 'UNAUTHORIZED')
+    if (journey.hostingMode === 'APP_SERVER_LOCAL_V1' && ['TEST_SCENARIO_DESIGNER', 'AUTOMATOR', 'TRIAGER'].includes(item.role))
+      throw new ServiceError('Internal Scenario, Automation and Triager work requires versioned admission.', 'UNAUTHORIZED')
     await assertSpecializedTriagerClaim(item, journey, tx)
     const authorization = await readIssuedClaimAuthorization(item, tx)
     const { authorizationPayload, inputArtifacts, inputHash, projectionHash, attempt } =
@@ -2875,6 +3051,12 @@ async function assertInternalAssignmentReady(
   tx: Prisma.TransactionClient,
 ) {
   if (journey.hostingMode !== 'APP_SERVER_LOCAL_V1') return
+  if (item.role === 'TRIAGER') {
+    const assertReady = getInternalTriagerReadiness()
+    if (!assertReady) throw new ServiceError('Internal Triager readiness is unavailable.', 'CONFLICT')
+    await assertReady(journey, item, tx)
+    return
+  }
   if (item.role === 'TEST_SCENARIO_DESIGNER' || item.role === 'AUTOMATOR') {
     const assertReady = getInternalScenarioAutomationReadiness(item.role)
     if (!assertReady) throw new ServiceError('Internal Scenario or Automation readiness is unavailable.', 'CONFLICT')

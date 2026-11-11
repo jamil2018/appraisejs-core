@@ -206,6 +206,12 @@ Independent Test Runs remain available for authoring feedback, execution diagnos
 closure. Journey-created Test Runs have `intent=QUALITY_JOURNEY` and require their exact
 `QualityJourneyExecutionTestRun` binding.
 
+## Internal Triager composition
+
+[M10 internal Triager](quality-journey-internal-triage.md) composes the versioned specialized assignment with an
+attempt-scoped worker MCP. Shared readiness and canonical report acceptance enforce the exact sealed input and
+Appraise-issued report identity across both scoped MCP and direct ingress. Human lifecycle controls remain unchanged.
+
 ## Results, corrections, and terminal review
 
 After an execution cycle is terminal, Appraise prepares a Triager assignment from its sealed Journey TestRun and
