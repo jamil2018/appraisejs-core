@@ -7,7 +7,7 @@ import { initializeNewTargetSharedResourceCoverage } from '@/services/coordinato
 
 let migratedTestDatabasePromise: Promise<string> | undefined
 
-async function migratedTestDatabase(): Promise<string> {
+export async function prepareMigratedTestDatabase(): Promise<string> {
   migratedTestDatabasePromise ??= (async () => {
     const workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-migrated-test-db-'))
     const databasePath = path.join(workspace, 'template.db')
@@ -22,7 +22,7 @@ async function migratedTestDatabase(): Promise<string> {
 }
 
 export async function copyMigratedTestDatabase(databasePath: string): Promise<void> {
-  await fs.copyFile(await migratedTestDatabase(), databasePath)
+  await fs.copyFile(await prepareMigratedTestDatabase(), databasePath)
 }
 
 export async function createTargetProjectFixture(
