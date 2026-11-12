@@ -1,3 +1,5 @@
+> M11 adds [internal pause, interruption and restart](../../tasks/codex-app-server-journeys/M11-VERIFICATION.md), preserving UNKNOWN, physical reconciliation and Appraise-owned lifecycle gates. Runtime/provider qualification remains open.
+
 > Current repository checkpoint: M06 PR #307 and M07 PR #308 are merged. [M08 internal Discovery](../quality-journey-internal-discovery.md)
 > [M09 internal Scenario Designer and Automator](../quality-journey-internal-scenario-automation.md),
 > and [M10 internal Triager](../quality-journey-internal-triage.md) are implemented for disposable managed Journeys.

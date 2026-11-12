@@ -20,7 +20,9 @@ it('keeps one request key after a lost pause reply and states the external stop 
   const user = userEvent.setup()
   mocks.action.mockResolvedValueOnce({ success: false, error: 'Response lost.' }).mockResolvedValueOnce({
     success: true,
-    data: { cleanup: { browser: 'NONE_REGISTERED', execution: 'UNKNOWN', externalCodex: 'UNKNOWN' } },
+    data: {
+      cleanup: { browser: 'NONE_REGISTERED', execution: 'UNKNOWN', managedTurn: 'UNKNOWN', externalCodex: 'UNKNOWN' },
+    },
   })
   const { rerender } = render(<JourneyRecoveryPanel {...props} />)
   expect(screen.getByText(/external Codex task cannot be stopped here/i)).toBeInTheDocument()
@@ -38,6 +40,7 @@ it('keeps one request key after a lost pause reply and states the external stop 
   expect(first.idempotencyKey).toBe(second.idempotencyKey)
   expect(second).toEqual(first)
   expect(await screen.findByRole('status')).toHaveTextContent('External Codex task status is unknown.')
+  expect(await screen.findByRole('status')).toHaveTextContent('Owned agent cleanup: unknown.')
   expect(mocks.refresh).toHaveBeenCalled()
 })
 

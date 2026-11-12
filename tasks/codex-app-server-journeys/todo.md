@@ -1,3 +1,7 @@
+> M11 implements [internal pause, interruption and restart](M11-VERIFICATION.md) on M10 merge `2dbc3a76`.
+> Runtime/provider qualification and public managed opt-in remain open; M06 STOP and spent-attempt evidence are preserved.
+> Earlier checkpoints below retain their historical scope.
+
 > M10 adds [internal Triager and lifecycle](../../docs/quality-journey-internal-triage.md) on M09 merge `38c2ca82`.
 > Disposable verification is scoped separately from runtime/provider qualification, which remains open.
 > Earlier roadmap checkpoints below are historical evidence.
@@ -216,7 +220,9 @@ See [M10 evidence and qualification limits](M10-VERIFICATION.md).
 
 **Reference:** [Open Design guide](open-design-reference.md). Interruption and closed-child cleanup patterns; add Appraise lost-ack, lease, accepted-submission and unknown-effect reconciliation.
 
-- [ ] Implement and verify this slice.
+- [x] Implement and verify this slice within disposable internal scope.
+
+See [M11 verification and remaining qualification gates](M11-VERIFICATION.md).
 
 **Dependencies:** M06; recheck M08–M10. **Estimated scope:** M; split further before implementation if the actual diff spans independent concerns.
 
@@ -224,7 +230,7 @@ See [M10 evidence and qualification limits](M10-VERIFICATION.md).
 
 **Acceptance:** Fence before interrupt; reconcile accepted work after lost replies; distinguish stopped turn, exited process and unknown effect. Resume after restart cannot duplicate a start or revive expired authority.
 
-**Verification:** Crash matrix at intent/send/ack/tool-commit/pause boundaries, lease expiry, auth revocation, cleanup loss and duplicate delayed events. Never signal stored PIDs.
+**Verification:** Crash matrix at intent/send/ack/tool-commit/pause boundaries, lease expiry, auth revocation, cleanup loss and duplicate delayed events. Never signal stored PIDs. The live owned-turn pause bridge, fresh-process UNKNOWN reconstruction, accepted-reply recovery, database replacement isolation and deferred M10 publication are covered by the recorded matrix. Actual local owned-child observations remain separate from injected crashes and synthetic terminal runtime evidence.
 
 ### M12: Qualify packaging and mode transfer
 

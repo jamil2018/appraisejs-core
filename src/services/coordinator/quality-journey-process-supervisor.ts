@@ -1,3 +1,4 @@
+import { registerOwnedQualityJourneyTurn, readOwnedJourneyTurnDatabaseIdentity } from './quality-journey-owned-turns'
 import { createHash, randomUUID } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import type { PrismaClient } from '@prisma/client'
@@ -89,6 +90,8 @@ export function createQualityJourneyProcessSupervisor(
   let poll: ReturnType<typeof setInterval> | undefined
   let turnTimer: ReturnType<typeof setTimeout> | undefined
   let heartbeatFlight: Promise<void> | undefined
+  let turnOutcome: 'completed' | 'failed' | 'interrupted' | 'UNKNOWN' = 'UNKNOWN'
+  let registeredTurn: Parameters<typeof registerOwnedQualityJourneyTurn>[0] | undefined
   let completed = false
   let threadStartEntered = false
   let turnStartEntered = false
@@ -103,7 +106,7 @@ export function createQualityJourneyProcessSupervisor(
       childLaunchEntered,
       fenced,
       reason,
-      transportId,
+      transportId: registeredTurn?.transportId ?? transportId,
       journeyId: binding.journeyId,
       targetProjectId: binding.targetProjectId,
       sessionId: binding.coordinatorSessionId,
@@ -119,6 +122,7 @@ export function createQualityJourneyProcessSupervisor(
       threadId,
       turnId,
       completed,
+      turnOutcome,
       requestSequence: child?.transport.snapshot().issuedRequests,
       cleanup,
       transport: child?.transport.snapshot(),
@@ -220,6 +224,7 @@ export function createQualityJourneyProcessSupervisor(
     turnEvent(params)
     if (!record(params.turn) || !['completed', 'failed', 'interrupted'].includes(String(params.turn.status)))
       throw new Error('malformed completion')
+    turnOutcome = params.turn.status as typeof turnOutcome
     completed = true
     // Persist response correlation before processing early completion.
     if (state === 'active')
@@ -378,6 +383,9 @@ export function createQualityJourneyProcessSupervisor(
 
   async function run() {
     try {
+      const databaseIdentity = await readOwnedJourneyTurnDatabaseIdentity(client)
+      registeredTurn = { ...supervisor, databaseIdentity }
+      registerOwnedQualityJourneyTurn(registeredTurn)
       await armInitialIntent()
       await readyOwnedChild()
       await readyNativeThread()
@@ -389,7 +397,11 @@ export function createQualityJourneyProcessSupervisor(
     }
   }
 
-  return Object.freeze({
+  const supervisor = Object.freeze({
+    journeyId: binding.journeyId,
+    targetProjectId: binding.targetProjectId,
+    attemptId: binding.attemptId,
+    transportId,
     start() {
       if (!startFlight) {
         originalStartState = 'PENDING'
@@ -413,6 +425,7 @@ export function createQualityJourneyProcessSupervisor(
     },
     snapshot,
   })
+  return supervisor
 }
 
 /** Explicit local fixture adapter. Its success supplies no production qualification. */

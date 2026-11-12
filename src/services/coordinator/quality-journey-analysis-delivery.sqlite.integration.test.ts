@@ -1,4 +1,6 @@
 import path from 'node:path'
+import { execFileSync } from 'node:child_process'
+import { pauseQualityJourneyOperational } from './quality-journey-recovery-service'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createProviderFixture } from '@/test/quality-journey-provider-fixture'
 import * as journeyService from './quality-journey-service'
@@ -107,10 +109,71 @@ describe('internal owned Analysis fixture delivery', () => {
   })
 
   it('recovers the original durable outcome after a lost reply without submitting again', async () => {
-    const { fixture, delivery } = await setup()
+    const { fixture, delivery, options } = await setup()
     replies.loseReply = true
     await expect(delivery.start()).rejects.toThrow('synthetic lost acceptance reply')
     expect(await delivery.recoverSubmission()).toMatchObject({ replayed: true })
+    const current = await fixture.client.qualityJourney.findUniqueOrThrow({ where: { id: fixture.scope.journeyId } })
+    const pause = await pauseQualityJourneyOperational(
+      {
+        ...fixture.scope,
+        expectedStateHash: current.stateHash,
+        expectedVersion: current.version,
+        idempotencyKey: 'm11-pause-accepted',
+        reason: 'Lost artifact reply recovery',
+      },
+      fixture.client,
+    )
+    // Accepted attempts remain in the cleanup snapshot even though the worker has already completed.
+    expect(pause.cleanup.managedTurnReceipts.some(receipt => receipt.attemptId === fixture.binding.attemptId)).toBe(
+      true,
+    )
+    const script = `
+      import { readFileSync } from 'node:fs';
+      import { PrismaClient } from '@prisma/client';
+      import { readExternalQualityJourneySubmissionOutcome } from './src/services/coordinator/quality-journey-service.ts';
+      const input = JSON.parse(readFileSync(0,'utf8'));
+      const client = new PrismaClient({datasources:{db:{url:input.databaseUrl}}});
+      try {
+        const before = await client.qualityJourney.findUniqueOrThrow({where:{id:input.binding.journeyId}});
+        const result = await readExternalQualityJourneySubmissionOutcome(input.binding,client);
+        let denied = false;
+        try { await readExternalQualityJourneySubmissionOutcome({...input.binding,assignmentSecret:'wrong-secret'},client); } catch { denied = true; }
+        const after = await client.qualityJourney.findUniqueOrThrow({where:{id:input.binding.journeyId}});
+        console.log(JSON.stringify({result,denied,ownershipUnchanged:before.ownershipVersion===after.ownershipVersion,
+          accepted:await client.qualityJourneyExternalSubmissionAcceptance.count(),runs:await client.qualityJourneyProviderRun.count(),
+          turns:(await client.qualityJourneyProviderRun.findFirstOrThrow()).turnsReserved}));
+      } finally { await client.$disconnect(); }
+    `
+    const recovery = JSON.parse(
+      execFileSync(process.execPath, ['--import', 'tsx', '--input-type=module', '-e', script], {
+        cwd: process.cwd(),
+        encoding: 'utf8',
+        timeout: 30_000,
+        input: JSON.stringify({
+          databaseUrl: `file:${fixture.databasePath}`,
+          binding: {
+            ...fixture.binding,
+            operation: 'ANALYSIS_SUBMIT',
+            idempotencyKey: options.submissionIdempotencyKey,
+          },
+        }),
+      })
+        .trim()
+        .split('\n')
+        .at(-1)!,
+    )
+    expect(recovery).toMatchObject({
+      result: await journeyService.readExternalQualityJourneySubmissionOutcome(
+        { ...fixture.binding, operation: 'ANALYSIS_SUBMIT', idempotencyKey: options.submissionIdempotencyKey },
+        fixture.client,
+      ),
+      denied: true,
+      ownershipUnchanged: true,
+      accepted: 1,
+      runs: 1,
+      turns: 1,
+    })
     expect(replies.submissions).toBe(1)
     expect(await fixture.client.qualityJourneyExternalSubmissionAcceptance.count()).toBe(1)
     expect(await fixture.client.qualityJourneyAnalysisRevision.count()).toBe(1)

@@ -1,5 +1,6 @@
 import path from 'node:path'
-import { readFile } from 'node:fs/promises'
+import { readFile, copyFile, rename } from 'node:fs/promises'
+import { execFileSync } from 'node:child_process'
 import type { Prisma, PrismaClient } from '@prisma/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
@@ -14,7 +15,8 @@ import {
   trustedJourneyProcessAdapter,
   startQualityJourneyProductionProvider,
 } from './quality-journey-process-supervisor'
-import { pauseQualityJourneyOperational } from './quality-journey-recovery-service'
+import { pauseQualityJourneyOperational, resumeQualityJourneyOperational } from './quality-journey-recovery-service'
+import { readOwnedJourneyTurnDatabaseIdentity } from './quality-journey-owned-turns'
 import { assertProviderEffectsQuiescent } from './quality-journey-provider-recovery'
 import {
   armQualityJourneyProviderIntent,
@@ -314,5 +316,265 @@ describe('M05 owned fixture process composed with canonical SQLite services', ()
     supervisors.push(successor)
     await expect(successor.start()).rejects.toBeDefined()
     expect(await methods(trace)).toEqual(['initialize', 'initialized', 'thread/start', 'turn/start'])
+  })
+
+  it('commits human pause before stopping the original owned turn and never releases its physical uncertainty', async () => {
+    const { f, s, trace } = await setup()
+    await s.start()
+    const before = await f.client.qualityJourney.findUniqueOrThrow({ where: { id: f.scope.journeyId } })
+    const pause = {
+      ...f.scope,
+      expectedStateHash: before.stateHash,
+      expectedVersion: before.version,
+      idempotencyKey: 'm11-pause-live',
+      reason: 'Disposable owned turn interruption',
+    }
+    const paused = await pauseQualityJourneyOperational(pause, f.connect())
+    expect(paused.cleanup).toMatchObject({ managedTurn: 'OBSERVED', externalCodex: 'UNKNOWN' })
+    expect(paused.cleanup.managedTurnReceipts).toEqual([
+      expect.objectContaining({
+        attemptId: f.binding.attemptId,
+        stopRequested: true,
+        senderFenced: true,
+        ownedProcessExitObserved: true,
+        privateRootRemoved: true,
+        turnCompleted: false,
+        turnOutcome: 'UNKNOWN',
+      }),
+    ])
+    expect(s.snapshot()).toMatchObject({
+      fenced: true,
+      state: 'stopped',
+      providerTerminationProven: false,
+      slotReleased: false,
+    })
+    const events = await f.client.qualityJourneyEvent.findMany({
+      where: { journeyId: f.scope.journeyId },
+      orderBy: { sequence: 'asc' },
+    })
+    const receipt = events.find(event => event.eventType === 'OPERATIONAL_PAUSE')!
+    expect(JSON.parse(receipt.payloadJson).cleanupTargets.managedAttemptIds).toContain(f.binding.attemptId)
+    const originalMethods = await methods(trace)
+    expect(originalMethods.filter(method => method === 'turn/start')).toHaveLength(1)
+    expect(await pauseQualityJourneyOperational(pause, f.connect())).toMatchObject({ replayed: true })
+    await expect(
+      resumeQualityJourneyOperational(
+        {
+          ...f.scope,
+          expectedStateHash: before.stateHash,
+          expectedVersion: paused.version,
+          idempotencyKey: 'm11-resume-unknown',
+        },
+        f.connect(),
+      ),
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
+    expect(await methods(trace)).toEqual(originalMethods)
+    await retained(f)
+  })
+
+  it('reconstructs a pause committed before cleanup in an actual fresh process without handles or another start', async () => {
+    const { f, s, trace } = await setup()
+    await s.start()
+    const before = await f.client.qualityJourney.findUniqueOrThrow({ where: { id: f.scope.journeyId } })
+    const pause = {
+      ...f.scope,
+      expectedStateHash: before.stateHash,
+      expectedVersion: before.version,
+      idempotencyKey: 'm11-crash-pause',
+      reason: 'Injected lost pause transaction reply',
+    }
+    let dropped = false
+    const crash = new Proxy(f.client, {
+      get(target, key) {
+        if (key === '$transaction')
+          return async (callback: (tx: Prisma.TransactionClient) => Promise<unknown>) => {
+            const result = await target.$transaction(callback)
+            if (!dropped) {
+              dropped = true
+              throw new Error('m11 committed pause reply lost')
+            }
+            return result
+          }
+        const value = Reflect.get(target, key)
+        return typeof value === 'function' ? value.bind(target) : value
+      },
+    })
+    await expect(pauseQualityJourneyOperational(pause, crash)).rejects.toThrow('committed pause reply lost')
+    expect(s.snapshot().fenced).toBe(false) // Actual owner retained by this test; restarted process cannot recover it.
+    const script = `
+      import { PrismaClient } from '@prisma/client';
+      import { pauseQualityJourneyOperational, resumeQualityJourneyOperational } from './src/services/coordinator/quality-journey-recovery-service.ts';
+      const input = JSON.parse(process.argv[1]);
+      const client = new PrismaClient({datasources:{db:{url:process.argv[2]}}});
+      try {
+        const before = await client.qualityJourney.findUniqueOrThrow({where:{id:input.journeyId}});
+        const replay = await pauseQualityJourneyOperational(input, client);
+        let blocked = false;
+        try { await resumeQualityJourneyOperational({...input,expectedVersion:before.version,idempotencyKey:'fresh-process-resume'},client); }
+        catch { blocked = true; }
+        const after = await client.qualityJourney.findUniqueOrThrow({where:{id:input.journeyId}});
+        const run = await client.qualityJourneyProviderRun.findFirstOrThrow();
+        console.log(JSON.stringify({cleanup:replay.cleanup.managedTurn,replayed:replay.replayed,blocked,
+          ownershipUnchanged:before.ownershipVersion===after.ownershipVersion,turnsReserved:run.turnsReserved,
+          intents:await client.qualityJourneyProviderDispatchIntent.count()}));
+      } finally { await client.$disconnect(); }
+    `
+    const output = execFileSync(
+      process.execPath,
+      ['--import', 'tsx', '--input-type=module', '-e', script, JSON.stringify(pause), `file:${f.databasePath}`],
+      { cwd: process.cwd(), encoding: 'utf8', timeout: 30_000 },
+    )
+    expect(JSON.parse(output.trim().split('\n').at(-1)!)).toEqual({
+      cleanup: 'UNKNOWN',
+      replayed: true,
+      blocked: true,
+      ownershipUnchanged: true,
+      turnsReserved: 1,
+      intents: 1,
+    })
+    expect(s.snapshot().fenced).toBe(false)
+    // Returning to the still-live original owner can observe cleanup, without proving provider outcome.
+    expect((await pauseQualityJourneyOperational(pause, f.connect())).cleanup.managedTurn).toBe('OBSERVED')
+    expect((await methods(trace)).filter(method => method === 'turn/start')).toHaveLength(1)
+    await retained(f)
+  })
+
+  it('fences a launch in flight only after the pause commit and drains the original returned child without RPC', async () => {
+    const { f, options, trace } = await setup()
+    let entered!: () => void
+    let release!: () => void
+    const launched = new Promise<void>(resolve => {
+      entered = resolve
+    })
+    const gate = new Promise<void>(resolve => {
+      release = resolve
+    })
+    const owned = createQualityJourneyProcessSupervisor(
+      f.prepareInput,
+      {
+        capability: trustedJourneyProcessAdapter,
+        configurationDigest: f.prepareInput.configurationDigest,
+        input: [],
+        validateReadiness: () => true,
+        launch: async callbacks => {
+          const child = await launchOwnedFixtureChild({ ...options, ...callbacks })
+          entered()
+          await gate
+          return child
+        },
+      },
+      f.client,
+    )
+    supervisors.push(owned)
+    const flight = owned.start()
+    const rejected = expect(flight).rejects.toBeDefined()
+    await launched
+    const current = await f.client.qualityJourney.findUniqueOrThrow({ where: { id: f.scope.journeyId } })
+    const pause = pauseQualityJourneyOperational(
+      {
+        ...f.scope,
+        expectedStateHash: current.stateHash,
+        expectedVersion: current.version,
+        idempotencyKey: 'm11-launch-pause',
+        reason: 'Pause at original launch boundary',
+      },
+      f.connect(),
+    )
+    try {
+      await vi.waitFor(() => expect(owned.snapshot().fenced).toBe(true))
+      expect(await f.client.qualityJourney.findUniqueOrThrow({ where: { id: f.scope.journeyId } })).toMatchObject({
+        status: 'PAUSED',
+      })
+    } finally {
+      release()
+    }
+    expect((await pause).cleanup.managedTurn).toBe('OBSERVED')
+    await rejected
+    expect(owned.snapshot().cleanup).toMatchObject({ groupExitObserved: true, privateRootRemoved: true })
+    expect(await methods(trace)).toEqual([])
+    await retained(f)
+  })
+
+  it('does not signal the original live owner when a cloned database replaces the same pathname', async () => {
+    const { f, s, trace } = await setup()
+    await s.start()
+    const originalIdentity = await readOwnedJourneyTurnDatabaseIdentity(f.client)
+    const originalPath = `${f.databasePath}.original`
+    const clonePath = `${f.databasePath}.clone`
+    await copyFile(f.databasePath, clonePath)
+    await rename(f.databasePath, originalPath)
+    await rename(clonePath, f.databasePath)
+    const clone = f.connect()
+    try {
+      expect(await readOwnedJourneyTurnDatabaseIdentity(clone)).not.toBe(originalIdentity)
+      const current = await clone.qualityJourney.findUniqueOrThrow({ where: { id: f.scope.journeyId } })
+      const paused = await pauseQualityJourneyOperational(
+        {
+          ...f.scope,
+          expectedStateHash: current.stateHash,
+          expectedVersion: current.version,
+          idempotencyKey: 'm11-clone-pause',
+          reason: 'Copied hub at replaced path',
+        },
+        clone,
+      )
+      expect(paused.cleanup).toMatchObject({ managedTurn: 'UNKNOWN', managedTurnReceipts: [] })
+      expect(s.snapshot().fenced).toBe(false)
+      expect((await methods(trace)).filter(method => method === 'turn/start')).toHaveLength(1)
+    } finally {
+      await clone.$disconnect()
+      await rename(f.databasePath, clonePath)
+      await rename(originalPath, f.databasePath)
+    }
+    await s.cancel()
+    await retained(f)
+  })
+
+  it('commits the canonical pause fence when cleanup file identity cannot be observed', async () => {
+    const { f, s } = await setup()
+    await s.start()
+    const current = await f.client.qualityJourney.findUniqueOrThrow({ where: { id: f.scope.journeyId } })
+    const unavailable = new Proxy(f.client, {
+      get(target, key) {
+        if (key === '$transaction')
+          return (callback: (tx: Prisma.TransactionClient) => Promise<unknown>) =>
+            target.$transaction(tx =>
+              callback(
+                new Proxy(tx, {
+                  get(inner, property) {
+                    if (property === '$queryRawUnsafe')
+                      return async () => {
+                        throw new Error('Injected missing cleanup file identity')
+                      }
+                    return Reflect.get(inner, property)
+                  },
+                }),
+              ),
+            )
+        const value = Reflect.get(target, key)
+        return typeof value === 'function' ? value.bind(target) : value
+      },
+    })
+    const paused = await pauseQualityJourneyOperational(
+      {
+        ...f.scope,
+        expectedStateHash: current.stateHash,
+        expectedVersion: current.version,
+        idempotencyKey: 'm11-unobservable-file',
+        reason: 'Cleanup identity unavailable',
+      },
+      unavailable,
+    )
+    expect(paused.cleanup).toMatchObject({ managedTurn: 'UNKNOWN', managedTurnReceipts: [] })
+    expect(await f.client.qualityJourney.findUniqueOrThrow({ where: { id: f.scope.journeyId } })).toMatchObject({
+      status: 'PAUSED',
+    })
+    expect(s.snapshot().fenced).toBe(false)
+    // Canonical authority is fenced even though the original local handle could not be selected for cleanup.
+    expect(
+      await f.client.qualityJourneyWorkAttempt.findUniqueOrThrow({ where: { id: f.binding.attemptId } }),
+    ).toMatchObject({ status: 'EXPIRED' })
+    await s.cancel()
+    await retained(f)
   })
 })

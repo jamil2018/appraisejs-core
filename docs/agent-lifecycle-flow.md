@@ -270,7 +270,7 @@ work state; it does not prove that an external Codex process is alive or resumed
 
 ## Stock Codex handoff architecture
 
-The accepted [architecture decision](decisions/0004-stock-codex-journey-handoff.md) keeps Appraise as Journey authority
+The external compatibility [architecture decision](decisions/0004-stock-codex-journey-handoff.md) (superseded as the future managed direction by [ADR-0005](decisions/0005-codex-app-server-journeys.md)) keeps Appraise as Journey authority
 and uses stock Codex with a skills-only plugin plus independently registered MCP. Package-shipped plugin setup and
 compatibility diagnostics carry no lifecycle authority. Prepared deep-link prompt prefill and qualified remote-target
 neutral-host handoff are available for every mutable Journey stage. Later-stage reconnect stores an exact Journey,
@@ -306,3 +306,7 @@ See [Quality Journey pause and recovery](quality-journey-recovery.md) for operat
 ## Synthetic physical-outcome custody
 
 The internal [source-custody contract](quality-journey-source-custody.md) covers original synthetic NONSTART evidence, canonical first-write exclusion, conservative resource retirement and exact committed replay. Source-local inspection is insufficient for a fresh release; canonical validation and complete source verification share the same actual transaction. No source receipt replaces Analysis acceptance, review, approval or another Appraise-owned lifecycle gate. Native/provider/MCP TERMINAL authority and real-provider qualification remain unavailable through this synthetic path.
+
+## Internal pause and restart (M11)
+
+[M11 recovery](quality-journey-recovery.md) fences canonical worker authority before stopping original owned local turns. Accepted artifacts remain independently recoverable, and unproved provider effects remain UNKNOWN. Human waits create no model turns; resume and deferred terminal publication retain their canonical transactions and human gates.

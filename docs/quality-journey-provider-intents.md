@@ -1,3 +1,5 @@
+> M11 adds [pause interruption and restart verification](../tasks/codex-app-server-journeys/M11-VERIFICATION.md). Owned cleanup remains separate from physical provider reconciliation, and accepted artifact replay grants no new send authority. Earlier checkpoint scope statements below are historical.
+
 > The synthetic M06 repair adds [original source custody and exact committed replay](quality-journey-source-custody.md). Its NONSTART evidence uses the canonical writer and first-write barrier; M05 process shutdown alone still releases nothing. Real-provider/TERMINAL authority, production dispatch and full M06 remain separately blocked.
 
 > M06 repository continuation adds [internal Analysis fixture delivery and blocked follow-up observation](quality-journey-analysis-delivery.md). The consumed-slot and physical-reconciliation boundary is unchanged; full M06 remains incomplete. Earlier milestone scope statements below retain their historical meaning.

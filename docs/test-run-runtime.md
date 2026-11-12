@@ -186,3 +186,5 @@ supersession does not change captured selection identity. Ordinary history and i
 available. Contradictory Journey binding/source metadata with independent intent refuses authoritative matching.
 Artifact bytes, terminalization, business publication, physical effects and release remain subject to their existing
 custody and admission boundaries; a frozen match grants none of those authorities.
+
+The [M11 recovery matrix](../tasks/codex-app-server-journeys/M11-VERIFICATION.md) verifies that M10 internal terminal publication stays deferred while paused and publishes once on fresh-client resume. Owned agent interruption and runtime cancellation are independent observations; neither is a passing test result.

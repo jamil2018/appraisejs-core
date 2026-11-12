@@ -6,6 +6,8 @@ import { spawnOwnedProcessGroup, stopOwnedProcessGroup } from '../src/lib/proces
 import { randomUUID } from 'node:crypto'
 import { test, expect } from '@playwright/test'
 import prisma from '../src/config/db-config'
+import { createTargetProjectFixture } from '../src/test/migrated-test-database'
+import { hashQualityJourneyExecutionValue as hash } from '../src/lib/quality-journey'
 import { createQualityJourney } from '../src/services/coordinator/quality-journey-service'
 
 test('human pause and resume preserve lifecycle identity across a real hub restart @smoke', async ({
@@ -13,15 +15,13 @@ test('human pause and resume preserve lifecycle identity across a real hub resta
   context,
 }) => {
   const targetProjectId = randomUUID()
-  await prisma.targetProject.create({
-    data: {
-      id: targetProjectId,
-      kind: 'LOCAL_WORKSPACE',
-      canonicalIdentity: `e2e:${targetProjectId}`,
-      canonicalPath: `/tmp/${targetProjectId}`,
-      displayName: 'Disposable recovery browser test',
-      fingerprint: `sha256:${'a'.repeat(64)}`,
-    },
+  await createTargetProjectFixture(prisma, {
+    id: targetProjectId,
+    kind: 'LOCAL_WORKSPACE',
+    canonicalIdentity: `e2e:${targetProjectId}`,
+    canonicalPath: `/tmp/${targetProjectId}`,
+    displayName: 'Disposable recovery browser test',
+    fingerprint: hash(targetProjectId),
   })
   const created = await createQualityJourney({
     targetProjectId,

@@ -1,3 +1,6 @@
+> M11 repository verification: [pause, interruption and restart](M11-VERIFICATION.md), on the freshly fetched M10 base.
+> This is disposable internal implementation evidence; runtime/provider qualification, M12+, shipping and public managed opt-in remain outside scope. Earlier checkpoints below are historical.
+
 > M10 adds [internal Triager and lifecycle](../../docs/quality-journey-internal-triage.md) on M09 merge `38c2ca82`.
 > Disposable verification is scoped separately from runtime/provider qualification, which remains open.
 > Earlier roadmap checkpoints below are historical evidence.
