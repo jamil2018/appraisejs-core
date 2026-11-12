@@ -127,3 +127,50 @@ The other 82 native cases were unselected in that focused installed run, not rem
 These observations bind the actual final packed source to the repair. Fresh Linux PR and post-merge CI and final
 independent artifact acceptance remain required shipping gates; neither the old CI failures nor historical cleanup
 UNKNOWNs are relabeled by a later passing candidate.
+
+## Browser repair merge and separate execution-fixture failure
+
+PR #314 merged the independently accepted browser repair at
+`ed9e8d39509bf1632904263256071e1728b677ad`, preserving implementation
+`98c605d5527110764ac4053e5e8a17bf20f1538f`. Exact-head Release CI `43271953632` passed all six jobs
+and all nine checks: 354 files, 3504 passed tests, four existing skips, including all 85 native browser cases.
+The clean local `appraise-0.5` worktree was fast-forwarded, with the merge tree equal to the reviewed head.
+
+Separate post-merge run `43273943993` passed all 85 browser cases and the package, dependency and quality jobs,
+but failed the first execution-service SQLite case (`shows ownership loss only while a cycle and its TestRun are
+active`) at its five-second deadline. The suite took 7.4 seconds; aggregate results were 3503 passed, one failed,
+four skipped. Original decoded logs and receipts remain in the browser follow-up worktree's
+`.appraisejs/ci-browser-followup-evidence/`. No workflow rerun overwrites that outcome.
+
+The first case alone lazily builds the genuine 98-migration template before creating its fresh fixture and exercising
+the ownership projection. Later cases reuse the prepared template. A fresh local baseline passed 11 cases with two
+existing real-runtime skips; the first case took 548 ms. The historical CI log has no per-phase timings: its exact
+slow operation remains UNKNOWN. Cold setup/resource contention is a plausible explanation, not an established cause.
+
+The bounded follow-up branch is `codex/m12-execution-fixture-ci`, worktree `.appraisejs/m12-execution-ci-worktree`.
+It exposes the existing memoized template preparation and performs it in suite `beforeAll` under the unchanged setup
+hook budget. Each case still copies a separate database, creates its original fixture and retains its five-second
+case deadline and all assertions. Global configuration, migration SQL, migration execution, production services,
+runtime skips, retry policy and quality baselines are unchanged. Preparation errors reject setup rather than passing
+tests or manufacturing migration evidence.
+
+Controlled evidence in that worktree's `.appraisejs/execution-ci-evidence/` injects six seconds immediately before
+the real migration child, without replacing or skipping migrations. The unchanged source fails exactly the first case
+(`cold-migration-old.log`: one failed, ten passed, two skipped). With suite preparation, the same controlled run passes
+all 11 applicable cases with the same two skips (`cold-migration-fixed.log`). This proves the repaired budget coupling;
+it does not retroactively identify the historical CI delay. Fresh exact-artifact review, PR and post-merge CI remain
+required for this additional repair. All historical UNKNOWNs and broader qualification gates above remain intact.
+
+The focused execution/transfer/recovery/session batch passed 76 cases with two existing runtime skips. Root and
+scaffold builds, template/Graphify generation, affected ESLint/Prettier, harness, documentation links, artifact policy
+and package inventory checks passed. The entire original execution-suite `describe` block is byte-identical, including
+all case deadlines, runtime gates and assertions.
+
+Fresh actual packed installation and both scaffold flavors passed through the unchanged M12 proof script, retained
+in the execution follow-up worktree at `.appraisejs/m12-evidence/run-dNdxb4/result.json`. The CLI hash remains
+`0d0e593599832d4be8c4d0a223d9eaf18aa559f8a5c35fbeed833590ed891a9d`; the regenerated scaffold tarball is
+`652e07dbfc1ebd8e2de17215a56899ca4007142fa33d4e9bfba2fca33cb50df1`. Inventories remain 147 CLI /1421 scaffold
+files with all 98 migration hashes matching. The final installed generated application's affected execution suite
+passed 11 cases with its two existing real-runtime skips (`installed-execution.log`). Genuine cold initialization,
+populated upgrade, exact M11 guarded refusal, future-storage refusal, credential rotation and installed runtime
+resolution passed. Synthetic ownership-shape rows remain separate from canonical transfer authority.

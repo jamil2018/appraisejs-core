@@ -3,8 +3,12 @@ import os from 'node:os'
 import path from 'node:path'
 import { createServer } from 'node:http'
 import { PrismaClient } from '@prisma/client'
-import { afterEach, describe, expect, it } from 'vitest'
-import { copyMigratedTestDatabase, createTargetProjectFixture } from '@/test/migrated-test-database'
+import { afterEach, beforeAll, describe, expect, it } from 'vitest'
+import {
+  copyMigratedTestDatabase,
+  createTargetProjectFixture,
+  prepareMigratedTestDatabase,
+} from '@/test/migrated-test-database'
 import { createQualityJourneyKernelState, hashQualityJourneyExecutionValue } from '@/lib/quality-journey'
 import { preparedRuntimeCapsuleSchema } from '@/lib/quality-journey/automation-contracts'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
@@ -45,6 +49,12 @@ import { submitDurableQualityJourneyCommand } from './quality-journey-service'
 const workspaces: string[] = []
 const digest = (character: string) => `sha256:${character.repeat(64)}`
 const json = JSON.stringify
+
+// Build the genuine migrated template under the existing setup-hook budget.
+// Each case still copies a fresh database and retains its normal test deadline.
+beforeAll(async () => {
+  await prepareMigratedTestDatabase()
+})
 
 afterEach(async () => {
   resetQualityJourneyExecutionRuntimeAdapter()
