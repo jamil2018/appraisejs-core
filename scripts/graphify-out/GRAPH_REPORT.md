@@ -1,16 +1,16 @@
-# Graph Report - scripts  (2026-11-11)
+# Graph Report - scripts  (2026-11-12)
 
 ## Corpus Check
-- 1876 files · ~1,588,268 words
+- 1877 files · ~1,590,618 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 17446 nodes · 42843 edges · 658 communities (591 shown, 67 thin omitted)
-- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 163 edges (avg confidence: 0.8)
+- 17469 nodes · 42891 edges · 648 communities (586 shown, 62 thin omitted)
+- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 170 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `38c2ca82`
+- Built from commit: `8d8d8254`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -524,10 +524,7 @@
 - [[_COMMUNITY_Community 506|Community 506]]
 - [[_COMMUNITY_Community 507|Community 507]]
 - [[_COMMUNITY_Community 508|Community 508]]
-- [[_COMMUNITY_Community 509|Community 509]]
 - [[_COMMUNITY_Community 510|Community 510]]
-- [[_COMMUNITY_Community 511|Community 511]]
-- [[_COMMUNITY_Community 512|Community 512]]
 - [[_COMMUNITY_Community 513|Community 513]]
 - [[_COMMUNITY_Community 514|Community 514]]
 - [[_COMMUNITY_Community 515|Community 515]]
@@ -535,7 +532,6 @@
 - [[_COMMUNITY_Community 517|Community 517]]
 - [[_COMMUNITY_Community 518|Community 518]]
 - [[_COMMUNITY_Community 519|Community 519]]
-- [[_COMMUNITY_Community 520|Community 520]]
 - [[_COMMUNITY_Community 521|Community 521]]
 - [[_COMMUNITY_Community 522|Community 522]]
 - [[_COMMUNITY_Community 523|Community 523]]
@@ -543,8 +539,6 @@
 - [[_COMMUNITY_Community 525|Community 525]]
 - [[_COMMUNITY_Community 526|Community 526]]
 - [[_COMMUNITY_Community 527|Community 527]]
-- [[_COMMUNITY_Community 528|Community 528]]
-- [[_COMMUNITY_Community 529|Community 529]]
 - [[_COMMUNITY_Community 530|Community 530]]
 - [[_COMMUNITY_Community 531|Community 531]]
 - [[_COMMUNITY_Community 532|Community 532]]
@@ -553,20 +547,16 @@
 - [[_COMMUNITY_Community 535|Community 535]]
 - [[_COMMUNITY_Community 536|Community 536]]
 - [[_COMMUNITY_Community 537|Community 537]]
-- [[_COMMUNITY_Community 538|Community 538]]
 - [[_COMMUNITY_Community 539|Community 539]]
-- [[_COMMUNITY_Community 540|Community 540]]
 - [[_COMMUNITY_Community 541|Community 541]]
 - [[_COMMUNITY_Community 542|Community 542]]
 - [[_COMMUNITY_Community 543|Community 543]]
-- [[_COMMUNITY_Community 544|Community 544]]
 - [[_COMMUNITY_Community 545|Community 545]]
 - [[_COMMUNITY_Community 546|Community 546]]
 - [[_COMMUNITY_Community 547|Community 547]]
 - [[_COMMUNITY_Community 548|Community 548]]
 - [[_COMMUNITY_Community 549|Community 549]]
 - [[_COMMUNITY_Community 550|Community 550]]
-- [[_COMMUNITY_Community 551|Community 551]]
 - [[_COMMUNITY_Community 552|Community 552]]
 - [[_COMMUNITY_Community 553|Community 553]]
 - [[_COMMUNITY_Community 554|Community 554]]
@@ -580,14 +570,10 @@
 - [[_COMMUNITY_Community 562|Community 562]]
 - [[_COMMUNITY_Community 563|Community 563]]
 - [[_COMMUNITY_Community 564|Community 564]]
-- [[_COMMUNITY_Community 565|Community 565]]
-- [[_COMMUNITY_Community 566|Community 566]]
 - [[_COMMUNITY_Community 567|Community 567]]
 - [[_COMMUNITY_Community 568|Community 568]]
-- [[_COMMUNITY_Community 569|Community 569]]
 - [[_COMMUNITY_Community 570|Community 570]]
 - [[_COMMUNITY_Community 571|Community 571]]
-- [[_COMMUNITY_Community 572|Community 572]]
 - [[_COMMUNITY_Community 573|Community 573]]
 - [[_COMMUNITY_Community 574|Community 574]]
 - [[_COMMUNITY_Community 575|Community 575]]
@@ -636,23 +622,27 @@
 - [[_COMMUNITY_Community 629|Community 629]]
 - [[_COMMUNITY_Community 630|Community 630]]
 - [[_COMMUNITY_Community 631|Community 631]]
-- [[_COMMUNITY_Community 632|Community 632]]
 - [[_COMMUNITY_Community 633|Community 633]]
-- [[_COMMUNITY_Community 634|Community 634]]
-- [[_COMMUNITY_Community 635|Community 635]]
 - [[_COMMUNITY_Community 636|Community 636]]
 - [[_COMMUNITY_Community 637|Community 637]]
 - [[_COMMUNITY_Community 638|Community 638]]
 - [[_COMMUNITY_Community 639|Community 639]]
-- [[_COMMUNITY_Community 640|Community 640]]
 - [[_COMMUNITY_Community 641|Community 641]]
 - [[_COMMUNITY_Community 642|Community 642]]
 - [[_COMMUNITY_Community 643|Community 643]]
+- [[_COMMUNITY_Community 645|Community 645]]
 - [[_COMMUNITY_Community 646|Community 646]]
+- [[_COMMUNITY_Community 648|Community 648]]
+- [[_COMMUNITY_Community 650|Community 650]]
 - [[_COMMUNITY_Community 653|Community 653]]
-- [[_COMMUNITY_Community 654|Community 654]]
+- [[_COMMUNITY_Community 656|Community 656]]
+- [[_COMMUNITY_Community 658|Community 658]]
+- [[_COMMUNITY_Community 659|Community 659]]
+- [[_COMMUNITY_Community 660|Community 660]]
+- [[_COMMUNITY_Community 662|Community 662]]
 - [[_COMMUNITY_Community 667|Community 667]]
 - [[_COMMUNITY_Community 668|Community 668]]
+- [[_COMMUNITY_Community 671|Community 671]]
 - [[_COMMUNITY_Community 672|Community 672]]
 - [[_COMMUNITY_Community 673|Community 673]]
 - [[_COMMUNITY_Community 676|Community 676]]
@@ -690,75 +680,75 @@
 ## Import Cycles
 - None detected.
 
-## Communities (658 total, 67 thin omitted)
+## Communities (648 total, 62 thin omitted)
 
 ### Community 0 - "Community 0"
-Cohesion: 0.02
-Nodes (150): CHILD_PATH_CLASSES, entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), GIT_FILE_PIN, prepareR43MatrixManifest() (+142 more)
+Cohesion: 0.13
+Nodes (26): verifyR43HistoricalClosure(), AUTHORITY_PINS, CASES, CHILD_PATH_OBSERVATIONS, ENVIRONMENT_PROFILE, expectedNames(), fail(), GIT_READINESS (+18 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.02
-Nodes (279): serializeR25Preparation(), readFrozenR23(), verifyR23Predecessor(), INDEX, R24_COUNTS, readFrozenR24(), REPO, TERMINAL (+271 more)
+Cohesion: 0.12
+Nodes (28): AUTHORITY_PINS, fail(), INDEX, MANIFEST, privateDirectory(), R30_COUNTS, readPrepared(), REPO (+20 more)
 
 ### Community 2 - "Community 2"
 Cohesion: 0.03
-Nodes (114): createMatrixAuditSession(), createB14PermissionEvidence(), canonicalOutcome(), consistentOwnedExit(), initialize(), runPreparedT2Matrix(), sha(), T2 (+106 more)
+Nodes (107): createMatrixAuditSession(), createB14PermissionEvidence(), createMatrixJournalAdapter(), canonicalOutcome(), consistentOwnedExit(), initialize(), runPreparedT2Matrix(), sha() (+99 more)
 
 ### Community 3 - "Community 3"
-Cohesion: 0.02
-Nodes (237): buildR32PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, ownedWrite(), readExactOutput(), REPO, serializeR32Preparation() (+229 more)
+Cohesion: 0.08
+Nodes (19): createT1ErrorAdapter(), assertT1ObservedTuple(), R9_REPLACEMENT, t1InitializeParams(), capture(), captureWith(), collectorContext, descriptor (+11 more)
 
 ### Community 4 - "Community 4"
 Cohesion: 0.01
-Nodes (253): buildR29CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), AUTHORITY, BUILD, HERE (+245 more)
+Nodes (252): buildR29PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, ownedWrite(), readExactOutput(), REPO, serializeR29Preparation() (+244 more)
 
 ### Community 5 - "Community 5"
-Cohesion: 0.07
-Nodes (48): AUTHORITY_PINS, CASES, countsValid(), ENVIRONMENT_PROFILE, expectedNames(), fail(), GIT_READINESS, INDEX (+40 more)
+Cohesion: 0.13
+Nodes (24): AUTHORITY_PINS, CASES, ENVIRONMENT_PROFILE, expectedNames(), fail(), GIT_READINESS, INDEX, KINDS (+16 more)
 
 ### Community 6 - "Community 6"
 Cohesion: 0.02
-Nodes (184): buildR30PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite(), readExactOutput(), REPO (+176 more)
+Nodes (230): buildR30CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), GIT_FILE_PIN, AUTHORITY, BUILD (+222 more)
 
 ### Community 7 - "Community 7"
-Cohesion: 0.04
-Nodes (83): ownDirectory(), writeMatrixCaseReceipt(), buildMatrixCaseOperations(), readMatrixChildReceipt(), blocked(), equal(), validateMatrixProviderRequest(), owned() (+75 more)
+Cohesion: 0.19
+Nodes (21): blocked(), equal(), validateMatrixProviderRequest(), bad(), exact(), freeze(), hash(), object() (+13 more)
 
 ### Community 8 - "Community 8"
 Cohesion: 0.15
-Nodes (24): AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX (+16 more)
+Nodes (24): validateProcessStateDiagnostic(), AUTHORITY_PINS, CASES, consistentOwnedExit(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX (+16 more)
 
 ### Community 9 - "Community 9"
-Cohesion: 0.07
-Nodes (26): prepareTrustedCase(), prepareTrustedCase(), prepareTrustedCase(), prepareTrustedCase(), prepareTrustedCase(), prepareTrustedCase(), prepareTrustedCase(), POLICY (+18 more)
+Cohesion: 0.02
+Nodes (121): prepareTrustedCase(), createTrustedLauncher(), createNativePorts(), realIo, prepareTrustedCase(), POLICY, prepareTrustedCase(), POLICY (+113 more)
 
 ### Community 10 - "Community 10"
 Cohesion: 0.04
-Nodes (113): ownDirectory(), writeMatrixCaseReceipt(), POLICY, POLICY_DIGEST, POLICY_DIGEST, fullT2Maximum(), fullT2RecoveryBudget(), RETAINED_R28_CEILINGS (+105 more)
+Nodes (97): ownDirectory(), writeMatrixCaseReceipt(), POLICY, fullT2Maximum(), fullT2RecoveryBudget(), RETAINED_R28_CEILINGS, fullT2Maximum(), fullT2RecoveryBudget() (+89 more)
 
 ### Community 11 - "Community 11"
-Cohesion: 0.14
-Nodes (25): validateProcessStateDiagnostic(), AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid(), expectedNames(), fail(), FAILED_DIAGNOSTIC (+17 more)
+Cohesion: 0.08
+Nodes (53): serializeR35Preparation(), verifyR35HistoricalClosure(), readPrepared(), serializeR37Preparation(), readPrepared(), verifyR37HistoricalClosure(), readPrepared(), AUTHORITY_PINS (+45 more)
 
 ### Community 12 - "Community 12"
-Cohesion: 0.11
-Nodes (16): ownDirectory(), writeMatrixCaseReceipt(), createOfflineEffects(), redirectFs(), entry, receipts(), repo, sha() (+8 more)
+Cohesion: 0.15
+Nodes (11): ownDirectory(), writeMatrixCaseReceipt(), createOfflineEffects(), redirectFs(), serializedCanonicalRead(), composed(), observer, prepared (+3 more)
 
 ### Community 13 - "Community 13"
-Cohesion: 0.08
-Nodes (35): ADDON, assertDecision(), assertReview(), DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT, fail(), fixedFileIdentity() (+27 more)
+Cohesion: 0.15
+Nodes (19): prepareR23MatrixManifest(), buildR23PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite(), readExactOutput() (+11 more)
 
 ### Community 14 - "Community 14"
-Cohesion: 0.11
-Nodes (17): ownDirectory(), writeMatrixCaseReceipt(), MATRIX_MANIFEST, createOfflineEffects(), redirectFs(), entry, receipts(), repo (+9 more)
+Cohesion: 0.12
+Nodes (16): ownDirectory(), writeMatrixCaseReceipt(), createOfflineEffects(), redirectFs(), entry, receipts(), repo, sha() (+8 more)
 
 ### Community 15 - "Community 15"
 Cohesion: 0.03
-Nodes (109): decodeWithDiagnostic(), emitDiagnostic(), checkedString(), exactKeys(), FiniteBufferedResponses, makeCustomToolEvents(), makeTerminalEvents(), scriptDigest() (+101 more)
+Nodes (104): decodeWithDiagnostic(), emitDiagnostic(), checkedString(), exactKeys(), FiniteBufferedResponses, makeCustomToolEvents(), makeTerminalEvents(), scriptDigest() (+96 more)
 
 ### Community 16 - "Community 16"
 Cohesion: 0.04
-Nodes (77): absent, boundedJson(), canonical(), CODEC_SOURCE, decodeCodeModeContinuation(), digest(), exact(), fail() (+69 more)
+Nodes (69): absent, boundedJson(), canonical(), CODEC_SOURCE, decodeCodeModeContinuation(), digest(), exact(), fail() (+61 more)
 
 ### Community 17 - "Community 17"
 Cohesion: 0.15
@@ -773,20 +763,20 @@ Cohesion: 0.04
 Nodes (62): assertComplementHeldBaseline(), assertFixtureDatabaseClosed(), serviceNormalReportDelivered(), Admission, assertSettledCompositionSnapshot(), composeServiceOriginalNonstart(), SuccessfulNonstart, assertActivationUnrequestedDatabase() (+54 more)
 
 ### Community 20 - "Community 20"
-Cohesion: 0.03
-Nodes (78): buildR37CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), TrustedCaseCoordinator, ownDirectory(), writeMatrixCaseReceipt() (+70 more)
+Cohesion: 0.09
+Nodes (26): buildR37CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), ownDirectory(), writeMatrixCaseReceipt(), prepareTrustedCase() (+18 more)
 
 ### Community 21 - "Community 21"
-Cohesion: 0.11
-Nodes (25): ADDON, assertDecision(), assertReview(), DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT, fail(), fixedFileIdentity() (+17 more)
+Cohesion: 0.14
+Nodes (24): validateChildPathDiagnostics(), validateProcessStateDiagnostic(), AUTHORITY_PINS, CASES, COMPLETED_CASES, consistentOwnedExit(), countsValid(), expectedNames() (+16 more)
 
 ### Community 22 - "Community 22"
-Cohesion: 0.08
-Nodes (30): buildMatrixCanonicalBytes(), HISTORICAL_BUNDLE, REPO, sha(), ownDirectory(), writeMatrixCaseReceipt(), BUILD, filePin() (+22 more)
+Cohesion: 0.10
+Nodes (23): buildMatrixCanonicalBytes(), HISTORICAL_BUNDLE, REPO, sha(), BUILD, filePin(), HERE, prepareR12MatrixManifest() (+15 more)
 
 ### Community 23 - "Community 23"
 Cohesion: 0.15
-Nodes (24): AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX (+16 more)
+Nodes (25): AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX (+17 more)
 
 ### Community 24 - "Community 24"
 Cohesion: 0.16
@@ -801,68 +791,68 @@ Cohesion: 0.07
 Nodes (73): journalPath, result, sourceObservedAtByRef, appendObservation(), [command, ...argv], commands, definitions, measurements() (+65 more)
 
 ### Community 27 - "Community 27"
-Cohesion: 0.04
-Nodes (72): prepareTrustedComposition(), sha(), NOTIFICATION_ENVELOPE_FAILURE_REASONS, allowed, fail(), writeT1PreparationReceipt(), fail(), pinned (+64 more)
+Cohesion: 0.07
+Nodes (35): NOTIFICATION_ENVELOPE_FAILURE_REASONS, COLLECTOR_REASONS, CONTENT_ENCODING_CLASSES, CONTENT_TYPE_CLASSES, PROVIDER_FAILURE_CATEGORIES, UNINTERPRETED_OUTCOMES, CASE_ROOT, classifyT1PreparationFailure() (+27 more)
 
 ### Community 28 - "Community 28"
 Cohesion: 0.05
-Nodes (55): FixtureTerminalScope, compositionServiceCase, compositionServiceCases, runServiceController(), serviceControllerResult(), assertInstalledExpectation(), createServiceMatrixExpect(), ServiceFixtureExpect (+47 more)
+Nodes (49): FixtureTerminalScope, compositionServiceCase, compositionServiceCases, runServiceController(), serviceControllerResult(), assertInstalledExpectation(), createServiceMatrixExpect(), ServiceFixtureExpect (+41 more)
 
 ### Community 29 - "Community 29"
-Cohesion: 0.05
-Nodes (13): DECISION, EVIDENCE, PROPOSAL, REPO, SCRIPT_DELTA, sha(), verifyExactPackageDelta(), createNativePorts() (+5 more)
+Cohesion: 0.04
+Nodes (24): DECISION, EVIDENCE, PROPOSAL, qualifyRootPackage(), REPO, ROOT_PACKAGE, SCRIPT_DELTA, sha() (+16 more)
 
 ### Community 30 - "Community 30"
-Cohesion: 0.09
-Nodes (29): buildR34CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), fullT2RecoveryBudget(), READINESS_POLICY, BUILD (+21 more)
+Cohesion: 0.06
+Nodes (50): buildR34CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), ADDON, assertDecision(), assertReview() (+42 more)
 
 ### Community 31 - "Community 31"
-Cohesion: 0.06
-Nodes (39): CHILD_PATH_CLASSES, entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), createGitReadinessGate(), fail() (+31 more)
+Cohesion: 0.05
+Nodes (56): ownDirectory(), writeMatrixCaseReceipt(), CHILD_PATH_CLASSES, createChildPathDiagnostics(), entryKeys, nameClasses, NAMES, pathClasses (+48 more)
 
 ### Community 32 - "Community 32"
-Cohesion: 0.11
-Nodes (22): buildR44CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), ownDirectory(), writeMatrixCaseReceipt(), prepareTrustedCase() (+14 more)
+Cohesion: 0.16
+Nodes (23): AUTHORITY_PINS, CASES, consistentOwnedExit(), expectedNames(), fail(), INDEX, KINDS, MANIFEST (+15 more)
 
 ### Community 33 - "Community 33"
 Cohesion: 0.07
-Nodes (37): CHILD_PATH_CLASSES, entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), createGitReadinessGate(), fail() (+29 more)
+Nodes (36): CHILD_PATH_CLASSES, entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), createGitReadinessGate(), fail() (+28 more)
 
 ### Community 34 - "Community 34"
-Cohesion: 0.07
-Nodes (38): buildR51CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), ownDirectory(), writeMatrixCaseReceipt(), prepareTrustedCase() (+30 more)
+Cohesion: 0.06
+Nodes (34): buildR51CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), TrustedCaseCoordinator, ownDirectory(), writeMatrixCaseReceipt() (+26 more)
 
 ### Community 35 - "Community 35"
-Cohesion: 0.07
-Nodes (39): CHILD_PATH_CLASSES, entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), createGitReadinessGate(), fail() (+31 more)
+Cohesion: 0.10
+Nodes (22): createGitReadinessGate(), fail(), failureNames, GIT_FILE_PIN, ownErrors, pathInput(), pinnedFile(), READINESS_POLICY (+14 more)
 
 ### Community 36 - "Community 36"
 Cohesion: 0.09
 Nodes (55): publishFixtureAuditRecord(), readFixtureAuditRecord(), admission(), assertExternalPath(), cases, controllerScript, sourceControllerEffects, environment() (+47 more)
 
 ### Community 37 - "Community 37"
-Cohesion: 0.13
-Nodes (20): CHILD_PATH_CLASSES, entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), checkParents(), codes (+12 more)
+Cohesion: 0.05
+Nodes (55): ownDirectory(), writeMatrixCaseReceipt(), CHILD_PATH_CLASSES, createChildPathDiagnostics(), entryKeys, nameClasses, NAMES, pathClasses (+47 more)
 
 ### Community 38 - "Community 38"
 Cohesion: 0.09
 Nodes (63): applyExactPatch(), applyPatchHunk(), captureTrackedInputs(), consumePatchContext(), consumePatchHunk(), consumePatchLine(), copyPinnedLicense(), copyTrackedRegularFiles() (+55 more)
 
 ### Community 39 - "Community 39"
-Cohesion: 0.12
-Nodes (23): ownDirectory(), writeMatrixCaseReceipt(), readMatrixChildReceipt(), createChildPathDiagnostics(), R35_INSTALLED_HOST_FILE, createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit() (+15 more)
+Cohesion: 0.13
+Nodes (8): copyBounded(), ScopedTransportAudit, SETUP_METHODS, sha(), strict(), canonical(), planFor(), producer()
 
 ### Community 40 - "Community 40"
-Cohesion: 0.05
-Nodes (53): CHILD_PATH_CLASSES, createChildPathDiagnostics(), entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), createGitReadinessGate() (+45 more)
+Cohesion: 0.06
+Nodes (51): CHILD_PATH_CLASSES, createChildPathDiagnostics(), entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), createGitReadinessGate() (+43 more)
 
 ### Community 41 - "Community 41"
-Cohesion: 0.04
-Nodes (65): ownDirectory(), writeMatrixCaseReceipt(), CHILD_PATH_CLASSES, createChildPathDiagnostics(), entryKeys, nameClasses, NAMES, pathClasses (+57 more)
+Cohesion: 0.06
+Nodes (51): ownDirectory(), writeMatrixCaseReceipt(), CHILD_PATH_CLASSES, createChildPathDiagnostics(), entryKeys, nameClasses, NAMES, pathClasses (+43 more)
 
 ### Community 42 - "Community 42"
-Cohesion: 0.07
-Nodes (37): CHILD_PATH_CLASSES, entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), createGitReadinessGate(), fail() (+29 more)
+Cohesion: 0.06
+Nodes (38): CHILD_PATH_CLASSES, entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), createGitReadinessGate(), fail() (+30 more)
 
 ### Community 43 - "Community 43"
 Cohesion: 0.04
@@ -877,28 +867,28 @@ Cohesion: 0.13
 Nodes (20): CHILD_PATH_CLASSES, entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), checkParents(), codes (+12 more)
 
 ### Community 46 - "Community 46"
-Cohesion: 0.09
-Nodes (29): ownDirectory(), writeMatrixCaseReceipt(), readMatrixChildReceipt(), R30_INSTALLED_HOST_FILE, createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize() (+21 more)
+Cohesion: 0.07
+Nodes (40): ownDirectory(), writeMatrixCaseReceipt(), createGitReadinessGate(), fail(), failureNames, GIT_READINESS_FAILURE_REASONS, ownErrors, pathInput() (+32 more)
 
 ### Community 47 - "Community 47"
 Cohesion: 0.10
 Nodes (52): absent(), captureAdditions(), captureFinalEntry(), createAncestor(), digest(), exactUtf8Text(), exclusiveFile(), expectedRegularHash() (+44 more)
 
 ### Community 48 - "Community 48"
-Cohesion: 0.06
-Nodes (26): prepareTrustedCase(), prepareTrustedComposition(), sha(), TrustedCaseCoordinator, offlineEvidence(), createTrustedLauncher(), absentAnalyzerOperations, authorityFields (+18 more)
+Cohesion: 0.07
+Nodes (26): prepareTrustedCase(), prepareTrustedComposition(), sha(), offlineEvidence(), createTrustedLauncher(), absentAnalyzerOperations, authorityFields, canonical() (+18 more)
 
 ### Community 49 - "Community 49"
-Cohesion: 0.20
-Nodes (15): createProcessStateDiagnostics(), ownDirectory(), writeWorkspaceCaseReceipt(), exact(), verifyWorkspaceMcpReceipt(), createOwnedScratchProofIssuer(), createTrustedLauncher(), consistentOwnedExit() (+7 more)
+Cohesion: 0.15
+Nodes (24): AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX (+16 more)
 
 ### Community 50 - "Community 50"
-Cohesion: 0.10
-Nodes (31): createChildPathDiagnostics(), ownDirectory(), writeWorkspaceCaseReceipt(), prepareTrustedCase(), exact(), verifyWorkspaceMcpReceipt(), applyNativeContractConfiguration(), assertFixedNativePlanContract() (+23 more)
+Cohesion: 0.09
+Nodes (36): buildWorkspaceCanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), DEDICATED_TOOL_HELPER_SOURCE_EXPECTATIONS, fullT3RecoveryBudget(), BUILD (+28 more)
 
 ### Community 51 - "Community 51"
 Cohesion: 0.07
-Nodes (48): DISABLED_FEATURES, canonicalJson(), collectBoundedBody(), composeR2dLaunch(), consumeReleasedCall(), createRequestInterlock(), evaluateInterlockResults(), execFile (+40 more)
+Nodes (46): DISABLED_FEATURES, canonicalJson(), composeR2dLaunch(), consumeReleasedCall(), createRequestInterlock(), evaluateInterlockResults(), execFile, freezeDeep() (+38 more)
 
 ### Community 52 - "Community 52"
 Cohesion: 0.05
@@ -909,8 +899,8 @@ Cohesion: 0.36
 Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
 
 ### Community 54 - "Community 54"
-Cohesion: 0.08
-Nodes (32): fail(), PRIOR_JOURNAL, sha(), verifyPriorAttempt(), CASE_ROOT, classifyT1PreparationFailure(), expectedTreeRoots, fixedPaths (+24 more)
+Cohesion: 0.06
+Nodes (37): allowed, fail(), writeT1PreparationReceipt(), fail(), PRIOR_JOURNAL, sha(), verifyPriorAttempt(), createT1ErrorAdapter() (+29 more)
 
 ### Community 55 - "Community 55"
 Cohesion: 0.05
@@ -930,7 +920,7 @@ Nodes (22): arch, binary, build, children, configurationRecord(), emptySystemLay
 
 ### Community 59 - "Community 59"
 Cohesion: 0.05
-Nodes (51): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+43 more)
+Nodes (53): externalEffectAttempts, categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText() (+45 more)
 
 ### Community 60 - "Community 60"
 Cohesion: 0.08
@@ -941,24 +931,24 @@ Cohesion: 0.10
 Nodes (48): adaptSelectionForCodex(), assert(), assertActiveCandidate(), assertCandidateCompatible(), assertExactKeys(), assertHostProfileAuthority(), assertObject(), assertStringArray() (+40 more)
 
 ### Community 62 - "Community 62"
-Cohesion: 0.08
-Nodes (40): verifyR33HistoricalClosure(), AUTHORITY_PINS, CASES, ENVIRONMENT_PROFILE, fail(), GIT_READINESS, INDEX, MANIFEST (+32 more)
+Cohesion: 0.14
+Nodes (24): AUTHORITY_PINS, CASES, CHILD_PATH_OBSERVATIONS, countsValid(), ENVIRONMENT_PROFILE, expectedNames(), fail(), GIT_READINESS (+16 more)
 
 ### Community 63 - "Community 63"
 Cohesion: 0.07
-Nodes (33): createR21OwnedHostObserver(), R21_INSTALLED_HOST_FILE, same(), verifyR21HostFile(), createR22OwnedHostObserver(), R22_INSTALLED_HOST_FILE, createR23OwnedHostObserver(), R23_INSTALLED_HOST_FILE (+25 more)
+Nodes (33): createR21OwnedHostObserver(), R21_INSTALLED_HOST_FILE, same(), verifyR21HostFile(), createR22OwnedHostObserver(), R22_INSTALLED_HOST_FILE, same(), verifyR22HostFile() (+25 more)
 
 ### Community 64 - "Community 64"
-Cohesion: 0.13
-Nodes (23): buildWorkspaceCanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), DEDICATED_TOOL_HELPER_SOURCE_EXPECTATIONS, BUILD, HERE (+15 more)
+Cohesion: 0.09
+Nodes (35): buildWorkspaceCanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), DEDICATED_TOOL_HELPER_SOURCE_EXPECTATIONS, BUILD, HERE (+27 more)
 
 ### Community 65 - "Community 65"
-Cohesion: 0.07
-Nodes (37): CHILD_PATH_CLASSES, entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), createGitReadinessGate(), fail() (+29 more)
+Cohesion: 0.05
+Nodes (55): CHILD_PATH_CLASSES, createChildPathDiagnostics(), entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), createGitReadinessGate() (+47 more)
 
 ### Community 66 - "Community 66"
-Cohesion: 0.06
-Nodes (40): TrustedCaseCoordinator, ownDirectory(), writeWorkspaceCaseReceipt(), readWorkspaceChildReceipt(), prepareTrustedCase(), BUILD_BUNDLE, GENERATED_PRISMA, HERE (+32 more)
+Cohesion: 0.13
+Nodes (24): buildWorkspaceCanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), DEDICATED_TOOL_HELPER_SOURCE_EXPECTATIONS, fullT3RecoveryBudget(), BUILD (+16 more)
 
 ### Community 67 - "Community 67"
 Cohesion: 0.07
@@ -969,16 +959,16 @@ Cohesion: 0.06
 Nodes (39): allowedAgentKeys, allProfiles, config, failures, isIgnorableAgentLine(), parseAgentLine(), parseAgentValue(), parseFlatAgentToml() (+31 more)
 
 ### Community 69 - "Community 69"
-Cohesion: 0.07
-Nodes (50): buildWorkspaceCanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), prepareTrustedCase(), DEDICATED_TOOL_HELPER_SOURCE_EXPECTATIONS, fullT3Maximum() (+42 more)
+Cohesion: 0.15
+Nodes (16): buildWorkspaceCanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), DEDICATED_TOOL_HELPER_SOURCE_EXPECTATIONS, BUILD, HERE (+8 more)
 
 ### Community 70 - "Community 70"
-Cohesion: 0.10
-Nodes (30): buildWorkspaceCanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), DEDICATED_TOOL_HELPER_SOURCE_EXPECTATIONS, BUILD, HERE (+22 more)
+Cohesion: 0.12
+Nodes (31): requireTA04Absent(), verifyR21Predecessor(), verifyRetainedP7(), verifyR22Predecessor(), INDEX, R23_COUNTS, readFrozenR23(), REPO (+23 more)
 
 ### Community 71 - "Community 71"
-Cohesion: 0.12
-Nodes (24): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+16 more)
+Cohesion: 0.08
+Nodes (37): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+29 more)
 
 ### Community 72 - "Community 72"
 Cohesion: 0.08
@@ -997,48 +987,48 @@ Cohesion: 0.08
 Nodes (37): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+29 more)
 
 ### Community 76 - "Community 76"
-Cohesion: 0.12
-Nodes (24): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+16 more)
-
-### Community 77 - "Community 77"
-Cohesion: 0.12
-Nodes (24): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+16 more)
-
-### Community 78 - "Community 78"
-Cohesion: 0.12
-Nodes (24): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+16 more)
-
-### Community 79 - "Community 79"
-Cohesion: 0.21
-Nodes (13): captureParents(), checkParents(), classes, createProviderFailureRecorder(), FAILURE_CLASSES, FAILURE_STAGES, ownDirectory(), ownFile() (+5 more)
-
-### Community 80 - "Community 80"
 Cohesion: 0.08
 Nodes (37): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+29 more)
 
-### Community 81 - "Community 81"
+### Community 77 - "Community 77"
+Cohesion: 0.08
+Nodes (37): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+29 more)
+
+### Community 78 - "Community 78"
+Cohesion: 0.08
+Nodes (37): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+29 more)
+
+### Community 79 - "Community 79"
+Cohesion: 0.12
+Nodes (21): CHILD_PATH_CLASSES, entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), GIT_READINESS_FAILURE_REASONS, checkParents() (+13 more)
+
+### Community 80 - "Community 80"
 Cohesion: 0.12
 Nodes (22): categories, classifyOutputObservation(), controlledMarkers, DIAGNOSTIC_CATEGORIES, exactText(), groups, OUTPUT_STATUSES, SCRIPT_FAILURE_MARKERS (+14 more)
+
+### Community 81 - "Community 81"
+Cohesion: 0.21
+Nodes (13): captureParents(), checkParents(), classes, createProviderFailureRecorder(), FAILURE_CLASSES, FAILURE_STAGES, ownDirectory(), ownFile() (+5 more)
 
 ### Community 82 - "Community 82"
 Cohesion: 0.12
 Nodes (24): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+16 more)
 
 ### Community 83 - "Community 83"
-Cohesion: 0.10
-Nodes (29): buildWorkspaceCanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), DEDICATED_TOOL_HELPER_SOURCE_EXPECTATIONS, fullT3RecoveryBudget(), BUILD (+21 more)
+Cohesion: 0.09
+Nodes (34): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+26 more)
 
 ### Community 84 - "Community 84"
 Cohesion: 0.12
 Nodes (6): Fixture, owned_file(), PhaseHistoryCleanupTest, private(), Disposable, offline tests for the fixed T2/T3 retention cleanup boundary., sha()
 
 ### Community 85 - "Community 85"
-Cohesion: 0.12
-Nodes (24): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+16 more)
+Cohesion: 0.08
+Nodes (37): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+29 more)
 
 ### Community 86 - "Community 86"
 Cohesion: 0.08
-Nodes (39): composeIsolatedLaunch(), execFile, fixtureConfig(), ISOLATED_ENV_ALLOWLIST, ISOLATION_MODES, mcpConfigBlock(), normalizeMcpInventory(), sameProcessIdentity() (+31 more)
+Nodes (40): composeIsolatedLaunch(), execFile, fixtureConfig(), ISOLATED_ENV_ALLOWLIST, ISOLATION_MODES, mcpConfigBlock(), normalizeMcpInventory(), sameProcessIdentity() (+32 more)
 
 ### Community 87 - "Community 87"
 Cohesion: 0.07
@@ -1049,12 +1039,12 @@ Cohesion: 0.12
 Nodes (17): allowedDatabaseFixtures, assertMigrationParity(), expectedMigrations, packages, rootPackage, rootPublishRefusal, assertDatabaseMigrationParity(), enumerateDatabaseMigrations() (+9 more)
 
 ### Community 89 - "Community 89"
-Cohesion: 0.08
-Nodes (27): buildR36CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), ownDirectory(), writeMatrixCaseReceipt(), prepareTrustedCase() (+19 more)
+Cohesion: 0.15
+Nodes (23): AUTHORITY_PINS, CASES, consistentOwnedExit(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX, KINDS (+15 more)
 
 ### Community 90 - "Community 90"
-Cohesion: 0.13
-Nodes (23): buildWorkspaceCanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), DEDICATED_TOOL_HELPER_SOURCE_EXPECTATIONS, BUILD, HERE (+15 more)
+Cohesion: 0.15
+Nodes (18): buildR29CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), GIT_FILE_PIN, AUTHORITY, BUILD (+10 more)
 
 ### Community 91 - "Community 91"
 Cohesion: 0.07
@@ -1065,32 +1055,32 @@ Cohesion: 0.12
 Nodes (6): Fixture, owned_file(), PhaseHistoryCleanupTest, private(), Disposable, offline tests for the fixed T2/T3 retention cleanup boundary., sha()
 
 ### Community 93 - "Community 93"
-Cohesion: 0.12
-Nodes (21): CHILD_PATH_CLASSES, entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), GIT_READINESS_FAILURE_REASONS, checkParents() (+13 more)
+Cohesion: 0.09
+Nodes (30): ownDirectory(), writeMatrixCaseReceipt(), readMatrixChildReceipt(), createChildPathDiagnostics(), createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize() (+22 more)
 
 ### Community 94 - "Community 94"
 Cohesion: 0.07
 Nodes (35): CHILD_PATH_CLASSES, entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), createGitReadinessGate(), fail() (+27 more)
 
 ### Community 95 - "Community 95"
-Cohesion: 0.07
-Nodes (36): CHILD_PATH_CLASSES, entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), createGitReadinessGate(), fail() (+28 more)
+Cohesion: 0.05
+Nodes (68): CHILD_PATH_CLASSES, createChildPathDiagnostics(), entryKeys, nameClasses, NAMES, pathClasses, createGitReadinessGate(), fail() (+60 more)
 
 ### Community 96 - "Community 96"
 Cohesion: 0.08
 Nodes (28): createT1ErrorAdapter(), CASE_ROOT, expectedTreeRoots, fixedPaths, HERE, MANIFEST_DIR, MANIFEST_FILE, normalStopJournal() (+20 more)
 
 ### Community 97 - "Community 97"
-Cohesion: 0.09
-Nodes (30): CHILD_PATH_CLASSES, createChildPathDiagnostics(), entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), ownDirectory() (+22 more)
+Cohesion: 0.08
+Nodes (37): createProcessStateDiagnostics(), ownDirectory(), writeWorkspaceCaseReceipt(), BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS (+29 more)
 
 ### Community 98 - "Community 98"
-Cohesion: 0.09
-Nodes (36): ADDON, assertCommonBindings(), assertDecision(), assertPredecessor(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, COMMON_FIELDS (+28 more)
+Cohesion: 0.14
+Nodes (24): ADDON, assertCommonBindings(), assertDecision(), assertPredecessor(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, COMMON_FIELDS (+16 more)
 
 ### Community 99 - "Community 99"
-Cohesion: 0.13
-Nodes (26): ADDON, assertCommonBindings(), assertDecision(), assertPredecessor(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, COMMON_FIELDS (+18 more)
+Cohesion: 0.14
+Nodes (24): ADDON, assertCommonBindings(), assertDecision(), assertPredecessor(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, COMMON_FIELDS (+16 more)
 
 ### Community 100 - "Community 100"
 Cohesion: 0.14
@@ -1109,24 +1099,24 @@ Cohesion: 0.07
 Nodes (32): actualSignatures, expectedHandlers, expectedSignatures, extra, extraHandlers, handlerRefs, missing, missingHandlers (+24 more)
 
 ### Community 104 - "Community 104"
-Cohesion: 0.07
-Nodes (37): buildR21CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), AVAILABILITY, BUILD, EXPECTED (+29 more)
+Cohesion: 0.09
+Nodes (27): buildR21CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), AVAILABILITY, BUILD, EXPECTED (+19 more)
 
 ### Community 105 - "Community 105"
-Cohesion: 0.06
-Nodes (26): createB14NativeSession(), inspectP00RequiredMcpError(), syntheticB14Output(), syntheticB14PermissionEvidence(), syntheticB14Request(), RESULT, syntheticB14Output(), syntheticB14PermissionEvidence() (+18 more)
+Cohesion: 0.07
+Nodes (28): createB14NativeSession(), inspectP00RequiredMcpError(), sha(), validateIssuedTranscript(), syntheticB14Output(), syntheticB14PermissionEvidence(), syntheticB14Request(), RESULT (+20 more)
 
 ### Community 106 - "Community 106"
-Cohesion: 0.09
-Nodes (43): AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX (+35 more)
+Cohesion: 0.15
+Nodes (23): AUTHORITY_PINS, CASES, consistentOwnedExit(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX, KINDS (+15 more)
 
 ### Community 107 - "Community 107"
 Cohesion: 0.16
 Nodes (31): DirectChildMetadata(), Fail(), GetOnePidArg(), GetPid(), Identity(), Init(), ListDirectChildren(), MakeIdentity() (+23 more)
 
 ### Community 108 - "Community 108"
-Cohesion: 0.11
-Nodes (25): ADDON, assertDecision(), assertReview(), DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT, fail(), fixedFileIdentity() (+17 more)
+Cohesion: 0.15
+Nodes (21): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+13 more)
 
 ### Community 109 - "Community 109"
 Cohesion: 0.20
@@ -1145,8 +1135,8 @@ Cohesion: 0.17
 Nodes (14): children, exitCode(), exitLabel(), handleProcessError(), handleProcessExit(), handleProcessStop(), inferredBaseUrl(), mcp (+6 more)
 
 ### Community 113 - "Community 113"
-Cohesion: 0.13
-Nodes (20): CHILD_PATH_CLASSES, entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), checkParents(), codes (+12 more)
+Cohesion: 0.06
+Nodes (48): ownDirectory(), writeMatrixCaseReceipt(), CHILD_PATH_CLASSES, createChildPathDiagnostics(), entryKeys, nameClasses, NAMES, pathClasses (+40 more)
 
 ### Community 114 - "Community 114"
 Cohesion: 0.15
@@ -1154,19 +1144,19 @@ Nodes (24): AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid(), expecte
 
 ### Community 115 - "Community 115"
 Cohesion: 0.10
-Nodes (34): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+26 more)
+Nodes (35): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+27 more)
 
 ### Community 116 - "Community 116"
-Cohesion: 0.14
-Nodes (14): ownDirectory(), writeMatrixCaseReceipt(), prepareTrustedCase(), assertMinimalEnvironmentProfile(), cases, MINIMAL_ENVIRONMENT_PROFILE, minimalPathForCase(), POLICY (+6 more)
+Cohesion: 0.36
+Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
 
 ### Community 117 - "Community 117"
-Cohesion: 0.12
-Nodes (33): { build }, buildAndBindSourceStage(), buildSourceCustodyPacket(), buildSourceIpcFaultPacket(), canonicalInputs(), commonNames, here, materializeSourcePacketScripts() (+25 more)
+Cohesion: 0.15
+Nodes (28): { build }, buildAndBindSourceStage(), buildSourceCustodyPacket(), buildSourceIpcFaultPacket(), canonicalInputs(), commonNames, here, materializeSourcePacketScripts() (+20 more)
 
 ### Community 118 - "Community 118"
-Cohesion: 0.08
-Nodes (32): buildR19CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), BUILD, DESIGN, EXPECTED (+24 more)
+Cohesion: 0.10
+Nodes (24): buildR19CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), BUILD, DESIGN, EXPECTED (+16 more)
 
 ### Community 119 - "Community 119"
 Cohesion: 0.13
@@ -1185,12 +1175,12 @@ Cohesion: 0.11
 Nodes (22): CountedJsonLines, approvalFields, b14Workspace, createPermissionDiagnostic(), nullableFieldShape(), only(), PERMISSION_DIAGNOSTIC_REASONS, permissionRequestFailure() (+14 more)
 
 ### Community 123 - "Community 123"
-Cohesion: 0.15
-Nodes (13): CountedJsonLines, nullableString(), only(), PROTOCOL_FAILURE_CATEGORIES, record(), telemetryKinds, textPosition(), textRange() (+5 more)
-
-### Community 124 - "Community 124"
 Cohesion: 0.11
 Nodes (22): CountedJsonLines, approvalFields, b14Workspace, createPermissionDiagnostic(), nullableFieldShape(), only(), PERMISSION_DIAGNOSTIC_REASONS, permissionRequestFailure() (+14 more)
+
+### Community 124 - "Community 124"
+Cohesion: 0.15
+Nodes (13): CountedJsonLines, nullableString(), only(), PROTOCOL_FAILURE_CATEGORIES, record(), telemetryKinds, textPosition(), textRange() (+5 more)
 
 ### Community 125 - "Community 125"
 Cohesion: 0.11
@@ -1201,8 +1191,8 @@ Cohesion: 0.11
 Nodes (22): CountedJsonLines, approvalFields, b14Workspace, createPermissionDiagnostic(), nullableFieldShape(), only(), PERMISSION_DIAGNOSTIC_REASONS, permissionRequestFailure() (+14 more)
 
 ### Community 127 - "Community 127"
-Cohesion: 0.11
-Nodes (22): CountedJsonLines, approvalFields, b14Workspace, createPermissionDiagnostic(), nullableFieldShape(), only(), PERMISSION_DIAGNOSTIC_REASONS, permissionRequestFailure() (+14 more)
+Cohesion: 0.15
+Nodes (13): CountedJsonLines, nullableString(), only(), PROTOCOL_FAILURE_CATEGORIES, record(), telemetryKinds, textPosition(), textRange() (+5 more)
 
 ### Community 128 - "Community 128"
 Cohesion: 0.11
@@ -1210,7 +1200,7 @@ Nodes (22): CountedJsonLines, approvalFields, b14Workspace, createPermissionDiag
 
 ### Community 129 - "Community 129"
 Cohesion: 0.15
-Nodes (33): boundaryFindings(), boundaryShapeFindings(), canonicalEqual(), canonicalJson(), canonicalSchemaHash(), canonicalValue(), evaluatePreTurnQualification(), exactToolFindings() (+25 more)
+Nodes (32): boundaryFindings(), boundaryShapeFindings(), canonicalEqual(), canonicalSchemaHash(), canonicalValue(), evaluatePreTurnQualification(), exactToolFindings(), expectedManifestFindings() (+24 more)
 
 ### Community 130 - "Community 130"
 Cohesion: 0.15
@@ -1221,12 +1211,12 @@ Cohesion: 0.07
 Nodes (30): assertOwnedSupervisorDeclaration(), digest(), inspectEmittedAnalysisOwnedChildOrigin(), preserveAnalysisOwnedChildOrigin(), soleOwnedSupervisorOrigin(), collectAnalysisRuntimePackageInputs(), inspectAnalysisPreRuntimeClosure(), binding (+22 more)
 
 ### Community 132 - "Community 132"
-Cohesion: 0.22
-Nodes (13): prepareR35MatrixManifest(), sha(), buildR35PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite() (+5 more)
+Cohesion: 0.16
+Nodes (21): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+13 more)
 
 ### Community 133 - "Community 133"
-Cohesion: 0.11
-Nodes (21): prepareTrustedCase(), HERE, ownPin(), prepareWorkspaceManifest(), REPO, sha(), createWorkspaceNativeSession(), sha() (+13 more)
+Cohesion: 0.13
+Nodes (16): prepareWorkspaceManifest(), createWorkspaceNativeSession(), sha(), HERE, REPO, sha(), verifyWorkspacePreparation(), WORKSPACE_BUILD (+8 more)
 
 ### Community 134 - "Community 134"
 Cohesion: 0.16
@@ -1237,16 +1227,16 @@ Cohesion: 0.09
 Nodes (25): connected(), inputs, rawMutations, validate(), exactKeys(), failureKeys, injectSourceIpcFault(), readSourceFaultJson() (+17 more)
 
 ### Community 136 - "Community 136"
-Cohesion: 0.09
-Nodes (32): MATRIX_MANIFEST, ADDON, assertReview(), BASE_ENTRYPOINT, dispatchMatrixEntrypoint(), ENTRYPOINT, fail(), fixedFileIdentity() (+24 more)
+Cohesion: 0.14
+Nodes (22): ADDON, assertReview(), BASE_ENTRYPOINT, dispatchMatrixEntrypoint(), ENTRYPOINT, fail(), fixedFileIdentity(), HERE (+14 more)
 
 ### Community 137 - "Community 137"
-Cohesion: 0.12
-Nodes (22): buildR20CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), BUILD, DESIGN, EXPECTED (+14 more)
+Cohesion: 0.08
+Nodes (35): buildR20CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), BUILD, DESIGN, EXPECTED (+27 more)
 
 ### Community 138 - "Community 138"
-Cohesion: 0.09
-Nodes (31): buildR47CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), BUILD, HERE, prepareR47MatrixManifest() (+23 more)
+Cohesion: 0.12
+Nodes (21): buildR47CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), same(), verifyR47HostFile(), BUILD (+13 more)
 
 ### Community 139 - "Community 139"
 Cohesion: 0.11
@@ -1254,19 +1244,19 @@ Nodes (20): CountedJsonLines, approvalFields, b14Workspace, nullableString(), on
 
 ### Community 140 - "Community 140"
 Cohesion: 0.12
-Nodes (19): ADDON, assertReview(), dispatchMatrixEntrypoint(), ENTRYPOINT, fail(), fixedFileIdentity(), HERE, invocationPrefix() (+11 more)
+Nodes (20): ADDON, assertReview(), dispatchMatrixEntrypoint(), ENTRYPOINT, fail(), fixedFileIdentity(), HERE, invocationPrefix() (+12 more)
 
 ### Community 141 - "Community 141"
-Cohesion: 0.06
-Nodes (40): buildMatrixCanonicalBytes(), HISTORICAL_BUNDLE, REPO, sha(), ownDirectory(), writeMatrixCaseReceipt(), prepareTrustedCase(), BUILD (+32 more)
+Cohesion: 0.16
+Nodes (17): ADDON, assertDecision(), assertReview(), DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT, fail(), fixedFileIdentity() (+9 more)
 
 ### Community 142 - "Community 142"
 Cohesion: 0.15
 Nodes (18): ADDON, assertDecision(), assertReview(), DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT, fail(), fixedFileIdentity() (+10 more)
 
 ### Community 143 - "Community 143"
-Cohesion: 0.17
-Nodes (17): ownDirectory(), writeMatrixCaseReceipt(), createChildPathDiagnostics(), R33_INSTALLED_HOST_FILE, createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize() (+9 more)
+Cohesion: 0.15
+Nodes (19): ownDirectory(), writeMatrixCaseReceipt(), createChildPathDiagnostics(), createR48OwnedHostObserver(), R48_INSTALLED_HOST_FILE, createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit() (+11 more)
 
 ### Community 144 - "Community 144"
 Cohesion: 0.09
@@ -1289,32 +1279,32 @@ Cohesion: 0.12
 Nodes (24): CanonicalBridgeBootstrapConfig, createCanonicalSupervisorBridge(), createLazyCanonicalSupervisorBridge(), Fixture, approvedPhaseRoots, assertOwnedSupervisorWorkspace(), Binding, canonicalJson() (+16 more)
 
 ### Community 149 - "Community 149"
-Cohesion: 0.08
-Nodes (31): ownDirectory(), writeMatrixCaseReceipt(), prepareTrustedCase(), createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize(), runPreparedT2Matrix() (+23 more)
+Cohesion: 0.10
+Nodes (27): ownDirectory(), writeMatrixCaseReceipt(), createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize(), runPreparedT2Matrix(), sha() (+19 more)
 
 ### Community 150 - "Community 150"
-Cohesion: 0.16
-Nodes (25): serializeR39Preparation(), validateProcessStateDiagnostic(), verifyR39HistoricalClosure(), AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid(), expectedNames() (+17 more)
+Cohesion: 0.17
+Nodes (22): verifyR39HistoricalClosure(), AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid(), expectedNames(), fail(), INDEX (+14 more)
 
 ### Community 151 - "Community 151"
 Cohesion: 0.08
 Nodes (36): ADDON, assertDecision(), assertReview(), DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT, fail(), fixedFileIdentity() (+28 more)
 
 ### Community 152 - "Community 152"
-Cohesion: 0.07
-Nodes (41): ownDirectory(), writeMatrixCaseReceipt(), readMatrixChildReceipt(), createChildPathDiagnostics(), prepareTrustedCase(), assertMinimalEnvironmentProfile(), cases, MINIMAL_ENVIRONMENT_PROFILE (+33 more)
+Cohesion: 0.18
+Nodes (21): AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid(), expectedNames(), fail(), INDEX, KINDS (+13 more)
 
 ### Community 153 - "Community 153"
-Cohesion: 0.09
-Nodes (24): CHILD_PATH_CLASSES, entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), GIT_FILE_PIN, GIT_READINESS_FAILURE_REASONS (+16 more)
+Cohesion: 0.06
+Nodes (39): CHILD_PATH_CLASSES, entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), createGitReadinessGate(), fail() (+31 more)
 
 ### Community 154 - "Community 154"
-Cohesion: 0.15
-Nodes (25): AUTHORITY_PINS, CASES, COMPLETED_CASES, consistentOwnedExit(), countsValid(), expectedNames(), fail(), INDEX (+17 more)
+Cohesion: 0.08
+Nodes (47): serializeR44Preparation(), verifyR44HistoricalClosure(), AUTHORITY_PINS, CASES, COMPLETED_CASES, consistentOwnedExit(), countsValid(), expectedNames() (+39 more)
 
 ### Community 155 - "Community 155"
-Cohesion: 0.11
-Nodes (26): createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize(), runPreparedT2Matrix(), sha(), T2, turn() (+18 more)
+Cohesion: 0.20
+Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
 
 ### Community 156 - "Community 156"
 Cohesion: 0.08
@@ -1326,19 +1316,19 @@ Nodes (18): CountedJsonLines, approvalFields, b14Workspace, createPermissionDiag
 
 ### Community 158 - "Community 158"
 Cohesion: 0.15
-Nodes (24): AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX (+16 more)
+Nodes (23): AUTHORITY_PINS, CASES, consistentOwnedExit(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX, KINDS (+15 more)
 
 ### Community 159 - "Community 159"
-Cohesion: 0.12
-Nodes (24): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+16 more)
+Cohesion: 0.20
+Nodes (15): decodeWithDiagnostic(), emitDiagnostic(), checkedString(), exactKeys(), FiniteBufferedResponses, makeCustomToolEvents(), makeTerminalEvents(), scriptDigest() (+7 more)
 
 ### Community 160 - "Community 160"
-Cohesion: 0.12
-Nodes (24): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+16 more)
+Cohesion: 0.13
+Nodes (23): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+15 more)
 
 ### Community 161 - "Community 161"
-Cohesion: 0.15
-Nodes (24): AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX (+16 more)
+Cohesion: 0.20
+Nodes (15): decodeWithDiagnostic(), emitDiagnostic(), checkedString(), exactKeys(), FiniteBufferedResponses, makeCustomToolEvents(), makeTerminalEvents(), scriptDigest() (+7 more)
 
 ### Community 162 - "Community 162"
 Cohesion: 0.12
@@ -1357,40 +1347,40 @@ Cohesion: 0.12
 Nodes (28): sha256(), buildProbeProfiles(), captureRequest(), close(), collectSchemaDifferences(), compactionSchema(), createRpc(), deferred() (+20 more)
 
 ### Community 166 - "Community 166"
-Cohesion: 0.14
-Nodes (12): checkedDirectory(), checkedFile(), checkedLimits(), checkedRoot(), clone(), DEFAULT_LIMITS, DisposableStore, HARD_LIMITS (+4 more)
+Cohesion: 0.07
+Nodes (25): checkedDirectory(), checkedFile(), checkedLimits(), checkedRoot(), clone(), DEFAULT_LIMITS, DisposableStore, HARD_LIMITS (+17 more)
 
 ### Community 167 - "Community 167"
-Cohesion: 0.15
-Nodes (12): ownDirectory(), writeMatrixCaseReceipt(), prepareTrustedCase(), POLICY, POLICY_DIGEST, ROOT_AMENDMENT, createNativePorts(), realIo (+4 more)
+Cohesion: 0.17
+Nodes (14): buildR23CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), BUILD, HERE, pin() (+6 more)
 
 ### Community 168 - "Community 168"
-Cohesion: 0.09
-Nodes (24): CHILD_PATH_CLASSES, entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), GIT_FILE_PIN, GIT_READINESS_FAILURE_REASONS (+16 more)
+Cohesion: 0.06
+Nodes (53): CHILD_PATH_CLASSES, createChildPathDiagnostics(), entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), createGitReadinessGate() (+45 more)
 
 ### Community 169 - "Community 169"
-Cohesion: 0.47
-Nodes (5): buildR35CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha()
+Cohesion: 0.16
+Nodes (17): ADDON, assertDecision(), assertReview(), DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT, fail(), fixedFileIdentity() (+9 more)
 
 ### Community 170 - "Community 170"
-Cohesion: 0.08
-Nodes (31): buildR39CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), createGitReadinessGate(), fail(), failureNames (+23 more)
+Cohesion: 0.16
+Nodes (17): ADDON, assertDecision(), assertReview(), DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT, fail(), fixedFileIdentity() (+9 more)
 
 ### Community 171 - "Community 171"
 Cohesion: 0.07
 Nodes (37): CHILD_PATH_CLASSES, entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), createGitReadinessGate(), fail() (+29 more)
 
 ### Community 172 - "Community 172"
-Cohesion: 0.10
-Nodes (24): TA06_PINS, ownDirectory(), writeMatrixCaseReceipt(), prepareTrustedCase(), assertMinimalEnvironmentProfile(), cases, MINIMAL_ENVIRONMENT_PROFILE, minimalPathForCase() (+16 more)
+Cohesion: 0.22
+Nodes (14): prepareR50MatrixManifest(), sha(), buildR50PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite() (+6 more)
 
 ### Community 173 - "Community 173"
-Cohesion: 0.08
-Nodes (48): validateProcessStateDiagnostic(), AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid(), expectedNames(), fail(), FAILED_DIAGNOSTIC (+40 more)
+Cohesion: 0.15
+Nodes (25): AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX (+17 more)
 
 ### Community 174 - "Community 174"
-Cohesion: 0.12
-Nodes (24): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+16 more)
+Cohesion: 0.21
+Nodes (13): captureParents(), checkParents(), classes, createProviderFailureRecorder(), FAILURE_CLASSES, FAILURE_STAGES, ownDirectory(), ownFile() (+5 more)
 
 ### Community 175 - "Community 175"
 Cohesion: 0.13
@@ -1413,16 +1403,16 @@ Cohesion: 0.13
 Nodes (17): CountedJsonLines, approvalFields, b14Workspace, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record() (+9 more)
 
 ### Community 180 - "Community 180"
-Cohesion: 0.17
-Nodes (16): approvalFields, b14Workspace, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record(), telemetryKinds (+8 more)
+Cohesion: 0.13
+Nodes (17): CountedJsonLines, approvalFields, b14Workspace, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record() (+9 more)
 
 ### Community 181 - "Community 181"
-Cohesion: 0.15
-Nodes (24): AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX (+16 more)
+Cohesion: 0.06
+Nodes (62): buildR41PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite(), readExactOutput(), REPO (+54 more)
 
 ### Community 182 - "Community 182"
-Cohesion: 0.15
-Nodes (13): CountedJsonLines, approvalFields, b14Workspace, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record() (+5 more)
+Cohesion: 0.13
+Nodes (17): CountedJsonLines, approvalFields, b14Workspace, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record() (+9 more)
 
 ### Community 183 - "Community 183"
 Cohesion: 0.13
@@ -1433,8 +1423,8 @@ Cohesion: 0.13
 Nodes (17): CountedJsonLines, approvalFields, b14Workspace, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record() (+9 more)
 
 ### Community 185 - "Community 185"
-Cohesion: 0.13
-Nodes (23): buildWorkspaceCanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), DEDICATED_TOOL_HELPER_SOURCE_EXPECTATIONS, BUILD, HERE (+15 more)
+Cohesion: 0.24
+Nodes (18): absent(), absentPair(), buildContext(), checkIndexWitness(), context(), exactPath(), fail(), qualification (+10 more)
 
 ### Community 186 - "Community 186"
 Cohesion: 0.13
@@ -1449,28 +1439,28 @@ Cohesion: 0.18
 Nodes (18): Blocked, BudgetJournal, case_configuration(), denial_reply(), DenialGuard, digest(), encoded(), evidence_projection() (+10 more)
 
 ### Community 189 - "Community 189"
-Cohesion: 0.11
-Nodes (25): ADDON, assertDecision(), assertReview(), DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT, fail(), fixedFileIdentity() (+17 more)
+Cohesion: 0.08
+Nodes (35): ADDON, assertDecision(), assertReview(), DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT, fail(), fixedFileIdentity() (+27 more)
 
 ### Community 190 - "Community 190"
-Cohesion: 0.38
-Nodes (4): ownDirectory(), writeWorkspaceCaseReceipt(), prepareTrustedCase(), POLICY
+Cohesion: 0.10
+Nodes (25): buildR35CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), ownDirectory(), writeMatrixCaseReceipt(), prepareTrustedCase() (+17 more)
 
 ### Community 191 - "Community 191"
 Cohesion: 0.18
 Nodes (13): apply(), casesFor(), clone(), conservativeHostBudget(), DurablePhaseJournal, EFFECT_KINDS, exactTime(), initial() (+5 more)
 
 ### Community 192 - "Community 192"
-Cohesion: 0.15
-Nodes (26): AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid(), expectedNames(), fail(), INDEX, KINDS (+18 more)
+Cohesion: 0.13
+Nodes (30): validateChildPathDiagnostics(), verifyR51HistoricalClosure(), fail(), validateStageProgress(), AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid() (+22 more)
 
 ### Community 193 - "Community 193"
 Cohesion: 0.14
 Nodes (14): apply(), assertRoot(), blank(), copy(), DurableT1Journal, JOURNAL_ROOT, KINDS, own() (+6 more)
 
 ### Community 194 - "Community 194"
-Cohesion: 0.08
-Nodes (20): POLICY, apply(), assertRoot(), blank(), copy(), DurableT1Journal, JOURNAL_ROOT, KINDS (+12 more)
+Cohesion: 0.14
+Nodes (14): apply(), assertRoot(), blank(), copy(), DurableT1Journal, JOURNAL_ROOT, KINDS, own() (+6 more)
 
 ### Community 195 - "Community 195"
 Cohesion: 0.11
@@ -1493,8 +1483,8 @@ Cohesion: 0.14
 Nodes (14): apply(), assertRoot(), blank(), copy(), DurableT1Journal, JOURNAL_ROOT, KINDS, own() (+6 more)
 
 ### Community 200 - "Community 200"
-Cohesion: 0.09
-Nodes (36): ADDON, assertCommonBindings(), assertDecision(), assertPredecessor(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, COMMON_FIELDS (+28 more)
+Cohesion: 0.13
+Nodes (25): ADDON, assertCommonBindings(), assertDecision(), assertPredecessor(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, COMMON_FIELDS (+17 more)
 
 ### Community 201 - "Community 201"
 Cohesion: 0.11
@@ -1514,39 +1504,39 @@ Nodes (29): ADDON, assertDecision(), assertReview(), DECISION, dispatchMatrixEnt
 
 ### Community 205 - "Community 205"
 Cohesion: 0.16
-Nodes (16): buildR28CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), GIT_FILE_PIN, AUTHORITY, BUILD (+8 more)
+Nodes (17): ADDON, assertDecision(), assertReview(), DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT, fail(), fixedFileIdentity() (+9 more)
 
 ### Community 206 - "Community 206"
 Cohesion: 0.19
 Nodes (12): apply(), casesFor(), clone(), conservativeHostBudget(), DurablePhaseJournal, EFFECT_KINDS, exactTime(), initial() (+4 more)
 
 ### Community 207 - "Community 207"
-Cohesion: 0.18
-Nodes (13): apply(), casesFor(), clone(), conservativeHostBudget(), DurablePhaseJournal, EFFECT_KINDS, exactTime(), initial() (+5 more)
+Cohesion: 0.19
+Nodes (12): apply(), casesFor(), clone(), conservativeHostBudget(), DurablePhaseJournal, EFFECT_KINDS, exactTime(), initial() (+4 more)
 
 ### Community 208 - "Community 208"
 Cohesion: 0.19
 Nodes (12): apply(), casesFor(), clone(), conservativeHostBudget(), DurablePhaseJournal, EFFECT_KINDS, exactTime(), initial() (+4 more)
 
 ### Community 209 - "Community 209"
-Cohesion: 0.18
-Nodes (13): apply(), casesFor(), clone(), conservativeHostBudget(), DurablePhaseJournal, EFFECT_KINDS, exactTime(), initial() (+5 more)
-
-### Community 210 - "Community 210"
 Cohesion: 0.19
 Nodes (12): apply(), casesFor(), clone(), conservativeHostBudget(), DurablePhaseJournal, EFFECT_KINDS, exactTime(), initial() (+4 more)
+
+### Community 210 - "Community 210"
+Cohesion: 0.10
+Nodes (25): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+17 more)
 
 ### Community 211 - "Community 211"
 Cohesion: 0.19
 Nodes (12): apply(), casesFor(), clone(), conservativeHostBudget(), DurablePhaseJournal, EFFECT_KINDS, exactTime(), initial() (+4 more)
 
 ### Community 212 - "Community 212"
-Cohesion: 0.18
-Nodes (13): apply(), casesFor(), clone(), conservativeHostBudget(), DurablePhaseJournal, EFFECT_KINDS, exactTime(), initial() (+5 more)
-
-### Community 213 - "Community 213"
 Cohesion: 0.19
 Nodes (12): apply(), casesFor(), clone(), conservativeHostBudget(), DurablePhaseJournal, EFFECT_KINDS, exactTime(), initial() (+4 more)
+
+### Community 213 - "Community 213"
+Cohesion: 0.20
+Nodes (10): apply(), casesFor(), clone(), conservativeHostBudget(), DurablePhaseJournal, exactTime(), initial(), ownDirectory() (+2 more)
 
 ### Community 214 - "Community 214"
 Cohesion: 0.19
@@ -1557,24 +1547,24 @@ Cohesion: 0.19
 Nodes (12): apply(), casesFor(), clone(), conservativeHostBudget(), DurablePhaseJournal, EFFECT_KINDS, exactTime(), initial() (+4 more)
 
 ### Community 216 - "Community 216"
-Cohesion: 0.19
-Nodes (12): apply(), casesFor(), clone(), conservativeHostBudget(), DurablePhaseJournal, EFFECT_KINDS, exactTime(), initial() (+4 more)
+Cohesion: 0.17
+Nodes (13): apply(), casesFor(), clone(), conservativeHostBudget(), DurablePhaseJournal, EFFECT_KINDS, exactTime(), initial() (+5 more)
 
 ### Community 217 - "Community 217"
-Cohesion: 0.11
-Nodes (18): prepareTrustedCase(), prepareTrustedComposition(), sha(), createTrustedLauncher(), absentAnalyzerOperations, authorityFields, canonical(), casePolicy() (+10 more)
+Cohesion: 0.10
+Nodes (19): prepareTrustedCase(), prepareTrustedComposition(), sha(), createTrustedLauncher(), absentAnalyzerOperations, authorityFields, canonical(), casePolicy() (+11 more)
 
 ### Community 218 - "Community 218"
-Cohesion: 0.14
-Nodes (24): ADDON, assertCommonBindings(), assertDecision(), assertPredecessor(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, COMMON_FIELDS (+16 more)
+Cohesion: 0.09
+Nodes (37): ADDON, assertCommonBindings(), assertDecision(), assertPredecessor(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, COMMON_FIELDS (+29 more)
 
 ### Community 219 - "Community 219"
-Cohesion: 0.14
-Nodes (24): ADDON, assertCommonBindings(), assertDecision(), assertPredecessor(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, COMMON_FIELDS (+16 more)
+Cohesion: 0.09
+Nodes (36): ADDON, assertCommonBindings(), assertDecision(), assertPredecessor(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, COMMON_FIELDS (+28 more)
 
 ### Community 220 - "Community 220"
-Cohesion: 0.16
-Nodes (16): assertServiceCallbackReceipt(), acknowledgement, failureReceipt, fixture(), identity, result, terminalFixture(), terminalScope (+8 more)
+Cohesion: 0.11
+Nodes (22): assertServiceCallbackReceipt(), acknowledgement, failureReceipt, fixture(), identity, result, terminalFixture(), terminalScope (+14 more)
 
 ### Community 221 - "Community 221"
 Cohesion: 0.15
@@ -1589,32 +1579,32 @@ Cohesion: 0.15
 Nodes (10): apply(), assertRoot(), blank(), copy(), DurableTrustedJournal, KINDS, own(), validateOuter() (+2 more)
 
 ### Community 224 - "Community 224"
-Cohesion: 0.13
-Nodes (24): AUTHORITY_PINS, CASES, ENVIRONMENT_PROFILE, expectedNames(), fail(), GIT_READINESS, INDEX, KINDS (+16 more)
+Cohesion: 0.16
+Nodes (20): AUTHORITY_PINS, CASES, countsValid(), expectedNames(), fail(), INDEX, KINDS, MANIFEST (+12 more)
 
 ### Community 225 - "Community 225"
-Cohesion: 0.13
-Nodes (24): AUTHORITY_PINS, CASES, ENVIRONMENT_PROFILE, expectedNames(), fail(), GIT_READINESS, INDEX, KINDS (+16 more)
+Cohesion: 0.15
+Nodes (17): buildMatrixCanonicalBytes(), HISTORICAL_BUNDLE, REPO, sha(), BUILD, filePin(), HERE, PREDICATE (+9 more)
 
 ### Community 226 - "Community 226"
 Cohesion: 0.15
-Nodes (24): AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX (+16 more)
+Nodes (23): AUTHORITY_PINS, CASES, consistentOwnedExit(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX, KINDS (+15 more)
 
 ### Community 227 - "Community 227"
-Cohesion: 0.05
-Nodes (57): NATIVE_PINS, ADDON, assertReview(), dispatchWorkspaceEntrypoint(), ENTRYPOINT, fail(), HERE, invocationPrefix() (+49 more)
+Cohesion: 0.12
+Nodes (21): HERE, ownPin(), prepareWorkspaceManifest(), R10_REVIEW, REPO, selectT3CanonicalPins(), sha(), stableBytes() (+13 more)
 
 ### Community 228 - "Community 228"
-Cohesion: 0.09
-Nodes (38): ADDON, assertCommonBindings(), assertDecision(), assertPredecessor(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, COMMON_FIELDS (+30 more)
+Cohesion: 0.13
+Nodes (25): ADDON, assertCommonBindings(), assertDecision(), assertPredecessor(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, COMMON_FIELDS (+17 more)
 
 ### Community 229 - "Community 229"
-Cohesion: 0.14
-Nodes (24): ADDON, assertCommonBindings(), assertDecision(), assertPredecessor(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, COMMON_FIELDS (+16 more)
+Cohesion: 0.08
+Nodes (44): ADDON, assertCommonBindings(), assertDecision(), assertPredecessor(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, COMMON_FIELDS (+36 more)
 
 ### Community 230 - "Community 230"
-Cohesion: 0.15
-Nodes (13): approvalFields, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record(), telemetryKinds, textPosition() (+5 more)
+Cohesion: 0.14
+Nodes (18): ARCHIVE, CANONICAL, cases, caseSet, DECISION, EXACT_REVIEW, exactFile(), EXPECTED (+10 more)
 
 ### Community 231 - "Community 231"
 Cohesion: 0.15
@@ -1629,28 +1619,28 @@ Cohesion: 0.11
 Nodes (22): CountedJsonLines, approvalFields, b14Workspace, createPermissionDiagnostic(), nullableFieldShape(), only(), PERMISSION_DIAGNOSTIC_REASONS, permissionRequestFailure() (+14 more)
 
 ### Community 234 - "Community 234"
-Cohesion: 0.13
-Nodes (24): AUTHORITY_PINS, CASES, ENVIRONMENT_PROFILE, expectedNames(), fail(), GIT_READINESS, INDEX, KINDS (+16 more)
+Cohesion: 0.16
+Nodes (18): AUTHORITY_PINS, CASES, ENVIRONMENT_PROFILE, fail(), GIT_READINESS, INDEX, MANIFEST, privateDirectory() (+10 more)
 
 ### Community 235 - "Community 235"
-Cohesion: 0.13
-Nodes (25): AUTHORITY_PINS, CASES, countsValid(), ENVIRONMENT_PROFILE, expectedNames(), fail(), GIT_READINESS, INDEX (+17 more)
+Cohesion: 0.02
+Nodes (234): buildR36CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), TrustedCaseCoordinator, prepareTrustedCase(), assertMinimalEnvironmentProfile() (+226 more)
 
 ### Community 236 - "Community 236"
-Cohesion: 0.13
-Nodes (24): AUTHORITY_PINS, CASES, ENVIRONMENT_PROFILE, expectedNames(), fail(), GIT_READINESS, INDEX, KINDS (+16 more)
+Cohesion: 0.06
+Nodes (53): CHILD_PATH_CLASSES, createChildPathDiagnostics(), entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), createGitReadinessGate() (+45 more)
 
 ### Community 237 - "Community 237"
-Cohesion: 0.13
-Nodes (25): AUTHORITY_PINS, CASES, countsValid(), ENVIRONMENT_PROFILE, expectedNames(), fail(), GIT_READINESS, INDEX (+17 more)
+Cohesion: 0.18
+Nodes (18): AUTHORITY_PINS, CASES, expectedNames(), fail(), INDEX, KINDS, MANIFEST, nonnegative() (+10 more)
 
 ### Community 238 - "Community 238"
-Cohesion: 0.13
-Nodes (24): AUTHORITY_PINS, CASES, ENVIRONMENT_PROFILE, expectedNames(), fail(), GIT_READINESS, INDEX, KINDS (+16 more)
+Cohesion: 0.02
+Nodes (237): buildR32PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite(), readExactOutput(), REPO (+229 more)
 
 ### Community 239 - "Community 239"
-Cohesion: 0.13
-Nodes (24): AUTHORITY_PINS, CASES, ENVIRONMENT_PROFILE, expectedNames(), fail(), GIT_READINESS, INDEX, KINDS (+16 more)
+Cohesion: 0.08
+Nodes (39): AUTHORITY_PINS, EXECUTION_PLAN, fail(), INDEX, MANIFEST, privateDirectory(), R28_COUNTS, readFrozenR28() (+31 more)
 
 ### Community 240 - "Community 240"
 Cohesion: 0.10
@@ -1729,28 +1719,24 @@ Cohesion: 0.15
 Nodes (13): CountedJsonLines, approvalFields, b14Workspace, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record() (+5 more)
 
 ### Community 259 - "Community 259"
-Cohesion: 0.18
-Nodes (13): captureParents(), checkParents(), classes, createProviderFailureRecorder(), FAILURE_CLASSES, FAILURE_STAGES, ownDirectory(), ownFile() (+5 more)
+Cohesion: 0.11
+Nodes (29): AUTHORITY_PINS, EXECUTION_PLAN, fail(), INDEX, MANIFEST, privateDirectory(), R28_COUNTS, readFrozenR28() (+21 more)
 
 ### Community 260 - "Community 260"
-Cohesion: 0.02
-Nodes (246): serializeR35Preparation(), AUTHORITY_PINS, fail(), INDEX, MANIFEST, privateDirectory(), R30_COUNTS, readPrepared() (+238 more)
+Cohesion: 0.16
+Nodes (20): AUTHORITY_PINS, CASES, countsValid(), expectedNames(), fail(), INDEX, KINDS, MANIFEST (+12 more)
 
 ### Community 261 - "Community 261"
 Cohesion: 0.19
 Nodes (12): apply(), casesFor(), clone(), conservativeHostBudget(), DurablePhaseJournal, EFFECT_KINDS, exactTime(), initial() (+4 more)
 
-### Community 262 - "Community 262"
-Cohesion: 0.13
-Nodes (15): ownDirectory(), writeWorkspaceCaseReceipt(), prepareTrustedCase(), createNativePorts(), realIo, verifyR55HistoricalClosure(), POLICY, POLICY_DIGEST (+7 more)
-
 ### Community 263 - "Community 263"
-Cohesion: 0.21
-Nodes (13): captureParents(), checkParents(), classes, createProviderFailureRecorder(), FAILURE_CLASSES, FAILURE_STAGES, ownDirectory(), ownFile() (+5 more)
+Cohesion: 0.13
+Nodes (26): AUTHORITY_PINS, CASES, CHILD_PATH_OBSERVATIONS, countsValid(), ENVIRONMENT_PROFILE, expectedNames(), fail(), GIT_READINESS (+18 more)
 
 ### Community 264 - "Community 264"
-Cohesion: 0.13
-Nodes (24): AUTHORITY_PINS, CASES, ENVIRONMENT_PROFILE, expectedNames(), fail(), GIT_READINESS, INDEX, KINDS (+16 more)
+Cohesion: 0.19
+Nodes (18): AUTHORITY_PINS, fail(), INDEX, MANIFEST, ownedFile(), PENDING, privateDirectory(), R48_COUNTS (+10 more)
 
 ### Community 265 - "Community 265"
 Cohesion: 0.13
@@ -1758,15 +1744,15 @@ Nodes (34): absolute(), addons, assertHash(), assertLauncher(), assertMirror(), 
 
 ### Community 266 - "Community 266"
 Cohesion: 0.15
-Nodes (24): AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX (+16 more)
+Nodes (17): ARCHIVE, CANONICAL, caseSet, DECISION, EXACT_REVIEW, exactFile(), EXPECTED, identity() (+9 more)
 
 ### Community 267 - "Community 267"
-Cohesion: 0.13
-Nodes (17): buildR25CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), AUTHORITY, BUILD, HERE (+9 more)
+Cohesion: 0.16
+Nodes (16): buildR28CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), GIT_FILE_PIN, AUTHORITY, BUILD (+8 more)
 
 ### Community 268 - "Community 268"
-Cohesion: 0.15
-Nodes (19): buildR24PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite(), readExactOutput(), REPO (+11 more)
+Cohesion: 0.16
+Nodes (16): DIAGNOSTIC_CATEGORIES, OUTPUT_STATUSES, SCRIPT_FAILURE_MARKERS, captureParents(), checkParents(), classes, createProviderFailureRecorder(), FAILURE_CLASSES (+8 more)
 
 ### Community 269 - "Community 269"
 Cohesion: 0.12
@@ -1785,8 +1771,8 @@ Cohesion: 0.11
 Nodes (18): argumentName(), argumentWriters, assertKnownArgument(), assertRequiredArguments(), normalizeArgumentValue(), parseStrictArgs(), readArgument(), readArgumentValue() (+10 more)
 
 ### Community 273 - "Community 273"
-Cohesion: 0.16
-Nodes (12): CountedJsonLines, approvalFields, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record(), telemetryKinds (+4 more)
+Cohesion: 0.23
+Nodes (11): approvalFields, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record(), telemetryKinds, textPosition() (+3 more)
 
 ### Community 274 - "Community 274"
 Cohesion: 0.20
@@ -1797,8 +1783,8 @@ Cohesion: 0.14
 Nodes (22): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+14 more)
 
 ### Community 276 - "Community 276"
-Cohesion: 0.10
-Nodes (23): buildR43CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), ownDirectory(), writeMatrixCaseReceipt(), prepareTrustedCase() (+15 more)
+Cohesion: 0.08
+Nodes (24): buildR43CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), TrustedCaseCoordinator, ownDirectory(), writeMatrixCaseReceipt() (+16 more)
 
 ### Community 277 - "Community 277"
 Cohesion: 0.14
@@ -1809,24 +1795,24 @@ Cohesion: 0.19
 Nodes (12): apply(), casesFor(), clone(), conservativeHostBudget(), DurablePhaseJournal, EFFECT_KINDS, exactTime(), initial() (+4 more)
 
 ### Community 279 - "Community 279"
-Cohesion: 0.07
-Nodes (41): createGitReadinessGate(), fail(), failureNames, GIT_FILE_PIN, ownErrors, pathInput(), pinnedFile(), sameBirth() (+33 more)
+Cohesion: 0.18
+Nodes (15): createGitReadinessGate(), fail(), failureNames, ownErrors, pathInput(), pinnedFile(), sameBirth(), sameParent() (+7 more)
 
 ### Community 280 - "Community 280"
-Cohesion: 0.16
-Nodes (21): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+13 more)
+Cohesion: 0.13
+Nodes (26): AUTHORITY_PINS, CASES, CHILD_PATH_OBSERVATIONS, countsValid(), ENVIRONMENT_PROFILE, expectedNames(), fail(), GIT_READINESS (+18 more)
 
 ### Community 281 - "Community 281"
 Cohesion: 0.16
 Nodes (21): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+13 more)
 
 ### Community 282 - "Community 282"
-Cohesion: 0.12
-Nodes (24): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+16 more)
+Cohesion: 0.14
+Nodes (21): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), emitDiagnostic(), exactText(), groups, unknownOutput (+13 more)
 
 ### Community 283 - "Community 283"
-Cohesion: 0.15
-Nodes (24): AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX (+16 more)
+Cohesion: 0.08
+Nodes (47): AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX (+39 more)
 
 ### Community 284 - "Community 284"
 Cohesion: 0.11
@@ -1837,56 +1823,56 @@ Cohesion: 0.08
 Nodes (36): ownDirectory(), writeWorkspaceCaseReceipt(), BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE (+28 more)
 
 ### Community 286 - "Community 286"
-Cohesion: 0.14
-Nodes (22): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+14 more)
+Cohesion: 0.15
+Nodes (21): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+13 more)
 
 ### Community 287 - "Community 287"
-Cohesion: 0.09
-Nodes (31): buildR33CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), AUTHORITY, BUILD, GIT_SOURCE (+23 more)
+Cohesion: 0.06
+Nodes (50): buildR32CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), ownDirectory(), writeMatrixCaseReceipt(), fullT2Maximum() (+42 more)
 
 ### Community 288 - "Community 288"
+Cohesion: 0.10
+Nodes (33): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+25 more)
+
+### Community 289 - "Community 289"
+Cohesion: 0.09
+Nodes (34): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+26 more)
+
+### Community 290 - "Community 290"
 Cohesion: 0.14
 Nodes (22): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+14 more)
 
-### Community 289 - "Community 289"
-Cohesion: 0.11
-Nodes (27): prepareTrustedCase(), ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint() (+19 more)
-
-### Community 290 - "Community 290"
-Cohesion: 0.15
-Nodes (21): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+13 more)
-
 ### Community 291 - "Community 291"
-Cohesion: 0.10
-Nodes (32): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+24 more)
+Cohesion: 0.13
+Nodes (26): AUTHORITY_PINS, CASES, countsValid(), ENVIRONMENT_PROFILE, expectedNames(), fail(), GIT_READINESS, INDEX (+18 more)
 
 ### Community 292 - "Community 292"
-Cohesion: 0.12
-Nodes (24): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+16 more)
+Cohesion: 0.08
+Nodes (37): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+29 more)
 
 ### Community 293 - "Community 293"
-Cohesion: 0.15
-Nodes (24): AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX (+16 more)
+Cohesion: 0.07
+Nodes (51): GIT_FILE_PIN, states, validateProcessStateDiagnostic(), AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid(), expectedNames() (+43 more)
 
 ### Community 294 - "Community 294"
-Cohesion: 0.09
-Nodes (23): ownDirectory(), writeMatrixCaseReceipt(), prepareTrustedCase(), assertMinimalEnvironmentProfile(), cases, MINIMAL_ENVIRONMENT_PROFILE, minimalPathForCase(), BUILD (+15 more)
+Cohesion: 0.10
+Nodes (23): verifyR44Predecessor(), buildR48CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), READINESS_POLICY, same() (+15 more)
 
 ### Community 295 - "Community 295"
-Cohesion: 0.15
-Nodes (22): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+14 more)
-
-### Community 296 - "Community 296"
 Cohesion: 0.16
 Nodes (21): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+13 more)
+
+### Community 296 - "Community 296"
+Cohesion: 0.18
+Nodes (15): buildR26CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), AUTHORITY, BUILD, HERE (+7 more)
 
 ### Community 297 - "Community 297"
 Cohesion: 0.15
 Nodes (21): verifyR54HistoricalClosure(), AUTHORITY_PINS, CONSUMED, fail(), INDEX, KINDS, MANIFEST, ownedFile() (+13 more)
 
 ### Community 298 - "Community 298"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
+Cohesion: 0.05
+Nodes (62): buildWorkspaceCanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), ownDirectory(), writeWorkspaceCaseReceipt(), prepareTrustedCase() (+54 more)
 
 ### Community 299 - "Community 299"
 Cohesion: 0.21
@@ -1909,28 +1895,28 @@ Cohesion: 0.12
 Nodes (24): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+16 more)
 
 ### Community 304 - "Community 304"
-Cohesion: 0.17
-Nodes (23): verifyR44HistoricalClosure(), AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid(), expectedNames(), fail(), INDEX (+15 more)
+Cohesion: 0.06
+Nodes (50): CHILD_PATH_CLASSES, createChildPathDiagnostics(), entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), createGitReadinessGate() (+42 more)
 
 ### Community 305 - "Community 305"
-Cohesion: 0.13
-Nodes (21): modules(), pin(), prepareR25MatrixManifest(), sha(), buildR25PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL (+13 more)
+Cohesion: 0.15
+Nodes (19): buildR25PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite(), readExactOutput(), REPO (+11 more)
 
 ### Community 306 - "Community 306"
 Cohesion: 0.16
 Nodes (21): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+13 more)
 
 ### Community 307 - "Community 307"
-Cohesion: 0.18
-Nodes (16): decodeWithDiagnostic(), emitDiagnostic(), checkedString(), exactKeys(), FiniteBufferedResponses, makeCustomToolEvents(), makeTerminalEvents(), scriptDigest() (+8 more)
+Cohesion: 0.16
+Nodes (21): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+13 more)
 
 ### Community 308 - "Community 308"
-Cohesion: 0.19
-Nodes (16): createR51OwnedHostObserver(), R51_INSTALLED_HOST_FILE, same(), verifyR51HostFile(), exact(), verifyWorkspaceMcpReceipt(), createOwnedScratchProofIssuer(), createTrustedLauncher() (+8 more)
+Cohesion: 0.14
+Nodes (25): AUTHORITY_PINS, CASES, CHILD_PATH_OBSERVATIONS, ENVIRONMENT_PROFILE, expectedNames(), fail(), GIT_READINESS, INDEX (+17 more)
 
 ### Community 309 - "Community 309"
-Cohesion: 0.17
-Nodes (11): ownDirectory(), writeMatrixCaseReceipt(), prepareTrustedCase(), assertMinimalEnvironmentProfile(), cases, MINIMAL_ENVIRONMENT_PROFILE, minimalPathForCase(), POLICY (+3 more)
+Cohesion: 0.15
+Nodes (14): ownDirectory(), writeMatrixCaseReceipt(), prepareTrustedCase(), assertMinimalEnvironmentProfile(), cases, MINIMAL_ENVIRONMENT_PROFILE, minimalPathForCase(), EFFECT_KINDS (+6 more)
 
 ### Community 310 - "Community 310"
 Cohesion: 0.12
@@ -1941,68 +1927,64 @@ Cohesion: 0.10
 Nodes (17): activeFiles, checkRootRelativeReferences(), ciContents, ciNodeMajor, collectEntryFiles(), failures, hasRootAgentHarness, lineFor() (+9 more)
 
 ### Community 312 - "Community 312"
-Cohesion: 0.15
-Nodes (18): ADDON, assertDecision(), assertReview(), DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT, fail(), fixedFileIdentity() (+10 more)
+Cohesion: 0.20
+Nodes (9): apply(), casesFor(), clone(), DurablePhaseJournal, exactTime(), initial(), ownDirectory(), ownFile() (+1 more)
 
 ### Community 313 - "Community 313"
-Cohesion: 0.07
-Nodes (37): POLICY_DIGEST, buildR22CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), same(), verifyR22HostFile() (+29 more)
+Cohesion: 0.16
+Nodes (7): createNativePorts(), realIo, verifyR22HistoricalClosure(), historicalIndexes, interpreter, offlinePorts(), verifySynthetic()
 
 ### Community 314 - "Community 314"
-Cohesion: 0.15
-Nodes (18): buildR32CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), AUTHORITY, BUILD, GIT_SOURCE (+10 more)
+Cohesion: 0.18
+Nodes (14): createGitReadinessGate(), fail(), failureNames, GIT_READINESS_FAILURE_REASONS, ownErrors, pathInput(), pinnedFile(), sameBirth() (+6 more)
 
 ### Community 315 - "Community 315"
-Cohesion: 0.16
-Nodes (14): ownDirectory(), writeMatrixCaseReceipt(), prepareTrustedCase(), assertMinimalEnvironmentProfile(), cases, MINIMAL_ENVIRONMENT_PROFILE, minimalPathForCase(), POLICY (+6 more)
+Cohesion: 0.07
+Nodes (37): buildR39CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), prepareTrustedCase(), assertMinimalEnvironmentProfile(), cases (+29 more)
 
 ### Community 316 - "Community 316"
-Cohesion: 0.15
-Nodes (18): buildR26CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), ownDirectory(), writeMatrixCaseReceipt(), AUTHORITY (+10 more)
+Cohesion: 0.14
+Nodes (23): AUTHORITY_PINS, CASES, ENVIRONMENT_PROFILE, expectedNames(), fail(), GIT_READINESS, INDEX, KINDS (+15 more)
 
 ### Community 317 - "Community 317"
-Cohesion: 0.16
-Nodes (21): verifyR52HistoricalClosure(), AUTHORITY_PINS, CONSUMED, fail(), INDEX, KINDS, MANIFEST, ownedFile() (+13 more)
-
-### Community 318 - "Community 318"
-Cohesion: 0.17
-Nodes (11): prepareTrustedCase(), createNativePorts(), realIo, POLICY, owned(), runWorkspaceScopedEntry(), sha(), writeWorkspaceChildReceipt() (+3 more)
+Cohesion: 0.11
+Nodes (25): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+17 more)
 
 ### Community 319 - "Community 319"
-Cohesion: 0.16
-Nodes (20): AUTHORITY_PINS, CASES, countsValid(), expectedNames(), fail(), INDEX, KINDS, MANIFEST (+12 more)
+Cohesion: 0.15
+Nodes (23): AUTHORITY_PINS, CASES, consistentOwnedExit(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX, KINDS (+15 more)
 
 ### Community 320 - "Community 320"
-Cohesion: 0.17
-Nodes (21): verifyR44Predecessor(), verifyR48HistoricalClosure(), AUTHORITY_PINS, fail(), INDEX, MANIFEST, ownedFile(), PENDING (+13 more)
+Cohesion: 0.19
+Nodes (18): AUTHORITY_PINS, fail(), INDEX, MANIFEST, ownedFile(), PENDING, privateDirectory(), R48_COUNTS (+10 more)
 
 ### Community 321 - "Community 321"
 Cohesion: 0.12
 Nodes (12): allowed, fail(), writeT1PreparationReceipt(), createT1ErrorAdapter(), R5_REPLACEMENT, driveAdapter(), schema(), schemaRoot (+4 more)
 
 ### Community 322 - "Community 322"
-Cohesion: 0.17
-Nodes (11): inspectNotificationEnvelope(), object(), own(), nullableString(), only(), PROTOCOL_FAILURE_CATEGORIES, record(), telemetryKinds (+3 more)
+Cohesion: 0.27
+Nodes (8): nullableString(), only(), PROTOCOL_FAILURE_CATEGORIES, record(), telemetryKinds, textPosition(), textRange(), TrustedAppServerPeer
 
 ### Community 323 - "Community 323"
-Cohesion: 0.07
-Nodes (45): createChildPathDiagnostics(), createGitReadinessGate(), fail(), failureNames, GIT_READINESS_FAILURE_REASONS, ownErrors, pathInput(), pinnedFile() (+37 more)
+Cohesion: 0.16
+Nodes (20): AUTHORITY_PINS, CASES, countsValid(), expectedNames(), fail(), INDEX, KINDS, MANIFEST (+12 more)
 
 ### Community 324 - "Community 324"
-Cohesion: 0.17
-Nodes (17): inspectProcessIdentity(), canary(), canonicalJson(), close(), compareBodies(), configText(), diffTree(), fakeJwt() (+9 more)
+Cohesion: 0.15
+Nodes (19): inspectProcessIdentity(), collectBoundedBody(), forwardLocal(), canary(), canonicalJson(), close(), compareBodies(), configText() (+11 more)
 
 ### Community 325 - "Community 325"
 Cohesion: 0.18
 Nodes (14): assemblyResult(), expectedInventory(), intermediateScopeBytes(), prepareExactNativeBundle12(), prepareNativePatch12(), capturePhysicalPath(), expectedFixed12Identities(), fixture() (+6 more)
 
 ### Community 326 - "Community 326"
-Cohesion: 0.13
-Nodes (13): createOfflineEffects(), redirectFs(), entry, receipts(), repo, sha(), wire(), serializedCanonicalRead() (+5 more)
+Cohesion: 0.12
+Nodes (15): ownDirectory(), writeMatrixCaseReceipt(), createOfflineEffects(), redirectFs(), entry, receipts(), repo, sha() (+7 more)
 
 ### Community 327 - "Community 327"
-Cohesion: 0.16
-Nodes (17): ADDON, assertDecision(), assertReview(), DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT, fail(), fixedFileIdentity() (+9 more)
+Cohesion: 0.11
+Nodes (25): ADDON, assertDecision(), assertReview(), DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT, fail(), fixedFileIdentity() (+17 more)
 
 ### Community 328 - "Community 328"
 Cohesion: 0.11
@@ -2021,12 +2003,12 @@ Cohesion: 0.21
 Nodes (15): createChildPathDiagnostics(), createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize(), runPreparedT2Matrix(), sha(), T2 (+7 more)
 
 ### Community 332 - "Community 332"
-Cohesion: 0.21
-Nodes (15): createChildPathDiagnostics(), createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize(), runPreparedT2Matrix(), sha(), T2 (+7 more)
+Cohesion: 0.08
+Nodes (40): prepareR43MatrixManifest(), sha(), buildR43PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite() (+32 more)
 
 ### Community 333 - "Community 333"
-Cohesion: 0.19
-Nodes (18): AUTHORITY_PINS, fail(), INDEX, MANIFEST, ownedFile(), PENDING, privateDirectory(), R48_COUNTS (+10 more)
+Cohesion: 0.16
+Nodes (20): AUTHORITY_PINS, CASES, countsValid(), expectedNames(), fail(), INDEX, KINDS, MANIFEST (+12 more)
 
 ### Community 334 - "Community 334"
 Cohesion: 0.13
@@ -2041,24 +2023,24 @@ Cohesion: 0.20
 Nodes (16): commandIndex(), commandsFor(), requireBefore(), requireCommand(), requiredJobs, validateAggregateJobs(), validateDefinedJobs(), validateDependabot() (+8 more)
 
 ### Community 337 - "Community 337"
-Cohesion: 0.23
-Nodes (11): approvalFields, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record(), telemetryKinds, textPosition() (+3 more)
+Cohesion: 0.19
+Nodes (14): approvalFields, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record(), telemetryKinds, textPosition() (+6 more)
 
 ### Community 338 - "Community 338"
 Cohesion: 0.16
 Nodes (12): CountedJsonLines, approvalFields, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record(), telemetryKinds (+4 more)
 
 ### Community 339 - "Community 339"
-Cohesion: 0.14
-Nodes (18): ARCHIVE, CANONICAL, cases, caseSet, DECISION, EXACT_REVIEW, exactFile(), EXPECTED (+10 more)
+Cohesion: 0.17
+Nodes (19): AUTHORITY_PINS, CASES, expectedNames(), fail(), INDEX, KINDS, MANIFEST, nonnegative() (+11 more)
 
 ### Community 340 - "Community 340"
-Cohesion: 0.17
-Nodes (15): createGitReadinessGate(), fail(), failureNames, GIT_FILE_PIN, ownErrors, pathInput(), pinnedFile(), sameBirth() (+7 more)
+Cohesion: 0.19
+Nodes (15): AUTHORITY_PINS, CHILD_PATH_OBSERVATIONS, EXECUTION_PLAN, fail(), INDEX, MANIFEST, privateDirectory(), R27_COUNTS (+7 more)
 
 ### Community 341 - "Community 341"
-Cohesion: 0.15
-Nodes (17): buildR24CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), AUTHORITY, BUILD, HERE (+9 more)
+Cohesion: 0.21
+Nodes (14): AUTHORITY_PINS, fail(), INDEX, MANIFEST, privateDirectory(), R26_COUNTS, readFrozenR26(), REPO (+6 more)
 
 ### Community 342 - "Community 342"
 Cohesion: 0.25
@@ -2085,36 +2067,36 @@ Cohesion: 0.21
 Nodes (15): args, database, { DatabaseSync }, auditQualityJourneyIntegrity(), checkDirectOwnership(), checkJourneyHeads(), checkOwnershipEdges(), checkRelationalOwnership() (+7 more)
 
 ### Community 348 - "Community 348"
-Cohesion: 0.08
-Nodes (31): buildMatrixCanonicalBytes(), HISTORICAL_BUNDLE, REPO, sha(), ownDirectory(), writeMatrixCaseReceipt(), prepareTrustedCase(), BUILD (+23 more)
+Cohesion: 0.07
+Nodes (36): buildMatrixCanonicalBytes(), HISTORICAL_BUNDLE, REPO, sha(), BUILD, filePin(), HERE, PREDICATE (+28 more)
 
 ### Community 349 - "Community 349"
-Cohesion: 0.15
-Nodes (17): ARCHIVE, CANONICAL, caseSet, DECISION, EXACT_REVIEW, exactFile(), EXPECTED, identity() (+9 more)
+Cohesion: 0.21
+Nodes (15): createChildPathDiagnostics(), createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize(), runPreparedT2Matrix(), sha(), T2 (+7 more)
 
 ### Community 350 - "Community 350"
 Cohesion: 0.15
 Nodes (17): ARCHIVE, CANONICAL, caseSet, DECISION, EXACT_REVIEW, exactFile(), EXPECTED, INDEX (+9 more)
 
 ### Community 351 - "Community 351"
-Cohesion: 0.10
-Nodes (17): captureParents(), checkParents(), classes, createProviderFailureRecorder(), FAILURE_CLASSES, FAILURE_STAGES, ownDirectory(), ownFile() (+9 more)
+Cohesion: 0.18
+Nodes (12): captureParents(), checkParents(), classes, FAILURE_CLASSES, FAILURE_STAGES, ownDirectory(), ownFile(), providerCount() (+4 more)
 
 ### Community 352 - "Community 352"
-Cohesion: 0.16
-Nodes (16): buildR30CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), GIT_FILE_PIN, AUTHORITY, BUILD (+8 more)
+Cohesion: 0.19
+Nodes (15): GIT_READINESS_FAILURE_REASONS, checkParents(), codes, fixedError(), fixedGates(), LATE_CASE_FAILURE_CODES, LATE_CASE_FAILURE_REASONS, LATE_CASE_FAILURE_STAGES (+7 more)
 
 ### Community 353 - "Community 353"
 Cohesion: 0.23
 Nodes (16): canonical(), captureRole(), collectOfflineSdkProfiles(), digest(), guardEnvironmentReads(), HERE, listedToolsOnly(), OUTPUT_DIR (+8 more)
 
 ### Community 354 - "Community 354"
-Cohesion: 0.18
-Nodes (14): createGitReadinessGate(), fail(), failureNames, ownErrors, pathInput(), pinnedFile(), sameBirth(), sameParent() (+6 more)
+Cohesion: 0.24
+Nodes (14): verifyR25HistoricalClosure(), AUTHORITY_PINS, fail(), INDEX, MANIFEST, privateDirectory(), R25_COUNTS, readFrozenR25() (+6 more)
 
 ### Community 355 - "Community 355"
-Cohesion: 0.08
-Nodes (29): TrustedCaseCoordinator, buildWorkspaceCanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), prepareTrustedCase(), DEDICATED_TOOL_HELPER_SOURCE_EXPECTATIONS (+21 more)
+Cohesion: 0.09
+Nodes (34): buildWorkspaceCanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), DEDICATED_TOOL_HELPER_SOURCE_EXPECTATIONS, BUILD, HERE (+26 more)
 
 ### Community 356 - "Community 356"
 Cohesion: 0.14
@@ -2126,19 +2108,19 @@ Nodes (26): absolute(), addons, ancestors(), assertHash(), assertLauncher(), bas
 
 ### Community 358 - "Community 358"
 Cohesion: 0.02
-Nodes (253): buildR28PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, ownedWrite(), readExactOutput(), REPO, serializeR28Preparation() (+245 more)
+Nodes (224): buildR28PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, ownedWrite(), readExactOutput(), REPO, serializeR28Preparation() (+216 more)
 
 ### Community 359 - "Community 359"
 Cohesion: 0.21
-Nodes (14): createChildPathDiagnostics(), R32_INSTALLED_HOST_FILE, createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize(), runPreparedT2Matrix(), sha() (+6 more)
+Nodes (13): captureParents(), checkParents(), classes, createProviderFailureRecorder(), FAILURE_CLASSES, FAILURE_STAGES, ownDirectory(), ownFile() (+5 more)
 
 ### Community 360 - "Community 360"
 Cohesion: 0.14
 Nodes (26): absolute(), addons, ancestors(), assertHash(), assertLauncher(), base, canonical(), caseBase (+18 more)
 
 ### Community 361 - "Community 361"
-Cohesion: 0.18
-Nodes (15): buildR23CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), BUILD, HERE, pin() (+7 more)
+Cohesion: 0.03
+Nodes (90): serializeR23Preparation(), classifyTA04ArchiveMapping(), exactFile(), FIXED, R19_MANIFEST, R20, REPO, reviewedR20Tree() (+82 more)
 
 ### Community 362 - "Community 362"
 Cohesion: 0.14
@@ -2149,8 +2131,8 @@ Cohesion: 0.16
 Nodes (26): absolute(), assertHash(), assertLauncher(), assertMirror(), base, caseBase, dependencyRoot, exact() (+18 more)
 
 ### Community 364 - "Community 364"
-Cohesion: 0.12
-Nodes (21): createGitReadinessGate(), fail(), failureNames, ownErrors, pathInput(), pinnedFile(), READINESS_POLICY, sameBirth() (+13 more)
+Cohesion: 0.16
+Nodes (24): AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX (+16 more)
 
 ### Community 365 - "Community 365"
 Cohesion: 0.19
@@ -2181,68 +2163,68 @@ Cohesion: 0.13
 Nodes (22): buildMatrixCanonicalBundle(), buildMatrixCanonicalBytes(), HERE, REPO, sha(), ADDON, BASE, BUILD (+14 more)
 
 ### Community 372 - "Community 372"
-Cohesion: 0.18
-Nodes (13): BUILD, exactFile(), FILES, REPO, requireAbsent(), same(), sha(), validateManifest() (+5 more)
+Cohesion: 0.08
+Nodes (33): readFileSync(), corruptLedger(), sql, manifest, migrate(), minimal(), [packet, directory, selected, mode], observation (+25 more)
 
 ### Community 373 - "Community 373"
 Cohesion: 0.23
 Nodes (14): credits(), fields(), int32(), isPassiveRateLimitsParams(), nullable(), PLAN_TYPES, RATE_FIELDS, rateLimits() (+6 more)
 
 ### Community 374 - "Community 374"
-Cohesion: 0.15
-Nodes (12): ownDirectory(), writeMatrixCaseReceipt(), createOfflineEffects(), redirectFs(), externalEffectAttempts, POLICY, entry, observer (+4 more)
+Cohesion: 0.14
+Nodes (19): POLICY_DIGEST, ownDirectory(), writeMatrixCaseReceipt(), readMatrixChildReceipt(), createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize() (+11 more)
 
 ### Community 375 - "Community 375"
-Cohesion: 0.18
-Nodes (14): createGitReadinessGate(), fail(), failureNames, GIT_READINESS_FAILURE_REASONS, ownErrors, pathInput(), pinnedFile(), sameBirth() (+6 more)
+Cohesion: 0.10
+Nodes (28): ownDirectory(), writeMatrixCaseReceipt(), checkParents(), codes, fixedError(), fixedGates(), LATE_CASE_FAILURE_CODES, LATE_CASE_FAILURE_REASONS (+20 more)
 
 ### Community 376 - "Community 376"
-Cohesion: 0.18
-Nodes (14): createGitReadinessGate(), fail(), failureNames, GIT_READINESS_FAILURE_REASONS, ownErrors, pathInput(), pinnedFile(), sameBirth() (+6 more)
+Cohesion: 0.20
+Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
 
 ### Community 377 - "Community 377"
 Cohesion: 0.20
-Nodes (15): createChildPathDiagnostics(), R36_INSTALLED_HOST_FILE, createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize(), runPreparedT2Matrix(), sha() (+7 more)
+Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
 
 ### Community 378 - "Community 378"
 Cohesion: 0.20
-Nodes (12): createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize(), runPreparedT2Matrix(), sha(), T2, turn() (+4 more)
+Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
 
 ### Community 379 - "Community 379"
 Cohesion: 0.20
-Nodes (15): validateGitReadinessSummary(), checkParents(), codes, fixedError(), fixedGates(), LATE_CASE_FAILURE_CODES, LATE_CASE_FAILURE_REASONS, LATE_CASE_FAILURE_STAGES (+7 more)
+Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
 
 ### Community 380 - "Community 380"
-Cohesion: 0.19
-Nodes (15): GIT_READINESS_FAILURE_REASONS, checkParents(), codes, fixedError(), fixedGates(), LATE_CASE_FAILURE_CODES, LATE_CASE_FAILURE_REASONS, LATE_CASE_FAILURE_STAGES (+7 more)
+Cohesion: 0.09
+Nodes (36): buildWorkspaceCanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), DEDICATED_TOOL_HELPER_SOURCE_EXPECTATIONS, fullT3RecoveryBudget(), BUILD (+28 more)
 
 ### Community 381 - "Community 381"
-Cohesion: 0.23
-Nodes (13): createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize(), runPreparedT2Matrix(), sha(), T2, turn() (+5 more)
+Cohesion: 0.24
+Nodes (12): buildR26PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite(), readExactOutput(), REPO (+4 more)
 
 ### Community 382 - "Community 382"
 Cohesion: 0.21
 Nodes (13): captureParents(), checkParents(), classes, createProviderFailureRecorder(), FAILURE_CLASSES, FAILURE_STAGES, ownDirectory(), ownFile() (+5 more)
 
 ### Community 383 - "Community 383"
-Cohesion: 0.21
-Nodes (13): captureParents(), checkParents(), classes, createProviderFailureRecorder(), FAILURE_CLASSES, FAILURE_STAGES, ownDirectory(), ownFile() (+5 more)
+Cohesion: 0.24
+Nodes (12): buildR39PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite(), readExactOutput(), REPO (+4 more)
 
 ### Community 384 - "Community 384"
-Cohesion: 0.21
-Nodes (13): captureParents(), checkParents(), classes, createProviderFailureRecorder(), FAILURE_CLASSES, FAILURE_STAGES, ownDirectory(), ownFile() (+5 more)
+Cohesion: 0.17
+Nodes (19): AUTHORITY_PINS, CASES, expectedNames(), fail(), INDEX, KINDS, MANIFEST, nonnegative() (+11 more)
 
 ### Community 385 - "Community 385"
-Cohesion: 0.23
-Nodes (13): createChildPathDiagnostics(), createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize(), runPreparedT2Matrix(), sha(), T2 (+5 more)
+Cohesion: 0.17
+Nodes (19): AUTHORITY_PINS, CASES, expectedNames(), fail(), INDEX, KINDS, MANIFEST, nonnegative() (+11 more)
 
 ### Community 386 - "Community 386"
-Cohesion: 0.21
-Nodes (13): captureParents(), checkParents(), classes, createProviderFailureRecorder(), FAILURE_CLASSES, FAILURE_STAGES, ownDirectory(), ownFile() (+5 more)
+Cohesion: 0.16
+Nodes (20): AUTHORITY_PINS, CASES, countsValid(), expectedNames(), fail(), INDEX, KINDS, MANIFEST (+12 more)
 
 ### Community 387 - "Community 387"
-Cohesion: 0.21
-Nodes (13): captureParents(), checkParents(), classes, createProviderFailureRecorder(), FAILURE_CLASSES, FAILURE_STAGES, ownDirectory(), ownFile() (+5 more)
+Cohesion: 0.17
+Nodes (19): AUTHORITY_PINS, CASES, expectedNames(), fail(), INDEX, KINDS, MANIFEST, nonnegative() (+11 more)
 
 ### Community 388 - "Community 388"
 Cohesion: 0.27
@@ -2257,64 +2239,64 @@ Cohesion: 0.27
 Nodes (8): nullableString(), only(), PROTOCOL_FAILURE_CATEGORIES, record(), telemetryKinds, textPosition(), textRange(), TrustedAppServerPeer
 
 ### Community 391 - "Community 391"
-Cohesion: 0.21
-Nodes (13): captureParents(), checkParents(), classes, createProviderFailureRecorder(), FAILURE_CLASSES, FAILURE_STAGES, ownDirectory(), ownFile() (+5 more)
+Cohesion: 0.09
+Nodes (25): POLICY_DIGEST, ownDirectory(), writeMatrixCaseReceipt(), POLICY, POLICY_DIGEST, ROOT_AMENDMENT, captureParents(), checkParents() (+17 more)
 
 ### Community 392 - "Community 392"
-Cohesion: 0.17
-Nodes (14): prepareTrustedCase(), captureParents(), checkParents(), classes, createProviderFailureRecorder(), FAILURE_CLASSES, FAILURE_STAGES, ownDirectory() (+6 more)
+Cohesion: 0.21
+Nodes (13): captureParents(), checkParents(), classes, createProviderFailureRecorder(), FAILURE_CLASSES, FAILURE_STAGES, ownDirectory(), ownFile() (+5 more)
 
 ### Community 393 - "Community 393"
-Cohesion: 0.22
-Nodes (14): prepareR44MatrixManifest(), sha(), buildR44PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite() (+6 more)
+Cohesion: 0.47
+Nodes (5): buildR44CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha()
 
 ### Community 394 - "Community 394"
-Cohesion: 0.21
-Nodes (13): captureParents(), checkParents(), classes, createProviderFailureRecorder(), FAILURE_CLASSES, FAILURE_STAGES, ownDirectory(), ownFile() (+5 more)
+Cohesion: 0.17
+Nodes (19): AUTHORITY_PINS, CASES, expectedNames(), fail(), INDEX, KINDS, MANIFEST, nonnegative() (+11 more)
 
 ### Community 395 - "Community 395"
-Cohesion: 0.21
-Nodes (13): captureParents(), checkParents(), classes, createProviderFailureRecorder(), FAILURE_CLASSES, FAILURE_STAGES, ownDirectory(), ownFile() (+5 more)
+Cohesion: 0.24
+Nodes (12): buildR48PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite(), readExactOutput(), REPO (+4 more)
 
 ### Community 396 - "Community 396"
-Cohesion: 0.21
-Nodes (13): captureParents(), checkParents(), classes, createProviderFailureRecorder(), FAILURE_CLASSES, FAILURE_STAGES, ownDirectory(), ownFile() (+5 more)
+Cohesion: 0.15
+Nodes (20): assertR12ActualIdentity(), cases, caseSet, EXACT_REVIEW, identity(), pinnedArtifact(), PROPOSAL, R12_ENTRY (+12 more)
 
 ### Community 397 - "Community 397"
-Cohesion: 0.21
-Nodes (13): captureParents(), checkParents(), classes, createProviderFailureRecorder(), FAILURE_CLASSES, FAILURE_STAGES, ownDirectory(), ownFile() (+5 more)
+Cohesion: 0.20
+Nodes (14): ownDirectory(), writeMatrixCaseReceipt(), createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize(), runPreparedT2Matrix(), sha() (+6 more)
 
 ### Community 398 - "Community 398"
-Cohesion: 0.12
-Nodes (22): categories, classifyOutputObservation(), controlledMarkers, DIAGNOSTIC_CATEGORIES, exactText(), groups, OUTPUT_STATUSES, SCRIPT_FAILURE_MARKERS (+14 more)
+Cohesion: 0.08
+Nodes (37): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+29 more)
 
 ### Community 399 - "Community 399"
-Cohesion: 0.26
-Nodes (12): Admission, ComplementCleanupState, ComplementMethod, ComplementObservationState, countComplementPersistence(), forwardComplementDisconnect(), forwardComplementRaw(), forwardComplementTransaction() (+4 more)
+Cohesion: 0.27
+Nodes (12): checkAncestor(), checkPrivateDirectory(), clean(), ORIGINAL_BUNDLE, PACKAGE_ROOTS, REPO, ROOT_PACKAGE, sha() (+4 more)
 
 ### Community 400 - "Community 400"
-Cohesion: 0.04
-Nodes (54): prepareTrustedCase(), createMatrixJournalAdapter(), createTrustedLauncher(), BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS (+46 more)
+Cohesion: 0.17
+Nodes (20): ownDirectory(), writeWorkspaceCaseReceipt(), exact(), verifyWorkspaceMcpReceipt(), createTrustedLauncher(), consistentOwnedExit(), initialize(), runPreparedT3Workspace() (+12 more)
 
 ### Community 401 - "Community 401"
-Cohesion: 0.21
-Nodes (13): captureParents(), checkParents(), classes, createProviderFailureRecorder(), FAILURE_CLASSES, FAILURE_STAGES, ownDirectory(), ownFile() (+5 more)
+Cohesion: 0.19
+Nodes (14): OUTPUT_STATUSES, captureParents(), checkParents(), classes, createProviderFailureRecorder(), FAILURE_CLASSES, FAILURE_STAGES, ownDirectory() (+6 more)
 
 ### Community 402 - "Community 402"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
+Cohesion: 0.24
+Nodes (12): buildWorkspacePreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite(), readExactOutput(), REPO (+4 more)
 
 ### Community 403 - "Community 403"
-Cohesion: 0.24
-Nodes (12): createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize(), runPreparedT2Matrix(), sha(), T2, turn() (+4 more)
+Cohesion: 0.18
+Nodes (9): createOfflineEffects(), redirectFs(), externalEffectAttempts, entry, observer, receipts(), repo, sha() (+1 more)
 
 ### Community 404 - "Community 404"
 Cohesion: 0.20
 Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
 
 ### Community 405 - "Community 405"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
+Cohesion: 0.24
+Nodes (12): buildWorkspacePreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite(), readExactOutput(), REPO (+4 more)
 
 ### Community 406 - "Community 406"
 Cohesion: 0.22
@@ -2333,12 +2315,12 @@ Cohesion: 0.16
 Nodes (8): bin, blob(), fixture(), licenseFixture(), prepare(), root, roots, upstreamSource
 
 ### Community 410 - "Community 410"
-Cohesion: 0.10
-Nodes (21): decodeWithDiagnostic(), emitDiagnostic(), checkedString(), exactKeys(), FiniteBufferedResponses, makeCustomToolEvents(), makeTerminalEvents(), scriptDigest() (+13 more)
+Cohesion: 0.12
+Nodes (24): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+16 more)
 
 ### Community 411 - "Community 411"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
+Cohesion: 0.18
+Nodes (3): CountedJsonLines, HERE, REPO
 
 ### Community 412 - "Community 412"
 Cohesion: 0.20
@@ -2349,8 +2331,8 @@ Cohesion: 0.20
 Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
 
 ### Community 414 - "Community 414"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
+Cohesion: 0.23
+Nodes (8): createOfflineEffects(), redirectFs(), entry, observer, receipts(), repo, sha(), wire()
 
 ### Community 415 - "Community 415"
 Cohesion: 0.20
@@ -2361,12 +2343,12 @@ Cohesion: 0.14
 Nodes (25): ancestors(), assertLauncherEnvironment(), canonical(), caseBase, digest(), exactKeys(), fail(), fileDigest() (+17 more)
 
 ### Community 417 - "Community 417"
-Cohesion: 0.27
-Nodes (12): prepareWorkspaceManifest(), buildWorkspacePreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, ownedWrite(), readExactOutput(), REPO (+4 more)
+Cohesion: 0.24
+Nodes (9): MATRIX_MANIFEST, verifyR24MatrixPreparation(), ACTUAL_DECISION, checkR24GeneratedSpecimen(), ENTRYPOINT, HERE, REPO, REVIEW (+1 more)
 
 ### Community 418 - "Community 418"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
+Cohesion: 0.27
+Nodes (10): buildR24PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, ownedWrite(), readExactOutput(), REPO, serializeR24Preparation() (+2 more)
 
 ### Community 419 - "Community 419"
 Cohesion: 0.20
@@ -2381,44 +2363,40 @@ Cohesion: 0.20
 Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
 
 ### Community 422 - "Community 422"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
+Cohesion: 0.11
+Nodes (24): ownDirectory(), writeMatrixCaseReceipt(), readMatrixChildReceipt(), R44_INSTALLED_HOST_FILE, createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize() (+16 more)
 
 ### Community 423 - "Community 423"
 Cohesion: 0.20
 Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
 
 ### Community 424 - "Community 424"
-Cohesion: 0.24
-Nodes (12): buildWorkspacePreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite(), readExactOutput(), REPO (+4 more)
+Cohesion: 0.19
+Nodes (15): ADDON, assertReview(), dispatchWorkspaceEntrypoint(), ENTRYPOINT, fail(), HERE, invocationPrefix(), macTextEncoding() (+7 more)
 
 ### Community 425 - "Community 425"
 Cohesion: 0.20
 Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
 
 ### Community 426 - "Community 426"
-Cohesion: 0.05
-Nodes (53): buildR41CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), TrustedCaseCoordinator, ownDirectory(), writeMatrixCaseReceipt() (+45 more)
-
-### Community 427 - "Community 427"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
+Cohesion: 0.07
+Nodes (33): buildR41CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), TrustedCaseCoordinator, ownDirectory(), writeMatrixCaseReceipt() (+25 more)
 
 ### Community 428 - "Community 428"
 Cohesion: 0.20
 Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
 
 ### Community 429 - "Community 429"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
+Cohesion: 0.06
+Nodes (39): TrustedCaseCoordinator, ownDirectory(), writeWorkspaceCaseReceipt(), prepareTrustedCase(), BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside() (+31 more)
 
 ### Community 430 - "Community 430"
-Cohesion: 0.08
-Nodes (33): buildR46CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), createR46OwnedHostObserver(), verifyR46HostFile(), BUILD (+25 more)
+Cohesion: 0.04
+Nodes (74): buildR46CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), ownDirectory(), writeMatrixCaseReceipt(), ADDON (+66 more)
 
 ### Community 431 - "Community 431"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
+Cohesion: 0.33
+Nodes (9): approvalFields, b14Workspace, createPermissionDiagnostic(), nullableFieldShape(), only(), PERMISSION_DIAGNOSTIC_REASONS, permissionRequestFailure(), permissionRequestId() (+1 more)
 
 ### Community 432 - "Community 432"
 Cohesion: 0.20
@@ -2429,10 +2407,6 @@ Cohesion: 0.20
 Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
 
 ### Community 434 - "Community 434"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
-
-### Community 435 - "Community 435"
 Cohesion: 0.20
 Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
 
@@ -2449,28 +2423,28 @@ Cohesion: 0.20
 Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
 
 ### Community 439 - "Community 439"
-Cohesion: 0.23
-Nodes (8): createOfflineEffects(), redirectFs(), entry, observer, receipts(), repo, sha(), wire()
+Cohesion: 0.19
+Nodes (14): readMatrixChildReceipt(), createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize(), runPreparedT2Matrix(), sha(), T2 (+6 more)
 
 ### Community 440 - "Community 440"
-Cohesion: 0.24
-Nodes (11): buildR26PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite(), readExactOutput(), REPO (+3 more)
+Cohesion: 0.33
+Nodes (9): approvalFields, b14Workspace, createPermissionDiagnostic(), nullableFieldShape(), only(), PERMISSION_DIAGNOSTIC_REASONS, permissionRequestFailure(), permissionRequestId() (+1 more)
 
 ### Community 441 - "Community 441"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
+Cohesion: 0.05
+Nodes (49): TrustedCaseCoordinator, ownDirectory(), writeWorkspaceCaseReceipt(), prepareTrustedCase(), BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside() (+41 more)
 
 ### Community 442 - "Community 442"
 Cohesion: 0.15
 Nodes (11): classifyNativeSessionError(), directoryErrorReasons, errorReasons, exactErrors, NATIVE_SESSION_DIAGNOSTIC_REASONS, NATIVE_SESSION_DIAGNOSTIC_STAGES, NATIVE_SESSION_ROUTE_REASONS, ownData() (+3 more)
 
 ### Community 443 - "Community 443"
-Cohesion: 0.15
-Nodes (21): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+13 more)
+Cohesion: 0.28
+Nodes (8): HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite(), REPO, sha(), writeR12MatrixPreparation()
 
 ### Community 444 - "Community 444"
-Cohesion: 0.23
-Nodes (13): anchorRoles, cases, closeAnchors(), componentLabels, exactInteger(), fail(), failDirectoryIdentity(), identityComponents (+5 more)
+Cohesion: 0.22
+Nodes (14): anchorRoles, cases, closeAnchors(), componentLabels, createOwnedScratchProofIssuer(), exactInteger(), fail(), failDirectoryIdentity() (+6 more)
 
 ### Community 445 - "Community 445"
 Cohesion: 0.27
@@ -2486,19 +2460,19 @@ Nodes (10): classifyNativeSessionError(), errorReasons, exactErrors, NATIVE_SESS
 
 ### Community 448 - "Community 448"
 Cohesion: 0.14
-Nodes (24): AUTHORITY_PINS, CASES, CHILD_PATH_OBSERVATIONS, ENVIRONMENT_PROFILE, expectedNames(), fail(), GIT_READINESS, INDEX (+16 more)
+Nodes (25): AUTHORITY_PINS, CASES, CHILD_PATH_OBSERVATIONS, ENVIRONMENT_PROFILE, expectedNames(), fail(), GIT_READINESS, INDEX (+17 more)
 
 ### Community 449 - "Community 449"
 Cohesion: 0.18
 Nodes (10): classifyNativeSessionError(), errorReasons, exactErrors, NATIVE_SESSION_DIAGNOSTIC_REASONS, NATIVE_SESSION_DIAGNOSTIC_STAGES, NATIVE_SESSION_ROUTE_REASONS, ownData(), reasons (+2 more)
 
 ### Community 450 - "Community 450"
-Cohesion: 0.17
-Nodes (17): buildR48CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), prepareR48MatrixManifest(), buildR48PreparationEnvelope(), HERE (+9 more)
+Cohesion: 0.36
+Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
 
 ### Community 451 - "Community 451"
-Cohesion: 0.15
-Nodes (19): buildR50CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), prepareR50MatrixManifest(), sha(), buildR50PreparationEnvelope() (+11 more)
+Cohesion: 0.28
+Nodes (8): HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite(), REPO, sha(), writeR13MatrixPreparation()
 
 ### Community 452 - "Community 452"
 Cohesion: 0.23
@@ -2546,7 +2520,7 @@ Nodes (11): allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry(), ancestor
 
 ### Community 463 - "Community 463"
 Cohesion: 0.16
-Nodes (23): serializeR34Preparation(), validateProcessStateDiagnostic(), AUTHORITY_PINS, CASES, consistentOwnedExit(), expectedNames(), fail(), INDEX (+15 more)
+Nodes (23): serializeR34Preparation(), AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid(), expectedNames(), fail(), INDEX (+15 more)
 
 ### Community 464 - "Community 464"
 Cohesion: 0.27
@@ -2580,17 +2554,9 @@ Nodes (8): approval(), entry, manifestPath, repo, reverse(), sha(), specimen(), 
 Cohesion: 0.21
 Nodes (8): approval(), entry, manifestPath, repo, reverse(), sha(), specimen(), wire()
 
-### Community 472 - "Community 472"
-Cohesion: 0.24
-Nodes (12): buildWorkspacePreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite(), readExactOutput(), REPO (+4 more)
-
 ### Community 473 - "Community 473"
 Cohesion: 0.18
 Nodes (10): classifyNativeSessionError(), errorReasons, exactErrors, NATIVE_SESSION_DIAGNOSTIC_REASONS, NATIVE_SESSION_DIAGNOSTIC_STAGES, NATIVE_SESSION_ROUTE_REASONS, ownData(), reasons (+2 more)
-
-### Community 474 - "Community 474"
-Cohesion: 0.24
-Nodes (12): buildWorkspacePreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite(), readExactOutput(), REPO (+4 more)
 
 ### Community 475 - "Community 475"
 Cohesion: 0.18
@@ -2605,8 +2571,8 @@ Cohesion: 0.18
 Nodes (10): classifyNativeSessionError(), errorReasons, exactErrors, NATIVE_SESSION_DIAGNOSTIC_REASONS, NATIVE_SESSION_DIAGNOSTIC_STAGES, NATIVE_SESSION_ROUTE_REASONS, ownData(), reasons (+2 more)
 
 ### Community 478 - "Community 478"
-Cohesion: 0.20
-Nodes (6): corruptLedger(), sql, manifest, migrate(), minimal(), [packet, directory, selected, mode]
+Cohesion: 0.36
+Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
 
 ### Community 479 - "Community 479"
 Cohesion: 0.26
@@ -2621,24 +2587,28 @@ Cohesion: 0.17
 Nodes (10): artifacts, counts, db, [filename, pidText, nativePidText, profile = 'ORIGINAL_C1'], ownerPid, preserved, recoveredFilename, recoveryDirectory (+2 more)
 
 ### Community 482 - "Community 482"
-Cohesion: 0.22
-Nodes (10): ARCHIVE, EXACT_REVIEW, exactFile(), EXPECTED, INDEX, REPO, REVIEW, sha() (+2 more)
+Cohesion: 0.42
+Nodes (7): owned(), runWorkspaceScopedEntry(), sha(), writeWorkspaceChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
 
 ### Community 484 - "Community 484"
 Cohesion: 0.18
 Nodes (8): forbiddenPathCandidates, forbiddenPaths, forbiddenSymbols, ignoredDirectories, matches, root, scanRoots, sources
 
 ### Community 485 - "Community 485"
-Cohesion: 0.11
-Nodes (10): assertServiceOwnedChildEmittedOrigin(), emittedURLConstructors(), preserveServiceOwnedChildOrigin(), sourceOriginExpression(), ts, actualCompositionAdapter, callbackFixture(), mainFixture() (+2 more)
+Cohesion: 0.29
+Nodes (7): ACTUAL_DECISION, checkR24GeneratedSpecimen(), ENTRYPOINT, HERE, REPO, REVIEW, sha()
+
+### Community 486 - "Community 486"
+Cohesion: 0.54
+Nodes (7): applyNativeContractConfiguration(), assertFixedNativePlanContract(), fail(), NATIVE_CONTRACT_QUALIFICATION, validCase(), verifyNativeContractConfiguration(), verifyNativeContractSources()
 
 ### Community 487 - "Community 487"
-Cohesion: 0.33
-Nodes (9): approvalFields, b14Workspace, createPermissionDiagnostic(), nullableFieldShape(), only(), PERMISSION_DIAGNOSTIC_REASONS, permissionRequestFailure(), permissionRequestId() (+1 more)
+Cohesion: 0.29
+Nodes (5): CHILD_PATH_CLASSES, entryKeys, nameClasses, NAMES, pathClasses
 
 ### Community 488 - "Community 488"
-Cohesion: 0.33
-Nodes (10): cases, closeAnchors(), createOwnedScratchProofIssuer(), exactInteger(), fail(), metadata(), ownedDirectory(), ownedFile() (+2 more)
+Cohesion: 0.47
+Nodes (5): buildR50CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha()
 
 ### Community 489 - "Community 489"
 Cohesion: 0.35
@@ -2648,25 +2618,45 @@ Nodes (10): ensureGitInclude(), getLocalConfig(), isGitRepository(), log(), main
 Cohesion: 0.29
 Nodes (8): allowedDatabaseFixtures, committedGraphifyFiles, committedGraphifyScopes, findForbiddenRuntimeArtifacts(), gitPaths(), main(), runtimeArtifactReason(), runtimeDirectoryPatterns
 
+### Community 491 - "Community 491"
+Cohesion: 0.47
+Nodes (5): entry, receipts(), repo, sha(), wire()
+
 ### Community 492 - "Community 492"
-Cohesion: 0.33
-Nodes (10): cases, closeAnchors(), createOwnedScratchProofIssuer(), exactInteger(), fail(), metadata(), ownedDirectory(), ownedFile() (+2 more)
+Cohesion: 0.21
+Nodes (13): captureParents(), checkParents(), classes, createProviderFailureRecorder(), FAILURE_CLASSES, FAILURE_STAGES, ownDirectory(), ownFile() (+5 more)
 
 ### Community 493 - "Community 493"
-Cohesion: 0.33
-Nodes (10): cases, closeAnchors(), createOwnedScratchProofIssuer(), exactInteger(), fail(), metadata(), ownedDirectory(), ownedFile() (+2 more)
+Cohesion: 0.47
+Nodes (5): fail(), pinned, REPO, sha(), verifyPriorAttempt()
+
+### Community 495 - "Community 495"
+Cohesion: 0.36
+Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+
+### Community 496 - "Community 496"
+Cohesion: 0.70
+Nodes (4): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt()
+
+### Community 498 - "Community 498"
+Cohesion: 0.36
+Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
 
 ### Community 499 - "Community 499"
-Cohesion: 0.38
-Nodes (4): ownDirectory(), writeWorkspaceCaseReceipt(), prepareTrustedCase(), POLICY
+Cohesion: 0.07
+Nodes (49): createChildPathDiagnostics(), buildWorkspaceCanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), ownDirectory(), writeWorkspaceCaseReceipt() (+41 more)
 
 ### Community 500 - "Community 500"
 Cohesion: 0.27
 Nodes (9): BRIDGE, buildT1CanonicalVariant(), FIXTURE, HERE, R4_CANONICAL_BUILD, R4_CANONICAL_BUNDLE, REPO, sha() (+1 more)
 
 ### Community 501 - "Community 501"
-Cohesion: 0.36
-Nodes (8): ARCHIVE, exactFile(), exactPrivateDir(), PINS, REPO, same(), sha(), verifyConsumedPreflights()
+Cohesion: 0.70
+Nodes (4): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt()
+
+### Community 502 - "Community 502"
+Cohesion: 0.67
+Nodes (3): allowed, fail(), writeT1PreparationReceipt()
 
 ### Community 504 - "Community 504"
 Cohesion: 0.09
@@ -2688,13 +2678,13 @@ Nodes (8): collectEntry(), failures, forbiddenProductionPatterns, harnessDoc, is
 Cohesion: 0.42
 Nodes (8): erase_contents(), exclusive_receipt(), inspect_tree(), main(), One-shot successful-P6 raw-history retention cleanup. Never touches UNKNOWN root, FD-relative traversal; metadata only. Symlink targets are never opened., same(), verify_archive()
 
-### Community 509 - "Community 509"
-Cohesion: 0.67
-Nodes (3): allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
-
 ### Community 510 - "Community 510"
 Cohesion: 0.36
 Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+
+### Community 513 - "Community 513"
+Cohesion: 0.23
+Nodes (13): cases, closeAnchors(), createOwnedScratchProofIssuer(), exactInteger(), fail(), metadata(), ownedDirectory(), ownedFile() (+5 more)
 
 ### Community 514 - "Community 514"
 Cohesion: 0.36
@@ -2712,57 +2702,53 @@ Nodes (8): ARCHIVE, exactFile(), exactPrivateDir(), PINS, REPO, same(), sha(), v
 Cohesion: 0.36
 Nodes (8): ARCHIVE, exactFile(), exactPrivateDir(), PINS, REPO, same(), sha(), verifyConsumedPreflights()
 
+### Community 518 - "Community 518"
+Cohesion: 0.20
+Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
+
 ### Community 519 - "Community 519"
 Cohesion: 0.36
 Nodes (8): ARCHIVE, exactFile(), exactPrivateDir(), PINS, REPO, same(), sha(), verifyConsumedPreflights()
 
-### Community 520 - "Community 520"
-Cohesion: 0.70
-Nodes (4): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt()
-
 ### Community 521 - "Community 521"
 Cohesion: 0.36
 Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+
+### Community 522 - "Community 522"
+Cohesion: 0.20
+Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
 
 ### Community 523 - "Community 523"
 Cohesion: 0.36
 Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
 
 ### Community 524 - "Community 524"
-Cohesion: 0.15
-Nodes (10): SETUP, allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry(), allowedRoots (+2 more)
+Cohesion: 0.07
+Nodes (33): allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry(), instrumentScopedServerTransport(), SETUP, allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry() (+25 more)
 
 ### Community 525 - "Community 525"
-Cohesion: 0.67
-Nodes (3): allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+Cohesion: 0.20
+Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
 
 ### Community 526 - "Community 526"
 Cohesion: 0.36
 Nodes (7): owned(), runWorkspaceScopedEntry(), sha(), writeWorkspaceChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
 
 ### Community 527 - "Community 527"
-Cohesion: 0.11
-Nodes (20): instrumentScopedServerTransport(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry(), allowedRoots (+12 more)
-
-### Community 528 - "Community 528"
-Cohesion: 0.21
-Nodes (15): createChildPathDiagnostics(), createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize(), runPreparedT2Matrix(), sha(), T2 (+7 more)
-
-### Community 529 - "Community 529"
-Cohesion: 0.25
-Nodes (6): CHILD_PATH_CLASSES, entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics()
+Cohesion: 0.36
+Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
 
 ### Community 530 - "Community 530"
-Cohesion: 0.20
-Nodes (10): prepareTrustedCase(), assertMinimalEnvironmentProfile(), MINIMAL_ENVIRONMENT_PROFILE, POLICY, createNativePorts(), realIo, owned(), runMatrixScopedEntry() (+2 more)
+Cohesion: 0.07
+Nodes (41): verifyR33HistoricalClosure(), GIT_FILE_PIN, states, validateProcessStateDiagnostic(), AUTHORITY_PINS, CASES, ENVIRONMENT_PROFILE, fail() (+33 more)
 
 ### Community 531 - "Community 531"
-Cohesion: 0.70
-Nodes (4): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt()
+Cohesion: 0.36
+Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
 
 ### Community 532 - "Community 532"
-Cohesion: 0.02
-Nodes (126): qualifyRootPackage(), ROOT_PACKAGE, serializeR23Preparation(), classifyTA04ArchiveMapping(), exactFile(), FIXED, R19_MANIFEST, R20 (+118 more)
+Cohesion: 0.10
+Nodes (29): verifyR26HistoricalClosure(), buildR27CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), AUTHORITY, BUILD (+21 more)
 
 ### Community 534 - "Community 534"
 Cohesion: 0.42
@@ -2780,10 +2766,6 @@ Nodes (7): owned(), runWorkspaceScopedEntry(), sha(), writeWorkspaceChildReceipt
 Cohesion: 0.42
 Nodes (7): owned(), runWorkspaceScopedEntry(), sha(), writeWorkspaceChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
 
-### Community 538 - "Community 538"
-Cohesion: 0.42
-Nodes (7): owned(), runWorkspaceScopedEntry(), sha(), writeWorkspaceChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
-
 ### Community 539 - "Community 539"
 Cohesion: 0.42
 Nodes (6): [action, file, reviewer, evidence], artifact, artifactIdentity(), bindReview(), git(), verifyReview()
@@ -2791,10 +2773,6 @@ Nodes (6): [action, file, reviewer, evidence], artifact, artifactIdentity(), bin
 ### Community 543 - "Community 543"
 Cohesion: 0.36
 Nodes (4): inspectNotificationEnvelope(), NOTIFICATION_ENVELOPE_FAILURE_REASONS, object(), own()
-
-### Community 544 - "Community 544"
-Cohesion: 0.21
-Nodes (14): checkParents(), codes, fixedError(), fixedGates(), LATE_CASE_FAILURE_CODES, LATE_CASE_FAILURE_REASONS, LATE_CASE_FAILURE_STAGES, LATE_CASE_GATE_FIELDS (+6 more)
 
 ### Community 545 - "Community 545"
 Cohesion: 0.25
@@ -2804,13 +2782,13 @@ Nodes (5): digest, files, manifest, root, runtimeSource
 Cohesion: 0.48
 Nodes (4): baseIndex, suppressions, addedQualitySuppressions(), readQualityDiff()
 
-### Community 549 - "Community 549"
-Cohesion: 0.47
-Nodes (5): buildWorkspaceCanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha()
-
-### Community 551 - "Community 551"
+### Community 548 - "Community 548"
 Cohesion: 0.20
-Nodes (15): createChildPathDiagnostics(), R39_INSTALLED_HOST_FILE, createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize(), runPreparedT2Matrix(), sha() (+7 more)
+Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
+
+### Community 549 - "Community 549"
+Cohesion: 0.20
+Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
 
 ### Community 553 - "Community 553"
 Cohesion: 0.38
@@ -2849,40 +2827,24 @@ Cohesion: 0.40
 Nodes (4): inspect_tool_manifest(), Pinned no-model MCP form/URL cancellation fixture; no auth or native effects., Inspect manifest locations/types/names only; never return input or schema bodies, run()
 
 ### Community 564 - "Community 564"
-Cohesion: 0.70
-Nodes (4): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt()
-
-### Community 565 - "Community 565"
-Cohesion: 0.29
-Nodes (7): ACTUAL_DECISION, checkR24GeneratedSpecimen(), ENTRYPOINT, HERE, REPO, REVIEW, sha()
-
-### Community 566 - "Community 566"
-Cohesion: 0.17
-Nodes (17): DEDICATED_TOOL_HELPER_SOURCE_EXPECTATIONS, BUILD, HERE, pin(), PROPOSAL, REPO, sha(), TA03_PINS (+9 more)
+Cohesion: 0.36
+Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
 
 ### Community 567 - "Community 567"
-Cohesion: 0.70
-Nodes (4): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt()
+Cohesion: 0.21
+Nodes (13): captureParents(), checkParents(), classes, createProviderFailureRecorder(), FAILURE_CLASSES, FAILURE_STAGES, ownDirectory(), ownFile() (+5 more)
 
 ### Community 568 - "Community 568"
 Cohesion: 0.70
 Nodes (4): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt()
 
-### Community 569 - "Community 569"
-Cohesion: 0.70
-Nodes (4): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt()
-
 ### Community 570 - "Community 570"
-Cohesion: 0.67
-Nodes (3): allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+Cohesion: 0.24
+Nodes (12): buildR47PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite(), readExactOutput(), REPO (+4 more)
 
 ### Community 571 - "Community 571"
 Cohesion: 0.60
 Nodes (3): EnvironmentColumn, environmentJsonFailures(), environmentSchemaFailures()
-
-### Community 572 - "Community 572"
-Cohesion: 0.67
-Nodes (3): allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
 
 ### Community 573 - "Community 573"
 Cohesion: 0.60
@@ -2897,91 +2859,99 @@ Cohesion: 0.67
 Nodes (3): classes, evidence(), sha()
 
 ### Community 627 - "Community 627"
-Cohesion: 0.67
-Nodes (3): allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+Cohesion: 0.21
+Nodes (13): captureParents(), checkParents(), classes, createProviderFailureRecorder(), FAILURE_CLASSES, FAILURE_STAGES, ownDirectory(), ownFile() (+5 more)
 
 ### Community 628 - "Community 628"
-Cohesion: 0.70
-Nodes (4): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt()
+Cohesion: 0.12
+Nodes (22): categories, classifyOutputObservation(), controlledMarkers, DIAGNOSTIC_CATEGORIES, exactText(), groups, OUTPUT_STATUSES, SCRIPT_FAILURE_MARKERS (+14 more)
 
 ### Community 629 - "Community 629"
 Cohesion: 0.36
 Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
 
 ### Community 630 - "Community 630"
-Cohesion: 0.70
-Nodes (4): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt()
+Cohesion: 0.26
+Nodes (12): Admission, ComplementCleanupState, ComplementMethod, ComplementObservationState, countComplementPersistence(), forwardComplementDisconnect(), forwardComplementRaw(), forwardComplementTransaction() (+4 more)
 
-### Community 632 - "Community 632"
-Cohesion: 0.67
-Nodes (3): allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
-
-### Community 633 - "Community 633"
-Cohesion: 0.67
-Nodes (3): allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
-
-### Community 634 - "Community 634"
-Cohesion: 0.06
-Nodes (92): readStableFile(), readPrepared(), prepareR36MatrixManifest(), buildR36PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST (+84 more)
-
-### Community 635 - "Community 635"
-Cohesion: 0.70
-Nodes (4): only(), record(), THREAD_READ_STATE_FAILURE_REASONS, threadReadStateFailure()
-
-### Community 636 - "Community 636"
-Cohesion: 0.67
-Nodes (3): allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
-
-### Community 637 - "Community 637"
-Cohesion: 0.67
-Nodes (3): allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
-
-### Community 638 - "Community 638"
-Cohesion: 0.67
-Nodes (3): allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
-
-### Community 639 - "Community 639"
-Cohesion: 0.67
-Nodes (3): allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
-
-### Community 640 - "Community 640"
-Cohesion: 0.67
-Nodes (3): allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
-
-### Community 641 - "Community 641"
-Cohesion: 0.67
-Nodes (3): allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
-
-### Community 642 - "Community 642"
-Cohesion: 0.09
-Nodes (30): ownDirectory(), writeMatrixCaseReceipt(), readMatrixChildReceipt(), prepareTrustedCase(), createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize() (+22 more)
-
-### Community 646 - "Community 646"
-Cohesion: 0.21
-Nodes (13): captureParents(), checkParents(), classes, createProviderFailureRecorder(), FAILURE_CLASSES, FAILURE_STAGES, ownDirectory(), ownFile() (+5 more)
-
-### Community 653 - "Community 653"
-Cohesion: 0.12
-Nodes (18): retainDiagnosticFailure(), decodeServiceTerminalHandoff(), assertComplementCanonicalSnapshot(), CanonicalSnapshot, captureServiceComplementCanonical(), Message, fixture(), createFixtureAdmission() (+10 more)
-
-### Community 654 - "Community 654"
+### Community 631 - "Community 631"
 Cohesion: 0.20
 Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
 
+### Community 633 - "Community 633"
+Cohesion: 0.10
+Nodes (28): CHILD_PATH_CLASSES, createChildPathDiagnostics(), entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), exact() (+20 more)
+
+### Community 636 - "Community 636"
+Cohesion: 0.20
+Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
+
+### Community 637 - "Community 637"
+Cohesion: 0.36
+Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+
+### Community 638 - "Community 638"
+Cohesion: 0.36
+Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+
+### Community 639 - "Community 639"
+Cohesion: 0.36
+Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+
+### Community 641 - "Community 641"
+Cohesion: 0.36
+Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+
+### Community 642 - "Community 642"
+Cohesion: 0.04
+Nodes (78): ownDirectory(), writeMatrixCaseReceipt(), buildMatrixCaseOperations(), readMatrixChildReceipt(), owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt() (+70 more)
+
+### Community 645 - "Community 645"
+Cohesion: 0.22
+Nodes (13): prepareR44MatrixManifest(), sha(), buildR44PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite() (+5 more)
+
+### Community 648 - "Community 648"
+Cohesion: 0.17
+Nodes (12): prepareTrustedCase(), assertMinimalEnvironmentProfile(), cases, MINIMAL_ENVIRONMENT_PROFILE, minimalPathForCase(), POLICY, createNativePorts(), realIo (+4 more)
+
+### Community 650 - "Community 650"
+Cohesion: 0.20
+Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
+
+### Community 653 - "Community 653"
+Cohesion: 0.06
+Nodes (28): retainDiagnosticFailure(), decodeServiceTerminalHandoff(), assertComplementCanonicalSnapshot(), CanonicalSnapshot, captureServiceComplementCanonical(), Message, fixture(), createFixtureAdmission() (+20 more)
+
+### Community 656 - "Community 656"
+Cohesion: 0.22
+Nodes (10): ARCHIVE, EXACT_REVIEW, exactFile(), EXPECTED, INDEX, REPO, REVIEW, sha() (+2 more)
+
+### Community 660 - "Community 660"
+Cohesion: 0.18
+Nodes (5): TrustedCaseCoordinator, ownDirectory(), writeWorkspaceCaseReceipt(), prepareTrustedCase(), POLICY
+
+### Community 662 - "Community 662"
+Cohesion: 0.24
+Nodes (9): baseEntrypoint, baseEnvelope, boundArtifacts(), cases, entrypoint, fixture(), manifestFileSha256, reviewSha256 (+1 more)
+
 ### Community 667 - "Community 667"
-Cohesion: 0.67
-Nodes (3): allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+Cohesion: 0.42
+Nodes (7): owned(), runWorkspaceScopedEntry(), sha(), writeWorkspaceChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
 
 ### Community 668 - "Community 668"
 Cohesion: 0.31
 Nodes (13): assertNoSymlink(), digest(), E2OfflineGrantCase, E2OfflineGrantCaseResult, exact(), exists(), fail(), FixtureManifest (+5 more)
+
+### Community 671 - "Community 671"
+Cohesion: 0.13
+Nodes (25): buildR22CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), BUILD, helperTree(), HERE (+17 more)
 
 ### Community 672 - "Community 672"
 Cohesion: 0.18
 Nodes (10): ensureBuiltInStepDefinitionReadiness(), assertLoopbackHost(), hostOption(), resolveLocalNextArgs(), ensureCucumberRuntimeReadiness(), printSyncSummary(), SummarySection, [mode = '', ...args] (+2 more)
 
 ### Community 673 - "Community 673"
-Cohesion: 0.24
+Cohesion: 0.26
 Nodes (9): assertDatabaseCompatibility(), completedMigrations(), databaseCompatibilityUrl(), knownDatabaseMigrations(), migrationReadiness(), { PrismaClient }, fixture(), producerRoot (+1 more)
 
 ### Community 676 - "Community 676"
@@ -2993,16 +2963,16 @@ Cohesion: 0.24
 Nodes (6): defaultBundle, bundle11, prepareNativePatch11(), expected, root, upstreamSource
 
 ### Community 682 - "Community 682"
-Cohesion: 0.70
-Nodes (4): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt()
-
-### Community 683 - "Community 683"
-Cohesion: 0.11
-Nodes (24): POLICY_DIGEST, buildR27CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), ownDirectory(), writeMatrixCaseReceipt() (+16 more)
-
-### Community 686 - "Community 686"
 Cohesion: 0.36
 Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+
+### Community 683 - "Community 683"
+Cohesion: 0.36
+Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+
+### Community 686 - "Community 686"
+Cohesion: 0.10
+Nodes (21): ownDirectory(), writeMatrixCaseReceipt(), assertMinimalEnvironmentProfile(), cases, MINIMAL_ENVIRONMENT_PROFILE, BUILD, HERE, PROPOSAL (+13 more)
 
 ### Community 689 - "Community 689"
 Cohesion: 0.29
@@ -3013,24 +2983,24 @@ Cohesion: 0.47
 Nodes (4): result, root, ensureOperationHandlerSourceCurrent(), sourceCheckOptions()
 
 ## Knowledge Gaps
-- **4787 isolated node(s):** `root`, `registry`, `fixtureRoot`, `delay`, `root` (+4782 more)
+- **4793 isolated node(s):** `root`, `registry`, `fixtureRoot`, `delay`, `root` (+4788 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **67 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **62 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `digest()` connect `Community 634` to `Community 0`, `Community 1`, `Community 2`, `Community 3`, `Community 4`, `Community 5`, `Community 6`, `Community 8`, `Community 9`, `Community 10`, `Community 11`, `Community 13`, `Community 16`, `Community 17`, `Community 530`, `Community 532`, `Community 21`, `Community 22`, `Community 20`, `Community 24`, `Community 23`, `Community 27`, `Community 29`, `Community 30`, `Community 32`, `Community 34`, `Community 39`, `Community 50`, `Community 566`, `Community 56`, `Community 60`, `Community 62`, `Community 64`, `Community 66`, `Community 69`, `Community 70`, `Community 83`, `Community 89`, `Community 90`, `Community 98`, `Community 99`, `Community 100`, `Community 104`, `Community 106`, `Community 108`, `Community 114`, `Community 115`, `Community 116`, `Community 118`, `Community 119`, `Community 120`, `Community 121`, `Community 122`, `Community 123`, `Community 124`, `Community 125`, `Community 126`, `Community 127`, `Community 128`, `Community 642`, `Community 132`, `Community 133`, `Community 134`, `Community 136`, `Community 137`, `Community 138`, `Community 139`, `Community 140`, `Community 141`, `Community 142`, `Community 149`, `Community 150`, `Community 151`, `Community 152`, `Community 154`, `Community 155`, `Community 157`, `Community 158`, `Community 161`, `Community 167`, `Community 170`, `Community 683`, `Community 172`, `Community 173`, `Community 178`, `Community 179`, `Community 180`, `Community 181`, `Community 182`, `Community 183`, `Community 184`, `Community 185`, `Community 189`, `Community 190`, `Community 192`, `Community 200`, `Community 204`, `Community 205`, `Community 218`, `Community 219`, `Community 224`, `Community 225`, `Community 226`, `Community 227`, `Community 228`, `Community 229`, `Community 230`, `Community 231`, `Community 232`, `Community 233`, `Community 234`, `Community 235`, `Community 236`, `Community 237`, `Community 238`, `Community 239`, `Community 242`, `Community 243`, `Community 244`, `Community 246`, `Community 247`, `Community 248`, `Community 249`, `Community 250`, `Community 251`, `Community 252`, `Community 253`, `Community 255`, `Community 256`, `Community 257`, `Community 258`, `Community 260`, `Community 262`, `Community 264`, `Community 266`, `Community 267`, `Community 268`, `Community 270`, `Community 273`, `Community 274`, `Community 275`, `Community 276`, `Community 280`, `Community 281`, `Community 283`, `Community 286`, `Community 287`, `Community 288`, `Community 289`, `Community 290`, `Community 291`, `Community 293`, `Community 294`, `Community 295`, `Community 296`, `Community 297`, `Community 304`, `Community 305`, `Community 306`, `Community 309`, `Community 312`, `Community 313`, `Community 314`, `Community 315`, `Community 316`, `Community 317`, `Community 318`, `Community 319`, `Community 320`, `Community 322`, `Community 327`, `Community 328`, `Community 330`, `Community 333`, `Community 337`, `Community 338`, `Community 341`, `Community 348`, `Community 351`, `Community 352`, `Community 355`, `Community 358`, `Community 361`, `Community 364`, `Community 371`, `Community 372`, `Community 381`, `Community 392`, `Community 393`, `Community 400`, `Community 410`, `Community 417`, `Community 424`, `Community 426`, `Community 430`, `Community 440`, `Community 443`, `Community 448`, `Community 450`, `Community 451`, `Community 463`, `Community 470`, `Community 471`, `Community 472`, `Community 474`, `Community 499`?**
+- **Why does `digest()` connect `Community 9` to `Community 0`, `Community 1`, `Community 2`, `Community 3`, `Community 4`, `Community 5`, `Community 6`, `Community 8`, `Community 10`, `Community 11`, `Community 13`, `Community 16`, `Community 17`, `Community 530`, `Community 532`, `Community 20`, `Community 22`, `Community 21`, `Community 24`, `Community 23`, `Community 27`, `Community 29`, `Community 30`, `Community 32`, `Community 34`, `Community 35`, `Community 39`, `Community 49`, `Community 50`, `Community 56`, `Community 570`, `Community 60`, `Community 62`, `Community 64`, `Community 66`, `Community 69`, `Community 70`, `Community 83`, `Community 89`, `Community 90`, `Community 98`, `Community 99`, `Community 100`, `Community 104`, `Community 106`, `Community 108`, `Community 114`, `Community 115`, `Community 118`, `Community 119`, `Community 120`, `Community 121`, `Community 122`, `Community 123`, `Community 124`, `Community 125`, `Community 126`, `Community 127`, `Community 128`, `Community 132`, `Community 645`, `Community 134`, `Community 133`, `Community 136`, `Community 137`, `Community 138`, `Community 648`, `Community 140`, `Community 141`, `Community 142`, `Community 139`, `Community 660`, `Community 150`, `Community 151`, `Community 152`, `Community 662`, `Community 154`, `Community 157`, `Community 158`, `Community 671`, `Community 166`, `Community 167`, `Community 169`, `Community 170`, `Community 172`, `Community 173`, `Community 686`, `Community 178`, `Community 179`, `Community 180`, `Community 181`, `Community 182`, `Community 183`, `Community 184`, `Community 185`, `Community 189`, `Community 190`, `Community 192`, `Community 200`, `Community 204`, `Community 205`, `Community 218`, `Community 219`, `Community 224`, `Community 225`, `Community 226`, `Community 227`, `Community 228`, `Community 229`, `Community 231`, `Community 232`, `Community 233`, `Community 234`, `Community 235`, `Community 237`, `Community 238`, `Community 239`, `Community 242`, `Community 243`, `Community 244`, `Community 246`, `Community 247`, `Community 248`, `Community 249`, `Community 250`, `Community 251`, `Community 252`, `Community 253`, `Community 255`, `Community 256`, `Community 257`, `Community 258`, `Community 259`, `Community 260`, `Community 263`, `Community 264`, `Community 267`, `Community 270`, `Community 273`, `Community 274`, `Community 275`, `Community 276`, `Community 280`, `Community 281`, `Community 283`, `Community 286`, `Community 287`, `Community 288`, `Community 289`, `Community 290`, `Community 291`, `Community 293`, `Community 294`, `Community 295`, `Community 296`, `Community 297`, `Community 298`, `Community 305`, `Community 306`, `Community 307`, `Community 308`, `Community 309`, `Community 313`, `Community 315`, `Community 316`, `Community 319`, `Community 320`, `Community 322`, `Community 323`, `Community 327`, `Community 328`, `Community 330`, `Community 332`, `Community 333`, `Community 337`, `Community 338`, `Community 339`, `Community 340`, `Community 341`, `Community 348`, `Community 354`, `Community 355`, `Community 358`, `Community 361`, `Community 364`, `Community 371`, `Community 374`, `Community 380`, `Community 381`, `Community 383`, `Community 384`, `Community 385`, `Community 386`, `Community 387`, `Community 391`, `Community 394`, `Community 395`, `Community 396`, `Community 402`, `Community 405`, `Community 411`, `Community 417`, `Community 418`, `Community 422`, `Community 424`, `Community 426`, `Community 429`, `Community 430`, `Community 439`, `Community 441`, `Community 443`, `Community 448`, `Community 451`, `Community 463`, `Community 470`, `Community 471`, `Community 499`?**
   _High betweenness centrality (0.334) - this node is a cross-community bridge._
-- **Why does `casePolicy()` connect `Community 7` to `Community 512`, `Community 513`, `Community 2`, `Community 515`, `Community 518`, `Community 520`, `Community 521`, `Community 10`, `Community 523`, `Community 12`, `Community 9`, `Community 14`, `Community 15`, `Community 16`, `Community 526`, `Community 530`, `Community 531`, `Community 20`, `Community 22`, `Community 534`, `Community 535`, `Community 536`, `Community 537`, `Community 538`, `Community 540`, `Community 32`, `Community 34`, `Community 39`, `Community 41`, `Community 46`, `Community 49`, `Community 50`, `Community 564`, `Community 53`, `Community 567`, `Community 568`, `Community 569`, `Community 59`, `Community 60`, `Community 66`, `Community 522`, `Community 69`, `Community 71`, `Community 72`, `Community 73`, `Community 74`, `Community 75`, `Community 76`, `Community 77`, `Community 78`, `Community 79`, `Community 80`, `Community 81`, `Community 82`, `Community 85`, `Community 89`, `Community 97`, `Community 116`, `Community 629`, `Community 628`, `Community 630`, `Community 120`, `Community 121`, `Community 122`, `Community 123`, `Community 124`, `Community 125`, `Community 126`, `Community 127`, `Community 128`, `Community 642`, `Community 646`, `Community 139`, `Community 141`, `Community 143`, `Community 149`, `Community 152`, `Community 157`, `Community 159`, `Community 160`, `Community 162`, `Community 167`, `Community 682`, `Community 683`, `Community 172`, `Community 174`, `Community 686`, `Community 178`, `Community 179`, `Community 180`, `Community 182`, `Community 183`, `Community 184`, `Community 190`, `Community 230`, `Community 231`, `Community 233`, `Community 242`, `Community 243`, `Community 244`, `Community 246`, `Community 247`, `Community 248`, `Community 249`, `Community 250`, `Community 251`, `Community 252`, `Community 253`, `Community 254`, `Community 255`, `Community 256`, `Community 257`, `Community 258`, `Community 259`, `Community 262`, `Community 263`, `Community 267`, `Community 270`, `Community 273`, `Community 276`, `Community 279`, `Community 282`, `Community 285`, `Community 292`, `Community 294`, `Community 303`, `Community 307`, `Community 308`, `Community 309`, `Community 313`, `Community 315`, `Community 316`, `Community 318`, `Community 322`, `Community 337`, `Community 338`, `Community 341`, `Community 348`, `Community 351`, `Community 355`, `Community 374`, `Community 382`, `Community 383`, `Community 384`, `Community 386`, `Community 387`, `Community 391`, `Community 392`, `Community 394`, `Community 395`, `Community 396`, `Community 397`, `Community 398`, `Community 400`, `Community 401`, `Community 410`, `Community 426`, `Community 486`, `Community 491`, `Community 494`, `Community 495`, `Community 496`, `Community 497`, `Community 498`, `Community 499`, `Community 502`, `Community 503`, `Community 504`, `Community 510`, `Community 511`?**
+- **Why does `casePolicy()` connect `Community 642` to `Community 2`, `Community 515`, `Community 6`, `Community 7`, `Community 9`, `Community 10`, `Community 521`, `Community 12`, `Community 523`, `Community 14`, `Community 527`, `Community 16`, `Community 15`, `Community 526`, `Community 531`, `Community 20`, `Community 534`, `Community 535`, `Community 536`, `Community 537`, `Community 31`, `Community 34`, `Community 37`, `Community 39`, `Community 41`, `Community 46`, `Community 564`, `Community 53`, `Community 567`, `Community 568`, `Community 59`, `Community 60`, `Community 71`, `Community 72`, `Community 73`, `Community 74`, `Community 75`, `Community 76`, `Community 77`, `Community 78`, `Community 80`, `Community 81`, `Community 82`, `Community 85`, `Community 90`, `Community 93`, `Community 95`, `Community 97`, `Community 113`, `Community 633`, `Community 627`, `Community 116`, `Community 629`, `Community 628`, `Community 120`, `Community 121`, `Community 122`, `Community 123`, `Community 124`, `Community 637`, `Community 638`, `Community 639`, `Community 125`, `Community 641`, `Community 126`, `Community 127`, `Community 128`, `Community 648`, `Community 139`, `Community 143`, `Community 658`, `Community 659`, `Community 660`, `Community 149`, `Community 667`, `Community 157`, `Community 159`, `Community 160`, `Community 161`, `Community 162`, `Community 166`, `Community 682`, `Community 683`, `Community 686`, `Community 174`, `Community 178`, `Community 179`, `Community 180`, `Community 182`, `Community 183`, `Community 184`, `Community 190`, `Community 231`, `Community 233`, `Community 235`, `Community 242`, `Community 243`, `Community 244`, `Community 246`, `Community 247`, `Community 248`, `Community 249`, `Community 250`, `Community 251`, `Community 252`, `Community 253`, `Community 254`, `Community 255`, `Community 256`, `Community 257`, `Community 258`, `Community 262`, `Community 268`, `Community 270`, `Community 273`, `Community 276`, `Community 282`, `Community 285`, `Community 287`, `Community 292`, `Community 298`, `Community 303`, `Community 309`, `Community 315`, `Community 317`, `Community 318`, `Community 322`, `Community 326`, `Community 337`, `Community 338`, `Community 351`, `Community 359`, `Community 361`, `Community 374`, `Community 375`, `Community 382`, `Community 391`, `Community 392`, `Community 397`, `Community 398`, `Community 400`, `Community 401`, `Community 410`, `Community 422`, `Community 426`, `Community 427`, `Community 429`, `Community 430`, `Community 435`, `Community 439`, `Community 441`, `Community 450`, `Community 472`, `Community 474`, `Community 478`, `Community 482`, `Community 492`, `Community 494`, `Community 495`, `Community 496`, `Community 497`, `Community 498`, `Community 499`, `Community 501`, `Community 503`, `Community 504`, `Community 510`?**
   _High betweenness centrality (0.165) - this node is a cross-community bridge._
-- **Why does `readFileSync()` connect `Community 117` to `Community 130`, `Community 131`, `Community 136`, `Community 148`, `Community 673`, `Community 36`, `Community 165`, `Community 43`, `Community 299`, `Community 44`, `Community 51`, `Community 52`, `Community 55`, `Community 446`, `Community 324`, `Community 203`, `Community 86`, `Community 88`, `Community 478`, `Community 369`?**
-  _High betweenness centrality (0.073) - this node is a cross-community bridge._
+- **Why does `readFileSync()` connect `Community 372` to `Community 130`, `Community 131`, `Community 148`, `Community 662`, `Community 673`, `Community 36`, `Community 165`, `Community 43`, `Community 299`, `Community 44`, `Community 51`, `Community 52`, `Community 55`, `Community 446`, `Community 324`, `Community 203`, `Community 86`, `Community 88`, `Community 369`, `Community 117`?**
+  _High betweenness centrality (0.074) - this node is a cross-community bridge._
 - **What connects `root`, `registry`, `fixtureRoot` to the rest of the system?**
-  _4819 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _4825 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.02437888198757764 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.13105413105413105 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
-  _Cohesion score 0.01609810479375697 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.11724137931034483 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
-  _Cohesion score 0.03496732026143791 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.032342657342657344 - nodes in this community are weakly interconnected._

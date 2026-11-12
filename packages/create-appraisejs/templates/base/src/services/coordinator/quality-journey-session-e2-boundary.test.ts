@@ -14,7 +14,7 @@ import {
 } from './quality-journey-session-service'
 
 const journey = () => ({ id: 'journey', targetProjectId: 'target',
-  hostingMode: 'APP_SERVER_LOCAL_V1', currentCoordinatorSessionId: null,
+  hostingMode: 'APP_SERVER_LOCAL_V1', hostingContractVersion: 1, currentCoordinatorSessionId: null,
   ownershipVersion: 2, e2AdmissionVersion: 4, stateHash: 'state',
   updatedAt: new Date('2026-01-01T00:00:00.000Z') })
 const successor = () => ({ id: 'successor', journeyId: 'journey', targetProjectId: 'target',

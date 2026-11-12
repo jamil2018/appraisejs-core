@@ -533,6 +533,7 @@ model QualityJourney {
   rootIdempotencyKey                String
   rootRequestHash                   String
   hostingMode                       String                                       @default("LEGACY_UNRESOLVED")
+  hostingContractVersion            Int                                          @default(1)
   hostingProvenance                 String                                       @default("M03_SQL_V1:CLASSIFICATION_PENDING")
   currentCoordinatorSessionId       String?                                      @unique
   ownershipVersion                  Int                                          @default(0)

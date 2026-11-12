@@ -82,3 +82,29 @@ Plugin version checks detect old guidance without changing assignment or MCP aut
 The scoped qualification and deterministic/live distinctions are recorded in
 [the C3.2 evidence](../codex/development%20plan/appraise-0.5/product%20direction/managed-quality-journey-coordinator/evidence/C3.2.md).
 This compatibility matrix is not a clean-installation/release verdict. C3.3 and GC3 remain separate.
+
+## M12 installed-artifact evidence
+
+[M12 verification](../tasks/codex-app-server-journeys/M12-VERIFICATION.md) records disposable packed CLI and scaffold
+observations separately from source-import tests. Installation checks, migration history and clean seeds never attest
+provider readiness, effective host isolation or distribution/auth eligibility. The stock desktop compatibility pin
+and the amended native exact-build experiment are separate contracts; neither grants fallback to the other.
+Production provider launch remains refused. Missing capability or incompatible storage/configuration requires an
+actionable refusal before work, without another executable, provider, model, transport or host selection.
+
+Internal hosting rollback is a [human-approved quiescent session transfer](quality-journey-host-sessions.md), not a
+storage downgrade. Existing guarded startup/upgrade refuses unknown newer migration history before readiness writes;
+this does not claim protection against arbitrary historical binaries or direct database mutation. Preserve backups,
+authored data, Journey history, approvals, consent, evidence, ownership lineage and consumed budgets.
+
+For an explicit upgrade of genuinely new storage, the guarded script exclusively creates an empty SQLite file with
+mode 0600 after installation/storage inspection, then rechecks compatibility before Prisma deploy. This handles
+schema-engine refusal of a missing file. Existing files are never truncated or replaced, and Prisma applies the actual
+SQL and writes the migration ledger. Read-only inspection and ordinary startup still refuse missing storage.
+
+M12 establishes a genuine storage compatibility floor with the additive Journey `hostingContractVersion` migration.
+Historical rows retain contract version 1; explicit hosting transfer records version 2. Canonical session and recovery
+services reject absent or unknown contract versions before fresh effects. The migration inventory also causes the
+exact M11 guarded application to refuse the genuinely upgraded database before startup or migration writes: M11's
+external session rules are insufficient for M12's new ownership states. A synthetic future-version fixture alone
+cannot qualify that downgrade boundary. The field itself never grants session, work or cleanup authority.

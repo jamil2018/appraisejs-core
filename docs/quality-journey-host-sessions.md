@@ -49,3 +49,37 @@ This evidence is distinct from M02's trusted-agent scripted native conformance. 
 ## M04 provider intent integration
 
 [Provider dispatch and wake intent](quality-journey-provider-intents.md) adds internal durable run correlation, a conservative send boundary and transactional wake hints. Transfer now checks provider uncertainty independently of terminal attempt status. This is persistence/service verification only: production dispatch and M05 transport supervision remain unavailable. Earlier M03 scope statements describe its delivered boundary.
+
+## M12 internal hosting-mode transfer and rollback
+
+The trusted session service also accepts an explicit `targetHostingMode` for internal transfers between
+`APP_SERVER_LOCAL_V1` and `EXTERNAL_LEGACY`. Candidate registration for either host remains inert. Initial managed
+activation retains its separate restrictions; registration and MCP connection never select hosting or authorize work.
+Hosting selection remains independent of each historical WorkAttempt's admission protocol.
+
+Explicit hosting transfer requires the identity-only human capability, scoped principal, exact state and ownership
+snapshot, a fresh registered successor and a canonical paused Journey. Its reconciliation identity must resolve to the
+current pause cleanup observation. Missing or UNKNOWN cleanup, pending sends, armed provider uncertainty, occupied HUB
+slots, historical ambiguous dispatch, open browser ownership and unresolved execution refuse switching. Accepted
+artifacts and agent exit do not satisfy process cleanup. Only original live handles may request it; restart cannot
+reconstruct signaling authority, sender exclusion, credentials or a consumed send permit.
+
+The single transaction fences the predecessor and earlier desktop handoff capabilities, establishes a higher
+successor generation, changes hosting and saves the immutable request/result. Attempt/session bindings, authorization
+ceilings, consumed attempts and turns, approvals, consent, evidence and provider records are retained. The Journey
+stays paused. Resume and deferred runtime publication remain a separate canonical transaction.
+
+Rollback uses canonical pause followed by an explicitly approved reverse transfer to a fresh successor. A failed
+transfer leaves the pause fence and records intact; it cannot restore an earlier generation or select a fallback host.
+Exact authenticated replay recovers the original transition with currentness reported separately. Changed requests,
+stale predecessor writes and foreign project/principal bindings refuse. Observation reads do not consume ownership
+versions. No public transfer MCP tool, public managed opt-in or provider launcher is enabled by M12.
+
+See [M12 verification](../tasks/codex-app-server-journeys/M12-VERIFICATION.md) for actual installed and transaction
+observations and the remaining provider, host and distribution qualification gates.
+
+The additive `hostingContractVersion` migration establishes the M12 storage floor. Existing Journeys default to
+version 1; explicit mode transfer stores version 2 in the same ownership CAS. The shared canonical scoped reader
+rejects missing or unknown versions before session, mutation, transfer or recovery effects. Known version metadata is
+not authority: all principal, generation, pause, budget and cleanup checks still apply. The exact M11 guarded
+application refuses the new migration rather than applying its older external-session rules to a transferred Journey.

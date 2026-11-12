@@ -1,4 +1,5 @@
-import { assertProviderEffectsQuiescent } from './quality-journey-provider-recovery'
+import { assertHistoricalHubQuiescent, assertProviderEffectsQuiescent } from './quality-journey-provider-recovery'
+import { assertQualityJourneyHostingTransferCleanup } from './quality-journey-recovery-service'
 import { createHash, randomUUID } from 'node:crypto'
 import {
   Prisma,
@@ -12,33 +13,31 @@ import prisma from '@/config/db-config'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { isE2Digest, isE2Uint } from '@/lib/quality-journey/provider-grant-contract'
 import { ServiceError } from '@/services/shared/errors'
-import { assertCurrentCoordinatorSession, trustedHumanCoordinatorSession } from './quality-journey-coordinator-session'
+import {
+  assertCurrentCoordinatorSession,
+  readScopedQualityJourney,
+  trustedHumanCoordinatorSession,
+} from './quality-journey-coordinator-session'
 
 type Scope = { journeyId: string; targetProjectId: string }
+type HostingMode = 'APP_SERVER_LOCAL_V1' | 'EXTERNAL_LEGACY'
 const digest = (value: unknown) => `sha256:${createHash('sha256').update(canonicalContractJson(value)).digest('hex')}`
-
-async function readManagedSessionJourney(input: Scope, tx: Prisma.TransactionClient, modeError: string) {
-  const journey = await tx.qualityJourney.findFirst({
-    where: { id: input.journeyId, targetProjectId: input.targetProjectId },
-  })
-  if (!journey) throw new ServiceError('Quality Journey target scope was not found.', 'NOT_FOUND', 404)
-  if (journey.hostingMode !== 'APP_SERVER_LOCAL_V1') throw new ServiceError(modeError, 'CONFLICT')
-  return journey
-}
 
 /** Trusted in-process adapter only. Registration never establishes authority. */
 export async function registerQualityJourneyCoordinatorSession(
-  input: Scope & { ownerPrincipalId: string; hostKind: 'APP_SERVER_LOCAL_V1'; idempotencyKey: string },
+  input: Scope & { ownerPrincipalId: string; hostKind: HostingMode; idempotencyKey: string },
   client: PrismaClient = prisma,
 ) {
-  if (!input.ownerPrincipalId.trim() || !input.idempotencyKey.trim() || input.hostKind !== 'APP_SERVER_LOCAL_V1')
+  if (
+    !input.ownerPrincipalId.trim() ||
+    !input.idempotencyKey.trim() ||
+    !['APP_SERVER_LOCAL_V1', 'EXTERNAL_LEGACY'].includes(input.hostKind)
+  )
     throw new ServiceError('Coordinator session registration binding is invalid.', 'VALIDATION')
   return client.$transaction(async tx => {
-    const journey = await readManagedSessionJourney(
-      input,
-      tx,
-      'Coordinator registration requires explicit managed hosting.',
-    )
+    const journey = await readScopedQualityJourney(input, tx)
+    if (!['APP_SERVER_LOCAL_V1', 'EXTERNAL_LEGACY'].includes(journey.hostingMode))
+      throw new ServiceError('Coordinator ownership requires explicit hosting recovery.', 'CONFLICT')
     const requestHash = digest(input)
     const existing = await tx.qualityJourneyCoordinatorSession.findUnique({
       where: {
@@ -84,6 +83,8 @@ export type TransferQualityJourneyCoordinatorSessionInput = ApprovedSessionReque
   predecessorSessionId: string
   predecessorGeneration: number
   reconciliationReceiptId: string
+  /** Explicit mode changes require a fresh paused-cleanup decision. Omission retains managed transfer behavior. */
+  targetHostingMode?: HostingMode
 }
 
 type SessionTransitionInput =
@@ -94,8 +95,12 @@ type SessionRow = QualityJourneyCoordinatorSession
 function assertLegacyTransitionEnrollment(session: SessionRow, role: 'successor' | 'predecessor') {
   const enrollment = [session.e2EnrollmentKind, session.e2EnrollmentDigest, session.e2EnrolledAt]
   if (enrollment.every(value => value === null)) return
-  if (session.e2EnrollmentKind !== 'E2_V1' || !isE2Digest(session.e2EnrollmentDigest) ||
-    !(session.e2EnrolledAt instanceof Date) || !Number.isFinite(session.e2EnrolledAt.getTime()))
+  if (
+    session.e2EnrollmentKind !== 'E2_V1' ||
+    !isE2Digest(session.e2EnrollmentDigest) ||
+    !(session.e2EnrolledAt instanceof Date) ||
+    !Number.isFinite(session.e2EnrolledAt.getTime())
+  )
     throw new ServiceError('Coordinator session E2 enrollment is incomplete or corrupt.', 'CONFLICT')
   throw new ServiceError(
     `E2 ${role} transition requires qualified private allocation and retirement effectiveness evidence.`,
@@ -186,8 +191,7 @@ function assertTransitionSuccessor(
     !successor ||
     successor.journeyId !== journey.id ||
     successor.targetProjectId !== journey.targetProjectId ||
-    successor.ownerPrincipalId !== principalId ||
-    successor.hostKind !== 'APP_SERVER_LOCAL_V1'
+    successor.ownerPrincipalId !== principalId
   )
     throw new ServiceError(
       'Coordinator session does not bind the authenticated target and principal.',
@@ -241,7 +245,12 @@ async function readTransitionPredecessor(
       },
       tx,
     )
-    const predecessorId = current.session!.id
+    if (
+      !current.session ||
+      (!current.session.legacyHandoffId && current.session.ownerPrincipalId !== input.coordinatorPrincipalId)
+    )
+      throw new ServiceError('Coordinator transfer principal does not own the predecessor.', 'UNAUTHORIZED', 403)
+    const predecessorId = current.session.id
     assertLegacyTransitionEnrollment(current.session!, 'predecessor')
     if (predecessorId === successor.id) throw new ServiceError('A transfer requires a distinct successor.', 'CONFLICT')
     return predecessorId
@@ -270,6 +279,20 @@ async function nextSessionGeneration(journeyId: string, tx: Prisma.TransactionCl
   return Math.max(sessionMaximum._max.generation ?? 0, handoffMaximum._max.generation ?? 0) + 1
 }
 
+function hostingTransitionPatch(input: SessionTransitionInput) {
+  const targetHostingMode = 'targetHostingMode' in input ? input.targetHostingMode : undefined
+  if (!targetHostingMode) return { where: {}, data: {}, targetHostingMode }
+  return {
+    where: { status: 'PAUSED' },
+    data: {
+      hostingMode: targetHostingMode,
+      hostingProvenance: 'EXPLICIT_HOSTING_TRANSFER_V1',
+      hostingContractVersion: 2,
+    },
+    targetHostingMode,
+  }
+}
+
 async function commitSessionOwnership(
   input: SessionTransitionInput,
   journey: QualityJourney,
@@ -278,18 +301,23 @@ async function commitSessionOwnership(
 ) {
   if (!isE2Uint(journey.e2AdmissionVersion, 2_147_483_646))
     throw new ServiceError('Coordinator E2 admission version is invalid.', 'CONFLICT')
+  const hostingPatch = hostingTransitionPatch(input)
   const acquired = await tx.qualityJourney.updateMany({
     where: {
       id: journey.id,
       targetProjectId: journey.targetProjectId,
-      hostingMode: 'APP_SERVER_LOCAL_V1',
+      hostingMode: journey.hostingMode,
+      hostingContractVersion: journey.hostingContractVersion,
       ownershipVersion: input.expectedOwnershipVersion,
       e2AdmissionVersion: journey.e2AdmissionVersion,
       currentCoordinatorSessionId: result.predecessorSessionId,
       stateHash: input.expectedStateHash,
+      version: journey.version,
+      ...hostingPatch.where,
     },
     data: {
       currentCoordinatorSessionId: result.coordinatorSessionId,
+      ...hostingPatch.data,
       ownershipVersion: { increment: 1 },
       e2AdmissionVersion: { increment: 1 },
       updatedAt: journey.updatedAt,
@@ -303,6 +331,17 @@ async function commitSessionOwnership(
       data: { status: 'FENCED', fencedAt: now, fenceReason: `EXPLICIT_TRANSFER:${result.coordinatorSessionId}` },
     })
     if (fenced.count !== 1) throw new ServiceError('Coordinator predecessor changed concurrently.', 'CONFLICT')
+  }
+  if (hostingPatch.targetHostingMode) {
+    // A prepared older Desktop handoff must never regain authority after a reverse transfer.
+    await tx.qualityJourneyCoordinatorHandoff.updateMany({
+      where: { journeyId: journey.id, generation: { lt: result.coordinatorGeneration }, fencedAt: null },
+      data: {
+        status: 'FENCED',
+        fencedAt: now,
+        fenceReason: `EXPLICIT_HOSTING_TRANSFER:${result.coordinatorSessionId}`,
+      },
+    })
   }
   return now
 }
@@ -340,10 +379,60 @@ async function commitSessionTransition(
       transitionRequestHash: requestHash,
       transitionRequestJson: canonicalContractJson(request),
       transitionResultJson: canonicalContractJson(result),
-      provenance: 'successorSessionId' in input ? 'EXPLICIT_RECONCILED_TRANSFER_V1' : 'EXPLICIT_INITIAL_ACTIVATION_V1',
+      provenance:
+        'targetHostingMode' in input && input.targetHostingMode
+          ? 'EXPLICIT_HOSTING_TRANSFER_V1'
+          : 'successorSessionId' in input
+            ? 'EXPLICIT_RECONCILED_TRANSFER_V1'
+            : 'EXPLICIT_INITIAL_ACTIVATION_V1',
     },
   })
   return result
+}
+
+async function assertTransferReady(
+  input: TransferQualityJourneyCoordinatorSessionInput,
+  journey: QualityJourney,
+  tx: Prisma.TransactionClient,
+) {
+  if (input.targetHostingMode && journey.status !== 'PAUSED')
+    throw new ServiceError('Hosting transfer requires a canonically PAUSED Journey.', 'CONFLICT')
+  if (journey.status === 'PAUSED')
+    await assertQualityJourneyHostingTransferCleanup(
+      {
+        journeyId: journey.id,
+        targetProjectId: journey.targetProjectId,
+        version: journey.version,
+        stateHash: journey.stateHash,
+      },
+      input.reconciliationReceiptId,
+      tx,
+    )
+  const slot = await tx.qualityJourneyProviderSlot.count({
+    where: {
+      OR: [
+        { providerRunId: { not: null } },
+        { intentId: { not: null } },
+        { sendBoundaryId: { not: null } },
+        { reservedAt: { not: null } },
+      ],
+    },
+  })
+  if (slot) throw new ServiceError('Hosting transfer requires a reconciled global provider slot.', 'CONFLICT')
+  await assertHistoricalHubQuiescent(tx)
+}
+
+function assertTransitionHosting(input: SessionTransitionInput, journey: QualityJourney, successor: SessionRow) {
+  if (!['APP_SERVER_LOCAL_V1', 'EXTERNAL_LEGACY'].includes(journey.hostingMode))
+    throw new ServiceError('Coordinator ownership requires explicit hosting recovery.', 'CONFLICT')
+  const targetMode = 'successorSessionId' in input ? input.targetHostingMode : undefined
+  if (targetMode !== undefined && !['APP_SERVER_LOCAL_V1', 'EXTERNAL_LEGACY'].includes(targetMode))
+    throw new ServiceError('Coordinator target hosting mode is invalid.', 'VALIDATION')
+  if (
+    (!targetMode && journey.hostingMode !== 'APP_SERVER_LOCAL_V1') ||
+    successor.hostKind !== (targetMode ?? 'APP_SERVER_LOCAL_V1')
+  )
+    throw new ServiceError('Coordinator successor requires an explicit matching hosting decision.', 'CONFLICT')
 }
 
 async function transitionSession(
@@ -364,19 +453,17 @@ async function transitionSession(
   const requestHash = digest(request)
   return client
     .$transaction(async tx => {
-      const journey = await readManagedSessionJourney(
-        input,
-        tx,
-        'Managed ownership cannot adopt compatibility or unresolved hosting.',
-      )
+      const journey = await readScopedQualityJourney(input, tx)
       const successorId = transfer ? input.successorSessionId : input.coordinatorSessionId
       const successor = await tx.qualityJourneyCoordinatorSession.findUnique({ where: { id: successorId } })
       assertTransitionSuccessor(successor, journey, input.coordinatorPrincipalId)
       assertLegacyTransitionEnrollment(successor, 'successor')
       const replay = replaySessionTransition(successor, journey, input.requestId, requestHash)
       if (replay) return replay
+      assertTransitionHosting(input, journey, successor)
       assertTransitionSnapshot(input, journey, successor)
       const predecessorId = await readTransitionPredecessor(input, journey, successor, tx)
+      if (transfer) await assertTransferReady(input, journey, tx)
       await assertQuiescent(input, tx, !transfer)
       return commitSessionTransition(input, journey, successor, predecessorId, request, requestHash, tx)
     })

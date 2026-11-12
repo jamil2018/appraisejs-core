@@ -393,18 +393,34 @@ describe('M03 persisted host-neutral coordinator sessions', () => {
     expect(await f.client.qualityJourney.findUniqueOrThrow({ where: { id: managed.journey.journeyId } })).toMatchObject(
       { hostingMode: 'APP_SERVER_LOCAL_V1', currentCoordinatorSessionId: null },
     )
+    const inert = await register(
+      {
+        journeyId: row.id,
+        targetProjectId: row.targetProjectId,
+        ownerPrincipalId: principalId,
+        hostKind: 'APP_SERVER_LOCAL_V1',
+        idempotencyKey: 'no-adoption',
+      },
+      f.client,
+    )
+    expect(inert.session).toMatchObject({ status: 'REGISTERED', generation: null })
     await expect(
-      register(
+      activate(
         {
-          journeyId: row.id,
+          authority: trustedHumanCoordinatorSession,
+          approvedBy: 'local-ui',
+          coordinatorPrincipalId: principalId,
           targetProjectId: row.targetProjectId,
-          ownerPrincipalId: principalId,
-          hostKind: 'APP_SERVER_LOCAL_V1',
-          idempotencyKey: 'no-adoption',
+          journeyId: row.id,
+          coordinatorSessionId: inert.session.id,
+          expectedOwnershipVersion: row.ownershipVersion,
+          expectedStateHash: row.stateHash,
+          requestId: 'no-implicit-adoption',
         },
         f.client,
       ),
     ).rejects.toMatchObject({ code: 'CONFLICT' })
+    expect(await f.client.qualityJourney.findUniqueOrThrow({ where: { id: row.id } })).toEqual(row)
   })
 
   it('keeps registration non-authoritative and rejects untrusted or foreign activation without partial ownership', async () => {

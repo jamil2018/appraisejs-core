@@ -73,7 +73,7 @@ function assertLegacyCredentialAliases(input: CoordinatorSessionBinding, session
 }
 
 function assertSessionCredentialAliases(input: CoordinatorSessionBinding, session: SessionRow, managed: boolean) {
-  if (!managed) return assertLegacyCredentialAliases(input, session)
+  if (!managed && session.legacyHandoffId) return assertLegacyCredentialAliases(input, session)
   if (
     input.coordinatorHandoffId ||
     input.coordinatorSessionId !== session.id ||
@@ -109,12 +109,20 @@ function assertScopedAttempt(
     throw unauthorized()
 }
 
-/** Pure authority check, also suitable for read-only ingress prechecks. */
-export async function assertCurrentCoordinatorSession(input: CoordinatorSessionBinding, client: Db) {
+/** Canonical target-scoped existence check shared by ownership and operational recovery. */
+export async function readScopedQualityJourney(input: Pick<Scope, 'journeyId' | 'targetProjectId'>, client: Db) {
   const journey = await client.qualityJourney.findFirst({
     where: { id: input.journeyId, targetProjectId: input.targetProjectId },
   })
   if (!journey) throw new ServiceError('Quality Journey target scope was not found.', 'NOT_FOUND', 404)
+  if (![1, 2].includes(journey.hostingContractVersion))
+    throw new ServiceError('Quality Journey hosting contract version requires a compatible application.', 'CONFLICT')
+  return journey
+}
+
+/** Pure authority check, also suitable for read-only ingress prechecks. */
+export async function assertCurrentCoordinatorSession(input: CoordinatorSessionBinding, client: Db) {
+  const journey = await readScopedQualityJourney(input, client)
   if (!['EXTERNAL_LEGACY', 'APP_SERVER_LOCAL_V1'].includes(journey.hostingMode))
     throw new ServiceError('Quality Journey ownership requires explicit recovery.', 'CONFLICT')
   if (!journey.currentCoordinatorSessionId) {
@@ -225,10 +233,7 @@ export async function assertCoordinatorRecoverySession(
 ) {
   let journey
   if (session === trustedHumanCoordinatorSession) {
-    journey = await client.qualityJourney.findFirst({
-      where: { id: scope.journeyId, targetProjectId: scope.targetProjectId },
-    })
-    if (!journey) throw new ServiceError('Quality Journey target scope was not found.', 'NOT_FOUND', 404)
+    journey = await readScopedQualityJourney(scope, client)
   } else {
     const current = await assertCurrentCoordinatorSession({ ...session, ...scope }, client)
     journey = current.journey

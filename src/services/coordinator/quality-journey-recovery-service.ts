@@ -1,3 +1,4 @@
+import { readScopedQualityJourney } from './quality-journey-coordinator-session'
 import { stopOwnedQualityJourneyTurns, readOwnedJourneyTurnDatabaseIdentity } from './quality-journey-owned-turns'
 import { hasUnreconciledProviderEffects, invalidateUnsentProviderIntents } from './quality-journey-provider-recovery'
 import { createHash } from 'node:crypto'
@@ -36,14 +37,6 @@ const digest = (value: unknown) => `sha256:${createHash('sha256').update(json(va
 const stableEventId = (operation: 'PAUSE' | 'RESUME', input: OperationalInput) =>
   `qje_${createHash('sha256').update(`${input.journeyId}:${operation}:${input.idempotencyKey}`).digest('hex').slice(0, 24)}`
 const conflict = (message: string) => new ServiceError(message, 'CONFLICT', 409)
-
-async function scopedJourney(input: Scope, tx: Prisma.TransactionClient) {
-  const journey = await tx.qualityJourney.findFirst({
-    where: { id: input.journeyId, targetProjectId: input.targetProjectId },
-  })
-  if (!journey) throw new ServiceError('Quality Journey target scope was not found.', 'NOT_FOUND', 404)
-  return journey
-}
 
 type CleanupObservation = Awaited<ReturnType<typeof cleanupOwnedWork>>
 
@@ -146,6 +139,102 @@ async function latestPauseCleanup(scope: Scope, tx: Prisma.TransactionClient | P
   return latest
 }
 
+type ManagedTurnReceipt = CleanupObservation['managedTurnReceipts'][number]
+
+function managedTurnReceiptConfirmsCleanup(receipt: ManagedTurnReceipt | null | undefined) {
+  if (!receipt || typeof receipt.transportId !== 'string' || !receipt.transportId.trim()) return false
+  return (
+    receipt.stopRequested === true &&
+    receipt.senderFenced === true &&
+    receipt.ownedProcessExitObserved === true &&
+    receipt.privateRootRemoved === true
+  )
+}
+
+function assertManagedTurnReceipts(attemptIds: string[], cleanup: CleanupObservation, subset = false) {
+  if (!Array.isArray(cleanup.managedTurnReceipts) || !['OBSERVED', 'UNKNOWN'].includes(cleanup.managedTurn))
+    throw conflict('Managed turn cleanup has no confirmed pause observation.')
+  const allReceipts = cleanup.managedTurnReceipts
+  const receipts = subset ? allReceipts.filter(receipt => attemptIds.includes(receipt?.attemptId)) : allReceipts
+  if (
+    attemptIds.some(id => !receipts.some(receipt => receipt?.attemptId === id)) ||
+    receipts.some(receipt => !managedTurnReceiptConfirmsCleanup(receipt) || !attemptIds.includes(receipt.attemptId))
+  )
+    throw conflict('Managed sender, process or private root cleanup is unresolved.')
+}
+
+function assertManagedTurnCleanup(attemptIds: string[], cleanup: CleanupObservation) {
+  if (attemptIds.length === 0) {
+    if (
+      cleanup.managedTurn !== 'NONE_REGISTERED' ||
+      !Array.isArray(cleanup.managedTurnReceipts) ||
+      cleanup.managedTurnReceipts.length !== 0
+    )
+      throw conflict('Managed turn cleanup has no confirmed pause observation.')
+    return
+  }
+  if (cleanup.managedTurn !== 'OBSERVED') throw conflict('Managed turn cleanup has no confirmed pause observation.')
+  assertManagedTurnReceipts(attemptIds, cleanup)
+}
+
+/** A mode change consumes durable observations only; it never reconstructs supervisor handles. */
+export async function assertQualityJourneyHostingTransferCleanup(
+  scope: Scope & { version: number; stateHash: string },
+  receiptId: string,
+  tx: Prisma.TransactionClient,
+) {
+  const pause = await tx.qualityJourneyEvent.findFirst({
+    where: {
+      journeyId: scope.journeyId,
+      targetProjectId: scope.targetProjectId,
+      eventType: { in: ['OPERATIONAL_PAUSE', 'OPERATIONAL_RESUME'] },
+    },
+    orderBy: { sequence: 'desc' },
+  })
+  const observation = await tx.qualityJourneyEvent.findFirst({
+    where: {
+      journeyId: scope.journeyId,
+      targetProjectId: scope.targetProjectId,
+      eventType: 'OPERATIONAL_PAUSE_CLEANUP',
+    },
+    orderBy: { sequence: 'desc' },
+  })
+  if (
+    !pause ||
+    pause.eventType !== 'OPERATIONAL_PAUSE' ||
+    !observation ||
+    observation.id !== receiptId ||
+    observation.sequence <= pause.sequence
+  )
+    throw conflict('Hosting transfer requires the latest durable pause cleanup receipt.')
+  try {
+    const payload = JSON.parse(pause.payloadJson)
+    if (
+      payload.version !== scope.version ||
+      pause.successorStateHash !== scope.stateHash ||
+      observation.successorStateHash !== scope.stateHash
+    )
+      throw conflict('Hosting transfer pause observation does not match the current operational snapshot.')
+    // Older pauses without captured managed targets do not prove there were no owned turns.
+    if (!Array.isArray(payload.cleanupTargets?.managedAttemptIds))
+      throw conflict('Hosting transfer managed cleanup targets are unavailable.')
+    const targets = parseCleanupTargets(payload)
+    const cleanup = parseCleanupObservation(observation.payloadJson, pause.id)
+    if (!cleanup) throw conflict('Hosting transfer cleanup does not bind the current pause.')
+    const complete = (status: string, ids: string[]) =>
+      ids.length === 0 ? status === 'NONE_REGISTERED' : status === 'OBSERVED'
+    if (
+      !complete(cleanup.browser, targets.browserSessionIds) ||
+      !complete(cleanup.execution, targets.executionCycleIds)
+    )
+      throw conflict('Hosting transfer requires observed browser, execution and managed turn cleanup.')
+    assertManagedTurnCleanup(targets.managedAttemptIds, cleanup)
+  } catch (error) {
+    if (error instanceof ServiceError) throw error
+    throw conflict('Hosting transfer pause cleanup evidence is corrupt or unavailable.')
+  }
+}
+
 async function replayOperationalTransition(
   operation: 'PAUSE' | 'RESUME',
   journey: QualityJourney,
@@ -177,10 +266,38 @@ async function replayOperationalTransition(
   }
 }
 
+async function assertCapturedProviderCleanupForResume(
+  input: Scope,
+  cleanup: CleanupObservation,
+  tx: Prisma.TransactionClient,
+) {
+  const pause = await tx.qualityJourneyEvent.findFirst({
+    where: { journeyId: input.journeyId, targetProjectId: input.targetProjectId, eventType: 'OPERATIONAL_PAUSE' },
+    orderBy: { sequence: 'desc' },
+    select: { payloadJson: true },
+  })
+  if (!pause) throw conflict('The current pause cleanup targets are unavailable.')
+  const targets = parseCleanupTargets(JSON.parse(pause.payloadJson))
+  const attempts = await tx.qualityJourneyWorkAttempt.findMany({
+    where: {
+      id: { in: targets.managedAttemptIds },
+      workItem: { journeyId: input.journeyId, targetProjectId: input.targetProjectId },
+    },
+    select: { id: true, providerRun: { select: { id: true } } },
+  })
+  if (attempts.length !== targets.managedAttemptIds.length)
+    throw conflict('Captured pause cleanup attempts are unavailable.')
+  // External-only attempts keep their established externalCodex UNKNOWN recovery path.
+  // Appraise-owned provider attempts still need physical cleanup after an unsent intent is invalidated.
+  const providerAttemptIds = attempts.filter(attempt => attempt.providerRun !== null).map(attempt => attempt.id)
+  if (providerAttemptIds.length > 0) assertManagedTurnReceipts(providerAttemptIds, cleanup, true)
+}
+
 async function assertResumeReady(input: OperationalInput, tx: Prisma.TransactionClient) {
   const cleanup = await latestPauseCleanup(input, tx)
   if (!cleanup || cleanup.browser === 'UNKNOWN')
     throw conflict('Owned Discovery browser cleanup has no confirmed pause observation.')
+  await assertCapturedProviderCleanupForResume(input, cleanup, tx)
   await assertOwnedQualityJourneyDiscoveryBrowserCleanupReconciled(
     { journeyId: input.journeyId, targetProjectId: input.targetProjectId },
     tx,
@@ -288,7 +405,7 @@ async function transition(
   const eventId = stableEventId(operation, input)
   const requestHash = digest({ operation, ...input })
   return client.$transaction(async tx => {
-    const journey = await scopedJourney(input, tx)
+    const journey = await readScopedQualityJourney(input, tx)
     const replay = await replayOperationalTransition(operation, journey, eventId, requestHash, tx)
     if (replay) return replay
     const { from, to } = await assertTransitionPrerequisites(operation, input, journey, tx)
@@ -524,7 +641,7 @@ async function recordCleanupObservation(
 
 async function retryCurrentPauseCleanupForResume(input: ResumeQualityJourneyInput, client: PrismaClient) {
   const pause = await client.$transaction(async tx => {
-    const journey = await scopedJourney(input, tx)
+    const journey = await readScopedQualityJourney(input, tx)
     // Exact prior resume replay must not touch work admitted after that resume.
     const priorResume = await tx.qualityJourneyEvent.findUnique({ where: { id: stableEventId('RESUME', input) } })
     if (priorResume) return null

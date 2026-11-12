@@ -15,3 +15,15 @@ Terminal execution bytes may be sealed while paused, but their lifecycle result 
 See [test run runtime](test-run-runtime.md), [lifecycle flow](agent-lifecycle-flow.md), and the bounded [C3.1 evidence](../codex/development%20plan/appraise-0.5/product%20direction/managed-quality-journey-coordinator/evidence/C3.1.md). Deterministic injection, live owned-resource observations and unattested host properties are separate evidence classes.
 
 [M11 verification and crash matrix](../tasks/codex-app-server-journeys/M11-VERIFICATION.md) distinguishes fresh-process recovery, injected reply loss, actual owned-child observations and remaining qualification gates.
+
+M12 also checks captured provider-owned turn cleanup observations inside canonical resume readiness. Invalidating an
+unarmed provider intent does not resolve missing original-handle cleanup. Missing cleanup for a captured provider-owned attempt or an
+incomplete sender/process/private-root receipt keeps the Journey paused, including when accepted work or provider
+reconciliation is already present. Hosting transfer uses that same managed-cleanup validation and additionally binds
+the exact current pause receipt and operational snapshot. A later browser cleanup replay that lacks a captured handle
+can conservatively block transfer even when an older browser stop receipt exists; this supplies no forced recovery.
+
+Captured external-only desktop attempts without a provider run retain their established external-task UNKNOWN
+recovery behavior. Resume reads canonical attempts and requires complete sender/process/private-root receipts for
+every captured provider-owned attempt, even when unrelated external-only targets leave the aggregate status UNKNOWN.
+Missing captured rows refuse. Hosting transfer still requires confirmed cleanup for the full captured set.
