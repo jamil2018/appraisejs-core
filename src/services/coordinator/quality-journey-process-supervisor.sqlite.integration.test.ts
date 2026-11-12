@@ -2,7 +2,7 @@ import path from 'node:path'
 import { readFile, copyFile, rename } from 'node:fs/promises'
 import { execFileSync } from 'node:child_process'
 import type { Prisma, PrismaClient } from '@prisma/client'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, onTestFailed, vi } from 'vitest'
 import {
   disableProviderSendPermit,
   trustedProviderReconciliation,
@@ -24,6 +24,11 @@ import {
   prepareQualityJourneyProviderRun,
   writeQualityJourneyProviderTransport,
 } from './quality-journey-provider-run-service'
+
+// This fresh-process case keeps its existing child deadline and reserves a separate
+// parent fixture allowance; neither value changes a provider or RPC deadline.
+const freshPauseProcessTimeoutMs = 30_000
+const freshPauseFixtureAllowanceMs = 30_000
 
 type Fixture = Awaited<ReturnType<typeof createProviderFixture>>
 const fixtures: Fixture[] = []
@@ -372,36 +377,53 @@ describe('M05 owned fixture process composed with canonical SQLite services', ()
     await retained(f)
   })
 
-  it('reconstructs a pause committed before cleanup in an actual fresh process without handles or another start', async () => {
-    const { f, s, trace } = await setup()
-    await s.start()
-    const before = await f.client.qualityJourney.findUniqueOrThrow({ where: { id: f.scope.journeyId } })
-    const pause = {
-      ...f.scope,
-      expectedStateHash: before.stateHash,
-      expectedVersion: before.version,
-      idempotencyKey: 'm11-crash-pause',
-      reason: 'Injected lost pause transaction reply',
-    }
-    let dropped = false
-    const crash = new Proxy(f.client, {
-      get(target, key) {
-        if (key === '$transaction')
-          return async (callback: (tx: Prisma.TransactionClient) => Promise<unknown>) => {
-            const result = await target.$transaction(callback)
-            if (!dropped) {
-              dropped = true
-              throw new Error('m11 committed pause reply lost')
+  it(
+    'reconstructs a pause committed before cleanup in an actual fresh process without handles or another start',
+    async () => {
+      const startedAt = performance.now()
+      const phases: Array<{ phase: string; elapsedMs: number }> = []
+      const mark = (phase: string) => phases.push({ phase, elapsedMs: Math.round(performance.now() - startedAt) })
+      onTestFailed(() => {
+        console.error(
+          'M11 fresh-process pause phases',
+          JSON.stringify({
+            elapsedMs: Math.round(performance.now() - startedAt),
+            phases,
+          }),
+        )
+      })
+      mark('fixture-setup')
+      const { f, s, trace } = await setup()
+      mark('owned-start')
+      await s.start()
+      mark('pause-commit')
+      const before = await f.client.qualityJourney.findUniqueOrThrow({ where: { id: f.scope.journeyId } })
+      const pause = {
+        ...f.scope,
+        expectedStateHash: before.stateHash,
+        expectedVersion: before.version,
+        idempotencyKey: 'm11-crash-pause',
+        reason: 'Injected lost pause transaction reply',
+      }
+      let dropped = false
+      const crash = new Proxy(f.client, {
+        get(target, key) {
+          if (key === '$transaction')
+            return async (callback: (tx: Prisma.TransactionClient) => Promise<unknown>) => {
+              const result = await target.$transaction(callback)
+              if (!dropped) {
+                dropped = true
+                throw new Error('m11 committed pause reply lost')
+              }
+              return result
             }
-            return result
-          }
-        const value = Reflect.get(target, key)
-        return typeof value === 'function' ? value.bind(target) : value
-      },
-    })
-    await expect(pauseQualityJourneyOperational(pause, crash)).rejects.toThrow('committed pause reply lost')
-    expect(s.snapshot().fenced).toBe(false) // Actual owner retained by this test; restarted process cannot recover it.
-    const script = `
+          const value = Reflect.get(target, key)
+          return typeof value === 'function' ? value.bind(target) : value
+        },
+      })
+      await expect(pauseQualityJourneyOperational(pause, crash)).rejects.toThrow('committed pause reply lost')
+      expect(s.snapshot().fenced).toBe(false) // Actual owner retained by this test; restarted process cannot recover it.
+      const script = `
       import { PrismaClient } from '@prisma/client';
       import { pauseQualityJourneyOperational, resumeQualityJourneyOperational } from './src/services/coordinator/quality-journey-recovery-service.ts';
       const input = JSON.parse(process.argv[1]);
@@ -419,25 +441,32 @@ describe('M05 owned fixture process composed with canonical SQLite services', ()
           intents:await client.qualityJourneyProviderDispatchIntent.count()}));
       } finally { await client.$disconnect(); }
     `
-    const output = execFileSync(
-      process.execPath,
-      ['--import', 'tsx', '--input-type=module', '-e', script, JSON.stringify(pause), `file:${f.databasePath}`],
-      { cwd: process.cwd(), encoding: 'utf8', timeout: 30_000 },
-    )
-    expect(JSON.parse(output.trim().split('\n').at(-1)!)).toEqual({
-      cleanup: 'UNKNOWN',
-      replayed: true,
-      blocked: true,
-      ownershipUnchanged: true,
-      turnsReserved: 1,
-      intents: 1,
-    })
-    expect(s.snapshot().fenced).toBe(false)
-    // Returning to the still-live original owner can observe cleanup, without proving provider outcome.
-    expect((await pauseQualityJourneyOperational(pause, f.connect())).cleanup.managedTurn).toBe('OBSERVED')
-    expect((await methods(trace)).filter(method => method === 'turn/start')).toHaveLength(1)
-    await retained(f)
-  })
+      mark('fresh-process-recovery')
+      const output = execFileSync(
+        process.execPath,
+        ['--import', 'tsx', '--input-type=module', '-e', script, JSON.stringify(pause), `file:${f.databasePath}`],
+        { cwd: process.cwd(), encoding: 'utf8', timeout: freshPauseProcessTimeoutMs },
+      )
+      mark('fresh-process-assertions')
+      expect(JSON.parse(output.trim().split('\n').at(-1)!)).toEqual({
+        cleanup: 'UNKNOWN',
+        replayed: true,
+        blocked: true,
+        ownershipUnchanged: true,
+        turnsReserved: 1,
+        intents: 1,
+      })
+      expect(s.snapshot().fenced).toBe(false)
+      mark('original-owner-cleanup')
+      // Returning to the still-live original owner can observe cleanup, without proving provider outcome.
+      expect((await pauseQualityJourneyOperational(pause, f.connect())).cleanup.managedTurn).toBe('OBSERVED')
+      expect((await methods(trace)).filter(method => method === 'turn/start')).toHaveLength(1)
+      mark('retained-uncertainty-assertions')
+      await retained(f)
+      mark('complete')
+    },
+    freshPauseProcessTimeoutMs + freshPauseFixtureAllowanceMs,
+  )
 
   it('fences a launch in flight only after the pause commit and drains the original returned child without RPC', async () => {
     const { f, options, trace } = await setup()

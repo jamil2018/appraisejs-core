@@ -114,6 +114,40 @@ describe('storage compatibility refusal before mutation', () => {
     await expect(fs.stat(f.databasePath)).rejects.toMatchObject({ code: 'ENOENT' })
   })
 
+  it('migrates an absent disposable SQLite file through the real guarded upgrade without fabricating history', async () => {
+    const f = await fixture()
+    const result = spawnSync(process.execPath, ['scripts/migrate-compatible.mjs'], {
+      cwd: producerRoot,
+      env: { ...process.env, DATABASE_URL: `file:${f.databasePath}` },
+      encoding: 'utf8',
+      timeout: 30_000,
+    })
+    expect(result.error).toBeUndefined()
+    expect(result.status, result.stderr).toBe(0)
+    expect(
+      await assertDatabaseCompatibility({
+        cwd: producerRoot,
+        env: { DATABASE_URL: `file:${f.databasePath}` },
+      }),
+    ).toMatchObject({ status: 'COMPATIBLE', pending: 0 })
+    const rows = JSON.parse(
+      execFileSync(
+        'sqlite3',
+        [
+          '-json',
+          f.databasePath,
+          'SELECT migration_name, checksum, finished_at FROM _prisma_migrations ORDER BY migration_name',
+        ],
+        { encoding: 'utf8' },
+      ),
+    )
+    expect(rows.map((row: { migration_name: string }) => row.migration_name)).toEqual(
+      enumerateDatabaseMigrations(producerRoot).map(row => row.name),
+    )
+    expect(rows.every((row: { finished_at: unknown }) => row.finished_at !== null)).toBe(true)
+    expect(f.sql('SELECT count(*) FROM QualityJourney;').trim()).toBe('0')
+  }, 40_000)
+
   it('allows a known prefix for upgrade, requires complete history for serving, and reopens current storage', async () => {
     const f = await fixture()
     f.initialize()

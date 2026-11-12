@@ -8,7 +8,7 @@ Scaffold a new [AppraiseJS](https://github.com/jamil2018/appraisejs-core) projec
 npx create-appraisejs@latest
 ```
 
-To scaffold the minimal variant without bundled Step Definitions:
+To select the blank template:
 
 ```bash
 npx create-appraisejs@latest --template blank
@@ -30,7 +30,7 @@ package.
 Available templates:
 
 - `starter`: opinionated scaffold with the complete reusable Playwright Step Definition catalog included.
-- `blank`: the same app scaffold without bundled Step Definitions; add steps later with `appraisejs add step`.
+- `blank`: the same runtime scaffold, currently sharing the canonical built-in Step Definition seed with `starter`. Authored target and runtime state starts empty.
 
 During scaffolding it:
 

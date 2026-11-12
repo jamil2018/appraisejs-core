@@ -1,20 +1,20 @@
 # Graph Report - prisma
 
 ## Corpus Check
-- 98 files from prisma/schema.prisma and migrations
+- 99 files from prisma/schema.prisma and migrations
 - Verdict: schema-aware graph generated because Graphify AST extraction does not currently produce Prisma/SQL nodes.
 
 ## Summary
-- 2702 nodes · 6356 edges · 347 communities
+- 2704 nodes · 6360 edges · 348 communities
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## God Nodes (most connected - your core abstractions)
 1. `String` - 1162 edges
-2. `QualityJourney` - 277 edges
-3. `schema.prisma` - 274 edges
+2. `QualityJourney` - 279 edges
+3. `schema.prisma` - 275 edges
 4. `DateTime` - 267 edges
-5. `Int` - 167 edges
+5. `Int` - 168 edges
 6. `TargetProject` - 146 edges
 7. `QualityJourneyWorkAttempt` - 109 edges
 8. `QualityJourneyCoordinatorSession` - 100 edges
@@ -42,7 +42,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (347 total)
+## Communities (348 total)
 ### Community 0 - "schema.prisma"
 Nodes (3): schema.prisma, datasource db (sqlite), Prisma client generator
 
@@ -140,7 +140,7 @@ Nodes (31): TestRun, TestRun.id, TestRun.name, TestRun.preparationKey, TestRun.r
 Nodes (40): TargetProject, TargetProject.id, TargetProject.kind, TargetProject.canonicalIdentity, TargetProject.canonicalPath, TargetProject.normalizedRemoteOrigin, TargetProject.displayName, TargetProject.description (+more)
 
 ### Community 32 - "QualityJourney"
-Nodes (75): QualityJourney, QualityJourney.closure, QualityJourney.activeTriageReportId, QualityJourney.activeTriageReport, QualityJourney.triageAssignments, QualityJourney.triageReports, QualityJourney.reportReviews, QualityJourney.id (+more)
+Nodes (76): QualityJourney, QualityJourney.closure, QualityJourney.activeTriageReportId, QualityJourney.activeTriageReport, QualityJourney.triageAssignments, QualityJourney.triageReports, QualityJourney.reportReviews, QualityJourney.id (+more)
 
 ### Community 33 - "QualityJourneyOwnedBrowser"
 Nodes (15): QualityJourneyOwnedBrowser, QualityJourneyOwnedBrowser.id, QualityJourneyOwnedBrowser.journeyId, QualityJourneyOwnedBrowser.targetProjectId, QualityJourneyOwnedBrowser.processInstanceId, QualityJourneyOwnedBrowser.sessionId, QualityJourneyOwnedBrowser.generation, QualityJourneyOwnedBrowser.status (+more)
@@ -1083,6 +1083,9 @@ Nodes (1): new_QualityJourneyE2Retirement
 
 ### Community 346 - "20261024040000_add_automation_materialization_source_proof"
 Nodes (1): 20261024040000_add_automation_materialization_source_proof
+
+### Community 347 - "20261112010000_add_journey_hosting_contract_version"
+Nodes (1): 20261112010000_add_journey_hosting_contract_version
 
 ## Suggested Questions
 - Which models connect a Quality Journey to its execution and evidence records?

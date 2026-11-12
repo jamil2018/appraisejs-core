@@ -1,3 +1,6 @@
+> M12 adds [bounded local packaging and human-approved hosting transfer](../../tasks/codex-app-server-journeys/M12-VERIFICATION.md).
+> Runtime/provider/host/distribution qualification and rollout remain open; historical contract bytes and spent attempts are preserved.
+
 > M11 adds [internal pause, interruption and restart](../../tasks/codex-app-server-journeys/M11-VERIFICATION.md), preserving UNKNOWN, physical reconciliation and Appraise-owned lifecycle gates. Runtime/provider qualification remains open.
 
 > Current repository checkpoint: M06 PR #307 and M07 PR #308 are merged. [M08 internal Discovery](../quality-journey-internal-discovery.md)

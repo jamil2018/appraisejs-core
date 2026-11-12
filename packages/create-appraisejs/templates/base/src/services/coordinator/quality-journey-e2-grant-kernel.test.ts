@@ -67,7 +67,7 @@ function startTables(request: E2KernelRequest, custody: E2KernelExpectedCustody)
   const envelope = request.envelope
   const p = policy()
   return {
-    qualityJourney: [{ id: 'journey', targetProjectId: 'target', hostingMode: 'APP_SERVER_LOCAL_V1',
+    qualityJourney: [{ id: 'journey', targetProjectId: 'target', hostingMode: 'APP_SERVER_LOCAL_V1', hostingContractVersion: 1,
       currentCoordinatorSessionId: 'session', status: 'ACTIVE', ownershipVersion: 0,
       e2AdmissionVersion: 0, e2NativeStartsReserved: 0, e2TurnStartsReserved: 0 }],
     qualityJourneyCoordinatorSession: [{ id: 'session', journeyId: 'journey',

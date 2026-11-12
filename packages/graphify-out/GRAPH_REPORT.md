@@ -1,4 +1,4 @@
-# Graph Report - packages  (2026-11-11)
+# Graph Report - packages  (2026-11-12)
 
 ## Corpus Check
 - cluster-only mode — file stats not available
@@ -9,7 +9,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `308660c7`
+- Built from commit: `8d8d8254`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -145,8 +145,8 @@ Cohesion: 0.08
 Nodes (29): builtinBrowserOperations, BrowserOperationContext, BrowserOperationHandler, browserOperationHandlerDescriptors, BrowserOperationRef, builtinHandlers, canonicalInputAliases, enforceLocatorCardinality() (+21 more)
 
 ### Community 6 - "Community 6"
-Cohesion: 0.12
-Nodes (25): canonicalMcpResourceAnnotations, canonicalMcpResourceNames, canonicalMcpResourceUris, canonicalMcpToolAnnotations, canonicalMcpToolNames, durableLifecycleMutation, externalCollaborationMutation, externalExecution (+17 more)
+Cohesion: 0.10
+Nodes (31): identifier, registerQualityJourneyLibraryOperations(), scope, registerStepDefinitionOperations(), canonicalMcpResourceAnnotations, canonicalMcpResourceNames, canonicalMcpResourceUris, canonicalMcpToolAnnotations (+23 more)
 
 ### Community 7 - "Community 7"
 Cohesion: 0.12
@@ -185,8 +185,8 @@ Cohesion: 0.12
 Nodes (18): createCoordinatorApiClient(), resourceError(), coordinatorEndpointMismatch(), CoordinatorErrorEnvelope, coordinatorErrorEnvelopeSchema, coordinatorRequestError, createCoordinatorClient(), createLocalCoordinatorFailure() (+10 more)
 
 ### Community 16 - "Community 16"
-Cohesion: 0.10
-Nodes (19): ExternalWorkerRole, ExternalNativeRoute, hash(), prepareExternalWorkerNativeMapping(), Profile, stable(), context, hash() (+11 more)
+Cohesion: 0.17
+Nodes (11): ExternalWorkerRole, ExternalNativeRoute, hash(), prepareExternalWorkerNativeMapping(), Profile, stable(), context, hash() (+3 more)
 
 ### Community 17 - "Community 17"
 Cohesion: 0.09
@@ -213,8 +213,8 @@ Cohesion: 0.10
 Nodes (20): compilerOptions, baseUrl, declaration, declarationMap, esModuleInterop, forceConsistentCasingInFileNames, lib, module (+12 more)
 
 ### Community 23 - "Community 23"
-Cohesion: 0.27
-Nodes (8): applyCapsuleDiagnosticMode(), applyResponseMode(), commonJourneyResponse(), MCP_RESPONSE_TOKEN_BUDGETS, project(), record(), responseModeEnum, diagnostic
+Cohesion: 0.14
+Nodes (16): nullableOptionalPositiveInteger(), nullableOptionalString(), operationSearchInputSchema, registerProjectOperations(), registerRuntimeOperations(), toolError(), applyCapsuleDiagnosticMode(), applyResponseMode() (+8 more)
 
 ### Community 24 - "Community 24"
 Cohesion: 0.17
@@ -385,8 +385,8 @@ Cohesion: 0.67
 Nodes (3): allowScripts, esbuild@0.28.1, fsevents@2.3.3
 
 ### Community 77 - "Community 77"
-Cohesion: 0.16
-Nodes (14): nullableOptionalPositiveInteger(), nullableOptionalString(), operationSearchInputSchema, registerProjectOperations(), identifier, registerQualityJourneyLibraryOperations(), scope, registerRuntimeOperations() (+6 more)
+Cohesion: 0.22
+Nodes (8): NATIVE_DESCRIPTOR_LIMITS, capture(), context, custom, fn(), request(), schema, TrustedDescriptorContext
 
 ## Knowledge Gaps
 - **476 isolated node(s):** `name`, `version`, `description`, `license`, `author` (+471 more)
@@ -396,9 +396,9 @@ Nodes (14): nullableOptionalPositiveInteger(), nullableOptionalString(), operati
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `fn()` connect `Community 16` to `Community 0`?**
+- **Why does `fn()` connect `Community 77` to `Community 0`?**
   _High betweenness centrality (0.180) - this node is a cross-community bridge._
-- **Why does `retry()` connect `Community 0` to `Community 16`?**
+- **Why does `retry()` connect `Community 0` to `Community 77`?**
   _High betweenness centrality (0.180) - this node is a cross-community bridge._
 - **Why does `canonicalContractJson()` connect `Community 10` to `Community 50`?**
   _High betweenness centrality (0.118) - this node is a cross-community bridge._

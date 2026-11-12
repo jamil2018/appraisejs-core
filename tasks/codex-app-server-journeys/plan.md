@@ -1,3 +1,7 @@
+> M12 adds [local packed-install and hosting-mode transfer verification](M12-VERIFICATION.md) from M11 merge `8d8d8254`.
+> Scope is disposable local installation and internal Journeys; provider/runtime/host/distribution qualification,
+> public managed opt-in, default-mode change, M13 and shipping remain open. Earlier checkpoints retain historical scope.
+
 > M11 repository verification: [pause, interruption and restart](M11-VERIFICATION.md), on the freshly fetched M10 base.
 > This is disposable internal implementation evidence; runtime/provider qualification, M12+, shipping and public managed opt-in remain outside scope. Earlier checkpoints below are historical.
 

@@ -56,6 +56,7 @@ function clientFixture() {
               targetProjectId: targetProject.id,
               targetProject,
               hostingMode: 'EXTERNAL_LEGACY',
+              hostingContractVersion: 1,
               hostingProvenance: 'CREATED_COMPATIBILITY_V1',
               currentCoordinatorSessionId: effectiveHandoff ? `mapped:${effectiveHandoff.id}` : null,
               ownershipVersion: 0,

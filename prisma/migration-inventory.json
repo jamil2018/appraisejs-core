@@ -388,6 +388,10 @@
     {
       "name": "20261024040000_add_automation_materialization_source_proof",
       "checksum": "285498de5ba5a96235ebc20c1a8576443688445499da7fc0f01259942e01e518"
+    },
+    {
+      "name": "20261112010000_add_journey_hosting_contract_version",
+      "checksum": "f7243eb642b69f529b9695f525ede19051925b8f82784d00b43236d95329cd0f"
     }
   ]
 }

@@ -51,6 +51,7 @@ function externalAttemptClient() {
         id: ids.journeyId,
         targetProjectId: ids.targetProjectId,
         hostingMode: 'EXTERNAL_LEGACY',
+        hostingContractVersion: 1,
         hostingProvenance: 'CREATED_COMPATIBILITY_V1',
         currentCoordinatorSessionId: null,
         ownershipVersion: 0,

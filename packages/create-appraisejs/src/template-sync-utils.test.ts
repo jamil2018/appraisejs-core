@@ -7,6 +7,10 @@ import {
 import { describe, expect, it } from 'vitest'
 
 describe('shouldExcludeTemplatePath', () => {
+  it('excludes the producer-only M12 packed-install proof from generated apps', () => {
+    expect(shouldExcludeTemplatePath('scripts/tests/m12-packed-install.test.mjs')).toBe(true)
+  })
+
   it.each([
     'scripts/m06-native-patch-10.mjs',
     'm06-native-patch-10.mjs',

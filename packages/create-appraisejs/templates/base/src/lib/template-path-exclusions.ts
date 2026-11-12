@@ -36,6 +36,7 @@ const REPOSITORY_ONLY_TEMPLATE_PREFIXES = [
   'src/services/coordinator/quality-journey-internal-discovery-gateway.',
 ]
 const REPOSITORY_ONLY_TEMPLATE_PATHS = new Set([
+  'scripts/tests/m12-packed-install.test.mjs',
   'scripts/m06-native-fixture-workspace-13.mjs',
   'm06-native-fixture-workspace-13.mjs',
   'scripts/tests/m06-native-fixture-workspace-13.test.mjs',

@@ -206,7 +206,7 @@ function fixture(role: Role, mode: Mode) {
   const state = {
     journey: { id: scope.journeyId, targetProjectId: scope.targetProjectId,
       currentCoordinatorSessionId: credentials.coordinatorSessionId,
-      hostingMode: 'APP_SERVER_LOCAL_V1', status: 'ACTIVE' } as Row,
+      hostingMode: 'APP_SERVER_LOCAL_V1', hostingContractVersion: 1, status: 'ACTIVE' } as Row,
     item: item as Row | null, attempt: attempt as Row | null,
     authorization: authorization as Row | null,
     session: session as Row | null, binding: binding as Row | null,

@@ -170,7 +170,16 @@ worker target exists; unsupported worker targets are rejected while paused, befo
 Registration suppression is defense in depth. Appraise does not collect script bodies. A child with unknown or opaque
 source origin cannot begin IdP transit. A child first committed to the frozen target can use its browser-reported
 security origin for the selected transit rules. Some iframe-first sign-in widgets therefore fail closed.
-Transport loss or invalid protocol/target identity fences the runtime and closes its owned resources. Unsupported
+Transport loss or invalid protocol/target identity fences the runtime. Owned shutdown first rejects pending commands,
+clears their timers and buffered protocol data, and suppresses subsequent sends and events while retaining the private
+pipes. It initiates immediate SIGKILL of the original live owned process group before notifying loss observers;
+observer exceptions and reentrant closure cannot prevent that stop or create another close flight. Only after both
+the child exit and the full group disappearance are observed does cleanup remove the profile and dispose the pipes.
+Detaching first can release a worker's debugger pause, so logical closure is distinct from physical pipe disposal.
+If signaling, exit or group observation fails, close rejects and caches that result, retains the original handles,
+pipes and profile, and leaves cleanup unknown. A child that already exited grants no new numeric-PID signaling
+authority; unresolved descendants remain unknown. External physical pipe loss cannot be undone and initiates the same
+immediate owned stop. Unsupported
 platforms fail closed. Synthetic qualification of these controls does not establish live authentication or
 human-authenticated restart. The retained Playwright qualification backend still rejects every HTTP 3xx because its
 routing callback does not intercept redirect follow-ups; its limitation and counterexample remain explicit evidence.

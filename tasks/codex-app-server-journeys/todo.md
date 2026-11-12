@@ -1,3 +1,7 @@
+> M12 adds [local packed-install and hosting-mode transfer verification](M12-VERIFICATION.md) from M11 merge `8d8d8254`.
+> Scope is disposable local installation and internal Journeys; provider/runtime/host/distribution qualification,
+> public managed opt-in, default-mode change, M13 and shipping remain open. Earlier checkpoints retain historical scope.
+
 > M11 implements [internal pause, interruption and restart](M11-VERIFICATION.md) on M10 merge `2dbc3a76`.
 > Runtime/provider qualification and public managed opt-in remain open; M06 STOP and spent-attempt evidence are preserved.
 > Earlier checkpoints below retain their historical scope.
@@ -234,9 +238,14 @@ See [M11 verification and remaining qualification gates](M11-VERIFICATION.md).
 
 ### M12: Qualify packaging and mode transfer
 
+**Status (2026-11-12): Complete within disposable local installation and internal Journey scope.**
+[Verification and remaining qualification gates](M12-VERIFICATION.md) · [Bounded plan](m12-packaging-mode-transfer-plan.md).
+Actual packed installs, genuine upgrade/M11 downgrade refusal, canonical transfer/rollback, normal protections and independent exact-artifact review passed. Provider/runtime/host/distribution qualification and rollout remain open.
+The shipping follow-up records an inherited native worker shutdown race, the rejected CSP attempt and the causal process-first teardown repair. Merge requires renewed exact-artifact review and Release CI; a green diagnostic rerun alone is not remediation.
+
 **Reference:** [Open Design guide](open-design-reference.md). Codex definition and compatibility tests; qualify selected versions/configuration without permissive or automatic fallback.
 
-- [ ] Implement and verify this slice.
+- [x] Implement and verify this slice.
 
 **Dependencies:** M07, M10, M11. **Estimated scope:** M; split further before implementation if the actual diff spans independent concerns.
 

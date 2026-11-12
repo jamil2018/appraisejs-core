@@ -52,3 +52,18 @@ Back up the SQLite database before a known migration, then run the matching appl
 The observed host version, package guidance version, and client matrix are in [compatibility](quality-journey-compatibility.md). Other or unreported Codex versions and absent task schema observations require diagnostics. Earlier C1–C3.2 qualifications are scoped evidence, not fresh-install verification. C3.3 onboarding and clean-install qualification, and GC3 release evaluation, remain separate; this guide does not claim either has passed.
 
 Preparing a fresh handoff clears the previous session's effectiveness and copy indicator in the panel. A previous takeover cannot approve its replacement: connect the new handoff and explicitly approve that exact generation in Appraise. Installed packages predating this repair can retain a stale effectiveness message after preparation; use authoritative handoff identity and takeover metadata rather than that message.
+
+## Internal hosting transfer and rollback
+
+M12 provides a trusted in-process hosting transfer for disposable internal Journeys; it does not add a public mode
+selector. Pause the Journey through its canonical control, reconcile every recorded owned effect, then approve the
+exact predecessor, successor, target mode and state/ownership snapshot. The transfer transaction preserves remaining
+budgets and leaves the Journey paused. Resume separately so deferred sealed results publish through the existing
+atomic boundary. Registration, reconnect and provider availability cannot approve this change.
+
+For rollback, pause first and use the same reconciled boundary for the reverse transfer with a fresh successor.
+UNKNOWN dispatch, pending sends, occupied provider slots, missing owned cleanup and ambiguous execution block host
+switching. Keep the pause and all records; do not reset storage, unfence an old session or signal stored process IDs.
+[Hosting/session contract](quality-journey-host-sessions.md) describes the canonical fences;
+[M12 verification](../tasks/codex-app-server-journeys/M12-VERIFICATION.md) separates local installed evidence from
+unqualified provider/host/distribution properties.
