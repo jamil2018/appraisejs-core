@@ -1,6 +1,8 @@
 # M12 — Local packaging and mode transfer verification
 
 M12 implementation and deterministic local verification are complete within the bounded scope below.
+Shipping is blocked by the native worker-containment observation recorded in the shipping follow-up below;
+PR #313 has not been accepted for merge.
 Final artifact review and hook results are recorded at the end of this evidence index.
 See [bounded plan](m12-packaging-mode-transfer-plan.md) for base, authority and scope.
 
@@ -198,3 +200,41 @@ The browser case passed in an isolated Mac check, which does not resolve the rec
 fixture diagnostics now retain bounded browser identity, request paths, target types and debugger-pause booleans;
 no body/cookie or production-runtime change is included. Shipping remains blocked until the worker-effect observation
 has a causal explanation/remediation and the final exact head passes required CI and renewed independent review.
+
+### Shipping blocker after diagnostic CI
+
+Diagnostic CI run `43240689779` passed all jobs at `f9f04fc4821adb21538dc31f6d67eed422bd2bdf`.
+This is a non-reproduction, not resolution of the earlier worker effect. The original auto-attachment failure's
+internal cause remains UNKNOWN. No check was skipped or weakened to obtain that pass.
+
+A proposed independent guard appended a separate enforced `worker-src 'none'` CSP header through native
+`Fetch.continueResponse`, without collecting or replacing response bodies. The actual Chromium 149 adapter
+still contacted `/worker.js` in both headed and headless tests. Correlated document-response observations showed
+the appended header; they did not establish enforcement. The expanded proposed-guard matrix reported 75 passed
+and 24 failed; a correlated classic-worker check reported two failures. Passing unit checks did not qualify it.
+The 24 failures also include unqualified new fixture cases; they are not 24 observations of the original escape.
+Worker-script contact in the successor check is distinct from the original downstream network effect.
+
+At the observed Chromium revision, changing response headers through `ContinueResponse` delegates to
+body-omitted `FulfillRequest`; the interceptor updates raw headers while retaining the response metadata that
+navigation uses for parsed CSP. This source chain strongly supports the injected-header failure explanation;
+it is not a runtime trace or an explanation of the original auto-attachment failure. Sources:
+[Fetch handler](https://raw.githubusercontent.com/chromium/chromium/3188f8a607ae7e067593be8aab7f02d2451fec07/content/browser/devtools/protocol/fetch_handler.cc),
+[interceptor](https://raw.githubusercontent.com/chromium/chromium/3188f8a607ae7e067593be8aab7f02d2451fec07/content/browser/devtools/devtools_url_loader_interceptor.cc),
+[navigation policy](https://raw.githubusercontent.com/chromium/chromium/3188f8a607ae7e067593be8aab7f02d2451fec07/content/browser/renderer_host/navigation_request.cc).
+Direct body-omitted fulfillment therefore is not a distinct repair.
+
+The ineffective runtime/header/listener changes are excluded from the proposed artifact. Complete failed-attempt
+patches and logs remain under `.appraisejs/m12-evidence/`, including `worker-policy-native-failed-snapshot.patch`,
+`worker-policy-native-failed-precheck-snapshot.patch`, `worker-policy-production-authorized-1.log`,
+`worker-policy-native-diagnostic-1.log` and `worker-policy-native-correlated-1.log`. The earlier diagnostic label
+`worker-policy:enforced` meant an outbound header was appended; it was not evidence of enforcement.
+The final recoverable five-file patch is `worker-policy-finalfailedattempt.patch`, SHA-256
+`34566cb472da7537b395f6e4adccb446f58948ed05355a8e5bd15da67a43e90e`; `git apply --check` succeeded
+against restored head `f9f04fc`. No proposed-guard runtime change remains.
+
+Independent design review rejected both this guard and substitution of body-omitted fulfillment. Disabling the
+native adapter, replacing its positive acceptance tests with refusal tests, or adding a test qualification bypass
+would not establish the required browser boundaries. A broader containment repair and renewed native verification
+are required before shipping. Existing local packaging/transfer evidence remains valid within its stated scope;
+native browser success, provider/runtime/host/distribution qualification and public rollout remain unqualified.

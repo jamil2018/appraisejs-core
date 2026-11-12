@@ -241,6 +241,7 @@ See [M11 verification and remaining qualification gates](M11-VERIFICATION.md).
 **Status (2026-11-12): Complete within disposable local installation and internal Journey scope.**
 [Verification and remaining qualification gates](M12-VERIFICATION.md) · [Bounded plan](m12-packaging-mode-transfer-plan.md).
 Actual packed installs, genuine upgrade/M11 downgrade refusal, canonical transfer/rollback, normal protections and independent exact-artifact review passed. Provider/runtime/host/distribution qualification and rollout remain open.
+Shipping PR #313 remains blocked by an unresolved native worker-containment observation; green diagnostic CI is not its resolution. See the verification follow-up for the rejected repair and retained evidence.
 
 **Reference:** [Open Design guide](open-design-reference.md). Codex definition and compatibility tests; qualify selected versions/configuration without permissive or automatic fallback.
 
