@@ -313,3 +313,40 @@ These results preserve the earlier canonical transfer/rollback and remaining-bud
 synthetic downgrade rows into canonical authority. The failed CSP patches, original Linux observation, restricted-host
 cleanup uncertainty and historical UNKNOWN states remain preserved. Actual provider/authentication, global helper/host
 containment, other distribution hosts, public rollout and M13 remain outside this qualification.
+
+### Linux CI follow-up: fresh-process fixture deadline
+
+Release CI `43250688561` at `6e0b1639` passed all 85 native browser cases and all ten transport teardown cases on
+Linux/Xvfb. The root suite reported 3478 passed, four skipped and one failure: the inherited M11 fresh-process pause
+reconstruction test exceeded its implicit five-second Vitest deadline at 5303 ms. Its fresh Node/TSX/Prisma child
+already had an explicit 30-second deadline. The exact slow phase was not recorded; a fresh local baseline passed
+in 1.89 seconds, which does not explain the historical CI timing.
+
+The combined log download ended with an unexpected EOF; the direct CLI job download then refused terminal escape
+sequences. The GitHub plugin successfully retrieved the actual root job log, retained as
+`worker-teardown-final-root-ci-plugin.json` and sanitized as `worker-teardown-final-root-ci-clean.log`.
+These retrieval failures are distinct from the fixture timeout.
+
+Independent review accepted a test-only correction: retain the child's 30-second deadline, name it explicitly and
+give this single test a 60-second total envelope including a 30-second parent-fixture allowance. Failure-only phase
+timings identify future setup/start/pause/reconstruction/cleanup delays without recording IDs or payloads.
+This is a finite fixture envelope, not a product SLO or a sum of every possible product timeout. Per-RPC deadlines,
+UNKNOWN cleanup, immutable ownership, consumed budgets and no-extra-start assertions remain unchanged. No global
+test timeout, retry, skip, product behavior or authority was relaxed. The test is canonically excluded from scaffold
+output, so the repaired packed runtime remains unchanged; the next exact head still requires fresh Release CI.
+
+The corrected focused case passed in 1.82 seconds (`m11-restart-deadline-fixed-focused.log`); ESLint, Prettier,
+normal Fallow and diff checks passed. A structural comparison retained every assertion expression. The frozen test
+SHA-256 is `c6641c28a2fce13fd78798b0184d52d94d36be61c4e74f3e6c2722ab796968f3`.
+
+Repacking after this excluded test-only correction produced the same two tarball hashes recorded above, so the
+actual installed-artifact evidence remains exact. The default npm cache was inaccessible (EPERM); using the disposable
+local cache succeeded without changing the user's global cache or installation.
+
+The independent reviewer's own execution failed during owned-child startup before pause/reconstruction, with
+`OwnedChildLaunchError` reporting a retained private recovery root. The bounded output supplied no concrete root
+path; the retained evidence is an explicitly labeled tool-output transcription in
+`m11-restart-deadline-reviewer-host-failure.log`. Its exact launch cause and complete cleanup remain
+UNKNOWN; it is not counted as a passing reconstruction check or attributed to the deadline change. The successful
+authorized-profile focused run and the reviewer's static assertion comparison remain separate evidence. No stored PID
+was signaled and no cleanup authority was reconstructed to clear this host observation.
