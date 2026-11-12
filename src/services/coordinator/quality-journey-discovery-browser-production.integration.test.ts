@@ -47,6 +47,7 @@ async function fixture(
   const phases: Array<{ phase: string; elapsedMs: number }> = []
   const mark = (phase: string) => phases.push({ phase, elapsedMs: Math.round(performance.now() - startedAt) })
   const trace: string[] = []
+  let browserIdentity: { product: string; revision: string; protocolVersion: string } | undefined
   onTestFailed(() => {
     console.error('Discovery browser fixture phases', JSON.stringify({ headless, phases, protocol: trace.slice(-24) }))
   })
@@ -60,6 +61,18 @@ async function fixture(
   let seedSession = ''
   const targetTypes: string[] = []
   const attachmentPauses: boolean[] = []
+  onTestFailed(() => {
+    console.error(
+      'Discovery browser worker observations',
+      JSON.stringify({
+        headless,
+        browserIdentity,
+        requestPaths: servers.hits.map(hit => hit.path).slice(-24),
+        targetTypes: targetTypes.slice(-24),
+        attachmentPauses: attachmentPauses.slice(-24),
+      }),
+    )
+  })
   const redirectPauses: Array<{ requestId: string; networkId?: string; responseStatusCode?: number; path?: string }> =
     []
   let holdRedirectContinuations = false
@@ -73,6 +86,14 @@ async function fixture(
       cleanup.push(transport.close)
       // Disposable fixture certificates only; never configured by the production default.
       await transport.send('Security.setIgnoreCertificateErrors', { ignore: true })
+      const version = await transport.send<{ product: string; revision: string; protocolVersion: string }>(
+        'Browser.getVersion',
+      )
+      browserIdentity = {
+        product: version.product,
+        revision: version.revision,
+        protocolVersion: version.protocolVersion,
+      }
       mark('transport:cdp-ready')
       return {
         ...transport,

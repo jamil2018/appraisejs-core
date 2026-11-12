@@ -185,3 +185,16 @@ verified exact manifest `b8b46beefd22f9bba12964b4bb24262dc98012d1d465e6ba517ffe0
 canonical/template/packed/generated parity and actual predecessor refusal logs. Independent core tests passed 75/75
 and populated-upgrade/authority checks 10/10. No material finding remains. The completion addendum changes only this
 evidence index and the M12 checkbox/status; it grants no provider, host, distribution, public rollout or shipping authority.
+
+## Shipping CI follow-up
+
+The first PR #313 CI run (`43236328877`, head `2ee66bad`) passed both package jobs, dependency/package inventories and
+security/quality ratchets, but full root validation reported 31 failures: 30 older mock-fixture cases omitted the new
+persisted hosting contract field; one unchanged headed blob-worker test observed a policy-allowed network effect
+before worker denial. Five fixture definitions now include contract version 1 without changing any assertion; their
+440 affected cases pass. This is fixture alignment, not a runtime guard relaxation.
+
+The browser case passed in an isolated Mac check, which does not resolve the recorded Linux failure. Failure-only
+fixture diagnostics now retain bounded browser identity, request paths, target types and debugger-pause booleans;
+no body/cookie or production-runtime change is included. Shipping remains blocked until the worker-effect observation
+has a causal explanation/remediation and the final exact head passes required CI and renewed independent review.

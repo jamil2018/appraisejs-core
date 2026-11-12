@@ -43,7 +43,7 @@ function mockTransaction(options: { legacy?: boolean; orphan?: boolean; missing?
   partial?: boolean; loseAdmissionCas?: boolean; missingPolicy?: boolean; missingPolicyJoin?: boolean; foreignPolicy?: boolean } = {}) {
   const journey = {
     id: 'journey', targetProjectId: 'target', currentCoordinatorSessionId: 'session',
-    hostingMode: 'APP_SERVER_LOCAL_V1', ownershipVersion: 4, e2AdmissionVersion: 7,
+    hostingMode: 'APP_SERVER_LOCAL_V1', hostingContractVersion: 1, ownershipVersion: 4, e2AdmissionVersion: 7,
     status: 'ACTIVE',
   }
   const session = {

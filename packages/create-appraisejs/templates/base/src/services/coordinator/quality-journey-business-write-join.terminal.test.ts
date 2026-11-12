@@ -35,7 +35,7 @@ function fixture(legacy = false) {
   const authorizationValue = { toyAuthorization: true }
   const state = {
     journey: { id: scope.journeyId, ...scope, currentCoordinatorSessionId: credentials.coordinatorSessionId,
-      hostingMode: 'APP_SERVER_LOCAL_V1' },
+      hostingMode: 'APP_SERVER_LOCAL_V1', hostingContractVersion: 1 },
     session: { id: credentials.coordinatorSessionId, ...scope, generation: 1, status: 'ACTIVE',
       hostKind: 'APP_SERVER_LOCAL_V1', ownerPrincipalId: credentials.coordinatorPrincipalId,
       fencedAt: null, e2EnrollmentKind: legacy ? null : 'E2_V1',
