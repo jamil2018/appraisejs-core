@@ -374,6 +374,28 @@ function ownershipUpdateData(
     stopReceiptHash: hash(receipt),
   }
 }
+function isOriginalBrowserOwnership(row: QualityJourneyOwnedBrowser, ownership: Ownership) {
+  return (
+    row.sessionId === ownership.id &&
+    row.generation === ownership.generation &&
+    row.processInstanceId === processInstanceId
+  )
+}
+
+function assertOwnershipStatusAuthority(
+  row: QualityJourneyOwnedBrowser | null,
+  ownership: Ownership,
+  status: OwnershipStatus,
+  scope: { journeyId: string; targetProjectId: string },
+): asserts row is QualityJourneyOwnedBrowser {
+  if (!row || row.journeyId !== scope.journeyId || row.targetProjectId !== scope.targetProjectId)
+    throw new ServiceError('Discovery browser ownership scope changed.', 'CONFLICT')
+  if (status === 'STOP_OBSERVED' && !isOriginalBrowserOwnership(row, ownership))
+    throw new ServiceError('Original Discovery browser cleanup identity changed.', 'CONFLICT')
+  if (status === 'LIVE' && row.status !== 'LAUNCHING')
+    throw new ServiceError('Discovery browser launch authority was revoked.', 'CONFLICT')
+}
+
 async function persistOwnershipStatus(
   ownership: Ownership,
   status: OwnershipStatus,
@@ -382,10 +404,7 @@ async function persistOwnershipStatus(
 ) {
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const row = await ownership.client.qualityJourneyOwnedBrowser.findUnique({ where: { id: ownership.id } })
-    if (!row || row.journeyId !== scope.journeyId || row.targetProjectId !== scope.targetProjectId)
-      throw new ServiceError('Discovery browser ownership scope changed.', 'CONFLICT')
-    if (status === 'LIVE' && row.status !== 'LAUNCHING')
-      throw new ServiceError('Discovery browser launch authority was revoked.', 'CONFLICT')
+    assertOwnershipStatusAuthority(row, ownership, status, scope)
     if (row.status === 'STOP_OBSERVED') return
     const updated = await ownership.client.qualityJourneyOwnedBrowser.updateMany({
       where: {
@@ -420,6 +439,20 @@ async function assertDurableOwnershipAllowsStart(
   if (rows.some(row => row.id !== ownId && (row.processInstanceId !== processInstanceId || row.status !== 'LIVE')))
     throw new ServiceError('Prior Discovery browser ownership is unresolved.', 'CONFLICT')
 }
+async function assertOriginalLaunchingOwnership(session: Session, client: Db) {
+  const row = await client.qualityJourneyOwnedBrowser.findUnique({ where: { id: session.ownership.id } })
+  if (
+    !row ||
+    row.status !== 'LAUNCHING' ||
+    row.sessionId !== session.id ||
+    row.processInstanceId !== session.processInstanceId ||
+    row.generation !== session.generation ||
+    row.journeyId !== session.journeyId ||
+    row.targetProjectId !== session.targetProjectId
+  )
+    throw new ServiceError('Discovery browser launch authority was revoked.', 'CONFLICT')
+}
+
 async function registerBrowserOwnership(
   request: z.infer<typeof startSchema>,
   sessionId: string,
@@ -1610,6 +1643,9 @@ export async function startQualityJourneyDiscoveryBrowserSession(
       }
       throw new ServiceError('Discovery browser closed while the session was starting.', 'CONFLICT')
     }
+    assertStartupLiveness()
+    await assertFrozenScopeStillMatchesSession(session, client)
+    await assertOriginalLaunchingOwnership(session, client)
     assertStartupLiveness()
     await page.goto(routeUrl(scope.baseUrl, request.routeId), { waitUntil: 'domcontentloaded' })
     assertStartupLiveness()

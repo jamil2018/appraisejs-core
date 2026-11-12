@@ -5,6 +5,8 @@ The shipping follow-up records the inherited native worker failure, rejected CSP
 Merge requires independent review of the repaired artifact and fresh Release CI; broader qualification stays open.
 Final artifact review and hook results are recorded at the end of this evidence index.
 See [bounded plan](m12-packaging-mode-transfer-plan.md) for base, authority and scope.
+The [post-merge browser startup follow-up](M12-POST-MERGE-CI.md) records the distinct failing base-CI observation,
+startup/cancellation repair contract and remaining release gates. Earlier PR CI passes retain their exact scope.
 
 ## Retained infrastructure observations
 

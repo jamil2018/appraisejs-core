@@ -135,6 +135,21 @@ stylesheet or script by its exact origin, path, method, and `SUBRESOURCE` kind. 
 Environment policy update and a new frozen Discovery revision; an older revision does not inherit the new policy.
 An unstyled login page can indicate an asset-path mismatch, but the actual document reference and request outcome
 must be checked before changing the allowlist. Keep credential and authorization-code URLs out of diagnostics.
+Native browser startup retains the Playwright `launchServer` probe so headed and headless launches keep the supported
+binary and argument selection. Admission has a 45-second deadline: the probe launch explicitly allows 30 seconds,
+graceful probe close allows 5 seconds, and supported probe kill plus observation of its original child exit allows
+5 seconds. A close failure still rejects admission even when kill subsequently proves cleanup. Probe handles, profile
+creation and owned-spawn results belong to a startup flight installed before its first await. Abort or deadline
+permanently fences publication; late results are acquired by that same flight and cleaned through the original handles.
+Pending or unproved cleanup remains `UNKNOWN` beyond the caller deadline, with late handlers retained. Fixed failure
+category, phase and elapsed time are separate from cleanup observation; raw abort reasons and native launch details
+are not diagnostics. No numeric PID reconstruction supplies probe-cleanup authority.
+Immediately before the initial navigation, Appraise reloads the mutable frozen authority and checks that its exact
+original ownership row is still `LAUNCHING` with matching process, generation, session and Journey scope. A pause or
+unknown ownership observed during a pending launch therefore rejects the late browser before navigation. Existing
+post-navigation checks and conditional `LIVE` publication still apply. This is a fresh pre-navigation gate, not an
+atomic guarantee against every concurrent authority change. Original runtime cleanup cannot certify a changed
+ownership lineage as `STOP_OBSERVED`; unresolved foreign cleanup remains `UNKNOWN`.
 The native Chromium adapter uses an owned process and temporary profile with a private CDP pipe. It binds the exact
 paused seed target and installs recursive target admission and request interception before resume. Each request and
 redirect follow-up passes the same canonical policy before network contact; response-stage pauses let the service

@@ -242,6 +242,8 @@ See [M11 verification and remaining qualification gates](M11-VERIFICATION.md).
 [Verification and remaining qualification gates](M12-VERIFICATION.md) · [Bounded plan](m12-packaging-mode-transfer-plan.md).
 Actual packed installs, genuine upgrade/M11 downgrade refusal, canonical transfer/rollback, normal protections and independent exact-artifact review passed. Provider/runtime/host/distribution qualification and rollout remain open.
 The shipping follow-up records an inherited native worker shutdown race, the rejected CSP attempt and the causal process-first teardown repair. Merge requires renewed exact-artifact review and Release CI; a green diagnostic rerun alone is not remediation.
+The [post-merge startup follow-up](M12-POST-MERGE-CI.md) separately records the failing base-CI observation,
+bounded startup/cancellation and late-authority repair evidence, with historical UNKNOWN states preserved.
 
 **Reference:** [Open Design guide](open-design-reference.md). Codex definition and compatibility tests; qualify selected versions/configuration without permissive or automatic fallback.
 
