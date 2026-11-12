@@ -1,4 +1,10 @@
-import { afterEach, describe, expect, it, onTestFailed } from 'vitest'
+import { afterEach, describe, expect, it, onTestFailed, vi } from 'vitest'
+import { spawn, type ChildProcess } from 'node:child_process'
+
+vi.mock('node:child_process', async importOriginal => {
+  const actual = await importOriginal<typeof import('node:child_process')>()
+  return { ...actual, spawn: vi.fn(actual.spawn) }
+})
 import { access } from 'node:fs/promises'
 import {
   armQualityJourneyDiscoveryBrowserHumanReturn,
@@ -13,6 +19,16 @@ import {
 import { createQualityJourneyDiscoveryBrowserRuntime } from './quality-journey-discovery-browser-runtime'
 import { launchDiscoveryBrowserTransport } from './quality-journey-discovery-browser-transport'
 import { productionFixtureClient, productionFixtureServers, productionScope } from '@/test/c233-production-fixture'
+
+function isOriginalLiveStop(child: ChildProcess | undefined, pid: number, signal: string | number | undefined) {
+  return Boolean(
+    child?.pid &&
+    pid === -child.pid &&
+    child.exitCode === null &&
+    child.signalCode === null &&
+    ['SIGTERM', 'SIGKILL'].includes(String(signal)),
+  )
+}
 
 const cleanup: Array<() => Promise<unknown>> = []
 afterEach(async () => {
@@ -225,6 +241,75 @@ async function fixture(
 }
 
 describe.each([true, false])('production discovery CDP adapter (headless=%s)', headless => {
+  it('retains the paused worker barrier until its owned group stops under delayed signal delivery', async () => {
+    const actual = await vi.importActual<typeof import('node:child_process')>('node:child_process')
+    let ownedChild: ChildProcess | undefined
+    const originalKill = process.kill.bind(process)
+    const pendingStops: Array<Promise<void>> = []
+    let armed = false
+    let delayedSignals = 0
+    let stopHeld = false
+    let stopDelivered = false
+    let deliveryError: unknown
+    vi.mocked(spawn).mockImplementation((command, args, options) => {
+      const child = actual.spawn(command, args, options)
+      const stdio = options?.stdio
+      if (options?.detached && Array.isArray(stdio) && stdio[3] === 'pipe' && stdio[4] === 'pipe') ownedChild = child
+      return child
+    })
+    const killSpy = vi.spyOn(process, 'kill').mockImplementation((pid, signal) => {
+      if (armed && isOriginalLiveStop(ownedChild, pid, signal)) {
+        if (stopHeld) return true
+        if (stopDelivered) return originalKill(pid, signal)
+        stopHeld = true
+        const stoppingChild = ownedChild!
+        delayedSignals++
+        pendingStops.push(
+          new Promise<void>(resolve => {
+            setTimeout(() => {
+              try {
+                if (stoppingChild.exitCode === null && stoppingChild.signalCode === null)
+                  originalKill(-stoppingChild.pid!, signal)
+              } catch (error) {
+                if ((error as NodeJS.ErrnoException).code !== 'ESRCH') deliveryError = error
+              } finally {
+                stopHeld = false
+                stopDelivered = true
+                resolve()
+              }
+            }, 200)
+          }),
+        )
+        return true
+      }
+      return originalKill(pid, signal)
+    })
+    try {
+      const f = await fixture(headless)
+      expect(ownedChild?.pid).toEqual(expect.any(Number))
+      await f.navigate(`${f.servers.idpOrigin}/login`)
+      armed = true
+      await f
+        .evaluate(
+          `setTimeout(() => new Worker(URL.createObjectURL(new Blob(['fetch("${f.servers.idpOrigin}/secure")'], {type:'application/javascript'}))), 0); true`,
+        )
+        .catch(() => undefined)
+      await expect.poll(() => delayedSignals).toBeGreaterThan(0)
+      await Promise.all(pendingStops)
+      await f.transport.close()
+      expect(deliveryError).toBeUndefined()
+      expect(f.servers.hits.some(hit => ['/secure', '/denied'].includes(hit.path))).toBe(false)
+      expect(f.targetTypes).toContain('worker')
+      expect(f.attachmentPauses.every(Boolean)).toBe(true)
+      expect(f.trace.filter(command => command === 'Runtime.runIfWaitingForDebugger')).toHaveLength(1)
+    } finally {
+      armed = false
+      await Promise.all(pendingStops)
+      killSpy.mockRestore()
+      vi.mocked(spawn).mockImplementation(actual.spawn)
+    }
+  }, 15_000)
+
   it('does not close on a real conditional 304 subresource response', async () => {
     const f = await fixture(headless)
     expect(await f.evaluate('fetch("/cache.css").then(response => response.text())')).toBe(

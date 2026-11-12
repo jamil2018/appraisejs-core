@@ -1,8 +1,8 @@
 # M12 — Local packaging and mode transfer verification
 
 M12 implementation and deterministic local verification are complete within the bounded scope below.
-Shipping is blocked by the native worker-containment observation recorded in the shipping follow-up below;
-PR #313 has not been accepted for merge.
+The shipping follow-up records the inherited native worker failure, rejected CSP attempt and causal teardown repair.
+Merge requires independent review of the repaired artifact and fresh Release CI; broader qualification stays open.
 Final artifact review and hook results are recorded at the end of this evidence index.
 See [bounded plan](m12-packaging-mode-transfer-plan.md) for base, authority and scope.
 
@@ -201,7 +201,7 @@ fixture diagnostics now retain bounded browser identity, request paths, target t
 no body/cookie or production-runtime change is included. Shipping remains blocked until the worker-effect observation
 has a causal explanation/remediation and the final exact head passes required CI and renewed independent review.
 
-### Shipping blocker after diagnostic CI
+### Historical shipping blocker after diagnostic CI
 
 Diagnostic CI run `43240689779` passed all jobs at `f9f04fc4821adb21538dc31f6d67eed422bd2bdf`.
 This is a non-reproduction, not resolution of the earlier worker effect. The original auto-attachment failure's
@@ -235,6 +235,81 @@ against restored head `f9f04fc`. No proposed-guard runtime change remains.
 
 Independent design review rejected both this guard and substitution of body-omitted fulfillment. Disabling the
 native adapter, replacing its positive acceptance tests with refusal tests, or adding a test qualification bypass
-would not establish the required browser boundaries. A broader containment repair and renewed native verification
-are required before shipping. Existing local packaging/transfer evidence remains valid within its stated scope;
+would not establish the required browser boundaries. At that checkpoint, a containment repair and renewed native
+verification were required before shipping. Existing local packaging/transfer evidence remains valid within its stated scope;
 native browser success, provider/runtime/host/distribution qualification and public rollout remain unqualified.
+
+### Process-first teardown repair
+
+Subsequent tracing found a concrete detach-before-stop defect in the original transport: `close()` destroyed its
+private CDP pipes before signaling the owned process group. The pinned V8 debugger barrier destructor calls
+`runIfWaitingForDebugger`, and Blink detachment releases its V8 session. A paused attachment and absence of an
+explicit worker resume command therefore do not establish that a worker stayed paused through debugger teardown.
+Sources: [V8 barrier](https://github.com/v8/v8/blob/5a39b146dd810a52812202fae891281d5dc4db7d/src/inspector/v8-debugger-barrier.cc#L13),
+[Blink detach](https://github.com/chromium/chromium/blob/3188f8a607ae7e067593be8aab7f02d2451fec07/third_party/blink/renderer/core/inspector/devtools_session.cc#L196).
+
+A fresh native regression delays delivery of the initial stop signal for 200 ms only for the captured original live
+owned child group. It restores the fixture spy and checks the original child is still live before delayed delivery;
+it provides no product bypass or reconstructed signaling authority. With identical final fixture bytes, the old
+transport (`ef1796be45cc52102589984cae0566f0b80f027b5dfe82e641738efdb2dbc2f1`) failed the headed case with a
+`/secure` contact while the worker attachment reported paused and only the seed had been resumed. The headless old
+case did not reproduce. The repaired transport passed both modes with zero downstream worker effects.
+Logs: `worker-teardown-old-causal-final-fixture.log` and `worker-teardown-fixed-causal-final-fixture.log`.
+Fixture SHA-256: `bc509fbc0c0c13b04c149c53afedc6e0277af5ea73bcd6981e76acfb3ec74db5`.
+This demonstrates the teardown race under controlled interruption; the exact scheduling of the original Linux
+failure remains inferred rather than retrospectively observed.
+
+The repair installs a shared close promise before callbacks, fences sends/events/timers immediately, initiates
+`SIGKILL` through the original live owned group before loss notification, and retains the physical pipes until the
+original child has exited and the whole group is observed quiescent. It then releases the profile and pipes.
+Concurrent and reentrant calls join the same operation. Throwing loss observers cannot prevent termination.
+Failed signaling or exit/group observation rejects cleanup and retains still-owned pipes and profile; a naturally
+exited child cannot gain new signaling authority from its numeric group identity. Already-broken external pipes
+remain a separate uncertainty: fencing and cleanup cannot undo an earlier physical detach.
+
+The failed CSP successor remains excluded and preserved. Original response headers and bodies continue natively;
+the original six-worker matrix and zero-downstream-effects assertions remain intact. Final artifact review and
+fresh Linux Release CI remain merge requirements; this synthetic repair does not qualify external pipe-loss intervals.
+
+The first complete focused repair batch passed 146 checks across the native browser (83 existing cases plus two
+causal regressions), runtime (51), and transport teardown (10) suites. Log:
+`worker-teardown-focused-browser-1.log`. The exact causal fixture is retained as
+`worker-teardown-causal-fixture-bc509.ts`; the failed old transport and passing candidate remain separately identified.
+
+Final review strengthened the causal case to require an actual observed worker target, in addition to paused
+attachments, one seed resume and zero downstream effects. The same strengthened fixture was executed against both
+transport versions: old headed failed with `/secure` contact (headless did not reproduce); repaired headed and
+headless passed. Logs: `worker-teardown-old-causal-worker-witness.log` and
+`worker-teardown-fixed-causal-worker-witness.log`. The exact fixture is retained as
+`worker-teardown-causal-worker-witness-fixture.ts`, SHA-256
+`8c8fe5262ceab8c2395a7a91f807451e98f4dbdcf769bf59325b1f2aea42d690`.
+The final transport remains SHA-256 `2025291219b508038500b3f2bbaf7c459cc0184290b7e4f5eec9795b39f745e7`.
+Independent deterministic transport/runtime checks also passed 61/61.
+
+### Final repaired artifact validation
+
+The final source was frozen before regeneration and the final build. Scaffold build/preparation and Graphify
+auto-update passed; the three changed native transport/test files match their generated template bytes exactly.
+The application build passed (`worker-teardown-final-root-build.log`), as did harness contracts, documentation links
+and generated-artifact policy checks. Focused ESLint, Prettier, TypeScript and normal Fallow checks passed without
+suppressions or baseline changes. Repository commit hooks remain mandatory, followed by fresh exact-head Linux CI.
+Earlier build/packed observations made before the final worker-witness correction remain retained and are superseded.
+
+Final packed installation proof: `.appraisejs/m12-evidence/run-mn88LG/result.json`, using unchanged proof script
+SHA-256 `f863d9fa8faf325b745b08be1976383890d854c72fb16dd30525f6c33339b061`.
+Tarball SHA-256 values:
+
+- `appraisejs`: `0d0e593599832d4be8c4d0a223d9eaf18aa559f8a5c35fbeed833590ed891a9d`.
+- `create-appraisejs`: `1ddd05d4a7a00eb355c02575eb416c6472319f4728c9c15649208b91548cba5f`.
+
+Fresh local prefix installation, both generated flavors, genuine populated predecessor upgrade, cold migration,
+exact M11 startup/migration refusal with byte preservation, synthetic future-storage refusal, project credential
+rotation and installed runtime resolution all passed again. The final generated blank application's installed
+native causal regressions passed both browser modes (`worker-teardown-final-installed-native.log`), including a
+positive worker witness and zero downstream effects. Package inventory passed at 147 CLI files and 1418 scaffold
+files, with all 98 packed migration names and SQL hashes matching canonical source.
+
+These results preserve the earlier canonical transfer/rollback and remaining-budget evidence; they do not turn
+synthetic downgrade rows into canonical authority. The failed CSP patches, original Linux observation, restricted-host
+cleanup uncertainty and historical UNKNOWN states remain preserved. Actual provider/authentication, global helper/host
+containment, other distribution hosts, public rollout and M13 remain outside this qualification.

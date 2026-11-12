@@ -29,6 +29,16 @@ export type DiscoveryBrowserTransport = {
   isConnected(): boolean
 }
 
+function completion() {
+  let resolve!: () => void
+  let reject!: (error: unknown) => void
+  const promise = new Promise<void>((done, failed) => {
+    resolve = done
+    reject = failed
+  })
+  return { promise, resolve, reject }
+}
+
 async function pipeLaunchFromPlaywright(headless: boolean): Promise<PipeLaunch> {
   const probe = await chromium.launchServer({ headless })
   try {
@@ -66,6 +76,7 @@ class OwnedChromiumProcess {
   readonly output: Readable
   readonly exited: Promise<void>
   private closing: Promise<void> | undefined
+  private observedExit = false
 
   private constructor(
     readonly child: ChildProcess,
@@ -74,8 +85,17 @@ class OwnedChromiumProcess {
     this.input = child.stdio[3] as Writable
     this.output = child.stdio[4] as Readable
     this.exited = new Promise(resolve => {
-      child.once('exit', () => resolve())
-      child.once('error', () => resolve())
+      child.once('exit', () => {
+        this.observedExit = true
+        resolve()
+      })
+      child.once('error', () => {
+        // A failed spawn has no process; an error from a live child is not exit evidence.
+        if (!child.pid) {
+          this.observedExit = true
+          resolve()
+        }
+      })
     })
   }
 
@@ -92,12 +112,16 @@ class OwnedChromiumProcess {
   }
 
   close() {
-    this.closing ??= this.release()
+    if (!this.closing) {
+      const stopped = completion()
+      this.closing = stopped.promise
+      void this.release().then(stopped.resolve, stopped.reject)
+    }
     return this.closing
   }
 
   private signal(signal: NodeJS.Signals) {
-    if (!this.child.pid) return
+    if (!this.child.pid || this.observedExit || this.child.exitCode !== null || this.child.signalCode !== null) return
     try {
       process.kill(-this.child.pid, signal)
     } catch (error) {
@@ -106,31 +130,21 @@ class OwnedChromiumProcess {
   }
 
   private async release() {
-    this.signal('SIGTERM')
-    let forcedSignalError: unknown
-    const forceKill = setTimeout(() => {
-      try {
-        this.signal('SIGKILL')
-      } catch (error) {
-        forcedSignalError = error
-      }
-    }, 1_500)
+    // Detaching CDP can release a paused worker. Stop the original live owned group first.
+    this.signal('SIGKILL')
     let timeout: NodeJS.Timeout | undefined
     try {
       await Promise.race([
         this.exited,
         new Promise<never>((_resolve, reject) => {
-          timeout = setTimeout(() => reject(forcedSignalError ?? new Error('Discovery browser did not exit.')), 3_500)
+          timeout = setTimeout(() => reject(new Error('Discovery browser did not exit; cleanup is unknown.')), 3_500)
         }),
       ])
     } finally {
-      clearTimeout(forceKill)
       if (timeout) clearTimeout(timeout)
     }
-    if (this.child.pid && !(await ownedGroupExited(this.child.pid))) {
-      this.signal('SIGKILL')
-      if (!(await ownedGroupExited(this.child.pid))) throw new Error('Discovery browser descendants did not exit.')
-    }
+    if (this.child.pid && !(await ownedGroupExited(this.child.pid)))
+      throw new Error('Discovery browser descendants did not exit; cleanup is unknown.')
     await rm(this.profileDirectory, { recursive: true, force: true })
   }
 }
@@ -140,6 +154,7 @@ class CdpPipeProtocol {
   private nextId = 0
   private buffer = ''
   private stopped = false
+  private lossNotified = false
   private eventHandler: (event: DiscoveryBrowserProtocolEvent) => void = () => undefined
   private lossHandler: () => void = () => undefined
 
@@ -184,25 +199,39 @@ class CdpPipeProtocol {
   }
 
   events(handler: (event: DiscoveryBrowserProtocolEvent) => void) {
-    this.eventHandler = handler
+    if (!this.stopped) this.eventHandler = handler
   }
 
   lost(handler: () => void) {
-    this.lossHandler = handler
+    if (!this.stopped) this.lossHandler = handler
   }
 
-  shutdown() {
+  fence() {
     if (this.stopped) return
     this.stopped = true
+    this.eventHandler = () => undefined
+    this.buffer = ''
     for (const pending of this.pending.values()) {
       clearTimeout(pending.timer)
       pending.reject(new Error('Discovery browser transport closed.'))
     }
     this.pending.clear()
-    this.lossHandler()
+  }
+
+  notifyLoss() {
+    if (this.lossNotified) return
+    this.lossNotified = true
+    const handler = this.lossHandler
+    this.lossHandler = () => undefined
+    // Observer failure must never prevent stopping the owned process or replace a stop failure.
+    try {
+      handler()
+    } catch {}
+  }
+
+  dispose() {
     this.input.destroy()
     this.output.destroy()
-    this.buffer = ''
   }
 
   breakPipe() {
@@ -216,15 +245,16 @@ class CdpPipeProtocol {
 
   private disconnect() {
     if (this.stopped) return
-    this.shutdown()
     this.onPipeLoss()
   }
 
   private read(chunk: string) {
+    if (this.stopped) return
     this.buffer += chunk
     let separator = this.buffer.indexOf('\0')
     while (separator !== -1) {
       this.receive(this.buffer.slice(0, separator))
+      if (this.stopped) return
       this.buffer = this.buffer.slice(separator + 1)
       separator = this.buffer.indexOf('\0')
     }
@@ -255,9 +285,20 @@ export async function launchDiscoveryBrowserTransport(headless = false): Promise
   const protocol = new CdpPipeProtocol(owned.input, owned.output, owned.child, () => {
     void close().catch(() => undefined)
   })
+  let closing: Promise<void> | undefined
   const close = () => {
-    protocol.shutdown()
-    return owned.close()
+    if (closing) return closing
+    const closed = completion()
+    closing = closed.promise
+    protocol.fence()
+    // release() sends SIGKILL synchronously before its first await and before loss observers.
+    const stopped = owned.close()
+    protocol.notifyLoss()
+    void stopped.then(() => {
+      protocol.dispose()
+      closed.resolve()
+    }, closed.reject)
+    return closing
   }
   return {
     profileDirectory: owned.profileDirectory,
