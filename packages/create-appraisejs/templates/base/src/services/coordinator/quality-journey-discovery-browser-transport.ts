@@ -1,11 +1,12 @@
 import { execFile, spawn, type ChildProcess } from 'node:child_process'
 import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { constants, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { Readable, Writable } from 'node:stream'
 import { setTimeout as delay } from 'node:timers/promises'
 import { promisify } from 'node:util'
-import { chromium } from 'playwright'
+import { chromium, type BrowserServer } from 'playwright'
+import { boundedBrowserStartupStep, DiscoveryBrowserStartupFlight } from './quality-journey-discovery-browser-startup'
 
 export type DiscoveryBrowserProtocolEvent = {
   method: string
@@ -39,19 +40,105 @@ function completion() {
   return { promise, resolve, reject }
 }
 
-async function pipeLaunchFromPlaywright(headless: boolean): Promise<PipeLaunch> {
-  const probe = await chromium.launchServer({ headless })
-  try {
-    const process = probe.process()
-    const launch = { executable: process.spawnfile, arguments_: process.spawnargs.slice(1) }
-    const hasPrivatePipe = launch.arguments_.some(argument => argument === '--remote-debugging-pipe')
-    const profileFlagCount = launch.arguments_.filter(argument => argument.startsWith('--user-data-dir=')).length
-    if (!hasPrivatePipe || profileFlagCount !== 1)
-      throw new Error('Playwright did not provide a supported private-pipe Chromium launch configuration.')
-    return launch
-  } finally {
-    await probe.close()
+function hasReportedProbeExit(child: ChildProcess) {
+  const code = child.exitCode
+  const signal = child.signalCode
+  if (typeof code === 'number' && Number.isInteger(code) && code >= 0 && signal === null) return true
+  return code === null && typeof signal === 'string' && Object.hasOwn(constants.signals, signal)
+}
+
+class ProbeCustody {
+  private readonly originalExit: Promise<void>
+  private closing?: Promise<boolean>
+  private readonly child?: ChildProcess
+  constructor(private readonly server: BrowserServer) {
+    let child: ChildProcess | undefined
+    try {
+      child = server.process()
+    } catch {}
+    this.child = child
+    this.originalExit = new Promise((resolve, reject) => {
+      if (!child || typeof child.once !== 'function')
+        return reject(new Error('Discovery browser probe exit is unproved.'))
+      if (hasReportedProbeExit(child)) return resolve()
+      if (child.exitCode !== null || child.signalCode !== null)
+        return reject(new Error('Discovery browser probe exit is unproved.'))
+      child.once('exit', () => resolve())
+    })
+    void this.originalExit.catch(() => undefined)
   }
+  launch() {
+    if (!this.child) throw new Error('Discovery browser probe process handle is unavailable.')
+    return { executable: this.child.spawnfile, arguments_: this.child.spawnargs.slice(1) }
+  }
+  stop() {
+    if (!this.closing) {
+      const stopped = completion()
+      const result = stopped.promise.then(() => this.graceful)
+      this.closing = result
+      void this.release().then(stopped.resolve, stopped.reject)
+    }
+    return this.closing
+  }
+  private graceful = false
+  private async release() {
+    try {
+      await boundedBrowserStartupStep(
+        Promise.all([Promise.resolve().then(() => this.server.close()), this.originalExit]),
+        5_000,
+      )
+      this.graceful = true
+    } catch {
+      // Supported BrowserServer.kill acts on the original public handle; never reconstruct its PID.
+      await boundedBrowserStartupStep(
+        Promise.all([Promise.resolve().then(() => this.server.kill()), this.originalExit]),
+        5_000,
+      )
+    }
+  }
+}
+
+async function pipeLaunchFromPlaywright(headless: boolean, flight: DiscoveryBrowserStartupFlight): Promise<PipeLaunch> {
+  const custodians = new WeakMap<BrowserServer, ProbeCustody>()
+  const custody = (server: BrowserServer) => {
+    let owned = custodians.get(server)
+    if (!owned) {
+      owned = new ProbeCustody(server)
+      custodians.set(server, owned)
+    }
+    return owned
+  }
+  flight.mark('PROBE_LAUNCH')
+  const probe = await flight.acquire(
+    async () => {
+      try {
+        return await chromium.launchServer({ headless, timeout: 30_000 })
+      } catch (error) {
+        flight.fence('PROBE_LAUNCH_FAILED')
+        throw error
+      }
+    },
+    async server => {
+      await custody(server).stop()
+    },
+  )
+  const launch = custody(probe).launch()
+  const hasPrivatePipe = launch.arguments_.some(argument => argument === '--remote-debugging-pipe')
+  const profileFlagCount = launch.arguments_.filter(argument => argument.startsWith('--user-data-dir=')).length
+  if (!hasPrivatePipe || profileFlagCount !== 1)
+    throw new Error('Playwright did not provide a supported private-pipe Chromium launch configuration.')
+  flight.mark('PROBE_CLOSE')
+  try {
+    if (!(await custody(probe).stop())) {
+      flight.fence('PROBE_CLOSE_FAILED')
+      flight.check()
+    }
+  } catch (error) {
+    flight.fence('PROBE_CLOSE_FAILED')
+    throw error
+  }
+  flight.check()
+  return launch
 }
 
 async function liveOwnedProcessIds(groupId: number) {
@@ -99,9 +186,7 @@ class OwnedChromiumProcess {
     })
   }
 
-  static async launch(headless: boolean) {
-    const launch = await pipeLaunchFromPlaywright(headless)
-    const profileDirectory = await mkdtemp(join(tmpdir(), 'appraise-quality-journey-'))
+  static spawn(launch: PipeLaunch, profileDirectory: string) {
     const arguments_ = launch.arguments_.map(argument =>
       argument.startsWith('--user-data-dir=') ? `--user-data-dir=${profileDirectory}` : argument,
     )
@@ -276,12 +361,7 @@ class CdpPipeProtocol {
   }
 }
 
-/** Launches an owned Chromium with its DevTools protocol on private stdio pipes. */
-export async function launchDiscoveryBrowserTransport(headless = false): Promise<DiscoveryBrowserTransport> {
-  if (process.platform !== 'darwin' && process.platform !== 'linux')
-    throw new Error('Discovery browser pipe runtime supports macOS and Linux only.')
-
-  const owned = await OwnedChromiumProcess.launch(headless)
+function ownedTransport(owned: OwnedChromiumProcess): DiscoveryBrowserTransport {
   const protocol = new CdpPipeProtocol(owned.input, owned.output, owned.child, () => {
     void close().catch(() => undefined)
   })
@@ -310,4 +390,46 @@ export async function launchDiscoveryBrowserTransport(headless = false): Promise
     breakPipe: protocol.breakPipe.bind(protocol),
     isConnected: protocol.isConnected.bind(protocol),
   }
+}
+
+/** Launches an owned Chromium with its DevTools protocol on private stdio pipes. */
+export function launchDiscoveryBrowserTransport(
+  headless = false,
+  options: { signal?: AbortSignal } = {},
+): Promise<DiscoveryBrowserTransport> {
+  const flight = new DiscoveryBrowserStartupFlight(options.signal)
+  let owned: OwnedChromiumProcess | undefined
+  let transport: DiscoveryBrowserTransport | undefined
+  return flight.run(async () => {
+    if (process.platform !== 'darwin' && process.platform !== 'linux')
+      throw new Error('Discovery browser pipe runtime supports macOS and Linux only.')
+    const launch = await pipeLaunchFromPlaywright(headless, flight)
+    flight.mark('PROFILE_CREATE')
+    const profileDirectory = await flight.acquire(
+      () => mkdtemp(join(tmpdir(), 'appraise-quality-journey-')),
+      async directory => {
+        if (!owned) await rm(directory, { recursive: true, force: true })
+      },
+    )
+    flight.mark('OWNED_SPAWN')
+    await flight.acquire(
+      () => {
+        owned = OwnedChromiumProcess.spawn(launch, profileDirectory)
+        return owned
+      },
+      async process => {
+        if (transport) await transport.close()
+        else {
+          await process.close()
+          process.input.destroy()
+          process.output.destroy()
+        }
+      },
+    )
+    flight.check()
+    flight.mark('PUBLICATION')
+    transport = ownedTransport(owned!)
+    flight.check()
+    return transport
+  })
 }

@@ -427,7 +427,104 @@ async function returnToFrozenTarget(fixture: Awaited<ReturnType<typeof sessionAt
 
 afterEach(clearQualityJourneyDiscoveryBrowserSessionsForTest)
 
+const changedStartupLineage = new Set(['generation-change', 'session-change', 'process-change'])
+async function revokePendingStartup(vector: string, db: ReturnType<typeof client>, own: OwnedBrowserRow) {
+  if (vector === 'paused' || vector === 'failed-close') {
+    db.authority.status = 'PAUSED'
+    expect((await pauseOwnedQualityJourneyDiscoveryBrowserCleanup(cleanupScope, db as never)).receipts).toContainEqual(
+      expect.objectContaining({ state: 'UNKNOWN' }),
+    )
+  } else {
+    const mutations: Record<string, () => void> = {
+      unknown: () => {
+        own.status = 'UNKNOWN'
+      },
+      'generation-change': () => {
+        own.generation++
+      },
+      'session-change': () => {
+        own.sessionId = 'foreign-session'
+      },
+      'process-change': () => {
+        own.processInstanceId = 'foreign-process'
+      },
+      'frozen-change': () => {
+        db.environmentScope.scopeVersion++
+      },
+    }
+    mutations[vector]()
+  }
+  if (changedStartupLineage.has(vector)) {
+    own.stopReceiptJson = 'foreign-stop-receipt'
+    own.stopReceiptHash = 'foreign-stop-hash'
+  }
+}
+
 describe('Quality Journey discovery browser service', () => {
+  it.each([
+    'paused',
+    'unknown',
+    'frozen-change',
+    'generation-change',
+    'session-change',
+    'process-change',
+    'failed-close',
+  ])('rejects a late browser before navigation after %s revokes startup authority', async vector => {
+    const db = client()
+    const entered = deferred()
+    const release = deferred<Awaited<ReturnType<DiscoveryBrowserRuntime['launch']>>>()
+    const fetch = vi.fn()
+    const goto = vi.fn(async () => {
+      fetch()
+    })
+    const browser = await browserRuntime('Checkout', undefined, undefined, undefined, undefined, goto).launch()
+    let failClose = vector === 'failed-close'
+    const originalClose = browser.close.bind(browser)
+    const close = vi.fn(async () => {
+      if (failClose) throw new Error('synthetic close failure')
+      await originalClose()
+    })
+    browser.close = close
+    const starting = startQualityJourneyDiscoveryBrowserSession(
+      {
+        ...scope,
+        workItemId: 'work-1',
+        environmentId: 'environment-1',
+        routeId: '/checkout',
+        accessMode: 'ANONYMOUS',
+      },
+      db as never,
+      {
+        async launch() {
+          entered.resolve()
+          return release.promise
+        },
+      },
+    )
+    const rejected = expect(starting).rejects.toMatchObject({ code: 'CONFLICT' })
+    await entered.promise
+    const own = [...db.ownedBrowsers.values()][0]
+    await revokePendingStartup(vector, db, own)
+    const priorReceipt = { json: own.stopReceiptJson, hash: own.stopReceiptHash }
+    release.resolve(browser)
+    await rejected
+    expect(goto).not.toHaveBeenCalled()
+    expect(fetch).not.toHaveBeenCalled()
+    expect(close).toHaveBeenCalledTimes(1)
+    expect(
+      JSON.parse(db.ownedBrowsers.get(own.id)!.cleanupHistoryJson).map((entry: { status: string }) => entry.status),
+    ).not.toContain('LIVE')
+    if (vector === 'failed-close' || changedStartupLineage.has(vector)) {
+      expect(db.ownedBrowsers.get(own.id)!.stopReceiptJson).toBe(priorReceipt.json)
+      expect(db.ownedBrowsers.get(own.id)!.stopReceiptHash).toBe(priorReceipt.hash)
+      expect(db.ownedBrowsers.get(own.id)!.status).not.toBe('STOP_OBSERVED')
+    } else await expect(getQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: own.id })).rejects.toBeDefined()
+    if (failClose) {
+      expect(db.ownedBrowsers.get(own.id)!.status).toBe('UNKNOWN')
+      failClose = false
+    }
+  })
+
   it('rejects pause committed between the Journey read and the registration write fence', async () => {
     const db = client({
       beforeOwnershipFence: authority => {
