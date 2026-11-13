@@ -26,6 +26,15 @@ or `src/services/coordinator/` (services). Matching unit/SQLite tests accompany 
 lifecycle without duplicating or changing its default behavior. Additional test-only extraction requires a concrete
 fixture dependency, never a product shortcut.
 
+## Exact acceptance recovery
+
+A narrow internal async context observes the canonical acceptance boundary's actual normalized payload hash for the
+full original binding, operation and idempotency key. It wraps only the retained original canonical thunk; a hash is
+request identity, never proof of commit or authority. Conflicting observations poison recovery. The authenticated
+read-only outcome helper additionally requires that captured hash to match the durable acceptance row. Existing
+canonical authentication, business writes, transaction joins and replay-conflict rules remain authoritative. No
+producer-supplied hash, gateway-entry latch or key-only lookup can establish original payload acceptance.
+
 ## Managed/external protocol decision
 
 Actual SDK validation exposed distinct public contracts: external-worker Designer/Automator/Triager calls require a

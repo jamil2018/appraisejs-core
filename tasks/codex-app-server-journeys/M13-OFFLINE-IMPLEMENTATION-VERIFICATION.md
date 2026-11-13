@@ -25,7 +25,7 @@ current independent exact-artifact acceptance, bound separately in the final loc
 
 | Check                                   | Result                                                                                                                                                                      |
 | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Root focused batch                      | 264 tests / 13 suites passed, including all six roles through direct and actual managed SDK paths                                                                           |
+| Root focused batch                      | 307 tests / 16 suites passed, including all six roles through direct and actual managed SDK paths                                                                           |
 | CLI focused batch                       | 93 tests / 4 suites passed: managed/external composition and existing route/server regressions                                                                              |
 | Scaffold boundary/preparation tests     | 127 tests / 3 suites passed                                                                                                                                                 |
 | Affected ESLint / Prettier / TypeScript | PASS; no introduced warnings                                                                                                                                                |
@@ -34,21 +34,21 @@ current independent exact-artifact acceptance, bound separately in the final loc
 | `graphify:auto`                         | PASS; source/package graphs generated deterministically, 0 model tokens, no dangling edges                                                                                  |
 | Production build                        | PASS, including Cucumber, companion, CLI and Next route generation                                                                                                          |
 | Harness / documentation links           | PASS                                                                                                                                                                        |
-| Artifact / package policy               | PASS; actual CLI 155 files, scaffold 1441 files                                                                                                                             |
-| Actual packed generated app             | 155 self-contained tests / 7 suites passed using its own dependencies/Prisma client                                                                                         |
+| Artifact / package policy               | PASS; actual CLI 155 files, scaffold 1443 files                                                                                                                             |
+| Actual packed generated app             | 180 self-contained tests / 8 suites passed using its own dependencies/Prisma client                                                                                         |
 | Actual packed cross-package proof       | One dedicated test ran all six managed roles against generated canonical source + installed CLI; every case retained occupied unreconciled HUB                              |
-| Parity                                  | 18 included source/test hashes match canonical/prepared/extracted/generated; compiled managed package module matches extracted/installed; all 98 migration SQL hashes match |
+| Parity                                  | 21 included source/test hashes match canonical/prepared/extracted/generated; compiled managed package module matches extracted/installed; all 98 migration SQL hashes match |
 | Protected preimages                     | Original supervisor/launcher refusals, D05, schema/inventory and package manifests/locks unchanged                                                                          |
 
 Actual retained tarballs (local only, not published):
 
 - CLI SHA-256: `1b47804aab8c39faabb4e21413331ae173517f9ce626f1dd4b66570a8e8e2532`
-- Scaffold SHA-256: `aaa730fb2c41023abec22c81e56b74d72e01579a4c58f0ddafcb7b5343cb3ca4`
+- Scaffold SHA-256: `2d29aa2f2d59fff0f69ecbe91ab1b5985695a7d40dda72dd93b306fe6e061745`
 
-Frozen installed recipe SHA-256: `c7c1f9212a22170881436dba94997c004b308f7e5380761b7fa996a79336bb4e`.
-Frozen proof script SHA-256: `5e8529ce45220fbae0d5abfc74dc329ddb5acd0761a50b1547f888bbfed1e414`.
+Frozen installed recipe SHA-256: `9458f1793ac9fa90627c57a50eb18fecb5eec53e7dbbe23e929cb730ae1343e6`.
+Frozen proof script SHA-256: `360c4bb01f2da4bb86b8e1920726be59f1e29c9bc13c642eaee30f993b682bd7`.
 Local command/log-hash receipts, actual tarballs, fixture hashes and source parity are retained under
-`.appraisejs/m13-offline-evidence/` (repaired actual proof under `packed-review-fixes/`); final commit/tree/snapshot and independent decision are recorded separately.
+`.appraisejs/m13-offline-evidence/` (latest repaired proof under `packed-payload-correlation/`); final commit/tree/snapshot and independent decision are recorded separately.
 Normal commit hooks remain enabled. The final review receipt must match the current artifact; no runtime authority
 follows from engineering acceptance or hash equality.
 
@@ -86,6 +86,18 @@ must remain UNKNOWN. A never-settling diagnostic observer cannot extend the invo
 transaction is falsely described as rolled back; historical exact lookups remain read-only. A repaired successor needs
 renewed source/generated/build/actual-packed checks and renewed exact-artifact review; the rejected snapshot and packages
 remain retained at their original paths; the successor uses a separate fresh proof root.
+
+The second independent review rejected a further payload-correlation race: an original call that entered its gateway
+but failed before acceptance could recover another delivery instance's different payload under the same binding and
+idempotency key. The successor captures and matches the exact payload hash computed by canonical acceptance, including
+server-owned normalization, and checks both the two-instance race refusal and genuine original commit-reply-loss
+recovery. The second rejected artifact and actual packages remain retained unchanged.
+
+The canonical acceptance service changed by nine lines: an internal observation call and optional authenticated
+payload-hash equality check. Its existing formatting was preserved to avoid broad churn; affected new modules, tests
+and docs passed Prettier, and the service passed ESLint/TypeScript. The restored authenticated pre-I/O read preserves
+the existing fence test boundary but supplies no acceptance proof. A corrected pre-capture race explicitly confirms
+original thunk entry before pausing gateway authorization; both competing-payload cases retain UNKNOWN and occupied HUB.
 
 Next reported its multiple-lockfile workspace-root and dynamic file-pattern warnings; production compilation succeeded.
 Graph reports retain structural weak/thin community warnings and placeholder labels; these are not native/system

@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto'
+import { createSubmissionPayloadCapture } from './quality-journey-submission-payload-observation'
 import type { PrismaClient } from '@prisma/client'
 import { z } from 'zod'
 import { analysisCharterSchema, qualityJourneyContractVersion } from '@/lib/quality-journey'
@@ -109,9 +110,15 @@ export async function createOfflineQualityJourneyRoleDelivery(options: {
   let admissionClosed = false
   const originalCalls = new Map<
     string,
-    { argumentsDigest: string; outcomeAbsent: boolean; canonicalEntered: boolean }
+    { argumentsDigest: string; capture: ReturnType<typeof createSubmissionPayloadCapture> }
   >()
-  const accepted = new Map<string, { argumentsDigest: string; receipt: OfflineRoleDeliveryReceipt }>()
+  const accepted = new Map<
+    string,
+    {
+      argumentsDigest: string
+      capture: ReturnType<typeof createSubmissionPayloadCapture>
+    }
+  >()
 
   async function createGateway() {
     if (binding.role === 'SCOUT' || binding.role === 'RESOURCE_EXPLORER')
@@ -240,12 +247,16 @@ export async function createOfflineQualityJourneyRoleDelivery(options: {
   async function current() {
     await client.$transaction(tx => readInternalWorkerAuthority(binding, tx))
   }
-  async function readWitness(idempotencyKey: string) {
+  async function readWitness(idempotencyKey: string, capture: ReturnType<typeof createSubmissionPayloadCapture>) {
+    const expectedPayloadHash = capture.payloadHash()
+    if (!expectedPayloadHash) throw new Error('Original canonical submission payload was not observed')
     await assertManagedWorkerSubmissionOutcome({ ...binding, operation: entry.operation, idempotencyKey }, client)
     const result = await readExternalQualityJourneySubmissionOutcome(
-      { ...binding, operation: entry.operation, idempotencyKey },
+      { ...binding, operation: entry.operation, idempotencyKey, expectedPayloadHash },
       client,
     )
+    if (capture.payloadHash() !== expectedPayloadHash)
+      throw new Error('Original canonical submission payload observation is uncertain')
     return Object.freeze({
       accepted: true,
       operation: entry.operation,
@@ -253,8 +264,16 @@ export async function createOfflineQualityJourneyRoleDelivery(options: {
       acceptanceDigest: offlineCompositionDigest(result.outcome),
     })
   }
+  function hasOriginal(key: string, argumentsDigest: string): boolean {
+    const original = originalCalls.get(key)
+    if (!original) return false
+    if (original.argumentsDigest !== argumentsDigest) throw new Error('Changed offline replay payload')
+    return true
+  }
   async function rememberOriginal(key: string, argumentsDigest: string) {
-    let outcomeAbsent = false
+    if (hasOriginal(key, argumentsDigest)) return
+    // Retain the authenticated pre-I/O lookup boundary. Its presence/absence
+    // is not correlation evidence; only the subsequently observed payload hash is.
     try {
       await readExternalQualityJourneySubmissionOutcome(
         { ...binding, operation: entry.operation, idempotencyKey: key },
@@ -262,11 +281,10 @@ export async function createOfflineQualityJourneyRoleDelivery(options: {
       )
     } catch (error) {
       if ((error as { code?: string }).code !== 'NOT_FOUND') throw error
-      outcomeAbsent = true
     }
-    const original = originalCalls.get(key)
-    if (original && original.argumentsDigest !== argumentsDigest) throw new Error('Changed offline replay payload')
-    originalCalls.set(key, { argumentsDigest, outcomeAbsent, canonicalEntered: false })
+    if (hasOriginal(key, argumentsDigest)) return
+    const capture = createSubmissionPayloadCapture({ ...binding, operation: entry.operation, idempotencyKey: key })
+    originalCalls.set(key, { argumentsDigest, capture })
   }
   function originalCanonical(
     call: OfflineProviderCall,
@@ -282,18 +300,24 @@ export async function createOfflineQualityJourneyRoleDelivery(options: {
         if (entered) throw new Error('Duplicate offline canonical call')
         entered = true
         const original = originalCalls.get(key)
-        if (original) original.canonicalEntered = true
-        const value = await invokeCanonical(call.toolName, args)
+        const value = original
+          ? await original.capture.run(() => invokeCanonical(call.toolName, args))
+          : await invokeCanonical(call.toolName, args)
         if (call.toolName === entry.submit) {
-          const receipt = await readWitness(key)
-          accepted.set(key, { argumentsDigest, receipt })
+          if (!original) throw new Error('Original canonical submission capture is missing')
+          await readWitness(key, original.capture)
+          accepted.set(key, { argumentsDigest, capture: original.capture })
         } else await current()
         return value
       },
     }
   }
   async function deliveryReceipt(toolName: string, key: string): Promise<OfflineRoleDeliveryReceipt> {
-    if (toolName === entry.submit) return accepted.get(key)?.receipt ?? (await readWitness(key))
+    if (toolName === entry.submit) {
+      const original = originalCalls.get(key)
+      if (!original) throw new Error('Original canonical submission capture is missing')
+      return readWitness(key, original.capture)
+    }
     return Object.freeze({ accepted: false, operation: toolName, idempotencyKey: key, acceptanceDigest: null })
   }
   function assertAdmission() {
@@ -312,7 +336,7 @@ export async function createOfflineQualityJourneyRoleDelivery(options: {
       const previous = accepted.get(key)
       if (previous) {
         if (previous.argumentsDigest !== argumentsDigest) throw new Error('Changed offline replay payload')
-        return readWitness(key)
+        return readWitness(key, previous.capture)
       }
       assertAdmission()
       await current()
@@ -332,10 +356,10 @@ export async function createOfflineQualityJourneyRoleDelivery(options: {
       const previous = accepted.get(key)
       const original = originalCalls.get(key)
       const expected = offlineCompositionDigest({ toolName: call.toolName, arguments: args })
-      if (previous?.argumentsDigest === expected) return readWitness(key)
-      if (!original?.outcomeAbsent || !original.canonicalEntered || original.argumentsDigest !== expected) return null
+      const captured = previous?.argumentsDigest === expected ? previous : original
+      if (!captured || captured.argumentsDigest !== expected || !captured.capture.payloadHash()) return null
       try {
-        return await readWitness(key)
+        return await readWitness(key, captured.capture)
       } catch {
         return null
       }

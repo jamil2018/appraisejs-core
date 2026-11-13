@@ -18,6 +18,9 @@ The original supervisor and both production refusals remain unchanged. The stopp
 The offline path adds original-owner cancellation/cleanup, a synchronous canonical-delivery admission fence, 40-second authority monitoring, lease expiry, arm-reply-loss
 UNKNOWN, six canonical role delivery paths and bounded synthetic phase receipts. The [managed package SDK composition](../tasks/codex-app-server-journeys/M13-OFFLINE-IMPLEMENTATION-PLAN.md)
 correlates exact public tool arguments/results through InMemoryTransport; root canonical services alone prove acceptance.
+Original lost-reply recovery captures the exact normalized payload hash at canonical acceptance within the original
+async call, then requires an authenticated durable row with that hash. Gateway entry, a shared idempotency key or a
+public argument digest alone cannot correlate acceptance. Conflicting or missing hash observations refuse recovery.
 A completed turn, accepted artifact, acknowledgement or successful fake stop cannot reconcile physical effects or release
 HUB. Per-role test snapshots deliberately retain occupied unreconciled slots. Restart never recreates a send permit.
 

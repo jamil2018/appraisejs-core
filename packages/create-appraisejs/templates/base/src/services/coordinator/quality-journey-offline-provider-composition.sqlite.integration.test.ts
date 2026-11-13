@@ -8,7 +8,10 @@ import type {
 } from '@/lib/quality-journey/codex-app-server/provider-composition-contract'
 import { createOfflineQualityJourneyProviderComposition } from './quality-journey-offline-provider-composition'
 import { createOfflineQualityJourneyRoleDelivery } from './quality-journey-offline-role-delivery'
-import { revokeQualityJourneyWorkAuthorization } from './quality-journey-service'
+import {
+  revokeQualityJourneyWorkAuthorization,
+  readExternalQualityJourneySubmissionOutcome,
+} from './quality-journey-service'
 
 const fixtures: Awaited<ReturnType<typeof createProviderFixture>>[] = []
 afterEach(async () => {
@@ -847,5 +850,150 @@ describe('same-owned offline provider composition with migrated SQLite', () => {
     expect(await delivery.readCommitted(f.call)).toBeNull()
     expect(f.port.startTurn).toHaveBeenCalledTimes(1)
     expect(f.port.stop).toHaveBeenCalledTimes(1)
+  })
+  it('does not recover another delivery payload accepted while the original is paused before canonical hashing', async () => {
+    const f = await setup(),
+      entered = deferred<void>(),
+      resume = deferred<void>()
+    let enabled = false,
+      reads = 0
+    let canonicalThunkEntered = false
+    const proxy = new Proxy(f.client, {
+      get(target, key) {
+        if (key === '$transaction')
+          return async (callback: Parameters<typeof target.$transaction>[0]) => {
+            if (enabled && ++reads === 3) {
+              entered.resolve()
+              await resume.promise
+            }
+            return target.$transaction(callback as never)
+          }
+        const value = Reflect.get(target, key)
+        return typeof value === 'function' ? value.bind(target) : value
+      },
+    })
+    const original = await createOfflineQualityJourneyRoleDelivery({
+      binding: f.assignmentBinding,
+      canonicalDefinitions: definitions,
+      client: proxy,
+      exchange: async (_tool, _args, canonical) => {
+        const result = canonical()
+        canonicalThunkEntered = true
+        return result
+      },
+    })
+    f.options.delivery = original
+    enabled = true
+    const controller = f.create(),
+      flight = controller.start()
+    await entered.promise
+    expect(canonicalThunkEntered).toBe(true)
+    expect(reads).toBe(3)
+    expect(await f.client.qualityJourneyExternalSubmissionAcceptance.count()).toBe(0)
+    const competingCall = {
+      ...f.call,
+      callId: 'competing',
+      arguments: {
+        ...f.call.arguments,
+        charter: { ...(f.call.arguments.charter as object), assumptions: ['Valid competing payload.'] },
+      },
+    }
+    expect((await f.delivery.invoke(competingCall)).accepted).toBe(true)
+    resume.resolve()
+    const receipt = await flight
+    expect(receipt.outcome).toBe('UNKNOWN')
+    expect(receipt.acceptedArtifactDigests).toEqual([])
+    expect(await original.readCommitted(f.call)).toBeNull()
+    expect((await f.delivery.readCommitted(competingCall))?.accepted).toBe(true)
+    expect(await f.client.qualityJourneyExternalSubmissionAcceptance.count()).toBe(1)
+    expect(f.port.startTurn).toHaveBeenCalledTimes(1)
+    expect(await f.client.qualityJourneyProviderSlot.count()).toBe(1)
+  })
+  it('refuses a conflicting durable row after its own canonical payload was hashed and rolled back', async () => {
+    const f = await setup(),
+      rolledBack = deferred<void>(),
+      releaseFailure = deferred<void>()
+    let enabled = false,
+      injected = false
+    const proxy = new Proxy(f.client, {
+      get(target, key) {
+        if (key === '$transaction')
+          return async (callback: Parameters<typeof target.$transaction>[0]) => {
+            let rollback = false
+            try {
+              return await target.$transaction(async tx => {
+                const result = await (callback as (transaction: typeof tx) => Promise<unknown>)(tx)
+                if (enabled && !injected && result && typeof result === 'object' && 'analysisRevision' in result) {
+                  injected = true
+                  rollback = true
+                  throw new Error('synthetic canonical rollback after payload observation')
+                }
+                return result
+              })
+            } catch (error) {
+              if (rollback) {
+                rolledBack.resolve()
+                await releaseFailure.promise
+              }
+              throw error
+            }
+          }
+        const value = Reflect.get(target, key)
+        return typeof value === 'function' ? value.bind(target) : value
+      },
+    })
+    const original = await createOfflineQualityJourneyRoleDelivery({
+      binding: f.assignmentBinding,
+      canonicalDefinitions: definitions,
+      client: proxy,
+    })
+    f.options.delivery = original
+    enabled = true
+    const flight = f.create().start()
+    await rolledBack.promise
+    expect(injected).toBe(true)
+    expect(await f.client.qualityJourneyExternalSubmissionAcceptance.count()).toBe(0)
+    const competingCall = {
+      ...f.call,
+      callId: 'competing-after-capture',
+      arguments: {
+        ...f.call.arguments,
+        charter: { ...(f.call.arguments.charter as object), assumptions: ['Different valid accepted payload.'] },
+      },
+    }
+    expect((await f.delivery.invoke(competingCall)).accepted).toBe(true)
+    releaseFailure.resolve()
+    const receipt = await flight
+    expect(receipt.outcome).toBe('UNKNOWN')
+    expect(receipt.acceptedArtifactDigests).toEqual([])
+    expect(await original.readCommitted(f.call)).toBeNull()
+    expect((await f.delivery.readCommitted(competingCall))?.accepted).toBe(true)
+    expect(await f.client.qualityJourneyExternalSubmissionAcceptance.count()).toBe(1)
+    expect(f.port.startTurn).toHaveBeenCalledTimes(1)
+    expect(await f.client.qualityJourneyProviderSlot.count()).toBe(1)
+  })
+  it('authenticates before enforcing an optional exact durable payload hash', async () => {
+    const f = await setup()
+    expect((await f.create().start()).outcome).toBe('ACCEPTED_OFFLINE')
+    const receipt = await f.client.qualityJourneyExternalSubmissionAcceptance.findFirstOrThrow()
+    const lookup = { ...f.assignmentBinding, operation: 'ANALYSIS_SUBMIT', idempotencyKey: 'offline-analysis' }
+    await expect(
+      readExternalQualityJourneySubmissionOutcome({ ...lookup, expectedPayloadHash: receipt.payloadHash }, f.client),
+    ).resolves.toMatchObject({ replayed: true })
+    await expect(
+      readExternalQualityJourneySubmissionOutcome({ ...lookup, expectedPayloadHash: digest('f') }, f.client),
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
+    await expect(
+      readExternalQualityJourneySubmissionOutcome({ ...lookup, expectedPayloadHash: 'malformed' }, f.client),
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
+    await expect(
+      readExternalQualityJourneySubmissionOutcome(
+        { ...lookup, assignmentSecret: 'synthetic-wrong-secret-0123456789', expectedPayloadHash: receipt.payloadHash },
+        f.client,
+      ),
+    ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+    await expect(readExternalQualityJourneySubmissionOutcome(lookup, f.client)).resolves.toMatchObject({
+      replayed: true,
+    })
   })
 })
