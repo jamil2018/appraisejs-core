@@ -108,3 +108,11 @@ services reject absent or unknown contract versions before fresh effects. The mi
 exact M11 guarded application to refuse the genuinely upgraded database before startup or migration writes: M11's
 external session rules are insufficient for M12's new ownership states. A synthetic future-version fixture alone
 cannot qualify that downgrade boundary. The field itself never grants session, work or cleanup authority.
+
+## M13 exact-candidate review
+
+The [bounded M13 review](../tasks/codex-app-server-journeys/M13-VERIFICATION.md) binds repository checks, fresh local
+packed artifacts and regenerated clean seeds to candidate `5727e209`. It concludes BLOCKED / NOT QUALIFIED for
+managed release, public opt-in or default rollout. Local install/service/browser success does not qualify actual
+provider/authentication, native required-MCP readiness, distribution eligibility or model spend/latency. Historical
+UNKNOWNs remain preserved; the trusted-agent profile retains `hostIsolation=NOT_ATTESTED`.

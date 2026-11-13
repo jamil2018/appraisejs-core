@@ -1,3 +1,7 @@
+> M13 bounded exact-candidate review: [verification and readiness limits](M13-VERIFICATION.md).
+> Candidate `5727e209`; managed release/public/default rollout remains BLOCKED / NOT QUALIFIED.
+> The M13 acceptance checkbox stays open; no release authority follows. Earlier milestone headers are historical.
+
 > M12 adds [local packed-install and hosting-mode transfer verification](M12-VERIFICATION.md) from M11 merge `8d8d8254`.
 > Scope is disposable local installation and internal Journeys; provider/runtime/host/distribution qualification,
 > public managed opt-in, default-mode change, M13 and shipping remain open. Earlier checkpoints retain historical scope.
