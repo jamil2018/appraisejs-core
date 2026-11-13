@@ -263,6 +263,9 @@ bounded startup/cancellation and late-authority repair evidence, with historical
 
 ### M13: Review the exact release candidate
 
+[Additive six-role replay coverage](M13-REPLAY-VERIFICATION.md) closes the specified matrix gap; runtime/provider and
+release qualification remain open.
+
 - [ ] Implement and verify this slice.
 
 **Dependencies:** M12. **Estimated scope:** S; split further before implementation if the actual diff spans independent concerns.

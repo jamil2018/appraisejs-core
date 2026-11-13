@@ -1,3 +1,7 @@
+> Additive follow-up: [six-role replay and authority matrix](M13-REPLAY-VERIFICATION.md) completes the identified
+> replay/revocation/stale-session/changed-payload cases. This original review retains its historical artifact scope;
+> runtime support and managed-release readiness remain unqualified.
+
 # M13 — Exact release-candidate review
 
 Date: 2026-11-13 (Asia/Dhaka). **Bounded review completed; release readiness BLOCKED / NOT QUALIFIED.**
