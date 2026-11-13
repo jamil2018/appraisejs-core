@@ -16,6 +16,16 @@ contents when a root/base source change should flow through template preparation
 - Published base template: `packages/create-appraisejs/templates/base`
 - Published flavor overlays: `packages/create-appraisejs/templates/flavors/starter`, `packages/create-appraisejs/templates/flavors/blank`
 
+## Offline provider composition dependencies
+
+M13 offline provider composition and assignment custody retain the canonical managed-worker gateway, internal worker
+admission helper and Discovery/Scenario-Automation/Triager gateways in generated apps. Their self-contained source is
+now consumed by the offline composition; including it grants no native launch, production registration or runtime
+qualification. Existing cross-package MCP parity tests and M10 lifecycle fixtures stay repository-only. The actual
+packed proof supplies its separately frozen cross-package test harness against generated sources and the installed
+CLI; it does not make generated products import repository source. Custody tests use only explicit synthetic keys,
+fresh private roots and disposable migrated SQLite; prepared databases contain no credential or provider state.
+
 ## Sync Flow
 
 1. Make behavior changes in the root/base source first.
@@ -43,9 +53,9 @@ to run excluded parity tests or record them in their certification receipt.
 
 The repository's swarm-routing configuration, agents, ledger utilities, development-harness catalogs, learning records,
 and harness-only commands are also excluded.
-M10 disposable lifecycle fixtures and its scoped Triager gateway are repository-only; canonical Triager readiness,
+M10 disposable lifecycle fixtures remain repository-only; canonical Triager readiness,
 acceptance and sealed-evidence validation are synchronized normally.
-Phase-0 and managed-Journey qualification scripts, fixtures, tests, and experimental worker gateways are likewise
+Phase-0 and managed-Journey qualification scripts, fixtures and cross-package tests are likewise
 repository-only. Template preparation excludes those exact path families while retaining canonical Journey services,
 contracts, migrations, and product tests.
 The M06 custody controllers under `scripts/test-harness/m06/` and their four repository SQLite test entrypoints
