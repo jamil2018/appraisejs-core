@@ -8,6 +8,25 @@
 
 M05 implements an internal owned-process supervision core and a local Node fixture adapter. Production app-server dispatch and the real provider launcher refuse unconditionally. No route, CLI, MCP registration, scheduler, role instruction loop or M06 behavior enables this sender. [M05 continuation](../tasks/codex-app-server-journeys/M05-CURRENT-WORK-01.md) records evidence and limitations; [the bounded plan](../tasks/codex-app-server-journeys/m05-supervision-plan-01.md) records acceptance criteria.
 
+## B0-R1 offline readiness contract
+
+The internal `createOfflineReadinessController` accepts only a captured `OFFLINE_FAKE_PORT` with semantic
+initialize/required-MCP inspection, fence and original stop functions. It acquires no process/resource, accepts no
+Prisma client or credential, and is consumed only by its explicit unit/disposable-SQLite tests. It is not wired to
+the turn supervisor or any public barrel, route, CLI, MCP tool or scheduler. Both production refusals are unchanged.
+
+The controller validates and captures bindings, functions, required IDs and bounded deadlines before operations.
+Run/cancel join one finalization; cancellation synchronously closes probe admission and aborts pending work.
+Late results cannot advance the sequence. Every path fences before attempting the original stop once. Cleanup
+uncertainty, contradiction, timeout, rejection or unproved fencing produces synthetic UNKNOWN, never a positive
+cleanup or native receipt. Successful fake readiness requires both valid probes and all four positive cleanup facts.
+
+All receipts retain `runtimeQualified=false` and `observedNativeTuple=null`. The semantic readiness-contract digest
+is not an observed native protocol. This slice does not implement native launch/status decoding, login or recoverable
+assignment-secret custody, role transport, provider reconciliation or canonical slot release. It cannot by itself
+unblock B1. See [B0-R1 verification](../tasks/codex-app-server-journeys/M13-B0-R1-VERIFICATION.md) for the approved
+packet hashes, exact checks and limits; native product-adapter and M13 qualification remain incomplete.
+
 ## Lifetime and authority
 
 Each reserved turn owns one private child and transport. A persistent child could save initialization/MCP setup cost but would retain cross-intent queues and state without a measured need. Per-turn ownership bounds shutdown and state lifetime; startup cost is unmeasured. Native resume framing captures and checks the same attempt's thread ID, without fallback to a new thread. M04 exposes only the initial intent; M05 does not create a second intent, automatic resume, correction turn or replacement after an ambiguous start.

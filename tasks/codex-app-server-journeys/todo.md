@@ -267,7 +267,9 @@ bounded startup/cancellation and late-authority repair evidence, with historical
 release qualification remain open. The [bounded runtime qualification plan](M13-RUNTIME-QUALIFICATION-PLAN.md)
 separates permitted offline checks from future actions requiring new exact authorization; it grants no execution.
 [Lane A is complete](M13-LANE-A-COMPLETION.md); the [exact B0-R1 implementation packet](M13-B0-AUTHORIZATION-PACKET.md)
-is prepared but unapproved. The native product adapter remains incomplete.
+was explicitly approved at `efddc307` for the offline readiness-controller implementation only.
+[B0-R1 implementation evidence](M13-B0-R1-VERIFICATION.md) records the completed offline seam, checks, three approved hashes and qualification limits.
+The full native product adapter remains incomplete; M13 remains unchecked.
 
 - [ ] Implement and verify this slice.
 

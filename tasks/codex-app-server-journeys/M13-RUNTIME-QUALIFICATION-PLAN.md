@@ -68,6 +68,11 @@ implements them. A failed/ambiguous case does not automatically authorize anothe
 
 ### B0: Offline product-adapter implementation
 
+**B0-R1 follow-up:** the user approved the exact offline readiness-controller packet at `efddc307`, bound to all
+three recorded hashes. [Implementation evidence](M13-B0-R1-VERIFICATION.md) covers that narrow seam only.
+The original full-adapter scope below remains incomplete: native acquisition/wire mapping, credential custody and
+role composition are excluded from R1. No B1+ authority follows; the full B0 checklist item remains open.
+
 **New scope:** authorize a small implementation slice after A2 identifies its contracts, including exact executable/
 configuration/MCP readiness, original-owned launch/cleanup and recoverable assignment credential custody if required.
 No real credential access or native provider launch is part of offline implementation.
