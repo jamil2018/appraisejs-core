@@ -69,7 +69,7 @@ Synthetic ownership-shape rows in this proof establish no canonical transfer aut
 
 No actual Codex executable, login, provider/model entitlement, required-MCP native startup or distribution/auth
 eligibility was probed in M13. Source/fixed-stub behavior does not supply these observations. Production
-`dispatchProductionQualityJourneyTurn` still refuses in
+`startQualityJourneyProductionProvider()` still refuses in
 `src/services/coordinator/quality-journey-process-supervisor.ts`; no alternate executable/provider/model/
 transport/host was selected. Managed hosting and WorkAttempt admission remain separate.
 

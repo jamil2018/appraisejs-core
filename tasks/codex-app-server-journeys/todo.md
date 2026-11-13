@@ -264,7 +264,8 @@ bounded startup/cancellation and late-authority repair evidence, with historical
 ### M13: Review the exact release candidate
 
 [Additive six-role replay coverage](M13-REPLAY-VERIFICATION.md) closes the specified matrix gap; runtime/provider and
-release qualification remain open.
+release qualification remain open. The [bounded runtime qualification plan](M13-RUNTIME-QUALIFICATION-PLAN.md)
+separates permitted offline checks from future actions requiring new exact authorization; it grants no execution.
 
 - [ ] Implement and verify this slice.
 
