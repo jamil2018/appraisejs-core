@@ -1,0 +1,21 @@
+{
+  "scope": "Exact Lane A delivery and proposed B0-R1 packet; no implementation authority",
+  "inputCommit": "3d60db3f61995580ec3f49e73e03f61bb4b3bbd9",
+  "excluded": ["this content manifest", "ignored local raw evidence", "future review receipt"],
+  "files": {
+    "tasks/codex-app-server-journeys/M13-B0-AUTHORIZATION-PACKET.md": "d95813ecdcbb218ccfa7dc69f9562f6ac451450d0ba1c887cc47d261c153a853",
+    "tasks/codex-app-server-journeys/M13-LANE-A-COMPLETION.md": "6dcd7948a391a2baeee03eb5a38abf1738d9a290088fa8f542fca17689bb1cb8",
+    "tasks/codex-app-server-journeys/M13-RUNTIME-QUALIFICATION-PLAN.md": "e21658074f237981eaa7de1372000446ccccbde7e40b156db30401705b9c5241",
+    "tasks/codex-app-server-journeys/m13-lane-a/COMPOSITION-DESIGN.md": "11e6a297a8abed9fb9ba801e9e1d3c8ed575a4fb35de910250d44052a1663717",
+    "tasks/codex-app-server-journeys/m13-lane-a/ELIGIBILITY-DESK-REVIEW.md": "b50a072431b5af92f0b8f107e13f1067ac184b819b5dfd94b8be4aa5f95222eb",
+    "tasks/codex-app-server-journeys/m13-lane-a/MEASUREMENT-DESIGN.md": "9c5eb2c60df10ccc121d084ee75978700ef02e09e0a41fd805af668fd0f12a7c",
+    "tasks/codex-app-server-journeys/m13-lane-a/authority-file-ledger.json": "a05d44206585b8958b62885d1c67e720ffadf56ba9bbdd3877afdbc14edffda3",
+    "tasks/codex-app-server-journeys/m13-lane-a/b0-authorization-manifest.json": "fb033592684639e0ec869c44498a57fbf24778089cd894bc3e0e645aa794f676",
+    "tasks/codex-app-server-journeys/m13-lane-a/candidate-summary.json": "fc4743bfd83487a4d68139eec8145de8ed337b103d1ca45e7ca9531d5c3f6541",
+    "tasks/codex-app-server-journeys/m13-lane-a/measurement-design.schema.json": "a0b3ede9ac88ddea458d5e2365f1ad8215961f0a1b127d4370f0c424676a4d9d",
+    "tasks/codex-app-server-journeys/m13-lane-a/measurement-synthetic-aggregation.json": "1159a6240e7b91e133b6a5978655db93cad5fb1687e47d8922839243ed01742e",
+    "tasks/codex-app-server-journeys/m13-lane-a/measurement-synthetic-samples.json": "63b911472bfa8546282a14a072cd50d1b3c086a2de5a9c4baf7a4174340d5b41",
+    "tasks/codex-app-server-journeys/m13-lane-a/reused-replay-source.json": "7d4d9ffbf49d6a342a303f67a4211e63d79d7c1ec4c5e72be1055c9212b94382",
+    "tasks/codex-app-server-journeys/todo.md": "a6f21cdefe056614de2f20c76ee525e8b9057c5a36c65f4aea9877d1ff03cb73"
+  }
+}

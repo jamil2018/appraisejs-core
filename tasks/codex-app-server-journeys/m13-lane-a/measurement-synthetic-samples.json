@@ -1,0 +1,100 @@
+[
+  {
+    "schemaVersion": "appraise.m13.measurement-design/v1",
+    "evidenceClass": "SYNTHETIC_DESIGN_VALIDATION",
+    "tuple": {
+      "commit": "3d60db3f61995580ec3f49e73e03f61bb4b3bbd9",
+      "tree": "664e6818a26d4c808e421968cfd2bb67de2acea1",
+      "configurationHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "artifactHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "usage": {
+      "status": "UNQUALIFIED",
+      "modelTokens": null,
+      "cost": null
+    },
+    "dispatchesDuringHumanWait": 0,
+    "sampleId": "synthetic-initial",
+    "attemptKind": "INITIAL",
+    "outcome": "ACCEPTED",
+    "acceptedArtifactId": "synthetic-analysis-artifact",
+    "cacheClass": "COLD_DECLARED_SYNTHETIC",
+    "phases": {
+      "queue": {
+        "clockDomain": "synthetic-clock-1",
+        "startMs": 0,
+        "endMs": 5
+      },
+      "startupMcp": {
+        "clockDomain": "synthetic-clock-1",
+        "startMs": 5,
+        "endMs": 20
+      },
+      "dispatch": {
+        "clockDomain": "synthetic-clock-1",
+        "startMs": 20,
+        "endMs": 25
+      },
+      "acceptance": {
+        "clockDomain": "synthetic-clock-1",
+        "startMs": 25,
+        "endMs": 65
+      },
+      "humanWait": {
+        "clockDomain": "synthetic-clock-1",
+        "startMs": 100,
+        "endMs": 4100
+      },
+      "cleanup": {
+        "clockDomain": "synthetic-clock-1",
+        "startMs": 70,
+        "endMs": 75
+      }
+    }
+  },
+  {
+    "schemaVersion": "appraise.m13.measurement-design/v1",
+    "evidenceClass": "SYNTHETIC_DESIGN_VALIDATION",
+    "tuple": {
+      "commit": "3d60db3f61995580ec3f49e73e03f61bb4b3bbd9",
+      "tree": "664e6818a26d4c808e421968cfd2bb67de2acea1",
+      "configurationHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "artifactHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "usage": {
+      "status": "UNQUALIFIED",
+      "modelTokens": null,
+      "cost": null
+    },
+    "dispatchesDuringHumanWait": 0,
+    "sampleId": "synthetic-correction",
+    "attemptKind": "CORRECTION",
+    "outcome": "UNKNOWN",
+    "acceptedArtifactId": null,
+    "cacheClass": "WARM_DECLARED_SYNTHETIC",
+    "phases": {
+      "queue": {
+        "clockDomain": "synthetic-clock-1",
+        "startMs": 0,
+        "endMs": 2
+      },
+      "startupMcp": {
+        "clockDomain": "synthetic-clock-1",
+        "startMs": 2,
+        "endMs": 10
+      },
+      "dispatch": {
+        "clockDomain": "synthetic-clock-1",
+        "startMs": 10,
+        "endMs": 13
+      },
+      "acceptance": null,
+      "humanWait": null,
+      "cleanup": {
+        "clockDomain": "synthetic-clock-1",
+        "startMs": 13,
+        "endMs": 18
+      }
+    }
+  }
+]

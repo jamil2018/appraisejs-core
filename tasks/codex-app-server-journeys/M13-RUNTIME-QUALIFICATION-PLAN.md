@@ -31,6 +31,11 @@ These are existing operational limits, not new allowances, entitlement evidence 
 
 ## Lane A — checks permitted within existing limits
 
+**2026-11-13 follow-up:** [A1–A6 completed offline](M13-LANE-A-COMPLETION.md).
+The [B0-R1 packet](M13-B0-AUTHORIZATION-PACKET.md) proposes only a readiness-controller seam;
+the full product adapter and all native/account/inference steps remain incomplete and unauthorized.
+The original planning-turn statement below is historical.
+
 These are available verification activities under the earlier bounded repository scope. **This planning turn runs
 none of the proposed runtime checks.** Existing authorization permits routine offline checks; it does not expand
 because an action is called a preflight. New product wiring remains outside this lane.
@@ -182,7 +187,7 @@ Read-only inventory may describe retained records, but historical physical clean
 
 ## Checklist and completion boundary
 
-- [ ] A1–A6 artifacts prepared and verified under existing scope; no native execution.
+- [x] A1–A6 artifacts prepared and verified under existing scope; no native execution. See the linked completion record.
 - [ ] B0 separately authorized, implemented and independently accepted if product wiring is required.
 - [ ] B1 exact native no-auth packet separately authorized and observed.
 - [ ] B2 exact existing-login topology/check separately authorized and observed.

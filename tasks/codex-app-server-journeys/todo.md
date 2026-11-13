@@ -266,6 +266,8 @@ bounded startup/cancellation and late-authority repair evidence, with historical
 [Additive six-role replay coverage](M13-REPLAY-VERIFICATION.md) closes the specified matrix gap; runtime/provider and
 release qualification remain open. The [bounded runtime qualification plan](M13-RUNTIME-QUALIFICATION-PLAN.md)
 separates permitted offline checks from future actions requiring new exact authorization; it grants no execution.
+[Lane A is complete](M13-LANE-A-COMPLETION.md); the [exact B0-R1 implementation packet](M13-B0-AUTHORIZATION-PACKET.md)
+is prepared but unapproved. The native product adapter remains incomplete.
 
 - [ ] Implement and verify this slice.
 

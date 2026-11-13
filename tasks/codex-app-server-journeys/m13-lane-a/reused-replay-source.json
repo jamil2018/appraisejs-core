@@ -1,0 +1,19 @@
+{
+  "reusedSourceTests": 84,
+  "reusedInstalledTests": 23,
+  "files": {
+    "src/test/managed-journey-specialized-fixture.ts": {
+      "sha256": "0bc678890f81269fd71538cb47c79e3fbacee1328d1774cf545eb52673ea6590",
+      "matchesAccepted50091aArtifact": true
+    },
+    "src/services/coordinator/quality-journey-analysis-service.sqlite.integration.test.ts": {
+      "sha256": "573a64c2c5af537f73006bbd2373843a3aeb6a371f80ad7e69805500305529ae",
+      "matchesAccepted50091aArtifact": true
+    },
+    "src/services/coordinator/quality-journey-triage-service.sqlite.integration.test.ts": {
+      "sha256": "9793d630eafa6c2543ed17c459431e1b21b0e4f920f09348ff841a8f51cf517e",
+      "matchesAccepted50091aArtifact": true
+    }
+  },
+  "scope": "Existing accepted exact evidence reused; these suites were not rerun in Lane A."
+}

@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "appraise.m13.b0-authorization/v1",
+  "status": "REQUEST_NOT_APPROVED",
+  "baseCommit": "3d60db3f61995580ec3f49e73e03f61bb4b3bbd9",
+  "baseTree": "664e6818a26d4c808e421968cfd2bb67de2acea1",
+  "scope": "B0-R1 offline fake-port readiness controller only; full native product adapter remains incomplete",
+  "allowedNewSourcePaths": [
+    "src/lib/quality-journey/codex-app-server/readiness-contract.ts",
+    "src/lib/quality-journey/codex-app-server/readiness-controller.ts",
+    "src/lib/quality-journey/codex-app-server/readiness-controller.test.ts",
+    "src/services/coordinator/quality-journey-readiness.sqlite.integration.test.ts"
+  ],
+  "allowedExistingSourceEdits": [],
+  "allowedDocumentationPaths": [
+    "docs/quality-journey-process-supervision.md",
+    "tasks/codex-app-server-journeys/M13-RUNTIME-QUALIFICATION-PLAN.md",
+    "tasks/codex-app-server-journeys/todo.md",
+    "tasks/codex-app-server-journeys/M13-B0-R1-VERIFICATION.md"
+  ],
+  "generatedDerivatives": {
+    "rootToScaffold": "npm --prefix packages/create-appraisejs run prepare-template",
+    "affectedCommittedGraphs": "npm run graphify:auto",
+    "handEditsAllowed": false
+  },
+  "protectedSourcePreimages": {
+    "src/services/coordinator/quality-journey-process-supervisor.ts": "6b3138f915017a7ad01c37a0cfa16330c8b68b06805047998b3bc6524787572d",
+    "src/lib/quality-journey/codex-app-server/owned-child.ts": "c49cc532eec700510a9eeb8304bd97796485eb331af8fcd7f253887d1ad76cb5",
+    "src/lib/quality-journey/codex-app-server/rpc-transport.ts": "9ce02bf4f504fd915aa9a9347b53a2551c3b6a28c44c2d22a626ee7d92ea3c77",
+    "src/services/coordinator/quality-journey-provider-run-service.ts": "cadf89fa1f931171d7ff1d895f1619be21a053261d618159fc9b6bef246841b6",
+    "src/lib/quality-journey/provider-intent-contract.ts": "69dcc9fe91a0bc10cfc2976751e80bbf2151447104c4841b3e7fa338c5c78d6f",
+    "src/services/coordinator/quality-journey-coordinator-session.ts": "57a0ef4dcc707178dfa77e5a8a17c94ea00df7a0da1697446e1543b254b5ad02",
+    "src/services/coordinator/quality-journey-session-service.ts": "7505b844faeb7c18e1f28de9e562021a6075c014bf09e8f692077f7e62604f32",
+    "prisma/schema.prisma": "9dca4f2a116dadfc02f2764ea35e952d6461a63939bd68079d58adeeaa683fe3",
+    "prisma/migration-inventory.json": "2913a2bc02c364afec3e379ffed91cd6fc095ad7e1c3dd1a0b64118d603f0078",
+    "package.json": "53dde6d1f249aef67a67ee7b2eefdb1373f7d42a4957ab8a54579b555033b8c8",
+    "package-lock.json": "89d5801e4ceb1175de18d0b343a6e89243ee6aed1d8015ac53662aceb1b3f2df",
+    "packages/appraisejs/package.json": "d5ae55b97a7f42285e610ae1b4ec678815529faaad11be6b847a3b3e00f4a9aa",
+    "packages/appraisejs/package-lock.json": "fa7a0393a2a44f64fddc66cd40191cfe58e584a77c62b2c8670fb77f114f99d3",
+    "packages/create-appraisejs/package.json": "65b90b0bd93511d5642ba17cdda1b0458c135c25756f71e427fc9ae49b074028",
+    "packages/create-appraisejs/package-lock.json": "bacd47f2412f1bc30b2114d28c9ef434173355068b90878ae325ef996ade4400"
+  },
+  "newNativeInvocationsAuthorized": 0,
+  "accountOrCredentialOperationsAuthorized": 0,
+  "newRealInferenceAuthorized": 0,
+  "B1PlusAuthorized": false,
+  "productionGuardMustRemain": "UNCONDITIONAL_REFUSAL",
+  "runtimeQualified": false,
+  "observedNativeTuple": null,
+  "ordinaryTooling": "Explicit fake-port/SQLite tests, TypeScript/lint/format/build/scaffold/package checks and normal hooks only, after user approval",
+  "proposalCeilings": {
+    "requiredMcpIds": 16,
+    "individualTimeoutMs": 60000,
+    "sumTimeoutMs": 90000
+  },
+  "futureReviewRequired": true
+}
