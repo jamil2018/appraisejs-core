@@ -700,10 +700,10 @@
       "source_file": "appraisejs/src/agent-setup-capabilities.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 10,
+      "community": 49,
       "norm_label": "agent-setup-capabilities.test.ts",
       "id": "src_agent_setup_capabilities_test",
-      "community_name": "Community 10"
+      "community_name": "Community 49"
     },
     {
       "label": "agent-setup-capabilities.ts",
@@ -711,10 +711,10 @@
       "source_file": "appraisejs/src/agent-setup-capabilities.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 10,
+      "community": 49,
       "norm_label": "agent-setup-capabilities.ts",
       "id": "src_agent_setup_capabilities",
-      "community_name": "Community 10"
+      "community_name": "Community 49"
     },
     {
       "label": "appraise-quality-journey-skill.test.ts",
@@ -821,10 +821,10 @@
       "source_file": "appraisejs/src/cli.ts",
       "source_location": "L52",
       "_origin": "ast",
-      "community": 11,
+      "community": 19,
       "norm_label": "resolvemcpendpoint()",
       "id": "src_cli_resolvemcpendpoint",
-      "community_name": "Community 11"
+      "community_name": "Community 19"
     },
     {
       "label": "addOnlineOptions()",
@@ -843,10 +843,10 @@
       "source_file": "appraisejs/src/cli.ts",
       "source_location": "L71",
       "_origin": "ast",
-      "community": 11,
+      "community": 15,
       "norm_label": "onlineclient()",
       "id": "src_cli_onlineclient",
-      "community_name": "Community 11"
+      "community_name": "Community 15"
     },
     {
       "label": "locatorGraph",
@@ -1327,10 +1327,10 @@
       "source_file": "appraisejs/src/coordinator-client.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 35,
+      "community": 15,
       "norm_label": "coordinator-client.test.ts",
       "id": "src_coordinator_client_test",
-      "community_name": "Community 35"
+      "community_name": "Community 15"
     },
     {
       "label": "workspaces",
@@ -1338,10 +1338,10 @@
       "source_file": "appraisejs/src/coordinator-client.test.ts",
       "source_location": "L10",
       "_origin": "ast",
-      "community": 35,
+      "community": 15,
       "norm_label": "workspaces",
       "id": "src_coordinator_client_test_workspaces",
-      "community_name": "Community 35"
+      "community_name": "Community 15"
     },
     {
       "label": "client()",
@@ -1349,10 +1349,10 @@
       "source_file": "appraisejs/src/coordinator-client.test.ts",
       "source_location": "L17",
       "_origin": "ast",
-      "community": 35,
+      "community": 15,
       "norm_label": "client()",
       "id": "src_coordinator_client_test_client",
-      "community_name": "Community 35"
+      "community_name": "Community 15"
     },
     {
       "label": "endpointMismatch()",
@@ -1360,10 +1360,10 @@
       "source_file": "appraisejs/src/coordinator-client.test.ts",
       "source_location": "L24",
       "_origin": "ast",
-      "community": 35,
+      "community": 15,
       "norm_label": "endpointmismatch()",
       "id": "src_coordinator_client_test_endpointmismatch",
-      "community_name": "Community 35"
+      "community_name": "Community 15"
     },
     {
       "label": "coordinator-client.ts",
@@ -1525,10 +1525,10 @@
       "source_file": "appraisejs/src/diagnostics.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 15,
+      "community": 28,
       "norm_label": "diagnostics.test.ts",
       "id": "src_diagnostics_test",
-      "community_name": "Community 15"
+      "community_name": "Community 28"
     },
     {
       "label": "workspaces",
@@ -1536,10 +1536,10 @@
       "source_file": "appraisejs/src/diagnostics.test.ts",
       "source_location": "L10",
       "_origin": "ast",
-      "community": 15,
+      "community": 28,
       "norm_label": "workspaces",
       "id": "src_diagnostics_test_workspaces",
-      "community_name": "Community 15"
+      "community_name": "Community 28"
     },
     {
       "label": "errorEnvelope()",
@@ -1547,10 +1547,10 @@
       "source_file": "appraisejs/src/diagnostics.test.ts",
       "source_location": "L11",
       "_origin": "ast",
-      "community": 15,
+      "community": 28,
       "norm_label": "errorenvelope()",
       "id": "src_diagnostics_test_errorenvelope",
-      "community_name": "Community 15"
+      "community_name": "Community 28"
     },
     {
       "label": "diagnostics.ts",
@@ -1558,10 +1558,10 @@
       "source_file": "appraisejs/src/diagnostics.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 15,
+      "community": 28,
       "norm_label": "diagnostics.ts",
       "id": "src_diagnostics",
-      "community_name": "Community 15"
+      "community_name": "Community 28"
     },
     {
       "label": "Check",
@@ -1569,10 +1569,10 @@
       "source_file": "appraisejs/src/diagnostics.ts",
       "source_location": "L6",
       "_origin": "ast",
-      "community": 15,
+      "community": 28,
       "norm_label": "check",
       "id": "src_diagnostics_check",
-      "community_name": "Community 15"
+      "community_name": "Community 28"
     },
     {
       "label": "gitStatus()",
@@ -1580,10 +1580,10 @@
       "source_file": "appraisejs/src/diagnostics.ts",
       "source_location": "L15",
       "_origin": "ast",
-      "community": 15,
+      "community": 28,
       "norm_label": "gitstatus()",
       "id": "src_diagnostics_gitstatus",
-      "community_name": "Community 15"
+      "community_name": "Community 28"
     },
     {
       "label": "gitlessBaseRevisionGuidance",
@@ -1591,10 +1591,10 @@
       "source_file": "appraisejs/src/diagnostics.ts",
       "source_location": "L27",
       "_origin": "ast",
-      "community": 15,
+      "community": 28,
       "norm_label": "gitlessbaserevisionguidance",
       "id": "src_diagnostics_gitlessbaserevisionguidance",
-      "community_name": "Community 15"
+      "community_name": "Community 28"
     },
     {
       "label": "diagnoseProject()",
@@ -1602,10 +1602,10 @@
       "source_file": "appraisejs/src/diagnostics.ts",
       "source_location": "L35",
       "_origin": "ast",
-      "community": 15,
+      "community": 28,
       "norm_label": "diagnoseproject()",
       "id": "src_diagnostics_diagnoseproject",
-      "community_name": "Community 15"
+      "community_name": "Community 28"
     },
     {
       "label": "formatMcpBootstrapError()",
@@ -1613,10 +1613,10 @@
       "source_file": "appraisejs/src/diagnostics.ts",
       "source_location": "L138",
       "_origin": "ast",
-      "community": 15,
+      "community": 28,
       "norm_label": "formatmcpbootstraperror()",
       "id": "src_diagnostics_formatmcpbootstraperror",
-      "community_name": "Community 15"
+      "community_name": "Community 28"
     },
     {
       "label": "mcp-call.test.ts",
@@ -1646,10 +1646,10 @@
       "source_file": "appraisejs/src/mcp-call.ts",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 11,
+      "community": 35,
       "norm_label": "calllocalmcptool()",
       "id": "src_mcp_call_calllocalmcptool",
-      "community_name": "Community 11"
+      "community_name": "Community 35"
     },
     {
       "label": "unwrapMcpToolResult()",
@@ -1679,10 +1679,10 @@
       "source_file": "appraisejs/src/mcp-contract.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 6,
+      "community": 26,
       "norm_label": "mcp-contract.test.ts",
       "id": "src_mcp_contract_test",
-      "community_name": "Community 6"
+      "community_name": "Community 26"
     },
     {
       "label": "ContractFixture",
@@ -1690,10 +1690,10 @@
       "source_file": "appraisejs/src/mcp-contract.test.ts",
       "source_location": "L18",
       "_origin": "ast",
-      "community": 6,
+      "community": 26,
       "norm_label": "contractfixture",
       "id": "src_mcp_contract_test_contractfixture",
-      "community_name": "Community 6"
+      "community_name": "Community 26"
     },
     {
       "label": "fixture()",
@@ -1701,10 +1701,10 @@
       "source_file": "appraisejs/src/mcp-contract.test.ts",
       "source_location": "L20",
       "_origin": "ast",
-      "community": 6,
+      "community": 26,
       "norm_label": "fixture()",
       "id": "src_mcp_contract_test_fixture",
-      "community_name": "Community 6"
+      "community_name": "Community 26"
     },
     {
       "label": "definitions()",
@@ -1921,10 +1921,10 @@
       "source_file": "appraisejs/src/mcp-transport-revocation.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 49,
+      "community": 30,
       "norm_label": "mcp-transport-revocation.test.ts",
       "id": "src_mcp_transport_revocation_test",
-      "community_name": "Community 49"
+      "community_name": "Community 30"
     },
     {
       "label": "packageRoot",
@@ -1932,10 +1932,10 @@
       "source_file": "appraisejs/src/mcp-transport-revocation.test.ts",
       "source_location": "L15",
       "_origin": "ast",
-      "community": 49,
+      "community": 30,
       "norm_label": "packageroot",
       "id": "src_mcp_transport_revocation_test_packageroot",
-      "community_name": "Community 49"
+      "community_name": "Community 30"
     },
     {
       "label": "cliSource",
@@ -1943,10 +1943,10 @@
       "source_file": "appraisejs/src/mcp-transport-revocation.test.ts",
       "source_location": "L16",
       "_origin": "ast",
-      "community": 49,
+      "community": 30,
       "norm_label": "clisource",
       "id": "src_mcp_transport_revocation_test_clisource",
-      "community_name": "Community 49"
+      "community_name": "Community 30"
     },
     {
       "label": "cliArgs()",
@@ -1954,10 +1954,10 @@
       "source_file": "appraisejs/src/mcp-transport-revocation.test.ts",
       "source_location": "L18",
       "_origin": "ast",
-      "community": 49,
+      "community": 30,
       "norm_label": "cliargs()",
       "id": "src_mcp_transport_revocation_test_cliargs",
-      "community_name": "Community 49"
+      "community_name": "Community 30"
     },
     {
       "label": "localAction()",
@@ -1965,10 +1965,10 @@
       "source_file": "appraisejs/src/mcp-transport-revocation.test.ts",
       "source_location": "L22",
       "_origin": "ast",
-      "community": 49,
+      "community": 30,
       "norm_label": "localaction()",
       "id": "src_mcp_transport_revocation_test_localaction",
-      "community_name": "Community 49"
+      "community_name": "Community 30"
     },
     {
       "label": "listen()",
@@ -1976,10 +1976,10 @@
       "source_file": "appraisejs/src/mcp-transport-revocation.test.ts",
       "source_location": "L32",
       "_origin": "ast",
-      "community": 49,
+      "community": 30,
       "norm_label": "listen()",
       "id": "src_mcp_transport_revocation_test_listen",
-      "community_name": "Community 49"
+      "community_name": "Community 30"
     },
     {
       "label": "close()",
@@ -1987,10 +1987,10 @@
       "source_file": "appraisejs/src/mcp-transport-revocation.test.ts",
       "source_location": "L40",
       "_origin": "ast",
-      "community": 49,
+      "community": 30,
       "norm_label": "close()",
       "id": "src_mcp_transport_revocation_test_close",
-      "community_name": "Community 49"
+      "community_name": "Community 30"
     },
     {
       "label": "waitForHealth()",
@@ -1998,10 +1998,10 @@
       "source_file": "appraisejs/src/mcp-transport-revocation.test.ts",
       "source_location": "L44",
       "_origin": "ast",
-      "community": 49,
+      "community": 30,
       "norm_label": "waitforhealth()",
       "id": "src_mcp_transport_revocation_test_waitforhealth",
-      "community_name": "Community 49"
+      "community_name": "Community 30"
     },
     {
       "label": "stdioClient()",
@@ -2009,10 +2009,10 @@
       "source_file": "appraisejs/src/mcp-transport-revocation.test.ts",
       "source_location": "L58",
       "_origin": "ast",
-      "community": 49,
+      "community": 30,
       "norm_label": "stdioclient()",
       "id": "src_mcp_transport_revocation_test_stdioclient",
-      "community_name": "Community 49"
+      "community_name": "Community 30"
     },
     {
       "label": "httpClient()",
@@ -2020,10 +2020,10 @@
       "source_file": "appraisejs/src/mcp-transport-revocation.test.ts",
       "source_location": "L69",
       "_origin": "ast",
-      "community": 49,
+      "community": 30,
       "norm_label": "httpclient()",
       "id": "src_mcp_transport_revocation_test_httpclient",
-      "community_name": "Community 49"
+      "community_name": "Community 30"
     },
     {
       "label": "mcp.ts",
@@ -2042,10 +2042,10 @@
       "source_file": "appraisejs/src/mcp/contract.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 6,
+      "community": 26,
       "norm_label": "contract.ts",
       "id": "mcp_contract",
-      "community_name": "Community 6"
+      "community_name": "Community 26"
     },
     {
       "label": "mcpResourceAnnotations",
@@ -2064,10 +2064,10 @@
       "source_file": "appraisejs/src/mcp/contract.ts",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 6,
+      "community": 26,
       "norm_label": "readonly",
       "id": "mcp_contract_readonly",
-      "community_name": "Community 6"
+      "community_name": "Community 26"
     },
     {
       "label": "localMutation",
@@ -2075,10 +2075,10 @@
       "source_file": "appraisejs/src/mcp/contract.ts",
       "source_location": "L8",
       "_origin": "ast",
-      "community": 6,
+      "community": 26,
       "norm_label": "localmutation",
       "id": "mcp_contract_localmutation",
-      "community_name": "Community 6"
+      "community_name": "Community 26"
     },
     {
       "label": "durableLifecycleMutation",
@@ -2086,10 +2086,10 @@
       "source_file": "appraisejs/src/mcp/contract.ts",
       "source_location": "L14",
       "_origin": "ast",
-      "community": 6,
+      "community": 26,
       "norm_label": "durablelifecyclemutation",
       "id": "mcp_contract_durablelifecyclemutation",
-      "community_name": "Community 6"
+      "community_name": "Community 26"
     },
     {
       "label": "externalExecution",
@@ -2097,10 +2097,10 @@
       "source_file": "appraisejs/src/mcp/contract.ts",
       "source_location": "L20",
       "_origin": "ast",
-      "community": 6,
+      "community": 26,
       "norm_label": "externalexecution",
       "id": "mcp_contract_externalexecution",
-      "community_name": "Community 6"
+      "community_name": "Community 26"
     },
     {
       "label": "externalStop",
@@ -2108,10 +2108,10 @@
       "source_file": "appraisejs/src/mcp/contract.ts",
       "source_location": "L26",
       "_origin": "ast",
-      "community": 6,
+      "community": 26,
       "norm_label": "externalstop",
       "id": "mcp_contract_externalstop",
-      "community_name": "Community 6"
+      "community_name": "Community 26"
     },
     {
       "label": "externalPreparation",
@@ -2119,10 +2119,10 @@
       "source_file": "appraisejs/src/mcp/contract.ts",
       "source_location": "L32",
       "_origin": "ast",
-      "community": 6,
+      "community": 26,
       "norm_label": "externalpreparation",
       "id": "mcp_contract_externalpreparation",
-      "community_name": "Community 6"
+      "community_name": "Community 26"
     },
     {
       "label": "externalCollaborationMutation",
@@ -2130,10 +2130,10 @@
       "source_file": "appraisejs/src/mcp/contract.ts",
       "source_location": "L37",
       "_origin": "ast",
-      "community": 6,
+      "community": 26,
       "norm_label": "externalcollaborationmutation",
       "id": "mcp_contract_externalcollaborationmutation",
-      "community_name": "Community 6"
+      "community_name": "Community 26"
     },
     {
       "label": "canonicalMcpToolAnnotations",
@@ -2141,10 +2141,10 @@
       "source_file": "appraisejs/src/mcp/contract.ts",
       "source_location": "L48",
       "_origin": "ast",
-      "community": 6,
+      "community": 26,
       "norm_label": "canonicalmcptoolannotations",
       "id": "mcp_contract_canonicalmcptoolannotations",
-      "community_name": "Community 6"
+      "community_name": "Community 26"
     },
     {
       "label": "canonicalMcpResourceAnnotations",
@@ -2152,10 +2152,10 @@
       "source_file": "appraisejs/src/mcp/contract.ts",
       "source_location": "L136",
       "_origin": "ast",
-      "community": 6,
+      "community": 26,
       "norm_label": "canonicalmcpresourceannotations",
       "id": "mcp_contract_canonicalmcpresourceannotations",
-      "community_name": "Community 6"
+      "community_name": "Community 26"
     },
     {
       "label": "canonicalMcpResourceUris",
@@ -2163,10 +2163,10 @@
       "source_file": "appraisejs/src/mcp/contract.ts",
       "source_location": "L145",
       "_origin": "ast",
-      "community": 6,
+      "community": 26,
       "norm_label": "canonicalmcpresourceuris",
       "id": "mcp_contract_canonicalmcpresourceuris",
-      "community_name": "Community 6"
+      "community_name": "Community 26"
     },
     {
       "label": "canonicalMcpToolNames",
@@ -2174,10 +2174,10 @@
       "source_file": "appraisejs/src/mcp/contract.ts",
       "source_location": "L154",
       "_origin": "ast",
-      "community": 6,
+      "community": 26,
       "norm_label": "canonicalmcptoolnames",
       "id": "mcp_contract_canonicalmcptoolnames",
-      "community_name": "Community 6"
+      "community_name": "Community 26"
     },
     {
       "label": "canonicalMcpResourceNames",
@@ -2185,10 +2185,10 @@
       "source_file": "appraisejs/src/mcp/contract.ts",
       "source_location": "L155",
       "_origin": "ast",
-      "community": 6,
+      "community": 26,
       "norm_label": "canonicalmcpresourcenames",
       "id": "mcp_contract_canonicalmcpresourcenames",
-      "community_name": "Community 6"
+      "community_name": "Community 26"
     },
     {
       "label": "mcpToolAnnotations()",
@@ -2262,10 +2262,10 @@
       "source_file": "appraisejs/src/mcp/domains/project.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 23,
+      "community": 45,
       "norm_label": "project.ts",
       "id": "domains_project",
-      "community_name": "Community 23"
+      "community_name": "Community 45"
     },
     {
       "label": "nullableOptionalString()",
@@ -2273,10 +2273,10 @@
       "source_file": "appraisejs/src/mcp/domains/project.ts",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 23,
+      "community": 45,
       "norm_label": "nullableoptionalstring()",
       "id": "domains_project_nullableoptionalstring",
-      "community_name": "Community 23"
+      "community_name": "Community 45"
     },
     {
       "label": "nullableOptionalPositiveInteger()",
@@ -2284,10 +2284,10 @@
       "source_file": "appraisejs/src/mcp/domains/project.ts",
       "source_location": "L5",
       "_origin": "ast",
-      "community": 23,
+      "community": 45,
       "norm_label": "nullableoptionalpositiveinteger()",
       "id": "domains_project_nullableoptionalpositiveinteger",
-      "community_name": "Community 23"
+      "community_name": "Community 45"
     },
     {
       "label": "operationSearchInputSchema",
@@ -2295,10 +2295,10 @@
       "source_file": "appraisejs/src/mcp/domains/project.ts",
       "source_location": "L8",
       "_origin": "ast",
-      "community": 23,
+      "community": 45,
       "norm_label": "operationsearchinputschema",
       "id": "domains_project_operationsearchinputschema",
-      "community_name": "Community 23"
+      "community_name": "Community 45"
     },
     {
       "label": "registerProjectOperations()",
@@ -2306,10 +2306,10 @@
       "source_file": "appraisejs/src/mcp/domains/project.ts",
       "source_location": "L42",
       "_origin": "ast",
-      "community": 23,
+      "community": 45,
       "norm_label": "registerprojectoperations()",
       "id": "domains_project_registerprojectoperations",
-      "community_name": "Community 23"
+      "community_name": "Community 45"
     },
     {
       "label": "quality-journey-execution.ts",
@@ -2790,10 +2790,10 @@
       "source_file": "appraisejs/src/mcp/domains/quality-journey.ts",
       "source_location": "L28",
       "_origin": "ast",
-      "community": 66,
+      "community": 3,
       "norm_label": "qualityjourneyrequirementversion",
       "id": "domains_quality_journey_qualityjourneyrequirementversion",
-      "community_name": "Community 66"
+      "community_name": "Community 3"
     },
     {
       "label": "qualityJourneyCoverageRigorSchema",
@@ -2856,10 +2856,10 @@
       "source_file": "appraisejs/src/mcp/domains/quality-journey.ts",
       "source_location": "L66",
       "_origin": "ast",
-      "community": 66,
+      "community": 3,
       "norm_label": "qualityjourneyrequirementschema",
       "id": "domains_quality_journey_qualityjourneyrequirementschema",
-      "community_name": "Community 66"
+      "community_name": "Community 3"
     },
     {
       "label": "sortedUnique()",
@@ -2867,10 +2867,10 @@
       "source_file": "appraisejs/src/mcp/domains/quality-journey.ts",
       "source_location": "L83",
       "_origin": "ast",
-      "community": 70,
+      "community": 3,
       "norm_label": "sortedunique()",
       "id": "domains_quality_journey_sortedunique",
-      "community_name": "Community 70"
+      "community_name": "Community 3"
     },
     {
       "label": "evidenceReceiptIds",
@@ -2933,10 +2933,10 @@
       "source_file": "appraisejs/src/mcp/domains/quality-journey.ts",
       "source_location": "L178",
       "_origin": "ast",
-      "community": 3,
+      "community": 26,
       "norm_label": "genericqualityjourneycommandschema",
       "id": "domains_quality_journey_genericqualityjourneycommandschema",
-      "community_name": "Community 3"
+      "community_name": "Community 26"
     },
     {
       "label": "genericQualityJourneyWorkCompletionResultSchema",
@@ -3076,10 +3076,10 @@
       "source_file": "appraisejs/src/mcp/domains/quality-journey.ts",
       "source_location": "L405",
       "_origin": "ast",
-      "community": 3,
+      "community": 26,
       "norm_label": "scenarioportfolioschema",
       "id": "domains_quality_journey_scenarioportfolioschema",
-      "community_name": "Community 3"
+      "community_name": "Community 26"
     },
     {
       "label": "workerResult",
@@ -3164,10 +3164,10 @@
       "source_file": "appraisejs/src/mcp/domains/quality-journey.ts",
       "source_location": "L566",
       "_origin": "ast",
-      "community": 70,
+      "community": 3,
       "norm_label": "validatediscoverybundlebase()",
       "id": "domains_quality_journey_validatediscoverybundlebase",
-      "community_name": "Community 70"
+      "community_name": "Community 3"
     },
     {
       "label": "revalidationPolicy",
@@ -3241,10 +3241,10 @@
       "source_file": "appraisejs/src/mcp/domains/quality-journey.ts",
       "source_location": "L751",
       "_origin": "ast",
-      "community": 64,
+      "community": 32,
       "norm_label": "registerqualityjourneyoperations()",
       "id": "domains_quality_journey_registerqualityjourneyoperations",
-      "community_name": "Community 64"
+      "community_name": "Community 32"
     },
     {
       "label": "repository-collaboration.ts",
@@ -3560,10 +3560,10 @@
       "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 25,
+      "community": 39,
       "norm_label": "external-worker-gateway.test.ts",
       "id": "mcp_external_worker_gateway_test",
-      "community_name": "Community 25"
+      "community_name": "Community 39"
     },
     {
       "label": "binding()",
@@ -3571,10 +3571,10 @@
       "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
       "source_location": "L18",
       "_origin": "ast",
-      "community": 25,
+      "community": 39,
       "norm_label": "binding()",
       "id": "mcp_external_worker_gateway_test_binding",
-      "community_name": "Community 25"
+      "community_name": "Community 39"
     },
     {
       "label": "result()",
@@ -3582,10 +3582,10 @@
       "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
       "source_location": "L40",
       "_origin": "ast",
-      "community": 25,
+      "community": 39,
       "norm_label": "result()",
       "id": "mcp_external_worker_gateway_test_result",
-      "community_name": "Community 25"
+      "community_name": "Community 39"
     },
     {
       "label": "bundle",
@@ -3593,10 +3593,10 @@
       "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
       "source_location": "L58",
       "_origin": "ast",
-      "community": 25,
+      "community": 39,
       "norm_label": "bundle",
       "id": "mcp_external_worker_gateway_test_bundle",
-      "community_name": "Community 25"
+      "community_name": "Community 39"
     },
     {
       "label": "packet()",
@@ -3604,10 +3604,10 @@
       "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
       "source_location": "L73",
       "_origin": "ast",
-      "community": 25,
+      "community": 39,
       "norm_label": "packet()",
       "id": "mcp_external_worker_gateway_test_packet",
-      "community_name": "Community 25"
+      "community_name": "Community 39"
     },
     {
       "label": "harness()",
@@ -3615,10 +3615,10 @@
       "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
       "source_location": "L237",
       "_origin": "ast",
-      "community": 25,
+      "community": 39,
       "norm_label": "harness()",
       "id": "mcp_external_worker_gateway_test_harness",
-      "community_name": "Community 25"
+      "community_name": "Community 39"
     },
     {
       "label": "allRoles",
@@ -3626,10 +3626,10 @@
       "source_file": "appraisejs/src/mcp/external-worker-gateway.test.ts",
       "source_location": "L381",
       "_origin": "ast",
-      "community": 25,
+      "community": 39,
       "norm_label": "allroles",
       "id": "mcp_external_worker_gateway_test_allroles",
-      "community_name": "Community 25"
+      "community_name": "Community 39"
     },
     {
       "label": "fixtureHash()",
@@ -3703,10 +3703,10 @@
       "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
       "source_location": "L24",
       "_origin": "ast",
-      "community": 25,
+      "community": 39,
       "norm_label": "externalworkertools",
       "id": "mcp_external_worker_gateway_externalworkertools",
-      "community_name": "Community 25"
+      "community_name": "Community 39"
     },
     {
       "label": "bindingSchema",
@@ -3725,10 +3725,10 @@
       "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
       "source_location": "L68",
       "_origin": "ast",
-      "community": 25,
+      "community": 39,
       "norm_label": "externalworkerbinding",
       "id": "mcp_external_worker_gateway_externalworkerbinding",
-      "community_name": "Community 25"
+      "community_name": "Community 39"
     },
     {
       "label": "hiddenFields",
@@ -3758,10 +3758,10 @@
       "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
       "source_location": "L109",
       "_origin": "ast",
-      "community": 25,
+      "community": 39,
       "norm_label": "frozenworkerread",
       "id": "mcp_external_worker_gateway_frozenworkerread",
-      "community_name": "Community 25"
+      "community_name": "Community 39"
     },
     {
       "label": "acceptanceSchema",
@@ -3780,10 +3780,10 @@
       "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
       "source_location": "L140",
       "_origin": "ast",
-      "community": 18,
+      "community": 25,
       "norm_label": "externalworkeracceptance",
       "id": "mcp_external_worker_gateway_externalworkeracceptance",
-      "community_name": "Community 18"
+      "community_name": "Community 25"
     },
     {
       "label": "CapturedTool",
@@ -3802,10 +3802,10 @@
       "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
       "source_location": "L147",
       "_origin": "ast",
-      "community": 25,
+      "community": 39,
       "norm_label": "externalworkercallerror",
       "id": "mcp_external_worker_gateway_externalworkercallerror",
-      "community_name": "Community 25"
+      "community_name": "Community 39"
     },
     {
       "label": ".constructor()",
@@ -3813,10 +3813,10 @@
       "source_file": "appraisejs/src/mcp/external-worker-gateway.ts",
       "source_location": "L148",
       "_origin": "ast",
-      "community": 25,
+      "community": 39,
       "norm_label": ".constructor()",
       "id": "mcp_external_worker_gateway_externalworkercallerror_constructor",
-      "community_name": "Community 25"
+      "community_name": "Community 39"
     },
     {
       "label": "createExternalWorkerGateway()",
@@ -4044,10 +4044,10 @@
       "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 25,
+      "community": 16,
       "norm_label": "external-worker-server.test.ts",
       "id": "mcp_external_worker_server_test",
-      "community_name": "Community 25"
+      "community_name": "Community 16"
     },
     {
       "label": "binding()",
@@ -4055,10 +4055,10 @@
       "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
       "source_location": "L21",
       "_origin": "ast",
-      "community": 25,
+      "community": 16,
       "norm_label": "binding()",
       "id": "mcp_external_worker_server_test_binding",
-      "community_name": "Community 25"
+      "community_name": "Community 16"
     },
     {
       "label": "result()",
@@ -4066,10 +4066,10 @@
       "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
       "source_location": "L43",
       "_origin": "ast",
-      "community": 25,
+      "community": 16,
       "norm_label": "result()",
       "id": "mcp_external_worker_server_test_result",
-      "community_name": "Community 25"
+      "community_name": "Community 16"
     },
     {
       "label": "bundle",
@@ -4077,10 +4077,10 @@
       "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
       "source_location": "L61",
       "_origin": "ast",
-      "community": 25,
+      "community": 16,
       "norm_label": "bundle",
       "id": "mcp_external_worker_server_test_bundle",
-      "community_name": "Community 25"
+      "community_name": "Community 16"
     },
     {
       "label": "packet()",
@@ -4088,10 +4088,10 @@
       "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
       "source_location": "L76",
       "_origin": "ast",
-      "community": 25,
+      "community": 16,
       "norm_label": "packet()",
       "id": "mcp_external_worker_server_test_packet",
-      "community_name": "Community 25"
+      "community_name": "Community 16"
     },
     {
       "label": "fixtureHash()",
@@ -4110,10 +4110,10 @@
       "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
       "source_location": "L257",
       "_origin": "ast",
-      "community": 25,
+      "community": 16,
       "norm_label": "harness()",
       "id": "mcp_external_worker_server_test_harness",
-      "community_name": "Community 25"
+      "community_name": "Community 16"
     },
     {
       "label": "allRoles",
@@ -4121,10 +4121,10 @@
       "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
       "source_location": "L396",
       "_origin": "ast",
-      "community": 25,
+      "community": 16,
       "norm_label": "allroles",
       "id": "mcp_external_worker_server_test_allroles",
-      "community_name": "Community 25"
+      "community_name": "Community 16"
     },
     {
       "label": "external-worker-server.ts",
@@ -4143,10 +4143,10 @@
       "source_file": "appraisejs/src/mcp/external-worker-server.ts",
       "source_location": "L8",
       "_origin": "ast",
-      "community": 18,
+      "community": 16,
       "norm_label": "externalworkeradvertisedprofile",
       "id": "mcp_external_worker_server_externalworkeradvertisedprofile",
-      "community_name": "Community 18"
+      "community_name": "Community 16"
     },
     {
       "label": "createExternalWorkerMcpServer()",
@@ -4913,10 +4913,10 @@
       "source_file": "appraisejs/src/mcp/quality-journey-external-analyzer.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 64,
+      "community": 32,
       "norm_label": "quality-journey-external-analyzer.test.ts",
       "id": "mcp_quality_journey_external_analyzer_test",
-      "community_name": "Community 64"
+      "community_name": "Community 32"
     },
     {
       "label": "harness()",
@@ -4924,10 +4924,10 @@
       "source_file": "appraisejs/src/mcp/quality-journey-external-analyzer.test.ts",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 64,
+      "community": 32,
       "norm_label": "harness()",
       "id": "mcp_quality_journey_external_analyzer_test_harness",
-      "community_name": "Community 64"
+      "community_name": "Community 32"
     },
     {
       "label": "assignment",
@@ -4935,10 +4935,10 @@
       "source_file": "appraisejs/src/mcp/quality-journey-external-analyzer.test.ts",
       "source_location": "L41",
       "_origin": "ast",
-      "community": 64,
+      "community": 32,
       "norm_label": "assignment",
       "id": "mcp_quality_journey_external_analyzer_test_assignment",
-      "community_name": "Community 64"
+      "community_name": "Community 32"
     },
     {
       "label": "quality-journey-library.test.ts",
@@ -4957,10 +4957,10 @@
       "source_file": "appraisejs/src/mcp/quality-journey-requirement.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 66,
+      "community": 3,
       "norm_label": "quality-journey-requirement.test.ts",
       "id": "mcp_quality_journey_requirement_test",
-      "community_name": "Community 66"
+      "community_name": "Community 3"
     },
     {
       "label": "quality-journey-triage.test.ts",
@@ -4990,10 +4990,10 @@
       "source_file": "appraisejs/src/mcp/registry.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 6,
+      "community": 26,
       "norm_label": "registry.test.ts",
       "id": "mcp_registry_test",
-      "community_name": "Community 6"
+      "community_name": "Community 26"
     },
     {
       "label": "registry.ts",
@@ -5023,10 +5023,10 @@
       "source_file": "appraisejs/src/mcp/registry.ts",
       "source_location": "L30",
       "_origin": "ast",
-      "community": 6,
+      "community": 26,
       "norm_label": "mcpcontractdefinition",
       "id": "mcp_registry_mcpcontractdefinition",
-      "community_name": "Community 6"
+      "community_name": "Community 26"
     },
     {
       "label": "contracts",
@@ -5078,10 +5078,10 @@
       "source_file": "appraisejs/src/mcp/registry.ts",
       "source_location": "L61",
       "_origin": "ast",
-      "community": 6,
+      "community": 26,
       "norm_label": "withstructuredcoordinatorerrors()",
       "id": "mcp_registry_withstructuredcoordinatorerrors",
-      "community_name": "Community 6"
+      "community_name": "Community 26"
     },
     {
       "label": "registrationTarget()",
@@ -5408,10 +5408,10 @@
       "source_file": "appraisejs/src/mcp/shared.ts",
       "source_location": "L38",
       "_origin": "ast",
-      "community": 23,
+      "community": 45,
       "norm_label": "withguidance()",
       "id": "mcp_shared_withguidance",
-      "community_name": "Community 23"
+      "community_name": "Community 45"
     },
     {
       "label": "contentHash()",
@@ -5588,6 +5588,259 @@
       "norm_label": "runappraisemcp()",
       "id": "mcp_stdio_server_runappraisemcp",
       "community_name": "Community 20"
+    },
+    {
+      "label": "trusted-managed-worker-offline-composition.test.ts",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.test.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 30,
+      "norm_label": "trusted-managed-worker-offline-composition.test.ts",
+      "id": "mcp_trusted_managed_worker_offline_composition_test",
+      "community_name": "Community 30"
+    },
+    {
+      "label": "toolNames",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.test.ts",
+      "source_location": "L6",
+      "_origin": "ast",
+      "community": 30,
+      "norm_label": "toolnames",
+      "id": "mcp_trusted_managed_worker_offline_composition_test_toolnames",
+      "community_name": "Community 30"
+    },
+    {
+      "label": "closes",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.test.ts",
+      "source_location": "L14",
+      "_origin": "ast",
+      "community": 30,
+      "norm_label": "closes",
+      "id": "mcp_trusted_managed_worker_offline_composition_test_closes",
+      "community_name": "Community 30"
+    },
+    {
+      "label": "hash()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.test.ts",
+      "source_location": "L18",
+      "_origin": "ast",
+      "community": 30,
+      "norm_label": "hash()",
+      "id": "mcp_trusted_managed_worker_offline_composition_test_hash",
+      "community_name": "Community 30"
+    },
+    {
+      "label": "profile()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.test.ts",
+      "source_location": "L33",
+      "_origin": "ast",
+      "community": 30,
+      "norm_label": "profile()",
+      "id": "mcp_trusted_managed_worker_offline_composition_test_profile",
+      "community_name": "Community 30"
+    },
+    {
+      "label": "fixture()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.test.ts",
+      "source_location": "L48",
+      "_origin": "ast",
+      "community": 30,
+      "norm_label": "fixture()",
+      "id": "mcp_trusted_managed_worker_offline_composition_test_fixture",
+      "community_name": "Community 30"
+    },
+    {
+      "label": "gate()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.test.ts",
+      "source_location": "L59",
+      "_origin": "ast",
+      "community": 30,
+      "norm_label": "gate()",
+      "id": "mcp_trusted_managed_worker_offline_composition_test_gate",
+      "community_name": "Community 30"
+    },
+    {
+      "label": "trusted-managed-worker-offline-composition.ts",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 30,
+      "norm_label": "trusted-managed-worker-offline-composition.ts",
+      "id": "mcp_trusted_managed_worker_offline_composition",
+      "community_name": "Community 30"
+    },
+    {
+      "label": "ManagedOfflineCompositionReceipt",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L7",
+      "_origin": "ast",
+      "community": 30,
+      "norm_label": "managedofflinecompositionreceipt",
+      "id": "mcp_trusted_managed_worker_offline_composition_managedofflinecompositionreceipt",
+      "community_name": "Community 30"
+    },
+    {
+      "label": "TrustedManagedWorkerOfflineOptions",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L23",
+      "_origin": "ast",
+      "community": 30,
+      "norm_label": "trustedmanagedworkerofflineoptions",
+      "id": "mcp_trusted_managed_worker_offline_composition_trustedmanagedworkerofflineoptions",
+      "community_name": "Community 30"
+    },
+    {
+      "label": "ManagedOfflineCompositionError",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L31",
+      "_origin": "ast",
+      "community": 30,
+      "norm_label": "managedofflinecompositionerror",
+      "id": "mcp_trusted_managed_worker_offline_composition_managedofflinecompositionerror",
+      "community_name": "Community 30"
+    },
+    {
+      "label": ".constructor()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L32",
+      "_origin": "ast",
+      "community": 30,
+      "norm_label": ".constructor()",
+      "id": "mcp_trusted_managed_worker_offline_composition_managedofflinecompositionerror_constructor",
+      "community_name": "Community 30"
+    },
+    {
+      "label": "refuse()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L37",
+      "_origin": "ast",
+      "community": 30,
+      "norm_label": "refuse()",
+      "id": "mcp_trusted_managed_worker_offline_composition_refuse",
+      "community_name": "Community 30"
+    },
+    {
+      "label": "canonical()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L40",
+      "_origin": "ast",
+      "community": 30,
+      "norm_label": "canonical()",
+      "id": "mcp_trusted_managed_worker_offline_composition_canonical",
+      "community_name": "Community 30"
+    },
+    {
+      "label": "hash()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L49",
+      "_origin": "ast",
+      "community": 30,
+      "norm_label": "hash()",
+      "id": "mcp_trusted_managed_worker_offline_composition_hash",
+      "community_name": "Community 30"
+    },
+    {
+      "label": "copy()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L54",
+      "_origin": "ast",
+      "community": 30,
+      "norm_label": "copy()",
+      "id": "mcp_trusted_managed_worker_offline_composition_copy",
+      "community_name": "Community 30"
+    },
+    {
+      "label": "freeze()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L59",
+      "_origin": "ast",
+      "community": 30,
+      "norm_label": "freeze()",
+      "id": "mcp_trusted_managed_worker_offline_composition_freeze",
+      "community_name": "Community 30"
+    },
+    {
+      "label": "within()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L66",
+      "_origin": "ast",
+      "community": 30,
+      "norm_label": "within()",
+      "id": "mcp_trusted_managed_worker_offline_composition_within",
+      "community_name": "Community 30"
+    },
+    {
+      "label": "capture()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L70",
+      "_origin": "ast",
+      "community": 30,
+      "norm_label": "capture()",
+      "id": "mcp_trusted_managed_worker_offline_composition_capture",
+      "community_name": "Community 30"
+    },
+    {
+      "label": "timed()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L80",
+      "_origin": "ast",
+      "community": 30,
+      "norm_label": "timed()",
+      "id": "mcp_trusted_managed_worker_offline_composition_timed",
+      "community_name": "Community 30"
+    },
+    {
+      "label": "Pending",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L95",
+      "_origin": "ast",
+      "community": 30,
+      "norm_label": "pending",
+      "id": "mcp_trusted_managed_worker_offline_composition_pending",
+      "community_name": "Community 30"
+    },
+    {
+      "label": "build()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L106",
+      "_origin": "ast",
+      "community": 30,
+      "norm_label": "build()",
+      "id": "mcp_trusted_managed_worker_offline_composition_build",
+      "community_name": "Community 30"
+    },
+    {
+      "label": "createTrustedManagedWorkerOfflineComposition()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L249",
+      "_origin": "ast",
+      "community": 30,
+      "norm_label": "createtrustedmanagedworkerofflinecomposition()",
+      "id": "mcp_trusted_managed_worker_offline_composition_createtrustedmanagedworkerofflinecomposition",
+      "community_name": "Community 30"
     },
     {
       "label": "trusted-worker-bridge.ts",
@@ -5980,10 +6233,10 @@
       "source_file": "appraisejs/src/mcp/trusted-worker-native-route.ts",
       "source_location": "L104",
       "_origin": "ast",
-      "community": 12,
+      "community": 25,
       "norm_label": "trustedrouteinput",
       "id": "mcp_trusted_worker_native_route_trustedrouteinput",
-      "community_name": "Community 12"
+      "community_name": "Community 25"
     },
     {
       "label": "PreparedTrustedRoute",
@@ -6061,6 +6314,325 @@
       "norm_label": "correlatetrustedworkernativecalls()",
       "id": "mcp_trusted_worker_native_route_correlatetrustedworkernativecalls",
       "community_name": "Community 12"
+    },
+    {
+      "label": "trusted-worker-offline-composition.test.ts",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.test.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 25,
+      "norm_label": "trusted-worker-offline-composition.test.ts",
+      "id": "mcp_trusted_worker_offline_composition_test",
+      "community_name": "Community 25"
+    },
+    {
+      "label": "closes",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.test.ts",
+      "source_location": "L17",
+      "_origin": "ast",
+      "community": 25,
+      "norm_label": "closes",
+      "id": "mcp_trusted_worker_offline_composition_test_closes",
+      "community_name": "Community 25"
+    },
+    {
+      "label": "hash()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.test.ts",
+      "source_location": "L22",
+      "_origin": "ast",
+      "community": 25,
+      "norm_label": "hash()",
+      "id": "mcp_trusted_worker_offline_composition_test_hash",
+      "community_name": "Community 25"
+    },
+    {
+      "label": "binding()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.test.ts",
+      "source_location": "L23",
+      "_origin": "ast",
+      "community": 25,
+      "norm_label": "binding()",
+      "id": "mcp_trusted_worker_offline_composition_test_binding",
+      "community_name": "Community 25"
+    },
+    {
+      "label": "directRoute()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.test.ts",
+      "source_location": "L45",
+      "_origin": "ast",
+      "community": 25,
+      "norm_label": "directroute()",
+      "id": "mcp_trusted_worker_offline_composition_test_directroute",
+      "community_name": "Community 25"
+    },
+    {
+      "label": "fixture()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.test.ts",
+      "source_location": "L86",
+      "_origin": "ast",
+      "community": 25,
+      "norm_label": "fixture()",
+      "id": "mcp_trusted_worker_offline_composition_test_fixture",
+      "community_name": "Community 25"
+    },
+    {
+      "label": "trusted-worker-offline-composition.ts",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 25,
+      "norm_label": "trusted-worker-offline-composition.ts",
+      "id": "mcp_trusted_worker_offline_composition",
+      "community_name": "Community 25"
+    },
+    {
+      "label": "BridgeOptions",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L23",
+      "_origin": "ast",
+      "community": 25,
+      "norm_label": "bridgeoptions",
+      "id": "mcp_trusted_worker_offline_composition_bridgeoptions",
+      "community_name": "Community 25"
+    },
+    {
+      "label": "Endpoint",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L24",
+      "_origin": "ast",
+      "community": 25,
+      "norm_label": "endpoint",
+      "id": "mcp_trusted_worker_offline_composition_endpoint",
+      "community_name": "Community 25"
+    },
+    {
+      "label": "RouteContext",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L25",
+      "_origin": "ast",
+      "community": 25,
+      "norm_label": "routecontext",
+      "id": "mcp_trusted_worker_offline_composition_routecontext",
+      "community_name": "Community 25"
+    },
+    {
+      "label": "OfflineSyntheticWorkerCaller",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L30",
+      "_origin": "ast",
+      "community": 25,
+      "norm_label": "offlinesyntheticworkercaller",
+      "id": "mcp_trusted_worker_offline_composition_offlinesyntheticworkercaller",
+      "community_name": "Community 25"
+    },
+    {
+      "label": "TrustedWorkerOfflineOptions",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L37",
+      "_origin": "ast",
+      "community": 25,
+      "norm_label": "trustedworkerofflineoptions",
+      "id": "mcp_trusted_worker_offline_composition_trustedworkerofflineoptions",
+      "community_name": "Community 25"
+    },
+    {
+      "label": "OfflineWorkerCall",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L44",
+      "_origin": "ast",
+      "community": 25,
+      "norm_label": "offlineworkercall",
+      "id": "mcp_trusted_worker_offline_composition_offlineworkercall",
+      "community_name": "Community 25"
+    },
+    {
+      "label": "OfflineWorkerCompositionError",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L51",
+      "_origin": "ast",
+      "community": 25,
+      "norm_label": "offlineworkercompositionerror",
+      "id": "mcp_trusted_worker_offline_composition_offlineworkercompositionerror",
+      "community_name": "Community 25"
+    },
+    {
+      "label": ".constructor()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L52",
+      "_origin": "ast",
+      "community": 25,
+      "norm_label": ".constructor()",
+      "id": "mcp_trusted_worker_offline_composition_offlineworkercompositionerror_constructor",
+      "community_name": "Community 25"
+    },
+    {
+      "label": "refuse()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L57",
+      "_origin": "ast",
+      "community": 25,
+      "norm_label": "refuse()",
+      "id": "mcp_trusted_worker_offline_composition_refuse",
+      "community_name": "Community 25"
+    },
+    {
+      "label": "stable()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L63",
+      "_origin": "ast",
+      "community": 25,
+      "norm_label": "stable()",
+      "id": "mcp_trusted_worker_offline_composition_stable",
+      "community_name": "Community 25"
+    },
+    {
+      "label": "hash()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L72",
+      "_origin": "ast",
+      "community": 25,
+      "norm_label": "hash()",
+      "id": "mcp_trusted_worker_offline_composition_hash",
+      "community_name": "Community 25"
+    },
+    {
+      "label": "boundedCopy()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L77",
+      "_origin": "ast",
+      "community": 25,
+      "norm_label": "boundedcopy()",
+      "id": "mcp_trusted_worker_offline_composition_boundedcopy",
+      "community_name": "Community 25"
+    },
+    {
+      "label": "freeze()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L82",
+      "_origin": "ast",
+      "community": 25,
+      "norm_label": "freeze()",
+      "id": "mcp_trusted_worker_offline_composition_freeze",
+      "community_name": "Community 25"
+    },
+    {
+      "label": "captureRoute()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L89",
+      "_origin": "ast",
+      "community": 25,
+      "norm_label": "captureroute()",
+      "id": "mcp_trusted_worker_offline_composition_captureroute",
+      "community_name": "Community 25"
+    },
+    {
+      "label": "requirePrepared()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L104",
+      "_origin": "ast",
+      "community": 25,
+      "norm_label": "requireprepared()",
+      "id": "mcp_trusted_worker_offline_composition_requireprepared",
+      "community_name": "Community 25"
+    },
+    {
+      "label": "timed()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L109",
+      "_origin": "ast",
+      "community": 25,
+      "norm_label": "timed()",
+      "id": "mcp_trusted_worker_offline_composition_timed",
+      "community_name": "Community 25"
+    },
+    {
+      "label": "acceptedResult()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L124",
+      "_origin": "ast",
+      "community": 25,
+      "norm_label": "acceptedresult()",
+      "id": "mcp_trusted_worker_offline_composition_acceptedresult",
+      "community_name": "Community 25"
+    },
+    {
+      "label": "acceptanceSchema",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L129",
+      "_origin": "ast",
+      "community": 25,
+      "norm_label": "acceptanceschema",
+      "id": "mcp_trusted_worker_offline_composition_acceptanceschema",
+      "community_name": "Community 25"
+    },
+    {
+      "label": "matchingAcceptance()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L140",
+      "_origin": "ast",
+      "community": 25,
+      "norm_label": "matchingacceptance()",
+      "id": "mcp_trusted_worker_offline_composition_matchingacceptance",
+      "community_name": "Community 25"
+    },
+    {
+      "label": "captureOptions()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L156",
+      "_origin": "ast",
+      "community": 25,
+      "norm_label": "captureoptions()",
+      "id": "mcp_trusted_worker_offline_composition_captureoptions",
+      "community_name": "Community 25"
+    },
+    {
+      "label": "buildOfflineComposition()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L186",
+      "_origin": "ast",
+      "community": 25,
+      "norm_label": "buildofflinecomposition()",
+      "id": "mcp_trusted_worker_offline_composition_buildofflinecomposition",
+      "community_name": "Community 25"
+    },
+    {
+      "label": "createTrustedWorkerOfflineComposition()",
+      "file_type": "code",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L403",
+      "_origin": "ast",
+      "community": 25,
+      "norm_label": "createtrustedworkerofflinecomposition()",
+      "id": "mcp_trusted_worker_offline_composition_createtrustedworkerofflinecomposition",
+      "community_name": "Community 25"
     },
     {
       "label": "project-identity.test.ts",
@@ -6167,10 +6739,10 @@
       "source_file": "appraisejs/src/project-identity.ts",
       "source_location": "L69",
       "_origin": "ast",
-      "community": 11,
+      "community": 35,
       "norm_label": "ensurelocalprojectidentity()",
       "id": "src_project_identity_ensurelocalprojectidentity",
-      "community_name": "Community 11"
+      "community_name": "Community 35"
     },
     {
       "label": "replaceIdentityFile()",
@@ -7421,10 +7993,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L152",
       "_origin": "ast",
-      "community": 34,
+      "community": 43,
       "norm_label": "removelegacytemplatetargetproject()",
       "id": "scripts_prepare_template_removelegacytemplatetargetproject",
-      "community_name": "Community 34"
+      "community_name": "Community 43"
     },
     {
       "label": "hashFile()",
@@ -7652,10 +8224,10 @@
       "source_file": "create-appraisejs/scripts/prepare-template.ts",
       "source_location": "L522",
       "_origin": "ast",
-      "community": 34,
+      "community": 43,
       "norm_label": "seedtemplatedatabases()",
       "id": "scripts_prepare_template_seedtemplatedatabases",
-      "community_name": "Community 34"
+      "community_name": "Community 43"
     },
     {
       "label": "composeTemplateForVerification()",
@@ -7784,10 +8356,10 @@
       "source_file": "create-appraisejs/src/cli-args.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 45,
+      "community": 24,
       "norm_label": "cli-args.test.ts",
       "id": "src_cli_args_test",
-      "community_name": "Community 45"
+      "community_name": "Community 24"
     },
     {
       "label": "cli-args.ts",
@@ -7795,10 +8367,10 @@
       "source_file": "create-appraisejs/src/cli-args.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 45,
+      "community": 24,
       "norm_label": "cli-args.ts",
       "id": "src_cli_args",
-      "community_name": "Community 45"
+      "community_name": "Community 24"
     },
     {
       "label": "CliOptions",
@@ -7806,10 +8378,10 @@
       "source_file": "create-appraisejs/src/cli-args.ts",
       "source_location": "L3",
       "_origin": "ast",
-      "community": 26,
+      "community": 24,
       "norm_label": "clioptions",
       "id": "src_cli_args_clioptions",
-      "community_name": "Community 26"
+      "community_name": "Community 24"
     },
     {
       "label": "getTemplateFlagValue()",
@@ -7817,10 +8389,10 @@
       "source_file": "create-appraisejs/src/cli-args.ts",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 45,
+      "community": 24,
       "norm_label": "gettemplateflagvalue()",
       "id": "src_cli_args_gettemplateflagvalue",
-      "community_name": "Community 45"
+      "community_name": "Community 24"
     },
     {
       "label": "parseCliArgs()",
@@ -7828,10 +8400,10 @@
       "source_file": "create-appraisejs/src/cli-args.ts",
       "source_location": "L19",
       "_origin": "ast",
-      "community": 45,
+      "community": 24,
       "norm_label": "parsecliargs()",
       "id": "src_cli_args_parsecliargs",
-      "community_name": "Community 45"
+      "community_name": "Community 24"
     },
     {
       "label": "cli.e2e.test.ts",
@@ -7850,10 +8422,10 @@
       "source_file": "create-appraisejs/src/cli.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 28,
+      "community": 24,
       "norm_label": "cli.ts",
       "id": "create_appraisejs_src_cli_ts_src_cli",
-      "community_name": "Community 28"
+      "community_name": "Community 24"
     },
     {
       "label": "formatBrowserInstallStep()",
@@ -7861,10 +8433,10 @@
       "source_file": "create-appraisejs/src/cli.ts",
       "source_location": "L9",
       "_origin": "ast",
-      "community": 28,
+      "community": 24,
       "norm_label": "formatbrowserinstallstep()",
       "id": "src_cli_formatbrowserinstallstep",
-      "community_name": "Community 28"
+      "community_name": "Community 24"
     },
     {
       "label": "getSuccessMessageLines()",
@@ -7872,10 +8444,10 @@
       "source_file": "create-appraisejs/src/cli.ts",
       "source_location": "L17",
       "_origin": "ast",
-      "community": 28,
+      "community": 24,
       "norm_label": "getsuccessmessagelines()",
       "id": "src_cli_getsuccessmessagelines",
-      "community_name": "Community 28"
+      "community_name": "Community 24"
     },
     {
       "label": "printSuccessMessage()",
@@ -7883,10 +8455,10 @@
       "source_file": "create-appraisejs/src/cli.ts",
       "source_location": "L53",
       "_origin": "ast",
-      "community": 28,
+      "community": 24,
       "norm_label": "printsuccessmessage()",
       "id": "src_cli_printsuccessmessage",
-      "community_name": "Community 28"
+      "community_name": "Community 24"
     },
     {
       "label": "main()",
@@ -7894,10 +8466,10 @@
       "source_file": "create-appraisejs/src/cli.ts",
       "source_location": "L65",
       "_origin": "ast",
-      "community": 28,
+      "community": 24,
       "norm_label": "main()",
       "id": "create_appraisejs_src_cli_ts_src_cli_main",
-      "community_name": "Community 28"
+      "community_name": "Community 24"
     },
     {
       "label": "config.test.ts",
@@ -7905,10 +8477,10 @@
       "source_file": "create-appraisejs/src/config.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 26,
+      "community": 24,
       "norm_label": "config.test.ts",
       "id": "src_config_test",
-      "community_name": "Community 26"
+      "community_name": "Community 24"
     },
     {
       "label": "config.ts",
@@ -7916,10 +8488,10 @@
       "source_file": "create-appraisejs/src/config.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 26,
+      "community": 24,
       "norm_label": "config.ts",
       "id": "src_config",
-      "community_name": "Community 26"
+      "community_name": "Community 24"
     },
     {
       "label": "Config",
@@ -7927,10 +8499,10 @@
       "source_file": "create-appraisejs/src/config.ts",
       "source_location": "L3",
       "_origin": "ast",
-      "community": 26,
+      "community": 24,
       "norm_label": "config",
       "id": "src_config_config",
-      "community_name": "Community 26"
+      "community_name": "Community 24"
     },
     {
       "label": "getConfig()",
@@ -7938,10 +8510,10 @@
       "source_file": "create-appraisejs/src/config.ts",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 26,
+      "community": 24,
       "norm_label": "getconfig()",
       "id": "src_config_getconfig",
-      "community_name": "Community 26"
+      "community_name": "Community 24"
     },
     {
       "label": "copy-template.test.ts",
@@ -8125,10 +8697,10 @@
       "source_file": "create-appraisejs/src/create-project.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 26,
+      "community": 24,
       "norm_label": "create-project.test.ts",
       "id": "src_create_project_test",
-      "community_name": "Community 26"
+      "community_name": "Community 24"
     },
     {
       "label": "createDependencies()",
@@ -8136,10 +8708,10 @@
       "source_file": "create-appraisejs/src/create-project.test.ts",
       "source_location": "L5",
       "_origin": "ast",
-      "community": 26,
+      "community": 24,
       "norm_label": "createdependencies()",
       "id": "src_create_project_test_createdependencies",
-      "community_name": "Community 26"
+      "community_name": "Community 24"
     },
     {
       "label": "createLogger()",
@@ -8147,10 +8719,10 @@
       "source_file": "create-appraisejs/src/create-project.test.ts",
       "source_location": "L17",
       "_origin": "ast",
-      "community": 26,
+      "community": 24,
       "norm_label": "createlogger()",
       "id": "src_create_project_test_createlogger",
-      "community_name": "Community 26"
+      "community_name": "Community 24"
     },
     {
       "label": "ANSWERS",
@@ -8158,10 +8730,10 @@
       "source_file": "create-appraisejs/src/create-project.test.ts",
       "source_location": "L29",
       "_origin": "ast",
-      "community": 26,
+      "community": 24,
       "norm_label": "answers",
       "id": "src_create_project_test_answers",
-      "community_name": "Community 26"
+      "community_name": "Community 24"
     },
     {
       "label": "create-project.ts",
@@ -8169,10 +8741,10 @@
       "source_file": "create-appraisejs/src/create-project.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 26,
+      "community": 24,
       "norm_label": "create-project.ts",
       "id": "src_create_project",
-      "community_name": "Community 26"
+      "community_name": "Community 24"
     },
     {
       "label": "CreateProjectDependencies",
@@ -8180,10 +8752,10 @@
       "source_file": "create-appraisejs/src/create-project.ts",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 26,
+      "community": 24,
       "norm_label": "createprojectdependencies",
       "id": "src_create_project_createprojectdependencies",
-      "community_name": "Community 26"
+      "community_name": "Community 24"
     },
     {
       "label": "CreateProjectLogger",
@@ -8191,10 +8763,10 @@
       "source_file": "create-appraisejs/src/create-project.ts",
       "source_location": "L14",
       "_origin": "ast",
-      "community": 26,
+      "community": 24,
       "norm_label": "createprojectlogger",
       "id": "src_create_project_createprojectlogger",
-      "community_name": "Community 26"
+      "community_name": "Community 24"
     },
     {
       "label": "CreateProjectResult",
@@ -8202,10 +8774,10 @@
       "source_file": "create-appraisejs/src/create-project.ts",
       "source_location": "L18",
       "_origin": "ast",
-      "community": 26,
+      "community": 24,
       "norm_label": "createprojectresult",
       "id": "src_create_project_createprojectresult",
-      "community_name": "Community 26"
+      "community_name": "Community 24"
     },
     {
       "label": "defaultDependencies",
@@ -8213,10 +8785,10 @@
       "source_file": "create-appraisejs/src/create-project.ts",
       "source_location": "L23",
       "_origin": "ast",
-      "community": 26,
+      "community": 24,
       "norm_label": "defaultdependencies",
       "id": "src_create_project_defaultdependencies",
-      "community_name": "Community 26"
+      "community_name": "Community 24"
     },
     {
       "label": "copyBundledTemplate()",
@@ -8224,10 +8796,10 @@
       "source_file": "create-appraisejs/src/create-project.ts",
       "source_location": "L30",
       "_origin": "ast",
-      "community": 26,
+      "community": 24,
       "norm_label": "copybundledtemplate()",
       "id": "src_create_project_copybundledtemplate",
-      "community_name": "Community 26"
+      "community_name": "Community 24"
     },
     {
       "label": "createProject()",
@@ -8235,10 +8807,10 @@
       "source_file": "create-appraisejs/src/create-project.ts",
       "source_location": "L42",
       "_origin": "ast",
-      "community": 26,
+      "community": 24,
       "norm_label": "createproject()",
       "id": "src_create_project_createproject",
-      "community_name": "Community 26"
+      "community_name": "Community 24"
     },
     {
       "label": "install.test.ts",
@@ -8246,10 +8818,10 @@
       "source_file": "create-appraisejs/src/install.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 28,
+      "community": 24,
       "norm_label": "install.test.ts",
       "id": "src_install_test",
-      "community_name": "Community 28"
+      "community_name": "Community 24"
     },
     {
       "label": "TEMPLATE_SCRIPTS",
@@ -8257,10 +8829,10 @@
       "source_file": "create-appraisejs/src/install.test.ts",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 28,
+      "community": 24,
       "norm_label": "template_scripts",
       "id": "src_install_test_template_scripts",
-      "community_name": "Community 28"
+      "community_name": "Community 24"
     },
     {
       "label": "patchAndRead()",
@@ -8268,10 +8840,10 @@
       "source_file": "create-appraisejs/src/install.test.ts",
       "source_location": "L24",
       "_origin": "ast",
-      "community": 28,
+      "community": 24,
       "norm_label": "patchandread()",
       "id": "src_install_test_patchandread",
-      "community_name": "Community 28"
+      "community_name": "Community 24"
     },
     {
       "label": "install.ts",
@@ -8279,10 +8851,10 @@
       "source_file": "create-appraisejs/src/install.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 28,
+      "community": 24,
       "norm_label": "install.ts",
       "id": "src_install",
-      "community_name": "Community 28"
+      "community_name": "Community 24"
     },
     {
       "label": "RUN_SETUP_ARGS",
@@ -8290,10 +8862,10 @@
       "source_file": "create-appraisejs/src/install.ts",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 28,
+      "community": 24,
       "norm_label": "run_setup_args",
       "id": "src_install_run_setup_args",
-      "community_name": "Community 28"
+      "community_name": "Community 24"
     },
     {
       "label": "RUN_PLAYWRIGHT_INSTALL_ARGS",
@@ -8301,10 +8873,10 @@
       "source_file": "create-appraisejs/src/install.ts",
       "source_location": "L8",
       "_origin": "ast",
-      "community": 28,
+      "community": 24,
       "norm_label": "run_playwright_install_args",
       "id": "src_install_run_playwright_install_args",
-      "community_name": "Community 28"
+      "community_name": "Community 24"
     },
     {
       "label": "getInstallCommand()",
@@ -8312,10 +8884,10 @@
       "source_file": "create-appraisejs/src/install.ts",
       "source_location": "L11",
       "_origin": "ast",
-      "community": 28,
+      "community": 24,
       "norm_label": "getinstallcommand()",
       "id": "src_install_getinstallcommand",
-      "community_name": "Community 28"
+      "community_name": "Community 24"
     },
     {
       "label": "getPlaywrightInstallCommand()",
@@ -8323,10 +8895,10 @@
       "source_file": "create-appraisejs/src/install.ts",
       "source_location": "L15",
       "_origin": "ast",
-      "community": 28,
+      "community": 24,
       "norm_label": "getplaywrightinstallcommand()",
       "id": "src_install_getplaywrightinstallcommand",
-      "community_name": "Community 28"
+      "community_name": "Community 24"
     },
     {
       "label": "patchPackageJsonScripts()",
@@ -8334,10 +8906,10 @@
       "source_file": "create-appraisejs/src/install.ts",
       "source_location": "L29",
       "_origin": "ast",
-      "community": 28,
+      "community": 24,
       "norm_label": "patchpackagejsonscripts()",
       "id": "src_install_patchpackagejsonscripts",
-      "community_name": "Community 28"
+      "community_name": "Community 24"
     },
     {
       "label": "spawnOptions()",
@@ -8345,10 +8917,10 @@
       "source_file": "create-appraisejs/src/install.ts",
       "source_location": "L41",
       "_origin": "ast",
-      "community": 28,
+      "community": 24,
       "norm_label": "spawnoptions()",
       "id": "src_install_spawnoptions",
-      "community_name": "Community 28"
+      "community_name": "Community 24"
     },
     {
       "label": "runCommand()",
@@ -8356,10 +8928,10 @@
       "source_file": "create-appraisejs/src/install.ts",
       "source_location": "L53",
       "_origin": "ast",
-      "community": 28,
+      "community": 24,
       "norm_label": "runcommand()",
       "id": "src_install_runcommand",
-      "community_name": "Community 28"
+      "community_name": "Community 24"
     },
     {
       "label": "runSetup()",
@@ -8367,10 +8939,10 @@
       "source_file": "create-appraisejs/src/install.ts",
       "source_location": "L68",
       "_origin": "ast",
-      "community": 28,
+      "community": 24,
       "norm_label": "runsetup()",
       "id": "src_install_runsetup",
-      "community_name": "Community 28"
+      "community_name": "Community 24"
     },
     {
       "label": "package-manager.test.ts",
@@ -8378,10 +8950,10 @@
       "source_file": "create-appraisejs/src/package-manager.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 54,
+      "community": 24,
       "norm_label": "package-manager.test.ts",
       "id": "src_package_manager_test",
-      "community_name": "Community 54"
+      "community_name": "Community 24"
     },
     {
       "label": "TEMPLATE_SCRIPTS",
@@ -8389,10 +8961,10 @@
       "source_file": "create-appraisejs/src/package-manager.test.ts",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 54,
+      "community": 24,
       "norm_label": "template_scripts",
       "id": "src_package_manager_test_template_scripts",
-      "community_name": "Community 54"
+      "community_name": "Community 24"
     },
     {
       "label": "package-manager.ts",
@@ -8400,10 +8972,10 @@
       "source_file": "create-appraisejs/src/package-manager.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 54,
+      "community": 24,
       "norm_label": "package-manager.ts",
       "id": "src_package_manager",
-      "community_name": "Community 54"
+      "community_name": "Community 24"
     },
     {
       "label": "PackageManagerProfile",
@@ -8411,10 +8983,10 @@
       "source_file": "create-appraisejs/src/package-manager.ts",
       "source_location": "L3",
       "_origin": "ast",
-      "community": 54,
+      "community": 24,
       "norm_label": "packagemanagerprofile",
       "id": "src_package_manager_packagemanagerprofile",
-      "community_name": "Community 54"
+      "community_name": "Community 24"
     },
     {
       "label": "PACKAGE_MANAGER_PROFILES",
@@ -8422,10 +8994,10 @@
       "source_file": "create-appraisejs/src/package-manager.ts",
       "source_location": "L10",
       "_origin": "ast",
-      "community": 54,
+      "community": 24,
       "norm_label": "package_manager_profiles",
       "id": "src_package_manager_package_manager_profiles",
-      "community_name": "Community 54"
+      "community_name": "Community 24"
     },
     {
       "label": "getPackageManagerProfile()",
@@ -8433,10 +9005,10 @@
       "source_file": "create-appraisejs/src/package-manager.ts",
       "source_location": "L37",
       "_origin": "ast",
-      "community": 54,
+      "community": 24,
       "norm_label": "getpackagemanagerprofile()",
       "id": "src_package_manager_getpackagemanagerprofile",
-      "community_name": "Community 54"
+      "community_name": "Community 24"
     },
     {
       "label": "rewriteScriptsForPackageManager()",
@@ -8444,10 +9016,10 @@
       "source_file": "create-appraisejs/src/package-manager.ts",
       "source_location": "L41",
       "_origin": "ast",
-      "community": 54,
+      "community": 24,
       "norm_label": "rewritescriptsforpackagemanager()",
       "id": "src_package_manager_rewritescriptsforpackagemanager",
-      "community_name": "Community 54"
+      "community_name": "Community 24"
     },
     {
       "label": "prepare-template-script.test.ts",
@@ -8697,10 +9269,10 @@
       "source_file": "create-appraisejs/src/prepare-template-utils.ts",
       "source_location": "L152",
       "_origin": "ast",
-      "community": 43,
+      "community": 34,
       "norm_label": "verifypreparedtemplatestate()",
       "id": "src_prepare_template_utils_verifypreparedtemplatestate",
-      "community_name": "Community 43"
+      "community_name": "Community 34"
     },
     {
       "label": "prompts.test.ts",
@@ -8708,10 +9280,10 @@
       "source_file": "create-appraisejs/src/prompts.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 55,
+      "community": 24,
       "norm_label": "prompts.test.ts",
       "id": "src_prompts_test",
-      "community_name": "Community 55"
+      "community_name": "Community 24"
     },
     {
       "label": "getMocks()",
@@ -8719,10 +9291,10 @@
       "source_file": "create-appraisejs/src/prompts.test.ts",
       "source_location": "L14",
       "_origin": "ast",
-      "community": 55,
+      "community": 24,
       "norm_label": "getmocks()",
       "id": "src_prompts_test_getmocks",
-      "community_name": "Community 55"
+      "community_name": "Community 24"
     },
     {
       "label": "prompts.ts",
@@ -8730,10 +9302,10 @@
       "source_file": "create-appraisejs/src/prompts.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 55,
+      "community": 24,
       "norm_label": "prompts.ts",
       "id": "src_prompts",
-      "community_name": "Community 55"
+      "community_name": "Community 24"
     },
     {
       "label": "PackageManager",
@@ -8741,10 +9313,10 @@
       "source_file": "create-appraisejs/src/prompts.ts",
       "source_location": "L6",
       "_origin": "ast",
-      "community": 54,
+      "community": 24,
       "norm_label": "packagemanager",
       "id": "src_prompts_packagemanager",
-      "community_name": "Community 54"
+      "community_name": "Community 24"
     },
     {
       "label": "PlaywrightBrowser",
@@ -8752,10 +9324,10 @@
       "source_file": "create-appraisejs/src/prompts.ts",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 28,
+      "community": 24,
       "norm_label": "playwrightbrowser",
       "id": "src_prompts_playwrightbrowser",
-      "community_name": "Community 28"
+      "community_name": "Community 24"
     },
     {
       "label": "PromptAnswers",
@@ -8763,10 +9335,10 @@
       "source_file": "create-appraisejs/src/prompts.ts",
       "source_location": "L9",
       "_origin": "ast",
-      "community": 26,
+      "community": 24,
       "norm_label": "promptanswers",
       "id": "src_prompts_promptanswers",
-      "community_name": "Community 26"
+      "community_name": "Community 24"
     },
     {
       "label": "PromptOptions",
@@ -8774,10 +9346,10 @@
       "source_file": "create-appraisejs/src/prompts.ts",
       "source_location": "L17",
       "_origin": "ast",
-      "community": 26,
+      "community": 24,
       "norm_label": "promptoptions",
       "id": "src_prompts_promptoptions",
-      "community_name": "Community 26"
+      "community_name": "Community 24"
     },
     {
       "label": "isDirEmpty()",
@@ -8785,10 +9357,10 @@
       "source_file": "create-appraisejs/src/prompts.ts",
       "source_location": "L23",
       "_origin": "ast",
-      "community": 55,
+      "community": 24,
       "norm_label": "isdirempty()",
       "id": "src_prompts_isdirempty",
-      "community_name": "Community 55"
+      "community_name": "Community 24"
     },
     {
       "label": "validateTargetDirectory()",
@@ -8796,10 +9368,10 @@
       "source_file": "create-appraisejs/src/prompts.ts",
       "source_location": "L29",
       "_origin": "ast",
-      "community": 55,
+      "community": 24,
       "norm_label": "validatetargetdirectory()",
       "id": "src_prompts_validatetargetdirectory",
-      "community_name": "Community 55"
+      "community_name": "Community 24"
     },
     {
       "label": "runPrompts()",
@@ -8807,10 +9379,10 @@
       "source_file": "create-appraisejs/src/prompts.ts",
       "source_location": "L40",
       "_origin": "ast",
-      "community": 55,
+      "community": 24,
       "norm_label": "runprompts()",
       "id": "src_prompts_runprompts",
-      "community_name": "Community 55"
+      "community_name": "Community 24"
     },
     {
       "label": "scaffold-gitignore.test.ts",
@@ -8895,10 +9467,10 @@
       "source_file": "create-appraisejs/src/sync-templates-utils.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 60,
+      "community": 50,
       "norm_label": "sync-templates-utils.test.ts",
       "id": "src_sync_templates_utils_test",
-      "community_name": "Community 60"
+      "community_name": "Community 50"
     },
     {
       "label": "sync-templates-utils.ts",
@@ -8906,10 +9478,10 @@
       "source_file": "create-appraisejs/src/sync-templates-utils.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 60,
+      "community": 50,
       "norm_label": "sync-templates-utils.ts",
       "id": "src_sync_templates_utils",
-      "community_name": "Community 60"
+      "community_name": "Community 50"
     },
     {
       "label": "EXCLUDED_TEMPLATE_PATH_PREFIXES",
@@ -8917,10 +9489,10 @@
       "source_file": "create-appraisejs/src/sync-templates-utils.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 60,
+      "community": 50,
       "norm_label": "excluded_template_path_prefixes",
       "id": "src_sync_templates_utils_excluded_template_path_prefixes",
-      "community_name": "Community 60"
+      "community_name": "Community 50"
     },
     {
       "label": "EXCLUDED_TEMPLATE_FILENAMES",
@@ -8928,10 +9500,10 @@
       "source_file": "create-appraisejs/src/sync-templates-utils.ts",
       "source_location": "L2",
       "_origin": "ast",
-      "community": 60,
+      "community": 50,
       "norm_label": "excluded_template_filenames",
       "id": "src_sync_templates_utils_excluded_template_filenames",
-      "community_name": "Community 60"
+      "community_name": "Community 50"
     },
     {
       "label": "toPosixPath()",
@@ -8939,10 +9511,10 @@
       "source_file": "create-appraisejs/src/sync-templates-utils.ts",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 60,
+      "community": 50,
       "norm_label": "toposixpath()",
       "id": "src_sync_templates_utils_toposixpath",
-      "community_name": "Community 60"
+      "community_name": "Community 50"
     },
     {
       "label": "shouldExcludeBundledTemplatePath()",
@@ -8950,10 +9522,10 @@
       "source_file": "create-appraisejs/src/sync-templates-utils.ts",
       "source_location": "L8",
       "_origin": "ast",
-      "community": 60,
+      "community": 50,
       "norm_label": "shouldexcludebundledtemplatepath()",
       "id": "src_sync_templates_utils_shouldexcludebundledtemplatepath",
-      "community_name": "Community 60"
+      "community_name": "Community 50"
     },
     {
       "label": "template-boundary.test.ts",
@@ -9038,10 +9610,10 @@
       "source_file": "create-appraisejs/src/template-catalog.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 45,
+      "community": 24,
       "norm_label": "template-catalog.ts",
       "id": "src_template_catalog",
-      "community_name": "Community 45"
+      "community_name": "Community 24"
     },
     {
       "label": "__dirname",
@@ -9049,10 +9621,10 @@
       "source_file": "create-appraisejs/src/template-catalog.ts",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 45,
+      "community": 24,
       "norm_label": "__dirname",
       "id": "src_template_catalog_dirname",
-      "community_name": "Community 45"
+      "community_name": "Community 24"
     },
     {
       "label": "packageDir",
@@ -9060,10 +9632,10 @@
       "source_file": "create-appraisejs/src/template-catalog.ts",
       "source_location": "L5",
       "_origin": "ast",
-      "community": 45,
+      "community": 24,
       "norm_label": "packagedir",
       "id": "src_template_catalog_packagedir",
-      "community_name": "Community 45"
+      "community_name": "Community 24"
     },
     {
       "label": "TEMPLATE_IDS",
@@ -9071,10 +9643,10 @@
       "source_file": "create-appraisejs/src/template-catalog.ts",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 45,
+      "community": 24,
       "norm_label": "template_ids",
       "id": "src_template_catalog_template_ids",
-      "community_name": "Community 45"
+      "community_name": "Community 24"
     },
     {
       "label": "TemplateId",
@@ -9082,10 +9654,10 @@
       "source_file": "create-appraisejs/src/template-catalog.ts",
       "source_location": "L9",
       "_origin": "ast",
-      "community": 26,
+      "community": 24,
       "norm_label": "templateid",
       "id": "src_template_catalog_templateid",
-      "community_name": "Community 26"
+      "community_name": "Community 24"
     },
     {
       "label": "TemplateDefinition",
@@ -9093,10 +9665,10 @@
       "source_file": "create-appraisejs/src/template-catalog.ts",
       "source_location": "L11",
       "_origin": "ast",
-      "community": 45,
+      "community": 24,
       "norm_label": "templatedefinition",
       "id": "src_template_catalog_templatedefinition",
-      "community_name": "Community 45"
+      "community_name": "Community 24"
     },
     {
       "label": "TEMPLATE_CATALOG",
@@ -9104,10 +9676,10 @@
       "source_file": "create-appraisejs/src/template-catalog.ts",
       "source_location": "L20",
       "_origin": "ast",
-      "community": 45,
+      "community": 24,
       "norm_label": "template_catalog",
       "id": "src_template_catalog_template_catalog",
-      "community_name": "Community 45"
+      "community_name": "Community 24"
     },
     {
       "label": "getTemplateDefinition()",
@@ -9115,10 +9687,10 @@
       "source_file": "create-appraisejs/src/template-catalog.ts",
       "source_location": "L35",
       "_origin": "ast",
-      "community": 43,
+      "community": 24,
       "norm_label": "gettemplatedefinition()",
       "id": "src_template_catalog_gettemplatedefinition",
-      "community_name": "Community 43"
+      "community_name": "Community 24"
     },
     {
       "label": "getTemplateDefinitions()",
@@ -9126,10 +9698,10 @@
       "source_file": "create-appraisejs/src/template-catalog.ts",
       "source_location": "L39",
       "_origin": "ast",
-      "community": 43,
+      "community": 24,
       "norm_label": "gettemplatedefinitions()",
       "id": "src_template_catalog_gettemplatedefinitions",
-      "community_name": "Community 43"
+      "community_name": "Community 24"
     },
     {
       "label": "isTemplateId()",
@@ -9137,10 +9709,10 @@
       "source_file": "create-appraisejs/src/template-catalog.ts",
       "source_location": "L43",
       "_origin": "ast",
-      "community": 45,
+      "community": 24,
       "norm_label": "istemplateid()",
       "id": "src_template_catalog_istemplateid",
-      "community_name": "Community 45"
+      "community_name": "Community 24"
     },
     {
       "label": "parseTemplateId()",
@@ -9148,10 +9720,10 @@
       "source_file": "create-appraisejs/src/template-catalog.ts",
       "source_location": "L47",
       "_origin": "ast",
-      "community": 45,
+      "community": 24,
       "norm_label": "parsetemplateid()",
       "id": "src_template_catalog_parsetemplateid",
-      "community_name": "Community 45"
+      "community_name": "Community 24"
     },
     {
       "label": "getTemplateChoices()",
@@ -9159,10 +9731,10 @@
       "source_file": "create-appraisejs/src/template-catalog.ts",
       "source_location": "L52",
       "_origin": "ast",
-      "community": 55,
+      "community": 24,
       "norm_label": "gettemplatechoices()",
       "id": "src_template_catalog_gettemplatechoices",
-      "community_name": "Community 55"
+      "community_name": "Community 24"
     },
     {
       "label": "resolveBundledTemplatePath()",
@@ -9203,10 +9775,10 @@
       "source_file": "create-appraisejs/src/template-catalog.ts",
       "source_location": "L76",
       "_origin": "ast",
-      "community": 45,
+      "community": 24,
       "norm_label": "formattemplatelist()",
       "id": "src_template_catalog_formattemplatelist",
-      "community_name": "Community 45"
+      "community_name": "Community 24"
     },
     {
       "label": "template-sync-utils.test.ts",
@@ -9995,10 +10567,10 @@
       "source_file": "cucumber-runtime/src/cli.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 0,
+      "community": 4,
       "norm_label": "cli.ts",
       "id": "cucumber_runtime_src_cli_ts_src_cli",
-      "community_name": "Community 0"
+      "community_name": "Community 4"
     },
     {
       "label": "CliOptions",
@@ -10006,10 +10578,10 @@
       "source_file": "cucumber-runtime/src/cli.ts",
       "source_location": "L6",
       "_origin": "ast",
-      "community": 0,
+      "community": 4,
       "norm_label": "clioptions",
       "id": "cucumber_runtime_src_cli_ts_src_cli_clioptions",
-      "community_name": "Community 0"
+      "community_name": "Community 4"
     },
     {
       "label": "BROWSER_CHOICES",
@@ -10017,10 +10589,10 @@
       "source_file": "cucumber-runtime/src/cli.ts",
       "source_location": "L14",
       "_origin": "ast",
-      "community": 0,
+      "community": 4,
       "norm_label": "browser_choices",
       "id": "src_cli_browser_choices",
-      "community_name": "Community 0"
+      "community_name": "Community 4"
     },
     {
       "label": "HEADLESS_CHOICES",
@@ -10028,10 +10600,10 @@
       "source_file": "cucumber-runtime/src/cli.ts",
       "source_location": "L15",
       "_origin": "ast",
-      "community": 0,
+      "community": 4,
       "norm_label": "headless_choices",
       "id": "src_cli_headless_choices",
-      "community_name": "Community 0"
+      "community_name": "Community 4"
     },
     {
       "label": "program",
@@ -10039,10 +10611,10 @@
       "source_file": "cucumber-runtime/src/cli.ts",
       "source_location": "L20",
       "_origin": "ast",
-      "community": 0,
+      "community": 4,
       "norm_label": "program",
       "id": "cucumber_runtime_src_cli_ts_src_cli_program",
-      "community_name": "Community 0"
+      "community_name": "Community 4"
     },
     {
       "label": "environmentNames",
@@ -10050,10 +10622,10 @@
       "source_file": "cucumber-runtime/src/cli.ts",
       "source_location": "L22",
       "_origin": "ast",
-      "community": 0,
+      "community": 4,
       "norm_label": "environmentnames",
       "id": "src_cli_environmentnames",
-      "community_name": "Community 0"
+      "community_name": "Community 4"
     },
     {
       "label": "parsePositiveInt()",
@@ -10061,10 +10633,10 @@
       "source_file": "cucumber-runtime/src/cli.ts",
       "source_location": "L30",
       "_origin": "ast",
-      "community": 0,
+      "community": 4,
       "norm_label": "parsepositiveint()",
       "id": "src_cli_parsepositiveint",
-      "community_name": "Community 0"
+      "community_name": "Community 4"
     },
     {
       "label": "validateCucumberTagExpression()",
@@ -10072,10 +10644,10 @@
       "source_file": "cucumber-runtime/src/cli.ts",
       "source_location": "L38",
       "_origin": "ast",
-      "community": 0,
+      "community": 4,
       "norm_label": "validatecucumbertagexpression()",
       "id": "src_cli_validatecucumbertagexpression",
-      "community_name": "Community 0"
+      "community_name": "Community 4"
     },
     {
       "label": "startCli()",
@@ -10083,10 +10655,10 @@
       "source_file": "cucumber-runtime/src/cli.ts",
       "source_location": "L74",
       "_origin": "ast",
-      "community": 68,
+      "community": 4,
       "norm_label": "startcli()",
       "id": "src_cli_startcli",
-      "community_name": "Community 68"
+      "community_name": "Community 4"
     },
     {
       "label": "environment.util.ts",
@@ -10160,10 +10732,10 @@
       "source_file": "cucumber-runtime/src/executor.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 68,
+      "community": 4,
       "norm_label": "executor.ts",
       "id": "src_executor",
-      "community_name": "Community 68"
+      "community_name": "Community 4"
     },
     {
       "label": "bootstrap()",
@@ -10171,10 +10743,10 @@
       "source_file": "cucumber-runtime/src/executor.ts",
       "source_location": "L5",
       "_origin": "ast",
-      "community": 68,
+      "community": 4,
       "norm_label": "bootstrap()",
       "id": "src_executor_bootstrap",
-      "community_name": "Community 68"
+      "community_name": "Community 4"
     },
     {
       "label": "hooks.ts",
@@ -12976,10 +13548,10 @@
       "source_file": "cucumber-runtime/src/types.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 0,
+      "community": 4,
       "norm_label": "types.ts",
       "id": "cucumber_runtime_src_types_ts_src_types",
-      "community_name": "Community 0"
+      "community_name": "Community 4"
     },
     {
       "label": "BrowserName",
@@ -12987,10 +13559,10 @@
       "source_file": "cucumber-runtime/src/types.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 0,
+      "community": 4,
       "norm_label": "browsername",
       "id": "src_types_browsername",
-      "community_name": "Community 0"
+      "community_name": "Community 4"
     },
     {
       "label": "CSSSelector",
@@ -12998,10 +13570,10 @@
       "source_file": "cucumber-runtime/src/types.ts",
       "source_location": "L3",
       "_origin": "ast",
-      "community": 0,
+      "community": 4,
       "norm_label": "cssselector",
       "id": "src_types_cssselector",
-      "community_name": "Community 0"
+      "community_name": "Community 4"
     },
     {
       "label": "XPathSelector",
@@ -13009,10 +13581,10 @@
       "source_file": "cucumber-runtime/src/types.ts",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 0,
+      "community": 4,
       "norm_label": "xpathselector",
       "id": "src_types_xpathselector",
-      "community_name": "Community 0"
+      "community_name": "Community 4"
     },
     {
       "label": "SelectorName",
@@ -13031,10 +13603,10 @@
       "source_file": "cucumber-runtime/src/types.ts",
       "source_location": "L6",
       "_origin": "ast",
-      "community": 0,
+      "community": 4,
       "norm_label": "selector",
       "id": "src_types_selector",
-      "community_name": "Community 0"
+      "community_name": "Community 4"
     },
     {
       "label": "Locator",
@@ -13042,10 +13614,10 @@
       "source_file": "cucumber-runtime/src/types.ts",
       "source_location": "L7",
       "_origin": "ast",
-      "community": 0,
+      "community": 4,
       "norm_label": "locator",
       "id": "src_types_locator",
-      "community_name": "Community 0"
+      "community_name": "Community 4"
     },
     {
       "label": "LocatorMap",
@@ -14615,10 +15187,10 @@
       "source_file": "appraisejs/src/agent-setup-capabilities.ts",
       "source_location": "L3",
       "_origin": "ast",
-      "community": 10,
+      "community": 49,
       "norm_label": "expectedagentcapabilities",
       "id": "src_agent_setup_capabilities_expectedagentcapabilities",
-      "community_name": "Community 10"
+      "community_name": "Community 49"
     },
     {
       "label": "stepValueSchema",
@@ -18605,6 +19177,28 @@
       "target": "src_mcp_transport_revocation_test_cliargs"
     },
     {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L244",
+      "weight": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition_build",
+      "target": "src_mcp_transport_revocation_test_close"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L397",
+      "weight": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_buildofflinecomposition",
+      "target": "src_mcp_transport_revocation_test_close"
+    },
+    {
       "relation": "re_exports",
       "context": "export",
       "confidence": "EXTRACTED",
@@ -21893,6 +22487,28 @@
       "target": "mcp_external_worker_gateway"
     },
     {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_external_worker_gateway"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.test.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_test",
+      "target": "mcp_external_worker_gateway"
+    },
+    {
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
@@ -21945,6 +22561,17 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "mcp_trusted_worker_native_route_test",
+      "target": "mcp_external_worker_gateway_externalworkerrole"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.test.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_test",
       "target": "mcp_external_worker_gateway_externalworkerrole"
     },
     {
@@ -22006,6 +22633,28 @@
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_external_worker_gateway_externalworkertools"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.test.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_test",
+      "target": "mcp_external_worker_gateway_externalworkertools"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
       "source_file": "appraisejs/src/mcp/external-worker-server.test.ts",
       "source_location": "L8",
       "weight": 1.0,
@@ -22055,6 +22704,28 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "mcp_trusted_worker_bridge",
+      "target": "mcp_external_worker_gateway_externalworkeracceptance"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_external_worker_gateway_externalworkeracceptance"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.test.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_test",
       "target": "mcp_external_worker_gateway_externalworkeracceptance"
     },
     {
@@ -22706,6 +23377,17 @@
       "target": "mcp_external_worker_server"
     },
     {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_external_worker_server"
+    },
+    {
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
@@ -22780,6 +23462,28 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "mcp_trusted_worker_native_route_test_sdkfixture",
+      "target": "mcp_external_worker_server_createexternalworkermcpserver"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_external_worker_server_createexternalworkermcpserver"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L214",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_buildofflinecomposition",
       "target": "mcp_external_worker_server_createexternalworkermcpserver"
     },
     {
@@ -23097,6 +23801,50 @@
       "target": "mcp_server_factory_createappraisemcpserver"
     },
     {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition",
+      "target": "mcp_managed_worker_server"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.test.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition_test",
+      "target": "mcp_managed_worker_server"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition",
+      "target": "mcp_managed_worker_server_attemptscopedworkerprofile"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.test.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition_test",
+      "target": "mcp_managed_worker_server_attemptscopedworkerprofile"
+    },
+    {
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
@@ -23106,6 +23854,28 @@
       "confidence_score": 1.0,
       "source": "mcp_managed_worker_server_createattemptscopedworkermcpserver",
       "target": "mcp_managed_worker_server_digest"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition",
+      "target": "mcp_managed_worker_server_createattemptscopedworkermcpserver"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L113",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition_build",
+      "target": "mcp_managed_worker_server_createattemptscopedworkermcpserver"
     },
     {
       "relation": "calls",
@@ -23538,6 +24308,17 @@
       "target": "mcp_native_descriptor_capture"
     },
     {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.test.ts",
+      "source_location": "L9",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_test",
+      "target": "mcp_native_descriptor_capture"
+    },
+    {
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
@@ -23874,6 +24655,17 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "mcp_trusted_worker_native_route_test",
+      "target": "mcp_native_descriptor_capture_nativedescriptorcollector"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.test.ts",
+      "source_location": "L9",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_test",
       "target": "mcp_native_descriptor_capture_nativedescriptorcollector"
     },
     {
@@ -24965,6 +25757,403 @@
       "target": "mcp_stdio_server_runappraisemcp"
     },
     {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.test.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition_test",
+      "target": "mcp_trusted_managed_worker_offline_composition"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.test.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition_test",
+      "target": "mcp_trusted_managed_worker_offline_composition_createtrustedmanagedworkerofflinecomposition"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.test.ts",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition_test",
+      "target": "mcp_trusted_managed_worker_offline_composition_test_closes"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.test.ts",
+      "source_location": "L48",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition_test",
+      "target": "mcp_trusted_managed_worker_offline_composition_test_fixture"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.test.ts",
+      "source_location": "L59",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition_test",
+      "target": "mcp_trusted_managed_worker_offline_composition_test_gate"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.test.ts",
+      "source_location": "L18",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition_test",
+      "target": "mcp_trusted_managed_worker_offline_composition_test_hash"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.test.ts",
+      "source_location": "L33",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition_test",
+      "target": "mcp_trusted_managed_worker_offline_composition_test_profile"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.test.ts",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition_test",
+      "target": "mcp_trusted_managed_worker_offline_composition_test_toolnames"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.test.ts",
+      "source_location": "L30",
+      "weight": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition_test_hash",
+      "target": "mcp_trusted_managed_worker_offline_composition_canonical"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.test.ts",
+      "source_location": "L49",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition_test_fixture",
+      "target": "mcp_trusted_managed_worker_offline_composition_test_profile"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.test.ts",
+      "source_location": "L50",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition_test_fixture",
+      "target": "mcp_trusted_managed_worker_offline_composition_createtrustedmanagedworkerofflinecomposition"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L106",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition",
+      "target": "mcp_trusted_managed_worker_offline_composition_build"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L40",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition",
+      "target": "mcp_trusted_managed_worker_offline_composition_canonical"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L70",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition",
+      "target": "mcp_trusted_managed_worker_offline_composition_capture"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L54",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition",
+      "target": "mcp_trusted_managed_worker_offline_composition_copy"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L249",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition",
+      "target": "mcp_trusted_managed_worker_offline_composition_createtrustedmanagedworkerofflinecomposition"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L59",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition",
+      "target": "mcp_trusted_managed_worker_offline_composition_freeze"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L49",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition",
+      "target": "mcp_trusted_managed_worker_offline_composition_hash"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L31",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition",
+      "target": "mcp_trusted_managed_worker_offline_composition_managedofflinecompositionerror"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition",
+      "target": "mcp_trusted_managed_worker_offline_composition_managedofflinecompositionreceipt"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L95",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition",
+      "target": "mcp_trusted_managed_worker_offline_composition_pending"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L37",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition",
+      "target": "mcp_trusted_managed_worker_offline_composition_refuse"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L80",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition",
+      "target": "mcp_trusted_managed_worker_offline_composition_timed"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L23",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition",
+      "target": "mcp_trusted_managed_worker_offline_composition_trustedmanagedworkerofflineoptions"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L66",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition",
+      "target": "mcp_trusted_managed_worker_offline_composition_within"
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L32",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition_managedofflinecompositionerror",
+      "target": "mcp_trusted_managed_worker_offline_composition_managedofflinecompositionerror_constructor"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L158",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition_build",
+      "target": "mcp_trusted_managed_worker_offline_composition_refuse"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L71",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition_capture",
+      "target": "mcp_trusted_managed_worker_offline_composition_refuse"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L56",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition_copy",
+      "target": "mcp_trusted_managed_worker_offline_composition_refuse"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L253",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition_createtrustedmanagedworkerofflinecomposition",
+      "target": "mcp_trusted_managed_worker_offline_composition_refuse"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L67",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition_within",
+      "target": "mcp_trusted_managed_worker_offline_composition_refuse"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L51",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition_hash",
+      "target": "mcp_trusted_managed_worker_offline_composition_canonical"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L73",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition_capture",
+      "target": "mcp_trusted_managed_worker_offline_composition_copy"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L236",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition_build",
+      "target": "mcp_trusted_managed_worker_offline_composition_freeze"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L73",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition_capture",
+      "target": "mcp_trusted_managed_worker_offline_composition_freeze"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L75",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition_capture",
+      "target": "mcp_trusted_managed_worker_offline_composition_within"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L107",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition_build",
+      "target": "mcp_trusted_managed_worker_offline_composition_capture"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-managed-worker-offline-composition.ts",
+      "source_location": "L251",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_managed_worker_offline_composition_createtrustedmanagedworkerofflinecomposition",
+      "target": "mcp_trusted_managed_worker_offline_composition_build"
+    },
+    {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "appraisejs/src/mcp/trusted-worker-bridge.ts",
@@ -25115,6 +26304,17 @@
       "target": "mcp_trusted_worker_bridge_trustedworkerbridgeresponse"
     },
     {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L9",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_trusted_worker_bridge"
+    },
+    {
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
@@ -25146,6 +26346,72 @@
       "confidence_score": 1.0,
       "source": "mcp_trusted_worker_bridge_exact",
       "target": "mcp_trusted_worker_bridge_canonicaljson"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L9",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_trusted_worker_bridge_createtrustedworkerbridgeserver"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L215",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_buildofflinecomposition",
+      "target": "mcp_trusted_worker_bridge_createtrustedworkerbridgeserver"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L9",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_trusted_worker_bridge_createtrustedworkerbridgeclient"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L227",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_buildofflinecomposition",
+      "target": "mcp_trusted_worker_bridge_createtrustedworkerbridgeclient"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L9",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_trusted_worker_bridge_createtrustedworkerbridgeendpoint"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L228",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_buildofflinecomposition",
+      "target": "mcp_trusted_worker_bridge_createtrustedworkerbridgeendpoint"
     },
     {
       "relation": "imports_from",
@@ -25497,6 +26763,28 @@
       "target": "mcp_trusted_worker_native_route_trustedwrappercodec"
     },
     {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_trusted_worker_native_route"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.test.ts",
+      "source_location": "L10",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_test",
+      "target": "mcp_trusted_worker_native_route"
+    },
+    {
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
@@ -25618,6 +26906,39 @@
       "target": "mcp_trusted_worker_native_route_blocked"
     },
     {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_trusted_worker_native_route_trustedrouteinput"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.test.ts",
+      "source_location": "L10",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_test",
+      "target": "mcp_trusted_worker_native_route_trustedrouteinput"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_trusted_worker_native_route_preparedtrustedroute"
+    },
+    {
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
@@ -25649,6 +26970,584 @@
       "confidence_score": 1.0,
       "source": "mcp_trusted_worker_native_route_correlatetrustedworkernativecalls",
       "target": "mcp_trusted_worker_native_route_preparetrustedworkernativeroute"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_trusted_worker_native_route_preparetrustedworkernativeroute"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L105",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_requireprepared",
+      "target": "mcp_trusted_worker_native_route_preparetrustedworkernativeroute"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_trusted_worker_native_route_constructedtrustedcall"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_trusted_worker_native_route_constructtrustedworkernativecall"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L271",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_buildofflinecomposition",
+      "target": "mcp_trusted_worker_native_route_constructtrustedworkernativecall"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_trusted_worker_native_route_correlatetrustedworkernativecalls"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L306",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_buildofflinecomposition",
+      "target": "mcp_trusted_worker_native_route_correlatetrustedworkernativecalls"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.test.ts",
+      "source_location": "L11",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_test",
+      "target": "mcp_trusted_worker_offline_composition"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.test.ts",
+      "source_location": "L11",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_test",
+      "target": "mcp_trusted_worker_offline_composition_createtrustedworkerofflinecomposition"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.test.ts",
+      "source_location": "L23",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_test",
+      "target": "mcp_trusted_worker_offline_composition_test_binding"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.test.ts",
+      "source_location": "L17",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_test",
+      "target": "mcp_trusted_worker_offline_composition_test_closes"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.test.ts",
+      "source_location": "L45",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_test",
+      "target": "mcp_trusted_worker_offline_composition_test_directroute"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.test.ts",
+      "source_location": "L86",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_test",
+      "target": "mcp_trusted_worker_offline_composition_test_fixture"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.test.ts",
+      "source_location": "L22",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_test",
+      "target": "mcp_trusted_worker_offline_composition_test_hash"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.test.ts",
+      "source_location": "L11",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_test",
+      "target": "mcp_trusted_worker_offline_composition_trustedworkerofflineoptions"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.test.ts",
+      "source_location": "L91",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_test_fixture",
+      "target": "mcp_trusted_worker_offline_composition_test_binding"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.test.ts",
+      "source_location": "L169",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_test_fixture",
+      "target": "mcp_trusted_worker_offline_composition_createtrustedworkerofflinecomposition"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L129",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_trusted_worker_offline_composition_acceptanceschema"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L124",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_trusted_worker_offline_composition_acceptedresult"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L77",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_trusted_worker_offline_composition_boundedcopy"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L23",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_trusted_worker_offline_composition_bridgeoptions"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L186",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_trusted_worker_offline_composition_buildofflinecomposition"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L156",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_trusted_worker_offline_composition_captureoptions"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L89",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_trusted_worker_offline_composition_captureroute"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L403",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_trusted_worker_offline_composition_createtrustedworkerofflinecomposition"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L24",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_trusted_worker_offline_composition_endpoint"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L82",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_trusted_worker_offline_composition_freeze"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L72",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_trusted_worker_offline_composition_hash"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L140",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_trusted_worker_offline_composition_matchingacceptance"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L30",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_trusted_worker_offline_composition_offlinesyntheticworkercaller"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L44",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_trusted_worker_offline_composition_offlineworkercall"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L51",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_trusted_worker_offline_composition_offlineworkercompositionerror"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L57",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_trusted_worker_offline_composition_refuse"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L104",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_trusted_worker_offline_composition_requireprepared"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L25",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_trusted_worker_offline_composition_routecontext"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L63",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_trusted_worker_offline_composition_stable"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L109",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_trusted_worker_offline_composition_timed"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L37",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition",
+      "target": "mcp_trusted_worker_offline_composition_trustedworkerofflineoptions"
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L52",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_offlineworkercompositionerror",
+      "target": "mcp_trusted_worker_offline_composition_offlineworkercompositionerror_constructor"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L79",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_boundedcopy",
+      "target": "mcp_trusted_worker_offline_composition_refuse"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L258",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_buildofflinecomposition",
+      "target": "mcp_trusted_worker_offline_composition_refuse"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L168",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_captureoptions",
+      "target": "mcp_trusted_worker_offline_composition_refuse"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L407",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_createtrustedworkerofflinecomposition",
+      "target": "mcp_trusted_worker_offline_composition_refuse"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L147",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_matchingacceptance",
+      "target": "mcp_trusted_worker_offline_composition_refuse"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L106",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_requireprepared",
+      "target": "mcp_trusted_worker_offline_composition_refuse"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L74",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_hash",
+      "target": "mcp_trusted_worker_offline_composition_stable"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L251",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_buildofflinecomposition",
+      "target": "mcp_trusted_worker_offline_composition_boundedcopy"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L169",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_captureoptions",
+      "target": "mcp_trusted_worker_offline_composition_boundedcopy"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L93",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_captureroute",
+      "target": "mcp_trusted_worker_offline_composition_boundedcopy"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L248",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_buildofflinecomposition",
+      "target": "mcp_trusted_worker_offline_composition_freeze"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L152",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_matchingacceptance",
+      "target": "mcp_trusted_worker_offline_composition_freeze"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L253",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_buildofflinecomposition",
+      "target": "mcp_trusted_worker_offline_composition_captureroute"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L259",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_buildofflinecomposition",
+      "target": "mcp_trusted_worker_offline_composition_requireprepared"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L200",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_buildofflinecomposition",
+      "target": "mcp_trusted_worker_offline_composition_captureoptions"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appraisejs/src/mcp/trusted-worker-offline-composition.ts",
+      "source_location": "L405",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "mcp_trusted_worker_offline_composition_createtrustedworkerofflinecomposition",
+      "target": "mcp_trusted_worker_offline_composition_buildofflinecomposition"
     },
     {
       "relation": "imports_from",
@@ -41709,5 +43608,5 @@
       "source_file": "appraisejs/agent-skills/appraise-planning-standby/SKILL.md"
     }
   ],
-  "built_at_commit": "8d8d82545e0a46d1b5e28de7bb47017dfd13cd85"
+  "built_at_commit": "4b685e688f9f25c683aa1ece5ee2722668fe5cec"
 }

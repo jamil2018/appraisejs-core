@@ -118,10 +118,58 @@ function disposableDiscoveryRuntime(): DiscoveryBrowserRuntime {
   }
 }
 
-export async function prepareM10AutomationFixture(baseUrl = 'http://127.0.0.1:44081/checkout') {
+export type M10OfflineDispatchEvent = Readonly<{
+  binding: import('@/services/coordinator/quality-journey-service').ExternalQualityJourneySubmissionBinding
+  client: import('@prisma/client').PrismaClient
+  databasePath: string
+  canonicalDefinitions: readonly import('@/lib/quality-journey/managed-worker-gateway').CanonicalMcpDefinition[]
+  toolName: string
+  arguments: Record<string, unknown>
+  directInvoke: () => Promise<unknown>
+}>
+export type M10OfflineDispatch = (event: M10OfflineDispatchEvent) => Promise<unknown>
+export async function prepareM10AutomationFixture(
+  baseUrl = 'http://127.0.0.1:44081/checkout',
+  offline?: { dispatch: M10OfflineDispatch },
+) {
   const f = await createProviderFixture()
   try {
     const { client, scope, credentials, principal } = f
+    const canonicalDefinitions = registerAppraiseOperations({
+      server: { registerTool: () => ({}), registerResource: () => ({}) } as never,
+      api: {} as never,
+      options: { baseUrl: 'http://127.0.0.1:3000', cwd: process.cwd(), coordinatorId: 'm10-disposable' },
+    })
+    const gatewayBindings = new WeakMap<ScopedGateway, M10OfflineDispatchEvent['binding']>()
+    const dispatch = async <T>(
+      binding: M10OfflineDispatchEvent['binding'],
+      toolName: string,
+      args: Record<string, unknown>,
+      directInvoke: () => Promise<T>,
+    ): Promise<T> =>
+      offline
+        ? ((await offline.dispatch({
+            binding,
+            client,
+            databasePath: f.databasePath,
+            canonicalDefinitions,
+            toolName,
+            arguments: args,
+            directInvoke,
+          })) as T)
+        : directInvoke()
+    const callWorker = async <T = unknown>(
+      gateway: ScopedGateway,
+      toolName: string,
+      args: Record<string, unknown> = {},
+    ) => {
+      const invoke = () => callM10WorkerMcp<T>(gateway, toolName, args)
+      const binding = gatewayBindings.get(gateway)
+      return offline && binding && typeof args.idempotencyKey === 'string'
+        ? dispatch(binding, toolName, args, invoke)
+        : invoke()
+    }
+
     const operations = [
       'browser.navigation.navigate.to.environment.base.url',
       'browser.navigation.reload',
@@ -227,21 +275,28 @@ export async function prepareM10AutomationFixture(baseUrl = 'http://127.0.0.1:44
       questions: [],
       resolvedQuestionAnswerIds: [],
     }
-    const submitted = await submitExternalQualityJourneyAnalysisSuccessor(
-      {
-        ...scope,
-        workItemId: f.binding.workItemId,
-        attemptId: f.binding.attemptId,
-        assignmentId: f.binding.assignmentId,
-        assignmentGeneration: f.binding.assignmentGeneration,
-        assignmentSecret: f.binding.assignmentSecret,
-        leaseId: f.binding.leaseId,
-        idempotencyKey: 'm10-submit-analysis',
-        charter,
-      },
-      principal,
-      client,
-      credentials,
+    const submitAnalysis = () =>
+      submitExternalQualityJourneyAnalysisSuccessor(
+        {
+          ...scope,
+          workItemId: f.binding.workItemId,
+          attemptId: f.binding.attemptId,
+          assignmentId: f.binding.assignmentId,
+          assignmentGeneration: f.binding.assignmentGeneration,
+          assignmentSecret: f.binding.assignmentSecret,
+          leaseId: f.binding.leaseId,
+          idempotencyKey: 'm10-submit-analysis',
+          charter,
+        },
+        principal,
+        client,
+        credentials,
+      )
+    const submitted = await dispatch(
+      f.binding,
+      'quality_journey_analysis_submit',
+      { idempotencyKey: 'm10-submit-analysis', charter },
+      submitAnalysis,
     )
     const analysis = submitted.analysisRevision
     const analysisRefs = [
@@ -272,11 +327,7 @@ export async function prepareM10AutomationFixture(baseUrl = 'http://127.0.0.1:44
       client,
       trustedHumanCoordinatorSession,
     )
-    const canonicalDefinitions = registerAppraiseOperations({
-      server: { registerTool: () => ({}), registerResource: () => ({}) } as never,
-      api: {} as never,
-      options: { baseUrl: 'http://127.0.0.1:3000', cwd: process.cwd(), coordinatorId: 'm10-disposable' },
-    })
+
     let claimSequence = 0
     const admit = async (role: QualityJourneyRole) => {
       const key = `m10-${role}-${++claimSequence}`
@@ -330,11 +381,13 @@ export async function prepareM10AutomationFixture(baseUrl = 'http://127.0.0.1:44
       canonicalDefinitions,
       client,
     )
+    gatewayBindings.set(scoutGateway, scout.workerBinding)
     const explorerGateway = await createQualityJourneyInternalDiscoveryGateway(
       explorer.workerBinding,
       canonicalDefinitions,
       client,
     )
+    gatewayBindings.set(explorerGateway, explorer.workerBinding)
     const analysisRevision = {
       artifactId: discovery.analysisRevisionArtifactId,
       revisionId: discovery.analysisRevisionId,
@@ -351,7 +404,7 @@ export async function prepareM10AutomationFixture(baseUrl = 'http://127.0.0.1:44
     }
     const descriptor = { artifactId: captured.artifactId, contentHash: captured.contentHash }
     const { receipt } = captured
-    await callM10WorkerMcp(scoutGateway, 'quality_journey_target_observation_submit', {
+    await callWorker(scoutGateway, 'quality_journey_target_observation_submit', {
       discoveryRevisionId: discovery.id,
       idempotencyKey: 'm10-observations',
       bundle: {
@@ -392,7 +445,7 @@ export async function prepareM10AutomationFixture(baseUrl = 'http://127.0.0.1:44
         { resourceId: `operation:${operation.id}:${operation.version}`, resourceKind: 'OPERATION' },
       ]),
     ]
-    await callM10WorkerMcp(explorerGateway, 'quality_journey_resource_resolution_submit', {
+    await callWorker(explorerGateway, 'quality_journey_resource_resolution_submit', {
       discoveryRevisionId: discovery.id,
       idempotencyKey: 'm10-resolution',
       bundle: {
@@ -433,7 +486,8 @@ export async function prepareM10AutomationFixture(baseUrl = 'http://127.0.0.1:44
       canonicalDefinitions,
       client,
     )
-    const { result: design } = await callM10WorkerMcp<{
+    gatewayBindings.set(designerGateway, designer.workerBinding)
+    const { result: design } = await callWorker<{
       cycleId: string
       discoveryRevisionId: string
       discoveryCompletionHash: string
@@ -484,7 +538,7 @@ export async function prepareM10AutomationFixture(baseUrl = 'http://127.0.0.1:44
       graph: portfolio.graph,
       scenarios: portfolio.scenarios,
     }
-    await callM10WorkerMcp(designerGateway, 'quality_journey_scenarios_submit', {
+    await callWorker(designerGateway, 'quality_journey_scenarios_submit', {
       idempotencyKey: 'm10-scenarios',
       portfolio: exactPortfolio,
     })
@@ -533,7 +587,8 @@ export async function prepareM10AutomationFixture(baseUrl = 'http://127.0.0.1:44
       canonicalDefinitions,
       client,
     )
-    const { result: automation } = await callM10WorkerMcp<{
+    gatewayBindings.set(automatorGateway, automator.workerBinding)
+    const { result: automation } = await callWorker<{
       stepDefinitions: Array<{ definition: { identity: { id: string; version: string } }; definitionHash: string }>
     }>(automatorGateway, 'quality_journey_automation_context_get')
     const steps = operations.map(({ operation, definition }, index) => ({
@@ -549,7 +604,7 @@ export async function prepareM10AutomationFixture(baseUrl = 'http://127.0.0.1:44
       testData: [],
       locatorRequirements: [],
     }))
-    await callM10WorkerMcp(automatorGateway, 'quality_journey_automation_materialize', {
+    await callWorker(automatorGateway, 'quality_journey_automation_materialize', {
       idempotencyKey: 'm10-materialize',
       scenarios: [{ scenarioRevisionId, steps }],
     })

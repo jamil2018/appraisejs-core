@@ -6,6 +6,15 @@ tree `1c1928b52dc3cba476f3cb2a13f34863215cee40`.
 This plan does not authorize its execution. No real inference, sign-in, push, merge, publication, public managed
 opt-in, default-mode change, account switch or credential export is permitted by this request.
 
+## Current offline completion scope
+
+On 2026-11-14 the user clarified completion as **remaining offline implementation under all existing limits**.
+The [offline implementation plan](M13-OFFLINE-IMPLEMENTATION-PLAN.md) and its [verification record](M13-OFFLINE-IMPLEMENTATION-VERIFICATION.md)
+cover same-owned pre-arm readiness/dispatch, encrypted original assignment custody, canonical six-role delivery and the
+managed SDK package bridge. Native launches, real credential access, inference, sign-in, push and publication remain
+unauthorized. The original table and Lane B proposals below remain runtime gates; synthetic implementation evidence
+cannot satisfy them. No further arbitrary offline seam is a substitute for these live observations.
+
 ## Starting evidence and remaining blockers
 
 [Exact-candidate review](M13-VERIFICATION.md), [six-role follow-up](M13-REPLAY-VERIFICATION.md), and its independent
@@ -14,15 +23,15 @@ complete for the tested six-role canonical service cases: 84 focused source chec
 Do not put that closed gap back on the queue or treat it as actual provider transport qualification.
 Full native helper inventory and hostile containment are not revived as mandatory gates.
 
-| Remaining issue                             | Current fact                                                                                                                                                          | Evidence needed                                                                                                                                                           |
-| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Product provider composition                | `startQualityJourneyProductionProvider()` in `quality-journey-process-supervisor.ts` unconditionally refuses. The enabled supervisor adapter is explicitly a fixture. | Separately scoped adapter/composition implementation and exact-artifact review, then authorized observations. Native feasibility alone cannot enable production dispatch. |
-| Exact native tuple and required MCP         | M13 observed source/stub/installed-app behavior, not current native Codex initialization or required-MCP failure.                                                     | Exact executable/build/configuration/protocol plus actual native positive readiness and required-MCP refusal, without fallback.                                           |
-| Existing-login use and provider eligibility | Direction is existing-login/error-if-missing. M01's one-off auth-file topology and consumed allowances do not apply to a new run.                                     | A newly authorized credential-source topology and bounded native observation; eligibility/support conclusions limited to what is actually evidenced.                      |
-| Real model and all-role delivery            | Accepted canonical fixture artifacts do not prove provider-produced role outputs, native transport or actual clarification waits.                                     | Separately authorized native/provider cases tied to canonical artifacts, human decisions and original cleanup.                                                            |
-| Native interruption/recovery                | Synthetic children, database replay and browser checks do not establish every actual Codex/provider crash or ambiguous-send outcome.                                  | Original-handle interruption, physical effect reconciliation and owned cleanup observations for each newly authorized native case.                                        |
-| Usage, latency and spend                    | Command/suite timings exist; per-accepted-artifact model tokens/cost/dispatch latency and real human-wait samples do not.                                             | Bounded samples with provenance; unavailable values remain UNQUALIFIED. Local attempt/turn caps are not hard monetary enforcement.                                        |
-| Distribution/support claims                 | No applicable distribution/auth eligibility or broader host claim was qualified by M13.                                                                               | Dated authoritative-source assessment for the intended local/distribution use and exact observed support scope. No publication follows.                                   |
+| Remaining issue                             | Current fact                                                                                                                                                                                  | Evidence needed                                                                                                                                                           |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Product provider composition                | `startQualityJourneyProductionProvider()` in `quality-journey-process-supervisor.ts` unconditionally refuses. The enabled supervisor adapter is explicitly a fixture.                         | Separately scoped adapter/composition implementation and exact-artifact review, then authorized observations. Native feasibility alone cannot enable production dispatch. |
+| Exact native tuple and required MCP         | M13 has source, injected synthetic composition and packed/generated-app evidence; current native initialization/required-MCP behavior remains unobserved.                                     | Exact executable/build/configuration/protocol plus actual native positive readiness and required-MCP refusal, without fallback.                                           |
+| Existing-login use and provider eligibility | Direction is existing-login/error-if-missing. Appraise assignment custody is separate from provider login; no real key/account topology is activated and old auth allowances are not renewed. | A newly authorized credential-source topology and bounded native observation; eligibility/support conclusions limited to what is actually evidenced.                      |
+| Real model and all-role delivery            | Accepted canonical fixture artifacts do not prove provider-produced role outputs, native transport or actual clarification waits.                                                             | Separately authorized native/provider cases tied to canonical artifacts, human decisions and original cleanup.                                                            |
+| Native interruption/recovery                | Synthetic children, database replay and browser checks do not establish every actual Codex/provider crash or ambiguous-send outcome.                                                          | Original-handle interruption, physical effect reconciliation and owned cleanup observations for each newly authorized native case.                                        |
+| Usage, latency and spend                    | Command/suite timings exist; per-accepted-artifact model tokens/cost/dispatch latency and real human-wait samples do not.                                                                     | Bounded samples with provenance; unavailable values remain UNQUALIFIED. Local attempt/turn caps are not hard monetary enforcement.                                        |
+| Distribution/support claims                 | No applicable distribution/auth eligibility or broader host claim was qualified by M13.                                                                                                       | Dated authoritative-source assessment for the intended local/distribution use and exact observed support scope. No publication follows.                                   |
 
 The policy source `src/lib/quality-journey/provider-intent-contract.ts` retains D05:
 explicit `gpt-6.1-sol` / medium, hub capacity 1, lease 120 s, heartbeat 40 s, acknowledgement 60 s,
@@ -67,6 +76,12 @@ bounds to make a future request finite, not allocations, current permission or a
 implements them. A failed/ambiguous case does not automatically authorize another attempt.
 
 ### B0: Offline product-adapter implementation
+
+**2026-11-14 scope clarification:** remaining offline implementation now includes original encrypted claim custody,
+same-owned pre-arm readiness/dispatch, all six canonical acceptance paths and a managed-profile SDK bridge.
+See the linked current verification record. Runtime acquisition/protocol matching, actual key/account provisioning,
+native physical effects and eligibility remain unqualified; both production entry points still refuse.
+The B0-R1 paragraph below remains its historical smaller scope.
 
 **B0-R1 follow-up:** the user approved the exact offline readiness-controller packet at `efddc307`, bound to all
 three recorded hashes. [Implementation evidence](M13-B0-R1-VERIFICATION.md) covers that narrow seam only.
@@ -193,7 +208,8 @@ Read-only inventory may describe retained records, but historical physical clean
 ## Checklist and completion boundary
 
 - [x] A1–A6 artifacts prepared and verified under existing scope; no native execution. See the linked completion record.
-- [ ] B0 separately authorized, implemented and independently accepted if product wiring is required.
+- [x] Remaining B0 offline implementation and required checks complete; final independent acceptance is bound to the delivery artifact separately.
+- [ ] Exact native acquisition/protocol/key/account composition qualified; production activation remains separately gated.
 - [ ] B1 exact native no-auth packet separately authorized and observed.
 - [ ] B2 exact existing-login topology/check separately authorized and observed.
 - [ ] B3 real-inference/spend packet separately authorized and observed.

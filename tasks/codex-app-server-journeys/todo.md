@@ -270,6 +270,9 @@ separates permitted offline checks from future actions requiring new exact autho
 was explicitly approved at `efddc307` for the offline readiness-controller implementation only.
 [B0-R1 implementation evidence](M13-B0-R1-VERIFICATION.md) records the completed offline seam, checks, three approved hashes and qualification limits.
 The full native product adapter remains incomplete; M13 remains unchecked.
+The user subsequently authorized [remaining offline implementation](M13-OFFLINE-IMPLEMENTATION-PLAN.md) under unchanged
+limits. [Offline verification](M13-OFFLINE-IMPLEMENTATION-VERIFICATION.md) records the completed offline implementation and checks separately from live
+runtime qualification; the overall M13 checkbox remains open.
 
 - [ ] Implement and verify this slice.
 

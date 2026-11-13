@@ -8,6 +8,22 @@
 
 M05 implements an internal owned-process supervision core and a local Node fixture adapter. Production app-server dispatch and the real provider launcher refuse unconditionally. No route, CLI, MCP registration, scheduler, role instruction loop or M06 behavior enables this sender. [M05 continuation](../tasks/codex-app-server-journeys/M05-CURRENT-WORK-01.md) records evidence and limitations; [the bounded plan](../tasks/codex-app-server-journeys/m05-supervision-plan-01.md) records acceptance criteria.
 
+## Complete offline provider composition
+
+`createOfflineQualityJourneyProviderComposition` is a separate injected synthetic path. It checks admitted authority
+before acquisition and performs initialize/required-MCP inspection on the same original port **before** canonical
+provider prepare/claim/arm. All thread/turn writes still use the canonical transactional provider writer and D05 bounds.
+The original supervisor and both production refusals remain unchanged. The stopped B0-R1 receipt is never a handoff.
+
+The offline path adds original-owner cancellation/cleanup, 40-second authority monitoring, lease expiry, arm-reply-loss
+UNKNOWN, six canonical role delivery paths and bounded synthetic phase receipts. The [managed package SDK composition](../tasks/codex-app-server-journeys/M13-OFFLINE-IMPLEMENTATION-PLAN.md)
+correlates exact public tool arguments/results through InMemoryTransport; root canonical services alone prove acceptance.
+A completed turn, accepted artifact, acknowledgement or successful fake stop cannot reconcile physical effects or release
+HUB. Per-role test snapshots deliberately retain occupied unreconciled slots. Restart never recreates a send permit.
+
+No native acquisition, real account/key source, public registration, scheduler or default-mode change is enabled.
+Every receipt keeps synthetic provenance, `runtimeQualified=false`, no observed native tuple and null/UNQUALIFIED usage.
+
 ## B0-R1 offline readiness contract
 
 The internal `createOfflineReadinessController` accepts only a captured `OFFLINE_FAKE_PORT` with semantic
