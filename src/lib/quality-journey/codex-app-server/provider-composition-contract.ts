@@ -59,6 +59,7 @@ export type OfflineRoleDeliveryReceipt = Readonly<{
 }>
 export type OfflineRoleDelivery = Readonly<{
   profileDigest: string
+  fence(): void
   invoke(call: OfflineProviderCall): Promise<OfflineRoleDeliveryReceipt>
   readCommitted?(call: OfflineProviderCall): Promise<OfflineRoleDeliveryReceipt | null>
 }>

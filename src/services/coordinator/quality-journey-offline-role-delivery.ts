@@ -106,7 +106,11 @@ export async function createOfflineQualityJourneyRoleDelivery(options: {
   await client.$transaction(tx => readInternalWorkerAuthority(binding, tx))
   const profile = createManagedWorkerRegistrationProfile(binding.role, canonicalDefinitions)
   const gateway = await createGateway()
-  const originalCalls = new Map<string, { argumentsDigest: string; outcomeAbsent: boolean }>()
+  let admissionClosed = false
+  const originalCalls = new Map<
+    string,
+    { argumentsDigest: string; outcomeAbsent: boolean; canonicalEntered: boolean }
+  >()
   const accepted = new Map<string, { argumentsDigest: string; receipt: OfflineRoleDeliveryReceipt }>()
 
   async function createGateway() {
@@ -262,7 +266,7 @@ export async function createOfflineQualityJourneyRoleDelivery(options: {
     }
     const original = originalCalls.get(key)
     if (original && original.argumentsDigest !== argumentsDigest) throw new Error('Changed offline replay payload')
-    originalCalls.set(key, { argumentsDigest, outcomeAbsent })
+    originalCalls.set(key, { argumentsDigest, outcomeAbsent, canonicalEntered: false })
   }
   function originalCanonical(
     call: OfflineProviderCall,
@@ -274,8 +278,11 @@ export async function createOfflineQualityJourneyRoleDelivery(options: {
     return {
       entered: () => entered,
       async invoke() {
+        assertAdmission()
         if (entered) throw new Error('Duplicate offline canonical call')
         entered = true
+        const original = originalCalls.get(key)
+        if (original) original.canonicalEntered = true
         const value = await invokeCanonical(call.toolName, args)
         if (call.toolName === entry.submit) {
           const receipt = await readWitness(key)
@@ -289,9 +296,15 @@ export async function createOfflineQualityJourneyRoleDelivery(options: {
     if (toolName === entry.submit) return accepted.get(key)?.receipt ?? (await readWitness(key))
     return Object.freeze({ accepted: false, operation: toolName, idempotencyKey: key, acceptanceDigest: null })
   }
+  function assertAdmission() {
+    if (admissionClosed) throw new Error('Offline role delivery is fenced')
+  }
   return Object.freeze({
     profile,
     profileDigest: profile.contractDigest,
+    fence() {
+      admissionClosed = true
+    },
     async invoke(call: OfflineProviderCall): Promise<OfflineRoleDeliveryReceipt> {
       const args = capture(call)
       const key = typeof args.idempotencyKey === 'string' ? args.idempotencyKey : ''
@@ -301,8 +314,11 @@ export async function createOfflineQualityJourneyRoleDelivery(options: {
         if (previous.argumentsDigest !== argumentsDigest) throw new Error('Changed offline replay payload')
         return readWitness(key)
       }
+      assertAdmission()
       await current()
+      assertAdmission()
       if (call.toolName === entry.submit) await rememberOriginal(key, argumentsDigest)
+      assertAdmission()
       const canonical = originalCanonical(call, args, key, argumentsDigest)
       if (exchange) await exchange(call.toolName, args, canonical.invoke)
       else await canonical.invoke()
@@ -317,7 +333,7 @@ export async function createOfflineQualityJourneyRoleDelivery(options: {
       const original = originalCalls.get(key)
       const expected = offlineCompositionDigest({ toolName: call.toolName, arguments: args })
       if (previous?.argumentsDigest === expected) return readWitness(key)
-      if (!original?.outcomeAbsent || original.argumentsDigest !== expected) return null
+      if (!original?.outcomeAbsent || !original.canonicalEntered || original.argumentsDigest !== expected) return null
       try {
         return await readWitness(key)
       } catch {

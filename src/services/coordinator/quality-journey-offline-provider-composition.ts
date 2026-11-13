@@ -100,6 +100,7 @@ export function createOfflineQualityJourneyProviderComposition(
   const delivery = Object.freeze({
     profileDigest: options.delivery.profileDigest,
     invoke: options.delivery.invoke,
+    fence: options.delivery.fence,
     readCommitted: options.delivery.readCommitted,
   })
   const acquire = options.acquire
@@ -108,7 +109,8 @@ export function createOfflineQualityJourneyProviderComposition(
     input.configurationDigest !== binding.configurationDigest ||
     delivery.profileDigest !== binding.roleProfileDigest ||
     typeof acquire !== 'function' ||
-    typeof delivery.invoke !== 'function'
+    typeof delivery.invoke !== 'function' ||
+    typeof delivery.fence !== 'function'
   )
     throw new OfflineCompositionFault('BINDING_MISMATCH')
   if (JSON.stringify(envelope).includes(input.assignmentSecret)) throw new OfflineCompositionFault('BINDING_MISMATCH')
@@ -131,6 +133,7 @@ export function createOfflineQualityJourneyProviderComposition(
     turnId: string | null = null
   let authorityIdentity: string | undefined
   let fenceAttempted = false
+  let deliveryFenceAttempted = false
   let stopFlight: Promise<OfflineProviderCompositionReceipt['cleanup']> | undefined
   let flight: Promise<OfflineProviderCompositionReceipt> | undefined
   let resolveFlight: (value: OfflineProviderCompositionReceipt) => void
@@ -161,8 +164,9 @@ export function createOfflineQualityJourneyProviderComposition(
     if (!closed) {
       closed = true
       reason = code
-      abort.abort()
     }
+    fenceDelivery()
+    abort.abort()
     fenceOriginal()
     if (port) void originalStop()
   }
@@ -179,7 +183,10 @@ export function createOfflineQualityJourneyProviderComposition(
         else resolve(value as T)
       }
       const cancelled = () => finish(undefined, new OfflineCompositionFault(reason === 'NONE' ? 'CANCELLED' : reason))
-      const timer = setTimeout(() => finish(undefined, new OfflineCompositionFault('TIMEOUT')), milliseconds)
+      const timer = setTimeout(() => {
+        if (!allowClosed) close('TIMEOUT')
+        finish(undefined, new OfflineCompositionFault('TIMEOUT'))
+      }, milliseconds)
       if (!allowClosed) abort.signal.addEventListener('abort', cancelled, { once: true })
       try {
         Promise.resolve(operation()).then(
@@ -190,6 +197,15 @@ export function createOfflineQualityJourneyProviderComposition(
         finish(undefined, new OfflineCompositionFault('SEND_FAILED'))
       }
     })
+  }
+  function fenceDelivery() {
+    if (deliveryFenceAttempted) return
+    deliveryFenceAttempted = true
+    try {
+      delivery.fence()
+    } catch {
+      fenceFailed = true
+    }
   }
   function fenceOriginal() {
     if (!port || fenceAttempted) return
@@ -410,6 +426,7 @@ export function createOfflineQualityJourneyProviderComposition(
   }
   async function finish() {
     closed = true
+    fenceDelivery()
     abort.abort()
     clearInterval(heartbeat)
     clearTimeout(expiryTimer)

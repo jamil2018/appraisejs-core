@@ -152,6 +152,17 @@ function matchingAcceptance(
   return freeze(parsed.data)
 }
 
+/** Observer settlement never owns admission, cleanup, or the caller's existing deadline. */
+function notifyUnknown(observer: BridgeOptions['onUnknown'], reason: Parameters<BridgeOptions['onUnknown']>[0]): void {
+  try {
+    void Promise.resolve(observer(reason)).catch(() => {
+      /* preserve bounded UNKNOWN without raw observer errors */
+    })
+  } catch {
+    /* synchronous observer failure cannot interrupt fencing or original SDK cleanup */
+  }
+}
+
 /** In-memory composition only. It never grants native dispatch, creates a listener or acquires a provider. */
 function captureOptions(options: TrustedWorkerOfflineOptions) {
   const { provenance, caseId, capability, authorize, request, readAcceptance, onUnknown, maxRequests, route } = options
@@ -174,7 +185,7 @@ function captureOptions(options: TrustedWorkerOfflineOptions) {
     authorize,
     request,
     readAcceptance,
-    onUnknown,
+    onUnknown: (reason: Parameters<BridgeOptions['onUnknown']>[0]) => notifyUnknown(onUnknown, reason),
     maxRequests,
     route,
     timeoutMs,
@@ -348,11 +359,7 @@ async function buildOfflineComposition(options: TrustedWorkerOfflineOptions) {
         return receipt(call, result.innerResult, result.correlation)
       } catch {
         fenced = true
-        try {
-          await onUnknown('request')
-        } catch {
-          /* ambiguity remains fenced */
-        }
+        onUnknown('request')
         throw new OfflineWorkerCompositionError('UNKNOWN')
       } finally {
         inFlight = false

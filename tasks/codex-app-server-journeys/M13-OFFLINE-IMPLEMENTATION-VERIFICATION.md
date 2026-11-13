@@ -25,8 +25,8 @@ current independent exact-artifact acceptance, bound separately in the final loc
 
 | Check                                   | Result                                                                                                                                                                      |
 | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Root focused batch                      | 257 tests / 13 suites passed, including all six roles through direct and actual managed SDK paths                                                                           |
-| CLI focused batch                       | 89 tests / 4 suites passed: managed/external composition and existing route/server regressions                                                                              |
+| Root focused batch                      | 264 tests / 13 suites passed, including all six roles through direct and actual managed SDK paths                                                                           |
+| CLI focused batch                       | 93 tests / 4 suites passed: managed/external composition and existing route/server regressions                                                                              |
 | Scaffold boundary/preparation tests     | 127 tests / 3 suites passed                                                                                                                                                 |
 | Affected ESLint / Prettier / TypeScript | PASS; no introduced warnings                                                                                                                                                |
 | Existing Fallow gate                    | PASS; zero introduced dead code, complexity or duplication findings; no suppressions/baseline changes                                                                       |
@@ -35,20 +35,20 @@ current independent exact-artifact acceptance, bound separately in the final loc
 | Production build                        | PASS, including Cucumber, companion, CLI and Next route generation                                                                                                          |
 | Harness / documentation links           | PASS                                                                                                                                                                        |
 | Artifact / package policy               | PASS; actual CLI 155 files, scaffold 1441 files                                                                                                                             |
-| Actual packed generated app             | 148 self-contained tests / 7 suites passed using its own dependencies/Prisma client                                                                                         |
+| Actual packed generated app             | 155 self-contained tests / 7 suites passed using its own dependencies/Prisma client                                                                                         |
 | Actual packed cross-package proof       | One dedicated test ran all six managed roles against generated canonical source + installed CLI; every case retained occupied unreconciled HUB                              |
 | Parity                                  | 18 included source/test hashes match canonical/prepared/extracted/generated; compiled managed package module matches extracted/installed; all 98 migration SQL hashes match |
 | Protected preimages                     | Original supervisor/launcher refusals, D05, schema/inventory and package manifests/locks unchanged                                                                          |
 
 Actual retained tarballs (local only, not published):
 
-- CLI SHA-256: `d21795a8a87a1baea7639ddbb5e7641b5887c7fb26bc669c08c997dcac17c746`
-- Scaffold SHA-256: `6350f71ae855a7b80c9d84694d732becd99f346dda0422edd271c3d21000c0e0`
+- CLI SHA-256: `1b47804aab8c39faabb4e21413331ae173517f9ce626f1dd4b66570a8e8e2532`
+- Scaffold SHA-256: `aaa730fb2c41023abec22c81e56b74d72e01579a4c58f0ddafcb7b5343cb3ca4`
 
-Frozen installed recipe SHA-256: `bbec9323691299d738ab3c26c161f54a7cc671b17cd34b325c04adee5733505b`.
-Frozen proof script SHA-256: `83070eddb8d4a6b358c96f5caced1442c57f25c454c2caa637c88df8cec2b60b`.
+Frozen installed recipe SHA-256: `c7c1f9212a22170881436dba94997c004b308f7e5380761b7fa996a79336bb4e`.
+Frozen proof script SHA-256: `5e8529ce45220fbae0d5abfc74dc329ddb5acd0761a50b1547f888bbfed1e414`.
 Local command/log-hash receipts, actual tarballs, fixture hashes and source parity are retained under
-`.appraisejs/m13-offline-evidence/`; final commit/tree/snapshot and independent decision are recorded separately.
+`.appraisejs/m13-offline-evidence/` (repaired actual proof under `packed-review-fixes/`); final commit/tree/snapshot and independent decision are recorded separately.
 Normal commit hooks remain enabled. The final review receipt must match the current artifact; no runtime authority
 follows from engineering acceptance or hash equality.
 
@@ -77,6 +77,15 @@ The separate managed SDK factory and server-owned fixed-field injection correcte
 no WorkerResult or acceptance was fabricated. An early oracle confused ACKNOWLEDGED with physical reconciliation;
 current checks require unreconciled intent plus occupied HUB. Exact original-owner call capture handles submission
 commit-reply loss without inventing a post-restart payload match or recreating a send permit.
+
+The first independent final review rejected two defects: retained role-delivery callbacks could enter after local
+cancellation, and the external helper awaited an unbounded UNKNOWN observer. The successor adds a captured synchronous
+role-delivery admission fence (including retained thunks) and nonblocking sanitized UNKNOWN notification. New SQLite
+cases distinguish zero late entry after cancellation/timeout from already-admitted effects that may still commit and
+must remain UNKNOWN. A never-settling diagnostic observer cannot extend the invocation deadline. No already-admitted
+transaction is falsely described as rolled back; historical exact lookups remain read-only. A repaired successor needs
+renewed source/generated/build/actual-packed checks and renewed exact-artifact review; the rejected snapshot and packages
+remain retained at their original paths; the successor uses a separate fresh proof root.
 
 Next reported its multiple-lockfile workspace-root and dynamic file-pattern warnings; production compilation succeeded.
 Graph reports retain structural weak/thin community warnings and placeholder labels; these are not native/system

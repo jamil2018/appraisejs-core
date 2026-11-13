@@ -423,4 +423,58 @@ describe('offline trusted worker package composition', () => {
       }),
     ).rejects.toMatchObject({ disposition: 'UNKNOWN', message: 'Offline worker composition unknown.' })
   })
+  it('settles timeout UNKNOWN and closes original SDK resources while the observer remains pending', async () => {
+    const observer = vi.fn(() => new Promise<void>(() => {}))
+    const f = await fixture('REQUIREMENT_ANALYZER', {
+      timeoutMs: 10,
+      onUnknown: observer,
+      caller: { provenance: 'OFFLINE_SYNTHETIC', invoke: () => new Promise(() => {}) },
+    })
+    vi.useFakeTimers()
+    const flight = f.invoke()
+    const rejected = expect(flight).rejects.toMatchObject({
+      disposition: 'UNKNOWN',
+      message: 'Offline worker composition unknown.',
+    })
+    await vi.advanceTimersByTimeAsync(10)
+    await rejected
+    expect(observer).toHaveBeenCalledTimes(1)
+    const close = f.composition.close()
+    expect(f.composition.close()).toBe(close)
+    await close
+    await expect(f.invoke(f.write.arguments, 'after-timeout')).rejects.toMatchObject({ disposition: 'REFUSED' })
+    expect(f.requests()).toBe(0)
+    expect(vi.getTimerCount()).toBe(0)
+  })
+  it.each(['throw', 'reject'] as const)(
+    'contains an observer that %ss without delaying UNKNOWN or cleanup',
+    async mode => {
+      const observer = vi.fn(() => {
+        if (mode === 'throw') throw new Error('sensitive-observer-error')
+        return Promise.reject(new Error('sensitive-observer-error'))
+      })
+      const f = await fixture('REQUIREMENT_ANALYZER', {
+        onUnknown: observer,
+        caller: { provenance: 'OFFLINE_SYNTHETIC', invoke: async () => ({ fabricated: true }) },
+      })
+      await expect(f.invoke()).rejects.toMatchObject({
+        disposition: 'UNKNOWN',
+        message: 'Offline worker composition unknown.',
+      })
+      expect(observer).toHaveBeenCalledTimes(1)
+      await f.composition.close()
+      await expect(f.invoke(f.write.arguments, 'after-observer')).rejects.toMatchObject({ disposition: 'REFUSED' })
+      expect(f.requests()).toBe(0)
+    },
+  )
+  it('does not await a pending bridge-side UNKNOWN observer after a failed canonical request', async () => {
+    const observer = vi.fn(() => new Promise<void>(() => {}))
+    const f = await fixture('REQUIREMENT_ANALYZER', { timeoutMs: 10, onUnknown: observer })
+    f.request.mockRejectedValueOnce(new Error('synthetic-request-reply-loss'))
+    await expect(f.invoke()).rejects.toMatchObject({ disposition: 'UNKNOWN' })
+    expect(observer).toHaveBeenCalled()
+    expect(f.requests()).toBe(0)
+    await f.composition.close()
+    await expect(f.invoke(f.write.arguments, 'fenced')).rejects.toMatchObject({ disposition: 'REFUSED' })
+  })
 })

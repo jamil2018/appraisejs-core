@@ -15,7 +15,7 @@ before acquisition and performs initialize/required-MCP inspection on the same o
 provider prepare/claim/arm. All thread/turn writes still use the canonical transactional provider writer and D05 bounds.
 The original supervisor and both production refusals remain unchanged. The stopped B0-R1 receipt is never a handoff.
 
-The offline path adds original-owner cancellation/cleanup, 40-second authority monitoring, lease expiry, arm-reply-loss
+The offline path adds original-owner cancellation/cleanup, a synchronous canonical-delivery admission fence, 40-second authority monitoring, lease expiry, arm-reply-loss
 UNKNOWN, six canonical role delivery paths and bounded synthetic phase receipts. The [managed package SDK composition](../tasks/codex-app-server-journeys/M13-OFFLINE-IMPLEMENTATION-PLAN.md)
 correlates exact public tool arguments/results through InMemoryTransport; root canonical services alone prove acceptance.
 A completed turn, accepted artifact, acknowledgement or successful fake stop cannot reconcile physical effects or release

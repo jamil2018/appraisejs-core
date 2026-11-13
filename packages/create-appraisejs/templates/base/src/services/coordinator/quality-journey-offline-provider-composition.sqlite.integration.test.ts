@@ -33,6 +33,20 @@ function deferred<T>() {
   })
   return { promise, resolve, reject }
 }
+async function snapshotDatabase(client: Awaited<ReturnType<typeof createProviderFixture>>['client']) {
+  const tables = await client.$queryRaw<
+    { name: string }[]
+  >`SELECT name FROM sqlite_master WHERE type='table' ORDER BY name`
+  const result: Record<string, string[]> = {}
+  for (const { name } of tables) {
+    const quoted = `"${name.replaceAll('"', '""')}"`
+    const rows = await client.$queryRawUnsafe<Record<string, unknown>[]>(`SELECT * FROM ${quoted}`)
+    result[name] = rows
+      .map(row => JSON.stringify(row, (_key, value) => (typeof value === 'bigint' ? value.toString() : value)))
+      .sort()
+  }
+  return result
+}
 async function setup() {
   const f = await createProviderFixture()
   fixtures.push(f)
@@ -596,5 +610,242 @@ describe('same-owned offline provider composition with migrated SQLite', () => {
     expect(receipt.acceptedArtifactDigests).toHaveLength(1)
     expect(f.port.startTurn).toHaveBeenCalledTimes(1)
     expect(await f.client.qualityJourneyExternalSubmissionAcceptance.count()).toBe(1)
+  })
+  it.each(['cancel', 'timeout'] as const)(
+    'fences retained canonical callback on %s before it is admitted',
+    async mode => {
+      const f = await setup(),
+        exchangeEntered = deferred<void>(),
+        resume = deferred<void>(),
+        late = deferred<'returned' | 'refused'>()
+      const delivery = await createOfflineQualityJourneyRoleDelivery({
+        binding: f.assignmentBinding,
+        canonicalDefinitions: definitions,
+        client: f.client,
+        exchange: async (_tool, _args, canonical) => {
+          exchangeEntered.resolve()
+          await resume.promise
+          try {
+            const result = await canonical()
+            late.resolve('returned')
+            return result
+          } catch (error) {
+            late.resolve('refused')
+            throw error
+          }
+        },
+      })
+      const originalFence = vi.fn(() => delivery.fence())
+      const wrapper = { ...delivery, fence: originalFence }
+      f.options.delivery = wrapper
+      const controller = f.create(),
+        flight = controller.start()
+      await exchangeEntered.promise
+      wrapper.fence = vi.fn(() => {
+        throw new Error('replacement delivery fence')
+      })
+      if (mode === 'cancel') expect(controller.cancel()).toBe(flight)
+      else await vi.advanceTimersByTimeAsync(101)
+      const receipt = await flight
+      expect(receipt.outcome).toBe('UNKNOWN')
+      expect(originalFence).toHaveBeenCalledTimes(1)
+      expect(wrapper.fence).not.toHaveBeenCalled()
+      const attempt = await f.client.qualityJourneyWorkAttempt.findUniqueOrThrow({
+        where: { id: f.assignmentBinding.attemptId },
+      })
+      expect(attempt.status).toBe('IN_PROGRESS')
+      expect(attempt.cancelledAt).toBeNull()
+      const beforeResume = await snapshotDatabase(f.client)
+      resume.resolve()
+      expect(await late.promise).toBe('refused')
+      await new Promise(resolve => setImmediate(resolve))
+      expect(await snapshotDatabase(f.client)).toEqual(beforeResume)
+      expect(await f.client.qualityJourneyExternalSubmissionAcceptance.count()).toBe(0)
+      expect(await delivery.readCommitted(f.call)).toBeNull()
+      await expect(
+        delivery.invoke({ ...f.call, arguments: { ...f.call.arguments, idempotencyKey: 'later' } }),
+      ).rejects.toThrow('fenced')
+      expect(f.port.startTurn).toHaveBeenCalledTimes(1)
+      expect(f.port.stop).toHaveBeenCalledTimes(1)
+      expect((await f.client.qualityJourneyProviderDispatchIntent.findFirstOrThrow()).reconciledAt).toBeNull()
+    },
+  )
+  it('a never-admitted retained callback cannot claim an unrelated later acceptance', async () => {
+    const f = await setup(),
+      entered = deferred<void>(),
+      resume = deferred<void>(),
+      refused = deferred<void>()
+    const delivery = await createOfflineQualityJourneyRoleDelivery({
+      binding: f.assignmentBinding,
+      canonicalDefinitions: definitions,
+      client: f.client,
+      exchange: async (_tool, _args, canonical) => {
+        entered.resolve()
+        await resume.promise
+        try {
+          return await canonical()
+        } finally {
+          refused.resolve()
+        }
+      },
+    })
+    f.options.delivery = delivery
+    const controller = f.create(),
+      flight = controller.start()
+    await entered.promise
+    controller.cancel()
+    expect((await flight).outcome).toBe('UNKNOWN')
+    // A separate trusted original owner accepts afterward; this does not mint
+    // correlation for the callback whose gate was never entered.
+    expect((await f.delivery.invoke(f.call)).accepted).toBe(true)
+    resume.resolve()
+    await refused.promise
+    await new Promise(resolve => setImmediate(resolve))
+    expect(await delivery.readCommitted(f.call)).toBeNull()
+    expect(await f.client.qualityJourneyExternalSubmissionAcceptance.count()).toBe(1)
+  })
+  it('already-admitted canonical work may commit after cancellation without changing UNKNOWN', async () => {
+    const f = await setup(),
+      canonicalEntered = deferred<void>(),
+      resume = deferred<void>(),
+      late = deferred<void>()
+    let holdNext = false
+    const proxy = new Proxy(f.client, {
+      get(target, key) {
+        if (key === '$transaction')
+          return async (callback: Parameters<typeof target.$transaction>[0]) => {
+            if (holdNext) {
+              holdNext = false
+              await resume.promise
+            }
+            return target.$transaction(callback as never)
+          }
+        const value = Reflect.get(target, key)
+        return typeof value === 'function' ? value.bind(target) : value
+      },
+    })
+    const delivery = await createOfflineQualityJourneyRoleDelivery({
+      binding: f.assignmentBinding,
+      canonicalDefinitions: definitions,
+      client: proxy,
+      exchange: async (_tool, _args, canonical) => {
+        holdNext = true
+        const result = canonical()
+        canonicalEntered.resolve()
+        try {
+          return await result
+        } finally {
+          late.resolve()
+        }
+      },
+    })
+    f.options.delivery = delivery
+    const controller = f.create(),
+      flight = controller.start()
+    await canonicalEntered.promise
+    controller.cancel()
+    const receipt = await flight
+    expect(receipt.outcome).toBe('UNKNOWN')
+    expect(await f.client.qualityJourneyExternalSubmissionAcceptance.count()).toBe(0)
+    resume.resolve()
+    await late.promise
+    await new Promise(resolve => setImmediate(resolve))
+    expect(await f.client.qualityJourneyExternalSubmissionAcceptance.count()).toBe(1)
+    expect(await controller.start()).toBe(receipt)
+    expect(receipt.acceptedArtifactDigests).toEqual([])
+    expect(f.port.startTurn).toHaveBeenCalledTimes(1)
+    expect(f.port.stop).toHaveBeenCalledTimes(1)
+    expect(await f.client.qualityJourneyProviderSlot.count()).toBe(1)
+  })
+  it('a throwing original delivery fence still stops the original port once', async () => {
+    const f = await setup(),
+      entered = deferred<void>(),
+      resume = deferred<void>(),
+      late = deferred<void>()
+    const delivery = await createOfflineQualityJourneyRoleDelivery({
+      binding: f.assignmentBinding,
+      canonicalDefinitions: definitions,
+      client: f.client,
+      exchange: async (_tool, _args, canonical) => {
+        entered.resolve()
+        await resume.promise
+        try {
+          return await canonical()
+        } finally {
+          late.resolve()
+        }
+      },
+    })
+    const fence = vi.fn(() => {
+      delivery.fence()
+      throw new Error('synthetic fence observer failure')
+    })
+    f.options.delivery = { ...delivery, fence }
+    const controller = f.create(),
+      flight = controller.start()
+    await entered.promise
+    controller.cancel()
+    expect((await flight).outcome).toBe('UNKNOWN')
+    expect(fence).toHaveBeenCalledTimes(1)
+    expect(f.port.stop).toHaveBeenCalledTimes(1)
+    resume.resolve()
+    await late.promise
+    await new Promise(resolve => setImmediate(resolve))
+    expect(await f.client.qualityJourneyExternalSubmissionAcceptance.count()).toBe(0)
+  })
+  it.each([1, 2])('rechecks delivery admission after preauthorization await %s', async heldRead => {
+    const f = await setup(),
+      preauthorized = deferred<void>(),
+      resume = deferred<void>(),
+      settled = deferred<void>()
+    let enabled = false,
+      reads = 0
+    const proxy = new Proxy(f.client, {
+      get(target, key) {
+        if (key === '$transaction')
+          return async (callback: Parameters<typeof target.$transaction>[0]) => {
+            if (enabled && ++reads === heldRead) {
+              preauthorized.resolve()
+              await resume.promise
+            }
+            return target.$transaction(callback as never)
+          }
+        const value = Reflect.get(target, key)
+        return typeof value === 'function' ? value.bind(target) : value
+      },
+    })
+    const exchange = vi.fn(
+      async (_tool: string, _args: Readonly<Record<string, unknown>>, canonical: () => Promise<unknown>) => canonical(),
+    )
+    const delivery = await createOfflineQualityJourneyRoleDelivery({
+      binding: f.assignmentBinding,
+      canonicalDefinitions: definitions,
+      client: proxy,
+      exchange,
+    })
+    f.options.delivery = {
+      ...delivery,
+      async invoke(call) {
+        try {
+          return await delivery.invoke(call)
+        } finally {
+          settled.resolve()
+        }
+      },
+    }
+    enabled = true
+    const controller = f.create(),
+      flight = controller.start()
+    await preauthorized.promise
+    controller.cancel()
+    expect((await flight).outcome).toBe('UNKNOWN')
+    const before = await snapshotDatabase(f.client)
+    resume.resolve()
+    await settled.promise
+    expect(exchange).not.toHaveBeenCalled()
+    expect(await snapshotDatabase(f.client)).toEqual(before)
+    expect(await delivery.readCommitted(f.call)).toBeNull()
+    expect(f.port.startTurn).toHaveBeenCalledTimes(1)
+    expect(f.port.stop).toHaveBeenCalledTimes(1)
   })
 })
