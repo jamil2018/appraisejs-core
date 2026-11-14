@@ -1,3 +1,7 @@
+import { chmodSync, mkdtempSync, rmSync } from 'node:fs'
+import path from 'node:path'
+import { tmpdir } from 'node:os'
+import { createNativeQualificationDiagnostics } from '@/lib/quality-journey/codex-app-server/native-qualification-diagnostics'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PrismaClient } from '@prisma/client'
 import { configureInertSupervisor, supervisorGate } from './quality-journey-process-supervisor.test-support'
@@ -279,4 +283,55 @@ describe('portable native composition boundary and cancellation', () => {
     expect(f.endpoint.close).toHaveBeenCalledTimes(1)
     expect(controller.snapshot().fenced).toBe(true)
   })
+})
+
+it('awaits the original endpoint close if diagnostics fail after creation and before child launch', async () => {
+  const f = fixture(),
+    root = mkdtempSync(path.join(tmpdir(), 'appraise-endpoint-diagnostics-'))
+  const trace = createNativeQualificationDiagnostics(root, path.join(root, 'native'))
+  let close!: (receipt: { closed: boolean; effectUnknown: boolean }) => void
+  const originalClose = new Promise<{ closed: boolean; effectUnknown: boolean }>(resolve => {
+    close = resolve
+  })
+  f.endpoint.close.mockReturnValue(originalClose)
+  f.createEndpoint.mockImplementation(async () => {
+    chmodSync(path.join(root, 'c1-acquisition-diagnostics.jsonl'), 0o644)
+    return f.endpoint
+  })
+  try {
+    const controller = await createNativeQualityJourneyQualification(
+      { ...f.options, diagnostics: trace.observer },
+      f.client,
+    )
+    const originalStart = controller.start()
+    const refused = expect(originalStart).rejects.toThrow(/diagnostic unavailable UNKNOWN/)
+    await vi.waitFor(() => expect(f.endpoint.close).toHaveBeenCalledOnce())
+    expect(ports.launch).not.toHaveBeenCalled()
+    expect(f.request).not.toHaveBeenCalled()
+    expect(f.delivery.fence).toHaveBeenCalled()
+    let settled = false
+    void originalStart.then(
+      () => {
+        settled = true
+      },
+      () => {
+        settled = true
+      },
+    )
+    await Promise.resolve()
+    expect(settled).toBe(false)
+    close({ closed: true, effectUnknown: false })
+    await refused
+    expect(controller.snapshot()).toMatchObject({
+      diagnosticStatus: 'DIAGNOSTIC_UNAVAILABLE',
+      runtimeQualified: false,
+      providerTerminationProven: false,
+      slotReleased: false,
+    })
+    expect(f.endpoint.close).toHaveBeenCalledOnce()
+  } finally {
+    close({ closed: true, effectUnknown: false })
+    trace.close()
+    rmSync(root, { recursive: true, force: true })
+  }
 })

@@ -1,12 +1,22 @@
 import { EventEmitter } from 'node:events'
 import { PassThrough } from 'node:stream'
-import { existsSync, lstatSync, readlinkSync, rmSync, unlinkSync, writeFileSync } from 'node:fs'
+import {
+  chmodSync,
+  existsSync,
+  lstatSync,
+  readFileSync,
+  readlinkSync,
+  rmSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs'
 import path from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { captureNativeQualificationPlan, renderNativeQualificationConfiguration } from './native-qualification-contract'
 import { nativeQualificationFeatureControls } from './native-qualification-configuration'
 import { launchNativeQualificationChild, claimOriginalNativeQualificationChild } from './native-qualification-child'
 import { syntheticNativeManifest } from './native-qualification.test-support'
+import { createNativeQualificationDiagnostics } from './native-qualification-diagnostics'
 import type { SpawnedProcess } from '../../process/task-spawner'
 
 const owned = vi.hoisted(() => ({ spawn: vi.fn(), stop: vi.fn() }))
@@ -407,4 +417,100 @@ describe('late original RPC bytes remain observable after the sender fence', () 
     expect(f.callbacks.onNotification).not.toHaveBeenCalled()
     expect(f.callbacks.onFault).toHaveBeenCalledWith('native_passive_drain_refused')
   })
+})
+
+describe('safe phase failures preserve the original cleanup capability', () => {
+  it('sanitizes a hostile setup refusal without reading exception properties or entering acquisition', async () => {
+    const f = setup(),
+      trace = createNativeQualificationDiagnostics(f.parent, f.manifest.freshRoot)
+    const getters = vi.fn(() => {
+      throw new Error('Exception property inspected')
+    })
+    const hostile = Object.create(null)
+    for (const key of ['message', 'stack', 'cause', 'code', 'kind', 'name', 'pid', 'token'])
+      Object.defineProperty(hostile, key, { enumerable: true, get: getters })
+    f.callbacks.assertAdmission.mockImplementation(() => {
+      throw hostile
+    })
+    await expect(
+      launchNativeQualificationChild(f.plan, { ...f.callbacks, diagnostics: trace.observer }),
+    ).rejects.toThrow(/Native acquisition refused/)
+    trace.close()
+    const bytes = readFileSync(path.join(f.parent, 'c1-acquisition-diagnostics.jsonl'), 'utf8')
+    const rows = bytes
+      .trim()
+      .split('\n')
+      .map(line => JSON.parse(line))
+    expect(rows).toContainEqual(
+      expect.objectContaining({ stage: 'PRIVATE_CONFIG', status: 'REFUSED', reason: 'BOUNDARY_REFUSED' }),
+    )
+    expect(rows.some(row => row.stage === 'ACQUISITION')).toBe(false)
+    expect(getters).not.toHaveBeenCalled()
+    expect(owned.spawn).not.toHaveBeenCalled()
+    expect(bytes).not.toMatch(/Exception property|message|stack|cause|token|pid/)
+  })
+  it('fences before another RPC on sink identity failure and stops only the original child once', async () => {
+    const f = setup(),
+      trace = createNativeQualificationDiagnostics(f.parent, f.manifest.freshRoot)
+    const child = await launchNativeQualificationChild(f.plan, { ...f.callbacks, diagnostics: trace.observer })
+    chmodSync(path.join(f.parent, 'c1-acquisition-diagnostics.jsonl'), 0o644)
+    expect(() => child.transport.request('initialize', { clientInfo: { name: 'inert', version: '0' } })).toThrow(
+      /diagnostic unavailable UNKNOWN/,
+    )
+    expect(child.transport.snapshot()).toMatchObject({ status: 'fenced', issuedRequests: 0 })
+    await child.stop()
+    expect(owned.stop).toHaveBeenCalledExactlyOnceWith(f.original)
+    expect(f.callbacks.fenceMcp).toHaveBeenCalledOnce()
+    trace.close()
+  })
+  it('retains a late original acquisition for the same single cleanup after sink failure', async () => {
+    const f = setup(),
+      trace = createNativeQualificationDiagnostics(f.parent, f.manifest.freshRoot)
+    let acquired!: (original: SpawnedProcess) => void
+    let entered!: () => void
+    const acquisitionEntered = new Promise<void>(resolve => {
+      entered = resolve
+    })
+    const pendingAcquisition = new Promise<SpawnedProcess>(resolve => {
+      acquired = resolve
+    })
+    owned.spawn.mockImplementation(() => {
+      entered()
+      return pendingAcquisition
+    })
+    const launch = launchNativeQualificationChild(f.plan, { ...f.callbacks, diagnostics: trace.observer })
+    const refused = expect(launch).rejects.toThrow(/Native acquisition/)
+    await acquisitionEntered
+    chmodSync(path.join(f.parent, 'c1-acquisition-diagnostics.jsonl'), 0o644)
+    expect(trace.observer.record('ACQUISITION', 'ENTERED')).toBe(false)
+    expect(owned.stop).not.toHaveBeenCalled()
+    acquired(f.original)
+    await refused
+    await vi.waitFor(() => expect(owned.stop).toHaveBeenCalledExactlyOnceWith(f.original))
+    expect(f.callbacks.fenceMcp).toHaveBeenCalledOnce()
+    trace.close()
+  })
+})
+
+it('reserves one original cleanup flight before a sink failure at cleanup entry can reenter stop', async () => {
+  const f = setup(),
+    trace = createNativeQualificationDiagnostics(f.parent, f.manifest.freshRoot)
+  const child = await launchNativeQualificationChild(f.plan, { ...f.callbacks, diagnostics: trace.observer })
+  const observer = {
+    beforeRequest: vi.fn(),
+    operation: vi.fn(),
+    notification: vi.fn(),
+    fault: vi.fn(),
+    cleanup: vi.fn(),
+  }
+  claimOriginalNativeQualificationChild(child, f.plan, observer)
+  chmodSync(path.join(f.parent, 'c1-acquisition-diagnostics.jsonl'), 0o644)
+  const originalStop = child.stop()
+  expect(child.stop()).toBe(originalStop)
+  expect(await originalStop).toMatchObject({ status: 'stopped', privateRootRemoved: true })
+  expect(owned.stop).toHaveBeenCalledExactlyOnceWith(f.original)
+  expect(f.callbacks.closeMcp).toHaveBeenCalledOnce()
+  expect(observer.cleanup).toHaveBeenCalledOnce()
+  expect(existsSync(f.manifest.freshRoot)).toBe(false)
+  trace.close()
 })

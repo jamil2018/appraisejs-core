@@ -317,3 +317,23 @@ schemas and production refusals remain unchanged. Independent source review and 
 journal/domain proof passed, alongside 96 focused and four task tests. Fresh builds, 240 generated tests, nine installed
 SDK/six-role checks, exact source/migration/seed/CLI-byte parity passed. Final source/pack binding and fresh case review
 remain separate. No physical qualification is inferred from this offline repair.
+
+## 15:33 UTC continuation: acquisition failure retained
+
+Original parent 20784 observed exited 2 through its original tool session. Second accepted fresh B3 case
+`b3-control-fixed-rapWtj/` is spent/UNKNOWN; source CREATED proves constructor/journal initialization passed.
+READY was never recorded. Native root metadata supports likely native startup, without acquired-child/stop proof;
+actual native/model effects are UNKNOWN. No replay, refund, HUB release, replacement cleanup, or new effects occurred.
+Two new native/turn allocations are consumed, fourteen cumulative native allocations frozen, none currently unspent.
+See durable diagnosis and observation receipts referenced in M13-RUNTIME-CONTINUE.md.
+
+## Diagnostic successor verification
+
+The bounded fixed-enum trace is implemented with 128-row/32-KiB limits and original-descriptor writes; failure
+fences subsequent effects and never grants cleanup/reconciliation authority. Final source checks: 109 repository,
+30 task/controller, three real inert owned-child and two explicitly substituted genuine-profile attach cases pass;
+lint/format/type checks pass. Canonical scaffold sync, Graphify, root/scaffold builds, harness/docs/artifact/package
+checks and fresh packed proof pass (255 portable tests, SDK eight plus six-role aggregate one; 50 source copies,
+98 migrations, five clean seed copies and 76 unchanged CLI runtime files). Source/artifact receipts and exact hashes
+are listed in M13-RUNTIME-CONTINUE.md. All infrastructure predecessors remain preserved. The source gate still
+requires normal hooks and independent whole-artifact acceptance; no new native or model effects occurred.

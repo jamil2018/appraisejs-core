@@ -276,7 +276,10 @@ runtime qualification; the overall M13 checkbox remains open.
 
 The user subsequently lifted native launch, existing-login access and inference limits for bounded qualification.
 [Current runtime execution](M13-RUNTIME-EXECUTION-2026-11-14.md) records accepted B1 readiness/B2 login observations,
-C0 source and actual packed offline proof, and ongoing C1 original-outcome implementation. Exact execution packets
+C0/C1 source and actual packed offline proof, and current native acquisition qualification blockers. C1 source
+passed independent artifact review; its two fresh armed cases remain spent UNKNOWN. Bounded sanitized diagnostics,
+a genuine inert owned-child boundary test and a separately labelled genuine-profile attach probe now pass offline
+checks and packed renewal; normal-hook commitment and whole-artifact independent review gate another exact packet. Exact execution packets
 and additive allowances precede effects. No sign-in, account switch, production activation, push, merge or publication.
 The [runtime continuation checkpoint](M13-RUNTIME-CONTINUE.md) supersedes the historical M01-only checkpoint below.
 

@@ -1,6 +1,11 @@
 import { randomUUID } from 'node:crypto'
 import type { PrismaClient } from '@prisma/client'
 import { canonicalOutcomeJson, outcomeDigest } from './outcome-source-contract'
+import {
+  requireNativeDiagnostic,
+  type NativeDiagnosticObserver,
+  type NativeDiagnosticStage,
+} from './native-qualification-diagnostics'
 import { claimOriginalNativeQualificationChild } from './native-qualification-child'
 import type { OwnedFixtureChild } from './owned-child'
 import {
@@ -74,6 +79,7 @@ export type NativeOutcomeCandidateOptions = Readonly<{
   providerNamespace: string
   transportId: string
   reviewControl: NativeOutcomeReviewControl
+  diagnostics?: NativeDiagnosticObserver
 }>
 function fail(): never {
   throw new Error('Original native outcome remains unreconciled UNKNOWN')
@@ -143,6 +149,9 @@ class OriginalNativeOutcome {
     )
       fail()
     this.options = Object.freeze({ ...options, reviewControl: control })
+    options.diagnostics?.onFailure(() => {
+      this.#poison = true
+    })
     this.initialIdentity = Object.freeze({
       runId: options.permit.runId,
       intentId: options.permit.intentId,
@@ -219,26 +228,46 @@ class OriginalNativeOutcome {
     list.push(operation)
   }
   attach(child: OwnedFixtureChild) {
-    this.#healthy()
-    if (this.#child) fail()
-    this.#child = claimOriginalNativeQualificationChild(child, this.profile.plan, {
-      beforeRequest: (method, params) => this.#beforeRequest(method, params),
-      operation: (promise, method) => this.#observe(promise, this.#operations, value => this.#reply(method, value)),
-      notification: (method, params) => this.#notification(method, params),
-      fault: () => {
-        this.#poison = true
-      },
-      cleanup: receipt => {
-        if (this.#cleaned || receipt.status !== 'stopped' || !receipt.groupExitObserved || !receipt.privateRootRemoved)
+    const diagnostics = this.options.diagnostics
+    let stage: NativeDiagnosticStage = 'OUTCOME_ATTACH'
+    try {
+      requireNativeDiagnostic(diagnostics, stage)
+      this.#healthy()
+      if (this.#child) fail()
+      this.#child = claimOriginalNativeQualificationChild(child, this.profile.plan, {
+        beforeRequest: (method, params) => this.#beforeRequest(method, params),
+        operation: (promise, method) => this.#observe(promise, this.#operations, value => this.#reply(method, value)),
+        notification: (method, params) => this.#notification(method, params),
+        fault: () => {
           this.#poison = true
-        this.#cleaned = true
-      },
-    })
-    if (inspectRpcTransportOwner(this.#child.owner).transportId !== this.options.transportId) fail()
-    bindProviderSendPermitTransport(this.options.permit, this.#child.owner, {
-      providerNamespace: this.options.providerNamespace,
-      configurationDigest: this.profile.configurationDigest,
-    })
+        },
+        cleanup: receipt => {
+          if (
+            this.#cleaned ||
+            receipt.status !== 'stopped' ||
+            !receipt.groupExitObserved ||
+            !receipt.privateRootRemoved
+          )
+            this.#poison = true
+          this.#cleaned = true
+        },
+      })
+      stage = 'OWNER_MATCH'
+      requireNativeDiagnostic(diagnostics, stage)
+      if (inspectRpcTransportOwner(this.#child.owner).transportId !== this.options.transportId) fail()
+      requireNativeDiagnostic(diagnostics, stage, 'ACCEPTED')
+      stage = 'PERMIT_BIND'
+      requireNativeDiagnostic(diagnostics, stage)
+      bindProviderSendPermitTransport(this.options.permit, this.#child.owner, {
+        providerNamespace: this.options.providerNamespace,
+        configurationDigest: this.profile.configurationDigest,
+      })
+      requireNativeDiagnostic(diagnostics, stage, 'ACCEPTED')
+      requireNativeDiagnostic(diagnostics, 'OUTCOME_ATTACH', 'SETTLED')
+    } catch (error) {
+      diagnostics?.record(stage, 'REFUSED', 'BOUNDARY_REFUSED')
+      throw error
+    }
   }
   #beforeRequest(method: RpcRequestMethod, params: Record<string, unknown>) {
     if (

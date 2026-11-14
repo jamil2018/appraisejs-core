@@ -31,6 +31,11 @@ SQLite integration proof imports the producer MCP package and remains repository
 controllers are not scaffold inputs; including canonical source does not enroll a physical outcome source or enable
 production dispatch.
 
+The internal C1 diagnostic recorder and its portable inert-child tests synchronize from canonical source. The
+recorder exports only bounded phase/status/reason codes and cannot grant physical reconciliation authority. The real
+owned-supervisor fixture executes an inert Node child with synthetic credentials; its success is not installed-native
+or provider qualification. Host-specific genuine-profile probes and native case evidence remain outside the scaffold.
+
 ## Sync Flow
 
 1. Make behavior changes in the root/base source first.

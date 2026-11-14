@@ -1,8 +1,13 @@
 import { createHash } from 'node:crypto'
-import { existsSync, mkdtempSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describeNativeCredential } from '@/lib/quality-journey/codex-app-server/native-credential-topology'
+import {
+  createOriginalNativeCaseControl,
+  driverDigest,
+} from '../../../tasks/codex-app-server-journeys/m13-runtime/c1/native-driver-control.mts'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { prepareReviewedC1Task } from '../../../tasks/codex-app-server-journeys/m13-runtime/c1/runner.mts'
 
@@ -79,6 +84,9 @@ describe('C1 task original pin and stop boundaries with inert composition', () =
     expect(() => f.task.start()).toThrow(/frozen source changed/)
     expect(existsSync(f.task.evidencePath)).toBe(false)
     expect(f.composition.start).not.toHaveBeenCalled()
+    expect(readFileSync(path.join(f.root, 'c1-acquisition-diagnostics.jsonl'), 'utf8')).toContain(
+      '"stage":"CASE_FAILURE","status":"UNKNOWN"',
+    )
     expect(boundary.profile).toHaveBeenLastCalledWith(f.profile)
     await f.task.cancel()
   })
@@ -108,3 +116,81 @@ describe('C1 task original pin and stop boundaries with inert composition', () =
     await f.task.cancel()
   })
 })
+
+it.each(['ACQUISITION', 'TURN_REQUEST'] as const)(
+  'retains durable %s diagnostics through original UNKNOWN control without replay or source disposal',
+  async stage => {
+    const f = await fixture()
+    const diagnostics = boundary.compose.mock.calls[0][0].diagnostics
+    const getters = vi.fn(() => {
+      throw new Error('raw getter inspected')
+    })
+    const hostile = Object.create(null)
+    for (const key of ['message', 'stack', 'cause', 'kind', 'pid', 'token'])
+      Object.defineProperty(hostile, key, { enumerable: true, get: getters })
+    f.composition.start.mockImplementation(() => {
+      diagnostics.record('ACQUISITION', 'ENTERED')
+      diagnostics.record('ACQUISITION', 'SETTLED')
+      if (stage === 'TURN_REQUEST') diagnostics.record('TURN_REQUEST', 'ENTERED')
+      return Promise.reject(hostile)
+    })
+    const credential = path.join(f.root, 'synthetic-auth.json')
+    writeFileSync(credential, 'synthetic only', { mode: 0o600 })
+    const source = describeNativeCredential(credential)
+    const subjectDigest = driverDigest({ synthetic: true })
+    const actualReviewPath = path.join(f.root, 'actual-review.txt')
+    writeFileSync(actualReviewPath, 'Synthetic offline test only')
+    // The control reader hashes the actual file bytes, using the same underlying SHA256 boundary.
+    const hash = (bytes: string | Buffer) => `sha256:${createHash('sha256').update(bytes).digest('hex')}`
+    const receipt = JSON.stringify({
+      version: 'M13_NATIVE_DRIVER_CONTROL_V1',
+      decision: 'ACCEPT',
+      kind: 'CASE_PACKET',
+      subjectDigest,
+      reviewerId: 'synthetic-reviewer',
+      actualReviewReceiptDigest: hash(readFileSync(actualReviewPath)),
+    })
+    const decisionPath = path.join(f.root, 'decision.json')
+    writeFileSync(decisionPath, receipt)
+    const disposed = vi.fn(),
+      verify = vi.fn()
+    const control = createOriginalNativeCaseControl({
+      provenance: 'OFFLINE_SYNTHETIC',
+      subjectDigest,
+      source,
+      leaseExpiresAt: Date.now() + 60000,
+      toolName: 'synthetic',
+      arguments: {},
+      createOriginalTask: async () => f.task as never,
+      verifyReconciled: verify,
+      disposeOriginalSource: disposed,
+    })
+    const approval = { decisionPath, decisionDigest: hash(receipt), actualReviewPath }
+    const originalStart = control.startVerifiedCase(approval)
+    await expect(originalStart).rejects.toThrow('Original native-driver case remains UNKNOWN')
+    expect(control.startVerifiedCase(approval)).toBe(originalStart)
+    await expect(control.startVerifiedCase(approval)).rejects.toThrow(/UNKNOWN/)
+    await new Promise<void>(resolve => setImmediate(resolve))
+    expect(f.composition.start).toHaveBeenCalledOnce()
+    expect(control.snapshot()).toMatchObject({
+      phase: 'UNKNOWN',
+      sourceDisposalEntered: false,
+      sourceDisposed: false,
+      runtimeQualified: false,
+      physicalQualified: false,
+    })
+    expect(disposed).not.toHaveBeenCalled()
+    expect(verify).not.toHaveBeenCalled()
+    expect(getters).not.toHaveBeenCalled()
+    const trace = readFileSync(path.join(f.root, 'c1-acquisition-diagnostics.jsonl'), 'utf8')
+    expect(trace).toContain(`"stage":"${stage}","status":"ENTERED"`)
+    expect(trace).toContain('"stage":"CASE_FAILURE","status":"UNKNOWN"')
+    expect(trace).not.toMatch(/raw getter|token|pid|synthetic-auth|snapshot/)
+    expect(JSON.parse(readFileSync(f.task.evidencePath, 'utf8'))).toMatchObject({
+      disposition: 'SPENT_BEFORE_EFFECTS',
+      outcome: 'UNKNOWN',
+      refundPermitted: false,
+    })
+    await f.task.cancel()
+  },
+)

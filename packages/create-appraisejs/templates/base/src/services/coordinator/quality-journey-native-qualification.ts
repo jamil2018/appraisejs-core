@@ -18,6 +18,11 @@ import type {
   CanonicalMcpDefinition,
   ManagedWorkerRegistrationProfile,
 } from '@/lib/quality-journey/managed-worker-gateway'
+import {
+  requireNativeDiagnostic,
+  type NativeDiagnosticObserver,
+  type NativeDiagnosticStage,
+} from '@/lib/quality-journey/codex-app-server/native-qualification-diagnostics'
 import { launchNativeQualificationChild } from '@/lib/quality-journey/codex-app-server/native-qualification-child'
 import {
   verifyNativeQualificationPlan,
@@ -150,6 +155,7 @@ export async function createNativeQualityJourneyQualification(
     input: PrepareQualityJourneyProviderRunInput
     envelope: readonly Record<string, unknown>[]
     canonicalDefinitions: readonly CanonicalMcpDefinition[]
+    diagnostics?: NativeDiagnosticObserver
     nativeOutcome?: Readonly<{
       profile: NativeOutcomeProfile
       database: ProviderSourceDatabase
@@ -158,7 +164,7 @@ export async function createNativeQualityJourneyQualification(
   },
   client: PrismaClient,
 ) {
-  const { plan, createEndpoint } = options
+  const { plan, createEndpoint, diagnostics } = options
   if (typeof createEndpoint !== 'function') throw new Error('Trusted native endpoint factory required')
   const captured = verifyNativeQualificationPlan(plan),
     { manifest } = captured
@@ -204,6 +210,17 @@ export async function createNativeQualityJourneyQualification(
   let endpoint: NativeEndpoint | undefined
   let configurationInspection: NativeConfigurationInspection | null = null
   let disconnectOriginal: (() => boolean) | undefined
+  function validate(stage: NativeDiagnosticStage, check: () => boolean) {
+    requireNativeDiagnostic(diagnostics, stage)
+    try {
+      const valid = check()
+      requireNativeDiagnostic(diagnostics, stage, valid ? 'ACCEPTED' : 'REFUSED', valid ? 'NONE' : 'VALIDATION_REFUSED')
+      return valid
+    } catch (error) {
+      diagnostics?.record(stage, 'REFUSED', 'VALIDATION_REFUSED')
+      throw error
+    }
+  }
   const supervisor = createQualityJourneyProcessSupervisor(
     input,
     {
@@ -221,12 +238,20 @@ export async function createNativeQualityJourneyQualification(
       nativeOutcome: nativeOutcomeOptions
         ? {
             async armed(permit, transportId) {
-              nativeOutcome = await createOriginalNativeOutcomeCandidate({
-                ...nativeOutcomeOptions,
-                permit,
-                transportId,
-                providerNamespace: input.providerNamespace,
-              })
+              requireNativeDiagnostic(diagnostics, 'SOURCE_ARMED')
+              try {
+                nativeOutcome = await createOriginalNativeOutcomeCandidate({
+                  ...nativeOutcomeOptions,
+                  permit,
+                  transportId,
+                  providerNamespace: input.providerNamespace,
+                  diagnostics,
+                })
+                requireNativeDiagnostic(diagnostics, 'SOURCE_ARMED', 'SETTLED')
+              } catch (error) {
+                diagnostics?.record('SOURCE_ARMED', 'REFUSED', 'BOUNDARY_REFUSED')
+                throw error
+              }
             },
             operation(operation) {
               if (!nativeOutcome) throw new Error('Original native outcome not admitted')
@@ -237,52 +262,71 @@ export async function createNativeQualityJourneyQualification(
             },
           }
         : undefined,
-      validateReadiness: value => record(value) && value.codexHome === path.join(manifest.freshRoot, 'codex-home'),
+      validateReadiness: value =>
+        validate(
+          'INITIALIZE_VALIDATE',
+          () => record(value) && value.codexHome === path.join(manifest.freshRoot, 'codex-home'),
+        ),
       nativeReadiness: {
         cwd,
-        validateConfiguration: value => {
-          configurationInspection = Object.freeze(
-            inspectNativeQualificationConfiguration(value, manifest, captured.capability),
-          )
-          return configurationInspection.valid
-        },
-        validateThread: value => verifyEmptyNativeThread(value, cwd),
-        validateRequiredMcp: value => verifyManagedMcp(value, delivery.profile, manifest.endpoint.port),
+        validateConfiguration: value =>
+          validate('CONFIG_VALIDATE', () => {
+            configurationInspection = Object.freeze(
+              inspectNativeQualificationConfiguration(value, manifest, captured.capability),
+            )
+            return configurationInspection.valid
+          }),
+        validateThread: value => validate('THREAD_VALIDATE', () => verifyEmptyNativeThread(value, cwd)),
+        validateRequiredMcp: value =>
+          validate('MCP_VALIDATE', () => verifyManagedMcp(value, delivery.profile, manifest.endpoint.port)),
         mcpStatusParams: { serverName: manifest.endpoint.serverName, detail: 'full', limit: 1 },
       },
       async launch(callbacks) {
-        verifyNativeQualificationPlan(plan)
-        endpoint = await createEndpoint({
-          ...manifest.endpoint,
-          capability: captured.capability,
-          profile: delivery.profile,
-          expectedProfileDigest: delivery.profileDigest,
-          sealedGrant: delivery.sealedGrant,
-          ...manifest.limits,
-          async callGateway(call) {
-            const state = supervisor.snapshot()
-            if (
-              state.fenced ||
-              !state.turnStartEntered ||
-              call.sealedGrant !== delivery.sealedGrant ||
-              call.profileDigest !== delivery.profileDigest
-            )
-              throw new Error('Native managed delivery admission refused')
-            const operation = delivery.invoke({
-              callId: randomUUID(),
-              toolName: call.toolName,
-              arguments: call.arguments,
-            })
-            nativeOutcome?.gateway(operation)
-            return operation
-          },
-        })
+        try {
+          verifyNativeQualificationPlan(plan)
+        } catch (error) {
+          diagnostics?.record('PLAN_VERIFY', 'REFUSED', 'BOUNDARY_REFUSED')
+          throw error
+        }
+        requireNativeDiagnostic(diagnostics, 'ENDPOINT_CREATE')
+        try {
+          endpoint = await createEndpoint({
+            ...manifest.endpoint,
+            capability: captured.capability,
+            profile: delivery.profile,
+            expectedProfileDigest: delivery.profileDigest,
+            sealedGrant: delivery.sealedGrant,
+            ...manifest.limits,
+            async callGateway(call) {
+              const state = supervisor.snapshot()
+              if (
+                state.fenced ||
+                !state.turnStartEntered ||
+                call.sealedGrant !== delivery.sealedGrant ||
+                call.profileDigest !== delivery.profileDigest
+              )
+                throw new Error('Native managed delivery admission refused')
+              const operation = delivery.invoke({
+                callId: randomUUID(),
+                toolName: call.toolName,
+                arguments: call.arguments,
+              })
+              nativeOutcome?.gateway(operation)
+              return operation
+            },
+          })
+        } catch (error) {
+          diagnostics?.record('ENDPOINT_CREATE', 'REFUSED', 'BOUNDARY_REFUSED')
+          throw error
+        }
         const originalEndpoint = endpoint
         let originalChild: Awaited<ReturnType<typeof launchNativeQualificationChild>> | undefined
         try {
+          requireNativeDiagnostic(diagnostics, 'ENDPOINT_CREATE', 'SETTLED')
           if (supervisor.snapshot().fenced) throw new Error('Native launch fenced')
           originalChild = await launchNativeQualificationChild(plan, {
             ...callbacks,
+            diagnostics,
             assertAdmission() {
               if (supervisor.snapshot().fenced) throw new Error('Native launch fenced')
             },
@@ -309,6 +353,18 @@ export async function createNativeQualityJourneyQualification(
     },
     client,
   )
+  diagnostics?.onFailure(() => {
+    try {
+      delivery.fence()
+    } finally {
+      try {
+        endpoint?.fence()
+      } finally {
+        nativeOutcome?.revoke()
+        void supervisor.cancel().catch(() => {})
+      }
+    }
+  })
   return Object.freeze({
     start: supervisor.start,
     originalNativeOutcome: () => nativeOutcome,
@@ -320,6 +376,7 @@ export async function createNativeQualityJourneyQualification(
     snapshot: () =>
       Object.freeze({
         ...supervisor.snapshot(),
+        ...(diagnostics?.failed() ? { diagnosticStatus: 'DIAGNOSTIC_UNAVAILABLE' as const } : {}),
         provenance: 'NATIVE_QUALIFICATION_OBSERVATION' as const,
         runtimeQualified: false as const,
         providerTerminationProven: false as const,

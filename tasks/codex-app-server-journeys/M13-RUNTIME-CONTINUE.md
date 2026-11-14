@@ -1,11 +1,12 @@
 # M13 runtime continuation
 
-Status: ACTIVE, review-control digest successor. One new allocation consumed; no new native/provider entry. No C0/C1 model turn has been started. Full M13 remains unchecked.
+Status: ACTIVE, checked offline diagnostic successor after source `8d84a791`; exact source/artifact review controls govern any new case. Two new native/turn allocations consumed. Current actual native/model effects are UNKNOWN; ten earlier native invocations are confirmed. Full M13 remains unchecked.
 
 Worktree: `/Users/jamil/Personal Projects/appraisejs/.appraisejs/m13-runtime-qualification`.
 Branch: `codex/m13-runtime-qualification`; starting HEAD `b8aaa949d2d7acbfcc260f68b28c179ca3ffb8e0`.
 Preserve its staged/unstaged work, private dependency links, ignored evidence, all prior worktrees and historical UNKNOWNs.
-No reset, clean, stash or historical replay. No new commit has been made in this continuation yet.
+No reset, clean, stash or historical replay. Diagnostic predecessor is `8d84a791d596d36bf99581b5c2c1422f22063b41`, tree `597173a42662209acaedb5669e0bbe4bde90f7d3`.
+Resolve successor commit/tree and acceptance from the frozen diagnostic source/artifact receipt; do not reuse the predecessor review for edited bytes.
 
 The user resumed after a graceful pause. Existing authority allows bounded native launch, existing-login credential
 access and inference only through frozen reviewed effect packets. No sign-in, account switch, production activation,
@@ -17,8 +18,8 @@ Read [execution record](M13-RUNTIME-EXECUTION-2026-11-14.md), [C0 source contrac
 The C1 contract includes independently identified corrections; positive enrollment remains closed until implemented,
 tested and independently accepted. Production defaults/refusal bodies, D05, Prisma schema/migrations and locks stay fixed.
 
-Actual ledger: ten native CLI invocations; two empty-thread requests/one created empty thread; two account-read
-requests/one accepted presence observation; zero new model turns/native tool calls. Historical M01 inference 3/3 stays
+Confirmed historical ledger: ten native CLI invocations; two empty-thread requests/one created empty thread; two account-read
+requests/one accepted presence observation. Current second B3 actual native acquisition/model-request effects are UNKNOWN, not zero. Historical M01 inference 3/3 stays
 spent; two historical unlaunched B1 negative allocations are retired. Current unspent native/model allocation is zero.
 Never reuse a historical campaign/root or refund a failed/uncertain case.
 
@@ -166,3 +167,112 @@ Fresh root/scaffold builds, 240 generated portable tests, nine actual installed 
 raw warnings remain. Current scaffold hash is `3bfa63b62eb5a67ed2ecf4bfdb2afab90cc041b4657c84548bf879afb6936077`;
 CLI remains `61675569cf5aec550893877814f61b8488ded99e1e5db9ccb0bf3ab53ca64d19`. Final normal-hook commit and
 integrated exact-artifact renewal must precede a NEW case. No current unspent effect allocation exists.
+
+## Second armed case: acquisition UNKNOWN, no replay
+
+Digest successor `8d84a791` passed normal hooks and integrated independent source/artifact review
+(`c1-final-source-artifact-review-control.json`, SHA-256
+`3f1fe209f3badef8a616906f72f87361056b6ffef6962a109edd0272b6ad413e`). Fresh exact CASE_PACKET
+`b3-control-fixed-rapWtj/` passed independent review of all 2,273 inputs. Original parent 20784 received one start
+command, consumed its native/turn allowance, then failed without a start response. Its own hard deadline retained
+UNKNOWN; original tool handle observed exit 2. Never replay this case, refund allowances, clear its HUB, or signal stored PIDs.
+
+Read-only observation found one ACTIVE source state at sequence 1, exactly one CREATED ledger entry, STARTUP and
+FENCED observations but no READY; run/intent UNKNOWN with null handles. The fresh native root has native-created
+SQLite stores, supporting likely startup but no acquired-child/group-stop proof. The generic error path discarded
+the cause, so actual acquisition and model requests remain UNKNOWN. Null handles alone do not prove zero requests.
+The source constructor/digest repair worked through journal initialization; it does not establish the later phase.
+
+`c1-native-acquisition-diagnosis/diagnosis.md` and `.json` preserve the evidence boundary.
+`b3-control-fixed-rapWtj/armed-acquisition-failure-observation.json` binds the spent/hard-deadline receipts and original
+parent exit. Authority ledger records two consumed new turn allocations, fourteen total frozen native allocations,
+zero current unspent allowance, and the current actual-effects uncertainty. Historical failed/UNKNOWN evidence is intact.
+
+Next: bounded offline diagnostic design, fixed finite sanitized phase observations plus a genuine inert owned-supervisor
+boundary test; source repair only after the causal/diagnostic contract is settled. No raw provider/credential errors or
+contents, paths, PIDs or handle values in diagnostics. Diagnostics cannot confer reconciliation/cleanup authority.
+Renew exact source/artifact review and freeze a new finite effect packet before any further native/model action.
+
+The finite diagnostic design now has a bounded amendment: the permanent portable test crosses the actual owned
+supervisor, private stdio, inert child and original claim without mocks. Its default-sandbox failure is preserved as
+infrastructure evidence; the unchanged unsandboxed test passed, and its extended three-case matrix passes. A separate
+host-specific ignored probe will exercise the genuine installed-hash profile and actual source/permit factories, with
+one disclosed acquisition substitution to an inert child. It cannot qualify installed-native end-to-end behavior.
+No pin relaxation, new skip, shared-process change or installed-native launch is permitted by this offline probe.
+
+Focused successor checks passed 108 repository tests and 30 task tests before a final endpoint-cleanup ordering
+correction. That correction and a regression must pass before integration begins. Current source is not yet accepted
+as a successor; prior successful checks retain their exact source boundary. Scaffold/Graphify/build/packed renewal
+and independent exact-artifact review remain required. No new native/model allocation or action occurred.
+
+## Diagnostic successor offline verification
+
+All eleven authored source/test/runner/fixture files are frozen by
+`c1-safe-phase-diagnostics/canonical-artifact-hashes.json` (SHA-256
+`2d2362d7a1105e4c594d9b9d6b74bbf9084e0e89b2459258f2794df534b92135`). Final focused checks passed
+109 repository tests, 30 task/controller tests, three unmocked owned-child cases and two genuine-profile attach probe
+cases. The latter explicitly substitutes only acquisition with an inert child; it grants no installed-native proof.
+Lint, formatting and TypeScript pass. Cleanup-entry reentrancy, endpoint-close ordering, full-write/failed-flush sequence
+accounting and synchronous pre-start trace closure now have regression coverage. Shared process APIs/protocol,
+profile pins, native argv/environment, limits, eligibility, default refusals and historical cases remain unchanged.
+
+Canonical sync successor passed; the initial sync remains preserved. Official Graphify refresh/full AST comparison
+produced 11,889 nodes and 27,901 edges with zero final duplicate IDs, missing endpoints or self-loops. Full extraction
+restored 115 endpoint pairs omitted by incremental extraction. Source/scripts/packages freshness receipts pass; raw
+extraction warnings remain. `c1-diagnostics-graphify/FINAL.json` SHA-256:
+`559c8946405946fba47a36eeb5da1c71f0ed81fdd7c5db3a3f660cf0e662a96d`.
+
+Root/scaffold builds and package/artifact/harness/documentation checks pass. Fresh packed generated proof passed
+255 tests across 13 suites plus installed SDK eight and canonical six-role aggregate one. Source parity covers
+50 files; all 98 migration names/SQL hashes, five seed copies and 76 CLI JavaScript/maps match their contracts.
+Only the exact canonical five UNKNOWN resource-coverage metadata rows remain in otherwise clean runtime seeds.
+Generated SDK 1.29.0 and installed CLI SDK 1.32.2 remain distinct observed dependency tuples. Root font-fetch and
+scaffold sandbox IPC predecessor failures are preserved; successor build permitted normal public-font fetching,
+and package installation remained offline with empty npmrc and a private seeded cache. No baseline/assertion was weakened.
+
+CLI tarball SHA-256 remains `61675569cf5aec550893877814f61b8488ded99e1e5db9ccb0bf3ab53ca64d19`;
+scaffold successor is `5e88d2eebd0d3a39b505c3975bd530f5b53d76daa591eb3195f19436b745dfcb`.
+`c1-diagnostics-integration/FINAL-RESULT.json` SHA-256 is
+`2b590533f44ed8b52a8b1e927331b72ac93a9e5324ded009da7dca1757d2d671`;
+`EVIDENCE-HASHES.json` is `1b390e0cf2733cfe2e9f68debcb6c9eb444559c963bef0dcec1864001dffd539`.
+
+Normal-hook local commit and independent whole-artifact review are the final source gate at this recorded checkpoint.
+Consult their successor receipt for acceptance before a fresh exact effect packet. No new native/model allowance or
+action was issued by this offline verification; current unspent allowance remains zero. M13 stays unchecked.
+
+## Normal-hook complexity refusal retained
+
+The first diagnostic commit attempt stopped in the unchanged new-only Fallow gate: three introduced complexity
+findings (`validNativeDiagnostic`, diagnostic identity checking, and `launchNativeQualificationChild`), zero
+introduced dead code. `c1-diagnostics-refresh/normal-commit.log` preserves the failure; no commit was created.
+A bounded refactor is preserving the complete tuple-acceptance set, every identity check and original effect/Promise
+ordering. No threshold, suppression, baseline, retry policy or qualification limit may change. Existing integration
+proof remains a predecessor, not proof of edited bytes. Run staged Fallow successfully before renewed generated
+artifacts/builds/packed proof and independent review. No new native/model allowance or effect occurred.
+
+## Complexity successor renewed
+
+The staged unchanged Fallow gate now passes with zero introduced complexity, dead code or duplication. The repair
+changed only the diagnostic validator/identity decomposition and synchronous child setup/failure classification.
+Differential proof against preserved staged predecessor bytes matched 10,944 tuple combinations (159 accepted),
+4,096 identity combinations including property-check ordering, and 144 failure classifications. Focused 109 tests,
+lint, formatting and TypeScript pass. New canonical eleven-file manifest is
+`c1-safe-phase-diagnostics/canonical-artifact-hashes-r2.json`, SHA-256 `bf5997829c1a43efee73ccb0708916284c54cebf724a832b2ee0cde601ad9117`.
+Old manifests, patch, hook failure, results and probes remain immutable.
+
+Fresh owned-child three-case and genuine-profile two-case proofs pass again in separate r2 directories. Their
+synthetic boundary and missing installed-native end-to-end proof are unchanged. Canonical sync successor r3 passed.
+Graphify r2 uses official full AST: 11,902 nodes/27,923 edges, zero final duplicate IDs/missing endpoints/self-loops,
+16 incremental-only omissions restored and all three scopes fresh. `c1-diagnostics-graphify-r2/FINAL.json` SHA-256:
+`083db55b6761f53f18989e387cfc11e9611dc112b10794ed32648a284b98556a`. Raw warnings remain preserved.
+
+Renewed root/scaffold builds, artifact/package checks and packed proof pass with no new r2 failures: 255 tests in
+13 portable suites plus installed SDK eight and six-role canonical aggregate one. Source parity 50, migrations 98,
+seed copies five and unchanged CLI runtime files 76 match their contracts. CLI SHA-256 remains
+`61675569cf5aec550893877814f61b8488ded99e1e5db9ccb0bf3ab53ca64d19`; scaffold r2 is
+`ff2a188a7e3527c4fbcfb4c4b940b6c1e6c50f83c1a46f2bf9ae3409b6eed525`.
+`c1-diagnostics-integration-r2/FINAL-RESULT.json` SHA-256:
+`b4fb7e071af85285c0a6640dad3c8a56815918d87cd77bcfd8639c94aea3f5cf`;
+`EVIDENCE-HASHES.json`: `c565214a0537e0e70ee5f0a25369664755793f6ad3cdd46139b59b3c69afcef4`.
+The normal commit and exact whole-artifact independent review remain the source gate at this recorded checkpoint.
+No new native/model allocation or action was issued; historical UNKNOWN and consumed counts remain unchanged.

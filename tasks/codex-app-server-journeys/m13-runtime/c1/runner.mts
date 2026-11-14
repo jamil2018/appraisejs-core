@@ -1,3 +1,7 @@
+import {
+  createNativeQualificationDiagnostics,
+  requireNativeDiagnostic,
+} from '../../../../src/lib/quality-journey/codex-app-server/native-qualification-diagnostics'
 import { createC1TaskLifetime } from './lifetime.mts'
 import {
   assertNativePublicInput,
@@ -50,7 +54,7 @@ function persist(filename: string, body: unknown) {
 }
 /** Original task parent only. Import has no effect; no CLI or product registration exists. */
 export async function prepareReviewedC1Task(
-  provided: Omit<Parameters<typeof createNativeQualityJourneyQualification>[0], 'createEndpoint'> & {
+  provided: Omit<Parameters<typeof createNativeQualityJourneyQualification>[0], 'createEndpoint' | 'diagnostics'> & {
     nativeOutcome: NonNullable<Parameters<typeof createNativeQualityJourneyQualification>[0]['nativeOutcome']>
     approvalEvidence: string
     evidenceDirectory: string
@@ -78,10 +82,19 @@ export async function prepareReviewedC1Task(
     options.evidenceDirectory.startsWith(manifest.freshRoot)
   )
     throw new Error('Exact frozen C1 task packet required')
-  const composition = await createNativeQualityJourneyQualification(
-    { ...options, createEndpoint: createManagedWorkerLoopbackServer },
-    client,
-  )
+  const diagnostic = createNativeQualificationDiagnostics(options.evidenceDirectory, manifest.freshRoot)
+  const diagnostics = diagnostic.observer
+  let composition: Awaited<ReturnType<typeof createNativeQualityJourneyQualification>>
+  try {
+    composition = await createNativeQualityJourneyQualification(
+      { ...options, diagnostics, createEndpoint: createManagedWorkerLoopbackServer },
+      client,
+    )
+  } catch (error) {
+    diagnostics.record('CASE_FAILURE', 'UNKNOWN', 'BOUNDARY_REFUSED')
+    diagnostic.close()
+    throw error
+  }
   const evidencePath = path.join(options.evidenceDirectory, `${manifest.campaignId}.c1-spent.json`)
   let start: ReturnType<typeof composition.start> | undefined
   let candidate:
@@ -96,6 +109,7 @@ export async function prepareReviewedC1Task(
   const control = options.nativeOutcome.reviewControl
   function closeControls() {
     lifetime?.finish()
+    diagnostic.close()
   }
   function owner() {
     const original = composition.originalNativeOutcome()
@@ -105,36 +119,61 @@ export async function prepareReviewedC1Task(
   return Object.freeze({
     start() {
       if (!start) {
-        const current = inspectNativeOutcomeProfile(originalProfile)
-        if (
-          current.plan !== originalPlan ||
-          current.profileDigest !== profile.profileDigest ||
-          current.reviewControlDigest !== controlDigest
-        )
-          throw new Error('Original frozen C1 profile changed before reservation')
-        assertC1InputInventory(inspectNativeQualificationPlan(originalPlan).manifest)
-        persist(evidencePath, {
-          version: 'M13_C1_SPENT_V1',
-          campaignId: manifest.campaignId,
-          approvalEvidence: options.approvalEvidence,
-          profileDigest: profile.profileDigest,
-          allowance: manifest.allowance,
-          reviewControl: control,
-          reconciliationAllowance: 1,
-          disposition: 'SPENT_BEFORE_EFFECTS',
-          outcome: 'UNKNOWN',
-          refundPermitted: false,
-        })
-        lifetime = createC1TaskLifetime({
-          caseMs: manifest.limits.caseMs,
-          cleanupMs: manifest.limits.cleanupMs,
-          control,
-          hardEvidencePath: path.join(options.evidenceDirectory, `${manifest.campaignId}.c1-hard-deadline.json`),
-          cancelModel: composition.cancel,
-          revokeOriginal: () => composition.originalNativeOutcome()?.revoke(),
-          disconnectOriginal: composition.disconnectOriginalSupervisor,
-        })
-        start = composition.start()
+        try {
+          requireNativeDiagnostic(diagnostics, 'CASE_START')
+          const current = inspectNativeOutcomeProfile(originalProfile)
+          if (
+            current.plan !== originalPlan ||
+            current.profileDigest !== profile.profileDigest ||
+            current.reviewControlDigest !== controlDigest
+          )
+            throw new Error('Original frozen C1 profile changed before reservation')
+          assertC1InputInventory(inspectNativeQualificationPlan(originalPlan).manifest)
+          persist(evidencePath, {
+            version: 'M13_C1_SPENT_V1',
+            campaignId: manifest.campaignId,
+            approvalEvidence: options.approvalEvidence,
+            profileDigest: profile.profileDigest,
+            allowance: manifest.allowance,
+            reviewControl: control,
+            reconciliationAllowance: 1,
+            disposition: 'SPENT_BEFORE_EFFECTS',
+            outcome: 'UNKNOWN',
+            refundPermitted: false,
+          })
+          lifetime = createC1TaskLifetime({
+            caseMs: manifest.limits.caseMs,
+            cleanupMs: manifest.limits.cleanupMs,
+            control,
+            hardEvidencePath: path.join(options.evidenceDirectory, `${manifest.campaignId}.c1-hard-deadline.json`),
+            cancelModel: composition.cancel,
+            revokeOriginal: () => composition.originalNativeOutcome()?.revoke(),
+            disconnectOriginal: composition.disconnectOriginalSupervisor,
+          })
+          start = composition.start()
+          // Observe the original promise without replacing it or retaining its raw rejection.
+          void start.then(
+            () => {
+              diagnostics.record('CASE_START', 'SETTLED')
+            },
+            () => {
+              diagnostics.record('CASE_FAILURE', 'UNKNOWN', 'BOUNDARY_REFUSED')
+            },
+          )
+          void start
+            .then(
+              () => composition.waitOriginalStop(),
+              () => composition.waitOriginalStop(),
+            )
+            .then(
+              () => diagnostic.close(),
+              () => diagnostic.close(),
+            )
+        } catch (error) {
+          diagnostics.record('CASE_FAILURE', 'UNKNOWN', 'BOUNDARY_REFUSED')
+          diagnostic.close()
+          throw error
+        }
       }
       return start
     },
