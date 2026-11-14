@@ -155,6 +155,11 @@ its own independently reviewed listener, request and lifetime allowance. Native 
 ancestors; canonical disposable data stays in its private persistent evidence parent. Archived data has no authority to
 reconstruct an original native source after restart.
 
+Qualification fixtures explicitly request a finite 900-second lease through the existing canonical claim API; ordinary
+fixture and product defaults remain 120 seconds. The task verifies enough lease remains for acquisition, case execution
+and cleanup before constructing the original task, and again after validation before start/spend. It never renews an
+expired reviewed packet. Native case, cleanup, review and reconciliation deadlines are unchanged by this fixture option.
+
 The execution driver uses the actual canonical runtime with the original disposable Prisma client and exact Appraise
 root. It requires one execution cycle and TestRun, compiled sealed evidence with complete report/log artifacts, the
 retained original supervisor's group-exit and browser-close acknowledgement, and fulfilled tracked original runtime

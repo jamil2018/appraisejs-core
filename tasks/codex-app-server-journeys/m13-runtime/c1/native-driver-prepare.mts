@@ -236,6 +236,7 @@ export async function prepareOriginalNativeDriverCase(
       provenance: 'ORIGINAL_C1_TASK',
       subjectDigest,
       leaseExpiresAt: attempt.leaseExpiresAt.getTime(),
+      minimumLeaseMs: manifest.limits.acquisitionMs + manifest.limits.caseMs + manifest.limits.cleanupMs,
       source: packet.credentialSource,
       toolName: event.original.toolName,
       arguments: event.arguments,

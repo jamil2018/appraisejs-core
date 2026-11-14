@@ -112,6 +112,7 @@ export function createNativeJourneyLineage(baseUrl?: string, workspaceParent?: s
     if (fixtureFlight) return
     fixtureFlight = prepareM10AutomationFixture(baseUrl, {
       dispatch,
+      qualificationLeaseSeconds: 900,
       workspaceParent,
       onFixtureOwned(owned) {
         fixture = owned
@@ -194,6 +195,7 @@ export function createNativeJourneyLineage(baseUrl?: string, workspaceParent?: s
           coordinatorPrincipalId: binding.coordinatorPrincipalId,
           principal: binding.principal,
           role: 'REQUIREMENT_ANALYZER',
+          leaseSeconds: 900,
           assignmentSecret,
           idempotencyKey: `m13-followup-claim-${answerId}`,
           expected: issuance.expected,

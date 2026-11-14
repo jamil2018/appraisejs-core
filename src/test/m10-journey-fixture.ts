@@ -152,9 +152,11 @@ export async function prepareM10AutomationFixture(
     preserveOnFailure?: boolean
     requireObservedDiscoveryCleanup?: boolean
     workspaceParent?: string
+    qualificationLeaseSeconds?: 900
   },
 ) {
-  const f = await createProviderFixture({ workspaceParent: offline?.workspaceParent })
+  const qualificationLeaseSeconds = offline?.qualificationLeaseSeconds
+  const f = await createProviderFixture({ workspaceParent: offline?.workspaceParent, qualificationLeaseSeconds })
   try {
     offline?.onFixtureOwned?.({ client: f.client, workspace: f.workspace, databasePath: f.databasePath })
     const { client, scope, credentials, principal } = f
@@ -356,7 +358,14 @@ export async function prepareM10AutomationFixture(
       const key = `m10-${role}-${++claimSequence}`
       const assignmentSecret = `m10-disposable-${key}-0123456789`
       const worker = await claimExternalQualityJourneyWork(
-        { ...credentials, role, principal, assignmentSecret, idempotencyKey: `${key}-claim` },
+        {
+          ...credentials,
+          role,
+          principal,
+          assignmentSecret,
+          idempotencyKey: `${key}-claim`,
+          ...(qualificationLeaseSeconds === undefined ? {} : { leaseSeconds: qualificationLeaseSeconds }),
+        },
         client,
       )
       const workerBinding = {

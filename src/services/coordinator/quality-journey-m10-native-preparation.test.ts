@@ -1,8 +1,9 @@
 import { existsSync } from 'node:fs'
-import { chmod, mkdtemp, realpath, rm } from 'node:fs/promises'
+import { chmod, mkdtemp, realpath, readdir, rm } from 'node:fs/promises'
 import path from 'node:path'
 import os from 'node:os'
 import { describe, expect, it, vi } from 'vitest'
+import { addManagedProviderAssignment, createProviderFixture } from '@/test/quality-journey-provider-fixture'
 import { createM10DiscoveryMetadataRuntime, prepareM10AutomationFixture } from '@/test/m10-journey-fixture'
 
 type Controls = NonNullable<Parameters<typeof prepareM10AutomationFixture>[1]>
@@ -14,6 +15,114 @@ async function removeSynthetic(owned: Owned | undefined) {
 }
 
 describe('disposable native qualification preparation boundaries, without native effects', () => {
+  it.each([undefined, 900] as const)(
+    'uses the canonical default or exact qualification lease=%s without changing default request shape',
+    async qualificationLeaseSeconds => {
+      const before = Date.now()
+      const f = await createProviderFixture(
+        qualificationLeaseSeconds === undefined ? {} : { qualificationLeaseSeconds },
+      )
+      try {
+        const after = Date.now(),
+          seconds = qualificationLeaseSeconds ?? 120
+        const actual = await f.client.qualityJourneyWorkAttempt.findUniqueOrThrow({
+          where: { id: f.binding.attemptId },
+        })
+        expect(actual.leaseExpiresAt.getTime()).toBeGreaterThanOrEqual(before + seconds * 1000)
+        expect(actual.leaseExpiresAt.getTime()).toBeLessThanOrEqual(after + seconds * 1000)
+        expect(actual.heartbeatSeconds).toBe(seconds / 3)
+        expect(Object.hasOwn(f.claimRequest, 'leaseSeconds')).toBe(qualificationLeaseSeconds !== undefined)
+        if (qualificationLeaseSeconds !== undefined) expect(f.claimRequest.leaseSeconds).toBe(900)
+      } finally {
+        await f.cleanup()
+      }
+    },
+  )
+
+  it('pins the qualification lease before asynchronous workspace preparation', async () => {
+    const options: NonNullable<Parameters<typeof createProviderFixture>[0]> = { qualificationLeaseSeconds: 900 }
+    const original = createProviderFixture(options)
+    options.qualificationLeaseSeconds = undefined
+    const f = await original
+    try {
+      expect(f.claimRequest.leaseSeconds).toBe(900)
+      expect(f.claimed.attempt.heartbeatSeconds).toBe(300)
+    } finally {
+      await f.cleanup()
+    }
+  })
+
+  it('rejects invalid qualification leases before creating a workspace, claiming or taking ownership', async () => {
+    const parent = await realpath(await mkdtemp(path.join(os.tmpdir(), 'appraise-m13-invalid-lease-')))
+    await chmod(parent, 0o700)
+    const onFixtureOwned = vi.fn(),
+      dispatch = vi.fn()
+    const client = new Proxy(
+      {},
+      {
+        get() {
+          throw new Error('Canonical client must not be accessed for an invalid qualification lease')
+        },
+      },
+    ) as Parameters<typeof addManagedProviderAssignment>[0]
+    try {
+      const before = await readdir(parent)
+      for (const invalid of [0, 120, 899, 901, NaN, Infinity, null, '900']) {
+        const qualificationLeaseSeconds = invalid as 900
+        await expect(createProviderFixture({ workspaceParent: parent, qualificationLeaseSeconds })).rejects.toThrow(
+          'exactly 900 seconds or absent',
+        )
+        await expect(
+          prepareM10AutomationFixture(undefined, {
+            workspaceParent: parent,
+            qualificationLeaseSeconds,
+            onFixtureOwned,
+            dispatch,
+          }),
+        ).rejects.toThrow('exactly 900 seconds or absent')
+        await expect(
+          addManagedProviderAssignment(client, 'unused-target', 'invalid', qualificationLeaseSeconds),
+        ).rejects.toThrow('exactly 900 seconds or absent')
+      }
+      expect(await readdir(parent)).toEqual(before)
+      expect(onFixtureOwned).not.toHaveBeenCalled()
+      expect(dispatch).not.toHaveBeenCalled()
+    } finally {
+      await rm(parent, { recursive: true, force: true })
+    }
+  })
+
+  it('uses the opt-in 900-second canonical lease for every later M10 role without native or browser effects', async () => {
+    const before = Date.now(),
+      roles: string[] = []
+    const f = await prepareM10AutomationFixture(undefined, {
+      qualificationLeaseSeconds: 900,
+      serialDiscoveryAdmissions: true,
+      discoveryRuntime: createM10DiscoveryMetadataRuntime(),
+      async dispatch(event) {
+        const actual = await event.client.qualityJourneyWorkAttempt.findUniqueOrThrow({
+          where: { id: event.binding.attemptId },
+        })
+        expect(actual.leaseExpiresAt.getTime()).toBeGreaterThanOrEqual(before + 900000)
+        expect(actual.leaseExpiresAt.getTime()).toBeLessThanOrEqual(Date.now() + 900000)
+        expect(actual.heartbeatSeconds).toBe(300)
+        roles.push(event.binding.role)
+        return event.directInvoke()
+      },
+    })
+    try {
+      expect(roles).toEqual([
+        'REQUIREMENT_ANALYZER',
+        'SCOUT',
+        'RESOURCE_EXPLORER',
+        'TEST_SCENARIO_DESIGNER',
+        'AUTOMATOR',
+      ])
+    } finally {
+      await f.cleanup()
+    }
+  })
+
   it('keeps the original database in an explicitly selected persistent private parent', async () => {
     const parent = await realpath(await mkdtemp(path.join(os.tmpdir(), 'appraise-m13-private-parent-')))
     await chmod(parent, 0o700)

@@ -285,3 +285,19 @@ Package build and all 340 tests pass, and the original package baseline now pass
 threshold or hook policy changed. The final CLI successor tarball proof passed nine SDK/six-role checks against the
 unchanged generated app; `c1-packed-hook-final/result.json` binds its hash and the prior 237-test generated proof.
 Normal full-hook retry and actual native qualification remain outstanding; no effect allocation was added by this repair.
+
+The seven-file lease successor passed independent source review (`c1-lease-successor/independent-review.json`), 13
+canonical and 36 Node checks, transitive TypeScript/lint/format and owned Fallow checks. Fresh root/scaffold builds,
+237 generated portable tests and nine actual installed SDK/six-role checks passed. The integration verifies 46 source
+copies, all 98 migrations, five seed copies and unchanged CLI JavaScript/maps. Clean-seed auditing retains exactly the
+five migration-defined UNKNOWN resource-coverage metadata rows with null proof fields; all other sensitive runtime and
+credential-reference rows are zero. An initially overbroad audit and an output-wrapper pathname error remain preserved;
+rooted successor checks passed without changing seeds, production assertions or baselines.
+
+Current CLI tarball SHA-256 is `61675569cf5aec550893877814f61b8488ded99e1e5db9ccb0bf3ab53ca64d19`; current
+scaffold is `f5418335098b6d1244d2110d04d4364838f9d193223f5f196014d07d1cc5b27b`. Final integration receipt
+`c1-lease-integration/FINAL-RESULT.json` SHA-256 is `54b367da2a733146084d20f6d052d44401c9d8c3317326b678fa0c26b90324d3`.
+Source Graphify full AST comparison is exact and all three receipts are fresh; raw extraction warnings remain recorded.
+Normal-hook successor commit and its integrated exact-artifact review remain required before a fresh actual case.
+The original refused preparation has no accepted control, spent file or created native root; no effect budget was spent
+or refunded. The actual ledger remains ten native invocations and zero new provider turns.

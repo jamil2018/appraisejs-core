@@ -1,6 +1,6 @@
 # M13 runtime continuation
 
-Status: ACTIVE, C1 source accepted; final offline artifact integration. No C0/C1 model turn has been started. Full M13 remains unchecked.
+Status: ACTIVE, qualification lease successor. First preparation refused before native entry. No C0/C1 model turn has been started. Full M13 remains unchecked.
 
 Worktree: `/Users/jamil/Personal Projects/appraisejs/.appraisejs/m13-runtime-qualification`.
 Branch: `codex/m13-runtime-qualification`; starting HEAD `b8aaa949d2d7acbfcc260f68b28c179ca3ffb8e0`.
@@ -108,3 +108,37 @@ Package build and all 340 tests pass, and the original package baseline now pass
 threshold or hook policy changed. The final CLI successor tarball proof passed nine SDK/six-role checks against the
 unchanged generated app; `c1-packed-hook-final/result.json` binds its hash and the prior 237-test generated proof.
 Normal full-hook retry and actual native qualification remain outstanding; no effect allocation was added by this repair.
+
+## First preparation refused; finite lease successor
+
+The integrated source was committed with normal unchanged hooks at `2372cca7a615adea6fdef35e41af1b072c575ed3`,
+tree `b97b8d6e46ccb1cdfe21234243a5d827994c9d92`, then independently accepted. The first B3 parent prepared a fresh
+canonical assignment but its default 120-second lease left only 37 seconds at independent review, below the 45-second
+case plus 10-second cleanup. Reviewer wrote REVISE and no case control. No native/model/browser/listener start or
+execution allowance occurred. Original parent session 62765 accepted retain-unknown and exited 0. Its claim, database,
+prepared metadata and rejected review remain under `b3-first-9bKeqp/`; never renew/replay that case. Actual preparation
+wallclock gap from claim to prepared file was 2.436855 seconds; this is not inference or provider latency.
+
+A qualification-only successor threads explicit leaseSeconds 900 through the existing canonical API for these disposable
+fixtures, leaving canonical defaults and all native deadlines/effect limits unchanged. It also checks sufficient lease
+for acquisition+case+cleanup before task construction and again before start/spend. Focused tests, renewed source review,
+template/graph/build/packed integration and a fresh normal-hook commit must complete before a NEW parent/case. The old
+source acceptance does not cover this successor. The actual ledger is still ten native invocations and zero new provider
+turns; no current unspent effect allocation exists. The initial preparation script also had a non-effecting false refusal
+from JSON object-key order; its successor uses structural equality, with actual credential metadata unchanged.
+
+The seven-file lease successor passed independent source review (`c1-lease-successor/independent-review.json`), 13
+canonical and 36 Node checks, transitive TypeScript/lint/format and owned Fallow checks. Fresh root/scaffold builds,
+237 generated portable tests and nine actual installed SDK/six-role checks passed. The integration verifies 46 source
+copies, all 98 migrations, five seed copies and unchanged CLI JavaScript/maps. Clean-seed auditing retains exactly the
+five migration-defined UNKNOWN resource-coverage metadata rows with null proof fields; all other sensitive runtime and
+credential-reference rows are zero. An initially overbroad audit and an output-wrapper pathname error remain preserved;
+rooted successor checks passed without changing seeds, production assertions or baselines.
+
+Current CLI tarball SHA-256 is `61675569cf5aec550893877814f61b8488ded99e1e5db9ccb0bf3ab53ca64d19`; current
+scaffold is `f5418335098b6d1244d2110d04d4364838f9d193223f5f196014d07d1cc5b27b`. Final integration receipt
+`c1-lease-integration/FINAL-RESULT.json` SHA-256 is `54b367da2a733146084d20f6d052d44401c9d8c3317326b678fa0c26b90324d3`.
+Source Graphify full AST comparison is exact and all three receipts are fresh; raw extraction warnings remain recorded.
+Normal-hook successor commit and its integrated exact-artifact review remain required before a fresh actual case.
+The original refused preparation has no accepted control, spent file or created native root; no effect budget was spent
+or refunded. The actual ledger remains ten native invocations and zero new provider turns.

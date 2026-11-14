@@ -332,6 +332,11 @@ test('canonical disposable Analysis questions issue a fresh answer-bound success
     const initial = await lineage.prepareInitial()
     workspace = lineage.fixtureOwned().workspace
     assert.equal(initial.kind, 'ANALYSIS_INITIAL')
+    const initialAttempt = await initial.original.client.qualityJourneyWorkAttempt.findUniqueOrThrow({
+      where: { id: initial.original.binding.attemptId },
+    })
+    assert.equal(initialAttempt.heartbeatSeconds, 300)
+    assert.ok(initialAttempt.leaseExpiresAt.getTime() > Date.now() + 890000)
     assert.equal(lineage.snapshot().browserEntered, false)
     assert.equal((initial.arguments.charter as { questions: unknown[] }).questions.length, 1)
     assert.equal('schemaVersion' in (initial.arguments.charter as object), false)
@@ -352,6 +357,11 @@ test('canonical disposable Analysis questions issue a fresh answer-bound success
     lineage.acceptCurrentCanonicalResult(result.result)
     const successor = await lineage.prepareAnalysisFollowup(scriptedDisposableHuman)
     assert.equal(successor.kind, 'ANALYSIS_FOLLOWUP')
+    const followupAttempt = await successor.original.client.qualityJourneyWorkAttempt.findUniqueOrThrow({
+      where: { id: successor.original.binding.attemptId },
+    })
+    assert.equal(followupAttempt.heartbeatSeconds, 300)
+    assert.ok(followupAttempt.leaseExpiresAt.getTime() > Date.now() + 890000)
     assert.notEqual(successor.original.binding.assignmentId, initial.original.binding.assignmentId)
     assert.notEqual(successor.original.binding.assignmentSecret, initial.original.binding.assignmentSecret)
     assert.equal(
@@ -503,6 +513,81 @@ test('the public original parent cannot publish late initial preparation after r
     assert.equal(state.fixture.stopped, true)
   } finally {
     await parent.retainUnknown()
+    f.cleanup()
+  }
+})
+
+test('37 seconds remaining cannot construct or spend a native case requiring 65 seconds', async () => {
+  const f = fixture()
+  let constructed = 0
+  const c = createOriginalNativeCaseControl({
+    provenance: 'OFFLINE_SYNTHETIC',
+    subjectDigest: f.subjectDigest,
+    source: f.source,
+    leaseExpiresAt: Date.now() + 37000,
+    minimumLeaseMs: 65000,
+    toolName: 'synthetic',
+    arguments: {},
+    async createOriginalTask() {
+      constructed++
+      throw new Error('Insufficient lease must block before construction')
+    },
+    async verifyReconciled() {},
+    async disposeOriginalSource() {},
+  })
+  try {
+    await assert.rejects(c.startVerifiedCase(f.approval()), /UNKNOWN/)
+    assert.equal(constructed, 0)
+    assert.equal(c.snapshot().phase, 'UNKNOWN')
+  } finally {
+    f.cleanup()
+  }
+})
+
+test('source validation consuming the lease cancels the original unstarted task without spending', async context => {
+  const f = fixture(),
+    events: string[] = []
+  let now = Date.now()
+  context.mock.method(Date, 'now', () => now)
+  const task: OriginalNativeDriverTask = {
+    async start() {
+      events.push('SPEND_AND_START')
+    },
+    snapshot: () => ({ state: 'startup', originalStartState: 'NOT_CALLED' }),
+    async readAcceptedManagedDelivery() {
+      return null
+    },
+    async freezeCandidate() {
+      return {}
+    },
+    acceptIndependentReview() {},
+    async reconcile() {},
+    async cancel() {
+      events.push('cancel-original-unstarted')
+    },
+  }
+  const c = createOriginalNativeCaseControl({
+    provenance: 'OFFLINE_SYNTHETIC',
+    subjectDigest: f.subjectDigest,
+    source: f.source,
+    leaseExpiresAt: now + 70000,
+    minimumLeaseMs: 65000,
+    toolName: 'synthetic',
+    arguments: {},
+    async createOriginalTask() {
+      events.push('validate-original-source')
+      now += 6000
+      return task
+    },
+    async verifyReconciled() {},
+    async disposeOriginalSource() {},
+  })
+  try {
+    await assert.rejects(c.startVerifiedCase(f.approval()), /UNKNOWN/)
+    assert.deepEqual(events, ['validate-original-source', 'cancel-original-unstarted'])
+    assert.equal(c.snapshot().phase, 'UNKNOWN')
+  } finally {
+    context.mock.restoreAll()
     f.cleanup()
   }
 })

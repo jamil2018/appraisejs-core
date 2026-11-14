@@ -78,6 +78,7 @@ export function createOriginalNativeCaseControl(options: {
   provenance: 'ORIGINAL_C1_TASK' | 'OFFLINE_SYNTHETIC'
   subjectDigest: string
   leaseExpiresAt: number
+  minimumLeaseMs?: number
   source: NativeCredentialDescriptor
   toolName: string
   arguments: Record<string, unknown>
@@ -87,9 +88,18 @@ export function createOriginalNativeCaseControl(options: {
 }) {
   const captured = Object.freeze({
     ...options,
+    minimumLeaseMs: options.minimumLeaseMs ?? 0,
     arguments: structuredClone(options.arguments),
     source: structuredClone(options.source),
   })
+  if (!Number.isSafeInteger(captured.minimumLeaseMs) || captured.minimumLeaseMs < 0)
+    throw new Error('Exact minimum remaining lease bound required')
+  if (captured.provenance === 'ORIGINAL_C1_TASK' && captured.minimumLeaseMs === 0)
+    throw new Error('Original native case requires a positive frozen lease bound')
+  const sufficientLease = () => {
+    const remaining = captured.leaseExpiresAt - Date.now()
+    return remaining > 0 && remaining >= captured.minimumLeaseMs
+  }
   let phase: Phase = 'PREPARED',
     task: OriginalNativeDriverTask | undefined
   let originalStart: Promise<unknown> | undefined, candidate: Readonly<Record<string, unknown>> | undefined
@@ -123,9 +133,9 @@ export function createOriginalNativeCaseControl(options: {
       originalStart = (async () => {
         try {
           const approval = readNativeDriverControl(control, 'CASE_PACKET', captured.subjectDigest, captured.source)
-          if (Date.now() >= captured.leaseExpiresAt) fail()
+          if (!sufficientLease()) fail()
           task = await captured.createOriginalTask(approval.decisionDigest)
-          if (phase !== 'STARTING' || Date.now() >= captured.leaseExpiresAt) {
+          if (phase !== 'STARTING' || !sufficientLease()) {
             await task.cancel()
             return fail()
           }
