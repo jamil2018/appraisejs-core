@@ -38,3 +38,9 @@ and prerequisite identities, finite newly recorded allowance, original parent cu
 review. Prior source reviews do not cover successor edits. Start once, preserve the trace and original cleanup
 observations, then obtain separate actual-outcome review and canonical reconciliation. On failure or lost continuity,
 retain UNKNOWN and spent allocations; do not replay, refund, reconstruct proof or signal stored PIDs.
+
+The passive-refusal successor distinguishes protocol replies/frames and closed notification classes from source
+predicate refusals and residual stream/parse/I/O failures. It records literal class/predicate codes only. Protocol
+internal predicates remain opaque; an unclassified frame remains UNKNOWN. No raw method, payload, exception or frame
+bytes are exported. Classification does not change which notification is accepted and does not identify an earlier
+unrecorded offending frame. The historical generic passive-capture trace is preserved unchanged.

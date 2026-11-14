@@ -39,10 +39,38 @@ const nativeDiagnosticStages = [
   'CASE_FAILURE',
   'CLEANUP',
   'CASE_CLOSE',
+  'PASSIVE_PROTOCOL_REPLY',
+  'PASSIVE_PROTOCOL_FRAME',
+  'PASSIVE_PROTOCOL_ACCOUNT_UPDATED',
+  'PASSIVE_PROTOCOL_REMOTE_STATUS',
+  'PASSIVE_PROTOCOL_MCP_STARTUP',
+  'PASSIVE_PROTOCOL_OTHER',
+  'PASSIVE_OUTCOME_ACCOUNT_UPDATED',
+  'PASSIVE_OUTCOME_REMOTE_STATUS',
+  'PASSIVE_OUTCOME_MCP_STARTUP',
+  'PASSIVE_OUTCOME_OTHER',
+  'PASSIVE_STREAM',
+  'PASSIVE_PRECLAIM',
 ] as const
 export type NativeDiagnosticStage = (typeof nativeDiagnosticStages)[number]
 type NativeDiagnosticStatus = 'ENTERED' | 'SETTLED' | 'ACCEPTED' | 'REFUSED' | 'TIMED_OUT' | 'UNKNOWN' | 'CLOSED'
+export type NativeSourceNotificationRefusal =
+  | 'NOTIFICATION_AFTER_CLEANUP'
+  | 'NOTIFICATION_AFTER_CANDIDATE'
+  | 'NOTIFICATION_LIMIT_EXCEEDED'
+  | 'REMOTE_STATUS_NOT_DISABLED'
+  | 'REMOTE_ENVIRONMENT_PRESENT'
+  | 'REMOTE_STATUS_LIMIT_EXCEEDED'
+  | 'THREAD_SCOPE_MISMATCH'
+  | 'TURN_SCOPE_MISMATCH'
+  | 'UNCLASSIFIED_NOTIFICATION'
+  | 'SOURCE_NOTIFICATION_REFUSED'
 type NativeDiagnosticReason =
+  | NativeSourceNotificationRefusal
+  | 'PROTOCOL_REFUSED'
+  | 'OUTCOME_OBSERVER_REFUSED'
+  | 'STREAM_PARSE_OR_IO_REFUSED'
+  | 'PRECLAIM_CAPTURE_LIMIT'
   | 'NONE'
   | 'BOUNDARY_REFUSED'
   | 'OWNED_STARTUP_REFUSED'
@@ -72,6 +100,42 @@ const validations = new Set<NativeDiagnosticStage>([
   'THREAD_VALIDATE',
   'MCP_VALIDATE',
 ])
+const passiveReasons = new Map<NativeDiagnosticStage, readonly NativeDiagnosticReason[]>([
+  ['PASSIVE_PROTOCOL_REPLY', ['PROTOCOL_REFUSED']],
+  ['PASSIVE_PROTOCOL_FRAME', ['PROTOCOL_REFUSED']],
+  ['PASSIVE_PROTOCOL_ACCOUNT_UPDATED', ['PROTOCOL_REFUSED']],
+  ['PASSIVE_PROTOCOL_REMOTE_STATUS', ['PROTOCOL_REFUSED']],
+  ['PASSIVE_PROTOCOL_MCP_STARTUP', ['PROTOCOL_REFUSED']],
+  ['PASSIVE_PROTOCOL_OTHER', ['PROTOCOL_REFUSED']],
+  ['PASSIVE_STREAM', ['STREAM_PARSE_OR_IO_REFUSED']],
+  ['PASSIVE_PRECLAIM', ['PRECLAIM_CAPTURE_LIMIT']],
+])
+const commonOutcomeReasons: readonly NativeDiagnosticReason[] = [
+  'OUTCOME_OBSERVER_REFUSED',
+  'NOTIFICATION_AFTER_CLEANUP',
+  'NOTIFICATION_AFTER_CANDIDATE',
+  'NOTIFICATION_LIMIT_EXCEEDED',
+  'SOURCE_NOTIFICATION_REFUSED',
+]
+const scopedOutcomeReasons: readonly NativeDiagnosticReason[] = ['THREAD_SCOPE_MISMATCH', 'TURN_SCOPE_MISMATCH']
+passiveReasons.set('PASSIVE_OUTCOME_ACCOUNT_UPDATED', [
+  ...commonOutcomeReasons,
+  ...scopedOutcomeReasons,
+  'UNCLASSIFIED_NOTIFICATION',
+])
+passiveReasons.set('PASSIVE_OUTCOME_REMOTE_STATUS', [
+  ...commonOutcomeReasons,
+  'REMOTE_STATUS_NOT_DISABLED',
+  'REMOTE_ENVIRONMENT_PRESENT',
+  'REMOTE_STATUS_LIMIT_EXCEEDED',
+])
+passiveReasons.set('PASSIVE_OUTCOME_MCP_STARTUP', [...commonOutcomeReasons, ...scopedOutcomeReasons])
+passiveReasons.set('PASSIVE_OUTCOME_OTHER', [
+  ...commonOutcomeReasons,
+  ...scopedOutcomeReasons,
+  'UNCLASSIFIED_NOTIFICATION',
+])
+
 type DiagnosticPair = readonly [NativeDiagnosticStatus, NativeDiagnosticReason]
 const closePairs: readonly DiagnosticPair[] = [
   ['ACCEPTED', 'NONE'],
@@ -131,6 +195,8 @@ function validNativeDiagnostic(
   reason: NativeDiagnosticReason,
 ): boolean {
   if (!(nativeDiagnosticStages as readonly string[]).includes(stage)) return false
+  const passive = passiveReasons.get(stage)
+  if (passive) return status === 'REFUSED' && passive.includes(reason)
   if (stage === 'CASE_CLOSE') return matchesDiagnosticPair(status, reason, closePairs)
   if (stage === 'CASE_FAILURE') return matchesDiagnosticPair(status, reason, failurePairs)
   if (status === 'ENTERED') return reason === 'NONE'
@@ -293,5 +359,45 @@ export function nativeDiagnosticRequestStage(
       return 'INITIALIZED_NOTIFY'
     default:
       throw new Error('Native diagnostic operation refused')
+  }
+}
+
+/** Only literal classes are projected; unknown methods are never retained or hashed. */
+export function nativePassiveOutcomeStage(method: unknown): NativeDiagnosticStage {
+  switch (method) {
+    case 'account/updated':
+      return 'PASSIVE_OUTCOME_ACCOUNT_UPDATED'
+    case 'remoteControl/status/changed':
+      return 'PASSIVE_OUTCOME_REMOTE_STATUS'
+    case 'mcpServer/startupStatus/updated':
+      return 'PASSIVE_OUTCOME_MCP_STARTUP'
+    default:
+      return 'PASSIVE_OUTCOME_OTHER'
+  }
+}
+function passiveProtocolNotificationStage(method: unknown): NativeDiagnosticStage {
+  switch (method) {
+    case 'account/updated':
+      return 'PASSIVE_PROTOCOL_ACCOUNT_UPDATED'
+    case 'remoteControl/status/changed':
+      return 'PASSIVE_PROTOCOL_REMOTE_STATUS'
+    case 'mcpServer/startupStatus/updated':
+      return 'PASSIVE_PROTOCOL_MCP_STARTUP'
+    default:
+      return 'PASSIVE_PROTOCOL_OTHER'
+  }
+}
+export function nativePassiveProtocolStage(frame: unknown): NativeDiagnosticStage {
+  if (!frame || typeof frame !== 'object' || Array.isArray(frame)) return 'PASSIVE_PROTOCOL_FRAME'
+  try {
+    if (Object.hasOwn(frame, 'id')) return 'PASSIVE_PROTOCOL_REPLY'
+    // Parsed JSON has data properties. Accessor-shaped synthetic values stay the opaque frame class.
+    const method = Object.getOwnPropertyDescriptor(frame, 'method')?.value
+    const params = Object.getOwnPropertyDescriptor(frame, 'params')?.value
+    if (typeof method !== 'string' || !params || typeof params !== 'object' || Array.isArray(params))
+      return 'PASSIVE_PROTOCOL_FRAME'
+    return passiveProtocolNotificationStage(method)
+  } catch {
+    return 'PASSIVE_PROTOCOL_FRAME'
   }
 }

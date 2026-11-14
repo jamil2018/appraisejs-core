@@ -514,3 +514,139 @@ it('reserves one original cleanup flight before a sink failure at cleanup entry 
   expect(existsSync(f.manifest.freshRoot)).toBe(false)
   trace.close()
 })
+
+describe('fixed passive failure classes preserve original poison and cleanup', () => {
+  it.each([
+    ['reply', { id: 99, result: {} }, 'PASSIVE_PROTOCOL_REPLY'],
+    ['frame', null, 'PASSIVE_PROTOCOL_FRAME'],
+    [
+      'account',
+      { method: 'account/updated', params: { authMode: 'invalid-synthetic-mode' } },
+      'PASSIVE_PROTOCOL_ACCOUNT_UPDATED',
+    ],
+    ['remote', { method: 'remoteControl/status/changed', params: {} }, 'PASSIVE_PROTOCOL_REMOTE_STATUS'],
+    ['mcp', { method: 'mcpServer/startupStatus/updated', params: {} }, 'PASSIVE_PROTOCOL_MCP_STARTUP'],
+    ['other', { method: 'secret future method /private/provider', params: {} }, 'PASSIVE_PROTOCOL_OTHER'],
+  ])('records only the first %s protocol refusal before existing generic poison', async (_label, frame, expected) => {
+    const f = setup(),
+      trace = createNativeQualificationDiagnostics(f.parent, f.manifest.freshRoot)
+    const child = await launchNativeQualificationChild(f.plan, { ...f.callbacks, diagnostics: trace.observer })
+    for (let index = 0; index < 3; index++)
+      f.original.process.stdout!.emit('data', Buffer.from(JSON.stringify(frame) + '\n'))
+    expect(await child.stop()).toMatchObject({ status: 'uncertain', privateRootRetained: true })
+    trace.close()
+    const bytes = readFileSync(path.join(f.parent, 'c1-acquisition-diagnostics.jsonl'), 'utf8')
+    const rows = bytes
+      .trim()
+      .split('\n')
+      .map(line => JSON.parse(line))
+    expect(rows.filter(row => row.stage.startsWith('PASSIVE_'))).toEqual([
+      expect.objectContaining({ stage: expected, status: 'REFUSED', reason: 'PROTOCOL_REFUSED' }),
+    ])
+    expect(rows.findIndex(row => row.stage === expected)).toBeLessThan(
+      rows.findIndex(row => row.reason === 'PASSIVE_CAPTURE_REFUSED'),
+    )
+    expect(f.callbacks.onFault).toHaveBeenCalledWith('native_passive_drain_refused')
+    expect(bytes).not.toMatch(/secret|future method|private\/provider|invalid-synthetic-mode/)
+    expect(owned.stop).toHaveBeenCalledExactlyOnceWith(f.original)
+  })
+  it.each(['malformed-json', 'stream-error'])(
+    'records residual %s only when no callback refusal was observed',
+    async mode => {
+      const f = setup(),
+        trace = createNativeQualificationDiagnostics(f.parent, f.manifest.freshRoot)
+      const child = await launchNativeQualificationChild(f.plan, { ...f.callbacks, diagnostics: trace.observer })
+      if (mode === 'malformed-json')
+        f.original.process.stdout!.emit('data', Buffer.from('{ malformed private payload\n'))
+      else f.original.process.stdout!.emit('error', new Error('private token provider stream error'))
+      expect(await child.stop()).toMatchObject({ status: 'uncertain', privateRootRetained: true })
+      trace.close()
+      const bytes = readFileSync(path.join(f.parent, 'c1-acquisition-diagnostics.jsonl'), 'utf8')
+      const rows = bytes
+        .trim()
+        .split('\n')
+        .map(line => JSON.parse(line))
+      expect(rows.filter(row => row.stage.startsWith('PASSIVE_'))).toEqual([
+        expect.objectContaining({ stage: 'PASSIVE_STREAM', status: 'REFUSED', reason: 'STREAM_PARSE_OR_IO_REFUSED' }),
+      ])
+      expect(bytes).not.toMatch(/private payload|private token|provider stream error/)
+    },
+  )
+  it.each(['attached', 'preclaim'])(
+    'locates %s original outcome observer refusal without reading its hostile exception',
+    async timing => {
+      const f = setup(),
+        trace = createNativeQualificationDiagnostics(f.parent, f.manifest.freshRoot)
+      const child = await launchNativeQualificationChild(f.plan, { ...f.callbacks, diagnostics: trace.observer })
+      const read = vi.fn(() => {
+          throw new Error('raw exception getter read')
+        }),
+        hostile = Object.create(null)
+      for (const key of ['message', 'stack', 'cause', 'name', 'code', 'pid', 'token'])
+        Object.defineProperty(hostile, key, { get: read })
+      const observer = {
+        beforeRequest: vi.fn(),
+        operation: vi.fn(),
+        notification() {
+          throw hostile
+        },
+        fault: vi.fn(),
+        cleanup: vi.fn(),
+      }
+      if (timing === 'attached') claimOriginalNativeQualificationChild(child, f.plan, observer)
+      f.original.process.stdout!.emit(
+        'data',
+        Buffer.from(JSON.stringify({ method: 'account/updated', params: { authMode: null, planType: null } }) + '\n'),
+      )
+      if (timing === 'preclaim')
+        expect(() => claimOriginalNativeQualificationChild(child, f.plan, observer)).toThrow(/Original pre-handshake/)
+      expect(await child.stop()).toMatchObject({ status: timing === 'attached' ? 'uncertain' : 'stopped' })
+      trace.close()
+      const rows = readFileSync(path.join(f.parent, 'c1-acquisition-diagnostics.jsonl'), 'utf8')
+        .trim()
+        .split('\n')
+        .map(line => JSON.parse(line))
+      expect(rows.filter(row => row.stage.startsWith('PASSIVE_'))).toEqual([
+        expect.objectContaining({
+          stage: 'PASSIVE_OUTCOME_ACCOUNT_UPDATED',
+          status: 'REFUSED',
+          reason: 'OUTCOME_OBSERVER_REFUSED',
+        }),
+      ])
+      expect(read).not.toHaveBeenCalled()
+      expect(observer.fault).toHaveBeenCalled()
+    },
+  )
+  it('records bounded preclaim overflow separately without manufacturing a stream fault', async () => {
+    const f = setup(),
+      trace = createNativeQualificationDiagnostics(f.parent, f.manifest.freshRoot)
+    const child = await launchNativeQualificationChild(f.plan, { ...f.callbacks, diagnostics: trace.observer })
+    const frame = Buffer.from(
+      JSON.stringify({
+        method: 'remoteControl/status/changed',
+        params: { installationId: 'test', serverName: 'test', status: 'disabled', environmentId: null },
+      }) + '\n',
+    )
+    for (let index = 0; index < 100; index++) f.original.process.stdout!.emit('data', frame)
+    const observer = {
+      beforeRequest: vi.fn(),
+      operation: vi.fn(),
+      notification: vi.fn(),
+      fault: vi.fn(),
+      cleanup: vi.fn(),
+    }
+    expect(() => claimOriginalNativeQualificationChild(child, f.plan, observer)).toThrow(/Original pre-handshake/)
+    expect(child.transport.snapshot().issuedRequests).toBe(0)
+    expect(await child.stop()).toMatchObject({ status: 'stopped', privateRootRemoved: true })
+    trace.close()
+    const rows = readFileSync(path.join(f.parent, 'c1-acquisition-diagnostics.jsonl'), 'utf8')
+      .trim()
+      .split('\n')
+      .map(line => JSON.parse(line))
+    expect(rows.filter(row => row.stage.startsWith('PASSIVE_'))).toEqual([
+      expect.objectContaining({ stage: 'PASSIVE_PRECLAIM', status: 'REFUSED', reason: 'PRECLAIM_CAPTURE_LIMIT' }),
+    ])
+    expect(rows.some(row => row.reason === 'PASSIVE_CAPTURE_REFUSED')).toBe(false)
+    expect(observer.notification).not.toHaveBeenCalled()
+  })
+})

@@ -1,6 +1,6 @@
 # M13 runtime continuation
 
-Status: ACTIVE, checked offline diagnostic successor after source `8d84a791`; exact source/artifact review controls govern any new case. Two new native/turn allocations consumed. Current actual native/model effects are UNKNOWN; ten earlier native invocations are confirmed. Full M13 remains unchecked.
+Status: PAUSED at the user-requested graceful checkpoint. Passive classification implementation and offline artifact checks pass; independent whole-artifact review and further native qualification remain pending. M13 is NOT finished and remains unchecked.
 
 Worktree: `/Users/jamil/Personal Projects/appraisejs/.appraisejs/m13-runtime-qualification`.
 Branch: `codex/m13-runtime-qualification`; starting HEAD `b8aaa949d2d7acbfcc260f68b28c179ca3ffb8e0`.
@@ -276,3 +276,84 @@ seed copies five and unchanged CLI runtime files 76 match their contracts. CLI S
 `EVIDENCE-HASHES.json`: `c565214a0537e0e70ee5f0a25369664755793f6ad3cdd46139b59b3c69afcef4`.
 The normal commit and exact whole-artifact independent review remain the source gate at this recorded checkpoint.
 No new native/model allocation or action was issued; historical UNKNOWN and consumed counts remain unchanged.
+
+## Source 0ded accepted; fresh passive-capture refusal
+
+Normal hooks passed at commit `0ded57f595c40fcfa2832350e652f461ea5ea3d6`, tree
+`7fc27f3ad2192a93b17db370440fcfc4052055bf`. Exact whole-source artifact review accepted SOURCE/ARTIFACT ONLY
+(`c1-diagnostics-final-source/independent-review.json`, SHA-256
+`533f085989365fa59f6eebc103080dd6bb9037a60f79ad1bb80161343266d099`). It grants no native effect or runtime proof.
+
+Fresh case `b3-diagnostic-successor-K8lMy9/` passed independent CASE_PACKET review of all 2,278 inputs/2,282
+selected hashes. Control SHA-256 is `28ba0a0301cc3daa572211180a2ec3de03dd54bd8fef4129025ee3c405dd0d8b`.
+Original parent 74842 received one start command, consumed its one native/turn allocation, and failed. Its complete
+36-row finite trace records original acquisition, child claim, owner match, permit binding and initialize settlement
+followed by PASSIVE_CAPTURE_REFUSED. Initialize validation accepted; no initialized notification, configuration, thread
+or turn request was entered. Cleanup remains UNCERTAIN and the case UNKNOWN. CASE_CLOSE ACCEPTED means only trace
+completeness. The offending frame/method was not recorded and remains UNKNOWN; do not infer it from earlier B2 events.
+
+Source `account/updated` handling is a concrete plausible incompatibility, but B2's prior events occurred at
+ACCOUNT_READ and do not establish this C1 cause. `c1-passive-startup-diagnosis/diagnosis.md` records the boundary.
+The bounded decision adds finite protocol/source/stream classification and source-predicate codes only; it does not
+change notification acceptance, eligibility, budgets, protocol, default registration, raw-data privacy or physical proof.
+Original parent exited 2 at its own hard UNKNOWN deadline, observed through its original tool handle. No stored PID was
+signaled, no old database/HUB was cleared, and no allocation was refunded or replayed. Source edits resumed only afterward.
+
+Trace SHA-256: `21f14ae488d98388e7704ce44e77782b4883914cb9bef44b963483394dafaf8f`.
+`passive-startup-refusal-observation.json` SHA-256:
+`717968e76d1e50cde70bcfa2b9bfb7a1d746608dd8bb5320561510d2bcea99e7`; the separate
+`parent-exit-observation.json` binds its hard-deadline receipt. Current ledger: fifteen frozen native allocations,
+three consumed new native/turn slots, zero unspent allocation. Confirmed native acquisitions total eleven, plus one
+unresolved historical zero-or-one. New provider turns remain historical UNKNOWN zero-or-one; this case issued zero
+explicit thread/turn requests. Provider HTTP/tokens/cost remain unmeasured/UNQUALIFIED. Preserve all predecessor evidence.
+
+## Recoverable pause checkpoint
+
+User requested stop at the next graceful checkpoint and required recoverability. No further qualification case,
+provider turn, probe or review is scheduled. Original native parent 74842 exited 2; all current offline test/probe
+sessions exited successfully and their original synthetic group-exit assertions passed. Historical real native
+cleanup remains UNKNOWN, not zero or verified stopped. Never reuse a recorded process/session ID as authority.
+
+The latest six-file passive-classification implementation preserves the notification allowlist, every original
+predicate/counter/getter order, original Promise/child ownership, all limits and default refusals. It adds fixed
+protocol/source/stream method-class and predicate codes without raw methods, frames, errors, IDs or payloads.
+Focused tests passed 132, genuine controlled probes two, owned probes three, lint/format/TypeScript and unchanged
+staged Fallow. Differential proof preserved 9,450 previous tuple combinations and 25,600 state/scenario combinations.
+The synthetic nullable account event is schema-accepted then source-refused with exact source/child codes; its
+after-initialized timing is explicitly synthetic and does not identify the earlier actual offending frame.
+
+Latest sealed executor result: `c1-passive-classification/final-executor-result-resolved.json`, SHA-256
+`d2e7c09a461eb512d2ffe6dc35ea560fab069a1ce02c9d440c78dd8b3da841f0`;
+checkpoint seal `8ba63af3554a3cb573ca3a70cab7feb463fc677fbcd8702718e646602a9fdae4`.
+Source-six manifest SHA-256: `3cf83b8f63bb029e4175e9dddc4e688071bfdbec01c19022d186b4b02867f040`.
+The earlier hash bookkeeping concern is resolved: graph FINAL.json receipt SHA-256 is
+`f4d3dad69f9118c6ad0e313e424d3dd33ac5ee51cbac0dcf65efd0620abc836e`; canonical graph.json is
+`b81d4662df8748a6cfad4e19c8f04ce881ce660ecc8ca60458db45dc72a1db9e`, matching that receipt.
+Both provisional and resolved records remain preserved.
+
+Canonical template sync, official full-AST Graphify (11,914 nodes/27,954 edges; final integrity zero; scopes fresh),
+root/scaffold builds, docs and artifact/package checks pass. Fresh packed checks passed 278 tests in 13 suites plus
+installed SDK eight and six-role canonical aggregate one. Source parity 50, migrations 98, seed copies five with
+only canonical UNKNOWN coverage metadata, and unchanged CLI runtime files 76 match. Final integration receipt
+`c1-passive-classification-integration/FINAL-RESULT.json` SHA-256 is
+`a3fca5327bb41695fff74d008e8214f6f9a02ae18837419966f91ee82f62c40c`; evidence index is
+`72affe7526c77e7b92ea43a640a23fda5b72cfb685f2ca67a55f4da4e8237498`. CLI tarball remains
+`61675569cf5aec550893877814f61b8488ded99e1e5db9ccb0bf3ab53ca64d19`; scaffold is
+`4f352c022174c7fc01ce9076e15319c0435b1d53bff40bb4cd7534593a5f01f2`.
+
+The recovery package pointer is `.appraisejs/m13-runtime-recovery/LATEST.json` in this worktree. Its checkpoint JSON
+records the exact local checkpoint commit/tree, code bundle, evidence archive/inventory and verification receipt.
+Verify that package before resuming; the worktree and unrelated main/offline work remain preserved. Archives exclude
+dependency/build caches, symlinks and provider auth files. Real native private roots are NOT copied/read/cleaned;
+their stored paths are evidence only. Temporary-root loss after restart never establishes cleanup. Restored SQLite
+copies are evidence, not original database/connection/signaling authority; never overlay an existing campaign.
+
+Resume order: verify code/evidence hashes and limits; obtain independent review of the exact checkpoint source and
+packed artifact (0ded source-only acceptance does not cover this amendment); fix any required findings and renew
+affected checks; only then prepare a NEW finite case/command/cumulative allowance and exact CASE_PACKET review.
+There is currently ZERO unspent native/model allowance. Fifteen native allocations remain frozen, three new slots
+consumed, eleven confirmed native acquisitions plus one historical zero-or-one, and historical new provider-turn
+UNKNOWN zero-or-one. Historical M01 3/3 remains separately spent. Preserve all UNKNOWNs and occupied HUBs.
+No replay/refund, credential contents, sign-in/account switch, stored-PID cleanup, production/default activation,
+global install, push/merge or publication. Native/auth/provider effects require their fresh bounded gate; no inference
+for metric filling. Host isolation stays NOT_ATTESTED and helper lifetime UNKNOWN_NOT_INDEPENDENTLY_OBSERVED.

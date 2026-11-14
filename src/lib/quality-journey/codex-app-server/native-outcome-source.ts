@@ -3,6 +3,8 @@ import type { PrismaClient } from '@prisma/client'
 import { canonicalOutcomeJson, outcomeDigest } from './outcome-source-contract'
 import {
   requireNativeDiagnostic,
+  nativePassiveOutcomeStage,
+  type NativeSourceNotificationRefusal,
   type NativeDiagnosticObserver,
   type NativeDiagnosticStage,
 } from './native-qualification-diagnostics'
@@ -113,6 +115,7 @@ class OriginalNativeOutcome {
   #turnStarted = false
   #completion = 0
   #notificationCount = 0
+  #notificationRefusalRecorded = false
   #remoteDisabled = 0
   #sender?: ProviderSenderExcluded
   #freezeEntered = false
@@ -351,30 +354,51 @@ class OriginalNativeOutcome {
     if (this.#threadId && this.#threadId !== thread.id) fail()
     this.#threadId = thread.id
   }
-  #turnReply(turn: unknown) {
+  #turnReply(turn: unknown, notificationMethod?: string) {
     if (!record(turn) || typeof turn.id !== 'string') fail()
-    if (this.#turnId && this.#turnId !== turn.id) fail()
+    if (this.#turnId && this.#turnId !== turn.id) {
+      if (notificationMethod !== undefined) this.#refuseNotification(notificationMethod, 'TURN_SCOPE_MISMATCH')
+      fail()
+    }
     this.#turnId = turn.id
+  }
+  #recordNotificationRefusal(method: string, reason: NativeSourceNotificationRefusal) {
+    if (this.#notificationRefusalRecorded) return
+    this.#notificationRefusalRecorded = true
+    this.options.diagnostics?.record(nativePassiveOutcomeStage(method), 'REFUSED', reason)
+  }
+  #refuseNotification(method: string, reason: NativeSourceNotificationRefusal): never {
+    this.#recordNotificationRefusal(method, reason)
+    return fail()
   }
   #notification(method: string, params: Record<string, unknown>) {
     try {
-      if (this.#cleaned || this.#candidate || ++this.#notificationCount > 8192) fail()
+      if (this.#cleaned) this.#refuseNotification(method, 'NOTIFICATION_AFTER_CLEANUP')
+      if (this.#candidate) this.#refuseNotification(method, 'NOTIFICATION_AFTER_CANDIDATE')
+      if (++this.#notificationCount > 8192) this.#refuseNotification(method, 'NOTIFICATION_LIMIT_EXCEEDED')
       this.#dispatchNotification(method, params)
     } catch {
+      this.#recordNotificationRefusal(method, 'SOURCE_NOTIFICATION_REFUSED')
       this.#poison = true
       fail()
     }
   }
   #dispatchNotification(method: string, params: Record<string, unknown>) {
     if (method === 'remoteControl/status/changed') return this.#remoteStatus(params)
-    if ('threadId' in params && params.threadId !== this.#threadId) fail()
+    if ('threadId' in params && params.threadId !== this.#threadId)
+      this.#refuseNotification(method, 'THREAD_SCOPE_MISMATCH')
     if (method === 'thread/started') return this.#threadNotification(params)
     if (method === 'turn/started' || method === 'turn/completed') return this.#turnNotification(method, params)
     if (method === 'thread/status/changed') this.#threadStatus(params.status)
     this.#ordinaryNotification(method, params)
   }
   #remoteStatus(params: Record<string, unknown>) {
-    if (params.status !== 'disabled' || params.environmentId != null || ++this.#remoteDisabled > 32) fail()
+    if (params.status !== 'disabled')
+      this.#refuseNotification('remoteControl/status/changed', 'REMOTE_STATUS_NOT_DISABLED')
+    if (params.environmentId != null)
+      this.#refuseNotification('remoteControl/status/changed', 'REMOTE_ENVIRONMENT_PRESENT')
+    if (++this.#remoteDisabled > 32)
+      this.#refuseNotification('remoteControl/status/changed', 'REMOTE_STATUS_LIMIT_EXCEEDED')
   }
   #threadStatus(status: unknown) {
     if (!record(status) || status.type === 'systemError') fail()
@@ -383,13 +407,14 @@ class OriginalNativeOutcome {
   }
   #threadNotification(params: Record<string, unknown>) {
     if (this.#threadStarted || this.#requests < 3 || !record(params.thread) || !uuid(params.thread.id)) fail()
-    if (this.#threadId && this.#threadId !== params.thread.id) fail()
+    if (this.#threadId && this.#threadId !== params.thread.id)
+      this.#refuseNotification('thread/started', 'THREAD_SCOPE_MISMATCH')
     this.#threadStarted = true
     this.#threadId = params.thread.id
   }
   #turnNotification(method: string, params: Record<string, unknown>) {
     if (this.#requests !== 5) fail()
-    this.#turnReply(params.turn)
+    this.#turnReply(params.turn, method)
     if (method === 'turn/started') {
       if (this.#turnStarted || this.#completion > 0) fail()
       this.#turnStarted = true
@@ -399,7 +424,8 @@ class OriginalNativeOutcome {
     if (++this.#completion !== 1 || params.turn.status !== 'completed' || params.turn.error !== null) fail()
   }
   #ordinaryNotification(method: string, params: Record<string, unknown>) {
-    if ('turnId' in params && (!this.#turnId || params.turnId !== this.#turnId)) fail()
+    if ('turnId' in params && (!this.#turnId || params.turnId !== this.#turnId))
+      this.#refuseNotification(method, 'TURN_SCOPE_MISMATCH')
     if (method.startsWith('item/')) {
       this.#itemNotification(params)
       return
@@ -415,7 +441,7 @@ class OriginalNativeOutcome {
         'turn/diff/updated',
       ].includes(method)
     )
-      fail()
+      this.#refuseNotification(method, 'UNCLASSIFIED_NOTIFICATION')
   }
   #itemNotification(params: Record<string, unknown>) {
     if (this.#completion > 0 || this.#requests !== 5 || !this.#threadId || params.threadId !== this.#threadId) fail()

@@ -9,6 +9,7 @@ import {
 } from './native-outcome-source'
 import type { NativeOutcomeReviewDecision } from './native-outcome-source'
 import type { NativeOutcomeProfile } from './native-outcome-profile'
+import type { NativeDiagnosticObserver } from './native-qualification-diagnostics'
 import type { NativeChildOutcomeObserver } from './native-qualification-child'
 import type { CapturedNativeQualificationPlan } from './native-qualification-contract'
 import type { ProviderSourceDatabase } from '../provider-source-database'
@@ -83,6 +84,7 @@ afterEach(() => {
 const digest = `sha256:${'a'.repeat(64)}`
 async function fixture(
   options: {
+    diagnostics?: NativeDiagnosticObserver
     permit?: ProviderSendPermit
     badDomain?: boolean
     pendingWrite?: boolean
@@ -158,6 +160,7 @@ async function fixture(
     providerNamespace: 'native_source_fake',
     transportId,
     reviewControl: options.changedControl ? { ...control, reviewMs: control.reviewMs + 1 } : control,
+    diagnostics: options.diagnostics,
   })
   candidate.attach({} as OwnedFixtureChild)
   const threadId = randomUUID(),
@@ -603,5 +606,149 @@ describe('task-private native candidate original custody (source-only fake, no n
     f.candidate.captureSdkClose(Promise.resolve({ closed: true, effectUnknown: true }))
     await Promise.resolve()
     await expect(f.candidate.freezeCandidate()).rejects.toThrow()
+  })
+})
+
+function passiveDiagnostics() {
+  const rows: Array<[string, string, string | undefined]> = []
+  const diagnostics: NativeDiagnosticObserver = {
+    record(stage, status, reason) {
+      rows.push([stage, status, reason])
+      return true
+    },
+    failed: () => false,
+    onFailure() {},
+  }
+  return { diagnostics, rows: () => rows.filter(([stage]) => stage.startsWith('PASSIVE_')) }
+}
+describe('source-only fixed passive predicates preserve rejection policy and counter order', () => {
+  it.each([
+    ['status', 'REMOTE_STATUS_NOT_DISABLED'],
+    ['environment', 'REMOTE_ENVIRONMENT_PRESENT'],
+  ] as const)('records %s refusal before remote count without reading short-circuited fields', async (mode, reason) => {
+    const d = passiveDiagnostics(),
+      f = await fixture({ diagnostics: d.diagnostics })
+    const environment = vi.fn(() => {
+      throw new Error('environment must not be inspected')
+    })
+    const params =
+      mode === 'status'
+        ? Object.defineProperty({ status: 'active' }, 'environmentId', { get: environment })
+        : { status: 'disabled', environmentId: 'synthetic-present' }
+    expect(() => f.observer().notification('remoteControl/status/changed', params)).toThrow(/unreconciled UNKNOWN/)
+    expect(environment).not.toHaveBeenCalled()
+    expect(d.rows()).toEqual([['PASSIVE_OUTCOME_REMOTE_STATUS', 'REFUSED', reason]])
+    for (let index = 0; index < 32; index++)
+      expect(() =>
+        f.observer().notification('remoteControl/status/changed', { status: 'disabled', environmentId: null }),
+      ).not.toThrow()
+    expect(() =>
+      f.observer().notification('remoteControl/status/changed', { status: 'disabled', environmentId: null }),
+    ).toThrow()
+    expect(d.rows()).toHaveLength(1)
+  })
+  it('records the actual excessive remote count predicate on the original 33rd disabled notification', async () => {
+    const d = passiveDiagnostics(),
+      f = await fixture({ diagnostics: d.diagnostics })
+    for (let index = 0; index < 32; index++)
+      f.observer().notification('remoteControl/status/changed', { status: 'disabled', environmentId: null })
+    expect(d.rows()).toEqual([])
+    expect(() =>
+      f.observer().notification('remoteControl/status/changed', { status: 'disabled', environmentId: null }),
+    ).toThrow()
+    expect(d.rows()).toEqual([['PASSIVE_OUTCOME_REMOTE_STATUS', 'REFUSED', 'REMOTE_STATUS_LIMIT_EXCEEDED']])
+  })
+  it('continues permitting MCP startup and locates an actual thread scope mismatch', async () => {
+    const d = passiveDiagnostics(),
+      f = await fixture({ diagnostics: d.diagnostics })
+    await f.ready()
+    expect(() => f.observer().notification('mcpServer/startupStatus/updated', { threadId: f.threadId })).not.toThrow()
+    expect(d.rows()).toEqual([])
+    expect(() =>
+      f.observer().notification('mcpServer/startupStatus/updated', { threadId: 'synthetic-foreign-thread' }),
+    ).toThrow()
+    expect(d.rows()).toEqual([['PASSIVE_OUTCOME_MCP_STARTUP', 'REFUSED', 'THREAD_SCOPE_MISMATCH']])
+  })
+  it('records the actual turn scope mismatch without reading a turnId when the original scope is absent', async () => {
+    const d = passiveDiagnostics(),
+      f = await fixture({ diagnostics: d.diagnostics }),
+      read = vi.fn(() => {
+        throw new Error('turnId should short circuit')
+      })
+    const params = Object.defineProperty({}, 'turnId', { get: read })
+    expect(() => f.observer().notification('mcpServer/startupStatus/updated', params)).toThrow()
+    expect(read).not.toHaveBeenCalled()
+    expect(d.rows()).toEqual([['PASSIVE_OUTCOME_MCP_STARTUP', 'REFUSED', 'TURN_SCOPE_MISMATCH']])
+  })
+  it('locates a conflicting original turn object at the existing notification reply predicate', async () => {
+    const d = passiveDiagnostics(),
+      f = await fixture({ diagnostics: d.diagnostics })
+    await f.complete()
+    expect(() =>
+      f.observer().notification('turn/completed', { threadId: f.threadId, turn: { id: 'synthetic-foreign-turn' } }),
+    ).toThrow()
+    expect(d.rows()).toEqual([['PASSIVE_OUTCOME_OTHER', 'REFUSED', 'TURN_SCOPE_MISMATCH']])
+  })
+  it('retains the original account exclusion and never serializes payload or thrown error properties', async () => {
+    const d = passiveDiagnostics(),
+      f = await fixture({ diagnostics: d.diagnostics }),
+      read = vi.fn(() => {
+        throw new Error('private error getter read')
+      })
+    const hostile = Object.create(null)
+    for (const key of ['message', 'stack', 'cause', 'name', 'code', 'token'])
+      Object.defineProperty(hostile, key, { get: read })
+    expect(() =>
+      f.observer().notification('account/updated', { authMode: null, planType: null, privatePayload: hostile }),
+    ).toThrow(/unreconciled UNKNOWN/)
+    expect(() => f.observer().notification('secret future /private/method', { privatePayload: hostile })).toThrow()
+    expect(d.rows()).toEqual([['PASSIVE_OUTCOME_ACCOUNT_UPDATED', 'REFUSED', 'UNCLASSIFIED_NOTIFICATION']])
+    expect(read).not.toHaveBeenCalled()
+    expect(JSON.stringify(d.rows())).not.toMatch(/privatePayload|secret|token|method/)
+  })
+  it('uses only the fixed fallback when a remaining policy accessor throws a hostile error', async () => {
+    const d = passiveDiagnostics(),
+      f = await fixture({ diagnostics: d.diagnostics }),
+      read = vi.fn(() => {
+        throw new Error('raw error inspected')
+      })
+    const hostile = Object.create(null)
+    for (const key of ['message', 'stack', 'cause', 'name', 'code']) Object.defineProperty(hostile, key, { get: read })
+    const params = Object.defineProperty({}, 'status', {
+      get() {
+        throw hostile
+      },
+    })
+    expect(() => f.observer().notification('thread/status/changed', params)).toThrow(/unreconciled UNKNOWN/)
+    expect(read).not.toHaveBeenCalled()
+    expect(d.rows()).toEqual([['PASSIVE_OUTCOME_OTHER', 'REFUSED', 'SOURCE_NOTIFICATION_REFUSED']])
+  })
+  it('keeps the original global notification limit and records only its first refusal', async () => {
+    const d = passiveDiagnostics(),
+      f = await fixture({ diagnostics: d.diagnostics })
+    for (let index = 0; index < 8192; index++) f.observer().notification('mcpServer/startupStatus/updated', {})
+    expect(d.rows()).toEqual([])
+    expect(() => f.observer().notification('mcpServer/startupStatus/updated', {})).toThrow()
+    expect(d.rows()).toEqual([['PASSIVE_OUTCOME_MCP_STARTUP', 'REFUSED', 'NOTIFICATION_LIMIT_EXCEEDED']])
+  })
+  it('records after-cleanup before inspecting notification scope or payload', async () => {
+    const d = passiveDiagnostics(),
+      f = await fixture({ diagnostics: d.diagnostics }),
+      read = vi.fn(() => {
+        throw new Error('scope should not be read')
+      })
+    f.observer().cleanup({
+      status: 'stopped',
+      groupExitObserved: true,
+      privateRootRemoved: true,
+      privateRootRetained: false,
+    })
+    expect(() =>
+      f
+        .observer()
+        .notification('mcpServer/startupStatus/updated', Object.defineProperty({}, 'threadId', { get: read })),
+    ).toThrow()
+    expect(read).not.toHaveBeenCalled()
+    expect(d.rows()).toEqual([['PASSIVE_OUTCOME_MCP_STARTUP', 'REFUSED', 'NOTIFICATION_AFTER_CLEANUP']])
   })
 })

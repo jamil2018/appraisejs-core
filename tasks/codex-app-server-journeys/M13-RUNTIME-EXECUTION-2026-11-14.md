@@ -337,3 +337,23 @@ checks and fresh packed proof pass (255 portable tests, SDK eight plus six-role 
 98 migrations, five clean seed copies and 76 unchanged CLI runtime files). Source/artifact receipts and exact hashes
 are listed in M13-RUNTIME-CONTINUE.md. All infrastructure predecessors remain preserved. The source gate still
 requires normal hooks and independent whole-artifact acceptance; no new native or model effects occurred.
+
+## Third B3 case: native initialize passed, passive capture refused
+
+Source `0ded57f5` passed normal hooks and exact SOURCE/ARTIFACT review. Fresh CASE_PACKET
+`b3-diagnostic-successor-K8lMy9/` passed all 2,278 input hashes, then original parent 74842 spent one bounded native/turn
+allocation. Its 36-row trace proves acquired original child, owner/permit binding and initialize settlement/validation;
+passive capture then refused before initialized/config/thread/turn requests. Cleanup is uncertain, case UNKNOWN, actual
+refused frame/method UNKNOWN. Original parent exited 2 through its own hard deadline. No replay/refund or PID cleanup.
+Fifteen native allocations frozen; three new turn slots consumed, none unspent. Eleven confirmed native acquisitions
+plus an unresolved historical zero-or-one; actual new provider turns remain historical UNKNOWN zero-or-one. A minimal
+fixed-code diagnostic amendment is in progress, without changing notification eligibility or any existing limit.
+
+## User-requested recoverable pause
+
+Paused after passive-classification implementation/offline proof: 132 focused, three owned and two genuine controlled
+probe cases pass; unchanged staged Fallow, lint/format/type, both builds and fresh packed 278+9 checks pass. Exact
+source/packed whole-artifact independent review is pending. No new native case or allowance is scheduled. All offline
+lanes released writers; original native parent 74842 exited 2. Real historical cleanup/cause remain UNKNOWN. Recovery
+commit/tree, evidence archive and checksum verification are recorded in `.appraisejs/m13-runtime-recovery/LATEST.json`;
+see M13-RUNTIME-CONTINUE.md for exact resume order and boundaries. M13 remains unchecked and not runtime-qualified.

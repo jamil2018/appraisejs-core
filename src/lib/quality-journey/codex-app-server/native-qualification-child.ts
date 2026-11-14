@@ -18,6 +18,8 @@ import { createNativeQualificationDrainGuard } from './native-qualification-drai
 import { createNativeQualificationProtocol } from './native-qualification-protocol'
 import {
   nativeDiagnosticRequestStage,
+  nativePassiveOutcomeStage,
+  nativePassiveProtocolStage,
   requireNativeDiagnostic,
   type NativeDiagnosticObserver,
   type NativeDiagnosticStage,
@@ -132,7 +134,8 @@ export async function launchNativeQualificationChild(
   let originalChild: OriginalNativeChild | undefined
   const preclaimFrames: Array<{ method: string; params: Record<string, unknown> }> = []
   let preclaimBytes = 0,
-    preclaimPoison = false
+    preclaimPoison = false,
+    passiveRefusalRecorded = false
   let acquisitionEntered = false,
     acquisitionTimedOut = false,
     abandoned = false
@@ -152,34 +155,57 @@ export async function launchNativeQualificationChild(
       mcpFenceFailed = true
     }
   }
+  function recordPassiveRefusal(
+    stage: NativeDiagnosticStage,
+    reason: 'PROTOCOL_REFUSED' | 'OUTCOME_OBSERVER_REFUSED' | 'STREAM_PARSE_OR_IO_REFUSED' | 'PRECLAIM_CAPTURE_LIMIT',
+  ) {
+    if (passiveRefusalRecorded) return
+    passiveRefusalRecorded = true
+    diagnostics?.record(stage, 'REFUSED', reason)
+  }
+  function observeOriginalNotification(
+    observer: NativeChildOutcomeObserver,
+    method: string,
+    params: Record<string, unknown>,
+  ) {
+    try {
+      observer.notification(method, params)
+    } catch (error) {
+      recordPassiveRefusal(nativePassiveOutcomeStage(method), 'OUTCOME_OBSERVER_REFUSED')
+      throw error
+    }
+  }
+  function observePassiveFrame(value: unknown) {
+    try {
+      protocol.passiveFrame(value)
+    } catch (error) {
+      recordPassiveRefusal(nativePassiveProtocolStage(value), 'PROTOCOL_REFUSED')
+      throw error
+    }
+    const frame = value as { method?: string; params?: Record<string, unknown> }
+    if (frame.method && frame.params) {
+      if (originalChild?.observer) observeOriginalNotification(originalChild.observer, frame.method, frame.params)
+      else if (!preclaimPoison) {
+        preclaimBytes += Buffer.byteLength(JSON.stringify(value))
+        if (preclaimFrames.length >= 32 || preclaimBytes > 256 * 1024) {
+          preclaimPoison = true
+          preclaimFrames.length = 0
+          recordPassiveRefusal('PASSIVE_PRECLAIM', 'PRECLAIM_CAPTURE_LIMIT')
+        } else preclaimFrames.push({ method: frame.method, params: frame.params })
+      }
+    }
+  }
   function originalAcquired(original: SpawnedProcess) {
     owned = original
     const { stdout, stderr } = original.process
     if (stdout && stderr)
-      drain = createNativeQualificationDrainGuard(
-        stdout,
-        stderr,
-        value => {
-          protocol.passiveFrame(value)
-          const frame = value as { method?: string; params?: Record<string, unknown> }
-          if (frame.method && frame.params) {
-            if (originalChild?.observer) originalChild.observer.notification(frame.method, frame.params)
-            else if (!preclaimPoison) {
-              preclaimBytes += Buffer.byteLength(JSON.stringify(value))
-              if (preclaimFrames.length >= 32 || preclaimBytes > 256 * 1024) {
-                preclaimPoison = true
-                preclaimFrames.length = 0
-              } else preclaimFrames.push({ method: frame.method, params: frame.params })
-            }
-          }
-        },
-        () => {
-          preclaimPoison = true
-          originalChild?.observer?.fault()
-          diagnostics?.record('STREAM_CAPTURE', 'UNKNOWN', 'PASSIVE_CAPTURE_REFUSED')
-          boundCallbacks.onFault('native_passive_drain_refused')
-        },
-      )
+      drain = createNativeQualificationDrainGuard(stdout, stderr, observePassiveFrame, () => {
+        recordPassiveRefusal('PASSIVE_STREAM', 'STREAM_PARSE_OR_IO_REFUSED')
+        preclaimPoison = true
+        originalChild?.observer?.fault()
+        diagnostics?.record('STREAM_CAPTURE', 'UNKNOWN', 'PASSIVE_CAPTURE_REFUSED')
+        boundCallbacks.onFault('native_passive_drain_refused')
+      })
     boundCallbacks.captureOriginalDisconnect?.(() => {
       if (!original.process.connected) return false
       try {
@@ -399,7 +425,7 @@ export async function launchNativeQualificationChild(
       handoffPreclaim(observer) {
         if (preclaimPoison) throw new Error('Incomplete native preclaim observation')
         // Original parsed frame objects only: no serialized evidence is imported or replayed as authority.
-        for (const frame of preclaimFrames.splice(0)) observer.notification(frame.method, frame.params)
+        for (const frame of preclaimFrames.splice(0)) observeOriginalNotification(observer, frame.method, frame.params)
       },
     }
     const protocolTransport = protocol.transport(
