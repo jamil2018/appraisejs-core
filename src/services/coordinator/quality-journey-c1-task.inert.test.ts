@@ -7,7 +7,8 @@ import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { prepareReviewedC1Task } from '../../../tasks/codex-app-server-journeys/m13-runtime/c1/runner.mts'
 
 const boundary = vi.hoisted(() => ({ profile: vi.fn(), inspectPlan: vi.fn(), compose: vi.fn() }))
-vi.mock('@/lib/quality-journey/codex-app-server/native-outcome-profile', () => ({
+vi.mock('@/lib/quality-journey/codex-app-server/native-outcome-profile', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/lib/quality-journey/codex-app-server/native-outcome-profile')>()),
   inspectNativeOutcomeProfile: boundary.profile,
 }))
 vi.mock('@/lib/quality-journey/codex-app-server/native-qualification-contract', () => ({

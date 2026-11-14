@@ -6,6 +6,7 @@ import type { OwnedFixtureChild } from './owned-child'
 import {
   inspectNativeOutcomeProfile,
   nativeOutcomeProtocolDigest,
+  nativeOutcomeReviewControlDigest,
   type NativeOutcomeProfile,
 } from './native-outcome-profile'
 import { inspectNativeQualificationPlan } from './native-qualification-contract'
@@ -134,7 +135,7 @@ class OriginalNativeOutcome {
     this.profile = inspectNativeOutcomeProfile(options.profile)
     assertProviderSendPermitOwned(options.permit)
     const control = Object.freeze({ ...options.reviewControl })
-    if (this.profile.reviewControlDigest !== outcomeDigest(canonicalOutcomeJson(control))) fail()
+    if (this.profile.reviewControlDigest !== nativeOutcomeReviewControlDigest(control)) fail()
     if (
       !/^[A-Za-z0-9_.:/-]{1,200}$/.test(control.reviewerId) ||
       !uuid(control.nonce) ||

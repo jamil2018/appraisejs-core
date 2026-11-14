@@ -98,6 +98,10 @@ installed-program-body association; it does not claim whole-binary, signature, h
 Capture guards every public input against provider-credential aliases before reading bytes. No runtime download,
 replacement validator or caller-supplied qualification flag is accepted. Portable fact validators cannot issue a profile.
 
+The profile issuer, original candidate constructor and task runner share one review-control digest function using the
+existing contract canonicalization. Global contract and outcome canonicalizers remain distinct and unchanged. A genuine
+profile-to-constructor regression covers case-sensitive key ordering, so a mocked profile cannot hide a mismatched digest.
+
 The ordinary-turn source argument requires a fresh isolated native state store and ephemeral thread, no other admitted
 writer, exact disabled background/built-in controls, and the closed client operation set. Pinned source supplies the
 Goals and async-compaction guards, fresh sample/queue conditions and the caller's joined tool futures. Those source

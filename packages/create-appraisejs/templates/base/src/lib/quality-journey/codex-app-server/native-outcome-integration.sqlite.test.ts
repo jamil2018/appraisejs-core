@@ -1,3 +1,4 @@
+import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { PrismaClient } from '@prisma/client'
 import { randomUUID } from 'node:crypto'
 import { PassThrough, Writable } from 'node:stream'
@@ -22,7 +23,8 @@ import {
 } from '@/services/coordinator/quality-journey-provider-run-service'
 const fake = vi.hoisted(() => ({ claim: vi.fn(), profile: vi.fn(), plan: vi.fn() }))
 vi.mock('./native-qualification-child', () => ({ claimOriginalNativeQualificationChild: fake.claim }))
-vi.mock('./native-outcome-profile', () => ({
+vi.mock('./native-outcome-profile', async importOriginal => ({
+  ...(await importOriginal<typeof import('./native-outcome-profile')>()),
   nativeOutcomeProtocolDigest: `sha256:${'c'.repeat(64)}`,
   inspectNativeOutcomeProfile: fake.profile,
 }))
@@ -60,7 +62,7 @@ describe.sequential('registered original native custody on actual disposable can
       artifactDigest: configurationDigest,
       configurationDigest,
       plan,
-      reviewControlDigest: outcomeDigest(canonicalOutcomeJson(control)),
+      reviewControlDigest: outcomeDigest(canonicalContractJson(control)),
     })
     fake.plan.mockReturnValue({
       manifest: { freshRoot: '/private/source-fake', envelopeDigest: outcomeDigest(canonicalOutcomeJson(envelope)) },

@@ -1,3 +1,4 @@
+import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { randomUUID } from 'node:crypto'
 import { PassThrough, Writable } from 'node:stream'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -37,7 +38,8 @@ const fake = vi.hoisted(() => ({
   replay: vi.fn(),
 }))
 vi.mock('./native-qualification-child', () => ({ claimOriginalNativeQualificationChild: fake.claim }))
-vi.mock('./native-outcome-profile', () => ({
+vi.mock('./native-outcome-profile', async importOriginal => ({
+  ...(await importOriginal<typeof import('./native-outcome-profile')>()),
   nativeOutcomeProtocolDigest: `sha256:${'c'.repeat(64)}`,
   inspectNativeOutcomeProfile: fake.profile,
 }))
@@ -86,6 +88,7 @@ async function fixture(
     pendingWrite?: boolean
     configuration?: unknown
     pendingFinalWrite?: boolean
+    changedControl?: boolean
     wrongOwner?: boolean
   } = {},
 ) {
@@ -99,9 +102,9 @@ async function fixture(
   const plan = {} as CapturedNativeQualificationPlan
   fake.profile.mockReturnValue({
     profileDigest: digest,
-    dossierDigest: digest,
-    artifactDigest: digest,
-    configurationDigest: digest,
+    dossierDigest: `sha256:${'b'.repeat(64)}`,
+    artifactDigest: `sha256:${'d'.repeat(64)}`,
+    configurationDigest: `sha256:${'e'.repeat(64)}`,
     plan,
   })
   fake.plan.mockReturnValue({
@@ -141,13 +144,12 @@ async function fixture(
   })
   const control = { reviewerId: 'independent-reviewer', nonce: randomUUID(), reviewMs: 10000, reconciliationMs: 10000 }
   fake.profile.mockReturnValue({
-    ...fake.profile.mock.results.at(-1)?.value,
     profileDigest: digest,
-    dossierDigest: digest,
-    artifactDigest: digest,
-    configurationDigest: digest,
+    dossierDigest: `sha256:${'b'.repeat(64)}`,
+    artifactDigest: `sha256:${'d'.repeat(64)}`,
+    configurationDigest: `sha256:${'e'.repeat(64)}`,
     plan,
-    reviewControlDigest: outcomeDigest(canonicalOutcomeJson(control)),
+    reviewControlDigest: outcomeDigest(canonicalContractJson(control)),
   })
   const candidate = await createOriginalNativeOutcomeCandidate({
     profile: {} as NativeOutcomeProfile,
@@ -155,7 +157,7 @@ async function fixture(
     database: {} as ProviderSourceDatabase,
     providerNamespace: 'native_source_fake',
     transportId,
-    reviewControl: control,
+    reviewControl: options.changedControl ? { ...control, reviewMs: control.reviewMs + 1 } : control,
   })
   candidate.attach({} as OwnedFixtureChild)
   const threadId = randomUUID(),
@@ -258,6 +260,21 @@ async function fixture(
   }
 }
 describe('task-private native candidate original custody (source-only fake, no native acquisition)', () => {
+  it('admits the issuer digest through constructor/init/domain and rejects changed control before journal writes', async () => {
+    await fixture()
+    const issued = fake.profile.mock.results.at(-1)!.value
+    expect(issued.reviewControlDigest).not.toBe(issued.profileDigest)
+    expect(
+      new Set([issued.profileDigest, issued.dossierDigest, issued.artifactDigest, issued.configurationDigest]).size,
+    ).toBe(4)
+    expect(fake.initialize).toHaveBeenCalledOnce()
+    expect(fake.domain).toHaveBeenCalledOnce()
+    vi.clearAllMocks()
+    await expect(fixture({ changedControl: true })).rejects.toThrow(/unreconciled UNKNOWN/)
+    expect(fake.initialize).not.toHaveBeenCalled()
+    expect(fake.domain).not.toHaveBeenCalled()
+    expect(fake.claim).not.toHaveBeenCalled()
+  })
   it('binds the original armed permit before handshake and enrolls after cleanup without another native write', async () => {
     const f = await fixture()
     expect(inspectProviderSendPermitTransport(f.permit).owner).toBe(f.raw.owner)

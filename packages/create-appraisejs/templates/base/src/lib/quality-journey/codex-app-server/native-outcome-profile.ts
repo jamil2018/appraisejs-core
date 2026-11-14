@@ -70,6 +70,10 @@ export const nativeOutcomeSourceRequirements = Object.freeze({
   'codex-rs/state/src/sqlite.rs': '30c2375ce82d94b518c86029ce11db758c06f501fc2ee5e394a61941af5cb753',
 })
 const digest = (value: string | Buffer) => `sha256:${createHash('sha256').update(value).digest('hex')}`
+/** The review control uses the original profile issuer's contract JSON representation. */
+export function nativeOutcomeReviewControlDigest(control: NativeOutcomeReviewControl) {
+  return digest(canonicalContractJson(control))
+}
 export const nativeOutcomeProtocolDigest = digest('M13_ORIGINAL_NATIVE_ORDINARY_COMPLETED_V1')
 declare const profileBrand: unique symbol
 export type NativeOutcomeProfile = Readonly<{ [profileBrand]: true }>
@@ -172,7 +176,7 @@ export function captureNativeOutcomeProfile(
   )
   const body = {
     planDigest: digest(canonicalContractJson(manifest)),
-    reviewControlDigest: digest(canonicalContractJson(reviewControl)),
+    reviewControlDigest: nativeOutcomeReviewControlDigest(reviewControl),
     dossierDigest,
     artifactDigest: digest(canonicalContractJson(manifest.inputs)),
     configurationDigest: `sha256:${manifest.configurationSha256}`,

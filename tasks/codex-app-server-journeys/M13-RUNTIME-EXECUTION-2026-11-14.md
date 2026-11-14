@@ -301,3 +301,19 @@ Source Graphify full AST comparison is exact and all three receipts are fresh; r
 Normal-hook successor commit and its integrated exact-artifact review remain required before a fresh actual case.
 The original refused preparation has no accepted control, spent file or created native root; no effect budget was spent
 or refunded. The actual ledger remains ten native invocations and zero new provider turns.
+
+## First armed B3 failure preserved; shared digest repair
+
+The independently accepted lease successor and fresh B3 packet reached canonical arm, then failed before native
+acquisition. Exact evidence is in `b3-first-lease-ySnYNY/` and `c1-live-setup-diagnosis/diagnosis.md`. The profile issuer
+used contract JSON localeCompare ordering, while the constructor validated outcome JSON codepoint ordering. The same
+review control hashed differently for reviewMs/reviewerId. This is a source defect, not a provider/native inference
+failure. Its native/turn allowance is conservatively consumed and non-refundable; original parent 59391 exited 2 through
+its hard deadline. Run/intent UNKNOWN, occupied HUB and source-row absence stay unchanged. Actual new native/provider
+entry is zero, so observed native invocations remain ten and new provider turns zero. No old-case retry is permitted.
+
+The bounded successor shares the original issuer digest; global hash protocols, all deadlines, lease defaults, D05,
+schemas and production refusals remain unchanged. Independent source review and genuine offline profile→constructor→
+journal/domain proof passed, alongside 96 focused and four task tests. Fresh builds, 240 generated tests, nine installed
+SDK/six-role checks, exact source/migration/seed/CLI-byte parity passed. Final source/pack binding and fresh case review
+remain separate. No physical qualification is inferred from this offline repair.

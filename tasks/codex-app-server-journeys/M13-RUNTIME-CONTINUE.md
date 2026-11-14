@@ -1,6 +1,6 @@
 # M13 runtime continuation
 
-Status: ACTIVE, qualification lease successor. First preparation refused before native entry. No C0/C1 model turn has been started. Full M13 remains unchecked.
+Status: ACTIVE, review-control digest successor. One new allocation consumed; no new native/provider entry. No C0/C1 model turn has been started. Full M13 remains unchecked.
 
 Worktree: `/Users/jamil/Personal Projects/appraisejs/.appraisejs/m13-runtime-qualification`.
 Branch: `codex/m13-runtime-qualification`; starting HEAD `b8aaa949d2d7acbfcc260f68b28c179ca3ffb8e0`.
@@ -142,3 +142,27 @@ Source Graphify full AST comparison is exact and all three receipts are fresh; r
 Normal-hook successor commit and its integrated exact-artifact review remain required before a fresh actual case.
 The original refused preparation has no accepted control, spent file or created native root; no effect budget was spent
 or refunded. The actual ledger remains ten native invocations and zero new provider turns.
+
+## Armed constructor failure and digest successor
+
+Source `868d8f04da1e28337dc19e5aa595cf7306efcdc3` passed normal hooks and integrated review. Its fresh B3 packet
+passed complete independent review (all 2,273 inputs), and the original parent 59391 received one exact start command.
+The task spent its one native/turn allocation, armed the intent, then failed before journal initialization/native launch:
+profile creation used localeCompare-sorted contract JSON, while the constructor used codepoint-sorted outcome JSON.
+Keys reviewMs/reviewerId produced different control digests. The original intent/run remain UNKNOWN and the HUB is
+occupied; there are no source journal rows or thread/turn IDs. Parent exited 2 at its original hard deadline. Evidence
+`b3-first-lease-ySnYNY/armed-failure-observation.json` and `c1-live-setup-diagnosis/diagnosis.md` preserve the causal proof.
+Do not refund, replay, clear the HUB, reconstruct custody or relabel that intent. Actual native count remains ten and
+new provider turns remain zero; the consumed new native/turn allocation is retired unlaunched.
+
+The seven-file digest repair shares the existing issuer representation among profile, constructor and runner, without
+changing either global canonicalizer or protocol hashes. Golden ordering tests and corrected mock fixtures pass. A
+standalone genuine source profile, actual pinned executable BYTES ONLY, synthetic credentials and fresh migrated SQLite
+now pass constructor, CREATED journal and original connection-domain initialization; that unqualified source was revoked
+and original database disposed, with diagnostic database/evidence preserved. No child/model/provider proof was created.
+The repair passed independent source review, 96 focused checks, four Node task checks, TypeScript/lint/format/Fallow.
+Fresh root/scaffold builds, 240 generated portable tests, nine actual installed SDK/six-role tests, 46 source parities,
+98 migrations and five exact clean seed copies passed. Graphify source full AST matches and all scope receipts are fresh;
+raw warnings remain. Current scaffold hash is `3bfa63b62eb5a67ed2ecf4bfdb2afab90cc041b4657c84548bf879afb6936077`;
+CLI remains `61675569cf5aec550893877814f61b8488ded99e1e5db9ccb0bf3ab53ca64d19`. Final normal-hook commit and
+integrated exact-artifact renewal must precede a NEW case. No current unspent effect allocation exists.

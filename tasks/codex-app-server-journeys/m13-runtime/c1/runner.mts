@@ -1,4 +1,3 @@
-import { canonicalContractJson } from '../../../../src/lib/catalog-contracts'
 import { createC1TaskLifetime } from './lifetime.mts'
 import {
   assertNativePublicInput,
@@ -17,7 +16,10 @@ import {
   nativeQualificationSourceFiles,
   inspectNativeQualificationPlan,
 } from '../../../../src/lib/quality-journey/codex-app-server/native-qualification-contract'
-import { inspectNativeOutcomeProfile } from '../../../../src/lib/quality-journey/codex-app-server/native-outcome-profile'
+import {
+  inspectNativeOutcomeProfile,
+  nativeOutcomeReviewControlDigest,
+} from '../../../../src/lib/quality-journey/codex-app-server/native-outcome-profile'
 import type { NativeOutcomeReviewDecision } from '../../../../src/lib/quality-journey/codex-app-server/native-outcome-source'
 import { requiredC0TaskInputPaths } from '../c0/inputs.mts'
 
@@ -65,7 +67,7 @@ export async function prepareReviewedC1Task(
   const originalProfile = options.nativeOutcome.profile,
     originalPlan = options.plan
   const profile = inspectNativeOutcomeProfile(originalProfile)
-  const controlDigest = nativeQualificationDigest(canonicalContractJson(options.nativeOutcome.reviewControl))
+  const controlDigest = nativeOutcomeReviewControlDigest(options.nativeOutcome.reviewControl)
   if (profile.reviewControlDigest !== controlDigest) throw new Error('Exact frozen C1 review control required')
   const { manifest } = inspectNativeQualificationPlan(options.plan)
   assertC1InputInventory(manifest)
