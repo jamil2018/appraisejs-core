@@ -1,3 +1,10 @@
+import { readStoredNativeOutcomeCommittedReplay } from '@/lib/quality-journey/codex-app-server/native-outcome-replay'
+import {
+  acquireOriginalNativeOutcomeCustody,
+  isOriginalNativeOutcomeSource,
+  readOriginalNativeOutcomeReplay,
+} from '@/lib/quality-journey/codex-app-server/native-outcome-source'
+import { nativeOutcomeProtocolDigest } from '@/lib/quality-journey/codex-app-server/native-outcome-profile'
 import { assertHistoricalHubQuiescent } from './quality-journey-provider-recovery'
 import { createHash, randomUUID } from 'node:crypto'
 import type {
@@ -1167,6 +1174,9 @@ export async function reconcileConsumedQualityJourneyProviderIntent(
   const capturedContext = captureProviderReconciliationContext(context)
   const capturedInput = Object.freeze({ ...input })
   validateConsumedReconciliationInput(capturedInput)
+  // Native custody dispatch precedes every synthetic/legacy replay and permissive fallback.
+  if (nativeReconciliationDialect(capturedContext))
+    return reconcileNativeConsumedIntent(capturedInput, capturedContext, client)
   const originalReplay = await readOriginalSqliteCommittedReplay(capturedInput, capturedContext, client)
   if (originalReplay) return originalReplay
   rejectUnmatchedOwnedReplayRequest(capturedInput, client)
@@ -1197,6 +1207,59 @@ export async function reconcileConsumedQualityJourneyProviderIntent(
   return reconcileFreshOriginalConsumedIntent(input, capturedInput, capturedContext, request, client, request.candidate)
 }
 
+function nativeReconciliationDialect(context: ProviderReconciliationContext): boolean {
+  return (
+    context.selection === 'NATIVE' ||
+    context.source?.provenance === 'NATIVE_QUALIFIED' ||
+    context.source?.sourceId.startsWith('native_outcome_') === true
+  )
+}
+function registeredOriginalNativeSource(context: ProviderReconciliationContext) {
+  const source = context.source
+  if (
+    context.selection !== 'NATIVE' ||
+    !source ||
+    source.protocolDigest !== nativeOutcomeProtocolDigest ||
+    !isOriginalNativeOutcomeSource(source)
+  )
+    conflict('Exact registered original native custody is required.')
+  return source
+}
+async function replayStoredNativeConsumedIntent(
+  input: Readonly<ReconcileConsumedProviderIntentInput>,
+  client: PrismaClient,
+) {
+  if (
+    input.senderExcluded ||
+    input.physicalEvidence ||
+    providerSourceDatabaseIsOwned(client) ||
+    !input.replayRequestHash
+  )
+    conflict('Original live native custody must use its original clean resolver.')
+  const durable = await readStoredNativeOutcomeCommittedReplay(client, {
+    intentId: input.intentId,
+    observationKey: input.observationKey,
+    replayRequestHash: input.replayRequestHash,
+  })
+  if (!durable) conflict('No exact committed native reconciliation exists.')
+  return durable
+}
+/** Explicit native dialect only; this path never enters a synthetic or legacy fallback. */
+async function reconcileNativeConsumedIntent(
+  input: Readonly<ReconcileConsumedProviderIntentInput>,
+  context: ProviderReconciliationContext,
+  client: PrismaClient,
+) {
+  if (!context.source && input.replayRequestHash) return replayStoredNativeConsumedIntent(input, client)
+  const source = registeredOriginalNativeSource(context)
+  const replay = await readOriginalNativeOutcomeReplay(source, input, client)
+  if (replay) return replay
+  if (input.replayRequestHash) conflict('No exact committed native reconciliation exists.')
+  const request = consumedReconciliationRequest(input, context)
+  if (!request.candidate) conflict('Original native candidate is required.')
+  return reconcileFreshOriginalConsumedIntent(input, input, context, request, client, request.candidate)
+}
+
 /** The fresh original source path retains its actual transaction Promise through completion or ambiguity. */
 async function reconcileFreshOriginalConsumedIntent(
   input: ReconcileConsumedProviderIntentInput,
@@ -1207,7 +1270,9 @@ async function reconcileFreshOriginalConsumedIntent(
   candidate: ProviderReconciliationReceipt,
 ) {
   if (!capturedContext.source || !input.senderExcluded) conflict('Original source custody is required.')
-  const custody = acquireOriginalSqliteOutcomeCustody(
+  const native = isOriginalNativeOutcomeSource(capturedContext.source)
+  const acquire = native ? acquireOriginalNativeOutcomeCustody : acquireOriginalSqliteOutcomeCustody
+  const custody = acquire(
     capturedContext.source,
     input.physicalEvidence,
     input.senderExcluded,
@@ -1242,6 +1307,7 @@ async function reconcileFreshOriginalConsumedIntent(
       }
       return result
     })
+    if (native) (custody as ReturnType<typeof acquireOriginalNativeOutcomeCustody>).captureTransaction(engineOperation)
     result = await engineOperation
   } catch (error) {
     custody.retire(engineOperation)
@@ -1266,5 +1332,9 @@ function rejectUnmatchedOwnedReplayRequest(
 
 /** Select the existing clean resolver route for the legacy source dialect. */
 function isOwnedLegacyReconciliation(ownedClient: boolean, request: ConsumedReconciliationRequest): boolean {
-  return ownedClient && request.candidate?.physical.protocolDigest !== sqliteOutcomeSourceProtocolDigest
+  return (
+    ownedClient &&
+    request.candidate?.physical.provenance !== 'NATIVE_QUALIFIED' &&
+    request.candidate?.physical.protocolDigest !== sqliteOutcomeSourceProtocolDigest
+  )
 }

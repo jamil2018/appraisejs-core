@@ -274,6 +274,12 @@ The user subsequently authorized [remaining offline implementation](M13-OFFLINE-
 limits. [Offline verification](M13-OFFLINE-IMPLEMENTATION-VERIFICATION.md) records the completed offline implementation and checks separately from live
 runtime qualification; the overall M13 checkbox remains open.
 
+The user subsequently lifted native launch, existing-login access and inference limits for bounded qualification.
+[Current runtime execution](M13-RUNTIME-EXECUTION-2026-11-14.md) records accepted B1 readiness/B2 login observations,
+C0 source and actual packed offline proof, and ongoing C1 original-outcome implementation. Exact execution packets
+and additive allowances precede effects. No sign-in, account switch, production activation, push, merge or publication.
+The [runtime continuation checkpoint](M13-RUNTIME-CONTINUE.md) supersedes the historical M01-only checkpoint below.
+
 - [ ] Implement and verify this slice.
 
 **Dependencies:** M12. **Estimated scope:** S; split further before implementation if the actual diff spans independent concerns.
@@ -300,7 +306,9 @@ During implementation use affected-file ESLint/Prettier and `npx vitest run <aff
 
 Schema, session, gateway and supervisor changes are sequential shared contracts. After these settle, role-specific tests and UI presentation work can run independently with explicit ownership. No worker may revert unrelated work.
 
-## Current checkpoint handoff
+## Historical M01 checkpoint handoff
+
+For current M13 work use [runtime continuation](M13-RUNTIME-CONTINUE.md). The following is preserved historical scope.
 
 Read [CONTINUE-HERE](CONTINUE-HERE.md) and [M01 qualification](m01-qualification.md).
 M00 bytes remain frozen; M01 protocol qualification is complete for the pinned tuple only.

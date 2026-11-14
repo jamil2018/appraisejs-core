@@ -26,6 +26,11 @@ packed proof supplies its separately frozen cross-package test harness against g
 CLI; it does not make generated products import repository source. Custody tests use only explicit synthetic keys,
 fresh private roots and disposable migrated SQLite; prepared databases contain no credential or provider state.
 
+M13 native qualification's portable composition, protocol schemas, and self-contained tests also synchronize. Its
+SQLite integration proof imports the producer MCP package and remains repository-only. The task-owned native
+controllers are not scaffold inputs; including canonical source does not enroll a physical outcome source or enable
+production dispatch.
+
 ## Sync Flow
 
 1. Make behavior changes in the root/base source first.

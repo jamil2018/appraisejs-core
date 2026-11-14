@@ -2,7 +2,14 @@ import { randomUUID, createHash } from 'node:crypto'
 import type { Readable, Writable } from 'node:stream'
 import { TextDecoder } from 'node:util'
 
-export type RpcRequestMethod = 'initialize' | 'thread/start' | 'thread/resume' | 'turn/start' | 'turn/interrupt'
+export type RpcRequestMethod =
+  | 'initialize'
+  | 'config/read'
+  | 'mcpServerStatus/list'
+  | 'thread/start'
+  | 'thread/resume'
+  | 'turn/start'
+  | 'turn/interrupt'
 export type RpcDeliveryWatermark = Readonly<{ issuedRequests: number; writtenBytes: number }>
 declare const ownerBrand: unique symbol
 declare const sealBrand: unique symbol
@@ -40,6 +47,8 @@ export type RpcTransportOptions = {
   onFault: (reason: string) => void
   requestTimeoutMs?: number
   maxFrameBytes?: number
+  /** Native passive drain retains read streams after the active sender is fenced. */
+  retainReadStreamsOnFence?: boolean
 }
 
 export type RpcSenderManifest = Readonly<{
@@ -66,7 +75,15 @@ type Pending = {
   timer: ReturnType<typeof setTimeout>
   removeAbort: () => void
 }
-const METHODS = new Set<string>(['initialize', 'thread/start', 'thread/resume', 'turn/start', 'turn/interrupt'])
+const METHODS = new Set<string>([
+  'initialize',
+  'config/read',
+  'mcpServerStatus/list',
+  'thread/start',
+  'thread/resume',
+  'turn/start',
+  'turn/interrupt',
+])
 const MAX_FRAME_BYTES = 256 * 1024
 const MAX_PROTOCOL_BYTES = 8 * 1024 * 1024
 const MAX_STDERR_BYTES = 256 * 1024
@@ -268,8 +285,10 @@ export class RpcTransport {
       pending.reject(new RpcTransportError(this.#reason))
     }
     this.#frame = Buffer.alloc(0)
-    this.#stdout.destroy()
-    this.#stderr.destroy()
+    if (!this.#options.retainReadStreamsOnFence) {
+      this.#stdout.destroy()
+      this.#stderr.destroy()
+    }
   }
 
   get owner(): RpcTransportOwner {

@@ -1,4 +1,4 @@
-export type TestRunDiagnosticResponse = Record<string, unknown>
+type TestRunDiagnosticResponse = Record<string, unknown>
 
 type DiagnoseDependencies = {
   diagnose: (runId: string) => Promise<TestRunDiagnosticResponse>

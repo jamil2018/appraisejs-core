@@ -1,0 +1,23 @@
+{
+  "provenance": "PINNED_INSTALLED_GENERATED_SCHEMA_BYTES",
+  "source": "native-introspection-20261114-01/schema/schemas",
+  "generationPerformedByThisSlice": false,
+  "files": {
+    "ClientRequest.json": "5c032672fa9ed0f7c10b96e2c637a5a8c266e9292ef468dce3f025cfe81498a5",
+    "ClientNotification.json": "706cf248d75027c84a3c63348d0ed507182e8eba40069dd17541793de029145a",
+    "ServerNotification.json": "6371619bc83dd2c7a3ff348704d514c5be9f0d8e992275a1fa592cf51bfd2c1f",
+    "JSONRPCError.json": "d7ea353d4875ae204625da5a00a1ecb5afc69101d5778b9acc253a49f8932992",
+    "v1/InitializeParams.json": "c608ff6bdd94e661423dca9b44cd1dcea7eac610f74e1310284c61eab64280bc",
+    "v1/InitializeResponse.json": "62ad689c2cb6379913c1d72749cfd8de5089d35760214123518eb92eef11acc9",
+    "v2/ConfigReadParams.json": "257c54a423b47c1d209ff1076765a1564d82322fd5161670fd489a2874de1bac",
+    "v2/ConfigReadResponse.json": "69a32e3d84e16045802dff8abf01770d759ebc758965c3258a30ea4a93159fce",
+    "v2/ThreadStartParams.json": "e9c6d3cc18d049bfbc0249add3808fb8e5a27e1a0b5a423767aafbc3859a9428",
+    "v2/ThreadStartResponse.json": "dfacf835b6b46a9f087b3e89a81f44f1ed0620518a7a957a3d06681bd86b6944",
+    "v2/ListMcpServerStatusParams.json": "30b978c6502b37c9f0002aeba241f41c91d4c6adf0f92d89242b62ffde415a2d",
+    "v2/ListMcpServerStatusResponse.json": "c5a6c05092a9b1fa90c7cb3a319685a769a67c16e19048e8bbab5007b358be74",
+    "v2/TurnStartParams.json": "4e25cd48986f73e600d9949a055ddb994a75b4a38790e935274646f0fece00ad",
+    "v2/TurnStartResponse.json": "b75b88c2f507685b948d06166b5436678fd320c9878883d97f5a17f620a25116",
+    "v2/TurnCompletedNotification.json": "00b691508bb0187ecc5f080bb1608add7137672698daed6922967ad90bcb16e1"
+  },
+  "nativeExecutableSha256": "7cb8700a47be3c81bb3c5efbf2d2adc716ce3db4806e9dc992f2925f78b2b194"
+}

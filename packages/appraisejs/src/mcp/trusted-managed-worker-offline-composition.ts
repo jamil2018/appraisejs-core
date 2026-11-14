@@ -4,7 +4,7 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
 import { AjvJsonSchemaValidator } from '@modelcontextprotocol/sdk/validation/ajv-provider.js'
 import { createAttemptScopedWorkerMcpServer, type AttemptScopedWorkerProfile } from './managed-worker-server.js'
 
-export type ManagedOfflineCompositionReceipt = Readonly<{
+type ManagedOfflineCompositionReceipt = Readonly<{
   provenance: 'OFFLINE_SYNTHETIC'
   runtimeQualified: false
   dispatchAllowed: false

@@ -12,7 +12,7 @@ export type CoordinatorOptions = {
   coordinatorId: string
 }
 
-export type TargetProjectRegistrationInput =
+type TargetProjectRegistrationInput =
   { path: string; displayName?: string; initializeGit?: boolean } | { url: string; displayName?: string }
 
 const coordinatorErrorEnvelopeSchema = z

@@ -14,6 +14,86 @@ const fixture = () => inertSupervisorFixture(createQualityJourneyProcessSupervis
 beforeEach(configureInertSupervisor)
 afterEach(() => vi.useRealTimers())
 describe('original supervisor heartbeat lifetime (inert provider/child)', () => {
+  it.each(['before-ack', 'active'])(
+    'automatically drains ordinary completion %s without task cancellation',
+    async timing => {
+      const f = fixture()
+      const completed = () => {
+        const callback = f.launch.mock.calls[0][0] as {
+          onNotification(method: string, params: Record<string, unknown>): void
+        }
+        callback.onNotification('turn/completed', {
+          threadId: 'thread',
+          turn: { id: 'turn', status: 'completed', error: null },
+        })
+      }
+      if (timing === 'before-ack') {
+        const original = f.child.transport.request.getMockImplementation()!
+        f.child.transport.request.mockImplementation(async method => {
+          const reply = await original(method)
+          if (method === 'turn/start') completed()
+          return reply
+        })
+      }
+      await f.supervisor.start()
+      if (timing === 'active') completed()
+      await vi.waitFor(() => expect(f.supervisor.snapshot().state).toBe('stopped'))
+      expect(f.supervisor.snapshot()).toMatchObject({
+        reason: 'LOGICAL_COMPLETION',
+        completed: true,
+        turnOutcome: 'completed',
+        originalStartState: 'FULFILLED',
+      })
+      expect(provider.ack).toHaveBeenCalledOnce()
+      expect(f.child.stop).toHaveBeenCalledOnce()
+      const writes = provider.write.mock.calls.length
+      await vi.advanceTimersByTimeAsync(80_000)
+      expect(provider.write).toHaveBeenCalledTimes(writes)
+    },
+  )
+  it.each(['fulfilled', 'rejected'])('joins the same original stop through final persistence %s', async settlement => {
+    const f = fixture(),
+      persisted = supervisorGate<object>()
+    f.create.mockImplementation(async ({ data }) =>
+      data.kind === 'TRANSPORT_DRAINED_UNCERTAIN' ? persisted.promise : {},
+    )
+    await f.supervisor.start()
+    await expect(f.supervisor.waitOriginalStop()).rejects.toThrow(/not available/)
+    expect(f.child.stop).not.toHaveBeenCalled()
+    const callback = f.launch.mock.calls[0][0] as {
+      onNotification(method: string, params: Record<string, unknown>): void
+    }
+    callback.onNotification('turn/completed', {
+      threadId: 'thread',
+      turn: { id: 'turn', status: 'completed', error: null },
+    })
+    await vi.waitFor(() => expect(f.supervisor.snapshot().state).toBe('stopped'))
+    const original = f.supervisor.waitOriginalStop()
+    expect(f.supervisor.waitOriginalStop()).toBe(original)
+    let settled = false
+    void original.then(
+      () => {
+        settled = true
+      },
+      () => {
+        settled = true
+      },
+    )
+    await Promise.resolve()
+    expect(settled).toBe(false)
+    const writes = provider.write.mock.calls.length
+    if (settlement === 'fulfilled') {
+      persisted.resolve({})
+      await original
+    } else {
+      const rejected = expect(original).rejects.toThrow('final observation rejected')
+      persisted.reject(new Error('final observation rejected'))
+      await rejected
+    }
+    expect(f.child.stop).toHaveBeenCalledOnce()
+    await vi.advanceTimersByTimeAsync(80_000)
+    expect(provider.write).toHaveBeenCalledTimes(writes)
+  })
   it('fences first and joins the original pending heartbeat before child drain and fulfilled stop', async () => {
     const f = fixture()
     await f.supervisor.start()

@@ -8,6 +8,26 @@ import {
 } from '../../src/lib/template-sync-utils'
 
 describe('template sync utils', () => {
+  it('retains portable native composition and excludes only its cross-package proof', () => {
+    for (const prefix of ['', 'src/']) {
+      expect(shouldExcludeTemplatePath(prefix + 'services/coordinator/quality-journey-c1-task.inert.test.ts')).toBe(
+        true,
+      )
+      expect(
+        shouldExcludeTemplatePath(
+          prefix + 'services/coordinator/quality-journey-native-qualification.sqlite.integration.test.ts',
+        ),
+      ).toBe(true)
+      for (const file of [
+        'services/coordinator/quality-journey-native-qualification.ts',
+        'services/coordinator/quality-journey-native-qualification.test.ts',
+        'lib/quality-journey/codex-app-server/native-qualification-child.ts',
+        'lib/quality-journey/codex-app-server/native-qualification-schemas/v2/TurnStartResponse.json',
+      ])
+        expect(shouldExcludeTemplatePath(prefix + file)).toBe(false)
+    }
+  })
+
   it('excludes generated and local-only template paths', () => {
     expect(shouldExcludeTemplatePath('node_modules/react/index.js')).toBe(true)
     expect(shouldExcludeTemplatePath('automation/reports/latest.json')).toBe(true)

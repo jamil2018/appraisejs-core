@@ -41,7 +41,7 @@ export type TrustedWorkerOfflineOptions = Omit<BridgeOptions, 'expectedAdvertise
     caller: OfflineSyntheticWorkerCaller
     timeoutMs?: number
   }>
-export type OfflineWorkerCall = Readonly<{
+type OfflineWorkerCall = Readonly<{
   operation: string
   arguments: Record<string, unknown>
   outerCallId: string

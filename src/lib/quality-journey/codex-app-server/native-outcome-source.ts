@@ -1,0 +1,745 @@
+import { randomUUID } from 'node:crypto'
+import type { PrismaClient } from '@prisma/client'
+import { canonicalOutcomeJson, outcomeDigest } from './outcome-source-contract'
+import { claimOriginalNativeQualificationChild } from './native-qualification-child'
+import type { OwnedFixtureChild } from './owned-child'
+import {
+  inspectNativeOutcomeProfile,
+  nativeOutcomeProtocolDigest,
+  type NativeOutcomeProfile,
+} from './native-outcome-profile'
+import { inspectNativeQualificationPlan } from './native-qualification-contract'
+import { verifyNativeQualificationConfiguration } from './native-qualification-configuration'
+import { NativeOutcomeJournal } from './native-outcome-journal'
+import { inspectRpcTransportOwner, type RpcRequestMethod, type RpcTransport } from './rpc-transport'
+import {
+  assertProviderSendPermitOwned,
+  bindProviderSendPermitTransport,
+  inspectProviderSenderExcluded,
+  sealConsumedProviderSender,
+  type ProviderSendPermit,
+  type ProviderSenderExcluded,
+  type ProviderReconciliationIdentity,
+} from '../provider-intent-contract'
+import {
+  acquireProviderSourceDatabaseHold,
+  assertProviderSourceDatabaseClient,
+  assertProviderSourceNativeConnectionDomain,
+  assertProviderSourceTransactionSettingsForClient,
+  proveProviderSourceNativeConnectionDomain,
+  resolveProviderSourceDatabaseHold,
+  type ProviderSourceDatabase,
+  type ProviderSourceNativeConnectionDomain,
+} from '../provider-source-database'
+import {
+  validateProviderReconciliationRecord,
+  providerReconciliationRequestHash,
+  type ProviderPhysicalOutcomeSource,
+  type ProviderPhysicalOutcomeRecord,
+  type ProviderReconciliationReceipt,
+  type ProviderReconciliationContext,
+} from '../provider-reconciliation-contract'
+import type { SqliteOutcomeCustody } from './outcome-source'
+import { readNativeOutcomeCommittedReplay, type NativeOutcomeReplay } from './native-outcome-replay'
+
+const uuid = (value: unknown): value is string =>
+  typeof value === 'string' && /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(value)
+const record = (value: unknown): value is Record<string, unknown> =>
+  !!value && typeof value === 'object' && !Array.isArray(value)
+const sources = new WeakMap<ProviderPhysicalOutcomeSource, OriginalNativeOutcome>()
+const requestSequence = ['initialize', 'config/read', 'thread/start', 'mcpServerStatus/list', 'turn/start'] as const
+export type NativeOutcomeReviewControl = Readonly<{
+  reviewerId: string
+  nonce: string
+  reviewMs: number
+  reconciliationMs: number
+}>
+export type NativeOutcomeReviewDecision = Readonly<{
+  version: 'M13_NATIVE_OUTCOME_REVIEW_V1'
+  decision: 'ACCEPT' | 'REVISE'
+  reviewerId: string
+  nonce: string
+  candidateDigest: string
+  dossierDigest: string
+  profileDigest: string
+  artifactDigest: string
+  identityDigest: string
+  actualReviewReceiptDigest: string
+}>
+export type NativeOutcomeCandidateOptions = Readonly<{
+  profile: NativeOutcomeProfile
+  permit: ProviderSendPermit
+  database: ProviderSourceDatabase
+  providerNamespace: string
+  transportId: string
+  reviewControl: NativeOutcomeReviewControl
+}>
+function fail(): never {
+  throw new Error('Original native outcome remains unreconciled UNKNOWN')
+}
+
+type Operation = { promise: Promise<unknown>; observation: Promise<void>; settled: boolean }
+/** This original owner survives cleanup for the finite task-control review; it never schedules native effects. */
+class OriginalNativeOutcome {
+  readonly sourceId = `native_outcome_${randomUUID()}`
+  readonly sourceIncarnation = randomUUID()
+  readonly profile
+  readonly initialIdentity
+  readonly journal
+  readonly scope
+  #domain?: ProviderSourceNativeConnectionDomain
+  #child?: ReturnType<typeof claimOriginalNativeQualificationChild>
+  #operations: Operation[] = []
+  #gateway: Operation[] = []
+  #supervisor: Operation[] = []
+  #sdkCleanup: Operation[] = []
+  #supervisorStop: Operation[] = []
+  #sdkCloseCaptured = false
+  #poison = false
+  #cleaned = false
+  #sdkClosed = false
+  #requests = 0
+  #initialized = false
+  #threadId?: string
+  #turnId?: string
+  #threadStarted = false
+  #turnStarted = false
+  #completion = 0
+  #notificationCount = 0
+  #remoteDisabled = 0
+  #sender?: ProviderSenderExcluded
+  #freezeEntered = false
+  #candidate?: Readonly<Record<string, unknown>>
+  #candidateDigest?: string
+  #reviewDeadline?: number
+  #decisionEntered = false
+  #enrolled = false
+  #revoked = false
+  #proof?: object
+  #physical?: ProviderPhysicalOutcomeRecord
+  #source?: ProviderPhysicalOutcomeSource
+  #reconciliationEntered = false
+  #replay?: {
+    key: string
+    hash: string
+    receipt: ProviderReconciliationReceipt
+    hold: ReturnType<typeof acquireProviderSourceDatabaseHold>
+    operation?: Promise<unknown>
+    lookup: boolean
+    result?: NativeOutcomeReplay
+    completed: boolean
+    retired: boolean
+  }
+  constructor(readonly options: NativeOutcomeCandidateOptions) {
+    this.profile = inspectNativeOutcomeProfile(options.profile)
+    assertProviderSendPermitOwned(options.permit)
+    const control = Object.freeze({ ...options.reviewControl })
+    if (this.profile.reviewControlDigest !== outcomeDigest(canonicalOutcomeJson(control))) fail()
+    if (
+      !/^[A-Za-z0-9_.:/-]{1,200}$/.test(control.reviewerId) ||
+      !uuid(control.nonce) ||
+      ![control.reviewMs, control.reconciliationMs].every(ms => Number.isSafeInteger(ms) && ms >= 1 && ms <= 300_000)
+    )
+      fail()
+    this.options = Object.freeze({ ...options, reviewControl: control })
+    this.initialIdentity = Object.freeze({
+      runId: options.permit.runId,
+      intentId: options.permit.intentId,
+      sendBoundaryId: options.permit.sendBoundaryId,
+      claimEpoch: options.permit.claimEpoch,
+      providerNamespace: options.providerNamespace,
+      configurationDigest: this.profile.configurationDigest,
+      transportId: options.transportId,
+      transportIncarnation: null,
+      threadId: null,
+      turnId: null,
+    })
+    this.scope = Object.freeze({
+      sourceId: this.sourceId,
+      sourceIncarnation: this.sourceIncarnation,
+      providerRunId: options.permit.runId,
+      intentId: options.permit.intentId,
+      providerNamespace: options.providerNamespace,
+    })
+    this.journal = new NativeOutcomeJournal({
+      database: options.database,
+      sourceId: this.sourceId,
+      sourceIncarnation: this.sourceIncarnation,
+      identity: this.initialIdentity,
+      protocolDigest: nativeOutcomeProtocolDigest,
+      qualificationDigest: this.profile.profileDigest,
+    })
+  }
+  async initialize() {
+    await this.journal.initialize()
+    this.#domain = await proveProviderSourceNativeConnectionDomain(this.options.database, this.scope)
+  }
+  #healthy() {
+    if (this.#poison || this.#revoked) fail()
+    inspectNativeOutcomeProfile(this.options.profile)
+    if (!this.#domain) fail()
+    assertProviderSourceNativeConnectionDomain(this.#domain, this.options.database, this.scope)
+  }
+  #operationLimit(list: Operation[]) {
+    if (list === this.#operations) return 6
+    if (list === this.#gateway) return 16
+    if (list === this.#sdkCleanup || list === this.#supervisorStop) return 1
+    return 64
+  }
+  #observe(promise: Promise<unknown>, list: Operation[], fulfilled?: (result: unknown) => void) {
+    const maximum = this.#operationLimit(list)
+    if (
+      list.length >= maximum ||
+      !(promise instanceof Promise) ||
+      list.some(item => item.promise === promise) ||
+      this.#cleaned
+    ) {
+      this.#poison = true
+      fail()
+    }
+    const operation = { promise, observation: undefined as unknown as Promise<void>, settled: false }
+    operation.observation = promise
+      .then(
+        value => {
+          try {
+            if (this.#cleaned && list !== this.#supervisorStop) this.#poison = true
+            fulfilled?.(value)
+          } catch {
+            this.#poison = true
+          }
+        },
+        () => {
+          this.#poison = true
+        },
+      )
+      .then(() => {
+        operation.settled = true
+      })
+    list.push(operation)
+  }
+  attach(child: OwnedFixtureChild) {
+    this.#healthy()
+    if (this.#child) fail()
+    this.#child = claimOriginalNativeQualificationChild(child, this.profile.plan, {
+      beforeRequest: (method, params) => this.#beforeRequest(method, params),
+      operation: (promise, method) => this.#observe(promise, this.#operations, value => this.#reply(method, value)),
+      notification: (method, params) => this.#notification(method, params),
+      fault: () => {
+        this.#poison = true
+      },
+      cleanup: receipt => {
+        if (this.#cleaned || receipt.status !== 'stopped' || !receipt.groupExitObserved || !receipt.privateRootRemoved)
+          this.#poison = true
+        this.#cleaned = true
+      },
+    })
+    if (inspectRpcTransportOwner(this.#child.owner).transportId !== this.options.transportId) fail()
+    bindProviderSendPermitTransport(this.options.permit, this.#child.owner, {
+      providerNamespace: this.options.providerNamespace,
+      configurationDigest: this.profile.configurationDigest,
+    })
+  }
+  #beforeRequest(method: RpcRequestMethod, params: Record<string, unknown>) {
+    if (
+      this.#poison ||
+      this.#cleaned ||
+      this.#requests >= requestSequence.length ||
+      method !== requestSequence[this.#requests++]
+    ) {
+      this.#poison = true
+      fail()
+    }
+    this.#requestShape(method, params)
+    if (method === 'thread/start') {
+      const expected = { ephemeral: true, model: 'gpt-6.1-sol', sandbox: 'read-only', approvalPolicy: 'never' }
+      if (Object.entries(expected).some(([key, value]) => params[key] !== value)) fail()
+    }
+    if (method === 'turn/start') this.#turnRequest(params)
+  }
+  #requestShape(method: RpcRequestMethod, params: Record<string, unknown>) {
+    const keys = {
+      initialize: ['capabilities', 'clientInfo'],
+      'config/read': ['cwd', 'includeLayers'],
+      'thread/start': ['approvalPolicy', 'cwd', 'ephemeral', 'model', 'sandbox'],
+      'mcpServerStatus/list': ['detail', 'limit', 'serverName', 'threadId'],
+      'turn/start': ['effort', 'input', 'model', 'threadId'],
+    }
+    const expected = keys[method as keyof typeof keys]
+    if (!expected || canonicalOutcomeJson(Object.keys(params).sort()) !== canonicalOutcomeJson([...expected].sort()))
+      fail()
+    if (
+      method === 'initialize' &&
+      canonicalOutcomeJson(params.capabilities) !== canonicalOutcomeJson({ experimentalApi: false })
+    )
+      fail()
+  }
+  #configurationRequest(params: Record<string, unknown>) {
+    const cwd = `${inspectNativeQualificationPlan(this.profile.plan).manifest.freshRoot}/cwd`
+    if (params.cwd !== cwd || params.includeLayers !== false) fail()
+  }
+  #turnRequest(params: Record<string, unknown>) {
+    const actualEnvelope = { input: params.input, model: params.model, effort: params.effort }
+    if (
+      params.threadId !== this.#threadId ||
+      outcomeDigest(canonicalOutcomeJson(actualEnvelope)) !==
+        inspectNativeQualificationPlan(this.profile.plan).manifest.envelopeDigest
+    )
+      fail()
+  }
+  #reply(method: RpcRequestMethod | 'initialized', value: unknown) {
+    if (method === 'initialized') {
+      if (this.#initialized) fail()
+      this.#initialized = true
+      return
+    }
+    if (!record(value)) fail()
+    if (method === 'config/read') this.#configurationReply(value)
+    if (method === 'thread/start') this.#threadReply(value.thread)
+    if (method === 'turn/start') this.#turnReply(value.turn)
+  }
+  #configurationReply(value: Record<string, unknown>) {
+    const captured = inspectNativeQualificationPlan(this.profile.plan)
+    if (!verifyNativeQualificationConfiguration(value, captured.manifest, captured.capability)) fail()
+    this.#privateStateHome(value.config, `${captured.manifest.freshRoot}/codex-home`)
+  }
+  #privateStateHome(config: unknown, privateHome: string) {
+    if (!record(config)) fail()
+    const selected = config.sqlite_home
+    // Pinned loader applies all effective/managed values here. The closed native environment omits
+    // CODEX_SQLITE_HOME; absence/null therefore selects this exact fresh CODEX_HOME fallback.
+    if (selected != null && selected !== privateHome) fail()
+  }
+  #threadReply(thread: unknown) {
+    if (
+      !record(thread) ||
+      !uuid(thread.id) ||
+      thread.ephemeral !== true ||
+      !Array.isArray(thread.turns) ||
+      thread.turns.length
+    )
+      fail()
+    if (this.#threadId && this.#threadId !== thread.id) fail()
+    this.#threadId = thread.id
+  }
+  #turnReply(turn: unknown) {
+    if (!record(turn) || typeof turn.id !== 'string') fail()
+    if (this.#turnId && this.#turnId !== turn.id) fail()
+    this.#turnId = turn.id
+  }
+  #notification(method: string, params: Record<string, unknown>) {
+    try {
+      if (this.#cleaned || this.#candidate || ++this.#notificationCount > 8192) fail()
+      this.#dispatchNotification(method, params)
+    } catch {
+      this.#poison = true
+      fail()
+    }
+  }
+  #dispatchNotification(method: string, params: Record<string, unknown>) {
+    if (method === 'remoteControl/status/changed') return this.#remoteStatus(params)
+    if ('threadId' in params && params.threadId !== this.#threadId) fail()
+    if (method === 'thread/started') return this.#threadNotification(params)
+    if (method === 'turn/started' || method === 'turn/completed') return this.#turnNotification(method, params)
+    if (method === 'thread/status/changed') this.#threadStatus(params.status)
+    this.#ordinaryNotification(method, params)
+  }
+  #remoteStatus(params: Record<string, unknown>) {
+    if (params.status !== 'disabled' || params.environmentId != null || ++this.#remoteDisabled > 32) fail()
+  }
+  #threadStatus(status: unknown) {
+    if (!record(status) || status.type === 'systemError') fail()
+    if (this.#completion > 0 && status.type === 'active') fail()
+    if (Array.isArray(status.activeFlags) && status.activeFlags.length > 0) fail()
+  }
+  #threadNotification(params: Record<string, unknown>) {
+    if (this.#threadStarted || this.#requests < 3 || !record(params.thread) || !uuid(params.thread.id)) fail()
+    if (this.#threadId && this.#threadId !== params.thread.id) fail()
+    this.#threadStarted = true
+    this.#threadId = params.thread.id
+  }
+  #turnNotification(method: string, params: Record<string, unknown>) {
+    if (this.#requests !== 5) fail()
+    this.#turnReply(params.turn)
+    if (method === 'turn/started') {
+      if (this.#turnStarted || this.#completion > 0) fail()
+      this.#turnStarted = true
+      return
+    }
+    if (!record(params.turn)) fail()
+    if (++this.#completion !== 1 || params.turn.status !== 'completed' || params.turn.error !== null) fail()
+  }
+  #ordinaryNotification(method: string, params: Record<string, unknown>) {
+    if ('turnId' in params && (!this.#turnId || params.turnId !== this.#turnId)) fail()
+    if (method.startsWith('item/')) {
+      this.#itemNotification(params)
+      return
+    }
+    if (
+      ![
+        'account/rateLimits/updated',
+        'thread/tokenUsage/updated',
+        'thread/status/changed',
+        'thread/readState/changed',
+        'mcpServer/startupStatus/updated',
+        'turn/plan/updated',
+        'turn/diff/updated',
+      ].includes(method)
+    )
+      fail()
+  }
+  #itemNotification(params: Record<string, unknown>) {
+    if (this.#completion > 0 || this.#requests !== 5 || !this.#threadId || params.threadId !== this.#threadId) fail()
+  }
+  gateway(promise: Promise<unknown>) {
+    this.#observe(promise, this.#gateway)
+  }
+  supervisorOperation(promise: Promise<unknown>) {
+    this.#observe(promise, this.#supervisor)
+  }
+  captureSdkClose(original: Promise<Readonly<{ closed: boolean; effectUnknown: boolean }>>) {
+    if (this.#sdkCloseCaptured) {
+      this.#poison = true
+      fail()
+    }
+    this.#sdkCloseCaptured = true
+    this.#observe(original, this.#sdkCleanup, value => {
+      if (!record(value) || value.closed !== true || value.effectUnknown !== false) {
+        this.#poison = true
+        return
+      }
+      this.#sdkClosed = true
+    })
+  }
+  captureSupervisorStop(original: Promise<unknown>) {
+    this.#observe(original, this.#supervisorStop)
+  }
+  async freezeCandidate() {
+    if (this.#freezeEntered) fail()
+    this.#freezeEntered = true
+    if (this.#supervisorStop.length !== 1) fail()
+    await this.#supervisorStop[0].observation
+    this.#healthy()
+    if (this.#candidate || !this.#child || !this.#threadId || !this.#turnId) fail()
+    this.#assertNativeCompletion()
+    const all = this.#assertOperationsSettled()
+    await Promise.all(all.map(item => item.observation))
+    this.#healthy()
+    const state = this.#child.snapshot()
+    this.#assertClosedTransport(state)
+    this.#sender = sealConsumedProviderSender(this.options.permit, this.#child.sealSender(), {
+      threadId: this.#threadId,
+      turnId: this.#turnId,
+    })
+    const exclusion = inspectProviderSenderExcluded(this.#sender)
+    if (
+      exclusion.finalWatermark.issuedRequests !== state.issuedRequests ||
+      exclusion.finalWatermark.writtenBytes !== state.writtenBytes
+    )
+      fail()
+    const identity = { ...exclusion } as Record<string, unknown>
+    delete identity.senderEvidenceId
+    delete identity.finalWatermark
+    const body = Object.freeze({
+      version: 'M13_NATIVE_OUTCOME_CANDIDATE_V1',
+      candidateId: randomUUID(),
+      sourceSemantics: 'CONDITIONAL_PINNED_SOURCE',
+      hostIsolation: 'NOT_ATTESTED',
+      helperLifetime: 'UNKNOWN',
+      profileDigest: this.profile.profileDigest,
+      dossierDigest: this.profile.dossierDigest,
+      artifactDigest: this.profile.artifactDigest,
+      identityDigest: outcomeDigest(canonicalOutcomeJson(identity)),
+      identity: Object.freeze(identity),
+      coveredThrough: exclusion.finalWatermark,
+      sourceId: this.sourceId,
+      sourceIncarnation: this.sourceIncarnation,
+      operations: this.#operations.length,
+      gatewayOperations: this.#gateway.length,
+      supervisorOperations: this.#supervisor.length,
+      sdkCleanupOperations: this.#sdkCleanup.length,
+      supervisorStopOperations: this.#supervisorStop.length,
+    })
+    const candidateDigest = outcomeDigest(canonicalOutcomeJson(body))
+    await this.journal.bindAndSeal(identity as ProviderReconciliationIdentity, candidateDigest)
+    this.#candidateDigest = candidateDigest
+    this.#candidate = body
+    this.#reviewDeadline = Date.now() + this.options.reviewControl.reviewMs
+    return Object.freeze({ ...body, candidateDigest: this.#candidateDigest })
+  }
+  #assertClosedTransport(state: ReturnType<RpcTransport['snapshot']>) {
+    if (
+      state.status !== 'fenced' ||
+      state.pendingRequests ||
+      state.writing ||
+      state.issuedRequests !== 5 ||
+      state.writtenBytes < 1
+    )
+      fail()
+  }
+  #assertNativeCompletion() {
+    const exact = [
+      this.#cleaned,
+      this.#sdkClosed,
+      this.#completion === 1,
+      this.#requests === 5,
+      this.#initialized,
+      this.#operations.length === 6,
+    ]
+    if (!exact.every(Boolean)) fail()
+  }
+  acceptTaskReview(decision: NativeOutcomeReviewDecision) {
+    if (this.#decisionEntered) fail()
+    this.#decisionEntered = true
+    this.#healthy()
+    if (!this.#candidate || !this.#reviewDeadline || !this.#sender || !this.#candidateDigest) fail()
+    this.#validateReviewDecision(decision)
+    const exclusion = inspectProviderSenderExcluded(this.#sender)
+    const identity = { ...exclusion } as Record<string, unknown>
+    delete identity.senderEvidenceId
+    delete identity.finalWatermark
+    if (outcomeDigest(canonicalOutcomeJson(identity)) !== decision.identityDigest) fail()
+    this.#assertOperationsSettled()
+    if (!this.#cleaned || !this.#sdkClosed) fail()
+    this.#proof = Object.freeze({})
+    this.#physical = Object.freeze({
+      ...identity,
+      sourceId: this.sourceId,
+      provenance: 'NATIVE_QUALIFIED',
+      qualificationDigest: this.profile.profileDigest,
+      protocolDigest: nativeOutcomeProtocolDigest,
+      evidenceId: `native_evidence_${randomUUID()}`,
+      evidenceDigest: this.#candidateDigest,
+      evidenceClass: 'AUTHORITATIVE_OPERATION_RANGE',
+      outcome: 'TERMINAL',
+      conflictStatus: 'CLEAR',
+      coveredThrough: exclusion.finalWatermark,
+    }) as ProviderPhysicalOutcomeRecord
+    this.#source = Object.freeze({
+      sourceId: this.sourceId,
+      provenance: 'NATIVE_QUALIFIED',
+      qualificationDigest: this.profile.profileDigest,
+      protocolDigest: nativeOutcomeProtocolDigest,
+      providerNamespace: this.options.providerNamespace,
+      configurationDigest: this.profile.configurationDigest,
+      inspect: proof => this.#inspect(proof),
+    })
+    sources.set(this.#source, this)
+    this.#enrolled = true
+    return Object.freeze({
+      context: Object.freeze({ selection: 'NATIVE', source: this.#source }) as ProviderReconciliationContext,
+      physicalEvidence: this.#proof,
+      senderExcluded: this.#sender,
+      candidateDigest: this.#candidateDigest,
+    })
+  }
+  #validateReviewDecision(decision: NativeOutcomeReviewDecision) {
+    if (!this.#candidate || !this.#reviewDeadline || Date.now() > this.#reviewDeadline) fail()
+    const exact = {
+      version: 'M13_NATIVE_OUTCOME_REVIEW_V1',
+      decision: 'ACCEPT',
+      reviewerId: this.options.reviewControl.reviewerId,
+      nonce: this.options.reviewControl.nonce,
+      candidateDigest: this.#candidateDigest,
+      dossierDigest: this.profile.dossierDigest,
+      profileDigest: this.profile.profileDigest,
+      artifactDigest: this.profile.artifactDigest,
+      identityDigest: this.#candidate.identityDigest,
+    }
+    const expectedKeys = [...Object.keys(exact), 'actualReviewReceiptDigest'].sort()
+    if (canonicalOutcomeJson(Object.keys(decision).sort()) !== canonicalOutcomeJson(expectedKeys)) fail()
+    if (Object.entries(exact).some(([key, value]) => decision[key as keyof NativeOutcomeReviewDecision] !== value))
+      fail()
+    if (!/^sha256:[a-f0-9]{64}$/.test(decision.actualReviewReceiptDigest)) fail()
+  }
+  #assertOperationsSettled() {
+    const all = [
+      ...this.#operations,
+      ...this.#gateway,
+      ...this.#supervisor,
+      ...this.#sdkCleanup,
+      ...this.#supervisorStop,
+    ]
+    if (all.some(item => !item.settled)) fail()
+    return all
+  }
+  #inspect(proof: unknown) {
+    this.#healthy()
+    if (!this.#enrolled || proof !== this.#proof || !this.#physical || this.#revoked) fail()
+    if (this.journal.state().sealedEnvelopeDigest !== this.#physical.evidenceDigest) fail()
+    return this.#physical
+  }
+  revoke() {
+    this.#revoked = true
+  }
+  acquire(
+    proof: unknown,
+    sender: ProviderSenderExcluded,
+    client: PrismaClient,
+    expected: ProviderReconciliationReceipt,
+    request: Readonly<{ observationKey: string; requestHash: string }>,
+  ): SqliteOutcomeCustody & { captureTransaction(operation: Promise<unknown>): void } {
+    this.#healthy()
+    if (
+      this.#reconciliationEntered ||
+      sender !== this.#sender ||
+      !this.#source ||
+      !this.#reviewDeadline ||
+      Date.now() > this.#reviewDeadline + this.options.reviewControl.reconciliationMs
+    )
+      fail()
+    assertProviderSourceDatabaseClient(this.options.database, client)
+    const actual = validateProviderReconciliationRecord(sender, this.#source, this.#inspect(proof))
+    if (
+      canonicalOutcomeJson(expected) !== canonicalOutcomeJson(actual) ||
+      providerReconciliationRequestHash(expected.identity.intentId, request.observationKey, actual) !==
+        request.requestHash
+    )
+      fail()
+    this.#reconciliationEntered = true
+    const hold = acquireProviderSourceDatabaseHold(this.options.database, 'RECONCILE', {
+      intentId: expected.identity.intentId,
+      ...request,
+    })
+    const original = {
+      key: request.observationKey,
+      hash: request.requestHash,
+      receipt: actual,
+      hold,
+      lookup: false,
+      completed: false,
+      retired: false,
+    }
+    this.#replay = original
+    return Object.freeze({
+      state: this.journal.state(),
+      captureTransaction: operation => {
+        if (this.#replay!.operation || !(operation instanceof Promise)) fail()
+        this.#replay!.operation = operation
+      },
+      assertTransactionSettings: tx =>
+        assertProviderSourceTransactionSettingsForClient(client, tx, hold, 'RECONCILE_CANONICAL'),
+      verifyLocked: (state, records) => {
+        this.#healthy()
+        this.#inspect(proof)
+        this.journal.verifyLocked(state, records)
+      },
+      completeFulfilled: () =>
+        hold.complete(() => {
+          original.completed = true
+          this.#revoked = true
+        }),
+      retire: operation => {
+        this.#replay!.retired = true
+        this.#replay!.operation = operation
+        hold.retire(operation)
+        this.#revoked = true
+      },
+      tryResolveCommittedReplay: () => this.replay(client, request.observationKey, request.requestHash),
+    })
+  }
+  replayInput(
+    input: {
+      intentId: string
+      observationKey: string
+      senderExcluded?: ProviderSenderExcluded
+      physicalEvidence?: unknown
+      replayRequestHash?: string
+    },
+    client: PrismaClient,
+  ) {
+    if (input.intentId !== this.initialIdentity.intentId) fail()
+    if (!this.#replay) return undefined
+    if (
+      input.observationKey !== this.#replay.key ||
+      (input.replayRequestHash
+        ? input.replayRequestHash !== this.#replay.hash
+        : input.senderExcluded !== this.#sender || input.physicalEvidence !== this.#proof)
+    )
+      fail()
+    return this.replay(client, this.#replay.key, this.#replay.hash)
+  }
+  #assertReplayAdmission(original: {
+    lookup: boolean
+    operation?: Promise<unknown>
+    completed: boolean
+    retired: boolean
+  }) {
+    if (original.lookup || !original.operation) fail()
+    if (!original.completed && !original.retired) fail()
+  }
+  async replay(client: PrismaClient, key: string, hash: string): Promise<NativeOutcomeReplay | undefined> {
+    assertProviderSourceDatabaseClient(this.options.database, client)
+    const original = this.#replay
+    if (!original || original.key !== key || original.hash !== hash) fail()
+    if (original.result) return original.result
+    this.#assertReplayAdmission(original)
+    original.lookup = true
+    const result = await readNativeOutcomeCommittedReplay(
+      this.options.database,
+      original.receipt,
+      key,
+      hash,
+      this.journal.records(),
+      original.completed ? undefined : original.hold,
+    )
+    if (
+      result &&
+      (original.completed ||
+        resolveProviderSourceDatabaseHold(original.hold, () => {
+          original.completed = true
+        }))
+    )
+      original.result = result
+    return original.result
+  }
+}
+export async function createOriginalNativeOutcomeCandidate(options: NativeOutcomeCandidateOptions) {
+  const original = new OriginalNativeOutcome(options)
+  await original.initialize()
+  return Object.freeze({
+    attach: original.attach.bind(original),
+    gateway: original.gateway.bind(original),
+    supervisorOperation: original.supervisorOperation.bind(original),
+    captureSdkClose: original.captureSdkClose.bind(original),
+    captureSupervisorStop: original.captureSupervisorStop.bind(original),
+    freezeCandidate: original.freezeCandidate.bind(original),
+    acceptTaskReview: original.acceptTaskReview.bind(original),
+    revoke: original.revoke.bind(original),
+  })
+}
+export type OriginalNativeOutcomeCandidate = Awaited<ReturnType<typeof createOriginalNativeOutcomeCandidate>>
+export function acquireOriginalNativeOutcomeCustody(
+  source: ProviderPhysicalOutcomeSource,
+  proof: unknown,
+  sender: ProviderSenderExcluded,
+  client: PrismaClient,
+  expected: ProviderReconciliationReceipt,
+  request: Readonly<{ observationKey: string; requestHash: string }>,
+) {
+  const original = sources.get(source)
+  if (
+    !original ||
+    expected.physical.protocolDigest !== nativeOutcomeProtocolDigest ||
+    expected.physical.outcome !== 'TERMINAL'
+  )
+    fail()
+  return original.acquire(proof, sender, client, expected, request)
+}
+export function isOriginalNativeOutcomeSource(source: ProviderPhysicalOutcomeSource | undefined) {
+  return !!source && sources.has(source)
+}
+export async function readOriginalNativeOutcomeReplay(
+  source: ProviderPhysicalOutcomeSource,
+  input: {
+    intentId: string
+    observationKey: string
+    senderExcluded?: ProviderSenderExcluded
+    physicalEvidence?: unknown
+    replayRequestHash?: string
+  },
+  client: PrismaClient,
+) {
+  const original = sources.get(source)
+  if (!original) fail()
+  return original.replayInput(input, client)
+}

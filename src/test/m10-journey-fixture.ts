@@ -38,6 +38,7 @@ import {
 import {
   captureQualityJourneyDiscoveryBrowserReceipt,
   closeQualityJourneyDiscoveryBrowserSession,
+  getOwnedQualityJourneyDiscoveryBrowserCleanup,
   startQualityJourneyDiscoveryBrowserSession,
   type DiscoveryBrowserRuntime,
 } from '@/services/coordinator/quality-journey-discovery-browser-service'
@@ -83,7 +84,7 @@ export async function callM10WorkerMcp<T = unknown>(
 }
 
 /** Discovery metadata only; physical browser execution belongs to the runtime lane. */
-function disposableDiscoveryRuntime(): DiscoveryBrowserRuntime {
+export function createM10DiscoveryMetadataRuntime(): DiscoveryBrowserRuntime {
   let currentUrl = 'about:blank'
   const frame = { url: () => currentUrl }
   return {
@@ -130,10 +131,32 @@ export type M10OfflineDispatchEvent = Readonly<{
 export type M10OfflineDispatch = (event: M10OfflineDispatchEvent) => Promise<unknown>
 export async function prepareM10AutomationFixture(
   baseUrl = 'http://127.0.0.1:44081/checkout',
-  offline?: { dispatch: M10OfflineDispatch },
+  offline?: {
+    dispatch: M10OfflineDispatch
+    onFixtureOwned?: (owned: {
+      client: M10OfflineDispatchEvent['client']
+      workspace: string
+      databasePath: string
+    }) => void
+    beforeDiscoveryBrowser?: (scope: {
+      client: M10OfflineDispatchEvent['client']
+      journeyId: string
+      targetProjectId: string
+      discoveryRevisionId: string
+      workItemId: string
+      environmentId: string
+      routeId: string
+    }) => Promise<void>
+    discoveryRuntime?: DiscoveryBrowserRuntime
+    serialDiscoveryAdmissions?: boolean
+    preserveOnFailure?: boolean
+    requireObservedDiscoveryCleanup?: boolean
+    workspaceParent?: string
+  },
 ) {
-  const f = await createProviderFixture()
+  const f = await createProviderFixture({ workspaceParent: offline?.workspaceParent })
   try {
+    offline?.onFixtureOwned?.({ client: f.client, workspace: f.workspace, databasePath: f.databasePath })
     const { client, scope, credentials, principal } = f
     const canonicalDefinitions = registerAppraiseOperations({
       server: { registerTool: () => ({}), registerResource: () => ({}) } as never,
@@ -354,6 +377,13 @@ export async function prepareM10AutomationFixture(
       where: { journeyId: scope.journeyId },
     })
     const browserScope = { ...scope, discoveryRevisionId: discovery.id }
+    await offline?.beforeDiscoveryBrowser?.({
+      ...browserScope,
+      client,
+      workItemId: discovery.scoutWorkItemId,
+      environmentId,
+      routeId: '/checkout',
+    })
     const session = await startQualityJourneyDiscoveryBrowserSession(
       {
         ...browserScope,
@@ -363,7 +393,7 @@ export async function prepareM10AutomationFixture(
         accessMode: 'ANONYMOUS',
       },
       client,
-      disposableDiscoveryRuntime(),
+      offline?.discoveryRuntime ?? createM10DiscoveryMetadataRuntime(),
     )
     let captured: Awaited<ReturnType<typeof captureQualityJourneyDiscoveryBrowserReceipt>>
     try {
@@ -373,21 +403,33 @@ export async function prepareM10AutomationFixture(
       )
     } finally {
       await closeQualityJourneyDiscoveryBrowserSession({ ...browserScope, sessionId: session.id })
+      if (offline?.requireObservedDiscoveryCleanup) {
+        const cleanup = getOwnedQualityJourneyDiscoveryBrowserCleanup({
+          journeyId: scope.journeyId,
+          targetProjectId: scope.targetProjectId,
+        }).receipts.find(row => row.sessionId === session.id && row.processInstanceId === session.processInstanceId)
+        if (cleanup?.state !== 'RUNTIME_CLOSE_CONFIRMED')
+          throw new Error('Original discovery browser cleanup is unobserved')
+      }
     }
     const scout = await admit('SCOUT')
-    const explorer = await admit('RESOURCE_EXPLORER')
+    const earlyExplorer = offline?.serialDiscoveryAdmissions ? undefined : await admit('RESOURCE_EXPLORER')
     const scoutGateway = await createQualityJourneyInternalDiscoveryGateway(
       scout.workerBinding,
       canonicalDefinitions,
       client,
     )
     gatewayBindings.set(scoutGateway, scout.workerBinding)
-    const explorerGateway = await createQualityJourneyInternalDiscoveryGateway(
-      explorer.workerBinding,
-      canonicalDefinitions,
-      client,
-    )
-    gatewayBindings.set(explorerGateway, explorer.workerBinding)
+    const createExplorerGateway = async (explorer: Awaited<ReturnType<typeof admit>>) => {
+      const gateway = await createQualityJourneyInternalDiscoveryGateway(
+        explorer.workerBinding,
+        canonicalDefinitions,
+        client,
+      )
+      gatewayBindings.set(gateway, explorer.workerBinding)
+      return gateway
+    }
+    const earlyExplorerGateway = earlyExplorer ? await createExplorerGateway(earlyExplorer) : undefined
     const analysisRevision = {
       artifactId: discovery.analysisRevisionArtifactId,
       revisionId: discovery.analysisRevisionId,
@@ -445,6 +487,8 @@ export async function prepareM10AutomationFixture(
         { resourceId: `operation:${operation.id}:${operation.version}`, resourceKind: 'OPERATION' },
       ]),
     ]
+    const explorer = earlyExplorer ?? (await admit('RESOURCE_EXPLORER'))
+    const explorerGateway = earlyExplorerGateway ?? (await createExplorerGateway(explorer))
     await callWorker(explorerGateway, 'quality_journey_resource_resolution_submit', {
       discoveryRevisionId: discovery.id,
       idempotencyKey: 'm10-resolution',
@@ -614,7 +658,8 @@ export async function prepareM10AutomationFixture(
     })
     return { ...f, admit, command, environmentId, scenarioRevisionId, prepared, canonicalDefinitions }
   } catch (error) {
-    await f.cleanup()
+    // Actual qualification keeps its original database and UNKNOWN records for its owning parent.
+    if (!offline?.preserveOnFailure) await f.cleanup()
     throw error
   }
 }

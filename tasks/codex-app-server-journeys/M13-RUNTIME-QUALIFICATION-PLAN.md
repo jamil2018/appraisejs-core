@@ -1,12 +1,18 @@
 # M13 — Bounded runtime qualification plan
 
+**2026-11-14 continuation:** the user explicitly lifted the native-launch, existing-login credential-access and
+inference prohibitions for bounded qualification. The [current execution record](M13-RUNTIME-EXECUTION-2026-11-14.md)
+tracks fresh commands, additive allocations and observations. No sign-in, push, merge, publication, production
+activation or historical reset/replay is authorized. Earlier planning-only and offline-only statements below are
+historical; they do not override the new user grant or establish runtime success.
+
 Date: 2026-11-13 (Asia/Dhaka). **Planning only; no runtime or implementation grant.**
 Based on clean local commit `50091a41e1836276a3ad87b6ff23c708e5417d86`,
 tree `1c1928b52dc3cba476f3cb2a13f34863215cee40`.
 This plan does not authorize its execution. No real inference, sign-in, push, merge, publication, public managed
 opt-in, default-mode change, account switch or credential export is permitted by this request.
 
-## Current offline completion scope
+## Historical offline completion scope
 
 On 2026-11-14 the user clarified completion as **remaining offline implementation under all existing limits**.
 The [offline implementation plan](M13-OFFLINE-IMPLEMENTATION-PLAN.md) and its [verification record](M13-OFFLINE-IMPLEMENTATION-VERIFICATION.md)

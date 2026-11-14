@@ -101,8 +101,24 @@ export async function addManagedProviderAssignment(client: PrismaClient, targetP
   return { created, scope, registered, credentials, principal, binding, prepareInput, claimRequest, claimed }
 }
 
-export async function createProviderFixture() {
-  const workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-m04-regression-'))
+async function providerFixtureParent(explicit: string | undefined): Promise<string> {
+  if (explicit === undefined) return os.tmpdir()
+  const metadata = await fs.lstat(explicit)
+  if (
+    !path.isAbsolute(explicit) ||
+    (await fs.realpath(explicit)) !== explicit ||
+    metadata.isSymbolicLink() ||
+    !metadata.isDirectory() ||
+    (metadata.mode & 0o777) !== 0o700 ||
+    metadata.uid !== process.getuid?.()
+  )
+    throw new Error('An explicit private fixture workspace parent is required')
+  return explicit
+}
+
+export async function createProviderFixture(options: { workspaceParent?: string } = {}) {
+  const parent = await providerFixtureParent(options.workspaceParent)
+  const workspace = await fs.mkdtemp(path.join(parent, 'appraise-m04-regression-'))
   const databasePath = path.join(workspace, 'test.db')
   await copyMigratedTestDatabase(databasePath)
   const clients: PrismaClient[] = []

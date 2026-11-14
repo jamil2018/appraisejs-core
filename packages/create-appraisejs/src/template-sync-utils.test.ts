@@ -7,6 +7,26 @@ import {
 import { describe, expect, it } from 'vitest'
 
 describe('shouldExcludeTemplatePath', () => {
+  it('retains portable native composition and excludes only its cross-package proof', () => {
+    for (const prefix of ['', 'src/']) {
+      expect(shouldExcludeTemplatePath(prefix + 'services/coordinator/quality-journey-c1-task.inert.test.ts')).toBe(
+        true,
+      )
+      expect(
+        shouldExcludeTemplatePath(
+          prefix + 'services/coordinator/quality-journey-native-qualification.sqlite.integration.test.ts',
+        ),
+      ).toBe(true)
+      for (const file of [
+        'services/coordinator/quality-journey-native-qualification.ts',
+        'services/coordinator/quality-journey-native-qualification.test.ts',
+        'lib/quality-journey/codex-app-server/native-qualification-child.ts',
+        'lib/quality-journey/codex-app-server/native-qualification-schemas/v2/TurnStartResponse.json',
+      ])
+        expect(shouldExcludeTemplatePath(prefix + file)).toBe(false)
+    }
+  })
+
   it('keeps offline composition dependencies portable while retaining cross-package harness exclusions', () => {
     for (const prefix of ['', 'src/']) {
       for (const name of [

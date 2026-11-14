@@ -14,10 +14,13 @@ import {
   type ProviderSenderExclusionRecord,
 } from '@/lib/quality-journey/provider-intent-contract'
 import { reconcileConsumedQualityJourneyProviderIntent } from './quality-journey-provider-run-service'
+import { nativeOutcomeProtocolDigest } from '@/lib/quality-journey/codex-app-server/native-outcome-profile'
+import { readOriginalSqliteCommittedReplay } from '@/lib/quality-journey/codex-app-server/outcome-source'
+import { readOriginalNativeOutcomeReplay } from '@/lib/quality-journey/codex-app-server/native-outcome-source'
 
 // Only opaque admission/storage and unrelated imports are mocked. The production
 // service, receipt validation, canonical checks, quarantine and finalizer execute.
-const boundary = vi.hoisted(() => ({ sender: {} as unknown, custody: {} as unknown, owned: true }))
+const boundary = vi.hoisted(() => ({ sender: {} as unknown, custody: {} as unknown, owned: true, native: false }))
 vi.mock('@/config/db-config', () => ({ default: {} }))
 vi.mock('@/lib/quality-journey/provider-intent-contract', () => ({
   trustedProviderReconciliation: Symbol('inert reconciliation'),
@@ -25,6 +28,11 @@ vi.mock('@/lib/quality-journey/provider-intent-contract', () => ({
   trustedProviderObservation: Symbol('inert observation'),
   providerIntentPolicy: { terminalRetentionSeconds: 86400 },
   inspectProviderSenderExcluded: () => boundary.sender,
+}))
+vi.mock('@/lib/quality-journey/codex-app-server/native-outcome-source', () => ({
+  isOriginalNativeOutcomeSource: () => boundary.native,
+  acquireOriginalNativeOutcomeCustody: () => boundary.custody,
+  readOriginalNativeOutcomeReplay: vi.fn(async () => null),
 }))
 vi.mock('@/lib/quality-journey/codex-app-server/outcome-source', () => ({
   readOriginalSqliteCommittedReplay: vi.fn(async () => null),
@@ -56,8 +64,43 @@ function deferred<T>() {
   return { promise, resolve, reject }
 }
 
-function fixture(options: { acknowledged?: boolean; handles?: boolean; prior?: boolean; owned?: boolean } = {}) {
+function sourceFixtureMode(options: { native?: boolean; nativeProtocol?: string }) {
+  if (options.native)
+    return {
+      native: true,
+      selection: 'NATIVE' as const,
+      physical: {
+        sourceId: 'native_outcome_inert',
+        provenance: 'NATIVE_QUALIFIED' as const,
+        protocolDigest: options.nativeProtocol ?? nativeOutcomeProtocolDigest,
+        outcome: 'TERMINAL' as const,
+      },
+    }
+  return {
+    native: false,
+    selection: 'SYNTHETIC_REPOSITORY' as const,
+    physical: {
+      sourceId: 'source',
+      provenance: 'SYNTHETIC_REPOSITORY' as const,
+      protocolDigest: `sha256:${'b'.repeat(64)}`,
+      outcome: 'NONSTART' as const,
+    },
+  }
+}
+
+function fixture(
+  options: {
+    acknowledged?: boolean
+    handles?: boolean
+    prior?: boolean
+    owned?: boolean
+    native?: boolean
+    nativeProtocol?: string
+  } = {},
+) {
+  const mode = sourceFixtureMode(options)
   boundary.owned = options.owned ?? true
+  boundary.native = mode.native
   const events: string[] = []
   const identity = {
     runId: 'run',
@@ -79,21 +122,18 @@ function fixture(options: { acknowledged?: boolean; handles?: boolean; prior?: b
   boundary.sender = sender
   const physical = {
     ...identity,
-    sourceId: 'source',
-    provenance: 'SYNTHETIC_REPOSITORY' as const,
+    ...mode.physical,
     qualificationDigest: `sha256:${'c'.repeat(64)}`,
-    protocolDigest: `sha256:${'b'.repeat(64)}`,
     evidenceId: 'physical-proof',
     evidenceDigest: `sha256:${'d'.repeat(64)}`,
     evidenceClass: 'AUTHORITATIVE_OPERATION_RANGE' as const,
-    outcome: 'NONSTART' as const,
     conflictStatus: 'CLEAR' as const,
     coveredThrough: { issuedRequests: 1, writtenBytes: 10 },
   }
   const source: ProviderPhysicalOutcomeSource = Object.freeze({ ...physical, inspect: () => physical })
   const senderExcluded = {} as ProviderSenderExcluded
   const input = { intentId: 'intent', observationKey: 'observation', senderExcluded, physicalEvidence: {} }
-  const context = { selection: 'SYNTHETIC_REPOSITORY' as const, source }
+  const context = { selection: mode.selection, source }
   const receipt = validateProviderReconciliationEvidence(senderExcluded, input.physicalEvidence, context)
   const requestHash = providerReconciliationRequestHash(input.intentId, input.observationKey, receipt)
   const intent = {
@@ -127,7 +167,8 @@ function fixture(options: { acknowledged?: boolean; handles?: boolean; prior?: b
       }
     : null
   const custody = {
-    state: { sourceId: 'source' },
+    state: { sourceId: physical.sourceId },
+    captureTransaction: vi.fn(),
     assertTransactionSettings: vi.fn(async () => {
       events.push('settings')
     }),
@@ -218,6 +259,8 @@ function fixture(options: { acknowledged?: boolean; handles?: boolean; prior?: b
     )
   return {
     events,
+    context,
+    input,
     identity,
     sender,
     physical,
@@ -255,6 +298,8 @@ async function rejectedCallback(f: ReturnType<typeof fixture>, proof = true) {
 
 beforeEach(() => {
   boundary.owned = true
+  boundary.native = false
+  vi.clearAllMocks()
 })
 describe('inert actual consumed reconciliation service identity ordering', () => {
   it('commits late-ACK quarantine before completing custody and surfacing public conflict', async () => {
@@ -428,5 +473,120 @@ describe('unchanged full canonical receipt handle contract', () => {
         intentThreadId: null,
       }),
     ).not.toThrow()
+  })
+})
+
+// These are service-ordering tests with opaque native custody mocked at its admission boundary.
+// They neither mint a physical source nor establish a real database commit or provider outcome.
+describe('inert native reconciliation dispatch and original transaction ownership', () => {
+  it.each(['protocol', 'selection', 'registry'] as const)(
+    'refuses native %s drift before legacy replay or any transaction',
+    async drift => {
+      const f = fixture({
+        native: true,
+        handles: true,
+        ...(drift === 'protocol' ? { nativeProtocol: `sha256:${'f'.repeat(64)}` } : {}),
+      })
+      if (drift === 'selection') f.context.selection = 'SYNTHETIC_REPOSITORY'
+      if (drift === 'registry') boundary.native = false
+      await expect(f.invoke()).rejects.toMatchObject({ code: 'CONFLICT' })
+      expect(f.client.$transaction).not.toHaveBeenCalled()
+      expect(readOriginalSqliteCommittedReplay).not.toHaveBeenCalled()
+      expect(f.custody.captureTransaction).not.toHaveBeenCalled()
+    },
+  )
+  it('does not turn a negative native replay lookup into a fresh release', async () => {
+    const f = fixture({ native: true, handles: true })
+    await expect(f.invoke(false)).rejects.toMatchObject({ code: 'CONFLICT' })
+    expect(readOriginalNativeOutcomeReplay).toHaveBeenCalledTimes(1)
+    expect(readOriginalSqliteCommittedReplay).not.toHaveBeenCalled()
+    expect(f.client.$transaction).not.toHaveBeenCalled()
+    assertNoRelease(f)
+  })
+  it('captures the exact original transaction and performs CAS before connection and ledger checks', async () => {
+    const f = fixture({ native: true, handles: true })
+    const operation = f.invoke()
+    const callback = await f.callbackDone.promise
+    expect(callback.error).toBeUndefined()
+    expect(f.events.slice(0, 3)).toEqual(['fence', 'settings', 'verifyLocked'])
+    expect(f.custody.captureTransaction).toHaveBeenCalledExactlyOnceWith(f.engineOperation)
+    expect(f.custody.completeFulfilled).not.toHaveBeenCalled()
+    f.settlement.resolve(callback.value)
+    await expect(operation).resolves.toMatchObject({ conflicted: false, replayed: false })
+    expect(f.tx.qualityJourneyProviderSourceState.update).toHaveBeenCalledWith({
+      where: { sourceId: 'native_outcome_inert' },
+      data: expect.objectContaining({ lifecycle: 'COMMITTED' }),
+    })
+    expect(f.tx.qualityJourneyProviderSlot.updateMany).toHaveBeenCalledTimes(1)
+    expect(f.custody.completeFulfilled).toHaveBeenCalledTimes(1)
+    expect(readOriginalSqliteCommittedReplay).not.toHaveBeenCalled()
+  })
+  it.each(['cas', 'connection', 'ledger'] as const)(
+    'retires native %s failure without canonical writes',
+    async failure => {
+      const f = fixture({ native: true, handles: true })
+      if (failure === 'cas') f.tx.$executeRawUnsafe.mockResolvedValueOnce(0)
+      if (failure === 'connection')
+        f.custody.assertTransactionSettings.mockRejectedValueOnce(new Error('TEMP mismatch'))
+      if (failure === 'ledger')
+        f.custody.verifyLocked.mockImplementationOnce(() => {
+          throw new Error('Ledger drift')
+        })
+      const operation = f.invoke()
+      const rejection = expect(operation).rejects.toThrow()
+      expect((await f.callbackDone.promise).error).toBeInstanceOf(Error)
+      await rejection
+      assertNoRelease(f)
+      expect(f.custody.captureTransaction).toHaveBeenCalledExactlyOnceWith(f.engineOperation)
+      expect(f.custody.retire).toHaveBeenCalledExactlyOnceWith(f.engineOperation)
+      expect(f.custody.completeFulfilled).not.toHaveBeenCalled()
+      expect(f.custody.tryResolveCommittedReplay).toHaveBeenCalledTimes(1)
+      if (failure === 'cas') expect(f.custody.assertTransactionSettings).not.toHaveBeenCalled()
+    },
+  )
+  it('returns only the original custodian positive resolution after an ambiguous commit reply', async () => {
+    const f = fixture({ native: true, handles: true })
+    const positive = { replayed: true, requestHash: f.requestHash, quarantined: false }
+    f.custody.tryResolveCommittedReplay.mockResolvedValueOnce(positive as never)
+    const operation = f.invoke()
+    const callback = await f.callbackDone.promise
+    expect(callback.error).toBeUndefined()
+    f.settlement.reject(new Error('Synthetic lost transaction reply'))
+    await expect(operation).resolves.toBe(positive)
+    expect(f.custody.captureTransaction).toHaveBeenCalledExactlyOnceWith(f.engineOperation)
+    expect(f.custody.retire).toHaveBeenCalledExactlyOnceWith(f.engineOperation)
+    expect(f.custody.completeFulfilled).not.toHaveBeenCalled()
+    expect(f.client.$transaction).toHaveBeenCalledTimes(1)
+    expect(f.tx.qualityJourneyProviderSlot.updateMany).toHaveBeenCalledTimes(1)
+    expect(readOriginalSqliteCommittedReplay).not.toHaveBeenCalled()
+  })
+  it('keeps ambiguous negative resolution unknown without another transaction', async () => {
+    const f = fixture({ native: true, handles: true })
+    const error = new Error('Synthetic unresolved transaction reply')
+    const operation = f.invoke()
+    const rejection = expect(operation).rejects.toBe(error)
+    expect((await f.callbackDone.promise).error).toBeUndefined()
+    f.settlement.reject(error)
+    await rejection
+    expect(f.custody.retire).toHaveBeenCalledExactlyOnceWith(f.engineOperation)
+    expect(f.custody.completeFulfilled).not.toHaveBeenCalled()
+    expect(f.client.$transaction).toHaveBeenCalledTimes(1)
+  })
+  it('commits native conflict quarantine without releasing the HUB', async () => {
+    const f = fixture({ native: true, handles: true })
+    Object.assign(f.physical, { conflictStatus: 'CONFLICT' })
+    const operation = f.invoke()
+    const rejection = expect(operation).rejects.toMatchObject({ code: 'CONFLICT' })
+    const callback = await f.callbackDone.promise
+    expect(callback.value).toEqual({ conflicted: true })
+    expect(f.custody.completeFulfilled).not.toHaveBeenCalled()
+    f.settlement.resolve(callback.value)
+    await rejection
+    expect(f.tx.qualityJourneyProviderSourceState.update).toHaveBeenCalledWith({
+      where: { sourceId: 'native_outcome_inert' },
+      data: { lifecycle: 'REVOKED' },
+    })
+    assertNoRelease(f)
+    expect(f.custody.completeFulfilled).toHaveBeenCalledTimes(1)
   })
 })

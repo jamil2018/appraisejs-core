@@ -105,6 +105,29 @@
         "scripts/test-harness/m06/unique-json.test.mjs"
       ],
       "entryPointRole": "test"
+    },
+    {
+      "name": "appraise-m13-node-test",
+      "detection": {
+        "type": "fileExists",
+        "pattern": "tasks/codex-app-server-journeys/m13-runtime/b1/runner.test.mts"
+      },
+      "entryPoints": [
+        "tasks/codex-app-server-journeys/m13-runtime/b1/runner.test.mts",
+        "tasks/codex-app-server-journeys/m13-runtime/b1/transport.test.mjs",
+        "tasks/codex-app-server-journeys/m13-runtime/b1/fixture-live-check.mjs",
+        "tasks/codex-app-server-journeys/m13-runtime/b1/fixture.mjs",
+        "tasks/codex-app-server-journeys/m13-runtime/b2/runner.test.mts",
+        "tasks/codex-app-server-journeys/m13-runtime/b2/transport.test.mjs",
+        "tasks/codex-app-server-journeys/m13-runtime/d0/runner.test.mts",
+        "tasks/codex-app-server-journeys/m13-runtime/d1/runner.test.mts",
+        "tasks/codex-app-server-journeys/m13-runtime/c0/runner.test.mts",
+        "tasks/codex-app-server-journeys/m13-runtime/c1/runner.test.mts",
+        "tasks/codex-app-server-journeys/m13-runtime/c1/native-driver.test.mts",
+        "tasks/codex-app-server-journeys/m13-runtime/c1/native-execution.test.mts",
+        "tasks/codex-app-server-journeys/m13-runtime/c1/native-run.test.mts"
+      ],
+      "entryPointRole": "test"
     }
   ]
 }

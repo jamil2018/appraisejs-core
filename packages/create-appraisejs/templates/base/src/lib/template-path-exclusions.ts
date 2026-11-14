@@ -31,6 +31,8 @@ const REPOSITORY_ONLY_TEMPLATE_PATHS = new Set([
   'src/lib/quality-journey/managed-worker-gateway.test.ts',
   'src/services/coordinator/quality-journey-internal-discovery-gateway.sqlite.integration.test.ts',
   'src/services/coordinator/quality-journey-offline-role-lifecycle.sqlite.integration.test.ts',
+  'src/services/coordinator/quality-journey-native-qualification.sqlite.integration.test.ts',
+  'src/services/coordinator/quality-journey-c1-task.inert.test.ts',
   'scripts/tests/m12-packed-install.test.mjs',
   'scripts/m06-native-fixture-workspace-13.mjs',
   'm06-native-fixture-workspace-13.mjs',
