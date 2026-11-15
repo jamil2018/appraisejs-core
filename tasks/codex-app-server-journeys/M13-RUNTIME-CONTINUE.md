@@ -401,3 +401,25 @@ Official Graphify source/full-AST parity and source integrity pass; all scopes a
 self-loop/raw warnings remain disclosed. Normal-hook commit and final whole-artifact review precede a new consuming
 case. The blocked `prepare-b3-current-native-r1.mts` draft intentionally has final-head/tree/review placeholders; do not
 execute or fill it from source-only acceptance. Existing native/account observations do not authorize a consuming turn.
+
+## Source checkpoint accepted; task-pin preparation refusal
+
+The 17-file successor committed normally at `bc28082814dfd3e4fe84d79b9c350eae4aa5e782`, tree
+`c522970f2d160cd9de25458d862955782645607b`, and passed final SOURCE/ARTIFACT ONLY review
+(`c1-current-source-review-20261116/final-artifact-review.json`, SHA-256
+`06478a938a0982ecf537fd3b5b417a446b8fdf9bfc6e26dfebfa9b9c48ce71d6`). Final artifact manifest SHA-256 is
+`8e322710d8ccd456b07f53c055a4f4ff655887b510f80b4782fcaa781905674f`. The new ACTIVE_RECOVERABLE checkpoint at
+`.appraisejs/m13-runtime-recovery/20261116-bc280828` verifies 2,824 evidence files, full branch bundle, 17 artifact paths
+and independent bare restore/fsck. It restores no runtime authority. The previous checkpoint remains immutable.
+
+Only after that final whole-artifact review did preparation run for a NEW case, `b3-current-native-oyAgq6`. Original
+parent 52426 emitted no prepared event and exited 2. Its task driver still contained the earlier `7cb...` native pin,
+so validation refused the approved `3ea...` tuple before credential verification, campaign mkdir or source-client
+creation. No native acquisition, model turn, browser/listener start, credential link or effect allocation occurred.
+Its canonical fixture/database and UNKNOWN disposition remain retained; do not replay it or reuse its parent handle.
+Observation SHA-256 is `8d8977269a7fbe4f7aa28d33d16073be5ed2ea6d3cf79231dbb13a26078c811f`.
+
+A task-only pin successor keeps the exact closed hash guard and adds a portable current-pin/old-pin refusal test.
+The four canonical profile/configuration files, generated sources, tarballs and earlier passing artifact checks are
+unchanged. Focused task checks and renewed exact task-artifact acceptance must precede a new original parent. This is
+not an inference retry or allowance refund. Eighteen allocations remain frozen and unspent allowance is still zero.

@@ -276,11 +276,18 @@ runtime qualification; the overall M13 checkbox remains open.
 
 The user subsequently lifted native launch, existing-login access and inference limits for bounded qualification.
 [Current runtime execution](M13-RUNTIME-EXECUTION-2026-11-14.md) records accepted B1 readiness/B2 login observations,
-C0/C1 source and actual packed offline proof, and current native acquisition qualification blockers. C1 source
-passed independent artifact review; its two fresh armed cases remain spent UNKNOWN. Bounded sanitized diagnostics,
-a genuine inert owned-child boundary test and a separately labelled genuine-profile attach probe now pass offline
-checks and packed renewal; normal-hook commitment and whole-artifact independent review gate another exact packet. Exact execution packets
-and additive allowances precede effects. No sign-in, account switch, production activation, push, merge or publication.
+C0/C1 source and actual packed offline proof, and current native qualification blockers. Three historical armed B3
+cases remain spent UNKNOWN. After the installed native program and credential metadata changed, fresh B1 readiness
+and B2 existing-login observations passed independent review for the current tuple. Current-native source `bc280828`
+passed normal hooks and exact 17-file SOURCE/ARTIFACT ONLY review: 404 generated tests, eight installed SDK tests and
+one six-role offline aggregate pass. The new source profile binds 59 public source files and three additional disabled
+code-mode controls; this does not qualify physical provider effects. A fresh preparation then refused before native
+entry because its separate task driver still pinned the previous binary. That case/database is preserved without
+replay or allocation; the narrow task-pin successor requires focused checks, a normal-hook commit and exact review
+before another fresh preparation. Eighteen native allocations are frozen, zero unspent; fourteen native acquisitions
+are confirmed plus historical UNKNOWN zero-or-one, and historical new consuming-provider effects remain UNKNOWN
+zero-or-one. Exact execution packets and additive allowances precede effects. No sign-in, account switch, production
+activation, push, merge or publication.
 The [runtime continuation checkpoint](M13-RUNTIME-CONTINUE.md) supersedes the historical M01-only checkpoint below.
 
 - [ ] Implement and verify this slice.

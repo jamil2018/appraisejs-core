@@ -33,7 +33,7 @@ import {
 } from './native-driver-control.mts'
 import { scriptedDisposableHuman, type NativeLineageEvent } from './native-lineage.mts'
 
-const installedSha256 = '7cb8700a47be3c81bb3c5efbf2d2adc716ce3db4806e9dc992f2925f78b2b194'
+const installedSha256 = '3ea20787e106af94573d3d6c19480aed93a1334b0dd32b6b04e2f780ce82cf4b'
 export type NativeCasePreparation = Readonly<{
   campaignId: string
   candidateTree: string
@@ -96,7 +96,8 @@ const reviewControlSchema = z
     reconciliationMs: z.number().int().min(1).max(300_000),
   })
   .strict()
-function validatePreparation(packet: NativeCasePreparation, evidenceRoot: string) {
+/** Nonissuing task validation only; no preparation, source client, credential access or native acquisition. */
+export function validatePreparation(packet: NativeCasePreparation, evidenceRoot: string) {
   if (
     !/^[A-Za-z0-9._:-]{1,160}$/.test(packet.campaignId) ||
     packet.native.sha256 !== installedSha256 ||

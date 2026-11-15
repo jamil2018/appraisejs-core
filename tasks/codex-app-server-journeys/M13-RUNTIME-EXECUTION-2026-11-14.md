@@ -433,3 +433,26 @@ source extraction warnings and the byte-identical pre-existing package self-loop
 `graphify-r2/FINAL.json` SHA-256 is `455b2e0a6427b839b7c6a7f9bb8c01497104d1d77e3acf3a37cb631b5b909d60`.
 Normal-hook local commit and final whole-artifact review remain the source gate before a new exact consuming case.
 No new native/consuming allowance or physical qualification follows from this offline lane.
+
+### Exact source accepted; preparation-only task pin refusal
+
+Normal hooks passed at `bc28082814dfd3e4fe84d79b9c350eae4aa5e782`, tree
+`c522970f2d160cd9de25458d862955782645607b`. Final whole-source artifact review accepted SOURCE/ARTIFACT ONLY
+(SHA-256 `06478a938a0982ecf537fd3b5b417a446b8fdf9bfc6e26dfebfa9b9c48ce71d6`), no required findings. The complete
+recoverable checkpoint independently verified all 2,824 evidence entries and source bundle/bare restore without
+reconstructing authority. Neither result authorizes an effect allocation.
+
+Fresh preparation `b3-current-native-oyAgq6` then stopped before emitting a prepared packet. Original parent session
+52426 exited 2. Source inspection identifies the exact first failed packet predicate: the task-only
+`native-driver-prepare.mts` still pinned `7cb...`, while the reviewed packet/native/profile pin is `3ea...`. The gate
+runs before credential verification, campaign directory creation and source-client creation. No start-case command
+was sent, no native/model/browser/listener/credential-link operation entered, and no effect allowance was accepted.
+The original canonical fixture/database and fixed-error log remain preserved. Its observation SHA-256 is
+`8d8977269a7fbe4f7aa28d33d16073be5ed2ea6d3cf79231dbb13a26078c811f`. Do not replay or relabel its UNKNOWN.
+
+The bounded repair changes the task's exact pin and tests current-pin admission/old-pin refusal without issuing any
+capability. All product profile/configuration bytes and packed artifacts remain unchanged; only focused task checks,
+normal local hooks and exact task-artifact review are renewed. No prior passing portable/SDK/build/pack check needs
+repetition. A later fresh parent still requires its own reviewed finite case and additive allocation. The current
+ledger remains eighteen frozen native allocations, zero unspent, fourteen confirmed native acquisitions plus
+historical UNKNOWN zero-or-one; historical new consuming turns remain UNKNOWN zero-or-one.

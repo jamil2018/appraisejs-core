@@ -1,10 +1,20 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { chmodSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import {
+  chmodSync,
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describeNativeCredential } from '../../../../src/lib/quality-journey/codex-app-server/native-credential-topology'
 import { nativeQualificationDigest } from '../../../../src/lib/quality-journey/codex-app-server/native-qualification-contract'
+import { nativeOutcomeSourceIdentity } from '../../../../src/lib/quality-journey/codex-app-server/native-outcome-profile'
 import { createManagedQualityJourneyRoleDelivery } from '../../../../src/services/coordinator/quality-journey-managed-role-delivery'
 import {
   createNativeQualificationParent,
@@ -19,6 +29,8 @@ import {
   type OriginalNativeDriverTask,
 } from './native-driver-control.mts'
 import { requiredC1TaskInputPaths } from './runner.mts'
+import { prepareOriginalNativeDriverCase, validatePreparation } from './native-driver-prepare.mts'
+import type { NativeLineageEvent } from './native-lineage.mts'
 
 function fixture() {
   const root = mkdtempSync(path.join(realpathSync(tmpdir()), 'm13-driver-offline-'))
@@ -134,6 +146,78 @@ test('driver import and parent construction are inert and every driver file ente
     'native-driver.test.mts',
   ])
     assert.ok(inputs.includes(path.join(process.cwd(), 'tasks/codex-app-server-journeys/m13-runtime/c1', file)))
+})
+
+test('the closed current preparation pin matches the accepted profile; old and arbitrary pins refuse before preparation effects', async () => {
+  const f = fixture()
+  const packet: NativeCasePreparation = {
+    campaignId: 'offline-current-pin',
+    candidateTree: 'a'.repeat(40),
+    native: {
+      path: path.join(f.root, 'synthetic-native-never-executed'),
+      sha256: '3ea20787e106af94573d3d6c19480aed93a1334b0dd32b6b04e2f780ce82cf4b',
+    },
+    prerequisites: {
+      readinessReceipt: { path: path.join(f.root, 'synthetic-readiness'), sha256: 'b'.repeat(64) },
+      existingLoginReceipt: { path: path.join(f.root, 'synthetic-login'), sha256: 'c'.repeat(64) },
+    },
+    credentialSource: f.source,
+    dossierRoot: path.join(f.root, 'synthetic-dossier'),
+    port: 4173,
+    limits: {
+      acquisitionMs: 10000,
+      caseMs: 45000,
+      requestMs: 10000,
+      acknowledgementMs: 10000,
+      cleanupMs: 10000,
+      bodyBytes: 262144,
+      httpRequests: 3,
+      toolCalls: 1,
+    },
+    reviewControl: {
+      reviewerId: 'offline-test-reviewer',
+      nonce: '00000000-0000-4000-8000-000000000000',
+      reviewMs: 10000,
+      reconciliationMs: 10000,
+    },
+  }
+  try {
+    assert.equal(packet.native.sha256, nativeOutcomeSourceIdentity.installedSha256)
+    assert.equal(validatePreparation(packet, f.root), undefined)
+    assert.equal(existsSync(path.join(f.root, packet.campaignId)), false)
+    for (const sha256 of ['7cb8700a47be3c81bb3c5efbf2d2adc716ce3db4806e9dc992f2925f78b2b194', '0'.repeat(64)]) {
+      const refused = {
+        ...packet,
+        native: { ...packet.native, sha256 },
+        credentialSource: { ...packet.credentialSource, path: path.join(f.root, 'missing-credential') },
+      }
+      let databaseAccesses = 0
+      let sourceRetentions = 0
+      const event = {
+        get original() {
+          databaseAccesses++
+          throw new Error('Refused preparation must not inspect the database or source client')
+        },
+      } as unknown as NativeLineageEvent
+      await assert.rejects(
+        prepareOriginalNativeDriverCase(event, refused, {
+          repositoryRoot: f.root,
+          evidenceRoot: f.root,
+          retainOriginalSource: () => {
+            sourceRetentions++
+          },
+          sourceDisposed: () => assert.fail('Refused preparation must not dispose a source'),
+          assertParentCurrent: () => {},
+        }),
+        /^Error: Exact native case preparation refused$/,
+      )
+      assert.equal(databaseAccesses, 0)
+      assert.equal(sourceRetentions, 0)
+      assert.equal(existsSync(path.join(f.root, packet.campaignId)), false)
+    }
+  } finally {
+    f.cleanup()
+  }
 })
 
 test('one exact external packet starts only the original task; original acceptance, actual review and HUB verification precede disposal', async () => {
