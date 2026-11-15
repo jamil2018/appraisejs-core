@@ -1,6 +1,6 @@
 # M13 runtime continuation
 
-Status: RESUMED on 2026-11-16 (client date). Recovery verification and independent exact-source/artifact review of `704d038d` passed. The installed native program and existing-login metadata changed; fresh current-tuple qualification and a closed source-profile successor are in progress. M13 is NOT finished and remains unchecked.
+Status: PAUSED at the user's requested graceful checkpoint on 2026-11-16 (client date). Read [the compact pause handoff](M13-PAUSE-2026-11-16.md) first. Current B1/B2 and D2 method-class observations are accepted; C1 remains UNKNOWN and M13 remains unchecked. Earlier progress paragraphs below are historical snapshots, not fresh effect authority.
 
 Worktree: `/Users/jamil/Personal Projects/appraisejs/.appraisejs/m13-runtime-qualification`.
 Branch: `codex/m13-runtime-qualification`; starting HEAD `b8aaa949d2d7acbfcc260f68b28c179ca3ffb8e0`.
@@ -423,3 +423,31 @@ A task-only pin successor keeps the exact closed hash guard and adds a portable 
 The four canonical profile/configuration files, generated sources, tarballs and earlier passing artifact checks are
 unchanged. Focused task checks and renewed exact task-artifact acceptance must precede a new original parent. This is
 not an inference retry or allowance refund. Eighteen allocations remain frozen and unspent allowance is still zero.
+
+## Final requested pause — 2026-11-16
+
+The initialize-only D2 R2 diagnostic completed once through original handle 92948, exit 0. Its 16 closed rows observed
+public schema classes `configWarning`, `remoteControl/status/changed` and `account/updated`, then original-group exit,
+stream drain, unchanged credential metadata and owned-link removal. No warning message, parameter payload, native ID
+or unknown-method value was retained. Independent METHOD CLASS OBSERVATIONS ONLY review has SHA-256
+`62d67600145774620d523c5009da3eb54d6a590ff21a4a93af5f97d92f2f181b`. The old C1 offending method and cleanup
+remain UNKNOWN; do not retroactively identify that old frame from this new probe.
+
+Both D2 source findings were repaired and reviewed before execution: cleanup-time faults are sticky UNKNOWN, and
+notifications cannot consume terminal-reserved output space. R1's rejected artifact and counterexamples remain
+immutable. R2 passed 19 offline checks including controlled hard-deadline subprocesses and an actual owned inert Node
+child. There was one initialize request and zero initialized/config/account/thread/turn/tool/resume/execution/retry
+requests. Native HTTP/retries/token/cost observations and host/helper attestations remain unqualified.
+
+Twenty native allocations are frozen, zero unspent. Native acquisitions are sixteen task-recorded plus one unresolved
+historical zero-or-one, not independent OS launch attestation. Four B3 turn slots remain consumed; historical provider
+effects remain UNKNOWN zero-or-one and M01 3/3 remains separately spent. No model turn was requested by D2. Original
+C1 parent 44538 exited 2 at its own UNKNOWN deadline; all current task parents have exited. Its native cleanup remains
+UNCERTAIN, not verified stopped, and no stored PID or group ID may be signaled. No further effects are scheduled.
+
+Source policy is unchanged. On resume, first verify the paused recovery chain/current tuple, then make a bounded
+source-policy decision for the two newly observed startup metadata classes with full schema/configuration/ownership
+guards. Do not blindly allow warnings or auth changes. Preserve original cases, occupied HUBs, source connections'
+lost authority, all spent budgets and private native homes. Any source repair needs affected checks/sync/build/pack
+and exact-artifact review before a NEW separately reviewed/allocated native case. No existing command or campaign
+may be replayed. See the compact handoff for exact paths and next-step constraints.

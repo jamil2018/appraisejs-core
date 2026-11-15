@@ -290,6 +290,14 @@ zero-or-one. Exact execution packets and additive allowances precede effects. No
 activation, push, merge or publication.
 The [runtime continuation checkpoint](M13-RUNTIME-CONTINUE.md) supersedes the historical M01-only checkpoint below.
 
+**Requested pause (2026-11-16):** [recoverable handoff](M13-PAUSE-2026-11-16.md). The task-pin successor passed
+31 checks and exact review, but its fresh C1 native case remains spent UNKNOWN after an unclassified initialization
+notification. A separately reviewed D2 initialize-only diagnostic observed public classes `configWarning`,
+`remoteControl/status/changed` and `account/updated`; its own exit/drain/link cleanup passed. The original C1 method
+and cleanup remain UNKNOWN. Twenty native allocations are frozen, zero unspent; four B3 turn slots remain consumed.
+Source notification policy is unchanged, all-role provider and recovery qualification remain open, and no new effects
+are scheduled. The latest dated pause handoff supersedes the earlier numerical progress snapshots above.
+
 - [ ] Implement and verify this slice.
 
 **Dependencies:** M12. **Estimated scope:** S; split further before implementation if the actual diff spans independent concerns.

@@ -456,3 +456,42 @@ normal local hooks and exact task-artifact review are renewed. No prior passing 
 repetition. A later fresh parent still requires its own reviewed finite case and additive allocation. The current
 ledger remains eighteen frozen native allocations, zero unspent, fourteen confirmed native acquisitions plus
 historical UNKNOWN zero-or-one; historical new consuming turns remain UNKNOWN zero-or-one.
+
+### Current C1 refusal preserved; D2 class observations accepted; requested pause
+
+After the task-pin repair's five-file artifact passed normal hooks and independent source-only review, fresh original
+parent 44538 prepared `b3-driver-pin-GaElq5`. CASE_PACKET review independently checked all 2,283 inputs, the current
+native and two prerequisite receipts, all 59 source files and original bindings. Actual review SHA-256 is
+`320abf261ec969f6f23777b915bf40da982a040a57f19def26c3276a2f7fb591`; one native/turn allocation was issued
+(authority `8d3108e422c869b849f2e5fa511a80db79a6341d337ee866cdf7a029e819440c`) and one start command delivered.
+
+Its 38-row trace records acquisition fulfillment, child claim, owner/permit match and initialize settlement, then
+`PASSIVE_OUTCOME_OTHER / UNCLASSIFIED_NOTIFICATION`. No later initialized/config/thread/MCP-status/turn request stage
+entered. Cleanup is UNCERTAIN and the case UNKNOWN; trace closure acceptance means only completeness. Trace SHA-256
+is `b562c88861872f44ecf9d0e87e4f73cd6722689e0c8561be763ad429cab5acb9`. Parent 44538 exited 2 at its original
+hard UNKNOWN deadline, observed through its original handle; this does not attest native-group cleanup. Independent
+failed-case observation review (`fb38f6f009efc201491351bee95397a26d6af2fd7e2fb40cd6016532aceafd1f`) grants no
+enrollment, retry or reconciliation. Both slots remain spent.
+
+D2 was a separate standalone zero-model-RPC diagnostic. R1 source/packet review found and preserved two real faults:
+cleanup-time invalid input could still return OBSERVED, and cleanup notifications could exhaust terminal space. R1
+never received an allocation or native run. R2 fixes both, passes 19 offline checks including hard-limit subprocesses
+and actual inert owned-child cleanup, and passed exact source/packet review
+(`6efe8622bcbd6fe3a7942f93f2771c9ce98fa1922cebb75b99c8e120ef22a8d0`). All 3,367 frozen inputs and the public
+86-method schema map were verified. No canonical source or C1 notification policy changed.
+
+Root issued exactly one D2 native acquisition/initialize, zero other RPCs/turn allowance
+(`51fab08cfeb4ae0026fed760e76143d1cb39e423132cd3a3f0e2a14d1ffe907e`). Original handle 92948 exited 0. Sixteen
+strict five-key rows record the three public classes `configWarning`, `remoteControl/status/changed`, `account/updated`,
+original owned exit and drain, unchanged source metadata and owned-link removal. Only task receipts were archived;
+no native private home or provider credential contents were opened/copied. Observation SHA-256 is
+`042e8b1b37095f17e2ebe3f886e31f46b81345860e1c9aec18e9ef8920e56ce7`; independent METHOD CLASS OBSERVATIONS ONLY
+acceptance is `62d67600145774620d523c5009da3eb54d6a590ff21a4a93af5f97d92f2f181b`. Parameter values/messages were
+not retained; do not infer warning contents, remote status, account identity/category or the original C1 method.
+
+The user then requested a graceful, recoverable stop. No more native/model/browser/account/target work is scheduled.
+Twenty native allocations are frozen and none unspent; sixteen acquisitions are task-recorded plus historical UNKNOWN
+zero-or-one. Four B3 turn slots remain spent; historical provider-turn UNKNOWN zero-or-one and M01 3/3 remain separate.
+Model HTTP/retries/tokens/cost, host isolation and independent helper lifetime remain unqualified. The compact
+[M13 pause handoff](M13-PAUSE-2026-11-16.md) is the resume entry point. No source policy repair or new inference case
+is authorized by the checkpoint itself.
