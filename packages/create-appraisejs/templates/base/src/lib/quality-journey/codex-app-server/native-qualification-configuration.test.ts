@@ -6,6 +6,11 @@ import {
   verifyNativeQualificationConfiguration,
 } from './native-qualification-configuration'
 
+import {
+  renderNativeQualificationConfiguration,
+  type NativeQualificationManifest,
+} from './native-qualification-contract'
+
 const binding = {
   endpoint: { port: 39187, path: `/appraise-worker/${'a'.repeat(32)}` },
   enabledTools: ['quality_journey_analysis_get', 'quality_journey_analysis_submit'],
@@ -113,6 +118,38 @@ describe('explicit MCP native prompt policy and sanitized refusal metadata', () 
     const value = configuration(),
       servers = value.config.mcp_servers as Record<string, Record<string, unknown>>
     servers.appraise_worker.default_tools_approval_mode = 'approve'
+    expect(verifyNativeQualificationConfiguration(value, binding, capability)).toBe(false)
+  })
+})
+
+describe('current-native code-mode producer closure', () => {
+  const controls = ['code_mode_only', 'code_mode_host', 'code_mode_prewarm'] as const
+  it('renders each new explicit false control exactly once in the captured configuration', () => {
+    const rendered = renderNativeQualificationConfiguration(binding as NativeQualificationManifest, capability)
+    for (const key of controls) expect(rendered.split('\n').filter(line => line === `${key} = false`)).toHaveLength(1)
+    expect(rendered).not.toMatch(/responses_websockets|supports_websockets|model_providers/)
+  })
+  it.each(controls)('refuses structured %s even when its enabled member is false', key => {
+    const value = configuration()
+    ;(value.config.features as Record<string, unknown>)[key] = { enabled: false }
+    expect(inspectNativeQualificationConfiguration(value, binding, capability)).toEqual({
+      valid: false,
+      reason: 'FEATURE_CONTROL_UNVERIFIED',
+      feature: key,
+    })
+  })
+  it.each([true, false])('refuses code_mode_host options with disable_in_process_fallback=%s', fallback => {
+    const value = configuration()
+    ;(value.config.features as Record<string, unknown>).code_mode_host = {
+      enabled: false,
+      disable_in_process_fallback: fallback,
+    }
+    expect(verifyNativeQualificationConfiguration(value, binding, capability)).toBe(false)
+  })
+  it.each(controls)('rechecks %s after an accepted readback instead of retaining acceptance', key => {
+    const value = configuration()
+    expect(verifyNativeQualificationConfiguration(value, binding, capability)).toBe(true)
+    ;(value.config.features as Record<string, unknown>)[key] = true
     expect(verifyNativeQualificationConfiguration(value, binding, capability)).toBe(false)
   })
 })

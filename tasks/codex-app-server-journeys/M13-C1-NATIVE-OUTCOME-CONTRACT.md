@@ -7,6 +7,26 @@ C0 observes native readiness, role delivery, fencing and cleanup while leaving p
 HUB occupied. C1 adds an original-owner source for one ordinary completed turn without changing production dispatch
 refusals, D05, unavailable native defaults, schema, migrations, or synthetic SQLite NONSTART custody.
 
+## Current-native source successor
+
+On 2026-11-16, the installed program changed to SHA-256
+`3ea20787e106af94573d3d6c19480aed93a1334b0dd32b6b04e2f780ce82cf4b`. Independent static review narrowly associates
+its program contents with public source commit `226fa88979b1a9d76dc36f339ee9c5fbdb2c8e7f`; it does not establish
+authenticated build provenance, security-environment or runtime equivalence. The prior source pin below is historical.
+
+The successor requires 59 exact public source files, verified Git-tree/blob membership, the exact current static
+review, and explicit `code_mode_only=false`, `code_mode_host=false`, `code_mode_prewarm=false` alongside the existing
+false controls. A structured code-mode-host value is refused because its independent process-provider option can
+bypass the enabled flag. The removed board source is replaced by its current host location. Original private queue,
+no injected board connection, sample admission, tool-future settlement, original ownership and process/group exit
+remain mandatory. Source-only acceptance never enrolls a physical provider source.
+
+Native websocket startup warmup uses `generate=false`; ordinary sampling consumes its retained handle and shutdown
+aborts/awaits it. Auth-only startup setup is separate from model-output production. Neither source analysis nor
+process exit qualifies remote auth/server work, HTTP counts, tokens or cost. Actual native/SDK cleanup and every
+existing finite-case predicate remain required. The exact source decision and implementation evidence are linked in
+[M13 runtime continuation](M13-RUNTIME-CONTINUE.md).
+
 ## Source predicates
 
 The installed candidate's static program-body association to official commit

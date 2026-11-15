@@ -222,8 +222,8 @@ function approvedDescriptor() {
     canonicalPath: '/Users/jamil/.codex/auth.json',
     uid: '503',
     mode: '384',
-    dev: '16777230',
-    ino: '13904959',
+    dev: '16777229',
+    ino: '89690255',
     nlink: '1',
     size: '100',
     mtimeNs: '1000',
@@ -255,6 +255,28 @@ test('only the approved current device and exact fixed credential identity are a
       category: 'credential_descriptor_refused',
     })
   }
+})
+
+test('the old credential tuple refuses before every manifest metadata and byte read', () => {
+  const io = syntheticManifestReads()
+  const calls: string[] = []
+  io.describeSource = () => ({ ...approvedDescriptor(), dev: '16777230', ino: '13904959' })
+  io.canonicalPath = () => {
+    calls.push('canonicalPath')
+    return '/synthetic/manifest.json'
+  }
+  io.identity = () => {
+    calls.push('identity')
+    return { dev: 1n, ino: 2n }
+  }
+  io.readBytes = () => {
+    calls.push('readBytes')
+    return Buffer.from('{}')
+  }
+  assert.throws(() => verifyManifest('/synthetic/manifest.json', '0'.repeat(64), io), {
+    category: 'credential_descriptor_refused',
+  })
+  assert.deepEqual(calls, [])
 })
 
 test('fixed source metadata or source-type refusal precedes every manifest metadata and byte read', () => {
@@ -307,7 +329,7 @@ test('direct, canonical and same-identity credential aliases never reach manifes
       return approvedDescriptor()
     }
     if (kind !== 'identity') io.canonicalPath = () => approvedDescriptor().canonicalPath
-    else io.identity = () => ({ dev: 16777230n, ino: 13904959n })
+    else io.identity = () => ({ dev: 16777229n, ino: 89690255n })
     io.readBytes = path => {
       assert.fail(`secret alias must never be read: ${path}`)
     }

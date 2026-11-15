@@ -357,3 +357,79 @@ source/packed whole-artifact independent review is pending. No new native case o
 lanes released writers; original native parent 74842 exited 2. Real historical cleanup/cause remain UNKNOWN. Recovery
 commit/tree, evidence archive and checksum verification are recorded in `.appraisejs/m13-runtime-recovery/LATEST.json`;
 see M13-RUNTIME-CONTINUE.md for exact resume order and boundaries. M13 remains unchecked and not runtime-qualified.
+
+## Current-native readiness successor — 2026-11-16 client date
+
+The recovered source artifact `704d038d` passed independent SOURCE/ARTIFACT ONLY review. Current native `3ea20787e106af94573d3d6c19480aed93a1334b0dd32b6b04e2f780ce82cf4b` is a changed tuple; old B1/B2 acceptance was not reused. New public program-body association and source semantics were reviewed separately. The first current readiness packet remains REVISE because its zero-network condition was incompatible with mandatory native startup warmup; it was never executed or allocated.
+
+Fresh B1 R2 packet SHA-256 `ad71299ef4236e6be36c62c2cf5291fde7d68a3460ef49d72e504c6f28a6e32e`, manifest `181fad8503050afbfb8f65bfed78e565ec76cb973a8c45b487175c6125d40bef`, passed independent packet-only review `58e4a7ed13b072a90cbda8a4feaeb933a52d3bc47ae0e9d99d4384985e8a1343`. Exact root-issued authority `39ea618d71932262890a706fb35948d59317551f91479f5160d45326325acf4b` added two native acquisitions, no consuming turns/account queries/credential access, within unchanged 180-second total/90-second case limits. Mandatory native anonymous `generate=false` startup warmup was explicit; HTTP requests, native retries, tokens and cost remain unqualified rather than hardcapped or zero. No custom provider, endpoint or fallback execution was selected.
+
+The exact command ran once. Original parent session 93447 exited 0. The sanitized task receipts report healthy PASS and missing-required-MCP PASS, two initialize/config/thread-start prerequisites, one status-list request, no tool calls, and original owned group exits for both cases. Independent observation review accepted TASK READINESS OBSERVATIONS ONLY (`b1-current-tuple-20261116-r2/observation-review.json`, SHA-256 `1bcf487303a494dbcef86ce28bd5ac65435580345629a2c7234733a036b3a720`), with no required findings; the parent exit alone was not acceptance. Receipt `b1-current-tuple-20261116-r2/observations/execution-observation.json` SHA-256 is `8d9ad50a0648d08cae49124b696784c63d7a2005830e11dc1374126461615e26`. Only task-owned events, fixture journals and launch-spent receipts were archived; native home files and credential contents were not read/copied. One healthy thread object was returned; missing-case internal thread creation remains UNKNOWN zero-or-one.
+
+Seventeen native allocations are now frozen, both new B1 reservations consumed and no unspent allowance remains. Confirmed native acquisitions total thirteen plus one unresolved historical zero-or-one. Historical new provider consuming-turn effects remain UNKNOWN zero-or-one; M01 3/3 remains separately spent. No prior UNKNOWN, occupied HUB, failed attempt, allowance or original-handle restriction was cleared or reconstructed.
+
+The fresh B2 draft refused before manifest access because its runner still pinned the historical credential device/inode. A bounded source successor updates only those fixed identity fields to the current metadata and adds old-identity refusal coverage; it does not add an arbitrary identity route or permission to read credential contents. B2 still needs exact fresh B1 observation acceptance, its own reviewed source/packet, and a new finite additive account-check allocation before any native credential link or account request. Current C1 source-profile implementation, generated artifact renewal and independent review remain separate gates.
+
+### Current B2 existing-login observation accepted
+
+The exact two-file identity change and fresh B2 packet passed independent SOURCE/PACKET ONLY review
+(`b2-current-tuple-20261116-r2/review.json`, SHA-256
+`d8bab8f5009ef6fd4ea0166b21c2311a2dc37c53bd0206d889cdb371cf36ef05`). Root issued one additive native/account-read
+allocation, zero threads/model queries/consuming turns/tools/Appraise retries, with the existing 90-second total,
+60-second work and 30-second cleanup limits. Authority SHA-256 is
+`99e5ca628a004d5673ae1f8d8efab69dcecaf7efffaa21409257f42717d1b511`.
+
+The command ran once; original parent session 24747 exited 0. Sanitized receipts record one initialize/initialized,
+one config read and one account read with refreshToken=false. Native returned only the bounded accepted category:
+chatgpt account present, requiresOpenaiAuth=true. Original group exit and stream drain, unchanged credential metadata
+and removal of the new owned credential link passed independent EXISTING LOGIN OBSERVATIONS ONLY review
+(`b2-current-tuple-20261116-r2/observation-review.json`, SHA-256
+`9a666f85d7344b1e54c04ad2105b6917b691c1a52b3d7e53ec1c78b7cf8ead77`). No required findings. Appraise did not
+read, parse, hash or copy credential contents; native-owned content reads were permitted but not independently
+observed. No native home file was archived. Account sameness, entitlement, model support and billing are not inferred.
+
+Observation receipt SHA-256 is `b5625d02e61742cbb87131dd58724b64e235888099bb891581f3010728f7d5ee`. Eighteen native
+allocations are frozen, zero unspent. Actual native acquisitions are fourteen confirmed plus historical UNKNOWN
+zero-or-one; three account requests/two separately accepted presence observations are recorded. Historical consuming
+provider effects remain UNKNOWN zero-or-one, and M01 3/3 remains spent. Current B1/B2 success does not qualify C1,
+all-role provider delivery, physical reconciliation, host isolation or publication. Current C1 source integration and
+independent exact-artifact review precede any new consuming case allocation.
+
+### Current C1 source and packed successor verified offline
+
+The closed profile now requires the current native/source/static-review tuple and 59 exact source files with a new
+versioned Git-blob receipt. Three additional code-mode controls must be literal false; structured host options refuse.
+The old commit-specific fetch receipts remain historical and are not relabelled. Genuine offline capture/reinspection
+uses public installed bytes and credential metadata only, with no native launch or credential link. Original source,
+receipt, tree, static-review drift and source symlink/size violations refuse in private probe copies.
+
+The first staged quality attempt could not create a comparison worktree under restricted filesystem access; its
+permitted successor found introduced validator/test complexity. The bounded refactor preserved 4,661 acceptance/refusal
+cases and 15 getter/short-circuit traces. Focused 202 tests, guarded capture, transitive TypeScript, lint and formatting
+pass. The unchanged staged Fallow gate then passed with zero introduced dead code, complexity or duplication. No
+threshold, suppression, baseline, default refusal, notification policy, ownership or source predicate was weakened.
+Independent bounded source review accepted SOURCE ONLY (`c1-current-source-review-20261116/source-review.json`,
+SHA-256 `e994997839af80e7371d2fe5bbe790bf515bb0a0aa0193eb03c86884fb8f32c8`).
+
+Canonical sync updated four template copies. Root/scaffold builds, release artifact/package checks, harness and docs
+links passed. Fresh packed/generated proof passed 404 tests in 13 suites and eight actual installed-SDK tests. The
+six-role aggregate first failed because its repository-only synthetic config omitted the three newly required false
+controls. The failure and original harness remain preserved. Adding exactly those three literal fields changed no
+assertion or production gate; only the outstanding aggregate ran again against a fresh disposable fixture and passed.
+The previously passed tests, builds, packing and installation were not repeated.
+
+The final offline receipt is `c1-current-artifact-integration-20261116/COMPLETE.json`, SHA-256
+`56e6682435dc5be910253d16bb473a6883234c16c021a6526ba6e361f1dc899d`; `FINAL-RESULT.json` is
+`d78a9f41a9787d6c3fbbfec91582cebc0cf04a54cd29319c1da919c8b267c7bf`. It verifies 50 product source copies, all
+98 migration names/SQL hashes, five clean seed copies retaining only the exact canonical five UNKNOWN coverage rows,
+and 76 unchanged CLI JavaScript/maps. CLI tarball SHA-256 stays
+`61675569cf5aec550893877814f61b8488ded99e1e5db9ccb0bf3ab53ca64d19`; scaffold is
+`324c9bc7ce4ac02f94594ec36f93b2e35102fadc5e24b97dda005b5b0ef50195`. Generated SDK 1.29.0 and installed CLI
+SDK 1.32.2 remain separate observed dependency tuples. Installs used offline private caches and empty npmrc files.
+
+The renewed official full-AST source graph has 11,928 nodes/27,985 edges, exact final/full endpoint pairs and zero
+source integrity failures. Sixteen incremental omissions were restored. All three scope freshness checks pass; raw
+source extraction warnings and the byte-identical pre-existing package self-loop remain disclosed. Graph receipt
+`graphify-r2/FINAL.json` SHA-256 is `455b2e0a6427b839b7c6a7f9bb8c01497104d1d77e3acf3a37cb631b5b909d60`.
+Normal-hook local commit and final whole-artifact review remain the source gate before a new exact consuming case.
+No new native/consuming allowance or physical qualification follows from this offline lane.

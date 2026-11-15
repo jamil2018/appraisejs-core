@@ -1,6 +1,6 @@
 # M13 runtime continuation
 
-Status: PAUSED at the user-requested graceful checkpoint. Passive classification implementation and offline artifact checks pass; independent whole-artifact review and further native qualification remain pending. M13 is NOT finished and remains unchecked.
+Status: RESUMED on 2026-11-16 (client date). Recovery verification and independent exact-source/artifact review of `704d038d` passed. The installed native program and existing-login metadata changed; fresh current-tuple qualification and a closed source-profile successor are in progress. M13 is NOT finished and remains unchecked.
 
 Worktree: `/Users/jamil/Personal Projects/appraisejs/.appraisejs/m13-runtime-qualification`.
 Branch: `codex/m13-runtime-qualification`; starting HEAD `b8aaa949d2d7acbfcc260f68b28c179ca3ffb8e0`.
@@ -357,3 +357,47 @@ UNKNOWN zero-or-one. Historical M01 3/3 remains separately spent. Preserve all U
 No replay/refund, credential contents, sign-in/account switch, stored-PID cleanup, production/default activation,
 global install, push/merge or publication. Native/auth/provider effects require their fresh bounded gate; no inference
 for metric filling. Host isolation stays NOT_ATTESTED and helper lifetime UNKNOWN_NOT_INDEPENDENTLY_OBSERVED.
+
+## Current-tuple continuation — 2026-11-16
+
+The immutable recovery package passed its verifier again, including all 1,700 evidence files, Git objects and an independent bare restore. Source `704d038d7bfc5eda5788589eee5d30f477aaaa29`, tree `d350ec4b98c5129787982b337e4e70a557d5bb62`, passed independent SOURCE/ARTIFACT ONLY review (`c1-passive-classification-final-source/independent-review.json`, SHA-256 `849c80bc6962e0785f91bdd68a5343f04e2c639c35ccff032a97351eebb13f12`). That acceptance grants no effects. The checkpoint and historical refusals remain immutable.
+
+Current installed native SHA-256 is `3ea20787e106af94573d3d6c19480aed93a1334b0dd32b6b04e2f780ce82cf4b`. Provider credential metadata changed in dev, inode, mtime and ctime; account sameness is UNKNOWN. Only metadata was observed; no credential contents were read. Old native readiness/login observations cannot qualify the changed tuple.
+
+The current program has independently accepted narrow static association to official prerelease `rust-v0.169.0-alpha.11.1`, public source commit `226fa88979b1a9d76dc36f339ee9c5fbdb2c8e7f`. All 19 file-backed sections match the official archive member; four prefix bytes differ only in three size fields, and signatures/whole files differ. The archive matches its recorded official digest, and all 10,235 source-archive blobs match the complete recorded Git tree. Receipt `current-native-binding-20261116/static-binding-review.json` has SHA-256 `9e4bd18c6ae72e615a2b586a0e21f73a315d0188bdc8764677119aba445dde75`. Authenticated/reproducible build provenance, security environment, runtime equivalence and provider finality remain outside that acceptance.
+
+The bounded source decision `c1-current-source-decision-20261116/DECISION.md` (SHA-256 `77e2f58fb6f8e15dc996e78bab7765fb200244af240bfa116cd934e23b61b9e9`) selects 59 exact successor source pins and explicit false code-mode-only/host/prewarm controls. It preserves original-owner, queue, board, sample, ordinary-completion and process/group-exit obligations. Implementation, affected checks, generated artifacts and exact-artifact review remain required before C1 enrollment. No old commit-specific fetch receipt may be relabelled as new evidence.
+
+The first current-tuple B1 draft remains REVISE because the new native schedules websocket startup warmup even in fresh unauthenticated state. Removed websocket flags and a builtin `openai.supports_websockets=false` override do not disable it. A new finite packet explicitly covers anonymous native-owned `generate=false` startup warmup while retaining two acquisitions/two empty-thread prerequisites, zero consuming turns/account queries/credential links/tool calls/Appraise retries, and unchanged 180-second campaign/90-second case limits. Its exact independent review and root-issued allocation must precede execution. Provider HTTP requests, native retries, tokens and cost are not hardcapped or observed; they remain UNQUALIFIED, not zero. Consult later packet/authority receipts for actual execution status.
+
+As of the source decision, fifteen historical native allocations remain frozen, three new B3 slots consumed, and no unspent allowance exists. Native observations remain eleven confirmed plus historical UNKNOWN zero-or-one; new provider turns remain historical UNKNOWN zero-or-one. No replay, refund, HUB clearing, stored-PID cleanup, sign-in/account switch, global install, production/default activation, push/merge or publication is authorized.
+
+Fresh B1 R2 subsequently executed once and passed independent TASK READINESS OBSERVATIONS ONLY review
+(`b1-current-tuple-20261116-r2/observation-review.json`, SHA-256
+`1bcf487303a494dbcef86ce28bd5ac65435580345629a2c7234733a036b3a720`). Both original group exits and stream
+drains were accepted. Seventeen allocations are now frozen, both B1 reservations spent, and unspent allowance is zero.
+Native actual counts are thirteen confirmed plus historical UNKNOWN zero-or-one. Missing-case internal thread creation
+remains UNKNOWN zero-or-one. This closes current task readiness only; B2/current C1 and all-role provider qualification
+remain separate gates.
+
+Current B2 R2 also passed independent EXISTING LOGIN OBSERVATIONS ONLY review
+(`b2-current-tuple-20261116-r2/observation-review.json`, SHA-256
+`9a666f85d7344b1e54c04ad2105b6917b691c1a52b3d7e53ec1c78b7cf8ead77`). The exact fixed device/inode successor
+was reviewed before one native account check. Native reported chatgpt/present/requiresOpenaiAuth; original cleanup,
+unchanged metadata and new-link removal passed. Appraise never accessed credential contents. Eighteen native
+allocations are frozen and unspent allowance is zero; actual native acquisitions are fourteen confirmed plus
+historical UNKNOWN zero-or-one. Account/model entitlement, billing and account sameness remain unqualified.
+C1 source integration/artifact review and fresh finite consuming-case authority remain outstanding.
+
+The current closed-source successor and fresh packed proof now pass offline. Source-only review is
+`c1-current-source-review-20261116/source-review.json` (SHA-256
+`e994997839af80e7371d2fe5bbe790bf515bb0a0aa0193eb03c86884fb8f32c8`). New integration
+`c1-current-artifact-integration-20261116/COMPLETE.json` SHA-256 is
+`56e6682435dc5be910253d16bb473a6883234c16c021a6526ba6e361f1dc899d`: 404 generated tests/13 suites, installed SDK
+eight and repaired six-role aggregate one; source parity 50, migrations 98, five clean seeds and 76 unchanged CLI
+runtime files. The failed aggregate and quality/infrastructure predecessors remain immutable. Only the failed aggregate
+was rerun after its three-field synthetic-config repair. All builds/artifact/package/harness/docs checks pass.
+Official Graphify source/full-AST parity and source integrity pass; all scopes are fresh and the unchanged package
+self-loop/raw warnings remain disclosed. Normal-hook commit and final whole-artifact review precede a new consuming
+case. The blocked `prepare-b3-current-native-r1.mts` draft intentionally has final-head/tree/review placeholders; do not
+execute or fill it from source-only acceptance. Existing native/account observations do not authorize a consuming turn.
