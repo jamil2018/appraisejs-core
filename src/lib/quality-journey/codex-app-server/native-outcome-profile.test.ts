@@ -4,6 +4,8 @@ import { canonicalOutcomeJson, outcomeDigest } from './outcome-source-contract'
 import { describe, expect, it } from 'vitest'
 import {
   assertNativeOutcomeSourceFacts,
+  assertNativeStartupEvidenceFacts,
+  nativeStartupEvidenceRequirements,
   assertNativeOutcomeDossierFacts,
   nativeOutcomeSourceIdentity,
   nativeOutcomeSourceRequirements,
@@ -28,8 +30,8 @@ describe('fixed native source facts without a qualification issuer', () => {
       facts.find(item => item.path === selected)!.sha256 = '0'.repeat(64)
       expect(() => assertNativeOutcomeSourceFacts(facts)).toThrow()
     })
-  it('requires the 59 new requirements and refuses the removed board location', () => {
-    expect(observations()).toHaveLength(59)
+  it('requires the 59 retained plus seven startup and one thread-ID requirements and refuses the removed board location', () => {
+    expect(observations()).toHaveLength(67)
     const facts = observations()
     facts.find(item => item.path === 'codex-rs/agent-message-board-host/src/lib.rs')!.path =
       'codex-rs/core/src/agent_message_board.rs'
@@ -196,5 +198,22 @@ describe('original profile review-control digest representation', () => {
     expect(nativeOutcomeReviewControlDigest({ ...control, reviewMs: 299999 })).not.toBe(
       nativeOutcomeReviewControlDigest(control),
     )
+  })
+})
+
+describe('accepted actual D3 evidence binding is non-issuing', () => {
+  const facts = (): Array<{ path: string; sha256: string }> =>
+    Object.entries(nativeStartupEvidenceRequirements).map(([path, sha256]) => ({ path, sha256 }))
+  it('accepts exactly four actual receipt pins without issuing a profile', () => {
+    expect(() => assertNativeStartupEvidenceFacts(facts())).not.toThrow()
+    expect(() => inspectNativeOutcomeProfile({} as never)).toThrow()
+    expect(() => assertNativeStartupEvidenceFacts(facts().slice(1))).toThrow()
+    expect(() => assertNativeStartupEvidenceFacts([...facts(), facts()[0]])).toThrow()
+    expect(() => assertNativeStartupEvidenceFacts([facts()[0], ...facts().slice(0, -1)])).toThrow()
+  })
+  it.each(Object.keys(nativeStartupEvidenceRequirements))('refuses actual evidence drift: %s', path => {
+    const changed = facts()
+    changed.find(row => row.path === path)!.sha256 = '0'.repeat(64)
+    expect(() => assertNativeStartupEvidenceFacts(changed)).toThrow()
   })
 })

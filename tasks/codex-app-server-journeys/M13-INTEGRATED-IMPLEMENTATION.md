@@ -1,0 +1,152 @@
+# M13 integrated implementation backlog
+
+Current engineering cadence follows the user's latest instruction: implement and debug the related changes together,
+demonstrate the complete authorized flow, then perform one independent evaluation of the integrated artifact. No
+intermediate engineering judge or approval cycles. Required effect authorization and Appraise lifecycle/evidence
+controls remain intact. Historical artifacts, rejected candidates, failed checks, UNKNOWNs and consumed allocations
+are preserved, not relabelled.
+
+## Fixed scope and invariants
+
+Trust reviewed task code, the pinned runtime/dependency tuple and original process-local ownership. Do not pursue
+hostile-host containment, arbitrary replacement of all JavaScript intrinsics, or exhaustive helper inventory. Host
+isolation remains NOT_ATTESTED; helper lifetime and native HTTP/retries/tokens/cost remain unqualified as recorded.
+
+Keep one original loss controller for both reply-loss cases, one physical-release gate, and the existing canonical
+pause/read APIs. No parallel ownership framework, client wrapper, proxy listener, copied gateway implementation or
+generic production control framework. Serialized intent never replaces original capability or lifecycle authority.
+
+Preserve existing absolute deadlines, budgets, 16 false feature controls, private-home/MCP/configuration guards,
+original child/transport correlation, pause-before-native-cleanup, no sender restoration, and no replay/refund/reset.
+No sign-in/account switch, fallback, global installation, production/default activation, push, merge or publication.
+
+## Bounded work
+
+- [x] Verify paused recovery chain and exact clean source before resuming.
+- [x] Repair exact B2 metadata admission; preserve B2's historical launcher-provenance limitation.
+- [x] Run the separately authorized closed-launcher D3 diagnostic once and accept its limited actual categories.
+- [x] Implement startup warning/auth-category predicates and original passive initialize provenance.
+- [x] Repair immutable request/wire binding, actual-write deadlines/admission and inherited serializer paths; retain
+      known counterexamples as regression tests, without expanding the threat model.
+- [x] Support the pinned native UUIDv7 thread format separately from task/control UUIDv4, retaining exact correlation.
+- [x] Implement R1 task controls and a genuinely fresh, read-only canonical snapshot reader.
+- [x] Repair source-integrity checks on all reader outcomes and reader-timeout exit/close finalization.
+- [x] Integrate one qualification-only loss controller and logical/physical fence separation; controlled end-to-end
+      verification remains below.
+- [x] Implement actual R2 native start-ack withholding and actual R3 absent HTTP reply using the proven real SDK
+      mechanism, canonical pause commit observation and the same physical-release gate.
+- [x] Run the combined controlled end-to-end normal/recovery flows and focused regressions with source frozen.
+- [x] Finish normal full type/build checks, template synchronization, graph update, package/artifact proof and packed
+      end-to-end checks once the integrated implementation is stable. Cold 4/8 GiB TypeScript OOMs remain failures;
+      a normal version-revalidated incremental compiler cache is permitted, never a waiver.
+- [ ] Complete all remaining bounded real runtime/provider role and recovery cases under their exact effect and
+      lifecycle controls. Keep old cases permanently spent/UNKNOWN.
+- [ ] Perform one independent engineering evaluation of the working integrated artifact; batch any resulting repairs
+      and reassess affected behavior.
+
+## Loss-controller implementation contract
+
+Default NONE changes nothing and imports no canonical database/recovery modules. Controlled paths use lazy imports
+only after original fixture/datasource verification. Use the smallest opaque original-object control, bound once to
+case, plan/profile, fixture/client, child/transport and endpoint; no public callback can assert a successful commit.
+
+At the exact controlled boundary, synchronously fence admission and pending SDK delivery. Logical fencing rejects
+pending operations and stops active parsing without stream/IPC/process/file closure. Queue captured original
+physical actions behind the same gate: transport stdin/stdout/stderr closure, group stop, captured disconnect,
+endpoint/worker closure and credential-link/root removal. Independent passive drain remains available. Natural exit
+is an observation, not an Appraise cleanup action. Emergency release is bounded and permanently fails qualification.
+
+R2 consumes only an authentic private passive receipt for the actually written, fully schema-valid correlated
+turn/start RESULT (inProgress, allowed items, no error). Recheck protocol health at active consumption, including
+later invalid/duplicate frames in the same chunk. Reject SDK settlement without delivering the result, emit fixed
+validation/withholding facts, and block canonical gateway invocation throughout this case. No extra RPC or retry.
+
+R3 preparation authorizes a first-eligible-call selection policy, not generated model content or future artifact IDs.
+One opaque optional control inside managed Analysis delivery selects normalized arguments only after existing
+schema/grant/profile/pre-I/O checks and immediately before the original canonical submission. Freeze those values,
+idempotency and canonical charter hash; keep trusted scope/schema injection and normal authorization. No copied
+Analysis gateway. Derive and verify artifact ID/hash and acceptance evidence after original success.
+
+Use one task-owned endpoint with the existing real MCP SDK JSON-response transport; no proxy or second listener.
+Bind original request/response/socket, reject pipelining/Expect/informational behavior, and require no earlier target
+response bytes. After verified acceptance, enter the hold, fence delivery, start the pause-binding operation, destroy
+only the selected original socket synchronously, and return accepted result internally. Prove original close plus
+unchanged byte baseline and no HTTP success/error/information response. The existing synthetic real-SDK probe proves
+this mechanism can settle handleRequest naturally; it does not itself qualify canonical R3.
+
+R2 uses its fixed predecessor pause input. R3 first verifies the accepted canonical lineage, then binds the exact
+post-accept ACTIVE version/hash once; no preparation-time version reuse, automatic rebase or retry.
+
+Start canonical pause once through the original client; retain its Promise. Poll canonical getQualityJourney through
+that same client for the exact committed PAUSED successor and OPERATIONAL_PAUSE event, complete request hash,
+predecessor/successor hashes and no superseding resume. Do not wait for the whole pause service to release cleanup,
+because its cleanup may wait for the child. Never substitute a transaction wrapper or local success flag.
+
+Use 25 ms poll intervals, at most 200 attempts, one read in flight, and a commit-observation deadline no later than
+five seconds after the boundary or the existing absolute cleanup deadline. All waiting consumes that existing budget.
+Late pause/read operations remain owned and observed; no disconnect/checkpoint/snapshot while they are unsettled.
+
+After physical release, stop endpoint admission and join the actual original HTTP/SDK handleRequest before closing
+the worker/transport. All cleanup reentry joins the same flights. Missing commit/handler/close proof produces bounded
+emergency cleanup and UNKNOWN/unqualified evidence, never a false pass.
+
+## Current evidence and working locations
+
+Implementation: `.appraisejs/m13-startup-metadata-policy`, based on `5be0793387354b5c7f4adf1e9f98e2b600686245`.
+Runtime evidence and authority remain in `.appraisejs/m13-runtime-qualification/.appraisejs/m13-runtime-evidence/`.
+The accepted D3 review is `ebe0dbe978f69c5da3194e3599481158abe84d8b6b1b0a2505e5667eb5f945bf`.
+The current additive authority chain has 22 frozen native allocations, zero unspent, 18 task-recorded acquisitions
+plus historical UNKNOWN zero-or-one, four explicit account requests and four spent B3 turn slots; M01 3/3 remains
+separate. These are recorded evidence, not another allowance.
+
+Current source proof is in `startup-policy-candidate-r4/`; task reader proof is being finalized as V3 under
+`recovery-task-candidate/`; the real-SDK HTTP mechanism proof is under `r3-http-mechanism-probe/` (all beneath the
+implementation checkout's ignored `.appraisejs/`). Older artifacts remain immutable. M13 remains incomplete.
+
+## Integrated development progress
+
+The shared controller and original pause/cleanup path pass the complete controlled R2/R3 flows. R2 uses a genuine
+owned inert Node child, private validated ACK receipt, real SDK supervisor and canonical pause; invalid same-chunk
+input remains UNPROVEN. R3 uses one canonical read and one submission, an actual absent same-listener HTTP response,
+the committed pause, genuine group/drain/private-root cleanup and a fresh reader that matches the accepted artifact.
+Provider effects remain UNRESOLVED; replacement and transfer remain refused. These tests do not qualify a real provider.
+
+Before normal-hook simplification, source checks passed 206 focused tests, 228 default/profile/child tests and two owned R2 cases. Endpoint tests passed
+11, task regressions 44, and the final controlled R3 passed. Full ordinary incremental TypeScript, root production
+build, scaffold build/sync, graph update, harness, artifact/package and documentation checks passed. Prior cold compiler
+OOMs, the test-only literal-union typing failure, restricted helper-listener refusals and dependency-link documentation
+scan failure remain preserved. Private byte-identical Prisma copies restore normal dependency paths; current files
+and compiler options were revalidated, without waivers, installs, shared writes or baseline changes.
+
+The first fresh packed run passed 585 checks and failed one positive startup-framing case. Its exact cause remains
+UNKNOWN; successful cleanup removed that positive fixture, so later passes do not explain the historical failure.
+A test-only change now preserves finite failure diagnostics and that fixture on future failure. Assertions, production
+behavior and 1000 ms test budget are unchanged. The one outstanding case passed in a fresh packed successor; 33 other
+cases were excluded by focused selection, not disabled or counted as new passes. The previously unrun installed SDK
+and six-role tests passed all 12. All generated production source is byte-identical between those two artifacts; the
+sole source difference is the diagnostic test. The passing 585 checks were not repeated.
+
+Most recent completed packed audit: `.appraisejs/m13-integrated-successor-20261117/artifact-audit.json` (98 migrations, five clean seed
+copies, all compiled runtime copies and selected canonical source parity). Predecessor evidence remains under
+`.appraisejs/m13-integrated-checks-20261116/`. The closed parent launcher has six fake-credential offline regressions;
+no real native/model allocation has been added. The source graph exceeds the normal HTML visual limit; its documented
+tree view was generated through Graphify. No hand-edited graph outputs or inference were used.
+
+The normal commit hook reported an unused source export, a reader/host import cycle and introduced complexity.
+That single completion batch is now fixed: unused API removed, read-only reader bindings separated from host sealing/
+launching, and existing responsibilities simplified. The ordinary integrated Fallow audit reports zero dead code,
+cycles, complexity findings or clones, without suppressions, baseline edits or quality-rule changes. The current
+source passed full TypeScript, production build, official scaffold/graph updates, documentation/harness/artifact/
+package checks and a fresh serial packed run: all 586 checks across 18 suites plus all 12 installed SDK/six-role
+checks. The final audit verifies 59 selected source parities, 154 compiled runtime files, 98 migrations and five
+clean seed copies. Current evidence is `.appraisejs/m13-integrated-final-20261117/`. The genuine controlled R3
+flow passed again on refactored source; task regressions passed 45 and fresh reader/lineage/sentinels passed 12.
+
+Two additional failed source runs remain preserved: an observed source edit overlapped one input-hashing check
+(302 passed, one failed; only the affected frozen successor reran), and an original negative fixture lacked timely
+group-cleanup proof (38 passed, one failed; exact cause UNKNOWN). The latter test also incorrectly deleted its
+UNKNOWN fixture; its test-only cleanup now preserves uncertain roots and finite receipts. One focused successor
+passed, without explaining or relabelling that historical failure. No production budget or assertion was relaxed.
+
+The remaining work is the one independent integrated-artifact evaluation and exact bounded real role/recovery
+qualification under the existing effect/lifecycle controls. M13 remains incomplete until that evidence is accepted.

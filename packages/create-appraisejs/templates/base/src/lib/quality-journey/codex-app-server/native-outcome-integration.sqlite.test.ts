@@ -11,6 +11,7 @@ import type { NativeChildOutcomeObserver } from './native-qualification-child'
 import type { OwnedFixtureChild } from './owned-child'
 import { canonicalOutcomeJson, outcomeDigest } from './outcome-source-contract'
 import { RpcTransport } from './rpc-transport'
+import { nativeStartupWarning } from './native-startup-metadata'
 import { trustedProviderObservation, trustedProviderReconciliation } from '../provider-intent-contract'
 import { createProviderSourceNativePrismaClient, disposeProviderSourceDatabase } from '../provider-source-database'
 import {
@@ -80,7 +81,12 @@ describe.sequential('registered original native custody on actual disposable can
     let observer!: NativeChildOutcomeObserver
     fake.claim.mockImplementation((_child, _plan, observed) => {
       observer = observed
-      return { owner: raw.owner, sealSender: () => raw.sealSender(), snapshot: () => raw.snapshot() }
+      return {
+        fence: () => raw.fence('source_poison'),
+        owner: raw.owner,
+        sealSender: () => raw.sealSender(),
+        snapshot: () => raw.snapshot(),
+      }
     })
     const candidate = await createOriginalNativeOutcomeCandidate({
       profile,
@@ -91,7 +97,7 @@ describe.sequential('registered original native custody on actual disposable can
       reviewControl: control,
     })
     candidate.attach({} as OwnedFixtureChild)
-    const threadId = randomUUID(),
+    const threadId = '019a8b91-41d3-7abc-8def-0123456789ab',
       turnId = randomUUID()
     async function send(
       method: Parameters<NativeChildOutcomeObserver['beforeRequest']>[0],
@@ -99,12 +105,17 @@ describe.sequential('registered original native custody on actual disposable can
       response: unknown,
       consume = false,
     ) {
+      if (method === 'thread/start') await observer.startupReady!(Date.now() + 1000)
       const operation = writeQualityJourneyProviderTransport(
         { ...input, permit: armed.permit!, consume },
         () => {
           observer.beforeRequest(method, params)
+          if (method === 'thread/start') observer.admitStartup!()
           const original = raw.request(method, params)
           observer.operation(original, method)
+          if (method === 'initialize') observer.validatedInitialize!()
+          if (method === 'thread/start')
+            observer.notification('thread/started', { thread: { id: threadId, ephemeral: true, turns: [] } })
           stdout.write(`${JSON.stringify({ id: raw.snapshot().issuedRequests, result: response })}\n`)
           return original
         },
@@ -120,6 +131,8 @@ describe.sequential('registered original native custody on actual disposable can
         { capabilities: { experimentalApi: false }, clientInfo: { name: 'appraise-journey-supervisor', version: '1' } },
         {},
       )
+      observer.notification('configWarning', { summary: nativeStartupWarning })
+      observer.notification('account/updated', { authMode: 'chatgpt', planType: 'unknown' })
       const initialized = raw.notifyInitialized()
       observer.operation(initialized, 'initialized')
       await initialized

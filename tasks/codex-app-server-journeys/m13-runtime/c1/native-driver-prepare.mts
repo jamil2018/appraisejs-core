@@ -32,9 +32,17 @@ import {
   type OriginalNativeDriverTask,
 } from './native-driver-control.mts'
 import { scriptedDisposableHuman, type NativeLineageEvent } from './native-lineage.mts'
+import { requireSupportedRecoveryPreparation, createTaskRecoveryDelivery } from './recovery-case.mts'
+import type { RecoveryCaseKind } from './recovery-read-binding.mts'
+import {
+  createNativeQualificationLossControl,
+  type NativeQualificationLossControl,
+} from '../../../../src/lib/quality-journey/codex-app-server/native-qualification-loss'
+import { getQualityJourney } from '../../../../src/services/coordinator/quality-journey-service'
 
 const installedSha256 = '3ea20787e106af94573d3d6c19480aed93a1334b0dd32b6b04e2f780ce82cf4b'
 export type NativeCasePreparation = Readonly<{
+  recoveryCase?: Readonly<{ caseKind: RecoveryCaseKind }>
   campaignId: string
   candidateTree: string
   native: NativeQualificationManifest['native']
@@ -98,6 +106,7 @@ const reviewControlSchema = z
   .strict()
 /** Nonissuing task validation only; no preparation, source client, credential access or native acquisition. */
 export function validatePreparation(packet: NativeCasePreparation, evidenceRoot: string) {
+  if (packet.recoveryCase !== undefined) requireSupportedRecoveryPreparation(packet.recoveryCase)
   if (
     !/^[A-Za-z0-9._:-]{1,160}$/.test(packet.campaignId) ||
     packet.native.sha256 !== installedSha256 ||
@@ -133,8 +142,16 @@ export async function prepareOriginalNativeDriverCase(
   options.assertParentCurrent()
   const packet = structuredClone(packetInput)
   validatePreparation(packet, options.evidenceRoot)
+  const recoveryDelivery =
+    packet.recoveryCase?.caseKind === 'R1_ACKNOWLEDGED_NATIVE_INTERRUPTION'
+      ? createTaskRecoveryDelivery(packet.recoveryCase.caseKind, {
+          toolName: event.original.toolName,
+          arguments: event.arguments,
+        })
+      : undefined
   verifyNativeCredential(packet.credentialSource)
   const originalEvent = event
+  let originalLossControl: NativeQualificationLossControl | undefined
   const directory = path.join(options.evidenceRoot, packet.campaignId)
   mkdirSync(directory, { mode: 0o700 })
   const databasePath = realpathSync(event.original.databasePath)
@@ -207,6 +224,10 @@ export async function prepareOriginalNativeDriverCase(
       phase: 'PREPARED',
       provenance: 'ORIGINAL_C1_TASK',
       kind: event.kind,
+      ...(packet.recoveryCase ? { recoveryCase: packet.recoveryCase } : {}),
+      ...(packet.recoveryCase?.caseKind === 'R3_ACCEPTED_ANALYSIS_REPLY_LOSS'
+        ? { recoverySelectionPolicy: 'FIRST_AUTHORIZED_NORMALIZED_ANALYSIS_SUBMISSION' }
+        : {}),
       manifest,
       roleProfile: delivery.profile,
       envelope,
@@ -242,6 +263,36 @@ export async function prepareOriginalNativeDriverCase(
       toolName: event.original.toolName,
       arguments: event.arguments,
       async createOriginalTask(approvalEvidence) {
+        const absoluteCleanupDeadline = Date.now() + manifest.limits.caseMs + manifest.limits.cleanupMs
+        if (packet.recoveryCase && packet.recoveryCase.caseKind !== 'R1_ACKNOWLEDGED_NATIVE_INTERRUPTION') {
+          const predecessor =
+            packet.recoveryCase.caseKind === 'R2_NATIVE_START_ACK_LOSS'
+              ? (
+                  await getQualityJourney(
+                    {
+                      journeyId: originalEvent.original.binding.journeyId,
+                      targetProjectId: originalEvent.original.binding.targetProjectId,
+                    },
+                    pair.client,
+                  )
+                ).journey
+              : undefined
+          originalLossControl = createNativeQualificationLossControl({
+            caseKind: packet.recoveryCase.caseKind,
+            fixture: originalEvent.original,
+            client: pair.client,
+            plan,
+            profile,
+            absoluteCleanupDeadline,
+            pause: {
+              idempotencyKey: `${packet.campaignId}:recovery-pause`,
+              reason: `SCRIPTED_DISPOSABLE_TEST_HUMAN:${packet.recoveryCase.caseKind === 'R2_NATIVE_START_ACK_LOSS' ? 'M13_R2' : 'M13_R3'}`,
+              ...(predecessor
+                ? { expectedVersion: predecessor.version, expectedStateHash: predecessor.stateHash }
+                : {}),
+            },
+          })
+        }
         const task = await prepareReviewedC1Task(
           {
             plan,
@@ -250,6 +301,10 @@ export async function prepareOriginalNativeDriverCase(
             evidenceDirectory: directory,
             envelope,
             canonicalDefinitions: originalEvent.original.canonicalDefinitions,
+            taskRecoveryDelivery: recoveryDelivery,
+            ...(originalLossControl
+              ? { qualificationLoss: { control: originalLossControl, fixture: originalEvent.original } }
+              : {}),
             input: {
               ...originalEvent.original.binding,
               idempotencyKey: `${packet.campaignId}:prepare`,
@@ -284,6 +339,8 @@ export async function prepareOriginalNativeDriverCase(
       credentialSource: structuredClone(packet.credentialSource),
       directory,
       kind: event.kind,
+      recoveryDelivery,
+      originalLossControl: () => originalLossControl,
     })
   } catch {
     throw new Error('Original native-driver preparation refused; disposable evidence retained')

@@ -1,4 +1,6 @@
 import { createHash } from 'node:crypto'
+import { captureNativeRequestSnapshot } from './native-request-snapshot'
+import { canonicalOutcomeJson } from './outcome-source-contract'
 import { PassThrough, Writable } from 'node:stream'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -538,5 +540,185 @@ describe('trusted original RPC accounting', () => {
     await rejected
     expect(h.writes).toHaveLength(1)
     expect(h.transport.snapshot().writtenBytes).toBe(charged)
+  })
+})
+
+describe('synchronous original-owner final write hook', () => {
+  it('runs after serialization and existing admission, and fencing there prevents stdin bytes', async () => {
+    let serialized = false,
+      calls = 0
+    const h = harness({}, false, {
+      assertAdmission() {
+        calls++
+      },
+      allocated() {},
+      notEmitted() {},
+      attempted() {},
+      beforeWrite() {
+        expect(serialized).toBe(true)
+        expect(calls).toBeGreaterThan(0)
+        h.transport.fence('last_owner_check')
+      },
+    })
+    await expect(
+      h.transport.request('initialize', {
+        toJSON() {
+          serialized = true
+          return {}
+        },
+      }),
+    ).rejects.toThrow()
+    expect(h.writes).toHaveLength(0)
+    expect(h.transport.snapshot()).toMatchObject({ status: 'fenced', pendingRequests: 0 })
+  })
+  it('refuses asynchronous or value-returning hooks without creating a scheduled write', async () => {
+    const h = harness({}, false, {
+      allocated() {},
+      notEmitted() {},
+      attempted() {},
+      beforeWrite: (() => Promise.resolve()) as unknown as () => void,
+    })
+    await expect(h.transport.request('initialize', {})).rejects.toThrow()
+    await Promise.resolve()
+    expect(h.writes).toHaveLength(0)
+    expect(h.transport.snapshot()).toMatchObject({ status: 'fenced', pendingRequests: 0 })
+  })
+})
+
+describe('inherited serializers cannot replace transport-owned envelopes or native snapshots', () => {
+  it('emits the exact approved native method/id/envelope despite both inherited serializers', async () => {
+    const h = harness(),
+      objectOriginal = Object.getOwnPropertyDescriptor(Object.prototype, 'toJSON'),
+      arrayOriginal = Object.getOwnPropertyDescriptor(Array.prototype, 'toJSON')
+    let frameHookCalls = 0,
+      arrayHookCalls = 0,
+      operation!: Promise<unknown>,
+      approved = ''
+    try {
+      Object.defineProperty(Object.prototype, 'toJSON', {
+        configurable: true,
+        value: function (this: Record<string, unknown>) {
+          if (Object.hasOwn(this, 'id') && Object.hasOwn(this, 'method')) {
+            frameHookCalls++
+            return { id: 1, method: 'account/logout', params: {} }
+          }
+          return this
+        },
+      })
+      Object.defineProperty(Array.prototype, 'toJSON', {
+        configurable: true,
+        value: function () {
+          arrayHookCalls++
+          return [{ type: 'text', text: 'substituted' }]
+        },
+      })
+      const snapshot = captureNativeRequestSnapshot({
+        threadId: 'inert-thread',
+        input: [{ type: 'text', text: 'approved' }],
+        model: 'gpt-6.1-sol',
+        effort: 'medium',
+      })
+      approved = canonicalOutcomeJson(snapshot)
+      operation = h.transport.request('turn/start', snapshot)
+      h.stdout.write(Buffer.from('{"id":1,"result":{"accepted":true}}\n'))
+    } finally {
+      if (objectOriginal) Object.defineProperty(Object.prototype, 'toJSON', objectOriginal)
+      else Reflect.deleteProperty(Object.prototype, 'toJSON')
+      if (arrayOriginal) Object.defineProperty(Array.prototype, 'toJSON', arrayOriginal)
+      else Reflect.deleteProperty(Array.prototype, 'toJSON')
+    }
+    await expect(operation).resolves.toEqual({ accepted: true })
+    const frame = JSON.parse(h.writes[0].toString())
+    expect(frame).toMatchObject({
+      id: 1,
+      method: 'turn/start',
+      params: { input: [{ type: 'text', text: 'approved' }] },
+    })
+    expect(canonicalOutcomeJson(frame.params)).toBe(approved)
+    expect(frameHookCalls).toBe(0)
+    expect(arrayHookCalls).toBe(0)
+  })
+  it('retains generic caller params own serializer semantics while protecting method and id', async () => {
+    const h = harness(),
+      hook = vi.fn(() => ({ generic: true }))
+    const operation = h.transport.request('initialize', { toJSON: hook })
+    h.stdout.write(Buffer.from('{"id":1,"result":{}}\n'))
+    await operation
+    expect(JSON.parse(h.writes[0].toString())).toEqual({ id: 1, method: 'initialize', params: { generic: true } })
+    expect(hook).toHaveBeenCalledOnce()
+  })
+})
+
+describe('controlled metadata settlement and one physical release gate', () => {
+  it('withholds one immutable pending method without exposing result and defers all stream destruction through reentry', async () => {
+    const queued: Array<() => void> = [],
+      seen: unknown[] = [],
+      refused = vi.fn()
+    const h = harness({}, false, {
+      allocated() {},
+      notEmitted() {},
+      attempted() {},
+      beforeReply(metadata) {
+        seen.push(metadata)
+        return false
+      },
+      replyRefused: refused,
+      deferPhysical(action) {
+        queued.push(action)
+      },
+    })
+    const pending = h.transport.request('turn/start', { threadId: 'known' })
+    h.stdout.write(Buffer.from('{"id":1,"result":{"turn":{"id":"private-native-id"},"private":"not-exposed"}}\n'))
+    await expect(pending).rejects.toThrow('reply_withheld')
+    expect(seen).toEqual([{ requestId: 1, method: 'turn/start' }])
+    expect(Object.isFrozen(seen[0])).toBe(true)
+    expect(JSON.stringify(seen)).not.toMatch(/private|turn"/)
+    expect(refused).toHaveBeenCalledExactlyOnceWith({ requestId: 1, method: 'turn/start' })
+    expect(h.stdin.destroyed).toBe(false)
+    expect(h.stdout.destroyed).toBe(false)
+    expect(h.stderr.destroyed).toBe(false)
+    h.transport.fence('cleanup_reentry')
+    expect(queued).toHaveLength(1)
+    expect(h.transport.snapshot()).toMatchObject({ status: 'fenced', pendingRequests: 0, writing: false })
+    queued[0]()
+    expect(h.stdin.destroyed).toBe(true)
+    expect(h.stdout.destroyed).toBe(true)
+    expect(h.stderr.destroyed).toBe(true)
+    await expect(h.transport.request('turn/start', {})).rejects.toThrow('fenced')
+  })
+  it.each(['invalid', 'duplicate'] as const)(
+    'does not consume a reply followed by %s data in the same chunk',
+    async kind => {
+      const beforeReply = vi.fn(() => true),
+        replyRefused = vi.fn()
+      const h = harness({}, false, { allocated() {}, notEmitted() {}, attempted() {}, beforeReply, replyRefused })
+      const pending = h.transport.request('initialize', {})
+      const reply = '{"id":1,"result":{}}\n'
+      h.stdout.write(Buffer.from(reply + (kind === 'duplicate' ? reply : 'invalid\n')))
+      await expect(pending).rejects.toThrow()
+      expect(beforeReply).not.toHaveBeenCalled()
+      expect(replyRefused).toHaveBeenCalledExactlyOnceWith({ requestId: 1, method: 'initialize' })
+    },
+  )
+  it('emits refusal metadata once after the controller has fenced, even if that observer throws', async () => {
+    const rows: string[] = []
+    const h = harness({}, false, {
+      allocated() {},
+      notEmitted() {},
+      attempted() {},
+      beforeReply() {
+        rows.push('HOLDING')
+        h.transport.fence('original_hold')
+        return false
+      },
+      replyRefused() {
+        rows.push('REFUSED')
+        throw new Error('observer unavailable')
+      },
+    })
+    const pending = h.transport.request('turn/start', {})
+    h.stdout.write(Buffer.from('{"id":1,"result":{}}\n'))
+    await expect(pending).rejects.toThrow('original_hold')
+    expect(rows).toEqual(['HOLDING', 'REFUSED'])
   })
 })

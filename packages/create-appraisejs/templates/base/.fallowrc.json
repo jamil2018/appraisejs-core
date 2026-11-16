@@ -125,7 +125,13 @@
         "tasks/codex-app-server-journeys/m13-runtime/c1/runner.test.mts",
         "tasks/codex-app-server-journeys/m13-runtime/c1/native-driver.test.mts",
         "tasks/codex-app-server-journeys/m13-runtime/c1/native-execution.test.mts",
-        "tasks/codex-app-server-journeys/m13-runtime/c1/native-run.test.mts"
+        "tasks/codex-app-server-journeys/m13-runtime/c1/native-run.test.mts",
+        "tasks/codex-app-server-journeys/m13-runtime/c1/native-loss.integration.test.mts",
+        "tasks/codex-app-server-journeys/m13-runtime/c1/recovery-case.test.mts",
+        "tasks/codex-app-server-journeys/m13-runtime/c1/recovery-lineage.test.mts",
+        "tasks/codex-app-server-journeys/m13-runtime/c1/recovery-reader-flight.test.mts",
+        "tasks/codex-app-server-journeys/m13-runtime/c1/recovery-reader-test-sentinel.mjs",
+        "tasks/codex-app-server-journeys/m13-runtime/c1/recovery-snapshot.test.mts"
       ],
       "entryPointRole": "test"
     }

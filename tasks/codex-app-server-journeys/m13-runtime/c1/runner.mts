@@ -26,6 +26,8 @@ import {
 } from '../../../../src/lib/quality-journey/codex-app-server/native-outcome-profile'
 import type { NativeOutcomeReviewDecision } from '../../../../src/lib/quality-journey/codex-app-server/native-outcome-source'
 import { requiredC0TaskInputPaths } from '../c0/inputs.mts'
+import type { createTaskRecoveryDelivery } from './recovery-case.mts'
+import { createOriginalLossEndpoint } from './native-loss-endpoint.mts'
 
 export function requiredC1TaskInputPaths(canonicalRoot: string) {
   return [
@@ -58,6 +60,7 @@ export async function prepareReviewedC1Task(
     nativeOutcome: NonNullable<Parameters<typeof createNativeQualityJourneyQualification>[0]['nativeOutcome']>
     approvalEvidence: string
     evidenceDirectory: string
+    taskRecoveryDelivery?: ReturnType<typeof createTaskRecoveryDelivery>
   },
   client: PrismaClient,
 ) {
@@ -87,7 +90,23 @@ export async function prepareReviewedC1Task(
   let composition: Awaited<ReturnType<typeof createNativeQualityJourneyQualification>>
   try {
     composition = await createNativeQualityJourneyQualification(
-      { ...options, diagnostics, createEndpoint: createManagedWorkerLoopbackServer },
+      {
+        ...options,
+        diagnostics,
+        createEndpoint: endpointOptions =>
+          options.qualificationLoss
+            ? createOriginalLossEndpoint(endpointOptions, options.qualificationLoss.control)
+            : createManagedWorkerLoopbackServer({
+                ...endpointOptions,
+                callGateway: call =>
+                  options.taskRecoveryDelivery
+                    ? options.taskRecoveryDelivery.callGateway(
+                        { toolName: call.toolName, arguments: call.arguments },
+                        () => endpointOptions.callGateway(call),
+                      )
+                    : endpointOptions.callGateway(call),
+              }),
+      },
       client,
     )
   } catch (error) {

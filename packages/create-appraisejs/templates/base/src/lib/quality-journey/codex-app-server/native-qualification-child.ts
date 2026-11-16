@@ -1,3 +1,18 @@
+import {
+  assertNativeQualificationLossSender,
+  bindNativeQualificationLossParser,
+  deferNativeQualificationLossPhysical,
+  deferNativeQualificationLossDisconnect,
+  failNativeQualificationLoss,
+  nativeQualificationLossKind,
+  inspectNativeQualificationLoss,
+  captureNativeQualificationLossChildCleanup,
+  retainNativeQualificationLossOperation,
+  tightenNativeQualificationLossCleanup,
+  waitNativeQualificationLossPhysicalRelease,
+  withholdNativeQualificationStartReply,
+  type NativeQualificationLossControl,
+} from './native-qualification-loss'
 import { mkdir, lstat, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import type { SpawnedProcess } from '../../process/task-spawner'
@@ -16,6 +31,7 @@ import {
 } from './native-qualification-contract'
 import { createNativeQualificationDrainGuard } from './native-qualification-drain'
 import { createNativeQualificationProtocol } from './native-qualification-protocol'
+import { captureNativeRequestSnapshot } from './native-request-snapshot'
 import {
   nativeDiagnosticRequestStage,
   nativePassiveOutcomeStage,
@@ -28,6 +44,11 @@ import type { OwnedChildCleanupReceipt, OwnedFixtureChild } from './owned-child'
 import { RpcTransport, type RpcTransportOptions, type RpcRequestMethod } from './rpc-transport'
 
 export type NativeChildOutcomeObserver = Readonly<{
+  closeStartup?(): void
+  assertSendAdmission?(): void
+  admitStartup?(): void
+  validatedInitialize?(): void
+  startupReady?(deadline: number, signal?: AbortSignal): Promise<void>
   beforeRequest(method: RpcRequestMethod, params: Record<string, unknown>): void
   operation(operation: Promise<unknown>, method: RpcRequestMethod | 'initialized'): void
   notification(method: string, params: Record<string, unknown>): void
@@ -40,6 +61,7 @@ type OriginalNativeChild = {
   observer?: NativeChildOutcomeObserver
   diagnostics?: NativeDiagnosticObserver
   handoffPreclaim: (observer: NativeChildOutcomeObserver) => void
+  closeStartup: () => void
 }
 const originalNativeChildren = new WeakMap<OwnedFixtureChild, OriginalNativeChild>()
 
@@ -74,9 +96,23 @@ export function claimOriginalNativeQualificationChild(
   requireNativeDiagnostic(original.diagnostics, 'CHILD_CLAIM', 'ACCEPTED')
   return Object.freeze({
     owner: original.transport.owner,
-    sealSender: () => original.transport.sealSender(),
+    sealSender: () => {
+      original.closeStartup()
+      return original.transport.sealSender()
+    },
     snapshot: () => original.transport.snapshot(),
+    fence: () => {
+      original.closeStartup()
+      original.transport.fence('native_outcome_refused')
+    },
   })
+}
+
+export function originalNativeQualificationLossOwner(child: OwnedFixtureChild, plan: CapturedNativeQualificationPlan) {
+  const original = originalNativeChildren.get(child)
+  if (!original || original.plan !== plan || !original.observer || original.transport.snapshot().issuedRequests !== 0)
+    throw new Error('Original claimed pre-handshake child required')
+  return original.transport.owner
 }
 
 function recordNativeAcquisitionRefusal(
@@ -120,18 +156,70 @@ export async function launchNativeQualificationChild(
     closeMcp: () => Promise<boolean>
     captureOriginalDisconnect?: (disconnect: () => boolean) => void
     diagnostics?: NativeDiagnosticObserver
+    qualificationLoss?: NativeQualificationLossControl
   },
 ): Promise<OwnedFixtureChild> {
   const boundCallbacks = Object.freeze({ ...callbacks })
   const diagnostics = boundCallbacks.diagnostics
+  const loss = boundCallbacks.qualificationLoss
+  function expectedWithheldStart(method: RpcRequestMethod | 'initialized') {
+    if (!loss || method !== 'turn/start' || nativeQualificationLossKind(loss) !== 'R2_NATIVE_START_ACK_LOSS')
+      return false
+    const proof = inspectNativeQualificationLoss(loss).proof
+    return proof.VALIDATED && proof.WITHHELD && !proof.UNPROVEN
+  }
   const { manifest, config, protocol } = verifyOriginalNativeChildPlan(plan, diagnostics)
   const root = manifest.freshRoot
+  const caseDeadline = Date.now() + manifest.limits.caseMs
+  let startupDeadline: number | undefined
+  let startupTimer: ReturnType<typeof setTimeout> | undefined
+  let startupSignal: AbortSignal | undefined
+  let wireRequest: { method: RpcRequestMethod | 'initialized'; deadline: number; signal?: AbortSignal } | undefined
+  let requestActive = false
+  function assertWireTime() {
+    if (
+      !wireRequest ||
+      !Number.isSafeInteger(wireRequest.deadline) ||
+      Date.now() >= wireRequest.deadline ||
+      wireRequest.signal?.aborted
+    )
+      throw new Error('Native request entry budget expired')
+    assertStartupTime(wireRequest.method)
+  }
+  function assertStartupTime(method: RpcRequestMethod | 'initialized') {
+    if (
+      method === 'thread/start' &&
+      originalChild?.observer?.startupReady &&
+      (!startupDeadline || Date.now() >= startupDeadline || startupSignal?.aborted)
+    )
+      throw new Error('Native startup admission expired')
+  }
+  function assertWireAdmission() {
+    assertNativeQualificationLossSender(loss)
+    boundCallbacks.assertAdmission()
+    originalChild?.observer?.assertSendAdmission?.()
+    // No caller code follows these final clock/signal checks.
+    assertNativeQualificationLossSender(loss)
+    assertWireTime()
+  }
+  const startupExpired = () => {
+    closeStartup()
+    originalChild?.observer?.fault()
+    transport?.fence('native_startup_expired')
+  }
+  function closeStartup() {
+    if (startupTimer) clearTimeout(startupTimer)
+    startupTimer = undefined
+    startupSignal?.removeEventListener('abort', startupExpired)
+    originalChild?.observer?.closeStartup?.()
+  }
   let originalRoot: Awaited<ReturnType<typeof lstat>> | undefined
   let stage: NativeDiagnosticStage = 'ROOT_CREATE'
   let link: ReturnType<typeof linkNativeCredential> | undefined
   let owned: SpawnedProcess | undefined
   let transport: RpcTransport | undefined
   let originalChild: OriginalNativeChild | undefined
+  let registeredChild: OwnedFixtureChild | undefined
   const preclaimFrames: Array<{ method: string; params: Record<string, unknown> }> = []
   let preclaimBytes = 0,
     preclaimPoison = false,
@@ -144,6 +232,7 @@ export async function launchNativeQualificationChild(
   let drain: ReturnType<typeof createNativeQualificationDrainGuard> | undefined
   let stopFlight: Promise<OwnedChildCleanupReceipt> | undefined
   function fenceNative() {
+    closeStartup()
     preclaimPoison = true
     preclaimFrames.length = 0
     transport?.fence('native_owned_stop')
@@ -177,7 +266,10 @@ export async function launchNativeQualificationChild(
   }
   function observePassiveFrame(value: unknown) {
     try {
-      protocol.passiveFrame(value)
+      if (protocol.passiveFrame(value) === 'INITIALIZE_VALIDATED') {
+        // Diagnostic-only children do not gain a startup-metadata acceptance capability.
+        originalChild?.observer?.validatedInitialize?.()
+      }
     } catch (error) {
       recordPassiveRefusal(nativePassiveProtocolStage(value), 'PROTOCOL_REFUSED')
       throw error
@@ -185,15 +277,17 @@ export async function launchNativeQualificationChild(
     const frame = value as { method?: string; params?: Record<string, unknown> }
     if (frame.method && frame.params) {
       if (originalChild?.observer) observeOriginalNotification(originalChild.observer, frame.method, frame.params)
-      else if (!preclaimPoison) {
-        preclaimBytes += Buffer.byteLength(JSON.stringify(value))
-        if (preclaimFrames.length >= 32 || preclaimBytes > 256 * 1024) {
-          preclaimPoison = true
-          preclaimFrames.length = 0
-          recordPassiveRefusal('PASSIVE_PRECLAIM', 'PRECLAIM_CAPTURE_LIMIT')
-        } else preclaimFrames.push({ method: frame.method, params: frame.params })
-      }
+      else capturePreclaim(frame.method, frame.params, value)
     }
+  }
+  function capturePreclaim(method: string, params: Record<string, unknown>, value: unknown) {
+    if (preclaimPoison) return
+    preclaimBytes += Buffer.byteLength(JSON.stringify(value))
+    if (preclaimFrames.length >= 32 || preclaimBytes > 256 * 1024) {
+      preclaimPoison = true
+      preclaimFrames.length = 0
+      recordPassiveRefusal('PASSIVE_PRECLAIM', 'PRECLAIM_CAPTURE_LIMIT')
+    } else preclaimFrames.push({ method, params })
   }
   function originalAcquired(original: SpawnedProcess) {
     owned = original
@@ -202,11 +296,13 @@ export async function launchNativeQualificationChild(
       drain = createNativeQualificationDrainGuard(stdout, stderr, observePassiveFrame, () => {
         recordPassiveRefusal('PASSIVE_STREAM', 'STREAM_PARSE_OR_IO_REFUSED')
         preclaimPoison = true
+        closeStartup()
+        transport?.fence('native_passive_drain_refused')
         originalChild?.observer?.fault()
         diagnostics?.record('STREAM_CAPTURE', 'UNKNOWN', 'PASSIVE_CAPTURE_REFUSED')
         boundCallbacks.onFault('native_passive_drain_refused')
       })
-    boundCallbacks.captureOriginalDisconnect?.(() => {
+    const disconnect = () => {
       if (!original.process.connected) return false
       try {
         original.process.disconnect()
@@ -214,7 +310,10 @@ export async function launchNativeQualificationChild(
       } catch {
         return false
       }
-    })
+    }
+    boundCallbacks.captureOriginalDisconnect?.(() =>
+      loss ? deferNativeQualificationLossDisconnect(loss, disconnect) : disconnect(),
+    )
     if (abandoned) {
       stdout?.resume()
       stderr?.resume()
@@ -261,8 +360,16 @@ export async function launchNativeQualificationChild(
   }
   function stopOnce(): Promise<OwnedChildCleanupReceipt> {
     if (!stopFlight) {
+      if (loss) tightenNativeQualificationLossCleanup(loss, Date.now() + manifest.limits.cleanupMs)
       // Reserve the one flight before cleanup can synchronously notify a failing sink.
       stopFlight = Promise.resolve().then(cleanup)
+      if (loss && registeredChild) {
+        try {
+          captureNativeQualificationLossChildCleanup(loss, registeredChild, stopFlight)
+        } catch {
+          failNativeQualificationLoss(loss)
+        } // startup failure may precede runtime binding; original cleanup still runs
+      }
       void stopFlight.then(
         receipt => originalChild?.observer?.cleanup(receipt),
         () => originalChild?.observer?.fault(),
@@ -271,6 +378,9 @@ export async function launchNativeQualificationChild(
     return stopFlight
   }
   async function cleanup(): Promise<OwnedChildCleanupReceipt> {
+    const cleanupExpiresAt = loss
+      ? inspectNativeQualificationLoss(loss).cleanupDeadline
+      : Date.now() + manifest.limits.cleanupMs
     diagnostics?.record('CLEANUP', 'ENTERED')
     let groupExitObserved = false,
       expired = false
@@ -282,13 +392,25 @@ export async function launchNativeQualificationChild(
         groupExitObserved = true
       } else if (acquisitionEntered) throw new Error('Original acquisition unavailable')
     }
+    function cleanupExpired() {
+      return expired || (loss && Date.now() >= cleanupExpiresAt)
+    }
+    async function waitOriginalDrain() {
+      if (!drain) return true
+      return drain.wait(loss ? Math.max(0, cleanupExpiresAt - Date.now()) : manifest.limits.cleanupMs)
+    }
+    async function closeOriginalServices() {
+      if (cleanupExpired() || mcpFenceFailed) return false
+      if (!(await boundCallbacks.closeMcp())) return false
+      return waitOriginalDrain()
+    }
     async function originalCleanup(): Promise<OwnedChildCleanupReceipt> {
       try {
         fenceNative()
+        if (loss) await waitNativeQualificationLossPhysicalRelease(loss)
         await observeOriginalGroup()
-        if (expired || mcpFenceFailed || !(await boundCallbacks.closeMcp())) return uncertain(groupExitObserved)
-        if (drain && !(await drain.wait(manifest.limits.cleanupMs))) return uncertain(groupExitObserved)
-        if (expired) return uncertain(groupExitObserved)
+        if (!(await closeOriginalServices())) return uncertain(groupExitObserved)
+        if (cleanupExpired()) return uncertain(groupExitObserved)
         verifyNativeCredential(manifest.credentialSource)
         if (link) unlinkNativeCredential(link)
         await removeRoot()
@@ -303,13 +425,19 @@ export async function launchNativeQualificationChild(
       }
     }
     try {
+      const original = originalCleanup()
+      if (loss) retainNativeQualificationLossOperation(loss, original)
       const receipt = await Promise.race([
-        originalCleanup(),
+        original,
         new Promise<OwnedChildCleanupReceipt>(resolve => {
-          timer = setTimeout(() => {
-            expired = true
-            resolve(uncertain(groupExitObserved))
-          }, manifest.limits.cleanupMs)
+          timer = setTimeout(
+            () => {
+              expired = true
+              if (loss) failNativeQualificationLoss(loss)
+              resolve(uncertain(groupExitObserved))
+            },
+            loss ? Math.max(0, cleanupExpiresAt - Date.now()) : manifest.limits.cleanupMs,
+          )
         }),
       ])
       diagnostics?.record(
@@ -323,6 +451,7 @@ export async function launchNativeQualificationChild(
     }
   }
   diagnostics?.onFailure(() => {
+    if (loss) failNativeQualificationLoss(loss)
     abandoned = true
     fenceNative()
     // Existing original cleanup owns every physical action, including late acquisition.
@@ -388,6 +517,7 @@ export async function launchNativeQualificationChild(
         retainReadStreamsOnFence: true,
         onFault(reason) {
           preclaimPoison = true
+          closeStartup()
           diagnostics?.record('RPC_TRANSPORT', 'UNKNOWN', 'CHILD_FAULT')
           try {
             originalChild?.observer?.fault()
@@ -406,6 +536,46 @@ export async function launchNativeQualificationChild(
           }
         },
       },
+      {
+        assertAdmission: assertWireAdmission,
+        allocated() {},
+        notEmitted() {},
+        attempted() {},
+        ...(loss
+          ? {
+              written(metadata: Readonly<{ requestId: number; method: RpcRequestMethod }>) {
+                protocol.written(metadata.requestId, metadata.method)
+              },
+              beforeReply(metadata: Readonly<{ requestId: number; method: RpcRequestMethod }>) {
+                protocol.assertHealthy()
+                if (
+                  nativeQualificationLossKind(loss) === 'R2_NATIVE_START_ACK_LOSS' &&
+                  metadata.method === 'turn/start'
+                ) {
+                  withholdNativeQualificationStartReply(loss, originalTransport.owner, metadata.requestId)
+                  return false
+                }
+                return true
+              },
+              replyRefused() {
+                /* fixed proof is retained by the original loss controller, never inferred from errors */
+              },
+              deferPhysical(action: () => void) {
+                deferNativeQualificationLossPhysical(loss, action)
+              },
+            }
+          : {}),
+        beforeWrite() {
+          assertWireAdmission()
+          if (wireRequest?.method === 'thread/start') {
+            originalChild?.observer?.admitStartup?.()
+            closeStartup()
+          }
+          boundCallbacks.assertAdmission()
+          // Keep absolute deadlines/signals after closing the timer and window.
+          assertWireTime()
+        },
+      },
     )
     requireNativeDiagnostic(diagnostics, stage, 'SETTLED')
     const originalTransport = transport
@@ -422,6 +592,7 @@ export async function launchNativeQualificationChild(
       plan,
       diagnostics,
       transport: originalTransport,
+      closeStartup,
       handoffPreclaim(observer) {
         if (preclaimPoison) throw new Error('Incomplete native preclaim observation')
         // Original parsed frame objects only: no serialized evidence is imported or replayed as authority.
@@ -432,6 +603,7 @@ export async function launchNativeQualificationChild(
       Object.freeze({
         request(method: RpcRequestMethod, params: Record<string, unknown>, timeoutMs?: number, signal?: AbortSignal) {
           originalChild?.observer?.beforeRequest(method, params)
+          assertWireAdmission()
           const operation = originalTransport.request(method, params, timeoutMs, signal)
           originalChild?.observer?.operation(operation, method)
           return operation
@@ -441,7 +613,10 @@ export async function launchNativeQualificationChild(
           originalChild?.observer?.operation(operation, 'initialized')
           return operation
         },
-        fence: transport.fence.bind(transport),
+        fence(reason: string) {
+          closeStartup()
+          originalTransport.fence(reason)
+        },
         snapshot: transport.snapshot.bind(transport),
       }),
     )
@@ -452,6 +627,9 @@ export async function launchNativeQualificationChild(
       try {
         original = operation()
       } catch (error) {
+        closeStartup()
+        if (!expectedWithheldStart(method)) originalChild?.observer?.fault()
+        originalTransport.fence('native_protocol_request_refused')
         diagnostics?.record(requestStage, 'REFUSED', 'REQUEST_REJECTED')
         throw error
       }
@@ -460,19 +638,85 @@ export async function launchNativeQualificationChild(
           diagnostics?.record(requestStage, 'SETTLED')
         },
         () => {
+          closeStartup()
+          if (!expectedWithheldStart(method)) originalChild?.observer?.fault()
+          originalTransport.fence('native_protocol_request_refused')
           diagnostics?.record(requestStage, 'REFUSED', 'REQUEST_REJECTED')
         },
       )
       return original
     }
+    function beginInitialization(method: RpcRequestMethod, deadline: number, signal?: AbortSignal) {
+      if (method !== 'initialize') return
+      startupDeadline = deadline
+      startupSignal = signal
+      if (originalChild?.observer?.startupReady) {
+        startupTimer = setTimeout(startupExpired, Math.max(0, startupDeadline - Date.now()))
+        startupSignal?.addEventListener('abort', startupExpired, { once: true })
+        if (startupSignal?.aborted) startupExpired()
+      }
+    }
+    function snapshotRequest(params: Record<string, unknown>, deadline: number, signal?: AbortSignal) {
+      const snapshot = captureNativeRequestSnapshot(params)
+      if (Date.now() >= deadline || signal?.aborted) throw new Error('Native request entry budget expired')
+      return snapshot
+    }
     const child: OwnedFixtureChild = Object.freeze({
       transportId: boundCallbacks.transportId,
       transport: Object.freeze({
         request(method: RpcRequestMethod, params: Record<string, unknown>, timeoutMs?: number, signal?: AbortSignal) {
-          return observedOperation(method, () => protocolTransport.request(method, params, timeoutMs, signal))
+          const entered = Date.now()
+          const requestDeadline = Math.min(
+            caseDeadline,
+            entered + Math.min(timeoutMs ?? manifest.limits.requestMs, manifest.limits.requestMs),
+          )
+          return observedOperation(method, async () => {
+            if (requestActive) throw new Error('Native request already active')
+            requestActive = true
+            try {
+              beginInitialization(method, requestDeadline, signal)
+              const snapshot = snapshotRequest(params, requestDeadline, signal)
+              // Waiting occurs before the protocol or raw transport can register an unsent reply ID.
+              if (method === 'thread/start' && originalChild?.observer?.startupReady) {
+                if (!startupDeadline) throw new Error('Native startup deadline unavailable')
+                await originalChild.observer.startupReady(Math.min(startupDeadline, requestDeadline), signal)
+                verifyNativeQualificationPlan(plan)
+              }
+              wireRequest = { method, deadline: requestDeadline, signal }
+              let operation: Promise<unknown>
+              try {
+                assertWireAdmission()
+                operation = protocolTransport.request(method, snapshot, requestDeadline - Date.now(), signal)
+              } finally {
+                // Every raw write is synchronous; no scheduled continuation retains this capability.
+                wireRequest = undefined
+              }
+              return await operation
+            } catch {
+              closeStartup()
+              if (!expectedWithheldStart(method)) originalChild?.observer?.fault()
+              originalTransport.fence('native_startup_or_request_refused')
+              throw new Error('Native original request refused')
+            } finally {
+              requestActive = false
+            }
+          })
         },
         notifyInitialized() {
-          return observedOperation('initialized', () => protocolTransport.notifyInitialized())
+          const entered = Date.now()
+          return observedOperation('initialized', () => {
+            wireRequest = {
+              method: 'initialized',
+              deadline: Math.min(caseDeadline, entered + manifest.limits.requestMs),
+              signal: startupSignal,
+            }
+            try {
+              assertWireAdmission()
+              return protocolTransport.notifyInitialized()
+            } finally {
+              wireRequest = undefined
+            }
+          })
         },
         fence: protocolTransport.fence,
         snapshot: protocolTransport.snapshot,
@@ -484,7 +728,9 @@ export async function launchNativeQualificationChild(
     })
     stage = 'CHILD_REGISTER'
     requireNativeDiagnostic(diagnostics, stage)
+    registeredChild = child
     originalNativeChildren.set(child, originalChild)
+    if (loss) bindNativeQualificationLossParser(loss, originalTransport.owner, protocol.consumeTurnStartReceipt)
     requireNativeDiagnostic(diagnostics, stage, 'SETTLED')
     return child
   } catch {

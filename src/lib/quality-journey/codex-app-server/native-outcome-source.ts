@@ -1,4 +1,6 @@
 import { randomUUID } from 'node:crypto'
+import { inspectNativeQualificationLoss, type NativeQualificationLossControl } from './native-qualification-loss'
+import { NativeStartupMetadata } from './native-startup-metadata'
 import type { PrismaClient } from '@prisma/client'
 import { canonicalOutcomeJson, outcomeDigest } from './outcome-source-contract'
 import {
@@ -52,6 +54,10 @@ import { readNativeOutcomeCommittedReplay, type NativeOutcomeReplay } from './na
 
 const uuid = (value: unknown): value is string =>
   typeof value === 'string' && /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(value)
+// Pinned ThreadId::new generates v7; retain the previously admitted v4 native representation.
+// Review nonces and domain identities continue using their separate v4 contracts.
+const nativeThreadUuid = (value: unknown): value is string =>
+  typeof value === 'string' && /^[a-f0-9]{8}-[a-f0-9]{4}-[47][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(value)
 const record = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === 'object' && !Array.isArray(value)
 const sources = new WeakMap<ProviderPhysicalOutcomeSource, OriginalNativeOutcome>()
@@ -82,6 +88,7 @@ export type NativeOutcomeCandidateOptions = Readonly<{
   transportId: string
   reviewControl: NativeOutcomeReviewControl
   diagnostics?: NativeDiagnosticObserver
+  qualificationLoss?: NativeQualificationLossControl
 }>
 function fail(): never {
   throw new Error('Original native outcome remains unreconciled UNKNOWN')
@@ -104,7 +111,9 @@ class OriginalNativeOutcome {
   #sdkCleanup: Operation[] = []
   #supervisorStop: Operation[] = []
   #sdkCloseCaptured = false
+  #startup = new NativeStartupMetadata()
   #poison = false
+  #passivePoison = false
   #cleaned = false
   #sdkClosed = false
   #requests = 0
@@ -153,7 +162,7 @@ class OriginalNativeOutcome {
       fail()
     this.options = Object.freeze({ ...options, reviewControl: control })
     options.diagnostics?.onFailure(() => {
-      this.#poison = true
+      this.#poisonSource()
     })
     this.initialIdentity = Object.freeze({
       runId: options.permit.runId,
@@ -187,6 +196,11 @@ class OriginalNativeOutcome {
     await this.journal.initialize()
     this.#domain = await proveProviderSourceNativeConnectionDomain(this.options.database, this.scope)
   }
+  #poisonSource() {
+    this.#poison = true
+    this.#startup.close()
+    this.#child?.fence()
+  }
   #healthy() {
     if (this.#poison || this.#revoked) fail()
     inspectNativeOutcomeProfile(this.options.profile)
@@ -207,7 +221,7 @@ class OriginalNativeOutcome {
       list.some(item => item.promise === promise) ||
       this.#cleaned
     ) {
-      this.#poison = true
+      this.#poisonSource()
       fail()
     }
     const operation = { promise, observation: undefined as unknown as Promise<void>, settled: false }
@@ -215,14 +229,14 @@ class OriginalNativeOutcome {
       .then(
         value => {
           try {
-            if (this.#cleaned && list !== this.#supervisorStop) this.#poison = true
+            if (this.#cleaned && list !== this.#supervisorStop) this.#poisonSource()
             fulfilled?.(value)
           } catch {
-            this.#poison = true
+            this.#poisonSource()
           }
         },
         () => {
-          this.#poison = true
+          this.#poisonSource()
         },
       )
       .then(() => {
@@ -238,11 +252,31 @@ class OriginalNativeOutcome {
       this.#healthy()
       if (this.#child) fail()
       this.#child = claimOriginalNativeQualificationChild(child, this.profile.plan, {
+        closeStartup: () => this.#startup.close(),
+        assertSendAdmission: () => {
+          this.#healthy()
+          assertProviderSendPermitOwned(this.options.permit)
+        },
+        admitStartup: () => this.#startup.admit(),
+        validatedInitialize: () => this.#startup.validatedInitialize(),
+        startupReady: async (deadline, signal) => {
+          try {
+            this.#healthy()
+            assertProviderSendPermitOwned(this.options.permit)
+            await this.#startup.wait(deadline, signal)
+            this.#healthy()
+            assertProviderSendPermitOwned(this.options.permit)
+          } catch {
+            this.#poisonSource()
+            fail()
+          }
+        },
         beforeRequest: (method, params) => this.#beforeRequest(method, params),
         operation: (promise, method) => this.#observe(promise, this.#operations, value => this.#reply(method, value)),
         notification: (method, params) => this.#notification(method, params),
         fault: () => {
-          this.#poison = true
+          this.#passivePoison = true
+          this.#poisonSource()
         },
         cleanup: receipt => {
           if (
@@ -251,7 +285,8 @@ class OriginalNativeOutcome {
             !receipt.groupExitObserved ||
             !receipt.privateRootRemoved
           )
-            this.#poison = true
+            this.#poisonSource()
+          this.#startup.close()
           this.#cleaned = true
         },
       })
@@ -272,18 +307,26 @@ class OriginalNativeOutcome {
       throw error
     }
   }
-  #beforeRequest(method: RpcRequestMethod, params: Record<string, unknown>) {
+  #admitRequestSequence(method: RpcRequestMethod) {
     if (
       this.#poison ||
+      this.#revoked ||
       this.#cleaned ||
       this.#requests >= requestSequence.length ||
       method !== requestSequence[this.#requests++]
     ) {
-      this.#poison = true
+      this.#poisonSource()
       fail()
     }
+  }
+  #beforeRequest(method: RpcRequestMethod, params: Record<string, unknown>) {
+    this.#admitRequestSequence(method)
     this.#requestShape(method, params)
     if (method === 'thread/start') {
+      if (!this.#initialized) fail()
+      this.#healthy()
+      assertProviderSendPermitOwned(this.options.permit)
+      this.#startup.assertReady()
       const expected = { ephemeral: true, model: 'gpt-6.1-sol', sandbox: 'read-only', approvalPolicy: 'never' }
       if (Object.entries(expected).some(([key, value]) => params[key] !== value)) fail()
     }
@@ -326,6 +369,7 @@ class OriginalNativeOutcome {
       return
     }
     if (!record(value)) fail()
+    if (method === 'initialize') this.#startup.settledInitialize()
     if (method === 'config/read') this.#configurationReply(value)
     if (method === 'thread/start') this.#threadReply(value.thread)
     if (method === 'turn/start') this.#turnReply(value.turn)
@@ -334,6 +378,7 @@ class OriginalNativeOutcome {
     const captured = inspectNativeQualificationPlan(this.profile.plan)
     if (!verifyNativeQualificationConfiguration(value, captured.manifest, captured.capability)) fail()
     this.#privateStateHome(value.config, `${captured.manifest.freshRoot}/codex-home`)
+    this.#startup.verifiedConfiguration()
   }
   #privateStateHome(config: unknown, privateHome: string) {
     if (!record(config)) fail()
@@ -345,7 +390,7 @@ class OriginalNativeOutcome {
   #threadReply(thread: unknown) {
     if (
       !record(thread) ||
-      !uuid(thread.id) ||
+      !nativeThreadUuid(thread.id) ||
       thread.ephemeral !== true ||
       !Array.isArray(thread.turns) ||
       thread.turns.length
@@ -371,20 +416,34 @@ class OriginalNativeOutcome {
     this.#recordNotificationRefusal(method, reason)
     return fail()
   }
+  #canDrainExpectedLoss() {
+    const loss = this.options.qualificationLoss
+      ? inspectNativeQualificationLoss(this.options.qualificationLoss).proof
+      : undefined
+    return loss?.VALIDATED && !loss.UNPROVEN && !this.#passivePoison
+  }
   #notification(method: string, params: Record<string, unknown>) {
     try {
+      const lossCapture = this.#canDrainExpectedLoss()
+      // Expected loss never restores outcome authority; passive semantic validation still drains to EOF.
+      if ((this.#poison && !lossCapture) || this.#revoked) fail()
       if (this.#cleaned) this.#refuseNotification(method, 'NOTIFICATION_AFTER_CLEANUP')
       if (this.#candidate) this.#refuseNotification(method, 'NOTIFICATION_AFTER_CANDIDATE')
       if (++this.#notificationCount > 8192) this.#refuseNotification(method, 'NOTIFICATION_LIMIT_EXCEEDED')
       this.#dispatchNotification(method, params)
     } catch {
       this.#recordNotificationRefusal(method, 'SOURCE_NOTIFICATION_REFUSED')
-      this.#poison = true
+      this.#passivePoison = true
+      this.#poisonSource()
       fail()
     }
   }
   #dispatchNotification(method: string, params: Record<string, unknown>) {
+    if (method === 'configWarning' || method === 'account/updated') return this.#startup.notification(method, params)
     if (method === 'remoteControl/status/changed') return this.#remoteStatus(params)
+    this.#dispatchCorrelatedNotification(method, params)
+  }
+  #dispatchCorrelatedNotification(method: string, params: Record<string, unknown>) {
     if ('threadId' in params && params.threadId !== this.#threadId)
       this.#refuseNotification(method, 'THREAD_SCOPE_MISMATCH')
     if (method === 'thread/started') return this.#threadNotification(params)
@@ -406,7 +465,8 @@ class OriginalNativeOutcome {
     if (Array.isArray(status.activeFlags) && status.activeFlags.length > 0) fail()
   }
   #threadNotification(params: Record<string, unknown>) {
-    if (this.#threadStarted || this.#requests < 3 || !record(params.thread) || !uuid(params.thread.id)) fail()
+    if (this.#threadStarted || this.#requests < 3 || !record(params.thread) || !nativeThreadUuid(params.thread.id))
+      fail()
     if (this.#threadId && this.#threadId !== params.thread.id)
       this.#refuseNotification('thread/started', 'THREAD_SCOPE_MISMATCH')
     this.#threadStarted = true
@@ -454,13 +514,13 @@ class OriginalNativeOutcome {
   }
   captureSdkClose(original: Promise<Readonly<{ closed: boolean; effectUnknown: boolean }>>) {
     if (this.#sdkCloseCaptured) {
-      this.#poison = true
+      this.#poisonSource()
       fail()
     }
     this.#sdkCloseCaptured = true
     this.#observe(original, this.#sdkCleanup, value => {
       if (!record(value) || value.closed !== true || value.effectUnknown !== false) {
-        this.#poison = true
+        this.#poisonSource()
         return
       }
       this.#sdkClosed = true
@@ -469,10 +529,15 @@ class OriginalNativeOutcome {
   captureSupervisorStop(original: Promise<unknown>) {
     this.#observe(original, this.#supervisorStop)
   }
-  async freezeCandidate() {
+  #beginFreeze() {
+    if (this.options.qualificationLoss) fail()
+    this.#startup.close()
     if (this.#freezeEntered) fail()
     this.#freezeEntered = true
     if (this.#supervisorStop.length !== 1) fail()
+  }
+  async freezeCandidate() {
+    this.#beginFreeze()
     await this.#supervisorStop[0].observation
     this.#healthy()
     if (this.#candidate || !this.#child || !this.#threadId || !this.#turnId) fail()
@@ -625,6 +690,7 @@ class OriginalNativeOutcome {
     return this.#physical
   }
   revoke() {
+    this.#poisonSource()
     this.#revoked = true
   }
   acquire(
@@ -682,12 +748,14 @@ class OriginalNativeOutcome {
       completeFulfilled: () =>
         hold.complete(() => {
           original.completed = true
+          this.#startup.close()
           this.#revoked = true
         }),
       retire: operation => {
         this.#replay!.retired = true
         this.#replay!.operation = operation
         hold.retire(operation)
+        this.#startup.close()
         this.#revoked = true
       },
       tryResolveCommittedReplay: () => this.replay(client, request.observationKey, request.requestHash),

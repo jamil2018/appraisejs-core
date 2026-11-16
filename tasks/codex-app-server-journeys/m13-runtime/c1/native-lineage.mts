@@ -3,7 +3,13 @@ import type { PrismaClient } from '@prisma/client'
 import { prepareM10AutomationFixture, type M10OfflineDispatchEvent } from '../../../../src/test/m10-journey-fixture'
 import { createQualityJourneyDiscoveryBrowserRuntime } from '../../../../src/services/coordinator/quality-journey-discovery-browser-runtime'
 import { trustedHumanCoordinatorSession } from '../../../../src/services/coordinator/quality-journey-coordinator-session'
-import { answerQualityJourneyAnalysisQuestion } from '../../../../src/services/coordinator/quality-journey-analysis-service'
+import {
+  answerQualityJourneyAnalysisQuestion,
+  getQualityJourneyAnalysis,
+} from '../../../../src/services/coordinator/quality-journey-analysis-service'
+import { pauseQualityJourneyOperational } from '../../../../src/services/coordinator/quality-journey-recovery-service'
+import { getQualityJourney } from '../../../../src/services/coordinator/quality-journey-service'
+import { recoveryPauseSchema } from './recovery-case.mts'
 import {
   observeQualityJourneyAnalysisFollowupInTransaction,
   claimExternalQualityJourneyAnalysisFollowup,
@@ -72,6 +78,9 @@ export function createNativeJourneyLineage(baseUrl?: string, workspaceParent?: s
   const browser = deferred<NativeDiscoveryBoundary>()
   const browserRelease = deferred<void>()
   let stopped = false,
+    recoveryFenced = false,
+    recoveryRetained = false,
+    fixtureDisconnected = false,
     followupClaimed = false,
     browserEntered = false
   let failure: string | null = null
@@ -80,7 +89,7 @@ export function createNativeJourneyLineage(baseUrl?: string, workspaceParent?: s
   const answerId = `m13-scripted-answer-${randomUUID()}`
 
   function assertActive() {
-    if (stopped) throw new Error('Original native lineage stopped; evidence retained')
+    if (stopped || recoveryFenced) throw new Error('Original native lineage stopped; evidence retained')
   }
   function publish(event: NativeLineageEvent) {
     assertActive()
@@ -88,7 +97,7 @@ export function createNativeJourneyLineage(baseUrl?: string, workspaceParent?: s
     next.resolve(event)
   }
   async function dispatch(event: M10OfflineDispatchEvent) {
-    if (stopped) throw new Error('Original native lineage stopped')
+    if (stopped || recoveryFenced) throw new Error('Original native lineage stopped')
     const args = nativeProducerArguments(event)
     const kind = event.binding.role === 'REQUIREMENT_ANALYZER' ? 'ANALYSIS_INITIAL' : event.binding.role
     if (kind === 'TRIAGER') throw new Error('Real execution and Triager preparation are separately required')
@@ -286,10 +295,85 @@ export function createNativeJourneyLineage(baseUrl?: string, workspaceParent?: s
       if (!fixture) throw new Error('Original disposable fixture unavailable')
       return fixture
     },
+    fenceRecoveryAdmission() {
+      recoveryFenced = true
+    },
+    async readOriginalRecoveryScope() {
+      if (!fixture || !current || stopped || fixtureDisconnected)
+        throw new Error('Original recovery fixture unavailable')
+      const b = current.original.binding
+      const snapshot = await getQualityJourney(
+        { journeyId: b.journeyId, targetProjectId: b.targetProjectId },
+        fixture.client,
+      )
+      const analysis = await getQualityJourneyAnalysis(
+        { journeyId: b.journeyId, targetProjectId: b.targetProjectId },
+        fixture.client,
+      )
+      return {
+        version: snapshot.journey.version,
+        stateHash: snapshot.journey.stateHash,
+        canonicalAcceptanceObserved: analysis.revisions.length > 0,
+      }
+    },
+    async pauseOriginalRecovery(input: unknown) {
+      const parsed = recoveryPauseSchema.parse(input)
+      if (!fixture || !current || !recoveryFenced || stopped || fixtureDisconnected)
+        throw new Error('Original recovery pause fixture unavailable')
+      const b = current.original.binding
+      if (parsed.caseKind === 'R1_ACKNOWLEDGED_NATIVE_INTERRUPTION') {
+        const analysis = await getQualityJourneyAnalysis(
+          { journeyId: b.journeyId, targetProjectId: b.targetProjectId },
+          fixture.client,
+        )
+        if (analysis.revisions.length > 0) throw new Error('R1 canonical Analysis acceptance already exists')
+      }
+      return pauseQualityJourneyOperational(
+        {
+          journeyId: b.journeyId,
+          targetProjectId: b.targetProjectId,
+          expectedVersion: parsed.expectedVersion,
+          expectedStateHash: parsed.expectedStateHash,
+          idempotencyKey: parsed.idempotencyKey,
+          reason: `SCRIPTED_DISPOSABLE_TEST_HUMAN:${parsed.caseKind === 'R1_ACKNOWLEDGED_NATIVE_INTERRUPTION' ? 'M13_R1' : 'M13_R3'}`,
+        },
+        fixture.client,
+      )
+    },
+    async stopRecoveryAndRetainOriginalClient() {
+      if (!recoveryFenced || fixtureDisconnected) throw new Error('Original recovery retention boundary required')
+      stopped = true
+      const reason = new Error('Original recovery lineage fenced; evidence retained')
+      originalSubmission?.reject(reason)
+      browserRelease.reject(reason)
+      next.reject(reason)
+      if (fixtureFlight) await fixtureFlight.catch(() => {})
+      recoveryRetained = true
+    },
+    async checkpointOriginalRecoveryAndDisconnect() {
+      if (!fixture || !stopped || !recoveryRetained || fixtureDisconnected)
+        throw new Error('Original retained recovery client required')
+      // No fixture operation can re-enter after the rejected original flight settled above.
+      const rows = await fixture.client.$queryRawUnsafe<
+        Array<{ busy: number | bigint; log: number | bigint; checkpointed: number | bigint }>
+      >('PRAGMA wal_checkpoint(TRUNCATE)')
+      if (
+        rows.length !== 1 ||
+        Number(rows[0].busy) !== 0 ||
+        ![Number(rows[0].log), Number(rows[0].checkpointed)].every(value => Number.isSafeInteger(value) && value >= -1)
+      )
+        throw new Error('Original fixture checkpoint unproven')
+      await fixture.client.$disconnect()
+      fixtureDisconnected = true
+      return { busy: 0 as const, activeTransactions: 0 as const, disconnected: true as const }
+    },
     snapshot: () =>
       Object.freeze({
         failure,
         stopped,
+        recoveryFenced,
+        recoveryRetained,
+        fixtureDisconnected,
         currentKind: current?.kind ?? null,
         browserEntered,
         persona: scriptedDisposableHuman,
@@ -303,8 +387,11 @@ export function createNativeJourneyLineage(baseUrl?: string, workspaceParent?: s
       browserRelease.reject(reason)
       next.reject(reason)
       if (fixtureFlight) await fixtureFlight.catch(() => {})
-      if (fixture) await fixture.client.$disconnect()
-      return Object.freeze({ databaseRetained: true as const, originalClientDisconnected: !!fixture })
+      if (fixture && !recoveryRetained) {
+        await fixture.client.$disconnect()
+        fixtureDisconnected = true
+      }
+      return Object.freeze({ databaseRetained: true as const, originalClientDisconnected: fixtureDisconnected })
     },
   })
 }

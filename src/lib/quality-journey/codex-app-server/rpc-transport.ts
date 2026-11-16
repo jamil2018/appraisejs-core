@@ -36,6 +36,12 @@ export function inspectRpcTransportSeal(seal: RpcTransportSeal) {
 /** Trusted internal accounting only; callbacks cannot authorize or perform a handoff. */
 export type RpcTransportObservation = Readonly<{
   assertAdmission?: () => void
+  /** Trusted original-owner closure, after serialization and final admission, immediately before stdin. */
+  beforeWrite?: () => void
+  written?: (metadata: Readonly<{ requestId: number; method: RpcRequestMethod }>) => void
+  beforeReply?: (metadata: Readonly<{ requestId: number; method: RpcRequestMethod }>) => boolean
+  replyRefused?: (metadata: Readonly<{ requestId: number; method: RpcRequestMethod }>) => void
+  deferPhysical?: (originalAction: () => void) => void
   allocated: (id: number) => void
   notEmitted: (id: number) => void
   attempted: (range: Readonly<{ requestId: number | null; start: number; end: number; rawDigest: string }>) => void
@@ -69,7 +75,9 @@ class RpcTransportError extends Error {
 }
 
 type Pending = {
-  id: number
+  readonly id: number
+  readonly method: RpcRequestMethod
+  replySeen: boolean
   resolve: (value: unknown) => void
   reject: (error: Error) => void
   timer: ReturnType<typeof setTimeout>
@@ -192,6 +200,8 @@ export class RpcTransport {
       removeAbort = () => signal?.removeEventListener('abort', onAbort)
       this.#pending = {
         id,
+        method,
+        replySeen: false,
         resolve,
         reject,
         timer: setTimeout(() => this.#fault('request_timeout'), duration),
@@ -200,7 +210,7 @@ export class RpcTransport {
       signal?.addEventListener('abort', onAbort, { once: true })
     })
     // The only write starts synchronously here. Drain continuations never resend bytes.
-    const write = this.#write(frame, duration, id)
+    const write = this.#write(frame, duration, id, method)
     return Promise.all([response, write])
       .then(([value]) => value)
       .catch(error => {
@@ -275,7 +285,15 @@ export class RpcTransport {
     this.#open = false
     // Reasons are locally selected codes; never retain arbitrary provider/caller text.
     this.#reason = /^[a-z][a-z0-9_]{0,63}$/.test(reason) ? reason : 'fenced'
-    this.#stdin.destroy()
+    const physical = () => {
+      this.#stdin.destroy()
+      if (!this.#options.retainReadStreamsOnFence) {
+        this.#stdout.destroy()
+        this.#stderr.destroy()
+      }
+    }
+    if (this.#observation?.deferPhysical) this.#observation.deferPhysical(physical)
+    else physical()
     this.#cancelWrite?.(this.#reason)
     if (this.#pending) {
       const pending = this.#pending
@@ -283,12 +301,13 @@ export class RpcTransport {
       clearTimeout(pending.timer)
       pending.removeAbort()
       pending.reject(new RpcTransportError(this.#reason))
+      try {
+        this.#observation?.replyRefused?.(Object.freeze({ requestId: pending.id, method: pending.method }))
+      } catch {
+        /* admission is already closed */
+      }
     }
     this.#frame = Buffer.alloc(0)
-    if (!this.#options.retainReadStreamsOnFence) {
-      this.#stdout.destroy()
-      this.#stderr.destroy()
-    }
   }
 
   get owner(): RpcTransportOwner {
@@ -338,7 +357,9 @@ export class RpcTransport {
   }
 
   #encode(value: Record<string, unknown>): Buffer {
-    const frame = Buffer.from(`${JSON.stringify(value)}\n`, 'utf8')
+    // This envelope is transport-owned. Caller params retain their generic serializer semantics.
+    const envelope: Record<string, unknown> = Object.assign(Object.create(null), value)
+    const frame = Buffer.from(`${JSON.stringify(envelope)}\n`, 'utf8')
     if (frame.length - 1 > this.#maxFrameBytes) throw new RpcTransportError('outbound_frame_limit')
     return frame
   }
@@ -366,7 +387,7 @@ export class RpcTransport {
     }
   }
 
-  #write(frame: Buffer, duration: number, requestId: number | null = null): Promise<void> {
+  #write(frame: Buffer, duration: number, requestId: number | null = null, method?: RpcRequestMethod): Promise<void> {
     return new Promise((resolve, reject) => {
       this.#assertWriteAdmission(frame, requestId)
       this.#writing = true
@@ -403,9 +424,7 @@ export class RpcTransport {
         this.#observe(() =>
           this.#observation?.attempted(Object.freeze({ requestId, start, end: this.#writtenBytes, rawDigest })),
         )
-        // An observer may synchronously close admission or seal the original gate.
-        this.#observation?.assertAdmission?.()
-        if (!this.#open) return finish(new RpcTransportError('fenced'))
+        if (!this.#admitPhysicalWrite()) return finish(new RpcTransportError('fenced'))
         const accepted = this.#stdin.write(frame, error => {
           if (error) {
             this.#fault('write_callback_error')
@@ -415,6 +434,7 @@ export class RpcTransport {
             finish()
           }
         })
+        this.#recordWritten(requestId, method)
         returned = true
         if (accepted) drainDone = true
         finish()
@@ -423,6 +443,18 @@ export class RpcTransport {
         finish(new RpcTransportError('write_error'))
       }
     })
+  }
+
+  #admitPhysicalWrite(): boolean {
+    // An observer may synchronously close admission or seal the original gate.
+    this.#observation?.assertAdmission?.()
+    if (!this.#open) return false
+    if (this.#observation?.beforeWrite?.() !== undefined) throw new RpcTransportError('invalid_write_gate')
+    return this.#open
+  }
+  #recordWritten(requestId: number | null, method: RpcRequestMethod | undefined) {
+    if (this.#open && requestId !== null && method)
+      this.#observe(() => this.#observation?.written?.(Object.freeze({ requestId, method })))
   }
 
   #consume(chunk: unknown): void {
@@ -477,9 +509,31 @@ export class RpcTransport {
 
   #handleReply(message: Record<string, unknown>): void {
     const pending = this.#pending
-    if (!pending || message.id !== pending.id) return this.#fault('reply_correlation')
+    if (!pending || message.id !== pending.id || pending.replySeen) return this.#fault('reply_correlation')
     const invalid = replyFault(message)
     if (invalid) return this.#fault(invalid)
+    pending.replySeen = true
+    const settle = () => this.#settleReply(pending, message)
+    // Controlled settlement sees the whole current chunk and never acknowledges an unwritten request.
+    if (this.#observation?.beforeReply) queueMicrotask(settle)
+    else settle()
+  }
+  #admitReply(pending: Pending): boolean {
+    const metadata = Object.freeze({ requestId: pending.id, method: pending.method })
+    try {
+      if (this.#observation?.beforeReply && !this.#observation.beforeReply(metadata)) {
+        this.#fence('reply_withheld')
+        return false
+      }
+    } catch {
+      this.#fault('reply_observer_refused')
+      return false
+    }
+    return this.#open && this.#pending === pending
+  }
+  #settleReply(pending: Pending, message: Record<string, unknown>) {
+    if (!this.#open || this.#pending !== pending) return
+    if (!this.#admitReply(pending)) return
     this.#pending = undefined
     clearTimeout(pending.timer)
     if (Object.hasOwn(message, 'error')) {

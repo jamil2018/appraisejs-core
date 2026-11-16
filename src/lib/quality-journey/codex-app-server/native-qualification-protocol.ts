@@ -44,6 +44,8 @@ export function createNativeQualificationProtocol(
   const mcpItems = new Map<string, string>()
   const issued = new Map<number, keyof typeof responses>()
   const replies = new Set<number>()
+  const written = new Map<number, string>()
+  const startReceipts = new Set<number>()
   let nextRequest = 0
   function refuse(): never {
     poisoned = true
@@ -70,7 +72,13 @@ export function createNativeQualificationProtocol(
     mcpItem(value)
   }
   function turn(value: unknown) {
-    if (!record(value) || !Array.isArray(value.items)) refuse()
+    if (
+      !record(value) ||
+      !Array.isArray(value.items) ||
+      typeof value.id !== 'string' ||
+      !/^[A-Za-z0-9._:-]{1,200}$/.test(value.id)
+    )
+      refuse()
     if (turnId && value.id !== turnId) refuse()
     turnId = String(value.id)
     for (const nested of value.items) item(nested)
@@ -113,6 +121,11 @@ export function createNativeQualificationProtocol(
     healthy()
     if (!validators.get(name)?.(value)) refuse()
   }
+  function inspectTurnStartResult(id: number, result: unknown) {
+    if (!record(result) || !record(result.turn)) refuse()
+    turn(result.turn)
+    if (result.turn.status === 'inProgress' && result.turn.error == null) startReceipts.add(id)
+  }
   function passiveReply(value: Record<string, unknown>) {
     const id = value.id
     if (typeof id !== 'number' || !Number.isSafeInteger(id)) refuse()
@@ -124,13 +137,24 @@ export function createNativeQualificationProtocol(
       return
     }
     validate(responses[issued.get(id)!], value.result)
+    if (issued.get(id) === 'turn/start') inspectTurnStartResult(id, value.result)
+    return issued.get(id) === 'initialize'
   }
   return Object.freeze({
+    assertHealthy: healthy,
+    written(requestId: number, method: RpcRequestMethod) {
+      healthy()
+      if (issued.get(requestId) !== method || written.has(requestId)) refuse()
+      written.set(requestId, method)
+    },
+    consumeTurnStartReceipt(requestId: number) {
+      healthy()
+      if (written.get(requestId) !== 'turn/start' || !startReceipts.delete(requestId)) refuse()
+    },
     passiveFrame(value: unknown) {
       if (!record(value)) refuse()
       if (Object.hasOwn(value, 'id')) {
-        passiveReply(value)
-        return
+        return passiveReply(value) === true ? 'INITIALIZE_VALIDATED' : undefined
       }
       if (typeof value.method !== 'string' || !record(value.params)) refuse()
       validate('ServerNotification.json', value)

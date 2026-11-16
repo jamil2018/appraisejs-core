@@ -27,6 +27,7 @@ import {
 } from '../provider-reconciliation-contract'
 import { canonicalOutcomeJson, outcomeDigest } from './outcome-source-contract'
 import { RpcTransport } from './rpc-transport'
+import { nativeStartupWarning } from './native-startup-metadata'
 
 const fake = vi.hoisted(() => ({
   claim: vi.fn(),
@@ -37,6 +38,11 @@ const fake = vi.hoisted(() => ({
   domain: vi.fn(),
   hold: vi.fn(),
   replay: vi.fn(),
+  loss: vi.fn(),
+}))
+vi.mock('./native-qualification-loss', async importOriginal => ({
+  ...(await importOriginal<typeof import('./native-qualification-loss')>()),
+  inspectNativeQualificationLoss: fake.loss,
 }))
 vi.mock('./native-qualification-child', () => ({ claimOriginalNativeQualificationChild: fake.claim }))
 vi.mock('./native-outcome-profile', async importOriginal => ({
@@ -92,8 +98,14 @@ async function fixture(
     pendingFinalWrite?: boolean
     changedControl?: boolean
     wrongOwner?: boolean
+    threadId?: string
+    threadNotificationId?: string
+    nonce?: string
+    loss?: boolean
   } = {},
 ) {
+  if (options.loss)
+    fake.loss.mockReturnValue({ proof: { VALIDATED: false, WITHHELD: false, PAUSE_COMMITTED: false, UNPROVEN: false } })
   const permit =
     options.permit ??
     createProviderSendPermit(
@@ -142,9 +154,19 @@ async function fixture(
   transports.push(raw)
   fake.claim.mockImplementation((_child, _plan, captured) => {
     observer = captured
-    return { owner: raw.owner, snapshot: () => raw.snapshot(), sealSender: () => raw.sealSender() }
+    return {
+      fence: () => raw.fence('source_poison'),
+      owner: raw.owner,
+      snapshot: () => raw.snapshot(),
+      sealSender: () => raw.sealSender(),
+    }
   })
-  const control = { reviewerId: 'independent-reviewer', nonce: randomUUID(), reviewMs: 10000, reconciliationMs: 10000 }
+  const control = {
+    reviewerId: 'independent-reviewer',
+    nonce: options.nonce ?? randomUUID(),
+    reviewMs: 10000,
+    reconciliationMs: 10000,
+  }
   fake.profile.mockReturnValue({
     profileDigest: digest,
     dossierDigest: `sha256:${'b'.repeat(64)}`,
@@ -161,18 +183,26 @@ async function fixture(
     transportId,
     reviewControl: options.changedControl ? { ...control, reviewMs: control.reviewMs + 1 } : control,
     diagnostics: options.diagnostics,
+    qualificationLoss: options.loss ? ({} as never) : undefined,
   })
   candidate.attach({} as OwnedFixtureChild)
-  const threadId = randomUUID(),
+  const threadId = options.threadId ?? randomUUID(),
     turnId = randomUUID()
   async function send(
     method: Parameters<NativeChildOutcomeObserver['beforeRequest']>[0],
     params: Record<string, unknown>,
     response: unknown,
   ) {
+    if (method === 'thread/start') await observer.startupReady!(Date.now() + 1000)
     observer.beforeRequest(method, params)
+    if (method === 'thread/start') observer.admitStartup!()
     const operation = raw.request(method, params)
     observer.operation(operation, method)
+    if (method === 'initialize') observer.validatedInitialize!()
+    if (method === 'thread/start' && options.threadNotificationId !== undefined)
+      observer.notification('thread/started', {
+        thread: { id: options.threadNotificationId, ephemeral: true, turns: [] },
+      })
     stdout.write(`${JSON.stringify({ id: raw.snapshot().issuedRequests, result: response })}\n`)
     await operation
     await Promise.resolve()
@@ -184,6 +214,8 @@ async function fixture(
       { capabilities: { experimentalApi: false }, clientInfo: { name: 'appraise-journey-supervisor', version: '1' } },
       {},
     )
+    observer.notification('configWarning', { summary: nativeStartupWarning })
+    observer.notification('account/updated', { authMode: 'chatgpt', planType: 'unknown' })
     const initialized = raw.notifyInitialized()
     observer.operation(initialized, 'initialized')
     await initialized
@@ -641,7 +673,8 @@ describe('source-only fixed passive predicates preserve rejection policy and cou
     for (let index = 0; index < 32; index++)
       expect(() =>
         f.observer().notification('remoteControl/status/changed', { status: 'disabled', environmentId: null }),
-      ).not.toThrow()
+      ).toThrow()
+    expect(f.raw.snapshot().status).toBe('fenced')
     expect(() =>
       f.observer().notification('remoteControl/status/changed', { status: 'disabled', environmentId: null }),
     ).toThrow()
@@ -689,7 +722,7 @@ describe('source-only fixed passive predicates preserve rejection policy and cou
     ).toThrow()
     expect(d.rows()).toEqual([['PASSIVE_OUTCOME_OTHER', 'REFUSED', 'TURN_SCOPE_MISMATCH']])
   })
-  it('retains the original account exclusion and never serializes payload or thrown error properties', async () => {
+  it('refuses out-of-window account metadata and never serializes payload or thrown error properties', async () => {
     const d = passiveDiagnostics(),
       f = await fixture({ diagnostics: d.diagnostics }),
       read = vi.fn(() => {
@@ -702,7 +735,7 @@ describe('source-only fixed passive predicates preserve rejection policy and cou
       f.observer().notification('account/updated', { authMode: null, planType: null, privatePayload: hostile }),
     ).toThrow(/unreconciled UNKNOWN/)
     expect(() => f.observer().notification('secret future /private/method', { privatePayload: hostile })).toThrow()
-    expect(d.rows()).toEqual([['PASSIVE_OUTCOME_ACCOUNT_UPDATED', 'REFUSED', 'UNCLASSIFIED_NOTIFICATION']])
+    expect(d.rows()).toEqual([['PASSIVE_OUTCOME_ACCOUNT_UPDATED', 'REFUSED', 'SOURCE_NOTIFICATION_REFUSED']])
     expect(read).not.toHaveBeenCalled()
     expect(JSON.stringify(d.rows())).not.toMatch(/privatePayload|secret|token|method/)
   })
@@ -751,4 +784,94 @@ describe('source-only fixed passive predicates preserve rejection policy and cou
     expect(read).not.toHaveBeenCalled()
     expect(d.rows()).toEqual([['PASSIVE_OUTCOME_MCP_STARTUP', 'REFUSED', 'NOTIFICATION_AFTER_CLEANUP']])
   })
+})
+
+describe('native thread UUID versions remain separate from review nonces', () => {
+  const nativeV7 = '019a8b91-41d3-7abc-8def-0123456789ab'
+  const foreignV7 = '019a8b91-41d3-7abc-8def-0123456789ac'
+  const nativeV4 = '00000000-0000-4000-8000-000000000001'
+  it.each([nativeV4, nativeV7, '019A8B91-41D3-7ABC-BDEF-0123456789AB'])(
+    'accepts correlated native thread reply and notification %s',
+    async threadId => {
+      const f = await fixture({ threadId, threadNotificationId: threadId, nonce: nativeV4 })
+      await f.complete()
+      await f.cleanup()
+      expect(await f.candidate.freezeCandidate()).toHaveProperty('candidateDigest')
+    },
+  )
+  it('refuses a distinct well-formed foreign v7 notification after the original v7 reply', async () => {
+    const f = await fixture({ threadId: nativeV7 })
+    await f.ready()
+    expect(() =>
+      f.observer().notification('thread/started', { thread: { id: foreignV7, ephemeral: true, turns: [] } }),
+    ).toThrow()
+    expect(f.raw.snapshot().status).toBe('fenced')
+  })
+  it('refuses a distinct well-formed v7 reply after the original v7 notification', async () => {
+    const f = await fixture({ threadId: nativeV7, threadNotificationId: foreignV7 })
+    await expect(f.ready()).rejects.toThrow()
+    expect(f.raw.snapshot()).toMatchObject({ status: 'fenced', issuedRequests: 3 })
+  })
+  const malformed = [
+    '019a8b91-41d3-6abc-8def-0123456789ab',
+    '019a8b91-41d3-8abc-8def-0123456789ab',
+    '019a8b91-41d3-7abc-7def-0123456789ab',
+    '019a8b91-41d3-7abc-cdef-0123456789ab',
+    '019a8b91-41d3-7abc-8def-0123456789ag',
+    '019a8b9141d37abc8def0123456789ab',
+    '019a8b91-41d3-7abc-8def-0123456789ab ',
+    '019a8b91-41d3-7abc-8def-0123456789a',
+  ]
+  it.each(malformed)('refuses invalid native thread reply %s', async threadId => {
+    const f = await fixture({ threadId })
+    await expect(f.ready()).rejects.toThrow()
+    expect(f.raw.snapshot()).toMatchObject({ status: 'fenced', issuedRequests: 3 })
+  })
+  it.each(malformed)('refuses invalid native thread notification %s', async threadNotificationId => {
+    const f = await fixture({ threadId: nativeV7, threadNotificationId })
+    await expect(f.ready()).rejects.toThrow()
+    expect(f.raw.snapshot().status).toBe('fenced')
+  })
+  it('keeps review nonces v4-only even when native thread IDs are valid v7', async () => {
+    await expect(fixture({ threadId: nativeV7, nonce: nativeV7 })).rejects.toThrow(/UNKNOWN/)
+    expect(fake.claim).not.toHaveBeenCalled()
+    expect(fake.initialize).not.toHaveBeenCalled()
+  })
+})
+
+describe('loss-only passive drain keeps outcome authority permanently excluded', () => {
+  it.each([false, true])(
+    'continues strict semantic capture after expected ACK rejection, passive fault=%s',
+    async actualPassiveFault => {
+      const f = await fixture({ loss: true })
+      await f.ready()
+      consumeProviderSendPermit(f.permit)
+      f.observer().beforeRequest('turn/start', { threadId: f.threadId, ...f.envelope })
+      const operation = f.raw.request('turn/start', { threadId: f.threadId, ...f.envelope })
+      f.observer().operation(operation, 'turn/start')
+      fake.loss.mockReturnValue({ proof: { VALIDATED: true, WITHHELD: true, PAUSE_COMMITTED: false, UNPROVEN: false } })
+      f.raw.fence('reply_withheld')
+      await expect(operation).rejects.toThrow()
+      await Promise.resolve()
+      await Promise.resolve()
+      if (actualPassiveFault) f.observer().fault()
+      const notification = () =>
+        f.observer().notification('turn/started', { threadId: f.threadId, turn: { id: f.turnId } })
+      if (actualPassiveFault) expect(notification).toThrow()
+      else {
+        expect(notification).not.toThrow()
+        expect(() =>
+          f.observer().notification('thread/status/changed', {
+            threadId: f.threadId,
+            status: { type: 'active', activeFlags: ['nonempty'] },
+          }),
+        ).toThrow()
+        expect(() =>
+          f.observer().notification('remoteControl/status/changed', { status: 'disabled', environmentId: null }),
+        ).toThrow()
+      }
+      await expect(f.candidate.freezeCandidate()).rejects.toThrow(/UNKNOWN/)
+      expect(f.raw.snapshot()).toMatchObject({ status: 'fenced', issuedRequests: 5 })
+    },
+  )
 })

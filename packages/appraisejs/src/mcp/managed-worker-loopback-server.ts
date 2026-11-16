@@ -5,6 +5,13 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { createAttemptScopedWorkerMcpServer, type AttemptScopedWorkerProfile } from './managed-worker-server.js'
 
 type Gateway = Parameters<typeof createAttemptScopedWorkerMcpServer>[0]['callGateway']
+export type ManagedWorkerLoopbackRequestContext = Readonly<{
+  request: IncomingMessage
+  response: ServerResponse
+  socket: Socket
+  message: unknown
+  originalSocketExclusive(): boolean
+}>
 export type ManagedWorkerLoopbackOptions = Readonly<{
   host: '127.0.0.1'
   port: number
@@ -20,6 +27,11 @@ export type ManagedWorkerLoopbackOptions = Readonly<{
   toolCalls: number
   requestMs: number
   cleanupMs: number
+  /** Trusted process-local scope only. It cannot be selected through HTTP/MCP input. */
+  trustedRequestContext?: (
+    context: ManagedWorkerLoopbackRequestContext,
+    enterOriginal: () => Promise<void>,
+  ) => Promise<void>
 }>
 
 /** Internal fixed-address transport. No CLI, route or public export registers this endpoint. */
@@ -49,7 +61,8 @@ export async function createManagedWorkerLoopbackServer(options: ManagedWorkerLo
     !finite(httpRequests, 64) ||
     !finite(toolCalls, 16) ||
     !finite(requestMs, 60_000) ||
-    !finite(cleanupMs, 60_000)
+    !finite(cleanupMs, 60_000) ||
+    (captured.trustedRequestContext !== undefined && typeof captured.trustedRequestContext !== 'function')
   )
     throw new Error('Invalid fixed worker loopback plan')
   let fenced = false,
@@ -61,6 +74,13 @@ export async function createManagedWorkerLoopbackServer(options: ManagedWorkerLo
   const gatewayOperations = new Set<Promise<unknown>>()
   const gatewayObservations = new Map<Promise<unknown>, Promise<void>>()
   const httpObservations = new Map<Promise<void>, Promise<void>>()
+  const sdkObservations = new Map<Promise<void>, Promise<void>>()
+  const activeSocketRequests = new WeakMap<Socket, number>()
+  const pipelinedSockets = new WeakSet<Socket>()
+  let httpSettled = 0,
+    sdkSettled = 0,
+    workerCloseEntered = false,
+    workerCloseSettled = false
   const sockets = new Set<Socket>()
   const socketClosures = new Map<Socket, Promise<void>>()
   const transport = new StreamableHTTPServerTransport({
@@ -134,7 +154,7 @@ export async function createManagedWorkerLoopbackServer(options: ManagedWorkerLo
     }
     return { message: JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown }
   }
-  async function handle(request: IncomingMessage, response: ServerResponse) {
+  async function handle(request: IncomingMessage, response: ServerResponse, originalSocket: Socket) {
     const refusal = admit(request)
     if (refusal) {
       response.writeHead(refusal).end()
@@ -154,7 +174,39 @@ export async function createManagedWorkerLoopbackServer(options: ManagedWorkerLo
         response.writeHead(400).end()
         return
       }
-      await transport.handleRequest(request, response, message)
+      let originalSdk: Promise<void> | undefined
+      const enterOriginal = () => {
+        if (originalSdk) throw new Error('Original SDK request already entered')
+        originalSdk = transport.handleRequest(request, response, message)
+        sdkObservations.set(
+          originalSdk,
+          originalSdk.then(
+            () => {
+              sdkSettled++
+            },
+            () => {
+              sdkSettled++
+              effectUnknown = true
+            },
+          ),
+        )
+        return originalSdk
+      }
+      const original = captured.trustedRequestContext
+        ? captured.trustedRequestContext(
+            Object.freeze({
+              request,
+              response,
+              socket: originalSocket,
+              message,
+              originalSocketExclusive: () =>
+                activeSocketRequests.get(originalSocket) === 1 && !pipelinedSockets.has(originalSocket),
+            }),
+            enterOriginal,
+          )
+        : enterOriginal()
+      if (!originalSdk || original !== originalSdk) throw new Error('Exact original SDK request Promise required')
+      await originalSdk
     } catch {
       effectUnknown = true
       if (!response.headersSent && !response.destroyed) response.writeHead(400).end()
@@ -163,17 +215,35 @@ export async function createManagedWorkerLoopbackServer(options: ManagedWorkerLo
     }
   }
   const server = createServer((request, response) => {
-    const original = handle(request, response)
+    const originalSocket = request.socket
+    if (activeSocketRequests.get(originalSocket)) pipelinedSockets.add(originalSocket)
+    activeSocketRequests.set(originalSocket, (activeSocketRequests.get(originalSocket) ?? 0) + 1)
+    const original = handle(request, response, originalSocket)
     httpObservations.set(
       original,
       original.then(
-        () => undefined,
         () => {
+          httpSettled++
+          activeSocketRequests.set(originalSocket, (activeSocketRequests.get(originalSocket) ?? 1) - 1)
+        },
+        () => {
+          httpSettled++
+          activeSocketRequests.set(originalSocket, (activeSocketRequests.get(originalSocket) ?? 1) - 1)
           effectUnknown = true
         },
       ),
     )
   })
+  if (captured.trustedRequestContext) {
+    // A controlled original response must not receive Node's automatic 100 Continue before its context is entered.
+    const refuseExpectation = (request: IncomingMessage, response: ServerResponse) => {
+      const refusal = admit(request)
+      response.writeHead(refusal || 417).end()
+      request.resume()
+    }
+    server.on('checkContinue', refuseExpectation)
+    server.on('checkExpectation', refuseExpectation)
+  }
   server.on('connection', socket => {
     sockets.add(socket)
     socketClosures.set(
@@ -205,9 +275,30 @@ export async function createManagedWorkerLoopbackServer(options: ManagedWorkerLo
   let closeFlight: Promise<Readonly<{ closed: boolean; effectUnknown: boolean }>> | undefined
   return Object.freeze({
     fence,
-    snapshot: () => Object.freeze({ fenced, requests, calls, inFlight, effectUnknown }),
-    close() {
+    snapshot: () =>
+      Object.freeze({
+        fenced,
+        requests,
+        calls,
+        inFlight,
+        effectUnknown,
+        ...(captured.trustedRequestContext
+          ? {
+              originalHandlers: {
+                httpEntered: httpObservations.size,
+                httpSettled,
+                sdkEntered: sdkObservations.size,
+                sdkSettled,
+                workerCloseEntered,
+                workerCloseSettled,
+              },
+            }
+          : {}),
+      }),
+    close(absoluteDeadline = Date.now() + cleanupMs) {
       fence()
+      if (!Number.isSafeInteger(absoluteDeadline)) throw new Error('Original cleanup deadline required')
+      const deadline = Math.min(Date.now() + cleanupMs, absoluteDeadline)
       closeFlight ??= new Promise(resolve => {
         let settled = false
         const finish = (closed: boolean) => {
@@ -217,31 +308,49 @@ export async function createManagedWorkerLoopbackServer(options: ManagedWorkerLo
           if (!closed) effectUnknown = true
           resolve(Object.freeze({ closed, effectUnknown }))
         }
-        const timer = setTimeout(() => {
-          for (const socket of sockets) socket.destroy()
-          finish(false)
-        }, cleanupMs)
+        const timer = setTimeout(
+          () => {
+            for (const socket of sockets) socket.destroy()
+            finish(false)
+          },
+          Math.max(0, deadline - Date.now()),
+        )
         const listenerClosed = new Promise<boolean>(resolveListener => server.close(error => resolveListener(!error)))
         for (const socket of sockets) socket.destroy()
-        const workerClosed = worker.close().then(
-          () => true,
-          () => {
-            effectUnknown = true
-            return false
-          },
-        )
         const originalConnectionsJoin = listenerClosed
           .then(() => Promise.all([...socketClosures.values()]))
           .then(() => true)
         const originalHttpJoin = listenerClosed.then(() => Promise.all([...httpObservations.values()])).then(() => true)
         const originalGatewayJoin = Promise.all([...gatewayObservations.values()]).then(() => true)
+        const originalSdkJoin = Promise.all([...sdkObservations.values()]).then(() => true)
         void Promise.all([
           listenerClosed,
-          workerClosed,
           originalGatewayJoin,
           originalConnectionsJoin,
           originalHttpJoin,
-        ]).then(results => finish(results.every(Boolean) && inFlight === 0 && sockets.size === 0))
+          originalSdkJoin,
+        ]).then(async results => {
+          // A timed-out original handler remains UNKNOWN. Never use worker.close to manufacture its settlement.
+          if (settled || Date.now() >= deadline) {
+            finish(false)
+            return
+          }
+          workerCloseEntered = true
+          const workerClosed = await worker.close().then(
+            () => {
+              workerCloseSettled = true
+              return true
+            },
+            () => {
+              workerCloseSettled = true
+              effectUnknown = true
+              return false
+            },
+          )
+          finish(
+            Date.now() < deadline && results.every(Boolean) && workerClosed && inFlight === 0 && sockets.size === 0,
+          )
+        })
       })
       return closeFlight
     },

@@ -2,6 +2,8 @@ import { createHash } from 'node:crypto'
 import path from 'node:path'
 import { realpathSync } from 'node:fs'
 import { z } from 'zod'
+import { nativeQualificationLossProtocolIdentity } from './native-qualification-loss'
+import { nativeStartupPolicyIdentity } from './native-startup-metadata'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import type { NativeOutcomeReviewControl } from './native-outcome-source'
 import { readNativePublicBytes } from './native-credential-topology'
@@ -20,6 +22,19 @@ export const nativeOutcomeSourceIdentity = Object.freeze({
 })
 // Exact reviewed public program bodies establish conditional source semantics only.
 export const nativeOutcomeSourceRequirements = Object.freeze({
+  'codex-rs/protocol/src/thread_id.rs': '6f1f15040fd6cd6e63ecedd632fad5d7efd7d9404356d54a22f521157c127b7d',
+  'codex-rs/config/src/loader/mod.rs': 'fdd9a7a53dd1427c196e2ec51ea50379fd8b8b8f5ae1d8d20b2b874f80f34cbe',
+  'codex-rs/app-server/src/startup_warnings.rs': '10d12a904a0a90d8613315cd92dea1a57e5e76e06c19818e31686b897c96138a',
+  'codex-rs/app-server/src/request_processors/account_processor.rs':
+    '53f78fd55a2da750065effbc9b0f261ec916b75f4a5faed47a2e6bf027df6151',
+  'codex-rs/app-server/src/request_processors/account_processor/workspace_routing.rs':
+    'fa1e9460a98092dddb7b965e2f76cb03c54e41ba7970114d3f1ff1d4783dfc00',
+  'codex-rs/app-server/src/account_notifications.rs':
+    '0ddd334e79409f9f0f031c0e7c0fd989f3a95e5ec05a5bbbb4027fa51d36b3ef',
+  'codex-rs/app-server/src/request_processors/account_processor/workspace_switching.rs':
+    '176fecd4ab34af27edebd3e450ffd32612be08b4c3af4b7dd8d5402e81997aa5',
+  'codex-rs/app-server/src/request_processors/initialize_processor.rs':
+    '3074d588d6dd18067b4b0b380e4903f1176b4bc3f5d1c650d87694b437b541fd',
   'codex-rs/agent-message-board-host/src/lib.rs': '0328b6afeade780da125bbbc7fb8329a686f862b93e75026353e156106779027',
   'codex-rs/app-server-protocol/src/protocol/common.rs':
     '6b4b0f986a779696cdacaa9075b6b3043f5666ec75db4f57828d709087f508ea',
@@ -100,10 +115,31 @@ const digest = (value: string | Buffer) => `sha256:${createHash('sha256').update
 export function nativeOutcomeReviewControlDigest(control: NativeOutcomeReviewControl) {
   return digest(canonicalContractJson(control))
 }
-export const nativeOutcomeProtocolDigest = digest('M13_ORIGINAL_NATIVE_ORDINARY_COMPLETED_V1')
+export const nativeOutcomeProtocolDigest = digest(
+  canonicalContractJson({ startup: nativeStartupPolicyIdentity, loss: nativeQualificationLossProtocolIdentity }),
+)
+// Exact independently accepted actual D3 R3 evidence; these static pins grant no effects allocation.
+export const nativeStartupEvidenceRequirements = Object.freeze({
+  'observation-review.json': 'ebe0dbe978f69c5da3194e3599481158abe84d8b6b1b0a2505e5667eb5f945bf',
+  'execution-observation.json': '3b035760db1c2b1d0286dc60a6ebb9e21c867364a830d96e94cb2ae7561da0ca',
+  'manifest.json': '646b2569e627e4309d1b8ad66544529cfa2d5b3f847ba7420b6087c2251c5bd6',
+  'packet.json': '7b7931dffabaeb0de433119bbb58fdf7a5af960e1d487c56a650c2f7dd2c0131',
+})
+/** Non-issuing checks only. Guarded profile capture computes these hashes from public bytes. */
+export function assertNativeStartupEvidenceFacts(observed: readonly Readonly<{ path: string; sha256: string }>[]) {
+  if (
+    observed.length !== Object.keys(nativeStartupEvidenceRequirements).length ||
+    new Set(observed.map(item => item.path)).size !== observed.length
+  )
+    refuse()
+  for (const [name, expected] of Object.entries(nativeStartupEvidenceRequirements))
+    if (observed.find(item => item.path === name)?.sha256 !== expected) refuse()
+}
 declare const profileBrand: unique symbol
 export type NativeOutcomeProfile = Readonly<{ [profileBrand]: true }>
 export type NativeOutcomeProfileRecord = Readonly<{
+  protocolDigest: string
+  startupEvidenceDigest: string
   planDigest: string
   reviewControlDigest: string
   profileDigest: string
@@ -280,6 +316,11 @@ export function captureNativeOutcomeProfile(
 ): NativeOutcomeProfile {
   const { manifest } = verifyNativeQualificationPlan(plan)
   if (!path.isAbsolute(dossierRoot) || path.normalize(dossierRoot) !== dossierRoot) refuse()
+  const startupEvidence = Object.keys(nativeStartupEvidenceRequirements).map(name => ({
+    path: name,
+    sha256: digest(publicBytes(path.join(dossierRoot, 'startup-policy', name), plan)).slice(7),
+  }))
+  assertNativeStartupEvidenceFacts(startupEvidence)
   const files = Object.keys(nativeOutcomeSourceRequirements).map(name => {
     const bytes = publicBytes(path.join(dossierRoot, 'source', name), plan)
     return {
@@ -309,6 +350,15 @@ export function captureNativeOutcomeProfile(
     }),
   )
   const body = {
+    protocolDigest: nativeOutcomeProtocolDigest,
+    startupEvidenceDigest: digest(
+      canonicalContractJson({
+        files: startupEvidence,
+        policySha256: '857508227b92edb67f7e6954bf52b900d3f3246c019f8df93889ff78aef95a2d',
+        policyReviewSha256: '78f64ed05e2ebd3b1d93609bd853af8b86587f8593dd36a7eba065d4b1e66724',
+        planPresence: 'SCHEMA_VALUE',
+      }),
+    ),
     planDigest: digest(canonicalContractJson(manifest)),
     reviewControlDigest: nativeOutcomeReviewControlDigest(reviewControl),
     dossierDigest,

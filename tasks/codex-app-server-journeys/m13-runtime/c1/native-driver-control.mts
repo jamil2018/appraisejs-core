@@ -61,7 +61,23 @@ export function readNativeDriverControl(
 }
 export type OriginalNativeDriverTask = Readonly<{
   start(): Promise<unknown>
-  snapshot(): Readonly<{ state: string; originalStartState: string }>
+  snapshot(): Readonly<{
+    state: string
+    originalStartState: string
+    turnStartEntered?: boolean
+    turnId?: string
+    completed?: boolean
+    mcp?: Readonly<{
+      fenced?: boolean
+      lossReply?: Readonly<{
+        requested: boolean
+        closed: boolean
+        bytesBefore: number
+        bytesAfter: number | null
+        zeroByteDelta: boolean
+      }> | null
+    }>
+  }>
   readAcceptedManagedDelivery(call: {
     toolName: string
     arguments: Record<string, unknown>
@@ -109,6 +125,14 @@ export function createOriginalNativeCaseControl(options: {
     sourceDisposalSettled = false
   let reviewEntered = false,
     reconcileEntered = false
+  let cancellation: Promise<unknown> | undefined
+  function cancelOriginalTask() {
+    if (task && !cancellation) {
+      const originalTask = task
+      cancellation = (async () => originalTask.cancel())()
+    }
+    return cancellation
+  }
   function fail(): never {
     phase = 'UNKNOWN'
     throw new Error('Original native-driver case remains UNKNOWN')
@@ -136,7 +160,7 @@ export function createOriginalNativeCaseControl(options: {
           if (!sufficientLease()) fail()
           task = await captured.createOriginalTask(approval.decisionDigest)
           if (phase !== 'STARTING' || !sufficientLease()) {
-            await task.cancel()
+            await cancelOriginalTask()
             return fail()
           }
           await task.start()
@@ -232,6 +256,13 @@ export function createOriginalNativeCaseControl(options: {
         physicalQualified: false as const,
         nativeState: task?.snapshot().state ?? null,
         nativeStartState: task?.snapshot().originalStartState ?? null,
+        actualAcknowledgementObserved:
+          task?.snapshot().originalStartState === 'FULFILLED' &&
+          task?.snapshot().turnStartEntered === true &&
+          typeof task?.snapshot().turnId === 'string',
+        originalTurnActive: task?.snapshot().state === 'active' && task?.snapshot().completed === false,
+        nativeCompletionObserved: task?.snapshot().completed === true,
+        nativeReplyLoss: task?.snapshot().mcp?.lossReply ?? null,
         originalStartEntered: !!originalStart,
         candidateDigest: candidate ? driverDigest(candidate) : null,
         sourceDisposed: sourceDisposalSettled,
@@ -241,7 +272,7 @@ export function createOriginalNativeCaseControl(options: {
     async cancelAndRetain() {
       if (phase === 'RECONCILED') return Object.freeze({ phase, retained: true as const })
       phase = 'UNKNOWN'
-      if (task && !sourceDisposalEntered) await task.cancel()
+      if (task && !sourceDisposalEntered) await cancelOriginalTask()
       return Object.freeze({ phase, retained: true as const })
     },
   })

@@ -1,4 +1,4 @@
-import { readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { afterEach, expect, it } from 'vitest'
 import { taskSpawner } from '../../process/task-spawner'
@@ -10,7 +10,13 @@ import { syntheticNativeManifest } from './native-qualification.test-support'
 
 const roots: string[] = []
 afterEach(() => {
-  roots.splice(0).forEach(root => rmSync(root, { recursive: true, force: true }))
+  roots.splice(0).forEach(root => {
+    if (existsSync(path.join(root, 'fresh'))) {
+      process.stderr.write(`INERT_OWNED_CHILD_FIXTURE_RETAINED_UNKNOWN ${root}\n`)
+      return
+    }
+    rmSync(root, { recursive: true, force: true })
+  })
 })
 function fixture(refuse = false) {
   const f = syntheticNativeManifest()
@@ -100,8 +106,13 @@ it('locates a synthetic RPC refusal after actual acquisition and retains the tra
       child.transport.request('initialize', { clientInfo: { name: 'inert', version: '0' } }),
     ).rejects.toThrow()
   } finally {
-    expect(await child.stop()).toMatchObject({ status: 'stopped', groupExitObserved: true, privateRootRemoved: true })
+    const receipt = await child.stop()
     f.trace.close()
+    writeFileSync(path.join(f.parent, 'owned-refusal-cleanup.json'), JSON.stringify(receipt) + '\n', {
+      flag: 'wx',
+      mode: 0o600,
+    })
+    expect(receipt).toMatchObject({ status: 'stopped', groupExitObserved: true, privateRootRemoved: true })
   }
   expect(f.rows()).toContainEqual(expect.objectContaining({ stage: 'ACQUISITION', status: 'SETTLED' }))
   expect(f.rows()).toContainEqual(

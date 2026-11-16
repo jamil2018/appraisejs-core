@@ -143,3 +143,116 @@ describe('schema-valid native item scope is separate from permission', () => {
     ).toThrow(/protocol refused/)
   })
 })
+
+describe('original passive initialize provenance event', () => {
+  function initialization() {
+    const protocol = createNativeQualificationProtocol({
+      serverName: 'appraise_worker',
+      enabledTools: ['quality_journey_analysis_get'],
+      maxToolCalls: 1,
+    })
+    const transport = protocol.transport({
+      request: () => new Promise(() => {}),
+      notifyInitialized: vi.fn(),
+      fence: vi.fn(),
+      snapshot: vi.fn(),
+    } as OwnedFixtureChild['transport'])
+    void transport.request('initialize', { clientInfo: { name: 'inert', version: '0' } })
+    const valid = {
+      id: 1,
+      result: { userAgent: 'inert', platformFamily: 'unix', platformOs: 'test', codexHome: '/private/inert' },
+    }
+    return { protocol, valid }
+  }
+  it('opens only the first correlated schema-valid successful original reply, independent of the unresolved request Promise', () => {
+    const { protocol, valid } = initialization()
+    expect(protocol.passiveFrame(valid)).toBe('INITIALIZE_VALIDATED')
+    expect(() => protocol.passiveFrame(valid)).toThrow()
+  })
+  it.each(['uncorrelated', 'invalid-schema', 'server-request'])(
+    'never opens for %s and cannot repair refusal',
+    mode => {
+      const { protocol, valid } = initialization()
+      const invalid =
+        mode === 'uncorrelated'
+          ? { ...valid, id: 2 }
+          : mode === 'invalid-schema'
+            ? { id: 1, result: {} }
+            : { id: 1, method: 'account/login/start', params: {} }
+      expect(() => protocol.passiveFrame(invalid)).toThrow()
+      expect(() => protocol.passiveFrame(valid)).toThrow()
+    },
+  )
+  it('does not open for a schema-valid correlated initialize error', () => {
+    const { protocol, valid } = initialization()
+    expect(
+      protocol.passiveFrame({ id: 1, error: { code: -32600, message: 'private rejected sentinel' } }),
+    ).toBeUndefined()
+    expect(() => protocol.passiveFrame(valid)).toThrow()
+  })
+})
+
+async function passiveStartReceipt() {
+  const protocol = createNativeQualificationProtocol({
+    serverName: 'appraise_worker',
+    enabledTools: ['quality_journey_analysis_get'],
+    maxToolCalls: 2,
+  })
+  const transport = protocol.transport({
+    request: () => new Promise(() => {}),
+    notifyInitialized: vi.fn(),
+    fence: vi.fn(),
+    snapshot: vi.fn(),
+  } as OwnedFixtureChild['transport'])
+  void transport.request('turn/start', { threadId: 'thread', input: [], model: 'gpt-6.1-sol', effort: 'medium' })
+  const reply = { id: 1, result: { turn: { id: 'turn', status: 'inProgress', items: [], error: null } } }
+  return { protocol, reply }
+}
+describe('private passive actually-written start receipt', () => {
+  it('consumes exactly once after the original written marker and schema-valid inProgress result', async () => {
+    const { protocol, reply } = await passiveStartReceipt()
+    protocol.written(1, 'turn/start')
+    protocol.passiveFrame(reply)
+    expect(() => protocol.consumeTurnStartReceipt(1)).not.toThrow()
+    expect(() => protocol.consumeTurnStartReceipt(1)).toThrow()
+  })
+  it('rejects reconstructed frame data without original written admission', async () => {
+    const { protocol, reply } = await passiveStartReceipt()
+    protocol.passiveFrame(JSON.parse(JSON.stringify(reply)))
+    expect(() => protocol.consumeTurnStartReceipt(1)).toThrow()
+  })
+  it.each(['foreign-id', 'duplicate', 'completed', 'failed', 'error', 'disallowed-item', 'later-invalid'] as const)(
+    'rejects %s at original consumption',
+    async kind => {
+      const { protocol, reply } = await passiveStartReceipt()
+      protocol.written(1, 'turn/start')
+      const candidate = structuredClone(reply) as {
+        id: number
+        result: { turn: { id: string; status: string; items: unknown[]; error: unknown } }
+      }
+      if (kind === 'foreign-id') candidate.id = 2
+      if (kind === 'completed' || kind === 'failed') candidate.result.turn.status = kind
+      if (kind === 'error')
+        candidate.result.turn.error = { message: 'private error', codexErrorInfo: null, additionalDetails: null }
+      if (kind === 'disallowed-item')
+        candidate.result.turn.items = [
+          {
+            id: 'item',
+            type: 'commandExecution',
+            command: 'forbidden',
+            commandActions: [],
+            cwd: '/inert',
+            status: 'inProgress',
+          },
+        ]
+      try {
+        protocol.passiveFrame(candidate)
+        if (kind === 'duplicate') protocol.passiveFrame(candidate)
+        if (kind === 'later-invalid') protocol.passiveFrame({ method: 'unrecognized', params: {} })
+      } catch {
+        /* refusal must remain permanent at consume */
+      }
+      expect(() => protocol.consumeTurnStartReceipt(1)).toThrow()
+    },
+  )
+})

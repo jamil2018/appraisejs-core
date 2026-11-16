@@ -88,6 +88,13 @@ The MCP execution surface provides `quality_journey_execution_get`, `quality_jou
 approval must be recorded in the local Appraise UI against the displayed scope; these tools cannot grant approval.
 See the repository coordinator API contract for request fields and reconnect/evidence behavior.
 
+The internal attempt-scoped loopback transport supports a trusted in-process request context for controlled recovery
+tests. It uses the same authenticated listener, scoped schemas, limits, and original SDK handler Promise; no HTTP or
+MCP field enables it. Cleanup joins the original SDK/HTTP handlers before closing the worker and respects the original
+absolute deadline. Logical reply uncertainty remains separate from observed local transport closure. See the
+[M13 recovery task](../../tasks/codex-app-server-journeys/M13-RECOVERY-SNAPSHOT-QUALIFICATION.md) for the bounded
+qualification flow; this hook does not register production execution or grant lifecycle authority.
+
 ## Quality Journey history
 
 `quality_journey_library_list`, `quality_journey_artifact_get`, and `quality_journey_export` provide target-scoped,

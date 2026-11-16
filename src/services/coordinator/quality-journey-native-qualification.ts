@@ -1,4 +1,14 @@
 import {
+  bindNativeQualificationLossControl,
+  bindNativeQualificationLossRuntime,
+  assertNativeQualificationLossGateway,
+  inspectNativeQualificationLoss,
+  nativeQualificationLossKind,
+  retainNativeQualificationLossOperation,
+  waitNativeQualificationLossPhysicalRelease,
+  type NativeQualificationLossControl,
+} from '@/lib/quality-journey/codex-app-server/native-qualification-loss'
+import {
   createOriginalNativeOutcomeCandidate,
   type OriginalNativeOutcomeCandidate,
   type NativeOutcomeReviewControl,
@@ -23,7 +33,10 @@ import {
   type NativeDiagnosticObserver,
   type NativeDiagnosticStage,
 } from '@/lib/quality-journey/codex-app-server/native-qualification-diagnostics'
-import { launchNativeQualificationChild } from '@/lib/quality-journey/codex-app-server/native-qualification-child'
+import {
+  launchNativeQualificationChild,
+  originalNativeQualificationLossOwner,
+} from '@/lib/quality-journey/codex-app-server/native-qualification-child'
 import {
   verifyNativeQualificationPlan,
   nativeQualificationDigest,
@@ -156,6 +169,7 @@ export async function createNativeQualityJourneyQualification(
     envelope: readonly Record<string, unknown>[]
     canonicalDefinitions: readonly CanonicalMcpDefinition[]
     diagnostics?: NativeDiagnosticObserver
+    qualificationLoss?: Readonly<{ control: NativeQualificationLossControl; fixture: object }>
     nativeOutcome?: Readonly<{
       profile: NativeOutcomeProfile
       database: ProviderSourceDatabase
@@ -187,16 +201,6 @@ export async function createNativeQualityJourneyQualification(
     input.configurationDigest !== `sha256:${manifest.configurationSha256}`
   )
     throw new Error('Native frozen envelope/configuration mismatch')
-  const delivery = await createManagedQualityJourneyRoleDelivery({
-    binding: input,
-    canonicalDefinitions: options.canonicalDefinitions,
-    client,
-  })
-  if (
-    delivery.profileDigest !== manifest.roleProfileDigest ||
-    !isDeepStrictEqual(delivery.profile.tools.map(tool => tool.name).sort(), [...manifest.enabledTools].sort())
-  )
-    throw new Error('Native role profile mismatch')
   const nativeOutcomeOptions = options.nativeOutcome
     ? Object.freeze({
         ...options.nativeOutcome,
@@ -205,6 +209,46 @@ export async function createNativeQualityJourneyQualification(
     : undefined
   if (nativeOutcomeOptions && inspectNativeOutcomeProfile(nativeOutcomeOptions.profile).plan !== plan)
     throw new Error('Exact C1 original plan required')
+  const loss = options.qualificationLoss?.control
+  function bindOriginalLossControl() {
+    if (!loss) return
+    if (!nativeOutcomeOptions) throw new Error('Loss control requires the exact original source profile')
+    if (
+      nativeQualificationLossKind(loss) === 'R3_ACCEPTED_ANALYSIS_REPLY_LOSS' &&
+      input.role !== 'REQUIREMENT_ANALYZER'
+    )
+      throw new Error('Accepted Analysis loss requires Analyzer work')
+    bindNativeQualificationLossControl(loss, {
+      fixture: options.qualificationLoss!.fixture,
+      client,
+      plan,
+      profile: nativeOutcomeOptions.profile,
+      scope: {
+        journeyId: input.journeyId,
+        targetProjectId: input.targetProjectId,
+        workItemId: input.workItemId,
+        attemptId: input.attemptId,
+      },
+    })
+  }
+  bindOriginalLossControl()
+  function hasControlledLocalClosureProof() {
+    if (!loss) return false
+    const proof = inspectNativeQualificationLoss(loss).proof
+    return proof.VALIDATED && proof.WITHHELD && proof.PAUSE_COMMITTED && !proof.UNPROVEN
+  }
+  const delivery = await createManagedQualityJourneyRoleDelivery({
+    binding: input,
+    canonicalDefinitions: options.canonicalDefinitions,
+    client,
+    qualificationLoss: loss,
+    nativeEnvelopeDigest: manifest.envelopeDigest,
+  })
+  if (
+    delivery.profileDigest !== manifest.roleProfileDigest ||
+    !isDeepStrictEqual(delivery.profile.tools.map(tool => tool.name).sort(), [...manifest.enabledTools].sort())
+  )
+    throw new Error('Native role profile mismatch')
   let nativeOutcome: OriginalNativeOutcomeCandidate | undefined
   const cwd = path.join(manifest.freshRoot, 'cwd')
   let endpoint: NativeEndpoint | undefined
@@ -242,6 +286,7 @@ export async function createNativeQualityJourneyQualification(
               try {
                 nativeOutcome = await createOriginalNativeOutcomeCandidate({
                   ...nativeOutcomeOptions,
+                  qualificationLoss: loss,
                   permit,
                   transportId,
                   providerNamespace: input.providerNamespace,
@@ -258,6 +303,7 @@ export async function createNativeQualityJourneyQualification(
               nativeOutcome.supervisorOperation(operation)
             },
             stop(operation) {
+              if (loss) retainNativeQualificationLossOperation(loss, operation)
               nativeOutcome?.captureSupervisorStop(operation)
             },
           }
@@ -298,6 +344,7 @@ export async function createNativeQualityJourneyQualification(
             sealedGrant: delivery.sealedGrant,
             ...manifest.limits,
             async callGateway(call) {
+              assertNativeQualificationLossGateway(loss)
               const state = supervisor.snapshot()
               if (
                 state.fenced ||
@@ -327,6 +374,7 @@ export async function createNativeQualityJourneyQualification(
           originalChild = await launchNativeQualificationChild(plan, {
             ...callbacks,
             diagnostics,
+            qualificationLoss: loss,
             assertAdmission() {
               if (supervisor.snapshot().fenced) throw new Error('Native launch fenced')
             },
@@ -335,18 +383,37 @@ export async function createNativeQualityJourneyQualification(
             },
             fenceMcp: originalEndpoint.fence,
             closeMcp: async () => {
+              if (loss) await waitNativeQualificationLossPhysicalRelease(loss)
               const originalClose = originalEndpoint.close()
+              if (loss) retainNativeQualificationLossOperation(loss, originalClose)
               nativeOutcome?.captureSdkClose(originalClose)
               const receipt = await originalClose
-              return receipt.closed && !receipt.effectUnknown
+              const controlledLocalClosure = hasControlledLocalClosureProof()
+              // Caller/provider effect uncertainty remains recorded; this return concerns local physical closure only.
+              return receipt.closed && (!receipt.effectUnknown || !!controlledLocalClosure)
             },
           })
           nativeOutcome?.attach(originalChild)
+          if (loss)
+            bindNativeQualificationLossRuntime(loss, {
+              child: originalChild,
+              owner: originalNativeQualificationLossOwner(originalChild, plan),
+              endpoint: originalEndpoint,
+              logicalFence() {
+                delivery.fence()
+                originalEndpoint.fence()
+                originalChild!.transport.fence('qualification_loss')
+                void supervisor.cancel().catch(() => {})
+              },
+            })
           return originalChild
         } catch (error) {
           originalEndpoint.fence()
           if (originalChild) await originalChild.stop()
-          else await originalEndpoint.close()
+          else {
+            if (loss) await waitNativeQualificationLossPhysicalRelease(loss)
+            await originalEndpoint.close()
+          }
           throw error
         }
       },
@@ -367,7 +434,7 @@ export async function createNativeQualityJourneyQualification(
   })
   return Object.freeze({
     start: supervisor.start,
-    originalNativeOutcome: () => nativeOutcome,
+    originalNativeOutcome: () => (loss ? undefined : nativeOutcome),
     disconnectOriginalSupervisor: () => disconnectOriginal?.() ?? false,
     cancel: supervisor.cancel,
     waitOriginalStop: supervisor.waitOriginalStop,
@@ -375,6 +442,7 @@ export async function createNativeQualityJourneyQualification(
       delivery.readAccepted({ ...call, callId: 'native-original-accepted-read' }),
     snapshot: () =>
       Object.freeze({
+        ...(loss ? { qualificationLoss: inspectNativeQualificationLoss(loss) } : {}),
         ...supervisor.snapshot(),
         ...(diagnostics?.failed() ? { diagnosticStatus: 'DIAGNOSTIC_UNAVAILABLE' as const } : {}),
         provenance: 'NATIVE_QUALIFICATION_OBSERVATION' as const,

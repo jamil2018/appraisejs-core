@@ -7,13 +7,26 @@ import {
 } from '../../../../src/lib/quality-journey/codex-app-server/native-credential-topology'
 import { nativeQualificationDigest } from '../../../../src/lib/quality-journey/codex-app-server/native-qualification-contract'
 import type { createProviderSourceNativePrismaClient } from '../../../../src/lib/quality-journey/provider-source-database'
+import { disposeProviderSourceDatabase } from '../../../../src/lib/quality-journey/provider-source-database'
+import {
+  createOriginalRecoveryCase,
+  recoveryPreparationSchema,
+  requireSupportedRecoveryPreparation,
+} from './recovery-case.mts'
+import { recoveryEvidenceRoot, type RecoveryBinding } from './recovery-read-binding.mts'
+import { sealRecoverySnapshot, readRecoverySnapshotFresh, type RecoverySourceWitness } from './recovery-snapshot.mts'
 import { createNativeJourneyLineage, scriptedDisposableHuman, type NativeLineageEvent } from './native-lineage.mts'
 import {
   prepareOriginalNativeDriverCase,
   persistNativeDriverPublic,
   type NativeCasePreparation,
+  validatePreparation,
 } from './native-driver-prepare.mts'
 import { driverDigest, readNativeDriverControl, type NativeDriverControl } from './native-driver-control.mts'
+import {
+  inspectNativeQualificationLoss,
+  assertNativeQualificationLossQuiescent,
+} from '../../../../src/lib/quality-journey/codex-app-server/native-qualification-loss'
 import { prepareOriginalNativeExecution, type NativeExecutionPreparation } from './native-execution.mts'
 import {
   prepareNativeTriageSubject,
@@ -40,6 +53,16 @@ export function createNativeQualificationParent(
   const lineage = createNativeJourneyLineage(options.baseUrl, options.evidenceRoot)
   let current: Prepared | undefined
   let privateEvent: NativeLineageEvent | undefined
+  let recovery: ReturnType<typeof createOriginalRecoveryCase> | undefined
+  let recoveryBinding: RecoveryBinding | undefined
+  let recoverySourceWitness: RecoverySourceWitness | undefined
+  let recoverySealEntered = false
+  let lossStarted = false,
+    lossStartState = 'NOT_ENTERED',
+    lossPolls = 0
+  let lossStartPromise: Promise<unknown> | undefined
+  let lossRetention: Promise<void> | undefined
+  let lossCleanupSettled = false
   let originalSource: ReturnType<typeof createProviderSourceNativePrismaClient> | undefined
   let preparationEntered = false,
     discoveryStarted = false,
@@ -115,19 +138,234 @@ export function createNativeQualificationParent(
       lineage: publicSummary(),
     }
   }
+  function assertLossPauseProven(state: ReturnType<typeof inspectNativeQualificationLoss>) {
+    if (
+      !state.proof.VALIDATED ||
+      !state.proof.WITHHELD ||
+      !state.proof.PAUSE_COMMITTED ||
+      state.proof.UNPROVEN ||
+      !state.pause
+    )
+      throw new Error('Original canonical loss pause remains unproven')
+  }
+  function originalRecoveryPause() {
+    if (recovery) {
+      const state = recovery.snapshot()
+      if (!state.pauseReceipt || !state.cleanupSettled)
+        throw new Error('Canonical pause and original cleanup must precede snapshot sealing')
+      return { caseKind: state.caseKind, pause: state.pauseReceipt, loss: undefined }
+    }
+    if (!current || !lossCleanupSettled)
+      throw new Error('Canonical pause and original cleanup must precede snapshot sealing')
+    const control = current.originalLossControl()
+    if (!control) throw new Error('Original loss controller unavailable')
+    assertNativeQualificationLossQuiescent(control)
+    const loss = inspectNativeQualificationLoss(control)
+    if (!loss.proof.PAUSE_COMMITTED || !loss.pause)
+      throw new Error('Canonical pause and original cleanup must precede snapshot sealing')
+    assertOriginalReplyLoss(loss.caseKind, current.control.snapshot().nativeReplyLoss)
+    return {
+      caseKind: loss.caseKind,
+      pause: { version: loss.pause.version, stateHash: loss.pause.expectedStateHash, eventId: loss.pause.eventId },
+      loss,
+    }
+  }
+  function assertOriginalReplyLoss(
+    caseKind: string,
+    reply: ReturnType<Prepared['control']['snapshot']>['nativeReplyLoss'],
+  ) {
+    if (caseKind !== 'R3_ACCEPTED_ANALYSIS_REPLY_LOSS') return
+    if (!reply?.requested || !reply.closed || !reply.zeroByteDelta)
+      throw new Error('Original selected HTTP loss remains unproven')
+  }
+  function originalRecoveryOwner() {
+    const originalLoss = current?.originalLossControl()
+    return {
+      async provePausedAndCleaned() {
+        if (originalLoss) assertNativeQualificationLossQuiescent(originalLoss)
+        originalRecoveryPause()
+        if (!lineage.snapshot().recoveryRetained) throw new Error('Recovery ownership drift')
+      },
+      async closeOtherOriginalWriters() {
+        if (originalLoss) assertNativeQualificationLossQuiescent(originalLoss)
+        if (originalSource) {
+          await disposeProviderSourceDatabase(await originalSource.ready)
+          originalSource = undefined
+        }
+      },
+      checkpointOriginalAndDisconnect: () => lineage.checkpointOriginalRecoveryAndDisconnect(),
+    }
+  }
   return Object.freeze({
     async prepareInitialCase(packet: NativeCasePreparation) {
       if (preparationEntered || current || closed) throw new Error('One fresh original driver preparation required')
+      // Validate the explicit recovery discriminator before constructing the disposable fixture.
+      if (packet.recoveryCase !== undefined) requireSupportedRecoveryPreparation(packet.recoveryCase)
+      validatePreparation(packet, options.evidenceRoot)
       preparationEntered = true
       return prepare(await lineage.prepareInitial(), packet)
     },
     async prepareAnalysisFollowup(packet: NativeCasePreparation, persona: typeof scriptedDisposableHuman) {
+      if (packet.recoveryCase !== undefined) throw new Error('Recovery cases require a fresh original initial fixture')
       requireOriginalReconciled('ANALYSIS_INITIAL')
       if (persona !== scriptedDisposableHuman) throw new Error('Explicit scripted disposable test human required')
       return prepare(await lineage.prepareAnalysisFollowup(persona), packet)
     },
     startVerifiedCase(control: NativeDriverControl) {
+      if (currentCase().publicPrepared().recoveryCase) throw new Error('Explicit original recovery start required')
       return currentCase().control.startVerifiedCase(control)
+    },
+    startRecoveryCase(control: NativeDriverControl) {
+      const original = currentCase()
+      if (recovery || lossStarted || !privateEvent) throw new Error('One reviewed prepared recovery case required')
+      const prepared = original.publicPrepared()
+      if (!('recoveryCase' in prepared) || !prepared.recoveryCase)
+        throw new Error('Reviewed recovery discriminator required')
+      const caseKind = recoveryPreparationSchema.parse(prepared.recoveryCase).caseKind
+      if (caseKind !== 'R1_ACKNOWLEDGED_NATIVE_INTERRUPTION') {
+        lossStarted = true
+        lossStartState = 'PENDING'
+        unknown = true
+        lineage.fenceRecoveryAdmission()
+        lossStartPromise = original.control.startVerifiedCase(control)
+        void lossStartPromise.then(
+          () => {
+            lossStartState = 'FULFILLED'
+          },
+          () => {
+            lossStartState = 'REJECTED'
+          },
+        )
+        return Object.freeze({ phase: 'START_ENTERED', acknowledgementObserved: false, runtimeQualified: false })
+      }
+      if (!original.recoveryDelivery) throw new Error('Original R1 delivery fence required')
+      recovery = createOriginalRecoveryCase({
+        caseKind,
+        startOriginal: () => original.control.startVerifiedCase(control),
+        observeOriginal: () => ({
+          actualAcknowledgementObserved: original.control.snapshot().actualAcknowledgementObserved,
+          originalTurnActive: original.control.snapshot().originalTurnActive,
+          completionObserved: original.control.snapshot().nativeCompletionObserved,
+          canonicalAcceptanceObserved: original.recoveryDelivery!.snapshot().accepted,
+        }),
+        fenceAdmission() {
+          unknown = true
+          original.recoveryDelivery!.fence()
+          lineage.fenceRecoveryAdmission()
+        },
+        readOriginalScope: () => lineage.readOriginalRecoveryScope(),
+        pauseOriginal: input => lineage.pauseOriginalRecovery(input),
+        async cancelOriginalAndRetain() {
+          try {
+            await original.control.cancelAndRetain()
+          } finally {
+            await lineage.stopRecoveryAndRetainOriginalClient()
+          }
+        },
+      })
+      return recovery.start()
+    },
+    pollRecoveryBoundary() {
+      if (lossStarted) {
+        if (++lossPolls > 1000 || !current) throw new Error('Finite original loss observation refused')
+        const control = current.originalLossControl()
+        return Object.freeze({
+          phase: control
+            ? 'ORIGINAL_LOSS_OBSERVATION'
+            : lossStartState === 'REJECTED'
+              ? 'UNKNOWN'
+              : 'WAITING_FOR_ORIGINAL_TASK',
+          startState: lossStartState,
+          originalStartPromiseRetained: !!lossStartPromise,
+          loss: control ? inspectNativeQualificationLoss(control) : null,
+          reply: current.control.snapshot().nativeReplyLoss,
+          runtimeQualified: false,
+        })
+      }
+      if (!recovery) throw new Error('Original recovery start required')
+      return recovery.poll()
+    },
+    async pauseRecoveryCase(input: unknown) {
+      if (lossStarted) throw new Error('Original shared loss controller owns the once-only canonical pause')
+      if (!recovery) throw new Error('Original recovery start required')
+      const receipt = await recovery.pause(input)
+      if (!current) throw new Error('Original recovery case lost')
+      persistNativeDriverPublic(path.join(current.directory, 'recovery-pause.json'), receipt)
+      return receipt
+    },
+    async retainRecoveryCase() {
+      if (!lossStarted || !current) throw new Error('Original loss case required')
+      const original = current,
+        control = original.originalLossControl()
+      if (!control) throw new Error('Original loss controller unavailable')
+      const state = inspectNativeQualificationLoss(control)
+      assertLossPauseProven(state)
+      lossRetention ??= (async () => {
+        try {
+          await original.control.cancelAndRetain()
+        } finally {
+          await lineage.stopRecoveryAndRetainOriginalClient()
+        }
+      })()
+      await lossRetention
+      lossCleanupSettled = true
+      let quiescent = false
+      try {
+        assertNativeQualificationLossQuiescent(control)
+        quiescent = true
+      } catch {
+        /* Retain late original work; no disconnect or snapshot. */
+      }
+      return Object.freeze({
+        phase: quiescent ? 'PAUSED_RETAINED_UNKNOWN' : 'RETAINED_PENDING_ORIGINAL_OPERATIONS',
+        loss: inspectNativeQualificationLoss(control),
+        reply: original.control.snapshot().nativeReplyLoss,
+        runtimeQualified: false,
+        nextCasePermitted: false,
+      })
+    },
+    async sealRecoveryReader() {
+      if ((!recovery && !lossStarted) || !current || !privateEvent || recoverySealEntered)
+        throw new Error('One original recovery sealing boundary required')
+      const { caseKind, pause, loss } = originalRecoveryPause()
+      if (!lineage.snapshot().recoveryRetained)
+        throw new Error('Canonical pause and original cleanup must precede snapshot sealing')
+      recoverySealEntered = true
+      const event = privateEvent.original.binding
+      const sealed = await sealRecoverySnapshot({
+        binding: {
+          version: 'M13_SENDER_FREE_RECOVERY_READ_V1',
+          actor: 'BOUND_DISPOSABLE_PROJECT_READER',
+          caseKind,
+          journeyId: event.journeyId,
+          targetProjectId: event.targetProjectId,
+          attemptId: event.attemptId,
+          expectedVersion: pause.version,
+          expectedStateHash: pause.stateHash,
+          pauseEventId: pause.eventId,
+          ...(loss?.artifact
+            ? {
+                expectedArtifact: {
+                  kind: 'ANALYSIS_REVISION' as const,
+                  id: loss.artifact.id,
+                  contentHash: loss.artifact.contentHash,
+                },
+              }
+            : {}),
+        },
+        originalDatabasePath: lineage.fixtureOwned().databasePath,
+        evidenceRoot: recoveryEvidenceRoot,
+        originalOwner: originalRecoveryOwner(),
+      })
+      recoveryBinding = sealed.binding
+      recoverySourceWitness = sealed.sourceWitness
+      persistNativeDriverPublic(path.join(current.directory, 'recovery-reader-binding.json'), recoveryBinding)
+      return structuredClone(recoveryBinding)
+    },
+    readSealedRecoverySnapshot() {
+      if (!recoveryBinding || !recoverySourceWitness)
+        throw new Error('Original sealed recovery binding and private source witness required')
+      return readRecoverySnapshotFresh(recoveryBinding, recoverySourceWitness)
     },
     async freezeCandidate() {
       const original = currentCase()
@@ -189,6 +427,8 @@ export function createNativeQualificationParent(
       return Object.freeze({ subject: structuredClone(boundary), subjectDigest: driverDigest(boundary) })
     },
     async startVerifiedDiscoveryBrowser(control: NativeDriverControl, scoutPacket: NativeCasePreparation) {
+      if (scoutPacket.recoveryCase !== undefined)
+        throw new Error('Recovery cases require a fresh original initial fixture')
       const original = requireOriginalReconciled('ANALYSIS_FOLLOWUP')
       if (!boundary || discoveryStarted) throw new Error('One separately prepared discovery-browser allowance required')
       discoveryStarted = true
@@ -208,6 +448,7 @@ export function createNativeQualificationParent(
       return Object.freeze({ subject, subjectDigest: driverDigest(subject) })
     },
     async prepareNextRole(control: NativeDriverControl, packet: NativeCasePreparation) {
+      if (packet.recoveryCase !== undefined) throw new Error('Recovery cases require a fresh original initial fixture')
       const original = requireOriginalReconciled(),
         subject = continuationSubject()
       if (subject.nextRole === 'REAL_EXECUTION_REQUIRED')
@@ -270,6 +511,7 @@ export function createNativeQualificationParent(
       return structuredClone(triageBoundary)
     },
     async prepareTriagerCase(control: NativeDriverControl, packet: NativeCasePreparation) {
+      if (packet.recoveryCase !== undefined) throw new Error('Recovery cases require a fresh original initial fixture')
       const original = requireOriginalReconciled('AUTOMATOR')
       if (!execution || !triageBoundary || triagerClaimEntered)
         throw new Error('One original reviewed Triager preparation required')
@@ -394,6 +636,8 @@ export function createNativeQualificationParent(
         execution: execution?.control.snapshot() ?? null,
         lineage: publicSummary(),
         fixture: lineage.snapshot(),
+        recovery: recovery?.snapshot() ?? null,
+        loss: current?.originalLossControl() ? inspectNativeQualificationLoss(current.originalLossControl()!) : null,
       }),
   })
 }

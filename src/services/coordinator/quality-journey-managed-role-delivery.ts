@@ -1,8 +1,15 @@
+import {
+  assertNativeQualificationLossGateway,
+  bindNativeQualificationAnalysisSource,
+  selectNativeQualificationAnalysis,
+  acceptNativeQualificationAnalysis,
+  type NativeQualificationLossControl,
+} from '@/lib/quality-journey/codex-app-server/native-qualification-loss'
 import { randomBytes } from 'node:crypto'
 import { createSubmissionPayloadCapture } from './quality-journey-submission-payload-observation'
 import type { PrismaClient } from '@prisma/client'
 import { z } from 'zod'
-import { analysisCharterSchema, qualityJourneyContractVersion } from '@/lib/quality-journey'
+import { analysisCharterSchema, hashAnalysisCharter, qualityJourneyContractVersion } from '@/lib/quality-journey'
 import {
   createManagedWorkerRegistrationProfile,
   executeManagedWorkerGatewayCall,
@@ -91,6 +98,8 @@ export async function createManagedQualityJourneyRoleDelivery(options: {
   binding: ExternalQualityJourneySubmissionBinding
   canonicalDefinitions: readonly CanonicalMcpDefinition[]
   client: PrismaClient
+  qualificationLoss?: NativeQualificationLossControl
+  nativeEnvelopeDigest?: string
   /** Optional original caller adapter, e.g. the separately composed in-memory package bridge. */
   exchange?: (
     toolName: string,
@@ -100,6 +109,10 @@ export async function createManagedQualityJourneyRoleDelivery(options: {
 }) {
   const binding = structuredClone(options.binding)
   const { client } = options
+  const loss = options.qualificationLoss
+  const selectionSource = Object.freeze({})
+  if (loss) bindNativeQualificationAnalysisSource(loss, selectionSource)
+  let selectedAnalysis: { charterHash: string; revisionId: string } | undefined
   const canonicalDefinitions = captureOfflineProviderJson(options.canonicalDefinitions)
   const exchange = options.exchange
   const entry = roleOperations[binding.role]
@@ -200,16 +213,33 @@ export async function createManagedQualityJourneyRoleDelivery(options: {
                 { journeyId: binding.journeyId, targetProjectId: binding.targetProjectId },
                 client,
               )
-            const parsed = analysisArguments.parse(call.arguments)
+            const parsed = loss
+              ? captureOfflineProviderJson(analysisArguments.parse(call.arguments))
+              : analysisArguments.parse(call.arguments)
+            const parsedCharter = analysisCharterSchema.parse({
+              ...parsed.charter,
+              schemaVersion: qualityJourneyContractVersion,
+              journeyId: binding.journeyId,
+              targetProjectId: binding.targetProjectId,
+            })
+            const charter = loss ? captureOfflineProviderJson(parsedCharter) : parsedCharter
+            if (loss) {
+              const charterHash = hashAnalysisCharter(charter)
+              selectNativeQualificationAnalysis(loss, selectionSource, {
+                rawWorkerArgumentsDigest: offlineCompositionDigest(call.arguments),
+                normalizedArgumentsDigest: offlineCompositionDigest(parsed),
+                charterHash,
+                charterRevisionId: charter.analysisRevisionId,
+                workerInputDigest: authority.item.inputHash,
+                nativeEnvelopeDigest: options.nativeEnvelopeDigest!,
+                idempotencyKey: parsed.idempotencyKey,
+              })
+              selectedAnalysis = Object.freeze({ charterHash, revisionId: charter.analysisRevisionId })
+            }
             const result = await submitExternalQualityJourneyAnalysisSuccessor(
               {
                 ...parsed,
-                charter: analysisCharterSchema.parse({
-                  ...parsed.charter,
-                  schemaVersion: qualityJourneyContractVersion,
-                  journeyId: binding.journeyId,
-                  targetProjectId: binding.targetProjectId,
-                }),
+                charter,
                 journeyId: binding.journeyId,
                 targetProjectId: binding.targetProjectId,
                 workItemId: binding.workItemId,
@@ -287,6 +317,52 @@ export async function createManagedQualityJourneyRoleDelivery(options: {
     const capture = createSubmissionPayloadCapture({ ...binding, operation: entry.operation, idempotencyKey: key })
     originalCalls.set(key, { argumentsDigest, capture })
   }
+  function verifyAnalysisAcceptanceScope(analysis: {
+    journeyId: string
+    targetProjectId: string
+    submittedWorkItemId: string
+    submittedAttemptId: string
+  }) {
+    if (
+      analysis.journeyId !== binding.journeyId ||
+      analysis.targetProjectId !== binding.targetProjectId ||
+      analysis.submittedWorkItemId !== binding.workItemId ||
+      analysis.submittedAttemptId !== binding.attemptId
+    )
+      throw new Error('Original Analysis acceptance lineage refused')
+  }
+  function acceptSelectedAnalysis(originalResult: unknown, capture: ReturnType<typeof createSubmissionPayloadCapture>) {
+    if (!loss) return
+    const analysis = z
+      .object({
+        analysisRevision: z
+          .object({
+            id: z.string(),
+            journeyId: z.string(),
+            targetProjectId: z.string(),
+            contentHash: z.string(),
+            submittedWorkItemId: z.string(),
+            submittedAttemptId: z.string(),
+          })
+          .passthrough(),
+      })
+      .passthrough()
+      .parse(originalResult).analysisRevision
+    verifyAnalysisAcceptanceScope(analysis)
+    if (
+      !selectedAnalysis ||
+      analysis.id !== selectedAnalysis.revisionId ||
+      analysis.contentHash !== selectedAnalysis.charterHash ||
+      !capture.payloadHash()
+    )
+      throw new Error('Original Analysis acceptance lineage refused')
+    acceptNativeQualificationAnalysis(loss, selectionSource, {
+      id: analysis.id,
+      contentHash: analysis.contentHash,
+      resultDigest: offlineCompositionDigest(originalResult),
+      requestPayloadDigest: capture.payloadHash()!,
+    })
+  }
   function originalCanonical(
     call: OfflineProviderCall,
     args: Record<string, unknown>,
@@ -296,9 +372,11 @@ export async function createManagedQualityJourneyRoleDelivery(options: {
     let entered = false,
       returned = false
     let originalResult: unknown
+    let originalReceipt: OfflineRoleDeliveryReceipt | undefined
     return {
       returned: () => returned,
       result: () => structuredClone(originalResult),
+      receipt: () => originalReceipt,
       async invoke() {
         assertAdmission()
         if (entered) throw new Error('Duplicate offline canonical call')
@@ -311,8 +389,9 @@ export async function createManagedQualityJourneyRoleDelivery(options: {
         if (call.toolName === entry.submit) {
           originalResults.set(key, structuredClone(originalResult))
           if (!original) throw new Error('Original canonical submission capture is missing')
-          await readWitness(key, original.capture)
+          originalReceipt = await readWitness(key, original.capture)
           accepted.set(key, { argumentsDigest, capture: original.capture })
+          acceptSelectedAnalysis(originalResult, original.capture)
         } else await current()
         returned = true
         return value
@@ -329,6 +408,7 @@ export async function createManagedQualityJourneyRoleDelivery(options: {
   }
   function assertAdmission() {
     if (admissionClosed) throw new Error('Offline role delivery is fenced')
+    assertNativeQualificationLossGateway(loss)
   }
   type FulfilledDelivery = {
     operation: Promise<{ result: unknown; receipt: OfflineRoleDeliveryReceipt }>
@@ -341,6 +421,7 @@ export async function createManagedQualityJourneyRoleDelivery(options: {
     call: OfflineProviderCall,
     pin: (key: string, argumentsDigest: string) => void,
   ): Promise<{ result: unknown; receipt: OfflineRoleDeliveryReceipt }> {
+    assertNativeQualificationLossGateway(loss)
     const args = capture(call)
     const key = typeof args.idempotencyKey === 'string' ? args.idempotencyKey : ''
     const argumentsDigest = offlineCompositionDigest({ toolName: call.toolName, arguments: args })
@@ -359,7 +440,10 @@ export async function createManagedQualityJourneyRoleDelivery(options: {
     if (exchange) await exchange(call.toolName, args, canonical.invoke)
     else await canonical.invoke()
     if (!canonical.returned()) throw new Error('Offline exchange omitted canonical delivery')
-    return { result: canonical.result(), receipt: await deliveryReceipt(call.toolName, key) }
+    return {
+      result: canonical.result(),
+      receipt: loss && canonical.receipt() ? canonical.receipt()! : await deliveryReceipt(call.toolName, key),
+    }
   }
   function observeOriginalDelivery(call: OfflineProviderCall) {
     let captured: { key: string; argumentsDigest: string } | undefined
@@ -387,6 +471,7 @@ export async function createManagedQualityJourneyRoleDelivery(options: {
     return operation
   }
   async function readAccepted(call: OfflineProviderCall) {
+    if (loss) throw new Error('Loss-controlled delivery requires canonical recovery read')
     const args = capture(call),
       key = typeof args.idempotencyKey === 'string' ? args.idempotencyKey : ''
     const original = fulfilledDeliveries.get(key),
@@ -410,6 +495,7 @@ export async function createManagedQualityJourneyRoleDelivery(options: {
     readAccepted,
     /** Only the exact original issued call can recover a correlated durable witness. */
     async readCommitted(call: OfflineProviderCall): Promise<OfflineRoleDeliveryReceipt | null> {
+      if (loss) throw new Error('Loss-controlled delivery requires canonical recovery read')
       const args = capture(call)
       const key = typeof args.idempotencyKey === 'string' ? args.idempotencyKey : ''
       const previous = accepted.get(key)

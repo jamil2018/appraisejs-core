@@ -11,6 +11,7 @@ import { nativeQualificationDigest } from '../../../../src/lib/quality-journey/c
 import { createNativeQualificationParent, type NativeCasePreparation } from './native-driver.mts'
 import { scriptedDisposableHuman } from './native-lineage.mts'
 import { createAnonymousQualificationTarget } from './native-target.mts'
+import { recoveryPauseSchema } from './recovery-case.mts'
 
 const digest = z.string().regex(/^sha256:[a-f0-9]{64}$/)
 const absolute = z.string().refine(path.isAbsolute)
@@ -27,6 +28,12 @@ const schema = z.discriminatedUnion('op', [
   empty('archive'),
   empty('retain-unknown'),
   empty('target-subject'),
+  empty('poll-recovery-boundary'),
+  empty('seal-recovery-reader'),
+  empty('read-recovery-snapshot'),
+  empty('retain-recovery-case'),
+  z.object({ op: z.literal('start-recovery-case'), control }).strict(),
+  z.object({ op: z.literal('pause-recovery-case'), input: recoveryPauseSchema }).strict(),
   z.object({ op: z.literal('start-target'), control }).strict(),
   z.object({ op: z.literal('start-case'), control }).strict(),
   z.object({ op: z.literal('review-outcome'), control }).strict(),
@@ -210,6 +217,24 @@ export async function runNativeQualificationParent(args: string[]) {
         return { handled: true as const, result: parent.acceptIndependentReview(command.control) }
       case 'reconcile':
         return { handled: true as const, result: parent.reconcile(command.observationKey) }
+      default:
+        return recoveryCommand(command)
+    }
+  }
+  function recoveryCommand(command: ReturnType<typeof parseNativeRunCommand>) {
+    switch (command.op) {
+      case 'start-recovery-case':
+        return { handled: true as const, result: parent.startRecoveryCase(command.control) }
+      case 'poll-recovery-boundary':
+        return { handled: true as const, result: parent.pollRecoveryBoundary() }
+      case 'pause-recovery-case':
+        return { handled: true as const, result: parent.pauseRecoveryCase(command.input) }
+      case 'retain-recovery-case':
+        return { handled: true as const, result: parent.retainRecoveryCase() }
+      case 'seal-recovery-reader':
+        return { handled: true as const, result: parent.sealRecoveryReader() }
+      case 'read-recovery-snapshot':
+        return { handled: true as const, result: parent.readSealedRecoverySnapshot() }
       default:
         return { handled: false as const }
     }
