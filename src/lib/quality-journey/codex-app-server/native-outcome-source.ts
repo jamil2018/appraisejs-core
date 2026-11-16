@@ -203,7 +203,8 @@ class OriginalNativeOutcome {
   }
   #healthy() {
     if (this.#poison || this.#revoked) fail()
-    inspectNativeOutcomeProfile(this.options.profile)
+    // The task freezes reviewed source/dependencies between startup verification and candidate sealing.
+    // Admission stays synchronous and local; full byte verification belongs at the authority barriers below.
     if (!this.#domain) fail()
     assertProviderSourceNativeConnectionDomain(this.#domain, this.options.database, this.scope)
   }
@@ -547,6 +548,7 @@ class OriginalNativeOutcome {
     this.#healthy()
     const state = this.#child.snapshot()
     this.#assertClosedTransport(state)
+    inspectNativeOutcomeProfile(this.options.profile)
     this.#sender = sealConsumedProviderSender(this.options.permit, this.#child.sealSender(), {
       threadId: this.#threadId,
       turnId: this.#turnId,
@@ -614,6 +616,7 @@ class OriginalNativeOutcome {
     this.#healthy()
     if (!this.#candidate || !this.#reviewDeadline || !this.#sender || !this.#candidateDigest) fail()
     this.#validateReviewDecision(decision)
+    inspectNativeOutcomeProfile(this.options.profile)
     const exclusion = inspectProviderSenderExcluded(this.#sender)
     const identity = { ...exclusion } as Record<string, unknown>
     delete identity.senderEvidenceId
@@ -717,6 +720,7 @@ class OriginalNativeOutcome {
         request.requestHash
     )
       fail()
+    inspectNativeOutcomeProfile(this.options.profile)
     this.#reconciliationEntered = true
     const hold = acquireProviderSourceDatabaseHold(this.options.database, 'RECONCILE', {
       intentId: expected.identity.intentId,

@@ -17,6 +17,8 @@ import type { OwnedFixtureChild } from './owned-child'
 import {
   createProviderSendPermit,
   consumeProviderSendPermit,
+  disableProviderSendPermit,
+  trustedProviderReconciliation,
   trustedProviderArm,
   inspectProviderSendPermitTransport,
   type ProviderSendPermit,
@@ -36,6 +38,7 @@ const fake = vi.hoisted(() => ({
   initialize: vi.fn(),
   bind: vi.fn(),
   domain: vi.fn(),
+  assertDomain: vi.fn(),
   hold: vi.fn(),
   replay: vi.fn(),
   loss: vi.fn(),
@@ -56,7 +59,7 @@ vi.mock('./native-qualification-configuration', () => ({
 }))
 vi.mock('../provider-source-database', () => ({
   proveProviderSourceNativeConnectionDomain: fake.domain,
-  assertProviderSourceNativeConnectionDomain: vi.fn(),
+  assertProviderSourceNativeConnectionDomain: fake.assertDomain,
   assertProviderSourceDatabaseClient: vi.fn(),
   acquireProviderSourceDatabaseHold: fake.hold,
   assertProviderSourceTransactionSettingsForClient: vi.fn(),
@@ -175,8 +178,9 @@ async function fixture(
     plan,
     reviewControlDigest: outcomeDigest(canonicalContractJson(control)),
   })
+  const profile = {} as NativeOutcomeProfile
   const candidate = await createOriginalNativeOutcomeCandidate({
-    profile: {} as NativeOutcomeProfile,
+    profile,
     permit,
     database: {} as ProviderSourceDatabase,
     providerNamespace: 'native_source_fake',
@@ -278,6 +282,7 @@ async function fixture(
   }
   return {
     candidate,
+    profile,
     raw,
     stdout,
     envelope,
@@ -309,6 +314,73 @@ describe('task-private native candidate original custody (source-only fake, no n
     expect(fake.initialize).not.toHaveBeenCalled()
     expect(fake.domain).not.toHaveBeenCalled()
     expect(fake.claim).not.toHaveBeenCalled()
+  })
+  // Trusted task/dependencies/source stay frozen until sealing; concurrent hostile filesystem writers are outside this scope.
+  it('does not recapture the frozen profile during send admission or the startup/turn handshake', async () => {
+    const f = await fixture()
+    fake.profile.mockClear()
+    f.observer().assertSendAdmission!()
+    await f.complete()
+    f.observer().assertSendAdmission!()
+    expect(fake.profile).not.toHaveBeenCalled()
+    expect(fake.assertDomain).toHaveBeenCalled()
+  })
+  it.each(['poisoned', 'revoked', 'domain', 'disabled-permit'] as const)(
+    'still refuses %s send admission without a full profile recapture',
+    async failure => {
+      const f = await fixture()
+      fake.profile.mockClear()
+      if (failure === 'poisoned') f.observer().fault()
+      if (failure === 'revoked') f.candidate.revoke()
+      if (failure === 'domain')
+        fake.assertDomain.mockImplementationOnce(() => {
+          throw new Error('original domain refused')
+        })
+      if (failure === 'disabled-permit') disableProviderSendPermit(f.permit, trustedProviderReconciliation)
+      expect(() => f.observer().assertSendAdmission!()).toThrow()
+      expect(fake.profile).not.toHaveBeenCalled()
+    },
+  )
+  it('fully revalidates the original profile after stop settles and before candidate evidence is sealed', async () => {
+    const f = await fixture()
+    await f.complete()
+    let resolve!: () => void
+    const originalStop = new Promise<void>(done => {
+      resolve = done
+    })
+    await f.cleanup(originalStop)
+    fake.profile.mockClear()
+    const frozen = f.candidate.freezeCandidate()
+    await Promise.resolve()
+    expect(fake.profile).not.toHaveBeenCalled()
+    resolve()
+    expect(await frozen).toHaveProperty('candidateDigest')
+    expect(fake.profile).toHaveBeenCalledWith(f.profile)
+    expect(fake.profile.mock.invocationCallOrder[0]).toBeLessThan(fake.bind.mock.invocationCallOrder[0])
+  })
+  it('refuses profile drift at sealing without binding candidate evidence or permitting a second freeze', async () => {
+    const f = await fixture()
+    await f.complete()
+    await f.cleanup()
+    fake.profile.mockImplementationOnce(() => {
+      throw new Error('frozen profile drift')
+    })
+    await expect(f.candidate.freezeCandidate()).rejects.toThrow('frozen profile drift')
+    expect(fake.bind).not.toHaveBeenCalled()
+    await expect(f.candidate.freezeCandidate()).rejects.toThrow(/UNKNOWN/)
+  })
+  it('fully revalidates at accepted-review enrollment and refuses drift before proof enrollment', async () => {
+    const f = await fixture()
+    await f.complete()
+    await f.cleanup()
+    const body = await f.candidate.freezeCandidate()
+    fake.profile.mockClear()
+    fake.profile.mockImplementationOnce(() => {
+      throw new Error('review profile drift')
+    })
+    expect(() => f.candidate.acceptTaskReview(f.review(body))).toThrow('review profile drift')
+    expect(fake.profile).toHaveBeenCalledWith(f.profile)
+    expect(() => f.candidate.acceptTaskReview(f.review(body))).toThrow(/UNKNOWN/)
   })
   it('binds the original armed permit before handshake and enrolls after cleanup without another native write', async () => {
     const f = await fixture()
@@ -433,6 +505,38 @@ describe('task-private native candidate original custody (source-only fake, no n
       await expect(f.candidate.freezeCandidate()).rejects.toThrow()
     },
   )
+  it('refuses profile drift before acquiring an original reconciliation hold', async () => {
+    const f = await fixture()
+    await f.complete()
+    await f.cleanup()
+    const body = await f.candidate.freezeCandidate()
+    const enrollment = f.candidate.acceptTaskReview(f.review(body))
+    const receipt = validateProviderReconciliationEvidence(
+      enrollment.senderExcluded,
+      enrollment.physicalEvidence,
+      enrollment.context,
+    )
+    const request = {
+      observationKey: 'drift-before-custody',
+      requestHash: providerReconciliationRequestHash(receipt.identity.intentId, 'drift-before-custody', receipt),
+    }
+    fake.profile.mockClear()
+    fake.profile.mockImplementationOnce(() => {
+      throw new Error('custody profile drift')
+    })
+    expect(() =>
+      acquireOriginalNativeOutcomeCustody(
+        enrollment.context.source!,
+        enrollment.physicalEvidence,
+        enrollment.senderExcluded,
+        {} as import('@prisma/client').PrismaClient,
+        receipt,
+        request,
+      ),
+    ).toThrow('custody profile drift')
+    expect(fake.profile).toHaveBeenCalledWith(f.profile)
+    expect(fake.hold).not.toHaveBeenCalled()
+  })
   it('does not consume its original clean lookup while the captured transaction Promise is pending', async () => {
     const f = await fixture()
     await f.complete()
@@ -448,6 +552,7 @@ describe('task-private native candidate original custody (source-only fake, no n
       hash = providerReconciliationRequestHash(receipt.identity.intentId, key, receipt)
     const client = {} as import('@prisma/client').PrismaClient
     fake.hold.mockReturnValue({ complete: (finalize: () => void) => finalize(), retire: vi.fn() })
+    fake.profile.mockClear()
     const custody = acquireOriginalNativeOutcomeCustody(
       enrollment.context.source!,
       enrollment.physicalEvidence,
@@ -456,6 +561,12 @@ describe('task-private native candidate original custody (source-only fake, no n
       receipt,
       { observationKey: key, requestHash: hash },
     )
+    expect(fake.profile).toHaveBeenCalledWith(f.profile)
+    fake.profile.mockClear()
+    // Canonical transaction callbacks validate the original in-memory custody, never recapture source files.
+    custody.verifyLocked(custody.state, [])
+    validateProviderReconciliationEvidence(enrollment.senderExcluded, enrollment.physicalEvidence, enrollment.context)
+    expect(fake.profile).not.toHaveBeenCalled()
     let resolve!: () => void
     const actual = new Promise<void>(done => {
       resolve = done

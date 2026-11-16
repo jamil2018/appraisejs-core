@@ -98,6 +98,13 @@ installed-program-body association; it does not claim whole-binary, signature, h
 Capture guards every public input against provider-credential aliases before reading bytes. No runtime download,
 replacement validator or caller-supplied qualification flag is accepted. Portable fact validators cannot issue a profile.
 
+The task source and dependencies remain frozen between the exact start packet and evidence sealing. Full public-byte
+verification runs before task effects and again before sealing the original outcome candidate. The synchronous send
+path checks original ownership, revocation, connection domain, lifecycle and absolute deadlines without rereading the
+entire source dossier inside the canonical write transaction. That transaction boxes the RPC Promise; it must not spend
+its finite lifetime repeatedly verifying the same frozen files. Sealing refuses changed source bytes. This trusted
+local scope does not claim protection from a hostile concurrent filesystem writer or increase any existing budget.
+
 The profile issuer, original candidate constructor and task runner share one review-control digest function using the
 existing contract canonicalization. Global contract and outcome canonicalizers remain distinct and unchanged. A genuine
 profile-to-constructor regression covers case-sensitive key ordering, so a mocked profile cannot hide a mismatched digest.

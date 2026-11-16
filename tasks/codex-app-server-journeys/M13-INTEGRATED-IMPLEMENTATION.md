@@ -41,8 +41,9 @@ No sign-in/account switch, fallback, global installation, production/default act
       a normal version-revalidated incremental compiler cache is permitted, never a waiver.
 - [ ] Complete all remaining bounded real runtime/provider role and recovery cases under their exact effect and
       lifecycle controls. Keep old cases permanently spent/UNKNOWN.
-- [ ] Perform one independent engineering evaluation of the working integrated artifact; batch any resulting repairs
-      and reassess affected behavior.
+- [x] Perform one independent engineering evaluation of the integrated offline artifact; batch the R1 cleanup repair
+      and reassess its affected behavior. Runtime admission repairs below require affected integrated verification,
+      without restarting broad reviews between implementation steps.
 
 ## Loss-controller implementation contract
 
@@ -161,3 +162,40 @@ unchanged ordinary Fallow gate with zero findings. Public `src/`, package and ge
 the passing 586 packed and 12 installed SDK/six-role checks retain their exact scope. Full type recheck and targeted
 independent reassessment complete this repair; no broad review restart or new native/model allocation follows.
 The independent REVISE receipt is preserved in `.appraisejs/m13-integrated-final-20261117/independent-evaluation.json`.
+
+## Runtime admission repair after the integrated source review
+
+The reviewed `47bfb8e1` artifact's actual initial Analyzer attempt is permanently spent and UNKNOWN. It acquired one
+native child, refused initialization before any thread/turn request, and recorded uncertain cleanup. The exact first
+cause remains UNKNOWN; no raw private frame was retained. Preserve its original parent and fixture, never replay or
+signal it from stored process identifiers. The central authority now records 23 frozen native allocations, zero unspent,
+19 observed acquisitions plus historical UNKNOWN zero-or-one, four account requests and five spent B3 turn slots.
+M01 remains separately 3/3 spent. No provider qualification follows from these counts.
+
+A fresh offline probe reproduced a concrete send-path defect independently of that unknown outcome: full profile
+inspection rereads 2,294 public inputs, taking approximately 0.7 seconds each. Eight such inspections inside a normal
+boxed Prisma transaction produced P2028 after exceeding its five-second lifetime, despite zero native/model effects.
+Evidence is retained in the predecessor checkout's `.appraisejs/m13-prepare-diagnosis-20261117/` under
+`profile-timing-result.json` and `transaction-timing-result.json`.
+
+- [x] Remove repeated source/dossier recapture from synchronous admission; retain original poison, ownership,
+      connection-domain, lifecycle, permit and deadline checks. Do not increase transaction or request budgets.
+- [x] Revalidate complete frozen public inputs at task start/prelaunch and original candidate sealing; regression-test
+      that sealing refuses drift and hot admission does not reread the full profile.
+- [x] Run affected normal/recovery tests, source/template/artifact checks and the production build together.
+- [ ] Demonstrate the authorized integrated runtime flow on fresh, exactly issued successor cases, preserving every
+      predecessor UNKNOWN and spent allocation. Complete an affected artifact reassessment after the flow works.
+
+The repair checkout is `.appraisejs/m13-runtime-admission-simplification`, based on `47bfb8e1`. The predecessor source
+and original failed parent remain frozen. No intermediate engineering judge cycle, source-framework expansion,
+hostile-runtime hardening, retry, fallback or lifecycle bypass is authorized by this repair.
+
+Repair verification: 88 focused source tests, full normal type check and production build, ordinary Fallow,
+ESLint/Prettier, controlled real-SDK R3 loss flow, template synchronization and scaffold build passed. The fresh packed
+successor passed all 595 portable tests in 18 suites and 12 installed-SDK/six-role tests. Deterministic artifact audit
+verified 59 source parities, 154 compiled runtime files, all 98 migrations and five clean seed copies. Evidence lives in
+`.appraisejs/m13-admission-repair-20261117/` and `.appraisejs/m13-admission-packed-20261117-r2/`. The first packed
+attempt lacked a compiled scaffold entrypoint and is retained as a failed preparation; the normal package build fixed
+that checkout omission before a fresh packed successor. The restricted quality-check Git-worktree failure and an
+incorrect docs script invocation are also retained separately; normal supported successors passed. No new native or
+model allocation was issued during repair verification. Runtime qualification and affected final evaluation remain open.
