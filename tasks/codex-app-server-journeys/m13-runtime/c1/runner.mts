@@ -176,6 +176,22 @@ export async function prepareReviewedC1Task(
               diagnostics.record('CASE_START', 'SETTLED')
             },
             () => {
+              try {
+                const inspection = composition.snapshot().configurationInspection
+                persist(path.join(options.evidenceDirectory, `${manifest.campaignId}.c1-start-failure.json`), {
+                  version: 'M13_C1_START_FAILURE_V1',
+                  outcome: 'UNKNOWN',
+                  configurationInspection: inspection
+                    ? {
+                        valid: inspection.valid,
+                        reason: inspection.reason,
+                        ...(inspection.feature === undefined ? {} : { feature: inspection.feature }),
+                      }
+                    : null,
+                })
+              } catch {
+                // Evidence failure cannot replace the original rejection or bypass original stop/close below.
+              }
               diagnostics.record('CASE_FAILURE', 'UNKNOWN', 'BOUNDARY_REFUSED')
             },
           )

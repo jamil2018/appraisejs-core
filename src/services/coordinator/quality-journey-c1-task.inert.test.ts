@@ -90,6 +90,94 @@ describe('C1 task original pin and stop boundaries with inert composition', () =
     expect(boundary.profile).toHaveBeenLastCalledWith(f.profile)
     await f.task.cancel()
   })
+  it.each([
+    [
+      { valid: false, reason: 'FEATURE_CONTROL_UNVERIFIED', feature: 'shell_tool', rawResponse: 'private-response' },
+      { valid: false, reason: 'FEATURE_CONTROL_UNVERIFIED', feature: 'shell_tool' },
+    ],
+    [
+      { valid: false, reason: 'PUBLIC_CONTROLS_UNVERIFIED', privatePayload: 'private-inspection' },
+      { valid: false, reason: 'PUBLIC_CONTROLS_UNVERIFIED' },
+    ],
+    [null, null],
+  ])(
+    'persists only the curated configuration inspection on original start rejection: %j',
+    async (inspection, expected) => {
+      const f = await fixture()
+      const rejection = new Error('private-error-message')
+      const originalStart = Promise.reject(rejection)
+      f.composition.start.mockReturnValue(originalStart)
+      f.composition.snapshot = () => ({
+        state: 'uncertain',
+        originalStartState: 'REJECTED',
+        configurationInspection: inspection,
+        rawSnapshot: 'private-snapshot',
+      })
+      try {
+        const started = f.task.start()
+        expect(started).toBe(originalStart)
+        await expect(started).rejects.toBe(rejection)
+        expect(f.task.start()).toBe(originalStart)
+        await new Promise<void>(resolve => setImmediate(resolve))
+        const filename = path.join(f.root, 'case.c1-start-failure.json')
+        const bytes = readFileSync(filename, 'utf8')
+        expect(JSON.parse(bytes)).toEqual({
+          version: 'M13_C1_START_FAILURE_V1',
+          outcome: 'UNKNOWN',
+          configurationInspection: expected,
+        })
+        expect(bytes).not.toMatch(/private-|rawResponse|privatePayload|rawSnapshot|message|stack/)
+        expect(f.composition.start).toHaveBeenCalledOnce()
+        expect(f.composition.waitOriginalStop).toHaveBeenCalledOnce()
+        expect(readFileSync(path.join(f.root, 'c1-acquisition-diagnostics.jsonl'), 'utf8')).toContain(
+          '"stage":"CASE_CLOSE"',
+        )
+      } finally {
+        await f.task.cancel()
+      }
+    },
+  )
+  it('preserves original rejection, stop, and diagnostic close when the failure observation cannot be written', async () => {
+    const f = await fixture()
+    const filename = path.join(f.root, 'case.c1-start-failure.json')
+    writeFileSync(filename, 'original retained evidence', { flag: 'wx' })
+    const rejection = new Error('private-error-never-retained')
+    const originalStart = Promise.reject(rejection)
+    let settleStop!: () => void
+    const originalStop = new Promise<void>(resolve => {
+      settleStop = resolve
+    })
+    f.composition.start.mockReturnValue(originalStart)
+    f.composition.waitOriginalStop.mockReturnValue(originalStop as never)
+    f.composition.snapshot = () => ({
+      state: 'uncertain',
+      originalStartState: 'REJECTED',
+      configurationInspection: { valid: false, reason: 'PUBLIC_CONTROLS_UNVERIFIED' },
+      rawSnapshot: 'private-snapshot',
+    })
+    try {
+      expect(f.task.start()).toBe(originalStart)
+      await expect(originalStart).rejects.toBe(rejection)
+      await new Promise<void>(resolve => setImmediate(resolve))
+      expect(f.composition.waitOriginalStop).toHaveBeenCalledOnce()
+      expect(readFileSync(path.join(f.root, 'c1-acquisition-diagnostics.jsonl'), 'utf8')).not.toContain(
+        '"stage":"CASE_CLOSE"',
+      )
+      settleStop()
+      await originalStop
+      await new Promise<void>(resolve => setImmediate(resolve))
+      const trace = readFileSync(path.join(f.root, 'c1-acquisition-diagnostics.jsonl'), 'utf8')
+      expect(trace).toContain('"stage":"CASE_FAILURE","status":"UNKNOWN"')
+      expect(trace).toContain('"stage":"CASE_CLOSE"')
+      expect(trace).not.toMatch(/private-|rawSnapshot|message|stack/)
+      expect(readFileSync(filename, 'utf8')).toBe('original retained evidence')
+      expect(f.composition.start).toHaveBeenCalledOnce()
+    } finally {
+      settleStop()
+      await f.task.cancel()
+    }
+    expect(f.composition.cancel).toHaveBeenCalledOnce()
+  })
   it.each(['fulfilled', 'rejected'])('waits original stop %s before exposing a frozen candidate', async settlement => {
     const f = await fixture()
     await f.task.start()

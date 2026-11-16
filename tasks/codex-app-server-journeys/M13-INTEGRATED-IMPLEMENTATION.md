@@ -199,3 +199,31 @@ attempt lacked a compiled scaffold entrypoint and is retained as a failed prepar
 that checkout omission before a fresh packed successor. The restricted quality-check Git-worktree failure and an
 incorrect docs script invocation are also retained separately; normal supported successors passed. No new native or
 model allocation was issued during repair verification. Runtime qualification and affected final evaluation remain open.
+
+## Configuration refusal observation
+
+The `161f9e67` admission repair's fresh original case acquired one native child, passed initialization, settled
+`config/read`, then refused configuration validation before any thread/turn request. Original cleanup settled and the
+parent exited 2. The case is permanently UNKNOWN/unqualified; the exact configuration predicate was not persisted.
+The central authority records 24 frozen allocations, zero unspent, 20 observed acquisitions plus historical UNKNOWN
+zero-or-one, four account requests and six spent B3 slots. Preserve all predecessor evidence and allocations.
+
+Public producer/serialization inspection found no proven configuration mismatch. Keep all sixteen false feature
+controls and current connector/credential/backend checks. The next bounded diagnostic change records only the existing
+finite inspection reason and optional approved feature name on original failure; raw responses, errors, snapshots and
+credential contents remain excluded. Evidence-write failure must never replace original rejection or stop/close.
+
+- [x] Add the minimal finite failure observation and regressions through the existing inert C1 composition test.
+- [ ] Verify focused task tests, typing, lint and normal hooks; byte-check unchanged packed/runtime artifacts instead
+      of repeating the already passed 595 portable and 12 installed SDK/six-role tests without affected product bytes.
+- [ ] Use a fresh exactly issued successor to identify the actual refusal, then batch any justified repair with its
+      regression. Do not loosen checks from speculation or relabel the previous UNKNOWN reason retrospectively.
+
+The original uncertain parent `65039` has since exited 2 through its original host handle. That does not upgrade its
+UNKNOWN native cleanup or outcome. Independent engineering evaluation remains after working integrated flow.
+
+Finite-observation verification passed the existing inert C1 composition suite (9 tests), Node runner suite (4 tests),
+focused TypeScript, ESLint and formatting. A byte equality proof verified all 59 portable source files, 154 compiled
+runtime files, both tarballs and five seeds unchanged from the 595/12 passing packed artifact. No template/runtime
+source change or broad package rerun is needed for this task-only observation. Evidence is in
+`.appraisejs/m13-config-reason-20261117/` and the predecessor repair directory's `c1-config-observation-*` receipts.
