@@ -39,8 +39,13 @@ No sign-in/account switch, fallback, global installation, production/default act
 - [x] Finish normal full type/build checks, template synchronization, graph update, package/artifact proof and packed
       end-to-end checks once the integrated implementation is stable. Cold 4/8 GiB TypeScript OOMs remain failures;
       a normal version-revalidated incremental compiler cache is permitted, never a waiver.
-- [ ] Complete all remaining bounded real runtime/provider role and recovery cases under their exact effect and
-      lifecycle controls. Keep old cases permanently spent/UNKNOWN.
+- [x] Finish the combined explicit-local connector build, packed tests and deterministic artifact audit: 95 focused
+      tests, 603 packed portable tests and 12 installed SDK/six-role checks passed with every control/budget preserved.
+- [ ] Complete the six native roles (including the answer-bound Analysis follow-up), one real execution cycle,
+      triage/report closure, then the three original R1/R2/R3 recovery cases under their exact effect/lifecycle controls.
+      Keep every predecessor permanently spent/UNKNOWN.
+- [ ] Perform one affected independent evaluation of the integrated working artifact after the authorized flow works;
+      batch any defects and reassess affected behavior only.
 - [x] Perform one independent engineering evaluation of the integrated offline artifact; batch the R1 cleanup repair
       and reassess its affected behavior. Runtime admission repairs below require affected integrated verification,
       without restarting broad reviews between implementation steps.
@@ -183,8 +188,7 @@ Evidence is retained in the predecessor checkout's `.appraisejs/m13-prepare-diag
 - [x] Revalidate complete frozen public inputs at task start/prelaunch and original candidate sealing; regression-test
       that sealing refuses drift and hot admission does not reread the full profile.
 - [x] Run affected normal/recovery tests, source/template/artifact checks and the production build together.
-- [ ] Demonstrate the authorized integrated runtime flow on fresh, exactly issued successor cases, preserving every
-      predecessor UNKNOWN and spent allocation. Complete an affected artifact reassessment after the flow works.
+      The remaining runtime flow and affected artifact reassessment are tracked only in Bounded work above.
 
 The repair checkout is `.appraisejs/m13-runtime-admission-simplification`, based on `47bfb8e1`. The predecessor source
 and original failed parent remain frozen. No intermediate engineering judge cycle, source-framework expansion,
@@ -214,10 +218,10 @@ finite inspection reason and optional approved feature name on original failure;
 credential contents remain excluded. Evidence-write failure must never replace original rejection or stop/close.
 
 - [x] Add the minimal finite failure observation and regressions through the existing inert C1 composition test.
-- [ ] Verify focused task tests, typing, lint and normal hooks; byte-check unchanged packed/runtime artifacts instead
+- [x] Verify focused task tests, typing, lint and normal hooks; byte-check unchanged packed/runtime artifacts instead
       of repeating the already passed 595 portable and 12 installed SDK/six-role tests without affected product bytes.
-- [ ] Use a fresh exactly issued successor to identify the actual refusal, then batch any justified repair with its
-      regression. Do not loosen checks from speculation or relabel the previous UNKNOWN reason retrospectively.
+- [x] Identify the finite refusal in a fresh exactly issued successor and derive the explicit-local repair below.
+      No checks were loosened from speculation and previous UNKNOWN reasons were not relabelled.
 
 The original uncertain parent `65039` has since exited 2 through its original host handle. That does not upgrade its
 UNKNOWN native cleanup or outcome. Independent engineering evaluation remains after working integrated flow.
@@ -227,3 +231,38 @@ focused TypeScript, ESLint and formatting. A byte equality proof verified all 59
 runtime files, both tarballs and five seeds unchanged from the 595/12 passing packed artifact. No template/runtime
 source change or broad package rerun is needed for this task-only observation. Evidence is in
 `.appraisejs/m13-config-reason-20261117/` and the predecessor repair directory's `c1-config-observation-*` receipts.
+
+## Explicit local MCP connector binding
+
+The fresh `25a01c7f` case retained the finite reason `MCP_CONNECTOR_UNVERIFIED`, settled original cleanup and exited 2
+before any thread/turn request. Preserve it as spent UNKNOWN/unqualified. Central authority: 25 frozen native
+allocations, zero unspent, 21 observed acquisitions plus historical UNKNOWN zero-or-one, four account requests,
+seven spent B3 slots; M01 remains separately 3/3.
+
+Public source establishes a concrete mismatch: `McpServerConfig` serializes `environment_id` unconditionally and its
+Raw conversion defaults that field to `local`. ConfigRead serializes this configuration into the API's flattened
+additional map. The expected Appraise connector omitted the field and rejected every populated unexpected property,
+so the native local marker necessarily refuses that predicate. This explains the observed finite predicate class;
+older cases without that observation retain their unknown exact causes. No raw response or provider credential data
+was retained or reconstructed.
+
+- [x] Set the existing connector's `environment_id = "local"` explicitly and require exactly that value in the expected
+      configuration. Preserve refusal of missing/null/nonlocal values, all sixteen false feature controls, exact
+      tool approval, remaining unexpected populated configuration and all original budgets.
+      Literal serializer-shape regressions and affected readiness checks passed. The remaining combined packed checks,
+      authorized runtime flow and affected final evaluation are tracked only in Bounded work above. No general connector
+      abstraction or broader source-helper claim was introduced.
+
+The public producer facts are retained under `.appraisejs/m13-config-reason-20261117/`; they document this concrete
+configuration representation and do not expand the reviewed helper closure, host attestation or effect authorization.
+
+The explicit-local repair is two production lines plus literal readback and negative regressions in the existing
+configuration suite. Focused configuration, mocked child and inert composition suites passed 95 tests; affected lint,
+formatting and diff checks passed. No default/policy escape, new abstraction, feature allowance or deadline increase
+was introduced. Public facts are in `public-configuration-producer-facts.json`; all older UNKNOWN causes remain intact.
+
+The combined local-connector artifact passed full normal type/build, ordinary Fallow, scaffold build/template sync,
+harness/docs/package/artifact checks, all 603 portable tests in 18 suites and 12 installed SDK/six-role tests. Its audit
+verified 59 source parities, 154 runtime files, 98 migrations and five clean seeds. Evidence is in
+`.appraisejs/m13-local-mcp-config-20261117/` and `.appraisejs/m13-local-mcp-packed-20261117/`. Only the concrete local
+marker representation changed; provider execution remains unqualified until the fresh bounded actual cases pass.

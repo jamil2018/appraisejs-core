@@ -45,6 +45,7 @@ const criticalSchema = z
   .passthrough()
 export function expectedNativeMcpConfiguration(binding: ConfigurationBinding, capability: string) {
   return Object.freeze({
+    environment_id: 'local',
     url: `http://127.0.0.1:${binding.endpoint.port}${binding.endpoint.path}`,
     http_headers: { Authorization: `Bearer ${capability}` },
     enabled: true,

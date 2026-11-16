@@ -134,6 +134,7 @@ export function renderNativeQualificationConfiguration(manifest: NativeQualifica
     '[history]',
     'persistence = "none"',
     '[mcp_servers.appraise_worker]',
+    'environment_id = "local"',
     'enabled = true',
     'required = true',
     `url = ${JSON.stringify(`http://127.0.0.1:${manifest.endpoint.port}${manifest.endpoint.path}`)}`,

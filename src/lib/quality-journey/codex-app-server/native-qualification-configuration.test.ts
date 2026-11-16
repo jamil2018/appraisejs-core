@@ -86,6 +86,54 @@ describe('native configuration inspect-only refusal', () => {
   })
 })
 
+describe('serialized native MCP local environment binding', () => {
+  function serializedConfiguration() {
+    const value = configuration()
+    // Literal native connector readback; do not derive this fixture from the verifier's expected-value helper.
+    value.config.mcp_servers = {
+      appraise_worker: {
+        environment_id: 'local',
+        url: `http://127.0.0.1:${binding.endpoint.port}${binding.endpoint.path}`,
+        http_headers: { Authorization: `Bearer ${capability}` },
+        enabled: true,
+        required: true,
+        enabled_tools: ['quality_journey_analysis_get', 'quality_journey_analysis_submit'],
+        tools: {
+          quality_journey_analysis_get: { approval_mode: 'approve' },
+          quality_journey_analysis_submit: { approval_mode: 'approve' },
+        },
+        startup_timeout_sec: 10,
+        tool_timeout_sec: 30,
+      },
+    }
+    return value
+  }
+  it('accepts the serialized local connector with exact native tool approval and closed controls', () => {
+    expect(inspectNativeQualificationConfiguration(serializedConfiguration(), binding, capability)).toEqual({
+      valid: true,
+      reason: 'NONE',
+    })
+  })
+  it.each([undefined, null, 'remote', 'local-other', '', false])(
+    'refuses absent or nonlocal environment_id %j',
+    environment => {
+      const value = serializedConfiguration()
+      const server = (value.config.mcp_servers as Record<string, Record<string, unknown>>).appraise_worker
+      if (environment === undefined) delete server.environment_id
+      else server.environment_id = environment
+      expect(inspectNativeQualificationConfiguration(value, binding, capability)).toEqual({
+        valid: false,
+        reason: 'MCP_CONNECTOR_UNVERIFIED',
+      })
+    },
+  )
+  it('renders the exact local environment explicitly once in the reviewed connector section', () => {
+    const rendered = renderNativeQualificationConfiguration(binding as NativeQualificationManifest, capability)
+    expect(rendered).toContain('[mcp_servers.appraise_worker]\nenvironment_id = "local"\n')
+    expect(rendered.split('\n').filter(line => line === 'environment_id = "local"')).toHaveLength(1)
+  })
+})
+
 describe('explicit MCP native prompt policy and sanitized refusal metadata', () => {
   it.each(['missing', 'wrong', 'extra'] as const)('refuses %s native per-tool approval scope', mode => {
     const value = configuration(),

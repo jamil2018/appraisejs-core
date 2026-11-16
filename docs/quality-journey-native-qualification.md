@@ -97,6 +97,10 @@ source dossier and fixed review controls before effects. The dossier pins the pu
 installed-program-body association; it does not claim whole-binary, signature, host-isolation or helper equivalence.
 Capture guards every public input against provider-credential aliases before reading bytes. No runtime download,
 replacement validator or caller-supplied qualification flag is accepted. Portable fact validators cannot issue a profile.
+The single MCP connector explicitly binds `environment_id = "local"`; configuration readback requires exactly that
+marker along with the existing endpoint, bearer capability, tool allow-list, per-tool approvals and timeout values.
+The pinned native serializer emits the local marker even when omitted from TOML, so treating it as an unexpected
+populated property falsely refused the connector. Missing, null or nonlocal markers remain refused.
 
 The task source and dependencies remain frozen between the exact start packet and evidence sealing. Full public-byte
 verification runs before task effects and again before sealing the original outcome candidate. The synchronous send
