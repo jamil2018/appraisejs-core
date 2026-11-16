@@ -53,6 +53,7 @@ function fixture() {
     async cancelOriginalAndRetain() {
       cancels++
       events.push('original-cancel')
+      return { originalCleanupProven: true }
     },
   })
   return {
@@ -149,7 +150,9 @@ test('a synchronous original start failure consumes the start boundary and canno
     async pauseOriginal() {
       throw new Error('unreachable')
     },
-    async cancelOriginalAndRetain() {},
+    async cancelOriginalAndRetain() {
+      return { originalCleanupProven: true }
+    },
   })
   assert.throws(() => recovery.start(), /no retry/)
   assert.throws(() => recovery.start(), /already entered/)
@@ -216,7 +219,9 @@ test('acceptance race prevents R1 pause qualification; delayed starts and finite
     async pauseOriginal() {
       throw new Error('unreachable')
     },
-    async cancelOriginalAndRetain() {},
+    async cancelOriginalAndRetain() {
+      return { originalCleanupProven: true }
+    },
     pollLimit: 1,
   })
   recovery.start()
@@ -246,7 +251,9 @@ test('R1 refuses a canonical acceptance missed by the original outward receipt o
       pauses++
       throw new Error('must not enter')
     },
-    async cancelOriginalAndRetain() {},
+    async cancelOriginalAndRetain() {
+      return { originalCleanupProven: true }
+    },
   })
   recovery.start()
   await assert.rejects(recovery.poll(), /canonical acceptance already observed/)

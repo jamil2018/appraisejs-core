@@ -54,7 +54,11 @@ disconnect, checkpoint, and snapshot sealing.
 
 ## Closed reader
 
-`seal-recovery-reader` requires the canonical pause receipt and settled original cleanup/retention. Other original
+`seal-recovery-reader` requires the canonical pause receipt and settled original cleanup/retention. R1 retains the
+original task cancellation result and requires its stopped supervisor state plus stopped owned-child receipt,
+observed process-group exit, removed private root, and no retained private root. A fulfilled uncertain cancellation
+keeps cleanup unproven and the original source/client retained; a later physical settlement cannot upgrade that
+original uncertain result. Sealing, source-writer disposal, checkpoint, and disconnect refuse that boundary. Other original
 source writers must close through their original disposal path. The still-original fixture client verifies a SQLite
 checkpoint and disconnects only after its original fixture flight has settled. Missing closure or transaction proof
 refuses sealing. No replacement writer is opened to perform a checkpoint.

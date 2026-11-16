@@ -4,6 +4,7 @@ import {
   chmodSync,
   existsSync,
   mkdtempSync,
+  mkdirSync,
   readFileSync,
   realpathSync,
   rmSync,
@@ -31,6 +32,9 @@ import {
 import { requiredC1TaskInputPaths } from './runner.mts'
 import { prepareOriginalNativeDriverCase, validatePreparation } from './native-driver-prepare.mts'
 import type { NativeLineageEvent } from './native-lineage.mts'
+import { createOriginalRecoveryCase } from './recovery-case.mts'
+import { recoveryEvidenceRoot } from './recovery-read-binding.mts'
+import { sealRecoverySnapshot } from './recovery-snapshot.mts'
 
 function fixture() {
   const root = mkdtempSync(path.join(realpathSync(tmpdir()), 'm13-driver-offline-'))
@@ -672,6 +676,179 @@ test('source validation consuming the lease cancels the original unstarted task 
     assert.equal(c.snapshot().phase, 'UNKNOWN')
   } finally {
     context.mock.restoreAll()
+    f.cleanup()
+  }
+})
+
+const stoppedOriginalCleanup = Object.freeze({
+  state: 'stopped',
+  cleanup: Object.freeze({
+    status: 'stopped',
+    groupExitObserved: true,
+    privateRootRemoved: true,
+    privateRootRetained: false,
+  }),
+})
+for (const [name, result] of [
+  ['healthy original stopped receipt', stoppedOriginalCleanup],
+  [
+    'fulfilled uncertainty at cleanup deadline',
+    {
+      state: 'uncertain',
+      cleanup: { status: 'uncertain', groupExitObserved: false, privateRootRemoved: false, privateRootRetained: true },
+    },
+  ],
+  ['stopped state with uncertain cleanup', { ...stoppedOriginalCleanup, cleanup: { status: 'uncertain' } }],
+  [
+    'unobserved process group',
+    { ...stoppedOriginalCleanup, cleanup: { ...stoppedOriginalCleanup.cleanup, groupExitObserved: false } },
+  ],
+  [
+    'retained private root',
+    { ...stoppedOriginalCleanup, cleanup: { ...stoppedOriginalCleanup.cleanup, privateRootRetained: true } },
+  ],
+  ['absent cancellation result', undefined],
+] as const) {
+  test(`R1 cancellation inspects its original result: ${name}`, async () => {
+    const f = fixture()
+    let calls = 0
+    const originalCancellation = Promise.resolve(result)
+    const c = originalCase(f, {
+      cancel() {
+        calls++
+        return originalCancellation
+      },
+    })
+    try {
+      await c.control.startVerifiedCase(f.approval())
+      const retained = await c.control.cancelAndRetain()
+      assert.equal(retained.originalCleanupProven, result === stoppedOriginalCleanup)
+      assert.equal(c.control.snapshot().originalCancellationState, 'FULFILLED')
+      assert.equal(c.control.snapshot().originalCleanupProven, result === stoppedOriginalCleanup)
+      assert.equal(c.control.snapshot().sourceDisposed, false)
+      assert.deepEqual(await c.control.cancelAndRetain(), retained)
+      assert.equal(calls, 1)
+    } finally {
+      f.cleanup()
+    }
+  })
+}
+
+test('R1 fulfilled uncertain original stop cannot seal, dispose writers, checkpoint, or disconnect while late physical cleanup remains', async () => {
+  const f = fixture()
+  let resolveOriginalStop!: (value: unknown) => void
+  const originalStop = new Promise<unknown>(resolve => {
+    resolveOriginalStop = resolve
+  })
+  let finishOriginalPhysicalCleanup!: () => void
+  const originalPhysicalCleanup = new Promise<void>(resolve => {
+    finishOriginalPhysicalCleanup = resolve
+  })
+  let physicalCleanupSettled = false,
+    calls = 0
+  void originalPhysicalCleanup.then(() => {
+    physicalCleanupSettled = true
+  })
+  const c = originalCase(f, {
+    snapshot: () => ({
+      state: 'active',
+      originalStartState: 'FULFILLED',
+      turnStartEntered: true,
+      turnId: 'original-r1-turn',
+      completed: false,
+    }),
+    cancel() {
+      calls++
+      return originalStop
+    },
+  })
+  const hash = `sha256:${'a'.repeat(64)}`
+  const teardown: string[] = []
+  const recovery = createOriginalRecoveryCase({
+    caseKind: 'R1_ACKNOWLEDGED_NATIVE_INTERRUPTION',
+    startOriginal: () => c.control.startVerifiedCase(f.approval()),
+    observeOriginal: () => ({
+      actualAcknowledgementObserved: c.control.snapshot().actualAcknowledgementObserved,
+      originalTurnActive: c.control.snapshot().originalTurnActive,
+      completionObserved: false,
+      canonicalAcceptanceObserved: false,
+    }),
+    fenceAdmission() {},
+    async readOriginalScope() {
+      return { version: 7, stateHash: hash }
+    },
+    async pauseOriginal() {
+      return { operationalStatus: 'PAUSED', version: 8, stateHash: hash, eventId: 'original-pause-committed' }
+    },
+    cancelOriginalAndRetain: () => c.control.cancelAndRetain(),
+  })
+  try {
+    recovery.start()
+    await c.control.startVerifiedCase(f.approval())
+    const pause = recovery.pause({
+      caseKind: 'R1_ACKNOWLEDGED_NATIVE_INTERRUPTION',
+      expectedVersion: 7,
+      expectedStateHash: hash,
+      idempotencyKey: 'one-r1-pause',
+    })
+    const refusedPause = assert.rejects(pause, /R1_ORIGINAL_CLEANUP_UNPROVEN/)
+    resolveOriginalStop(
+      Object.freeze({
+        state: 'uncertain',
+        cleanup: Object.freeze({
+          status: 'uncertain',
+          groupExitObserved: false,
+          privateRootRemoved: false,
+          privateRootRetained: true,
+        }),
+      }),
+    )
+    await refusedPause
+    assert.equal(physicalCleanupSettled, false)
+    assert.equal(recovery.snapshot().pauseReceipt?.eventId, 'original-pause-committed')
+    assert.equal(recovery.snapshot().cleanupSettled, false)
+    assert.equal(c.control.snapshot().phase, 'UNKNOWN')
+    mkdirSync(recoveryEvidenceRoot, { recursive: true, mode: 0o700 })
+    await assert.rejects(
+      sealRecoverySnapshot({
+        binding: {
+          version: 'M13_SENDER_FREE_RECOVERY_READ_V1',
+          actor: 'BOUND_DISPOSABLE_PROJECT_READER',
+          caseKind: 'R1_ACKNOWLEDGED_NATIVE_INTERRUPTION',
+          journeyId: 'offline-r1',
+          targetProjectId: 'offline-r1-project',
+          expectedVersion: 8,
+          expectedStateHash: hash,
+          pauseEventId: 'original-pause-committed',
+          attemptId: 'offline-r1-attempt',
+        },
+        originalDatabasePath: path.join(f.root, 'unopened-original.sqlite'),
+        evidenceRoot: recoveryEvidenceRoot,
+        originalOwner: {
+          async provePausedAndCleaned() {
+            recovery.assertOriginalCleanupSettled()
+          },
+          async closeOtherOriginalWriters() {
+            teardown.push('dispose-source-writer')
+          },
+          async checkpointOriginalAndDisconnect() {
+            teardown.push('checkpoint', 'disconnect')
+            return { busy: 0, activeTransactions: 0, disconnected: true }
+          },
+        },
+      }),
+      /physical cleanup remains unproven/,
+    )
+    assert.deepEqual(teardown, [])
+    assert.equal(c.control.snapshot().sourceDisposalEntered, false)
+    assert.equal(calls, 1)
+    finishOriginalPhysicalCleanup()
+    await originalPhysicalCleanup
+    assert.equal(physicalCleanupSettled, true)
+    assert.equal((await c.control.cancelAndRetain()).originalCleanupProven, false)
+    assert.throws(recovery.assertOriginalCleanupSettled, /physical cleanup remains unproven/)
+    assert.equal(calls, 1)
+  } finally {
     f.cleanup()
   }
 })

@@ -87,6 +87,19 @@ export type OriginalNativeDriverTask = Readonly<{
   reconcile(observationKey: string): Promise<unknown>
   cancel(): Promise<unknown>
 }>
+const originalStoppedCleanup = z
+  .object({
+    state: z.literal('stopped'),
+    cleanup: z
+      .object({
+        status: z.literal('stopped'),
+        groupExitObserved: z.literal(true),
+        privateRootRemoved: z.literal(true),
+        privateRootRetained: z.literal(false),
+      })
+      .passthrough(),
+  })
+  .passthrough()
 type Phase = 'PREPARED' | 'STARTING' | 'RUNNING' | 'CANDIDATE' | 'REVIEWED' | 'RECONCILED' | 'UNKNOWN'
 
 /** One original case only. The actual driver supplies the concrete C1 task; tests may supply inert task objects. */
@@ -126,10 +139,22 @@ export function createOriginalNativeCaseControl(options: {
   let reviewEntered = false,
     reconcileEntered = false
   let cancellation: Promise<unknown> | undefined
+  let cancellationResult: unknown
+  let cancellationState: 'NOT_ENTERED' | 'PENDING' | 'FULFILLED' | 'REJECTED' = 'NOT_ENTERED'
   function cancelOriginalTask() {
     if (task && !cancellation) {
       const originalTask = task
-      cancellation = (async () => originalTask.cancel())()
+      cancellationState = 'PENDING'
+      cancellation = (async () => {
+        try {
+          cancellationResult = await originalTask.cancel()
+          cancellationState = 'FULFILLED'
+          return cancellationResult
+        } catch (error) {
+          cancellationState = 'REJECTED'
+          throw error
+        }
+      })()
     }
     return cancellation
   }
@@ -264,16 +289,22 @@ export function createOriginalNativeCaseControl(options: {
         nativeCompletionObserved: task?.snapshot().completed === true,
         nativeReplyLoss: task?.snapshot().mcp?.lossReply ?? null,
         originalStartEntered: !!originalStart,
+        originalCancellationState: cancellationState,
+        originalCleanupProven: originalStoppedCleanup.safeParse(cancellationResult).success,
         candidateDigest: candidate ? driverDigest(candidate) : null,
         sourceDisposed: sourceDisposalSettled,
         sourceDisposalEntered,
         runtimeQualified: false as const,
       }),
     async cancelAndRetain() {
-      if (phase === 'RECONCILED') return Object.freeze({ phase, retained: true as const })
+      if (phase === 'RECONCILED') return Object.freeze({ phase, retained: true as const, originalCleanupProven: false })
       phase = 'UNKNOWN'
       if (task && !sourceDisposalEntered) await cancelOriginalTask()
-      return Object.freeze({ phase, retained: true as const })
+      return Object.freeze({
+        phase,
+        retained: true as const,
+        originalCleanupProven: originalStoppedCleanup.safeParse(cancellationResult).success,
+      })
     },
   })
 }

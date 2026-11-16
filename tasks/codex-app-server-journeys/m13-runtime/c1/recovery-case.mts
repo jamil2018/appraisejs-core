@@ -56,7 +56,7 @@ export function createOriginalRecoveryCase(options: {
   pauseOriginal(
     input: z.infer<typeof recoveryPauseSchema>,
   ): Promise<{ operationalStatus: string; version: number; stateHash: string; eventId: string }>
-  cancelOriginalAndRetain(): Promise<unknown>
+  cancelOriginalAndRetain(): Promise<Readonly<{ originalCleanupProven: boolean }>>
   boundaryMs?: number
   pollLimit?: number
 }) {
@@ -85,6 +85,19 @@ export function createOriginalRecoveryCase(options: {
   const fence = () => {
     fenced = true
     options.fenceAdmission()
+  }
+  async function cancelAndObserveOriginalCleanup() {
+    try {
+      const cancellation = await options.cancelOriginalAndRetain()
+      cleanupSettled = cancellation.originalCleanupProven === true
+    } catch {
+      cleanupSettled = false
+    }
+    if (!cleanupSettled)
+      throw new Error('R1_ORIGINAL_CLEANUP_UNPROVEN; original source and late cleanup retained UNKNOWN')
+  }
+  function assertOriginalCleanupSettled() {
+    if (!cleanupSettled) throw new Error('R1 original physical cleanup remains unproven')
   }
   function assertPauseCommit(committed: NonNullable<typeof receipt>, expectedVersion: number) {
     if (
@@ -193,8 +206,7 @@ export function createOriginalRecoveryCase(options: {
       interruptionObservation = completedFirst
         ? 'UNQUALIFIED_COMPLETED_BEFORE_CANCELLATION'
         : 'ORIGINAL_OWNED_PROCESS_CANCELLATION'
-      await options.cancelOriginalAndRetain()
-      cleanupSettled = true
+      await cancelAndObserveOriginalCleanup()
       return Object.freeze({
         phase: completedFirst ? 'R1_UNQUALIFIED_PAUSED_RETAINED_UNKNOWN' : 'PAUSED_RETAINED_UNKNOWN',
         ...receipt,
@@ -205,6 +217,7 @@ export function createOriginalRecoveryCase(options: {
         nextCasePermitted: false,
       })
     },
+    assertOriginalCleanupSettled,
     snapshot: () =>
       Object.freeze({
         caseKind: options.caseKind,

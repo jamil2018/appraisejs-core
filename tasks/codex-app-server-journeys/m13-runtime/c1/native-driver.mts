@@ -150,9 +150,9 @@ export function createNativeQualificationParent(
   }
   function originalRecoveryPause() {
     if (recovery) {
+      recovery.assertOriginalCleanupSettled()
       const state = recovery.snapshot()
-      if (!state.pauseReceipt || !state.cleanupSettled)
-        throw new Error('Canonical pause and original cleanup must precede snapshot sealing')
+      if (!state.pauseReceipt) throw new Error('Canonical pause and original cleanup must precede snapshot sealing')
       return { caseKind: state.caseKind, pause: state.pauseReceipt, loss: undefined }
     }
     if (!current || !lossCleanupSettled)
@@ -187,14 +187,24 @@ export function createNativeQualificationParent(
         if (!lineage.snapshot().recoveryRetained) throw new Error('Recovery ownership drift')
       },
       async closeOtherOriginalWriters() {
+        recovery?.assertOriginalCleanupSettled()
         if (originalLoss) assertNativeQualificationLossQuiescent(originalLoss)
         if (originalSource) {
           await disposeProviderSourceDatabase(await originalSource.ready)
           originalSource = undefined
         }
       },
-      checkpointOriginalAndDisconnect: () => lineage.checkpointOriginalRecoveryAndDisconnect(),
+      async checkpointOriginalAndDisconnect() {
+        recovery?.assertOriginalCleanupSettled()
+        return lineage.checkpointOriginalRecoveryAndDisconnect()
+      },
     }
+  }
+  async function retainOriginalLineage(runtimePending: boolean | undefined) {
+    if (current?.recoveryDelivery && !current.control.snapshot().originalCleanupProven) {
+      lineage.fenceRecoveryAdmission()
+      await lineage.stopRecoveryAndRetainOriginalClient()
+    } else if (!runtimePending) await lineage.stopAndRetain()
   }
   return Object.freeze({
     async prepareInitialCase(packet: NativeCasePreparation) {
@@ -257,7 +267,7 @@ export function createNativeQualificationParent(
         pauseOriginal: input => lineage.pauseOriginalRecovery(input),
         async cancelOriginalAndRetain() {
           try {
-            await original.control.cancelAndRetain()
+            return await original.control.cancelAndRetain()
           } finally {
             await lineage.stopRecoveryAndRetainOriginalClient()
           }
@@ -614,7 +624,7 @@ export function createNativeQualificationParent(
         if (current) await current.control.cancelAndRetain()
         if (execution) await execution.control.cancelAndRetain()
       } finally {
-        if (!runtimePending) await lineage.stopAndRetain()
+        await retainOriginalLineage(runtimePending)
       }
       return Object.freeze({
         phase: 'UNKNOWN' as const,

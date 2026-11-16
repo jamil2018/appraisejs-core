@@ -150,3 +150,14 @@ passed, without explaining or relabelling that historical failure. No production
 
 The remaining work is the one independent integrated-artifact evaluation and exact bounded real role/recovery
 qualification under the existing effect/lifecycle controls. M13 remains incomplete until that evidence is accepted.
+
+## Independent evaluation and affected repair
+
+The one independent integrated evaluation of `98e06e015ef891d98dc20b06fb3b5d243531298e` requested one P1 repair:
+R1 discarded an uncertain original cancellation result and could admit sealing while physical cleanup continued.
+The batched task-only repair retains and validates the original result, refuses source disposal/checkpoint/disconnect
+without proof, and preserves the original client on uncertain retention. It passed 52 focused regressions and the
+unchanged ordinary Fallow gate with zero findings. Public `src/`, package and generated artifact bytes are unchanged;
+the passing 586 packed and 12 installed SDK/six-role checks retain their exact scope. Full type recheck and targeted
+independent reassessment complete this repair; no broad review restart or new native/model allocation follows.
+The independent REVISE receipt is preserved in `.appraisejs/m13-integrated-final-20261117/independent-evaluation.json`.
