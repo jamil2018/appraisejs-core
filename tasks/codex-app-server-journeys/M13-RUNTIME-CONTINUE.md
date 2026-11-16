@@ -1,3 +1,10 @@
+# Current resume — 2026-11-16
+
+The user resumed the verified pause. Read [the current resume record](M13-RESUME-2026-11-16.md) before acting on
+historical counters or commands below. The paused recovery chain is immutable. Current credential device metadata
+changed, requiring a fresh B2 successor; canonical startup notification refusals remain unchanged while an additive
+D3 privacy reducer is prepared. No new effects follow from this pointer or from source acceptance.
+
 # M13 runtime continuation
 
 Status: PAUSED at the user's requested graceful checkpoint on 2026-11-16 (client date). Read [the compact pause handoff](M13-PAUSE-2026-11-16.md) first. Current B1/B2 and D2 method-class observations are accepted; C1 remains UNKNOWN and M13 remains unchecked. Earlier progress paragraphs below are historical snapshots, not fresh effect authority.

@@ -47,7 +47,7 @@ const approvedCredentialIdentity = Object.freeze({
   canonicalPath: CREDENTIAL_SOURCE_PATH,
   uid: '503',
   mode: '384',
-  dev: '16777229',
+  dev: '16777230',
   ino: '89690255',
   nlink: '1',
 })

@@ -168,15 +168,17 @@ test('only present ChatGPT account on the expected auth-requiring provider passe
     })
 })
 
-test('manifest mismatch and synthetic descriptor refuse before any real-source metadata access', () =>
+test('manifest mismatch and synthetic descriptor refuse before any real-source metadata access', t => {
   temporary((root, source) => {
+    t.mock.method(process, 'getuid', () => 503)
     const path = join(root, 'manifest.json')
     writeFileSync(path, '{}')
     assert.throws(() => verifyManifest(path, '0'.repeat(64), syntheticManifestReads()), {
       category: 'manifest_hash_mismatch',
     })
     assert.throws(() => verifySourceDescriptor(source), { category: 'credential_descriptor_refused' })
-  }))
+  })
+})
 
 test('feature controls require explicit false values and arbitrary plugin or hook booleans remain refused', () => {
   for (const value of [undefined, null, false, [], 'false']) {
@@ -222,7 +224,7 @@ function approvedDescriptor() {
     canonicalPath: '/Users/jamil/.codex/auth.json',
     uid: '503',
     mode: '384',
-    dev: '16777229',
+    dev: '16777230',
     ino: '89690255',
     nlink: '1',
     size: '100',
@@ -239,7 +241,8 @@ function syntheticManifestReads(): NonNullable<Parameters<typeof verifyManifest>
   }
 }
 
-test('only the approved current device and exact fixed credential identity are accepted', () => {
+test('only the approved current device and exact fixed credential identity are accepted', t => {
+  t.mock.method(process, 'getuid', () => 503)
   assert.doesNotThrow(() => verifySourceDescriptor(approvedDescriptor()))
   for (const [key, value] of [
     ['dev', '16777231'],
@@ -249,6 +252,7 @@ test('only the approved current device and exact fixed credential identity are a
     ['nlink', '2'],
     ['canonicalPath', '/synthetic/other-auth.json'],
     ['path', '/synthetic/other-auth.json'],
+    ['dev', '16777229'],
     ['dev', 16777230],
   ] as const) {
     assert.throws(() => verifySourceDescriptor({ ...approvedDescriptor(), [key]: value }), {
@@ -257,10 +261,40 @@ test('only the approved current device and exact fixed credential identity are a
   }
 })
 
-test('the old credential tuple refuses before every manifest metadata and byte read', () => {
+test('the current synthetic descriptor reaches only the injected manifest reads', t => {
+  t.mock.method(process, 'getuid', () => 503)
   const io = syntheticManifestReads()
   const calls: string[] = []
-  io.describeSource = () => ({ ...approvedDescriptor(), dev: '16777230', ino: '13904959' })
+  io.describeSource = path => {
+    assert.equal(path, approvedDescriptor().path)
+    calls.push('sourceMetadata')
+    return approvedDescriptor()
+  }
+  io.canonicalPath = path => {
+    assert.equal(path, '/synthetic/manifest.json')
+    calls.push('canonicalPath')
+    return path
+  }
+  io.identity = path => {
+    assert.equal(path, '/synthetic/manifest.json')
+    calls.push('identity')
+    return { dev: 1n, ino: 2n }
+  }
+  io.readBytes = path => {
+    assert.equal(path, '/synthetic/manifest.json')
+    calls.push('manifestBytes')
+    return Buffer.from('{}')
+  }
+  assert.throws(() => verifyManifest('/synthetic/manifest.json', '0'.repeat(64), io), {
+    category: 'manifest_hash_mismatch',
+  })
+  assert.deepEqual(calls, ['sourceMetadata', 'canonicalPath', 'identity', 'manifestBytes'])
+})
+
+test('the old device with the otherwise current descriptor refuses before every manifest metadata and byte read', () => {
+  const io = syntheticManifestReads()
+  const calls: string[] = []
+  io.describeSource = () => ({ ...approvedDescriptor(), dev: '16777229' })
   io.canonicalPath = () => {
     calls.push('canonicalPath')
     return '/synthetic/manifest.json'
@@ -320,7 +354,8 @@ test('fixed source metadata or source-type refusal precedes every manifest metad
   })
 })
 
-test('direct, canonical and same-identity credential aliases never reach manifest byte reads', () => {
+test('direct, canonical and same-identity credential aliases never reach manifest byte reads', t => {
+  t.mock.method(process, 'getuid', () => 503)
   for (const kind of ['direct', 'canonical', 'identity']) {
     const io = syntheticManifestReads()
     const calls: string[] = []
@@ -329,7 +364,7 @@ test('direct, canonical and same-identity credential aliases never reach manifes
       return approvedDescriptor()
     }
     if (kind !== 'identity') io.canonicalPath = () => approvedDescriptor().canonicalPath
-    else io.identity = () => ({ dev: 16777229n, ino: 89690255n })
+    else io.identity = () => ({ dev: 16777230n, ino: 89690255n })
     io.readBytes = path => {
       assert.fail(`secret alias must never be read: ${path}`)
     }
