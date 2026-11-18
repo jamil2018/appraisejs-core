@@ -61,6 +61,28 @@ const nativeThreadUuid = (value: unknown): value is string =>
   typeof value === 'string' && /^[a-f0-9]{8}-[a-f0-9]{4}-[47][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(value)
 const record = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === 'object' && !Array.isArray(value)
+const warningRefusalPrefixes = [
+  ['Falling back from WebSockets to HTTPS transport.', 'WARNING_TRANSPORT_FALLBACK'],
+  [
+    `Model metadata for \`${nativeQualificationModel}\` not found. Defaulting to fallback metadata;`,
+    'WARNING_MODEL_METADATA_FALLBACK',
+  ],
+  ['Code Mode is unavailable because ', 'WARNING_CODE_MODE_UNAVAILABLE'],
+  ['Code Mode is enabled in configuration, but model ', 'WARNING_CODE_MODE_UNSUPPORTED'],
+  [
+    'Agent message-board initialization failed; its tools are unavailable for this runtime.',
+    'WARNING_THREAD_BOARD_INITIALIZATION',
+  ],
+  [
+    'Failed to save the conversation transcript; Codex will continue retrying. Error: ',
+    'WARNING_TRANSCRIPT_SAVE_FAILED',
+  ],
+] as const
+
+function warningRefusal(message: unknown): NativeSourceNotificationRefusal {
+  if (typeof message !== 'string') return 'WARNING_OTHER'
+  return warningRefusalPrefixes.find(([prefix]) => message.startsWith(prefix))?.[1] ?? 'WARNING_OTHER'
+}
 const sources = new WeakMap<ProviderPhysicalOutcomeSource, OriginalNativeOutcome>()
 const requestSequence = ['initialize', 'config/read', 'thread/start', 'mcpServerStatus/list', 'turn/start'] as const
 export type NativeOutcomeReviewControl = Readonly<{
@@ -483,16 +505,16 @@ class OriginalNativeOutcome {
   }
   #threadStartupWarning(params: Record<string, unknown>) {
     // Session creation repeats the reviewed config deprecation with the owning thread ID.
+    if (params.message !== nativeStartupWarning) this.#refuseNotification('warning', warningRefusal(params.message))
+    if (this.#threadStartupWarningSeen) this.#refuseNotification('warning', 'WARNING_THREAD_DEPRECATION_DUPLICATE')
     if (
-      this.#threadStartupWarningSeen ||
       this.#requests < 3 ||
       this.#requests >= 5 ||
       !this.#threadId ||
       params.threadId !== this.#threadId ||
-      params.message !== nativeStartupWarning ||
       Object.keys(params).length !== 2
     )
-      this.#refuseNotification('warning', 'SOURCE_NOTIFICATION_REFUSED')
+      this.#refuseNotification('warning', 'WARNING_THREAD_DEPRECATION_OUT_OF_WINDOW')
     this.#threadStartupWarningSeen = true
   }
   #turnNotification(method: string, params: Record<string, unknown>) {

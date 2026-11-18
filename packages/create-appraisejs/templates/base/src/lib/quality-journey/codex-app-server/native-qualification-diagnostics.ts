@@ -54,6 +54,17 @@ const nativeDiagnosticStages = [
 ] as const
 export type NativeDiagnosticStage = (typeof nativeDiagnosticStages)[number]
 type NativeDiagnosticStatus = 'ENTERED' | 'SETTLED' | 'ACCEPTED' | 'REFUSED' | 'TIMED_OUT' | 'UNKNOWN' | 'CLOSED'
+const warningRefusals = [
+  'WARNING_THREAD_DEPRECATION_DUPLICATE',
+  'WARNING_THREAD_DEPRECATION_OUT_OF_WINDOW',
+  'WARNING_MODEL_METADATA_FALLBACK',
+  'WARNING_TRANSPORT_FALLBACK',
+  'WARNING_CODE_MODE_UNAVAILABLE',
+  'WARNING_CODE_MODE_UNSUPPORTED',
+  'WARNING_THREAD_BOARD_INITIALIZATION',
+  'WARNING_TRANSCRIPT_SAVE_FAILED',
+  'WARNING_OTHER',
+] as const
 export type NativeSourceNotificationRefusal =
   | 'NOTIFICATION_AFTER_CLEANUP'
   | 'NOTIFICATION_AFTER_CANDIDATE'
@@ -65,6 +76,7 @@ export type NativeSourceNotificationRefusal =
   | 'TURN_SCOPE_MISMATCH'
   | 'UNCLASSIFIED_NOTIFICATION'
   | 'SOURCE_NOTIFICATION_REFUSED'
+  | (typeof warningRefusals)[number]
 type NativeDiagnosticReason =
   | NativeSourceNotificationRefusal
   | 'PROTOCOL_REFUSED'
@@ -138,6 +150,7 @@ passiveReasons.set('PASSIVE_OUTCOME_MCP_STARTUP', [...commonOutcomeReasons, ...s
 passiveReasons.set('PASSIVE_OUTCOME_OTHER', [
   ...commonOutcomeReasons,
   ...scopedOutcomeReasons,
+  ...warningRefusals,
   'UNCLASSIFIED_NOTIFICATION',
 ])
 

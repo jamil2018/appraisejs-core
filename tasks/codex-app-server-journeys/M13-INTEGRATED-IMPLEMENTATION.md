@@ -362,3 +362,13 @@ turn RPCs, the envelope digest, and its durable qualification policy. Other D05 
 policy and persisted preparation hashes. The existing executable, login mode, provider, transport, gates, and
 budgets carry forward. Catalogue evidence establishes a candidate, and actual provider eligibility still
 requires fresh qualification. All earlier allocations and UNKNOWN outcomes retain their recorded dispositions.
+
+The new GPT-5.5 case at `7e4bea97` passed configuration, exact model readback, empty-thread validation, and local
+MCP readiness. Its original turn RPC settled. A general thread warning then fenced the source just as on the older
+model. The provider outcome, cleanup, and warning text remain UNKNOWN. The ledger keeps both spent model cases
+separate. Current totals are 33 frozen allocations, zero unspent, 28 observed acquisitions plus historical
+UNKNOWN zero-or-one, four account reads, and 15 spent B3 slots.
+
+The next finite diagnostic distinguishes the known deprecation's duplicate or out-of-window delivery from
+source-backed model metadata, Code Mode, transport, board, and transcript warning categories. The observer projects
+only those fixed labels. Its admitted warning, thread scope, phases, fallback restrictions, and budgets remain fixed.

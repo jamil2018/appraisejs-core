@@ -901,10 +901,12 @@ describe('source-only fixed passive predicates preserve rejection policy and cou
 
 describe('original thread-start deprecation warning', () => {
   it('accepts the exact known warning once for the original thread before a consuming turn', async () => {
-    const f = await fixture()
+    const d = passiveDiagnostics(),
+      f = await fixture({ diagnostics: d.diagnostics })
     const params = { threadId: f.threadId, message: nativeStartupWarning }
     await f.ready(() => expect(() => f.observer().notification('warning', params)).not.toThrow())
     expect(() => f.observer().notification('warning', params)).toThrow(/unreconciled UNKNOWN/)
+    expect(d.rows()).toEqual([['PASSIVE_OUTCOME_OTHER', 'REFUSED', 'WARNING_THREAD_DEPRECATION_DUPLICATE']])
   })
   it.each(['foreign thread', 'missing thread', 'foreign text', 'extra field', 'late warning'])(
     'refuses %s without retaining warning contents',
@@ -920,8 +922,33 @@ describe('original thread-start deprecation warning', () => {
       if (variant === 'extra field') params.privateData = 'unexpected private warning content'
       expect(() => f.observer().notification('warning', params)).toThrow(/unreconciled UNKNOWN/)
       expect(JSON.stringify(d.rows())).not.toContain('unexpected private warning content')
+      if (variant === 'late warning')
+        expect(d.rows()).toEqual([['PASSIVE_OUTCOME_OTHER', 'REFUSED', 'WARNING_THREAD_DEPRECATION_OUT_OF_WINDOW']])
     },
   )
+  it.each([
+    ['Falling back from WebSockets to HTTPS transport. ', 'WARNING_TRANSPORT_FALLBACK'],
+    ['Model metadata for `gpt-5.5` not found. Defaulting to fallback metadata; ', 'WARNING_MODEL_METADATA_FALLBACK'],
+    ['Code Mode is unavailable because ', 'WARNING_CODE_MODE_UNAVAILABLE'],
+    ['Code Mode is enabled in configuration, but model ', 'WARNING_CODE_MODE_UNSUPPORTED'],
+    [
+      'Agent message-board initialization failed; its tools are unavailable for this runtime.',
+      'WARNING_THREAD_BOARD_INITIALIZATION',
+    ],
+    [
+      'Failed to save the conversation transcript; Codex will continue retrying. Error: ',
+      'WARNING_TRANSCRIPT_SAVE_FAILED',
+    ],
+    ['unrecognized content ', 'WARNING_OTHER'],
+  ])('refuses a post-turn warning as %s without retaining content', async (prefix, reason) => {
+    const d = passiveDiagnostics(),
+      f = await fixture({ diagnostics: d.diagnostics })
+    await f.complete()
+    expect(() =>
+      f.observer().notification('warning', { threadId: f.threadId, message: prefix + 'private warning detail' }),
+    ).toThrow(/unreconciled UNKNOWN/)
+    expect(d.rows()).toEqual([['PASSIVE_OUTCOME_OTHER', 'REFUSED', reason]])
+  })
 })
 
 describe('native thread UUID versions remain separate from review nonces', () => {
