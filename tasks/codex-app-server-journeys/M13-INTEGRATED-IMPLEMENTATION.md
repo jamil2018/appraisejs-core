@@ -438,3 +438,11 @@ stopped at the permit checkpoint before a recorded canonical authority check. No
 cleanup was established. The fresh offline fixture accepted the same required-question Analyzer charter via the
 installed SDK and passed all 12 tests. The native gateway diagnostic now identifies its last finite validation,
 invocation, or witness checkpoint. It retains no raw arguments, errors or results and changes no admission.
+
+The gateway-stage case localized the refusal to canonical invocation, followed by the same heartbeat permit
+checkpoint. A fresh C1 connection reproduced the specific defect. The first-submission lookup correctly
+returned `NOT_FOUND` to its caller, but throwing inside that read transaction retired the connection before
+the canonical invocation could enter. The next operation on that connection failed with
+`source_database_admission_closed`. The service now returns the expected absence inside SQLite and reports
+`NOT_FOUND` after the read settles. Actual failed transactions retain the original fail-closed behavior.
+The live cases remain UNKNOWN until original terminal observation and verified cleanup succeed.

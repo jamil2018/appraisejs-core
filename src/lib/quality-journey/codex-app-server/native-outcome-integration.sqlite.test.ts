@@ -22,6 +22,7 @@ import {
   recordQualityJourneyProviderAcknowledgement,
   reconcileConsumedQualityJourneyProviderIntent,
 } from '@/services/coordinator/quality-journey-provider-run-service'
+import { readExternalQualityJourneySubmissionOutcome } from '@/services/coordinator/quality-journey-service'
 const fake = vi.hoisted(() => ({ claim: vi.fn(), profile: vi.fn(), plan: vi.fn() }))
 vi.mock('./native-qualification-child', () => ({ claimOriginalNativeQualificationChild: fake.claim }))
 vi.mock('./native-outcome-profile', async importOriginal => ({
@@ -46,6 +47,12 @@ describe.sequential('registered original native custody on actual disposable can
     const client = pair.client,
       configurationDigest = `sha256:${'a'.repeat(64)}`
     const input = { ...f.prepareInput, providerNamespace: `native:source-fake:${randomUUID()}`, configurationDigest }
+    await expect(
+      readExternalQualityJourneySubmissionOutcome(
+        { ...f.binding, operation: 'ANALYSIS_SUBMIT', idempotencyKey: 'first-native-submission' },
+        client,
+      ),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' })
     const prepared = await prepareQualityJourneyProviderRun(input, client)
     const request = { ...input, intentId: prepared.intent.id, claimOwner: 'native-source-fake' }
     const claimed = await claimQualityJourneyProviderIntent(request, client)

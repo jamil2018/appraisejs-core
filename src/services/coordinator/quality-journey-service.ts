@@ -305,7 +305,7 @@ export async function readExternalQualityJourneySubmissionOutcome(
     ExternalQualityJourneySubmissionBinding & { expectedPayloadHash?: string },
   client: PrismaClient = prisma,
 ) {
-  return client.$transaction(async tx => {
+  const result = await client.$transaction(async tx => {
     await authenticateExternalQualityJourneySubmission(input, tx)
     const receipt = await tx.qualityJourneyExternalSubmissionAcceptance.findUnique({
       where: {
@@ -319,7 +319,7 @@ export async function readExternalQualityJourneySubmissionOutcome(
         },
       },
     })
-    if (!receipt) throw new ServiceError('External submission outcome is not available.', 'NOT_FOUND')
+    if (!receipt) return null
     if (
       input.expectedPayloadHash !== undefined &&
       (!/^sha256:[a-f0-9]{64}$/.test(input.expectedPayloadHash) || receipt.payloadHash !== input.expectedPayloadHash)
@@ -329,6 +329,9 @@ export async function readExternalQualityJourneySubmissionOutcome(
       throw new ServiceError('External submission acceptance lineage is invalid.', 'UNAUTHORIZED')
     return { replayed: true, outcome: JSON.parse(receipt.outcomeJson) }
   })
+  // A receipt is absent before the first submission. Keep that expected read separate from a failed transaction.
+  if (!result) throw new ServiceError('External submission outcome is not available.', 'NOT_FOUND')
+  return result
 }
 
 /** A managed gateway confirms acceptance after the canonical write closes the active assignment. */

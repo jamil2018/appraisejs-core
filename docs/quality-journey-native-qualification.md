@@ -60,6 +60,10 @@ gateway calls. The existing turn deadline still bounds observation of the origin
 acceptance. The original terminal notification, native and MCP cleanup, and reviewed reconciliation are
 required for a provider outcome.
 
+The first submission can look up an absent acceptance receipt. SQLite completes that read and the service
+reports `NOT_FOUND` after the read transaction settles. An actual transaction failure still closes the
+original C1 connection to new operations.
+
 The native protocol facade validates outbound requests, responses and notifications against the committed generated
 installed-schema closure. Scoped MCP items must match the captured server and enabled tool set. Command, file, web,
 image, collaborator, unknown active items and cross-turn activity poison the native transport using a fixed fault;
