@@ -369,6 +369,27 @@ model. The provider outcome, cleanup, and warning text remain UNKNOWN. The ledge
 separate. Current totals are 33 frozen allocations, zero unspent, 28 observed acquisitions plus historical
 UNKNOWN zero-or-one, four account reads, and 15 spent B3 slots.
 
-The next finite diagnostic distinguishes the known deprecation's duplicate or out-of-window delivery from
+The finite diagnostic distinguishes the known deprecation's duplicate or out-of-window delivery from
 source-backed model metadata, Code Mode, transport, board, and transcript warning categories. The observer projects
 only those fixed labels. Its admitted warning, thread scope, phases, fallback restrictions, and budgets remain fixed.
+Commit `36bdb9f9` passed 642 packed checks and 12 installed SDK and six-role checks offline.
+
+## ChatGPT model availability hold
+
+The accepted B2 account observation records ChatGPT authentication. OpenAI
+[retired GPT-5.5 for this authentication mode](https://learn.chatgpt.com/docs/models#gpt-55-retirement) on
+October 14, 2026. Its static catalog entry and successful thread readback were insufficient to select an eligible
+model. The observed native warning and prior provider outcome remain UNKNOWN. The planned GPT-5.5 diagnostic case
+was canceled before preparation, issuance, or launch. The authority totals above remain current.
+
+The pinned `0.169.0-alpha.11.1` build predates the GPT-6.2 launch and has no GPT-6.2 entries in its bundled catalog.
+The public `0.169.1` and `0.170.0` catalogs both include GPT-6.2 Sol and Astra with `code_mode_only`. The newer
+catalogs have the same Code Mode requirement as the pinned GPT-6.1 Sol entry.
+[GPT-6.2 release](https://learn.chatgpt.com/docs/whats-new/gpt-62-astra-sol)
+[0.169.1 catalog](https://github.com/openai/codex/blob/rust-v0.169.1/codex-rs/models-manager/models.json)
+[0.170.0 catalog](https://github.com/openai/codex/blob/rust-v0.170.0/codex-rs/models-manager/models.json)
+
+The installed ChatGPT bundle has a `codex-code-mode-host` companion. The pinned producer selects the process-owned
+provider via `features.code_mode_host`, which the current qualification closes. The bundled companion's identity,
+containment, cleanup, MCP mediation and outcome protocol need qualification if that scope is approved. No new
+native effect is pending. The remaining six-role workflow, recovery and independent evaluation stay open.
