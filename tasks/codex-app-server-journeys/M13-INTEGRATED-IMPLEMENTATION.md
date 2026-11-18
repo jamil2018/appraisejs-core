@@ -319,3 +319,15 @@ was outside the three recorded notification categories. The exact method and nat
 The pinned producer guarantees `thread/started`, which already has a dedicated consumer; source inspection
 does not establish which other notification arrived. The next bounded diagnostic records only a finite branch
 number from the existing digest-verified notification schema. The original refusal still fences admission.
+
+The `a9e7ce2a` observation identified pinned schema branch 67, `warning`, after accepted empty-thread creation.
+The case ended before MCP status or turn entry. The original parent exited at its hard deadline, with native
+cleanup still UNKNOWN. The warning text and thread target were never retained. Current cumulative totals
+are 31 frozen allocations, zero unspent, 26 observed acquisitions plus historical UNKNOWN zero-or-one,
+four account reads, and 13 spent B3 slots.
+
+The verified public producer copies config-layer startup warnings into the thread's core configuration.
+The private config's explicit false multi-agent key produces the known deprecation. Thread creation queues
+that startup text as a general warning, and the app server attaches the owning thread ID. Appraise
+accepts that exact deprecation once for the original thread before a turn starts. Other, foreign, duplicate, and
+late warnings still refuse. The source trace leaves unrecorded warning contents in earlier cases UNKNOWN.

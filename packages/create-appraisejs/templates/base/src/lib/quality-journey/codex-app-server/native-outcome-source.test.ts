@@ -212,7 +212,7 @@ async function fixture(
     await Promise.resolve()
     await Promise.resolve()
   }
-  async function ready() {
+  async function ready(beforeMcp?: () => void) {
     await send(
       'initialize',
       { capabilities: { experimentalApi: false }, clientInfo: { name: 'appraise-journey-supervisor', version: '1' } },
@@ -239,6 +239,7 @@ async function fixture(
       },
       { thread: { id: threadId, ephemeral: true, turns: [] } },
     )
+    beforeMcp?.()
     await send('mcpServerStatus/list', { threadId, serverName: 'appraise_worker', detail: 'full', limit: 1 }, {})
   }
   async function complete({ error = null, status = 'completed' }: { error?: unknown; status?: string } = {}) {
@@ -895,6 +896,31 @@ describe('source-only fixed passive predicates preserve rejection policy and cou
     expect(read).not.toHaveBeenCalled()
     expect(d.rows()).toEqual([['PASSIVE_OUTCOME_MCP_STARTUP', 'REFUSED', 'NOTIFICATION_AFTER_CLEANUP']])
   })
+})
+
+describe('original thread-start deprecation warning', () => {
+  it('accepts the exact known warning once for the original thread before a consuming turn', async () => {
+    const f = await fixture()
+    const params = { threadId: f.threadId, message: nativeStartupWarning }
+    await f.ready(() => expect(() => f.observer().notification('warning', params)).not.toThrow())
+    expect(() => f.observer().notification('warning', params)).toThrow(/unreconciled UNKNOWN/)
+  })
+  it.each(['foreign thread', 'missing thread', 'foreign text', 'extra field', 'late warning'])(
+    'refuses %s without retaining warning contents',
+    async variant => {
+      const d = passiveDiagnostics(),
+        f = await fixture({ diagnostics: d.diagnostics })
+      if (variant === 'late warning') await f.complete()
+      else await f.ready()
+      const params: Record<string, unknown> = { threadId: f.threadId, message: nativeStartupWarning }
+      if (variant === 'foreign thread') params.threadId = randomUUID()
+      if (variant === 'missing thread') delete params.threadId
+      if (variant === 'foreign text') params.message = 'unexpected private warning content'
+      if (variant === 'extra field') params.privateData = 'unexpected private warning content'
+      expect(() => f.observer().notification('warning', params)).toThrow(/unreconciled UNKNOWN/)
+      expect(JSON.stringify(d.rows())).not.toContain('unexpected private warning content')
+    },
+  )
 })
 
 describe('native thread UUID versions remain separate from review nonces', () => {

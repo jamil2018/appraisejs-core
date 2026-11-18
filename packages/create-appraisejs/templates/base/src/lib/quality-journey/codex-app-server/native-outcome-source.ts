@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { inspectNativeQualificationLoss, type NativeQualificationLossControl } from './native-qualification-loss'
-import { NativeStartupMetadata } from './native-startup-metadata'
+import { NativeStartupMetadata, nativeStartupWarning } from './native-startup-metadata'
 import type { PrismaClient } from '@prisma/client'
 import { canonicalOutcomeJson, outcomeDigest } from './outcome-source-contract'
 import {
@@ -121,6 +121,7 @@ class OriginalNativeOutcome {
   #threadId?: string
   #turnId?: string
   #threadStarted = false
+  #threadStartupWarningSeen = false
   #turnStarted = false
   #completion = 0
   #notificationCount = 0
@@ -448,6 +449,7 @@ class OriginalNativeOutcome {
     if ('threadId' in params && params.threadId !== this.#threadId)
       this.#refuseNotification(method, 'THREAD_SCOPE_MISMATCH')
     if (method === 'thread/started') return this.#threadNotification(params)
+    if (method === 'warning') return this.#threadStartupWarning(params)
     if (method === 'turn/started' || method === 'turn/completed') return this.#turnNotification(method, params)
     if (method === 'thread/status/changed') this.#threadStatus(params.status)
     this.#ordinaryNotification(method, params)
@@ -472,6 +474,20 @@ class OriginalNativeOutcome {
       this.#refuseNotification('thread/started', 'THREAD_SCOPE_MISMATCH')
     this.#threadStarted = true
     this.#threadId = params.thread.id
+  }
+  #threadStartupWarning(params: Record<string, unknown>) {
+    // Session creation repeats the reviewed config deprecation with the owning thread ID.
+    if (
+      this.#threadStartupWarningSeen ||
+      this.#requests < 3 ||
+      this.#requests >= 5 ||
+      !this.#threadId ||
+      params.threadId !== this.#threadId ||
+      params.message !== nativeStartupWarning ||
+      Object.keys(params).length !== 2
+    )
+      this.#refuseNotification('warning', 'SOURCE_NOTIFICATION_REFUSED')
+    this.#threadStartupWarningSeen = true
   }
   #turnNotification(method: string, params: Record<string, unknown>) {
     if (this.#requests !== 5) fail()
