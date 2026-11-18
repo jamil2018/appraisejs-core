@@ -312,3 +312,10 @@ config manager serializes that structure directly. Null conflicts with the all-f
 proxy is unconfigured. Appraise explicitly sets and requires this feature to be false. If another public control
 refuses, the existing failure record projects only the applicable fixed schema labels. It collects labels
 across the same reply and never retains unknown field names or values.
+
+The `819fdf1c` actual case passed configuration and created an empty native thread. The passive outcome observer
+refused an unclassified schema-valid notification before the MCP status request or a consuming turn. Its class
+was outside the three recorded notification categories. The exact method and native cleanup remain UNKNOWN.
+The pinned producer guarantees `thread/started`, which already has a dedicated consumer; source inspection
+does not establish which other notification arrived. The next bounded diagnostic records only a finite branch
+number from the existing digest-verified notification schema. The original refusal still fences admission.

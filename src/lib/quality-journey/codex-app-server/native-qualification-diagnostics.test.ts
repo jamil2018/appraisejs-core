@@ -53,6 +53,20 @@ function fixture() {
   }
 }
 describe('closed non-authoritative native diagnostics', () => {
+  it('records a bounded schema branch only for an otherwise opaque passive outcome refusal', () => {
+    const f = fixture()
+    expect(f.trace.observer.record('PASSIVE_OUTCOME_OTHER', 'REFUSED', 'OUTCOME_OBSERVER_REFUSED', 10)).toBe(true)
+    expect(f.rows()[0]).toEqual({
+      version: 'M13_C1_DIAGNOSTIC_V1',
+      sequence: 1,
+      stage: 'PASSIVE_OUTCOME_OTHER',
+      status: 'REFUSED',
+      reason: 'OUTCOME_OBSERVER_REFUSED',
+      notificationSchemaBranch: 10,
+    })
+    expect(f.trace.observer.record('PASSIVE_PROTOCOL_OTHER', 'REFUSED', 'PROTOCOL_REFUSED', 10)).toBe(false)
+    f.trace.close()
+  })
   it('projects exactly five allowlisted fields with finite combinations and no producer content', () => {
     const f = fixture()
     expect(f.trace.observer.record('ACQUISITION', 'ENTERED')).toBe(true)

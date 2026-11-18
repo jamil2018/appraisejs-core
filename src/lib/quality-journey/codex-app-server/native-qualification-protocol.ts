@@ -108,12 +108,17 @@ export function createNativeQualificationProtocol(
     refuse()
   }
   const ajv = new Ajv({ allErrors: false, logger: false, unknownFormats: 'ignore' })
+  const notificationBranches = new Map<string, number>()
   const validators = new Map(
     Object.entries(origin.files).map(([name, expected]) => {
       const bytes = readFileSync(new URL(`./native-qualification-schemas/${name}`, import.meta.url))
       if (createHash('sha256').update(bytes).digest('hex') !== expected) reject()
       const schema: unknown = JSON.parse(bytes.toString('utf8'))
       localReferences(schema)
+      if (name === 'ServerNotification.json') {
+        const { oneOf } = schema as { oneOf: Array<{ properties: { method: { enum: [string] } } }> }
+        oneOf.forEach((branch, index) => notificationBranches.set(branch.properties.method.enum[0], index + 1))
+      }
       return [name, ajv.compile(schema as object)] as const
     }),
   )
@@ -142,6 +147,7 @@ export function createNativeQualificationProtocol(
   }
   return Object.freeze({
     assertHealthy: healthy,
+    notificationSchemaBranch: (method: string) => notificationBranches.get(method),
     written(requestId: number, method: RpcRequestMethod) {
       healthy()
       if (issued.get(requestId) !== method || written.has(requestId)) refuse()

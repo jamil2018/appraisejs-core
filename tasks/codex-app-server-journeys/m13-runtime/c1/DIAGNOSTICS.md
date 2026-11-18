@@ -44,3 +44,8 @@ predicate refusals and residual stream/parse/I/O failures. It records literal cl
 internal predicates remain opaque; an unclassified frame remains UNKNOWN. No raw method, payload, exception or frame
 bytes are exported. Classification does not change which notification is accepted and does not identify an earlier
 unrecorded offending frame. The historical generic passive-capture trace is preserved unchanged.
+
+An otherwise opaque outcome observer refusal may include a one-based branch number from the digest-verified
+`ServerNotification.json` schema. Only notifications that pass the existing protocol checks can reach this
+projection. The diagnostic retains neither method strings nor payloads. The number is scoped to that source
+artifact's pinned schema and changes no admission or outcome rule.

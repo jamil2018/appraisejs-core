@@ -247,10 +247,11 @@ export async function launchNativeQualificationChild(
   function recordPassiveRefusal(
     stage: NativeDiagnosticStage,
     reason: 'PROTOCOL_REFUSED' | 'OUTCOME_OBSERVER_REFUSED' | 'STREAM_PARSE_OR_IO_REFUSED' | 'PRECLAIM_CAPTURE_LIMIT',
+    notificationSchemaBranch?: number,
   ) {
     if (passiveRefusalRecorded) return
     passiveRefusalRecorded = true
-    diagnostics?.record(stage, 'REFUSED', reason)
+    diagnostics?.record(stage, 'REFUSED', reason, notificationSchemaBranch)
   }
   function observeOriginalNotification(
     observer: NativeChildOutcomeObserver,
@@ -260,7 +261,12 @@ export async function launchNativeQualificationChild(
     try {
       observer.notification(method, params)
     } catch (error) {
-      recordPassiveRefusal(nativePassiveOutcomeStage(method), 'OUTCOME_OBSERVER_REFUSED')
+      const stage = nativePassiveOutcomeStage(method)
+      recordPassiveRefusal(
+        stage,
+        'OUTCOME_OBSERVER_REFUSED',
+        stage === 'PASSIVE_OUTCOME_OTHER' ? protocol.notificationSchemaBranch(method) : undefined,
+      )
       throw error
     }
   }

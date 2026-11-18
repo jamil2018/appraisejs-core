@@ -82,7 +82,12 @@ type NativeDiagnosticReason =
   | 'CLEANUP_UNCERTAIN'
   | 'DIAGNOSTIC_UNAVAILABLE'
 export type NativeDiagnosticObserver = Readonly<{
-  record(stage: NativeDiagnosticStage, status: NativeDiagnosticStatus, reason?: NativeDiagnosticReason): boolean
+  record(
+    stage: NativeDiagnosticStage,
+    status: NativeDiagnosticStatus,
+    reason?: NativeDiagnosticReason,
+    notificationSchemaBranch?: number,
+  ): boolean
   failed(): boolean
   onFailure(fence: () => void): void
 }>
@@ -203,6 +208,16 @@ function validNativeDiagnostic(
   if (stage === 'CLEANUP') return matchesDiagnosticPair(status, reason, cleanupPairs)
   return validOperationDiagnostic(stage, status, reason)
 }
+function validNotificationSchemaBranch(stage: NativeDiagnosticStage, reason: NativeDiagnosticReason, branch?: number) {
+  if (branch === undefined) return true
+  return (
+    stage === 'PASSIVE_OUTCOME_OTHER' &&
+    reason === 'OUTCOME_OBSERVER_REFUSED' &&
+    Number.isSafeInteger(branch) &&
+    branch >= 1 &&
+    branch <= 256
+  )
+}
 function sameDiagnosticIdentity(current: BigIntStats, original: BigIntStats) {
   return current.dev === original.dev && current.ino === original.ino
 }
@@ -254,10 +269,20 @@ export function createNativeQualificationDiagnostics(directory: string, freshRoo
     status: NativeDiagnosticStatus,
     reason: NativeDiagnosticReason,
     terminal = false,
+    notificationSchemaBranch?: number,
   ) {
     if (closed || !validNativeDiagnostic(stage, status, reason)) throw new Error('Native diagnostic projection refused')
+    if (!validNotificationSchemaBranch(stage, reason, notificationSchemaBranch))
+      throw new Error('Native diagnostic notification class refused')
     const row =
-      JSON.stringify({ version: 'M13_C1_DIAGNOSTIC_V1', sequence: sequence + 1, stage, status, reason }) + '\n'
+      JSON.stringify({
+        version: 'M13_C1_DIAGNOSTIC_V1',
+        sequence: sequence + 1,
+        stage,
+        status,
+        reason,
+        notificationSchemaBranch,
+      }) + '\n'
     const length = Buffer.byteLength(row)
     // Two final rows, each at most 256 bytes, remain available after normal observations.
     if (sequence >= (terminal ? 128 : 126) || bytes + length > (terminal ? 32768 : 32768 - 512))
@@ -286,10 +311,10 @@ export function createNativeQualificationDiagnostics(directory: string, freshRoo
     }
   }
   const observer: NativeDiagnosticObserver = Object.freeze({
-    record(stage, status, reason = 'NONE') {
+    record(stage, status, reason = 'NONE', notificationSchemaBranch) {
       if (failed || closed) return false
       try {
-        append(stage, status, reason)
+        append(stage, status, reason, false, notificationSchemaBranch)
         return true
       } catch {
         fail()

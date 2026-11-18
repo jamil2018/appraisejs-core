@@ -3,6 +3,16 @@ import { createNativeQualificationProtocol } from './native-qualification-protoc
 import type { OwnedFixtureChild } from './owned-child'
 
 describe('pinned native protocol facade', () => {
+  it('maps only the pinned notification method enumerations to finite schema branches', () => {
+    const protocol = createNativeQualificationProtocol({
+      serverName: 'appraise_worker',
+      enabledTools: ['quality_journey_analysis_get'],
+      maxToolCalls: 1,
+    })
+    expect(protocol.notificationSchemaBranch('thread/started')).toBe(2)
+    expect(protocol.notificationSchemaBranch('skills/changed')).toBe(10)
+    expect(protocol.notificationSchemaBranch('arbitrary/private/provider-method')).toBeUndefined()
+  })
   it('preserves actual absent-params initialized wire compatibility and rejects malformed requests before transport', async () => {
     const request = vi.fn(),
       notifyInitialized = vi.fn()

@@ -572,7 +572,7 @@ describe('fixed passive failure classes preserve original poison and cleanup', (
       expect(bytes).not.toMatch(/private payload|private token|provider stream error/)
     },
   )
-  it.each(['attached', 'preclaim'])(
+  it.each(['attached', 'preclaim', 'schema-branch'])(
     'locates %s original outcome observer refusal without reading its hostile exception',
     async timing => {
       const f = setup(),
@@ -593,14 +593,15 @@ describe('fixed passive failure classes preserve original poison and cleanup', (
         fault: vi.fn(),
         cleanup: vi.fn(),
       }
-      if (timing === 'attached') claimOriginalNativeQualificationChild(child, f.plan, observer)
-      f.original.process.stdout!.emit(
-        'data',
-        Buffer.from(JSON.stringify({ method: 'account/updated', params: { authMode: null, planType: null } }) + '\n'),
-      )
+      if (timing !== 'preclaim') claimOriginalNativeQualificationChild(child, f.plan, observer)
+      const frame =
+        timing === 'schema-branch'
+          ? { method: 'skills/changed', params: {} }
+          : { method: 'account/updated', params: { authMode: null, planType: null } }
+      f.original.process.stdout!.emit('data', Buffer.from(JSON.stringify(frame) + '\n'))
       if (timing === 'preclaim')
         expect(() => claimOriginalNativeQualificationChild(child, f.plan, observer)).toThrow(/Original pre-handshake/)
-      expect(await child.stop()).toMatchObject({ status: timing === 'attached' ? 'uncertain' : 'stopped' })
+      expect(await child.stop()).toMatchObject({ status: timing === 'preclaim' ? 'stopped' : 'uncertain' })
       trace.close()
       const rows = readFileSync(path.join(f.parent, 'c1-acquisition-diagnostics.jsonl'), 'utf8')
         .trim()
@@ -608,11 +609,14 @@ describe('fixed passive failure classes preserve original poison and cleanup', (
         .map(line => JSON.parse(line))
       expect(rows.filter(row => row.stage.startsWith('PASSIVE_'))).toEqual([
         expect.objectContaining({
-          stage: 'PASSIVE_OUTCOME_ACCOUNT_UPDATED',
+          stage: timing === 'schema-branch' ? 'PASSIVE_OUTCOME_OTHER' : 'PASSIVE_OUTCOME_ACCOUNT_UPDATED',
           status: 'REFUSED',
           reason: 'OUTCOME_OBSERVER_REFUSED',
         }),
       ])
+      const refusal = rows.find(row => row.reason === 'OUTCOME_OBSERVER_REFUSED')
+      expect(refusal?.notificationSchemaBranch).toBe(timing === 'schema-branch' ? 10 : undefined)
+      expect(JSON.stringify(rows)).not.toContain(frame.method)
       expect(read).not.toHaveBeenCalled()
       expect(observer.fault).toHaveBeenCalled()
     },
