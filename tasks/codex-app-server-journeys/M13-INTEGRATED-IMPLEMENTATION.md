@@ -446,3 +446,10 @@ the canonical invocation could enter. The next operation on that connection fail
 `source_database_admission_closed`. The service now returns the expected absence inside SQLite and reports
 `NOT_FOUND` after the read settles. Actual failed transactions retain the original fail-closed behavior.
 The live cases remain UNKNOWN until original terminal observation and verified cleanup succeed.
+
+One fresh original journey reconciled both Analyzer turns, Scout, Resource Explorer, Scenario Designer and Automator.
+The original parent stopped during execution preparation before producing a run subject. A fresh synthetic fixture
+reproduced the refusal with one PREPARED capsule, zero execution cycles, zero TestRuns and zero consents. The journey
+was correctly in AUTOMATION. The canonical service starts the first execution from AUTOMATION and advances the stage
+when it reserves a cycle. The task now prepares the exact consent from AUTOMATION, preserving the separate reviewed
+execution start and all effect limits. The earlier original fixture remains retained and unavailable for continuation.

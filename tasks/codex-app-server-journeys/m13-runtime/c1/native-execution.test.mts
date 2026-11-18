@@ -1,15 +1,22 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { mkdtempSync, writeFileSync, rmSync, realpathSync } from 'node:fs'
+import { lstatSync, mkdtempSync, writeFileSync, rmSync, realpathSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describeNativeCredential } from '../../../../src/lib/quality-journey/codex-app-server/native-credential-topology'
 import { nativeQualificationDigest } from '../../../../src/lib/quality-journey/codex-app-server/native-qualification-contract'
+import { syntheticNativeManifest } from '../../../../src/lib/quality-journey/codex-app-server/native-qualification.test-support'
+import { resetQualityJourneyExecutionRuntimeAdapter } from '../../../../src/services/coordinator/quality-journey-execution-service'
 import {
   startQualityJourneyExecutionRuntime,
   cancelQualityJourneyExecutionRuntime,
   reconcileQualityJourneyExecutionRuntime,
 } from '../../../../src/services/coordinator/quality-journey-runtime-service'
+import { getQualityJourney } from '../../../../src/services/coordinator/quality-journey-service'
+import {
+  createM10DiscoveryMetadataRuntime,
+  prepareM10AutomationFixture,
+} from '../../../../src/test/m10-journey-fixture'
 import { driverDigest } from './native-driver-control.mts'
 import {
   createOriginalExecutionControl,
@@ -18,7 +25,7 @@ import {
   createOriginalExecutionAcquisition,
   type NativeExecutionObservation,
 } from './native-execution-state.mts'
-import { nativeExecutionRuntimeFunctions } from './native-execution.mts'
+import { nativeExecutionRuntimeFunctions, prepareOriginalNativeExecution } from './native-execution.mts'
 import { nativeSealedReportCandidate, nativeReportQualityAssessment } from './native-execution-report.mts'
 import { scriptedDisposableHuman } from './native-lineage.mts'
 import type { NativeExecutionPreparation, NativeClosureChoice } from './native-driver.mts'
@@ -112,6 +119,51 @@ test('concrete driver binds only the genuine canonical runtime functions and has
     acceptedItemIds: [],
   }
   assert.equal(explicitChoice.decision, 'RISK_ACCEPTED')
+})
+
+test('original execution preparation requests consent from the materialized AUTOMATION stage without reserving or launching', async () => {
+  const synthetic = syntheticNativeManifest()
+  try {
+    const journey = await prepareM10AutomationFixture(undefined, {
+      workspaceParent: synthetic.parent,
+      qualificationLeaseSeconds: 900,
+      serialDiscoveryAdmissions: true,
+      requireObservedDiscoveryCleanup: true,
+      discoveryRuntime: createM10DiscoveryMetadataRuntime(),
+      dispatch: event => event.directInvoke(),
+    })
+    try {
+      const database = lstatSync(journey.databasePath, { bigint: true })
+      const manifest = {
+        ...synthetic.manifest,
+        database: { path: journey.databasePath, dev: String(database.dev), ino: String(database.ino) },
+      }
+      const preparation = await prepareOriginalNativeExecution(
+        journey,
+        manifest,
+        process.cwd(),
+        synthetic.parent,
+        { caseMs: 90_000, cleanupMs: 10_000 },
+        () => {},
+      )
+      const subject = preparation.publicPrepared().subject
+      assert.equal(subject.preparedStatus, 'PREPARED')
+      assert.equal(preparation.control.snapshot().originalExecutionEntered, false)
+      const consent = await journey.client.qualityJourneyExecutionConsent.findUniqueOrThrow({
+        where: { id: subject.consent.executionConsentId },
+      })
+      assert.equal(consent.status, 'REQUESTED')
+      assert.equal(consent.scopeHash, subject.consent.expectedScopeHash)
+      assert.equal((await getQualityJourney(journey.scope, journey.client)).journey.stage, 'AUTOMATION')
+      assert.equal(await journey.client.qualityJourneyExecutionCycle.count(), 0)
+      assert.equal(await journey.client.testRun.count(), 0)
+    } finally {
+      resetQualityJourneyExecutionRuntimeAdapter()
+      await journey.cleanup()
+    }
+  } finally {
+    rmSync(synthetic.parent, { recursive: true, force: true })
+  }
 })
 
 test('wrong exact execution consent packet hash blocks original start and any sealed progression', async context => {

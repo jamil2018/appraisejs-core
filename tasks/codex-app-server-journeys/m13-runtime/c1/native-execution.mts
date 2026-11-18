@@ -189,7 +189,7 @@ export async function prepareOriginalNativeExecution(
   const snapshot = await getQualityJourney(scope, client)
   assertParentCurrent()
   if (
-    snapshot.journey.stage !== 'EXECUTION' ||
+    snapshot.journey.stage !== 'AUTOMATION' ||
     f.prepared.length !== 1 ||
     (await client.testRun.count()) ||
     (await client.qualityJourneyExecutionCycle.count()) ||
