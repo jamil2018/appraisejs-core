@@ -413,3 +413,15 @@ turn RPC fulfilled. The final snapshot observed neither completion nor proven na
 UNKNOWN case. A successful start closes the diagnostic in that build because the supervisor has no stop flight
 yet and the task treats that rejected lookup as terminal. The successor keeps recording through the original stop,
 candidate freeze or bounded cancel, while preserving the original start rejection evidence path.
+
+The approved 120-second case entered cleanup about 40 seconds after the original turn acknowledgement. Its
+diagnostic recorded no passive refusal. The original case did not establish a stop cause, a canonical submission,
+provider completion or cleanup. The 120-second allocation is spent. Totals are 36 frozen, zero unspent,
+31 observed native acquisitions plus historical UNKNOWN zero-or-one, four account reads, and 18 spent B3 slots.
+
+The fresh disposable SQLite regression shows that the first heartbeat attempts a write after the original
+managed Analyzer submission has closed the assignment. The heartbeat's normal authority check requires the
+attempt and work item to be in progress. The native successor coordinates heartbeat checks with in-flight work
+and fences further gateway calls once the exact original submission returns accepted. It can then observe the
+original turn under its existing deadline. A finite stop label records the actual supervisor reason in a fresh
+case. Earlier cases retain their UNKNOWN dispositions.

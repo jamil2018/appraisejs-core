@@ -29,6 +29,7 @@ import type {
   ManagedWorkerRegistrationProfile,
 } from '@/lib/quality-journey/managed-worker-gateway'
 import {
+  recordNativeSupervisorStop,
   requireNativeDiagnostic,
   type NativeDiagnosticObserver,
   type NativeDiagnosticStage,
@@ -255,6 +256,8 @@ export async function createNativeQualityJourneyQualification(
   let endpoint: NativeEndpoint | undefined
   let configurationInspection: NativeConfigurationInspection | null = null
   let disconnectOriginal: (() => boolean) | undefined
+  let gatewayInFlight = 0
+  let submissionAccepted = false
   function validate(stage: NativeDiagnosticStage, check: () => boolean) {
     requireNativeDiagnostic(diagnostics, stage)
     try {
@@ -303,7 +306,8 @@ export async function createNativeQualityJourneyQualification(
               if (!nativeOutcome) throw new Error('Original native outcome not admitted')
               nativeOutcome.supervisorOperation(operation)
             },
-            stop(operation) {
+            stop(operation, reason) {
+              recordNativeSupervisorStop(diagnostics, reason)
               if (loss) retainNativeQualificationLossOperation(loss, operation)
               nativeOutcome?.captureSupervisorStop(operation)
             },
@@ -316,6 +320,9 @@ export async function createNativeQualityJourneyQualification(
         ),
       nativeReadiness: {
         cwd,
+        // The canonical gateway validates authority itself. An accepted submission closes the assignment.
+        // Afterward the original turn may only finish under the existing deadline.
+        deferAuthorityCheck: () => gatewayInFlight > 0 || submissionAccepted,
         validateConfiguration: value =>
           validate('CONFIG_VALIDATE', () => {
             configurationInspection = Object.freeze(
@@ -345,22 +352,34 @@ export async function createNativeQualityJourneyQualification(
             sealedGrant: delivery.sealedGrant,
             ...manifest.limits,
             async callGateway(call) {
-              assertNativeQualificationLossGateway(loss)
-              const state = supervisor.snapshot()
-              if (
-                state.fenced ||
-                !state.turnStartEntered ||
-                call.sealedGrant !== delivery.sealedGrant ||
-                call.profileDigest !== delivery.profileDigest
-              )
-                throw new Error('Native managed delivery admission refused')
-              const operation = delivery.invoke({
-                callId: randomUUID(),
-                toolName: call.toolName,
-                arguments: call.arguments,
-              })
-              nativeOutcome?.gateway(operation)
-              return operation
+              gatewayInFlight++
+              try {
+                await supervisor.waitInFlightAuthorityCheck()
+                assertNativeQualificationLossGateway(loss)
+                const state = supervisor.snapshot()
+                if (
+                  state.fenced ||
+                  !state.turnStartEntered ||
+                  submissionAccepted ||
+                  call.sealedGrant !== delivery.sealedGrant ||
+                  call.profileDigest !== delivery.profileDigest
+                )
+                  throw new Error('Native managed delivery admission refused')
+                const operation = delivery.invoke({
+                  callId: randomUUID(),
+                  toolName: call.toolName,
+                  arguments: call.arguments,
+                })
+                nativeOutcome?.gateway(operation)
+                const result = await operation
+                if (result.receipt.accepted) {
+                  submissionAccepted = true
+                  delivery.fence()
+                }
+                return result
+              } finally {
+                gatewayInFlight--
+              }
             },
           })
         } catch (error) {

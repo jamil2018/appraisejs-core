@@ -45,6 +45,7 @@ export type JourneyNativeReadiness = Readonly<{
   validateThread: (value: unknown) => boolean
   validateRequiredMcp: (value: unknown) => boolean
   mcpStatusParams: Readonly<Record<string, unknown>>
+  deferAuthorityCheck?: () => boolean
 }>
 
 /** A server-owned adapter is code, never a model-supplied configuration or authority grant. */
@@ -66,7 +67,7 @@ export type JourneyOwnedProcessAdapter = {
   nativeOutcome?: Readonly<{
     armed: (permit: NonNullable<Armed['permit']>, transportId: string) => Promise<void>
     operation: (operation: Promise<unknown>) => void
-    stop: (operation: Promise<unknown>) => void
+    stop: (operation: Promise<unknown>, reason: string | null) => void
   }>
 }
 
@@ -231,7 +232,7 @@ export function createQualityJourneyProcessSupervisor(
         await observe(state === 'stopped' ? 'DRAINED_UNCERTAIN' : 'FENCED')
         return snapshot()
       })()
-      nativeOutcome?.stop(stopFlight)
+      nativeOutcome?.stop(stopFlight, reason)
     }
     return stopFlight
   }
@@ -439,7 +440,7 @@ export function createQualityJourneyProcessSupervisor(
     await observe('ACTIVE')
     if (fenced) return snapshot()
     poll = setInterval(() => {
-      if (heartbeatFlight || fenced) return
+      if (heartbeatFlight || fenced || nativeReadiness?.deferAuthorityCheck?.()) return
       const flight = write(false, () => Promise.resolve())
         .catch(() => {
           fault('AUTHORITY_REVOKED')
@@ -494,6 +495,9 @@ export function createQualityJourneyProcessSupervisor(
     },
     waitOriginalStop() {
       return stopFlight ?? Promise.reject(new Error('Original supervisor stop is not available.'))
+    },
+    waitInFlightAuthorityCheck() {
+      return heartbeatFlight
     },
     cancel() {
       return stop('CANCELLED')

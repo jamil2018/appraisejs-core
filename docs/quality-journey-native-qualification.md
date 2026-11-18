@@ -54,6 +54,12 @@ cleanup. The Codex process-group drain alone cannot establish that because the c
 Nested MCP calls use the usual scoped tool events and Appraise acceptance path. See the
 [M13 integrated qualification record](../tasks/codex-app-server-journeys/M13-INTEGRATED-IMPLEMENTATION.md).
 
+The native supervisor serializes its active-assignment heartbeat with the managed gateway, which checks
+Appraise authority at submission. An exact accepted submission closes the assignment and fences further
+gateway calls. The existing turn deadline still bounds observation of the original provider turn after that
+acceptance. The original terminal notification, native and MCP cleanup, and reviewed reconciliation are
+required for a provider outcome.
+
 The native protocol facade validates outbound requests, responses and notifications against the committed generated
 installed-schema closure. Scoped MCP items must match the captured server and enabled tool set. Command, file, web,
 image, collaborator, unknown active items and cross-turn activity poison the native transport using a fixed fault;

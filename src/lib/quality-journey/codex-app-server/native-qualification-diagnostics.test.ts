@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   createNativeQualificationDiagnostics,
+  recordNativeSupervisorStop,
   requireNativeDiagnostic,
   nativePassiveProtocolStage,
   nativePassiveOutcomeStage,
@@ -71,14 +72,23 @@ describe('closed non-authoritative native diagnostics', () => {
     const f = fixture()
     expect(f.trace.observer.record('ACQUISITION', 'ENTERED')).toBe(true)
     expect(f.trace.observer.record('ACQUISITION', 'SETTLED')).toBe(true)
+    recordNativeSupervisorStop(f.trace.observer, 'AUTHORITY_REVOKED')
+    recordNativeSupervisorStop(f.trace.observer, 'private error text')
     f.trace.close()
     for (const [index, row] of f.rows().entries()) {
       expect(Object.keys(row)).toEqual(['version', 'sequence', 'stage', 'status', 'reason'])
       expect(row.sequence).toBe(index + 1)
       expect(row.version).toBe('M13_C1_DIAGNOSTIC_V1')
-      expect(['ACQUISITION', 'CASE_CLOSE']).toContain(row.stage)
+      expect(['ACQUISITION', 'SUPERVISOR_STOP', 'CASE_CLOSE']).toContain(row.stage)
     }
     expect(statSync(f.filename).mode & 0o777).toBe(0o600)
+    expect(
+      f
+        .rows()
+        .slice(2, 4)
+        .map(row => row.reason),
+    ).toEqual(['AUTHORITY_REVOKED', 'SUPERVISOR_STOP_OTHER'])
+    expect(readFileSync(f.filename, 'utf8')).not.toContain('private error text')
     const invalid = [
       ['CONFIG_VALIDATE', 'SETTLED', 'NONE'],
       ['TURN_REQUEST', 'REFUSED', 'VALIDATION_REFUSED'],

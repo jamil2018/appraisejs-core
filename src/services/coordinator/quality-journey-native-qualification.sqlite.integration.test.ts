@@ -13,6 +13,8 @@ import { resetQualityJourneyExecutionRuntimeAdapter } from './quality-journey-ex
 import { createManagedQualityJourneyRoleDelivery } from './quality-journey-managed-role-delivery'
 import { createManagedWorkerLoopbackServer } from '../../../packages/appraisejs/src/mcp/managed-worker-loopback-server'
 import { createNativeQualityJourneyQualification } from './quality-journey-native-qualification'
+import * as providerRuns from './quality-journey-provider-run-service'
+import { providerIntentPolicy } from '@/lib/quality-journey/provider-intent-contract'
 import {
   captureNativeQualificationPlan,
   nativeQualificationDigest,
@@ -45,6 +47,8 @@ async function oneRole(event: M10OfflineDispatchEvent) {
   const client = new PrismaClient({ datasources: { db: { url: `file:${f.manifest.database.path}` } } })
   let controller: Awaited<ReturnType<typeof createNativeQualityJourneyQualification>> | undefined
   let worker: Client | undefined
+  const observeAnalyzerHeartbeat = event.binding.role === 'REQUIREMENT_ANALYZER'
+  const writes = observeAnalyzerHeartbeat ? vi.spyOn(providerRuns, 'writeQualityJourneyProviderTransport') : undefined
   try {
     const delivery = await createManagedQualityJourneyRoleDelivery({
       binding: event.binding,
@@ -214,6 +218,7 @@ async function oneRole(event: M10OfflineDispatchEvent) {
       },
       client,
     )
+    if (observeAnalyzerHeartbeat) vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
     await controller.start()
     expect(methods).toEqual([
       'initialize',
@@ -223,6 +228,12 @@ async function oneRole(event: M10OfflineDispatchEvent) {
       'mcpServerStatus/list',
       'turn/start',
     ])
+    if (writes) {
+      const originalWrites = writes.mock.calls.length
+      await vi.advanceTimersByTimeAsync(providerIntentPolicy.heartbeatSeconds * 1000)
+      expect(writes.mock.calls.length).toBe(originalWrites)
+      expect(controller.snapshot()).toMatchObject({ state: 'active', fenced: false })
+    }
     callbacks!.onNotification('turn/completed', {
       threadId: 'synthetic-thread',
       turn: { id: 'synthetic-turn', status: 'completed' },
@@ -264,6 +275,8 @@ async function oneRole(event: M10OfflineDispatchEvent) {
   } finally {
     await worker?.close()
     await controller?.cancel()
+    if (observeAnalyzerHeartbeat) vi.useRealTimers()
+    writes?.mockRestore()
     native.launch.mockReset()
     await client.$disconnect()
     await rm(f.parent, { recursive: true, force: true })

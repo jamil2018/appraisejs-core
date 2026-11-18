@@ -36,6 +36,7 @@ const nativeDiagnosticStages = [
   'MCP_REQUEST',
   'MCP_VALIDATE',
   'TURN_REQUEST',
+  'SUPERVISOR_STOP',
   'CASE_FAILURE',
   'CLEANUP',
   'CASE_CLOSE',
@@ -51,6 +52,14 @@ const nativeDiagnosticStages = [
   'PASSIVE_OUTCOME_OTHER',
   'PASSIVE_STREAM',
   'PASSIVE_PRECLAIM',
+] as const
+const supervisorStopReasons = [
+  'AUTHORITY_REVOKED',
+  'TURN_DEADLINE',
+  'LOGICAL_COMPLETION',
+  'CANCELLED',
+  'MALFORMED_EVENT',
+  'SUPERVISOR_STOP_OTHER',
 ] as const
 export type NativeDiagnosticStage = (typeof nativeDiagnosticStages)[number]
 type NativeDiagnosticStatus = 'ENTERED' | 'SETTLED' | 'ACCEPTED' | 'REFUSED' | 'TIMED_OUT' | 'UNKNOWN' | 'CLOSED'
@@ -79,6 +88,7 @@ export type NativeSourceNotificationRefusal =
   | (typeof warningRefusals)[number]
 type NativeDiagnosticReason =
   | NativeSourceNotificationRefusal
+  | (typeof supervisorStopReasons)[number]
   | 'PROTOCOL_REFUSED'
   | 'OUTCOME_OBSERVER_REFUSED'
   | 'STREAM_PARSE_OR_IO_REFUSED'
@@ -103,6 +113,13 @@ export type NativeDiagnosticObserver = Readonly<{
   failed(): boolean
   onFailure(fence: () => void): void
 }>
+export function recordNativeSupervisorStop(observer: NativeDiagnosticObserver | undefined, reason: string | null) {
+  observer?.record(
+    'SUPERVISOR_STOP',
+    'ENTERED',
+    supervisorStopReasons.find(known => known === reason) ?? 'SUPERVISOR_STOP_OTHER',
+  )
+}
 const requests = new Set<NativeDiagnosticStage>([
   'INITIALIZE_REQUEST',
   'INITIALIZED_NOTIFY',
@@ -163,10 +180,19 @@ const failurePairs: readonly DiagnosticPair[] = [
   ['UNKNOWN', 'BOUNDARY_REFUSED'],
   ['UNKNOWN', 'DIAGNOSTIC_UNAVAILABLE'],
 ]
-const cleanupPairs: readonly DiagnosticPair[] = [
-  ['SETTLED', 'NONE'],
-  ['UNKNOWN', 'CLEANUP_UNCERTAIN'],
-]
+const lifecyclePairs = new Map<NativeDiagnosticStage, readonly DiagnosticPair[]>([
+  ['CASE_CLOSE', closePairs],
+  ['CASE_FAILURE', failurePairs],
+  [
+    'CLEANUP',
+    [
+      ['ENTERED', 'NONE'],
+      ['SETTLED', 'NONE'],
+      ['UNKNOWN', 'CLEANUP_UNCERTAIN'],
+    ],
+  ],
+  ['SUPERVISOR_STOP', supervisorStopReasons.map(reason => ['ENTERED', reason])],
+])
 function matchesDiagnosticPair(
   status: NativeDiagnosticStatus,
   reason: NativeDiagnosticReason,
@@ -215,10 +241,9 @@ function validNativeDiagnostic(
   if (!(nativeDiagnosticStages as readonly string[]).includes(stage)) return false
   const passive = passiveReasons.get(stage)
   if (passive) return status === 'REFUSED' && passive.includes(reason)
-  if (stage === 'CASE_CLOSE') return matchesDiagnosticPair(status, reason, closePairs)
-  if (stage === 'CASE_FAILURE') return matchesDiagnosticPair(status, reason, failurePairs)
+  const lifecycle = lifecyclePairs.get(stage)
+  if (lifecycle) return matchesDiagnosticPair(status, reason, lifecycle)
   if (status === 'ENTERED') return reason === 'NONE'
-  if (stage === 'CLEANUP') return matchesDiagnosticPair(status, reason, cleanupPairs)
   return validOperationDiagnostic(stage, status, reason)
 }
 function validNotificationSchemaBranch(stage: NativeDiagnosticStage, reason: NativeDiagnosticReason, branch?: number) {
