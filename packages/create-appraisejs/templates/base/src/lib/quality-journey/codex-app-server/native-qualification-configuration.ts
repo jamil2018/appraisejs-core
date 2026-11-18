@@ -24,6 +24,8 @@ export const nativeQualificationFeatureControls = Object.freeze([
   'auth_elicitation',
   'mentions_v2',
   'tool_suggest',
+  // The pinned feature serializer reports this optional setting as null unless set.
+  'network_proxy',
 ] as const)
 type ConfigurationBinding = Readonly<{
   endpoint: Readonly<{ port: number; path: string }>
@@ -43,7 +45,8 @@ const criticalSchema = z
     mcp_oauth_credentials_store: z.literal('file'),
     features: z
       .object(Object.fromEntries(nativeQualificationFeatureControls.map(key => [key, z.literal(false)])))
-      .passthrough(),
+      .passthrough()
+      .refine(features => Object.values(features).every(flag => flag === false)),
     analytics: z.object({ enabled: z.literal(false) }).passthrough(),
     feedback: z.object({ enabled: z.literal(false) }).passthrough(),
     history: z.object({ persistence: z.literal('none') }).passthrough(),
@@ -157,8 +160,12 @@ export function inspectNativeQualificationConfiguration(
   const fields = [...unsafeConfigurationFields(config)].sort()
   if (fields.length) return { valid: false, reason: 'UNEXPECTED_ACTIVE_CONFIGURATION', fields }
   const critical = criticalSchema.safeParse(config)
-  if (!critical.success || !Object.values(critical.data.features).every(flag => flag === false))
-    return { valid: false, reason: 'PUBLIC_CONTROLS_UNVERIFIED' }
+  if (!critical.success) {
+    const controls = Object.keys(criticalSchema.shape)
+      .filter(key => critical.error.issues.some(issue => issue.path[0] === key))
+      .sort()
+    return { valid: false, reason: 'PUBLIC_CONTROLS_UNVERIFIED', fields: controls }
+  }
   return { valid: true, reason: 'NONE' }
 }
 export function verifyNativeQualificationConfiguration(

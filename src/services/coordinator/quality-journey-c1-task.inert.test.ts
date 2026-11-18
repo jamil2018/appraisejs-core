@@ -96,8 +96,13 @@ describe('C1 task original pin and stop boundaries with inert composition', () =
       { valid: false, reason: 'FEATURE_CONTROL_UNVERIFIED', feature: 'shell_tool' },
     ],
     [
-      { valid: false, reason: 'PUBLIC_CONTROLS_UNVERIFIED', privatePayload: 'private-inspection' },
-      { valid: false, reason: 'PUBLIC_CONTROLS_UNVERIFIED' },
+      {
+        valid: false,
+        reason: 'PUBLIC_CONTROLS_UNVERIFIED',
+        fields: ['features'],
+        privatePayload: 'private-inspection',
+      },
+      { valid: false, reason: 'PUBLIC_CONTROLS_UNVERIFIED', fields: ['features'] },
     ],
     [
       {

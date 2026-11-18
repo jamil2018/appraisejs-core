@@ -87,6 +87,7 @@ async function oneRole(event: M10OfflineDispatchEvent) {
         auth_elicitation: false,
         mentions_v2: false,
         tool_suggest: false,
+        network_proxy: false,
       },
       analytics: { enabled: false },
       feedback: { enabled: false },

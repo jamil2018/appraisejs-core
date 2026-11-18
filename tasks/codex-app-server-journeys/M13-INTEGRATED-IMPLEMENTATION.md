@@ -300,3 +300,15 @@ fail the existing rule requiring every reported feature to be false. Appraise no
 five flags to be false alongside the original sixteen controls. Any unexpected active configuration still fails
 admission. The actual refusal identifies the category only. Individual runtime values and all earlier UNKNOWN causes
 remain unrecorded.
+
+On `bd9baf48`, the next actual case cleared the required feature controls, exact MCP comparison, and the generic
+configuration scan. It refused `PUBLIC_CONTROLS_UNVERIFIED` and settled original cleanup before any thread or turn
+request. Its specific fields and physical outcome remain UNKNOWN. The authority chain now records 29 frozen
+allocations, zero unspent, 24 observed acquisitions plus historical UNKNOWN zero-or-one, and 11 spent B3 slots.
+Four explicit account reads and the separate spent M01 allocation are unchanged.
+
+The pinned `FeaturesToml.network_proxy` member is optional and serializes an unset value as JSON null. The native
+config manager serializes that structure directly. Null conflicts with the all-false feature check even when the
+proxy is unconfigured. Appraise explicitly sets and requires this feature to be false. If another public control
+refuses, the existing failure record projects only the applicable fixed schema labels. It collects labels
+across the same reply and never retains unknown field names or values.

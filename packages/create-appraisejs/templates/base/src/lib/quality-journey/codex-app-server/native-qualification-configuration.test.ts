@@ -147,6 +147,28 @@ describe('pinned app-server effective feature readback', () => {
       feature: key,
     })
   })
+  it('renders the optional network proxy as false and rejects its serialized unset value', () => {
+    const rendered = renderNativeQualificationConfiguration(binding as NativeQualificationManifest, capability)
+    expect(rendered.split('\n').filter(line => line.startsWith('network_proxy = '))).toEqual(['network_proxy = false'])
+    const value = configuration()
+    ;(value.config.features as Record<string, unknown>).network_proxy = null
+    expect(inspectNativeQualificationConfiguration(value, binding, capability)).toEqual({
+      valid: false,
+      reason: 'FEATURE_CONTROL_UNVERIFIED',
+      feature: 'network_proxy',
+    })
+  })
+  it('projects only fixed labels for all failed public controls in the same readback', () => {
+    const value = configuration()
+    value.config.model = 'private-unexpected-model'
+    value.config.feedback = { enabled: true, private_extra: 'private-value' }
+    ;(value.config.features as Record<string, unknown>).private_unexpected_feature = true
+    expect(inspectNativeQualificationConfiguration(value, binding, capability)).toEqual({
+      valid: false,
+      reason: 'PUBLIC_CONTROLS_UNVERIFIED',
+      fields: ['features', 'feedback', 'model'],
+    })
+  })
 })
 
 describe('serialized native MCP local environment binding', () => {
