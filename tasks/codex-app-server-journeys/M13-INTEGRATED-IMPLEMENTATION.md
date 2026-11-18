@@ -331,3 +331,24 @@ The private config's explicit false multi-agent key produces the known deprecati
 that startup text as a general warning, and the app server attaches the owning thread ID. Appraise
 accepts that exact deprecation once for the original thread before a turn starts. Other, foreign, duplicate, and
 late warnings still refuse. The source trace leaves unrecorded warning contents in earlier cases UNKNOWN.
+
+## Direct-tool compatibility hold
+
+The `7071a2b0` actual case validated native configuration, an empty ephemeral thread, and the local MCP tools.
+Its original `turn/start` RPC settled, then another general warning fenced the original source. The parent exited at
+its hard deadline. Provider outcome, native cleanup, and the warning's exact payload remain UNKNOWN. The authority
+ledger records 32 frozen allocations, zero unspent, 27 observed acquisitions plus historical UNKNOWN zero-or-one,
+four account reads, and 14 spent B3 slots. The earlier UNKNOWNs and M01's separate spent budget remain intact.
+The exact repair artifact passed 634 packed checks and 12 installed SDK and six-role checks offline.
+
+The bundled model catalog for the pinned native release describes `gpt-6.1-sol` as `code_mode_only`. The producer
+prefers that model metadata over the feature flags. Its direct-tool fallback applies to Code Mode and excludes
+Code Mode Only. The pinned RPC and standard config overrides expose no supported same-model direct-tool selection
+under the closed Code Mode controls. The live resolved catalog entry was unobserved. This static mismatch does
+not identify the actual warning, so the case remains spent and unqualified.
+
+The integrated qualification is on hold at the model/tool-mode boundary. The next executable packet needs an
+approved compatible model/tool-mode tuple or an explicit revision of the closed Code Mode scope. The case's
+`model-tool-mode-boundary.json` binds the verified public producer blobs, current authority, and original observation.
+An accepted Analyzer outcome, its answer-bound follow-up, the remaining roles, real execution, triage and report
+closure, R1/R2/R3, and independent integrated evaluation remain open.
