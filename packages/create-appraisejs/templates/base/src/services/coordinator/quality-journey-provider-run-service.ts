@@ -31,6 +31,7 @@ import {
   type ProviderSendPermit,
 } from '@/lib/quality-journey/provider-intent-contract'
 import { ServiceError } from '@/services/shared/errors'
+import type { ProviderTransportAuthorityTrace } from '@/lib/quality-journey/codex-app-server/native-qualification-diagnostics'
 import {
   validateProviderReconciliationEvidence,
   assertCommittedProviderSourceReplay,
@@ -236,18 +237,32 @@ function assertRunCurrent(run: QualityJourneyProviderRun, snapshot: AuthoritySna
     conflict('Provider run requires explicit recovery.')
 }
 
-async function currentAuthority(input: Binding, tx: Prisma.TransactionClient, run?: QualityJourneyProviderRun) {
+async function currentAuthority(
+  input: Binding,
+  tx: Prisma.TransactionClient,
+  run?: QualityJourneyProviderRun,
+  trace: ProviderTransportAuthorityTrace = { step: 'HEARTBEAT_PERMIT' },
+) {
+  trace.step = 'HEARTBEAT_ASSIGNMENT_BINDING'
   const attempt = await authenticate(input, tx)
+  trace.step = 'HEARTBEAT_COORDINATOR_SESSION'
   await assertCoordinatorMutationSession(input, { ...input, attemptId: input.attemptId }, tx)
+  trace.step = 'HEARTBEAT_JOURNEY_STATE'
   const journey = await tx.qualityJourney.findUniqueOrThrow({ where: { id: input.journeyId } })
   assertQualityJourneyMutable(journey)
   managedSessionIdentity(input, journey, attempt)
+  trace.step = 'HEARTBEAT_LIVE_WORK'
   assertLiveWork(journey, attempt)
+  trace.step = 'HEARTBEAT_HUMAN_WAIT'
   assertNoHumanWait(journey)
+  trace.step = 'HEARTBEAT_WORK_AUTHORIZATION'
   assertAuthorizationScope(input, attempt)
   assertAdmittedAssignment(attempt)
+  trace.step = 'HEARTBEAT_ATTEMPT_BUDGET'
   await assertAttemptBudget(attempt, tx)
+  trace.step = 'HEARTBEAT_HUB'
   await assertHistoricalHubQuiescent(tx)
+  trace.step = 'HEARTBEAT_RUN_CORRELATION'
   const snapshot = authoritySnapshot(input, journey, attempt)
   if (run) assertRunCurrent(run, snapshot)
   return snapshot
@@ -558,16 +573,20 @@ export async function writeQualityJourneyProviderTransport<T>(
   input: Binding & { permit: ProviderSendPermit; consume: boolean },
   send: () => Promise<T>,
   client: PrismaClient = prisma,
+  trace: ProviderTransportAuthorityTrace = { step: 'HEARTBEAT_PERMIT' },
 ): Promise<{ reply: Promise<T> }> {
   const captured = Object.freeze({ ...input, principal: Object.freeze({ ...input.principal }) })
+  trace.step = 'HEARTBEAT_PERMIT'
   assertProviderSendPermitOwned(captured.permit)
   const operation = await beginOriginalSqliteDiscardSend(captured.permit, client)
   let engineOperation: Promise<{ reply: Promise<T> }> | undefined
   try {
     engineOperation = client.$transaction(async tx => {
       if (operation) await operation.assertTransactionSettings(tx)
+      trace.step = 'HEARTBEAT_INTENT'
       const intent = await readIntent({ ...captured, intentId: captured.permit.intentId }, tx)
-      await currentAuthority(captured, tx, intent.run)
+      await currentAuthority(captured, tx, intent.run, trace)
+      trace.step = 'HEARTBEAT_SEND_STATE'
       if (operation) await assertOriginalDiscardReservation(operation.reservation, tx)
       assertPermitIdentity(intent, captured.permit)
       if (captured.consume) assertSendWindowCurrent(intent)
@@ -587,6 +606,7 @@ export async function writeQualityJourneyProviderTransport<T>(
       const reply = sendOriginal()
       // Observe rejection even if commit acknowledgement is lost before returning the box.
       void reply.catch(() => {})
+      trace.step = 'HEARTBEAT_SETTLEMENT'
       return { reply }
     })
     const result = await engineOperation

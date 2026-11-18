@@ -306,6 +306,9 @@ export async function createNativeQualityJourneyQualification(
               if (!nativeOutcome) throw new Error('Original native outcome not admitted')
               nativeOutcome.supervisorOperation(operation)
             },
+            heartbeatRefused({ step }) {
+              diagnostics?.record('HEARTBEAT_AUTHORITY', 'REFUSED', step)
+            },
             stop(operation, reason) {
               recordNativeSupervisorStop(diagnostics, reason)
               if (loss) retainNativeQualificationLossOperation(loss, operation)
@@ -352,6 +355,7 @@ export async function createNativeQualityJourneyQualification(
             sealedGrant: delivery.sealedGrant,
             ...manifest.limits,
             async callGateway(call) {
+              diagnostics?.record('ROLE_GATEWAY', 'ENTERED')
               gatewayInFlight++
               try {
                 await supervisor.waitInFlightAuthorityCheck()
@@ -376,7 +380,11 @@ export async function createNativeQualityJourneyQualification(
                   submissionAccepted = true
                   delivery.fence()
                 }
+                diagnostics?.record('ROLE_GATEWAY', result.receipt.accepted ? 'ACCEPTED' : 'SETTLED')
                 return result
+              } catch (error) {
+                diagnostics?.record('ROLE_GATEWAY', 'REFUSED', 'BOUNDARY_REFUSED')
+                throw error
               } finally {
                 gatewayInFlight--
               }

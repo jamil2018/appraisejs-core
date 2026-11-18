@@ -36,6 +36,8 @@ const nativeDiagnosticStages = [
   'MCP_REQUEST',
   'MCP_VALIDATE',
   'TURN_REQUEST',
+  'HEARTBEAT_AUTHORITY',
+  'ROLE_GATEWAY',
   'SUPERVISOR_STOP',
   'CASE_FAILURE',
   'CLEANUP',
@@ -53,6 +55,24 @@ const nativeDiagnosticStages = [
   'PASSIVE_STREAM',
   'PASSIVE_PRECLAIM',
 ] as const
+const providerTransportAuthoritySteps = [
+  'HEARTBEAT_PERMIT',
+  'HEARTBEAT_INTENT',
+  'HEARTBEAT_ASSIGNMENT_BINDING',
+  'HEARTBEAT_COORDINATOR_SESSION',
+  'HEARTBEAT_JOURNEY_STATE',
+  'HEARTBEAT_LIVE_WORK',
+  'HEARTBEAT_HUMAN_WAIT',
+  'HEARTBEAT_WORK_AUTHORIZATION',
+  'HEARTBEAT_ATTEMPT_BUDGET',
+  'HEARTBEAT_HUB',
+  'HEARTBEAT_RUN_CORRELATION',
+  'HEARTBEAT_SEND_STATE',
+  'HEARTBEAT_SETTLEMENT',
+] as const
+type ProviderTransportAuthorityStep = (typeof providerTransportAuthoritySteps)[number]
+export type ProviderTransportAuthorityTrace = { step: ProviderTransportAuthorityStep }
+
 const supervisorStopReasons = [
   'AUTHORITY_REVOKED',
   'TURN_DEADLINE',
@@ -88,6 +108,7 @@ export type NativeSourceNotificationRefusal =
   | (typeof warningRefusals)[number]
 type NativeDiagnosticReason =
   | NativeSourceNotificationRefusal
+  | ProviderTransportAuthorityStep
   | (typeof supervisorStopReasons)[number]
   | 'PROTOCOL_REFUSED'
   | 'OUTCOME_OBSERVER_REFUSED'
@@ -192,6 +213,7 @@ const lifecyclePairs = new Map<NativeDiagnosticStage, readonly DiagnosticPair[]>
     ],
   ],
   ['SUPERVISOR_STOP', supervisorStopReasons.map(reason => ['ENTERED', reason])],
+  ['HEARTBEAT_AUTHORITY', providerTransportAuthoritySteps.map(step => ['REFUSED', step])],
 ])
 function matchesDiagnosticPair(
   status: NativeDiagnosticStatus,

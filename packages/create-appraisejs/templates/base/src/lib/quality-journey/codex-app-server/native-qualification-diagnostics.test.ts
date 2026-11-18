@@ -74,12 +74,16 @@ describe('closed non-authoritative native diagnostics', () => {
     expect(f.trace.observer.record('ACQUISITION', 'SETTLED')).toBe(true)
     recordNativeSupervisorStop(f.trace.observer, 'AUTHORITY_REVOKED')
     recordNativeSupervisorStop(f.trace.observer, 'private error text')
+    expect(f.trace.observer.record('HEARTBEAT_AUTHORITY', 'REFUSED', 'HEARTBEAT_LIVE_WORK')).toBe(true)
+    expect(f.trace.observer.record('ROLE_GATEWAY', 'ENTERED')).toBe(true)
     f.trace.close()
     for (const [index, row] of f.rows().entries()) {
       expect(Object.keys(row)).toEqual(['version', 'sequence', 'stage', 'status', 'reason'])
       expect(row.sequence).toBe(index + 1)
       expect(row.version).toBe('M13_C1_DIAGNOSTIC_V1')
-      expect(['ACQUISITION', 'SUPERVISOR_STOP', 'CASE_CLOSE']).toContain(row.stage)
+      expect(['ACQUISITION', 'SUPERVISOR_STOP', 'HEARTBEAT_AUTHORITY', 'ROLE_GATEWAY', 'CASE_CLOSE']).toContain(
+        row.stage,
+      )
     }
     expect(statSync(f.filename).mode & 0o777).toBe(0o600)
     expect(
@@ -95,6 +99,7 @@ describe('closed non-authoritative native diagnostics', () => {
       ['THREAD_REQUEST', 'TIMED_OUT', 'ACQUISITION_DEADLINE'],
       ['CASE_CLOSE', 'ENTERED', 'NONE'],
       ['CLEANUP', 'ACCEPTED', 'NONE'],
+      ['HEARTBEAT_AUTHORITY', 'REFUSED', 'arbitrary private error'],
       ['unknown', 'ENTERED', 'NONE'],
     ]
     for (const [stage, status, reason] of invalid) {

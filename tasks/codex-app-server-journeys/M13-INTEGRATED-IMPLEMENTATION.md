@@ -425,3 +425,10 @@ attempt and work item to be in progress. The native successor coordinates heartb
 and fences further gateway calls once the exact original submission returns accepted. It can then observe the
 original turn under its existing deadline. A finite stop label records the actual supervisor reason in a fresh
 case. Earlier cases retain their UNKNOWN dispositions.
+
+The fresh 45-second case on the heartbeat repair still entered cleanup at its first heartbeat and recorded
+`AUTHORITY_REVOKED`. The new settlement guard had not observed an exact accepted gateway receipt when that
+heartbeat began. Prior cases do not establish which provider authority check failed or whether a canonical
+write occurred. Native cleanup and provider completion remain UNKNOWN. The next diagnostic records the
+failing authority checkpoint and the original role gateway's finite entry and settlement states without retaining
+errors, arguments or result contents. It preserves the original heartbeat refusal and all effect limits.

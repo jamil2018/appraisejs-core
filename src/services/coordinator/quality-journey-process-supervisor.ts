@@ -5,6 +5,7 @@ import type { PrismaClient } from '@prisma/client'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { launchOwnedFixtureChild } from '@/lib/quality-journey/codex-app-server/owned-child'
 import { nativeQualificationModel } from '@/lib/quality-journey/codex-app-server/native-qualification-configuration'
+import type { ProviderTransportAuthorityTrace } from '@/lib/quality-journey/codex-app-server/native-qualification-diagnostics'
 import { providerIntentPolicy, trustedProviderObservation } from '@/lib/quality-journey/provider-intent-contract'
 import { ServiceError } from '@/services/shared/errors'
 import {
@@ -67,6 +68,7 @@ export type JourneyOwnedProcessAdapter = {
   nativeOutcome?: Readonly<{
     armed: (permit: NonNullable<Armed['permit']>, transportId: string) => Promise<void>
     operation: (operation: Promise<unknown>) => void
+    heartbeatRefused?: (trace: ProviderTransportAuthorityTrace) => void
     stop: (operation: Promise<unknown>, reason: string | null) => void
   }>
 }
@@ -292,7 +294,7 @@ export function createQualityJourneyProcessSupervisor(
     }
   }
 
-  async function write<T>(consume: boolean, send: () => Promise<T>) {
+  async function write<T>(consume: boolean, send: () => Promise<T>, trace?: ProviderTransportAuthorityTrace) {
     if (fenced || !armed?.permit) throw new ServiceError('Owned sender is fenced.', 'CONFLICT')
     const operation = writeQualityJourneyProviderTransport(
       { ...binding, permit: armed.permit, consume },
@@ -301,6 +303,7 @@ export function createQualityJourneyProcessSupervisor(
         return send()
       },
       client,
+      trace,
     )
     nativeOutcome?.operation(operation)
     const box = await operation
@@ -434,22 +437,26 @@ export function createQualityJourneyProcessSupervisor(
     if (fenced) throw new Error('fenced after reply')
   }
 
+  function checkHeartbeatAuthority() {
+    if (heartbeatFlight || fenced || nativeReadiness?.deferAuthorityCheck?.()) return
+    const trace: ProviderTransportAuthorityTrace = { step: 'HEARTBEAT_PERMIT' }
+    const flight = write(false, () => Promise.resolve(), trace)
+      .catch(() => {
+        nativeOutcome?.heartbeatRefused?.(trace)
+        fault('AUTHORITY_REVOKED')
+      })
+      .finally(() => {
+        if (heartbeatFlight === flight) heartbeatFlight = undefined
+      })
+    heartbeatFlight = flight
+  }
+
   async function activateAndMonitor() {
     if (fenced) return stop(reason ?? 'FENCED')
     state = 'active'
     await observe('ACTIVE')
     if (fenced) return snapshot()
-    poll = setInterval(() => {
-      if (heartbeatFlight || fenced || nativeReadiness?.deferAuthorityCheck?.()) return
-      const flight = write(false, () => Promise.resolve())
-        .catch(() => {
-          fault('AUTHORITY_REVOKED')
-        })
-        .finally(() => {
-          if (heartbeatFlight === flight) heartbeatFlight = undefined
-        })
-      heartbeatFlight = flight
-    }, providerIntentPolicy.heartbeatSeconds * 1000)
+    poll = setInterval(checkHeartbeatAuthority, providerIntentPolicy.heartbeatSeconds * 1000)
     if (completed) await stop('LOGICAL_COMPLETION')
     return snapshot()
   }
