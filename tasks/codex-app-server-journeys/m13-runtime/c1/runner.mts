@@ -186,6 +186,7 @@ export async function prepareReviewedC1Task(
                         valid: inspection.valid,
                         reason: inspection.reason,
                         ...(inspection.feature === undefined ? {} : { feature: inspection.feature }),
+                        ...(inspection.fields === undefined ? {} : { fields: [...inspection.fields] }),
                       }
                     : null,
                 })

@@ -99,6 +99,15 @@ describe('C1 task original pin and stop boundaries with inert composition', () =
       { valid: false, reason: 'PUBLIC_CONTROLS_UNVERIFIED', privatePayload: 'private-inspection' },
       { valid: false, reason: 'PUBLIC_CONTROLS_UNVERIFIED' },
     ],
+    [
+      {
+        valid: false,
+        reason: 'UNEXPECTED_ACTIVE_CONFIGURATION',
+        fields: ['headers', 'plugins', 'tools'],
+        privatePayload: 'private-field-details',
+      },
+      { valid: false, reason: 'UNEXPECTED_ACTIVE_CONFIGURATION', fields: ['headers', 'plugins', 'tools'] },
+    ],
     [null, null],
   ])(
     'persists only the curated configuration inspection on original start rejection: %j',
@@ -152,7 +161,11 @@ describe('C1 task original pin and stop boundaries with inert composition', () =
     f.composition.snapshot = () => ({
       state: 'uncertain',
       originalStartState: 'REJECTED',
-      configurationInspection: { valid: false, reason: 'PUBLIC_CONTROLS_UNVERIFIED' },
+      configurationInspection: {
+        valid: false,
+        reason: 'UNEXPECTED_ACTIVE_CONFIGURATION',
+        fields: ['plugins', 'tools'],
+      },
       rawSnapshot: 'private-snapshot',
     })
     try {

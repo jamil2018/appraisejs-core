@@ -86,6 +86,46 @@ describe('native configuration inspect-only refusal', () => {
   })
 })
 
+describe('finite generic configuration refusal categories', () => {
+  it('collects every fixed match once without retaining key prefixes, paths, or private values', () => {
+    const value = configuration()
+    value.config.custom_instance_prefix_123 = {
+      external_api_key_suffix_456: 'private-credential-value',
+      nested: [
+        { plugins: { custom_HEADERS_prefix_789: 'private-header-value', hooks: true } },
+        { tools: ['private-tool-value'], PLUGINS: { secret: 'private-secret-value' } },
+      ],
+      external_authorization_secret_suffix: 'private-combined-value',
+    }
+    const inspection = inspectNativeQualificationConfiguration(value, binding, capability)
+    expect(inspection).toEqual({
+      valid: false,
+      reason: 'UNEXPECTED_ACTIVE_CONFIGURATION',
+      fields: ['apikey', 'authorization', 'headers', 'hooks', 'plugins', 'secret', 'tools'],
+    })
+    expect(verifyNativeQualificationConfiguration(value, binding, capability)).toBe(false)
+    expect(JSON.stringify(inspection)).not.toMatch(/custom_|external_|prefix|suffix|nested|private-|123|456|789/)
+  })
+  it.each([false, null, '', [], {}, [false, null, ''], { enabled: false }])(
+    'preserves the existing unpopulated-value allowance for %j',
+    empty => {
+      const value = configuration()
+      value.config.plugins = empty
+      value.config.custom_tools_suffix = true // The existing tools alternative is anchored to the entire key.
+      expect(inspectNativeQualificationConfiguration(value, binding, capability)).toEqual({
+        valid: true,
+        reason: 'NONE',
+      })
+    },
+  )
+  it('keeps the exact privately compared MCP slots out of generic field observations', () => {
+    expect(inspectNativeQualificationConfiguration(configuration(), binding, capability)).toEqual({
+      valid: true,
+      reason: 'NONE',
+    })
+  })
+})
+
 describe('serialized native MCP local environment binding', () => {
   function serializedConfiguration() {
     const value = configuration()

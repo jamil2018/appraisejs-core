@@ -41,6 +41,8 @@ No sign-in/account switch, fallback, global installation, production/default act
       a normal version-revalidated incremental compiler cache is permitted, never a waiver.
 - [x] Finish the combined explicit-local connector build, packed tests and deterministic artifact audit: 95 focused
       tests, 603 packed portable tests and 12 installed SDK/six-role checks passed with every control/budget preserved.
+- [ ] Preserve only the existing generic configuration check's fixed category labels on refusal, then resolve the
+      concrete active categories together. Keep guard decisions/permissions unchanged and never retain raw config.
 - [ ] Complete the six native roles (including the answer-bound Analysis follow-up), one real execution cycle,
       triage/report closure, then the three original R1/R2/R3 recovery cases under their exact effect/lifecycle controls.
       Keep every predecessor permanently spent/UNKNOWN.
@@ -266,3 +268,18 @@ harness/docs/package/artifact checks, all 603 portable tests in 18 suites and 12
 verified 59 source parities, 154 runtime files, 98 migrations and five clean seeds. Evidence is in
 `.appraisejs/m13-local-mcp-config-20261117/` and `.appraisejs/m13-local-mcp-packed-20261117/`. Only the concrete local
 marker representation changed; provider execution remains unqualified until the fresh bounded actual cases pass.
+
+## Generic configuration refusal, after local connector match
+
+The `d667470b` fresh case passed the explicit local MCP connector check but then returned the existing finite reason
+`UNEXPECTED_ACTIVE_CONFIGURATION`. It made no thread/turn request, settled original cleanup and exited 2. Its exact
+raw fields were not retained and remain UNKNOWN. Current authority records 26 frozen native allocations, zero unspent,
+22 observed acquisitions plus historical UNKNOWN zero-or-one, four account reads and eight spent B3 slots; M01
+remains separate 3/3. All earlier outcomes remain unchanged.
+
+Public source inspection cannot establish which effective runtime/managed configuration populated this response.
+Do not loosen the checker or guess from defaults. The bounded diagnostic batch keeps its existing rejection semantics
+and exposes only unique matched alternatives from its fixed constant regex, with no raw key, path or value. Collecting
+all such fixed labels at once lets the remaining concrete discrepancies be repaired together. The original task failure
+record will project only those labels, existing finite reason and feature name; evidence-write failure still cannot
+replace rejection, cleanup or close. No general configuration framework, new effect allowance or deadline is introduced.

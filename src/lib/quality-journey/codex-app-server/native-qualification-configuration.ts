@@ -71,11 +71,14 @@ function expectedMcp(config: Record<string, unknown>, expected: ReturnType<typeo
   return Object.entries(server).every(([key, value]) => Object.hasOwn(expected, key) || !populated(value))
 }
 const forbidden =
-  /approvalmode|apikey|bearertoken|authorization|httpheaders|headers|password|secret|credential|accesstoken|refreshtoken|^(url|uri|baseurl|endpoint|endpointurl|apiendpoint|modelproviders|providers|proxy|host|command|args|notify|startupcommand|startupcommands|tools|builtintools|skills|networkaccess)$|hooks?|plugins?|capabilities/i
-function safeConfiguration(value: unknown, prefix = ''): boolean {
-  if (Array.isArray(value)) return value.every((nested, index) => safeConfiguration(nested, `${prefix}.${index}`))
-  if (!record(value)) return true
-  return Object.entries(value).every(([key, nested]) => {
+  /approvalmode|apikey|bearertoken|authorization|httpheaders|headers|password|secret|credential|accesstoken|refreshtoken|^(url|uri|baseurl|endpoint|endpointurl|apiendpoint|modelproviders|providers|proxy|host|command|args|notify|startupcommand|startupcommands|tools|builtintools|skills|networkaccess)$|hooks?|plugins?|capabilities/gi
+function unsafeConfigurationFields(value: unknown, prefix = '', fields = new Set<string>()): Set<string> {
+  if (Array.isArray(value)) {
+    value.forEach((nested, index) => unsafeConfigurationFields(nested, `${prefix}.${index}`, fields))
+    return fields
+  }
+  if (!record(value)) return fields
+  for (const [key, nested] of Object.entries(value)) {
     const location = prefix ? `${prefix}.${key}` : key
     // These exact slots were compared privately against the captured connector before this scan.
     if (
@@ -88,10 +91,14 @@ function safeConfiguration(value: unknown, prefix = ''): boolean {
         'mcp_servers.appraise_worker.enabled_tools',
       ].includes(location)
     )
-      return true
-    if (populated(nested) && forbidden.test(key.replace(/[_-]/g, ''))) return false
-    return safeConfiguration(nested, location)
-  })
+      continue
+    if (populated(nested)) {
+      // Every match is a fixed regex alternative, never the caller's full key, location, or value.
+      for (const match of key.replace(/[_-]/g, '').matchAll(forbidden)) fields.add(match[0].toLowerCase())
+    }
+    unsafeConfigurationFields(nested, location, fields)
+  }
+  return fields
 }
 export type NativeConfigurationInspection = Readonly<{
   valid: boolean
@@ -106,6 +113,7 @@ export type NativeConfigurationInspection = Readonly<{
     | 'MCP_TOOL_APPROVAL_SCOPE_MISMATCH'
     | 'UNEXPECTED_ACTIVE_CONFIGURATION'
   feature?: (typeof nativeQualificationFeatureControls)[number]
+  fields?: readonly string[]
 }>
 function inspectRequiredControls(config: Record<string, unknown>): NativeConfigurationInspection | null {
   if (config.cli_auth_credentials_store !== 'file')
@@ -140,7 +148,8 @@ export function inspectNativeQualificationConfiguration(
   if (controls) return controls
   const connector = inspectConnector(config, expectedNativeMcpConfiguration(binding, capability))
   if (connector) return connector
-  if (!safeConfiguration(config)) return { valid: false, reason: 'UNEXPECTED_ACTIVE_CONFIGURATION' }
+  const fields = [...unsafeConfigurationFields(config)].sort()
+  if (fields.length) return { valid: false, reason: 'UNEXPECTED_ACTIVE_CONFIGURATION', fields }
   const critical = criticalSchema.safeParse(config)
   if (!critical.success || !Object.values(critical.data.features).every(flag => flag === false))
     return { valid: false, reason: 'PUBLIC_CONTROLS_UNVERIFIED' }
