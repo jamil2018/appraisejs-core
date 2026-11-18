@@ -407,6 +407,7 @@ export async function launchNativeQualificationChild(
     diagnostics?.record('CLEANUP', 'ENTERED')
     let groupExitObserved = false,
       expired = false
+    let stoppedReason: 'NONE' | 'NATIVE_EXIT_NO_FORK' = 'NONE'
     let timer: ReturnType<typeof setTimeout> | undefined
     async function observeOriginalGroup() {
       const original = owned
@@ -433,8 +434,11 @@ export async function launchNativeQualificationChild(
         if (loss) await waitNativeQualificationLossPhysicalRelease(loss)
         await observeOriginalGroup()
         if (!(await closeOriginalServices())) return uncertain(groupExitObserved)
-        if (manifest.codeMode && !(await hostObservation?.verifyGone(cleanupExpiresAt)))
-          return uncertain(groupExitObserved)
+        if (manifest.codeMode) {
+          const witness = await hostObservation?.verifyGone(cleanupExpiresAt)
+          if (!witness) return uncertain(groupExitObserved)
+          if (witness === 'NATIVE_EXIT_NO_FORK') stoppedReason = witness
+        }
         if (cleanupExpired()) return uncertain(groupExitObserved)
         verifyNativeCredential(manifest.credentialSource)
         if (link) unlinkNativeCredential(link)
@@ -468,7 +472,7 @@ export async function launchNativeQualificationChild(
       diagnostics?.record(
         'CLEANUP',
         receipt.status === 'stopped' ? 'SETTLED' : 'UNKNOWN',
-        receipt.status === 'stopped' ? 'NONE' : 'CLEANUP_UNCERTAIN',
+        receipt.status === 'stopped' ? stoppedReason : 'CLEANUP_UNCERTAIN',
       )
       return receipt
     } finally {

@@ -64,6 +64,13 @@ The first submission can look up an absent acceptance receipt. SQLite completes 
 reports `NOT_FOUND` after the read transaction settles. An actual transaction failure still closes the
 original C1 connection to new operations.
 
+The pinned local Code Mode producer starts its companion lazily. The original AppServer process is watched before
+its first request. After the original process group and delivery streams close, cleanup can use either an observed
+companion identity that is now gone or the original macOS terminal event proving no direct child fork after watch
+registration. The second path requires the same original process identity and an empty initial child list. A fork
+without an observed companion, missing terminal event, or observer failure leaves cleanup UNKNOWN. The proof is
+specific to this pinned local producer and does not attest host isolation or general helper lifetime.
+
 The native protocol facade validates outbound requests, responses and notifications against the committed generated
 installed-schema closure. Scoped MCP items must match the captured server and enabled tool set. Command, file, web,
 image, collaborator, unknown active items and cross-turn activity poison the native transport using a fixed fault;

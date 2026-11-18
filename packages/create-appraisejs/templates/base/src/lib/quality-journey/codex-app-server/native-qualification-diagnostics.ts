@@ -137,6 +137,7 @@ type NativeDiagnosticReason =
   | 'PASSIVE_CAPTURE_REFUSED'
   | 'CHILD_FAULT'
   | 'CLEANUP_UNCERTAIN'
+  | 'NATIVE_EXIT_NO_FORK'
   | 'DIAGNOSTIC_UNAVAILABLE'
 export type NativeDiagnosticObserver = Readonly<{
   record(
@@ -223,6 +224,7 @@ const lifecyclePairs = new Map<NativeDiagnosticStage, readonly DiagnosticPair[]>
     [
       ['ENTERED', 'NONE'],
       ['SETTLED', 'NONE'],
+      ['SETTLED', 'NATIVE_EXIT_NO_FORK'],
       ['UNKNOWN', 'CLEANUP_UNCERTAIN'],
     ],
   ],

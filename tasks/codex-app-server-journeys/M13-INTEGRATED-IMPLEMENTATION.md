@@ -453,3 +453,15 @@ reproduced the refusal with one PREPARED capsule, zero execution cycles, zero Te
 was correctly in AUTOMATION. The canonical service starts the first execution from AUTOMATION and advances the stage
 when it reserves a cycle. The task now prepares the exact consent from AUTOMATION, preserving the separate reviewed
 execution start and all effect limits. The earlier original fixture remains retained and unavailable for continuation.
+
+The repaired original journey completed all six native roles and the answer-bound turn, sealed one real passing
+Cucumber/Chromium run, closed the report, and archived the original evidence. R3 then observed the original
+accepted submission, zero response bytes, the exact pause and original cleanup. Its sender-free reader matched
+the artifact while provider effects remained unresolved. The initial R1 and R2 recovery cases stopped with
+cleanup UNKNOWN. R2 observed validated ACK withholding and the canonical pause commit.
+
+For early original shutdowns, the local Code Mode host is lazy and may have no sampled process identity. The
+macOS observer now acquires a bounded direct-fork watch before the original AppServer receives input. A terminal
+event for that exact process, with no fork event and an empty initial child list, can certify that the pinned
+producer never acquired the companion. A fork, missing record, or observer uncertainty still requires positive
+original cleanup proof. This adds no process control, tool invocation, or broader helper or isolation claim.
