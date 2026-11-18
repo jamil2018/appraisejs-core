@@ -30,7 +30,11 @@ import {
   type OriginalNativeDriverTask,
 } from './native-driver-control.mts'
 import { requiredC1TaskInputPaths } from './runner.mts'
-import { prepareOriginalNativeDriverCase, validatePreparation } from './native-driver-prepare.mts'
+import {
+  installedCodeModeFiles,
+  prepareOriginalNativeDriverCase,
+  validatePreparation,
+} from './native-driver-prepare.mts'
 import type { NativeLineageEvent } from './native-lineage.mts'
 import { createOriginalRecoveryCase } from './recovery-case.mts'
 import { recoveryEvidenceRoot } from './recovery-read-binding.mts'
@@ -160,6 +164,10 @@ test('the closed current preparation pin matches the accepted profile; old and a
     native: {
       path: path.join(f.root, 'synthetic-native-never-executed'),
       sha256: '3ea20787e106af94573d3d6c19480aed93a1334b0dd32b6b04e2f780ce82cf4b',
+    },
+    codeMode: {
+      ...installedCodeModeFiles,
+      observer: { path: path.join(f.root, 'synthetic-observer.node'), sha256: 'a'.repeat(64) },
     },
     prerequisites: {
       readinessReceipt: { path: path.join(f.root, 'synthetic-readiness'), sha256: 'b'.repeat(64) },

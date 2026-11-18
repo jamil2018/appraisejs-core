@@ -16,7 +16,8 @@ import {
 import { mkdir, lstat, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import type { SpawnedProcess } from '../../process/task-spawner'
-import { spawnOwnedProcessGroup, stopOwnedProcessGroup } from '../../process/owned-process-stop'
+import { ownedProcessChildPid, spawnOwnedProcessGroup, stopOwnedProcessGroup } from '../../process/owned-process-stop'
+import { observeNativeCodeModeHost } from './native-code-mode-host'
 import {
   assertNativePublicInput,
   readNativePublicBytes,
@@ -230,6 +231,7 @@ export async function launchNativeQualificationChild(
   let mcpFenceEntered = false,
     mcpFenceFailed = false
   let drain: ReturnType<typeof createNativeQualificationDrainGuard> | undefined
+  let hostObservation: ReturnType<typeof observeNativeCodeModeHost> | undefined
   let stopFlight: Promise<OwnedChildCleanupReceipt> | undefined
   function fenceNative() {
     closeStartup()
@@ -297,6 +299,21 @@ export async function launchNativeQualificationChild(
   }
   function originalAcquired(original: SpawnedProcess) {
     owned = original
+    if (manifest.codeMode) {
+      try {
+        const childPid = ownedProcessChildPid(original)
+        if (!childPid || !original.pid) throw new Error('Original Code Mode process metadata unavailable')
+        hostObservation = observeNativeCodeModeHost(
+          childPid,
+          original.pid,
+          manifest.codeMode.host.path,
+          manifest.codeMode.observer.path,
+        )
+      } catch {
+        preclaimPoison = true
+        abandoned = true
+      }
+    }
     const { stdout, stderr } = original.process
     if (stdout && stderr)
       drain = createNativeQualificationDrainGuard(stdout, stderr, observePassiveFrame, () => {
@@ -416,6 +433,8 @@ export async function launchNativeQualificationChild(
         if (loss) await waitNativeQualificationLossPhysicalRelease(loss)
         await observeOriginalGroup()
         if (!(await closeOriginalServices())) return uncertain(groupExitObserved)
+        if (manifest.codeMode && !(await hostObservation?.verifyGone(cleanupExpiresAt)))
+          return uncertain(groupExitObserved)
         if (cleanupExpired()) return uncertain(groupExitObserved)
         verifyNativeCredential(manifest.credentialSource)
         if (link) unlinkNativeCredential(link)
@@ -454,6 +473,7 @@ export async function launchNativeQualificationChild(
       return receipt
     } finally {
       if (timer) clearTimeout(timer)
+      hostObservation?.close()
     }
   }
   diagnostics?.onFailure(() => {

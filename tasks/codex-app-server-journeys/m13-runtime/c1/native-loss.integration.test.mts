@@ -119,13 +119,13 @@ test(
     n.manifest.limits.cleanupMs = 5000
     const envelope = [{ type: 'text', text: 'approved' }] // Exact inert wire fixture sentinel, not an approval assertion.
     n.manifest.envelopeDigest = nativeQualificationDigest(
-      canonicalContractJson({ input: envelope, model: 'gpt-5.5', effort: 'medium' }),
+      canonicalContractJson({ input: envelope, model: 'gpt-6.1-sol', effort: 'medium' }),
     )
     n.manifest.configurationSha256 = n.sha(renderNativeQualificationConfiguration(n.manifest, capability))
     const configuration = {
       origins: {},
       config: {
-        model: 'gpt-5.5',
+        model: 'gpt-6.1-sol',
         model_provider: 'openai',
         model_reasoning_effort: 'medium',
         approval_policy: 'never',

@@ -60,7 +60,7 @@ describe('native readiness uses the original canonical write boundary', () => {
     expect(f.child.transport.request).toHaveBeenNthCalledWith(3, 'thread/start', {
       cwd: '/private/synthetic',
       ephemeral: true,
-      model: 'gpt-5.5',
+      model: 'gpt-6.1-sol',
       approvalPolicy: 'never',
       sandbox: 'read-only',
     })

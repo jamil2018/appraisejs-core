@@ -393,3 +393,17 @@ The installed ChatGPT bundle has a `codex-code-mode-host` companion. The pinned 
 provider via `features.code_mode_host`, which the current qualification closes. The bundled companion's identity,
 containment, cleanup, MCP mediation and outcome protocol need qualification if that scope is approved. No new
 native effect is pending. The remaining six-role workflow, recovery and independent evaluation stay open.
+
+## Approved Code Mode successor
+
+The user approved qualifying the bundled Code Mode host with the existing native executable and ChatGPT login.
+The successor uses GPT-6.1 Sol with medium reasoning, binds the bundled host and package metadata, and selects
+stdio for the companion. Shell snapshots are disabled. The exact Appraise worker tools remain controlled by
+the same role profile, launch packet, private connector, execution consent, and original task receipt.
+
+The native source resolves the host through the installed Codex CLI package layout. Code Mode routes nested
+Appraise MCP calls to the same MCP handler and App Server item events as direct calls. Positive custody requires
+an observed companion descended from the original live Codex child and later evidence that its original birth
+identity is gone. The observer only reads process metadata. The companion has a separate process group, so the
+existing supervisor's successful group drain cannot substitute for the companion's exit observation. The static
+association and offline suite leave the real turn, provider status, and end-to-end acceptance open.

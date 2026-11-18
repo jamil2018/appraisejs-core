@@ -1,7 +1,7 @@
 import { isDeepStrictEqual } from 'node:util'
 import { z } from 'zod'
 
-export const nativeQualificationModel = 'gpt-5.5'
+export const nativeQualificationModel = 'gpt-6.1-sol'
 
 export const nativeQualificationFeatureControls = Object.freeze([
   'shell_tool',
@@ -29,9 +29,26 @@ export const nativeQualificationFeatureControls = Object.freeze([
   // The pinned feature serializer reports this optional setting as null unless set.
   'network_proxy',
 ] as const)
+const codeModeHostControls = {
+  code_mode_host: true,
+  code_mode_host_grpc: false,
+  code_mode_host_output_truncation: false,
+  shell_snapshot: false,
+  shell_snapshot_v2: false,
+} as const
+type NativeFeatureControl = (typeof nativeQualificationFeatureControls)[number] | keyof typeof codeModeHostControls
+
+export function nativeQualificationFeatures(
+  codeMode: boolean,
+): Readonly<Partial<Record<NativeFeatureControl, boolean>>> {
+  const closed = Object.fromEntries(nativeQualificationFeatureControls.map(key => [key, false]))
+  return codeMode ? { ...closed, ...codeModeHostControls } : closed
+}
+
 type ConfigurationBinding = Readonly<{
   endpoint: Readonly<{ port: number; path: string }>
   enabledTools: readonly string[]
+  codeMode?: object
 }>
 const record = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === 'object' && !Array.isArray(value)
@@ -123,16 +140,20 @@ export type NativeConfigurationInspection = Readonly<{
     | 'MCP_CONNECTOR_UNVERIFIED'
     | 'MCP_TOOL_APPROVAL_SCOPE_MISMATCH'
     | 'UNEXPECTED_ACTIVE_CONFIGURATION'
-  feature?: (typeof nativeQualificationFeatureControls)[number]
+  feature?: NativeFeatureControl
   fields?: readonly string[]
 }>
-function inspectRequiredControls(config: Record<string, unknown>): NativeConfigurationInspection | null {
+function inspectRequiredControls(
+  config: Record<string, unknown>,
+  codeMode: boolean,
+): NativeConfigurationInspection | null {
   if (config.cli_auth_credentials_store !== 'file')
     return { valid: false, reason: 'FILE_CREDENTIAL_BACKEND_UNVERIFIED' }
   if (config.mcp_oauth_credentials_store !== 'file') return { valid: false, reason: 'MCP_OAUTH_BACKEND_UNVERIFIED' }
   if (!record(config.features)) return { valid: false, reason: 'FEATURE_CONTROL_UNVERIFIED' }
   const features = config.features
-  const feature = nativeQualificationFeatureControls.find(key => features[key] !== false)
+  const expected = nativeQualificationFeatures(codeMode)
+  const feature = (Object.keys(expected) as NativeFeatureControl[]).find(key => features[key] !== expected[key])
   return feature ? { valid: false, reason: 'FEATURE_CONTROL_UNVERIFIED', feature } : null
 }
 function inspectConnector(
@@ -155,13 +176,16 @@ export function inspectNativeQualificationConfiguration(
 ): NativeConfigurationInspection {
   if (!record(value) || !record(value.config)) return { valid: false, reason: 'CONFIGURATION_RESPONSE_INVALID' }
   const config = value.config
-  const controls = inspectRequiredControls(config)
+  const codeMode = Boolean(binding.codeMode)
+  const controls = inspectRequiredControls(config, codeMode)
   if (controls) return controls
   const connector = inspectConnector(config, expectedNativeMcpConfiguration(binding, capability))
   if (connector) return connector
   const fields = [...unsafeConfigurationFields(config)].sort()
   if (fields.length) return { valid: false, reason: 'UNEXPECTED_ACTIVE_CONFIGURATION', fields }
-  const critical = criticalSchema.safeParse(config)
+  const critical = criticalSchema.safeParse(
+    codeMode ? { ...config, features: { ...(config.features as object), code_mode_host: false } } : config,
+  )
   if (!critical.success) {
     const controls = Object.keys(criticalSchema.shape)
       .filter(key => critical.error.issues.some(issue => issue.path[0] === key))

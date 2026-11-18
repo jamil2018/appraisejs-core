@@ -6,7 +6,7 @@ import { createRequire } from 'node:module'
 import { z } from 'zod'
 import { assertNativePublicInput, readNativePublicBytes, verifyNativeCredential } from './native-credential-topology'
 import schemaOrigin from './native-qualification-schemas/origin.json'
-import { nativeQualificationFeatureControls, nativeQualificationModel } from './native-qualification-configuration'
+import { nativeQualificationFeatures, nativeQualificationModel } from './native-qualification-configuration'
 
 const sha = z.string().regex(/^[a-f0-9]{64}$/)
 const digest = z.string().regex(/^sha256:[a-f0-9]{64}$/)
@@ -44,6 +44,7 @@ const nativeQualificationManifestSchema = z
     freshRoot: absolute,
     candidateTree: z.string().regex(/^[a-f0-9]{40}$/),
     native: file,
+    codeMode: z.object({ host: file, packageMetadata: file, observer: file }).strict().optional(),
     prerequisites: z.object({ readinessReceipt: file, existingLoginReceipt: file }).strict(),
     database: z.object({ path: absolute, dev: z.string(), ino: z.string() }).strict(),
     binding: z
@@ -126,7 +127,9 @@ export function renderNativeQualificationConfiguration(manifest: NativeQualifica
     'sandbox_mode = "read-only"',
     'web_search = "disabled"',
     '[features]',
-    ...nativeQualificationFeatureControls.map(key => `${key} = false`),
+    ...Object.entries(nativeQualificationFeatures(Boolean(manifest.codeMode))).map(
+      ([key, enabled]) => `${key} = ${enabled}`,
+    ),
     '[analytics]',
     'enabled = false',
     '[feedback]',
@@ -204,6 +207,21 @@ function verifyDatabaseFile(manifest: NativeQualificationManifest) {
       String(database.ino) === manifest.database.ino,
   )
 }
+function verifyCodeModePackage(manifest: NativeQualificationManifest) {
+  const binding = manifest.codeMode
+  if (!binding) return
+  const packageRoot = path.dirname(binding.packageMetadata.path)
+  assert(
+    binding.packageMetadata.path === path.join(packageRoot, 'codex-package.json') &&
+      binding.host.path === path.join(packageRoot, 'bin/codex-code-mode-host') &&
+      manifest.native.path === path.join(packageRoot, 'CodexCLI.app/Contents/MacOS/codex') &&
+      !lstatSync(path.join(packageRoot, 'codex-resources/codex-code-mode-host'), { throwIfNoEntry: false }) &&
+      realpathSync(binding.host.path) === binding.host.path &&
+      (statSync(binding.host.path).mode & 0o111) !== 0 &&
+      binding.observer.path.endsWith('.node') &&
+      realpathSync(binding.observer.path) === binding.observer.path,
+  )
+}
 function verify(manifest: NativeQualificationManifest, capability: string, config: string) {
   assert(
     realpathSync(manifest.repositoryRoot) === realpathSync(fileURLToPath(new URL('../../../../', import.meta.url))),
@@ -226,8 +244,14 @@ function verify(manifest: NativeQualificationManifest, capability: string, confi
   assert(required.every(input => selected.has(input)))
   assert(manifest.inputs.every((item, index) => index === 0 || manifest.inputs[index - 1].path < item.path))
   // Guard every alias before hashing any selected public input.
-  const all = [...manifest.inputs, manifest.native, ...Object.values(manifest.prerequisites)]
+  const all = [
+    ...manifest.inputs,
+    manifest.native,
+    ...Object.values(manifest.prerequisites),
+    ...Object.values(manifest.codeMode ?? {}),
+  ]
   for (const item of all) assertNativePublicInput(item.path, manifest.credentialSource)
+  verifyCodeModePackage(manifest)
   for (const item of all) hashPublic(item, manifest)
   verifyDatabaseFile(manifest)
   for (const [name, expected] of Object.entries(schemaOrigin.files)) {

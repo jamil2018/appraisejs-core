@@ -1,6 +1,6 @@
 import { randomBytes, randomUUID } from 'node:crypto'
 import { z } from 'zod'
-import { mkdirSync, openSync, closeSync, fsyncSync, writeSync, lstatSync, realpathSync } from 'node:fs'
+import { existsSync, mkdirSync, openSync, closeSync, fsyncSync, writeSync, lstatSync, realpathSync } from 'node:fs'
 import path from 'node:path'
 import { canonicalContractJson } from '../../../../src/lib/catalog-contracts'
 import {
@@ -42,11 +42,23 @@ import {
 import { getQualityJourney } from '../../../../src/services/coordinator/quality-journey-service'
 
 const installedSha256 = '3ea20787e106af94573d3d6c19480aed93a1334b0dd32b6b04e2f780ce82cf4b'
+const installedPackageRoot = '/Applications/ChatGPT.app/Contents/Resources/codex-cli'
+export const installedCodeModeFiles = Object.freeze({
+  host: {
+    path: path.join(installedPackageRoot, 'bin/codex-code-mode-host'),
+    sha256: '71fd9c6b974387dc43c0f9729d38799872f2dd0f34947c9749112187d90ab8b5',
+  },
+  packageMetadata: {
+    path: path.join(installedPackageRoot, 'codex-package.json'),
+    sha256: '57c5a200a7dd98e713e6b653ea6ff57ea7a4c5805c825e4b4a0050b6f4d60a9f',
+  },
+})
 export type NativeCasePreparation = Readonly<{
   recoveryCase?: Readonly<{ caseKind: RecoveryCaseKind }>
   campaignId: string
   candidateTree: string
   native: NativeQualificationManifest['native']
+  codeMode: NonNullable<NativeQualificationManifest['codeMode']>
   prerequisites: NativeQualificationManifest['prerequisites']
   credentialSource: NativeCredentialDescriptor
   dossierRoot: string
@@ -54,6 +66,18 @@ export type NativeCasePreparation = Readonly<{
   limits: NativeQualificationManifest['limits']
   reviewControl: NativeOutcomeReviewControl
 }>
+function approvedCodeModeFiles(value: NativeCasePreparation['codeMode']) {
+  return Boolean(
+    value &&
+    (['host', 'packageMetadata'] as const).every(
+      key =>
+        value[key]?.path === installedCodeModeFiles[key].path &&
+        value[key]?.sha256 === installedCodeModeFiles[key].sha256,
+    ) &&
+    value.observer?.path?.endsWith('.node') &&
+    !existsSync(path.join(installedPackageRoot, 'codex-resources/codex-code-mode-host')),
+  )
+}
 export function persistNativeDriverPublic(filename: string, body: unknown) {
   const fd = openSync(filename, 'wx', 0o600)
   try {
@@ -73,7 +97,7 @@ function closedEnvelope(event: NativeLineageEvent) {
       type: 'text',
       text: [
         `You are the ${event.original.binding.role} for one disposable AppraiseJS qualification case.`,
-        'Submit exactly the frozen tool call below once. Preserve every argument and the idempotency key. Use no shell, browser, helper, sign-in, account, resume, additional thread, correction turn or unlisted tool.',
+        'Submit exactly the frozen Appraise MCP tool call below once through Code Mode. Preserve every argument and the idempotency key. Use no shell, browser, other tool, sign-in, account, resume, additional thread or correction turn.',
         `Scripted human persona: ${scriptedDisposableHuman}. This does not attest real human review or human-wait latency.`,
         JSON.stringify({ toolName: event.original.toolName, arguments: event.arguments }),
         'After the successful submission result, return a brief confirmation and finish the ordinary turn.',
@@ -111,6 +135,7 @@ export function validatePreparation(packet: NativeCasePreparation, evidenceRoot:
   if (
     !/^[A-Za-z0-9._:-]{1,160}$/.test(packet.campaignId) ||
     packet.native.sha256 !== installedSha256 ||
+    !approvedCodeModeFiles(packet.codeMode) ||
     !path.isAbsolute(evidenceRoot) ||
     realpathSync(evidenceRoot) !== evidenceRoot
   )
@@ -186,6 +211,7 @@ export async function prepareOriginalNativeDriverCase(
       freshRoot: `/private/tmp/m13-c1-${randomUUID()}`,
       candidateTree: packet.candidateTree,
       native: packet.native,
+      codeMode: packet.codeMode,
       prerequisites: packet.prerequisites,
       credentialSource: packet.credentialSource,
       database: { path: databasePath, dev: String(identity.dev), ino: String(identity.ino) },

@@ -267,7 +267,7 @@ export async function prepareQualityJourneyProviderRun(
     throw new ServiceError('Provider intent identifiers and digests are invalid.', 'VALIDATION')
   const nativeQualification = mode === 'native-qualification'
   const policy = nativeQualification
-    ? { ...providerIntentPolicy, version: 'APP_SERVER_M13_NATIVE_QUALIFICATION_V1', model: nativeQualificationModel }
+    ? { ...providerIntentPolicy, version: 'APP_SERVER_M13_NATIVE_QUALIFICATION_V2', model: nativeQualificationModel }
     : providerIntentPolicy
   const requestHash = hash({
     attemptId: input.attemptId,

@@ -72,7 +72,7 @@ function fixture() {
     configurationDigest: `sha256:${'c'.repeat(64)}`,
   } as Parameters<typeof createNativeQualityJourneyQualification>[0]['input']
   const config: Record<string, unknown> = {
-    model: 'gpt-5.5',
+    model: 'gpt-6.1-sol',
     model_provider: 'openai',
     model_reasoning_effort: 'medium',
     approval_policy: 'never',
@@ -93,7 +93,7 @@ function fixture() {
     roleProfileDigest: profile.contractDigest,
     enabledTools: profile.tools.map(tool => tool.name),
     envelopeDigest: nativeQualificationDigest(
-      canonicalContractJson({ input: envelope, model: 'gpt-5.5', effort: 'medium' }),
+      canonicalContractJson({ input: envelope, model: 'gpt-6.1-sol', effort: 'medium' }),
     ),
     endpoint: {
       host: '127.0.0.1',
@@ -123,7 +123,7 @@ function fixture() {
     if (method === 'config/read') return { config }
     if (method === 'thread/start')
       return {
-        model: 'gpt-5.5',
+        model: 'gpt-6.1-sol',
         modelProvider: 'openai',
         reasoningEffort: 'medium',
         approvalPolicy: 'never',
@@ -219,10 +219,10 @@ describe('portable native composition boundary and cancellation', () => {
       slotReleased: false,
     })
     expect(f.createEndpoint).toHaveBeenCalledTimes(1)
-    expect(f.request).toHaveBeenCalledWith('thread/start', expect.objectContaining({ model: 'gpt-5.5' }))
+    expect(f.request).toHaveBeenCalledWith('thread/start', expect.objectContaining({ model: 'gpt-6.1-sol' }))
     expect(f.request).toHaveBeenCalledWith(
       'turn/start',
-      expect.objectContaining({ model: 'gpt-5.5', effort: 'medium' }),
+      expect.objectContaining({ model: 'gpt-6.1-sol', effort: 'medium' }),
       expect.any(Number),
     )
     const stop = controller.cancel()

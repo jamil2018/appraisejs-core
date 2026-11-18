@@ -362,7 +362,11 @@ export function captureNativeOutcomeProfile(
     planDigest: digest(canonicalContractJson(manifest)),
     reviewControlDigest: nativeOutcomeReviewControlDigest(reviewControl),
     dossierDigest,
-    artifactDigest: digest(canonicalContractJson(manifest.inputs)),
+    artifactDigest: digest(
+      canonicalContractJson(
+        manifest.codeMode ? { inputs: manifest.inputs, codeMode: manifest.codeMode } : manifest.inputs,
+      ),
+    ),
     configurationDigest: `sha256:${manifest.configurationSha256}`,
     roleProfileDigest: manifest.roleProfileDigest,
     candidateTree: manifest.candidateTree,

@@ -59,7 +59,7 @@ describe.sequential('registered original native custody on actual disposable can
       reviewMs: 10000,
       reconciliationMs: 10000,
     }
-    const envelope = { input: [{ type: 'text', text: 'native source fake' }], model: 'gpt-5.5', effort: 'medium' }
+    const envelope = { input: [{ type: 'text', text: 'native source fake' }], model: 'gpt-6.1-sol', effort: 'medium' }
     fake.profile.mockReturnValue({
       profileDigest: configurationDigest,
       dossierDigest: configurationDigest,
@@ -145,7 +145,7 @@ describe.sequential('registered original native custody on actual disposable can
         {
           cwd: '/private/source-fake/cwd',
           ephemeral: true,
-          model: 'gpt-5.5',
+          model: 'gpt-6.1-sol',
           approvalPolicy: 'never',
           sandbox: 'read-only',
         },

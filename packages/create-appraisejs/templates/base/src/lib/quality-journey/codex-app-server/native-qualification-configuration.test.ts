@@ -3,6 +3,7 @@ import {
   expectedNativeMcpConfiguration,
   inspectNativeQualificationConfiguration,
   nativeQualificationFeatureControls,
+  nativeQualificationFeatures,
   verifyNativeQualificationConfiguration,
 } from './native-qualification-configuration'
 
@@ -19,7 +20,7 @@ const capability = 'b'.repeat(64)
 function configuration() {
   return {
     config: {
-      model: 'gpt-5.5',
+      model: 'gpt-6.1-sol',
       model_provider: 'openai',
       model_reasoning_effort: 'medium',
       approval_policy: 'never',
@@ -38,13 +39,30 @@ function configuration() {
 describe('native configuration inspect-only refusal', () => {
   it('renders the new model and refuses the superseded model at configuration readback', () => {
     const rendered = renderNativeQualificationConfiguration(binding as NativeQualificationManifest, capability)
-    expect(rendered).toContain('model = "gpt-5.5"\n')
+    expect(rendered).toContain('model = "gpt-6.1-sol"\n')
     const value = configuration()
-    value.config.model = 'gpt-6.1-sol'
+    value.config.model = 'gpt-5.5'
     expect(inspectNativeQualificationConfiguration(value, binding, capability)).toEqual({
       valid: false,
       reason: 'PUBLIC_CONTROLS_UNVERIFIED',
       fields: ['model'],
+    })
+  })
+  it('enables only the scoped hosted Code Mode configuration', () => {
+    const mode = { ...binding, codeMode: {} }
+    const rendered = renderNativeQualificationConfiguration(mode as NativeQualificationManifest, capability)
+    expect(rendered).toContain('code_mode_host = true\n')
+    expect(rendered).toContain('code_mode_host_grpc = false\n')
+    expect(rendered).toContain('shell_snapshot = false\n')
+    const value = configuration()
+    value.config.features = nativeQualificationFeatures(true)
+    expect(verifyNativeQualificationConfiguration(value, mode, capability)).toBe(true)
+    expect(verifyNativeQualificationConfiguration(value, binding, capability)).toBe(false)
+    value.config.features = { ...nativeQualificationFeatures(true), code_mode_host_grpc: true }
+    expect(inspectNativeQualificationConfiguration(value, mode, capability)).toEqual({
+      valid: false,
+      reason: 'FEATURE_CONTROL_UNVERIFIED',
+      feature: 'code_mode_host_grpc',
     })
   })
   it('requires explicit safe controls and the exact reviewed single HTTP connector without hashing raw config', () => {

@@ -46,6 +46,14 @@ is no global/server approval default, tool annotation change or role union. The 
 the exact enabled list and the finite tool-call limit; a future packet must review all of them explicitly. No MCP
 login, logout, refresh or account operation is added. Global never/read-only and Appraise human/execution gates remain.
 
+The approved M13 Code Mode successor binds GPT-6.1 Sol to the same native program and role-scoped connector.
+The selected model declares Code Mode Only. The case enables its installed stdio host and binds the exact package
+metadata, host binary and read-only macOS process metadata observer to the original case. The observer needs evidence
+that the companion descended from the original live Codex child and that the same process identity is gone at
+cleanup. The Codex process-group drain alone cannot establish that because the companion starts its own group.
+Nested MCP calls use the usual scoped tool events and Appraise acceptance path. See the
+[M13 integrated qualification record](../tasks/codex-app-server-journeys/M13-INTEGRATED-IMPLEMENTATION.md).
+
 The native protocol facade validates outbound requests, responses and notifications against the committed generated
 installed-schema closure. Scoped MCP items must match the captured server and enabled tool set. Command, file, web,
 image, collaborator, unknown active items and cross-turn activity poison the native transport using a fixed fault;

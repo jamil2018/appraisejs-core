@@ -116,7 +116,7 @@ async function fixture(
       { runId: randomUUID(), intentId: randomUUID(), sendBoundaryId: randomUUID(), claimEpoch: 1 },
       trustedProviderArm,
     )
-  const envelope = { input: [{ type: 'text', text: 'source-only fake' }], model: 'gpt-5.5', effort: 'medium' }
+  const envelope = { input: [{ type: 'text', text: 'source-only fake' }], model: 'gpt-6.1-sol', effort: 'medium' }
   const plan = {} as CapturedNativeQualificationPlan
   fake.profile.mockReturnValue({
     profileDigest: digest,
@@ -234,7 +234,7 @@ async function fixture(
       {
         cwd: '/private/fresh/cwd',
         ephemeral: true,
-        model: 'gpt-5.5',
+        model: 'gpt-6.1-sol',
         sandbox: 'read-only',
         approvalPolicy: 'never',
       },
@@ -928,7 +928,10 @@ describe('original thread-start deprecation warning', () => {
   )
   it.each([
     ['Falling back from WebSockets to HTTPS transport. ', 'WARNING_TRANSPORT_FALLBACK'],
-    ['Model metadata for `gpt-5.5` not found. Defaulting to fallback metadata; ', 'WARNING_MODEL_METADATA_FALLBACK'],
+    [
+      'Model metadata for `gpt-6.1-sol` not found. Defaulting to fallback metadata; ',
+      'WARNING_MODEL_METADATA_FALLBACK',
+    ],
     ['Code Mode is unavailable because ', 'WARNING_CODE_MODE_UNAVAILABLE'],
     ['Code Mode is enabled in configuration, but model ', 'WARNING_CODE_MODE_UNSUPPORTED'],
     [

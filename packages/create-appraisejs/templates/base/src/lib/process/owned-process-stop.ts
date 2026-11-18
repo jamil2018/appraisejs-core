@@ -32,6 +32,7 @@ type Capability = {
   failed: boolean
   requireRuntimeBrowserClose: boolean
   browserClosed: boolean
+  childPid?: number
   stopFlight?: Promise<OwnedProcessStopObservation>
 }
 type SupervisorMessage = {
@@ -55,6 +56,7 @@ function applySupervisorStatus(
   failStart: ((error: Error) => void) | undefined,
 ) {
   if (message.type === 'started' && Number.isSafeInteger(message.childPid)) {
+    capability.childPid = message.childPid as number
     capability.started = true
     settleStart?.()
   }
@@ -67,6 +69,13 @@ function applySupervisorStatus(
     capability.failed = true
     failStart?.(new Error(`Owned supervisor failed: ${String(message.reason)}`))
   }
+}
+
+/** Metadata for a live owned child. The PID cannot issue or recreate stop authority. */
+export function ownedProcessChildPid(spawned: SpawnedProcess): number | undefined {
+  const capability = capabilities.get(spawned)
+  if (!capability?.started || capability.failed || capability.finished || capability.escalating) return
+  return capability.childPid
 }
 
 async function liveGroupMembers(groupId: number): Promise<number[]> {
