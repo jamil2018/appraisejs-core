@@ -41,8 +41,8 @@ No sign-in/account switch, fallback, global installation, production/default act
       a normal version-revalidated incremental compiler cache is permitted, never a waiver.
 - [x] Finish the combined explicit-local connector build, packed tests and deterministic artifact audit: 95 focused
       tests, 603 packed portable tests and 12 installed SDK/six-role checks passed with every control/budget preserved.
-- [ ] Preserve only the existing generic configuration check's fixed category labels on refusal, then resolve the
-      concrete active categories together. Keep guard decisions/permissions unchanged and never retain raw config.
+- [x] Preserve only the generic configuration check's fixed category labels on refusal. The fresh case observed
+      `apikey`; close the pinned producer's enabled-by-default feature readbacks and retain the strict checker.
 - [ ] Complete the six native roles (including the answer-bound Analysis follow-up), one real execution cycle,
       triage/report closure, then the three original R1/R2/R3 recovery cases under their exact effect/lifecycle controls.
       Keep every predecessor permanently spent/UNKNOWN.
@@ -283,3 +283,20 @@ and exposes only unique matched alternatives from its fixed constant regex, with
 all such fixed labels at once lets the remaining concrete discrepancies be repaired together. The original task failure
 record will project only those labels, existing finite reason and feature name; evidence-write failure still cannot
 replace rejection, cleanup or close. No general configuration framework, new effect allowance or deadline is introduced.
+
+## Effective feature readback
+
+A fresh actual Analyzer case on `a5fc6f6a` passed initialization and the local MCP comparison. It refused configuration
+with the single fixed label `apikey`, then settled original cleanup before either thread or turn entry. Its physical
+outcome remains UNKNOWN and unqualified. The preceding fresh preparation had its command blocked before delivery
+and kept the already spent reservation. After both dispositions, the authority chain records 28 frozen allocations,
+zero unspent, 23 observed acquisitions plus historical UNKNOWN zero-or-one, four account reads, and 10 spent B3 slots.
+M01 remains separately 3/3 spent.
+
+The pinned producer's `ConfigRequestProcessor.read` inserts effective feature booleans for a fixed set of keys.
+Its feature catalog enables both API-key feature flags by default. Either normalized name matches `apikey`. The same
+readback path also enables Auth Elicitation, Mentions V2, and Tool Suggest by default. Those values would independently
+fail the existing rule requiring every reported feature to be false. Appraise now explicitly sets and requires those
+five flags to be false alongside the original sixteen controls. Any unexpected active configuration still fails
+admission. The actual refusal identifies the category only. Individual runtime values and all earlier UNKNOWN causes
+remain unrecorded.

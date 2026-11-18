@@ -18,6 +18,12 @@ export const nativeQualificationFeatureControls = Object.freeze([
   'view_image',
   'hooks',
   'remote_plugin',
+  // The pinned app-server reports these enabled-by-default features in config/read.
+  'api_key_cyber_access_programs',
+  'api_key_model_discovery',
+  'auth_elicitation',
+  'mentions_v2',
+  'tool_suggest',
 ] as const)
 type ConfigurationBinding = Readonly<{
   endpoint: Readonly<{ port: number; path: string }>

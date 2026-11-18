@@ -126,6 +126,29 @@ describe('finite generic configuration refusal categories', () => {
   })
 })
 
+describe('pinned app-server effective feature readback', () => {
+  const reportedDefaults = [
+    'api_key_cyber_access_programs',
+    'api_key_model_discovery',
+    'auth_elicitation',
+    'mentions_v2',
+    'tool_suggest',
+  ]
+
+  it.each(reportedDefaults)('renders %s disabled and rejects an enabled readback', key => {
+    const rendered = renderNativeQualificationConfiguration(binding as NativeQualificationManifest, capability)
+    const featureSection = rendered.split('[features]\n')[1].split('\n[')[0]
+    expect(featureSection.split('\n').filter(line => line.startsWith(`${key} = `))).toEqual([`${key} = false`])
+    const value = configuration()
+    ;(value.config.features as Record<string, unknown>)[key] = true
+    expect(inspectNativeQualificationConfiguration(value, binding, capability)).toEqual({
+      valid: false,
+      reason: 'FEATURE_CONTROL_UNVERIFIED',
+      feature: key,
+    })
+  })
+})
+
 describe('serialized native MCP local environment binding', () => {
   function serializedConfiguration() {
     const value = configuration()
