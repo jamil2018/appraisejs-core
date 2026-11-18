@@ -221,6 +221,24 @@ describe('C1 task original pin and stop boundaries with inert composition', () =
     expect(f.composition.start).toHaveBeenCalledOnce()
     await f.task.cancel()
   })
+  it('keeps the diagnostic open after turn acknowledgement until original stop settles', async () => {
+    const f = await fixture()
+    f.composition.waitOriginalStop.mockRejectedValueOnce(new Error('Original supervisor stop is not available.'))
+    const diagnostics = boundary.compose.mock.calls[0][0].diagnostics
+    const filename = path.join(f.root, 'c1-acquisition-diagnostics.jsonl')
+    try {
+      await f.task.start()
+      await new Promise<void>(resolve => setImmediate(resolve))
+      expect(f.composition.waitOriginalStop).not.toHaveBeenCalled()
+      expect(diagnostics.record('PASSIVE_OUTCOME_OTHER', 'REFUSED', 'WARNING_OTHER')).toBe(true)
+      expect(readFileSync(filename, 'utf8')).not.toContain('"stage":"CASE_CLOSE"')
+    } finally {
+      await f.task.cancel()
+    }
+    const trace = readFileSync(filename, 'utf8')
+    expect(trace).toContain('"reason":"WARNING_OTHER"')
+    expect(trace).toContain('"stage":"CASE_CLOSE"')
+  })
 })
 
 it.each(['ACQUISITION', 'TURN_REQUEST'] as const)(

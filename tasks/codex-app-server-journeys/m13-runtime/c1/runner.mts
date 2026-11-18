@@ -130,6 +130,13 @@ export async function prepareReviewedC1Task(
     lifetime?.finish()
     diagnostic.close()
   }
+  async function cancelOriginal() {
+    try {
+      return await composition.cancel()
+    } finally {
+      diagnostic.close()
+    }
+  }
   function owner() {
     const original = composition.originalNativeOutcome()
     if (!original || lifetime?.expired()) throw new Error('Original C1 task owner unavailable')
@@ -165,7 +172,7 @@ export async function prepareReviewedC1Task(
             cleanupMs: manifest.limits.cleanupMs,
             control,
             hardEvidencePath: path.join(options.evidenceDirectory, `${manifest.campaignId}.c1-hard-deadline.json`),
-            cancelModel: composition.cancel,
+            cancelModel: cancelOriginal,
             revokeOriginal: () => composition.originalNativeOutcome()?.revoke(),
             disconnectOriginal: composition.disconnectOriginalSupervisor,
           })
@@ -196,15 +203,10 @@ export async function prepareReviewedC1Task(
               diagnostics.record('CASE_FAILURE', 'UNKNOWN', 'BOUNDARY_REFUSED')
             },
           )
-          void start
-            .then(
-              () => composition.waitOriginalStop(),
-              () => composition.waitOriginalStop(),
-            )
-            .then(
-              () => diagnostic.close(),
-              () => diagnostic.close(),
-            )
+          // A fulfilled start only acknowledges the turn. Its stop flight may not exist yet.
+          void start.then(undefined, () => {
+            void composition.waitOriginalStop().then(diagnostic.close, diagnostic.close)
+          })
         } catch (error) {
           diagnostics.record('CASE_FAILURE', 'UNKNOWN', 'BOUNDARY_REFUSED')
           diagnostic.close()
@@ -221,6 +223,7 @@ export async function prepareReviewedC1Task(
       if (state.state !== 'stopped' || state.originalStartState !== 'FULFILLED')
         throw new Error('Original C1 cleanup pending')
       lifetime?.nativeCleanupObserved()
+      diagnostic.close()
       candidate = await owner().freezeCandidate()
       persist(path.join(options.evidenceDirectory, `${manifest.campaignId}.c1-candidate.json`), candidate)
       return candidate
@@ -270,7 +273,7 @@ export async function prepareReviewedC1Task(
     },
     async cancel() {
       composition.originalNativeOutcome()?.revoke()
-      const result = await composition.cancel()
+      const result = await cancelOriginal()
       if (!reconciliationEntered && result.state === 'stopped' && result.cleanup?.status === 'stopped') closeControls()
       return result
     },

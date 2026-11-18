@@ -407,3 +407,9 @@ an observed companion descended from the original live Codex child and later evi
 identity is gone. The observer only reads process metadata. The companion has a separate process group, so the
 existing supervisor's successful group drain cannot substitute for the companion's exit observation. The static
 association and offline suite leave the real turn, provider status, and end-to-end acceptance open.
+
+The first Code Mode case at `57c47903` passed configuration, thread and required MCP validation. The original
+turn RPC fulfilled. The final snapshot observed neither completion nor proven native cleanup. It remains a spent
+UNKNOWN case. A successful start closes the diagnostic in that build because the supervisor has no stop flight
+yet and the task treats that rejected lookup as terminal. The successor keeps recording through the original stop,
+candidate freeze or bounded cancel, while preserving the original start rejection evidence path.
