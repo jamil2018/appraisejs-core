@@ -59,7 +59,7 @@ describe('original R2 withheld start ACK through genuine inert child and canonic
           Object.keys(n.manifest.binding).map(key => [key, f.prepareInput[key as keyof typeof f.prepareInput]]),
         ) as typeof n.manifest.binding
         n.manifest.envelopeDigest = nativeQualificationDigest(
-          canonicalContractJson({ input: envelope, model: 'gpt-6.1-sol', effort: 'medium' }),
+          canonicalContractJson({ input: envelope, model: 'gpt-5.5', effort: 'medium' }),
         )
         n.manifest.limits.requestMs = 2000
         n.manifest.limits.acknowledgementMs = 2000
@@ -68,7 +68,7 @@ describe('original R2 withheld start ACK through genuine inert child and canonic
         const configuration = {
           origins: {},
           config: {
-            model: 'gpt-6.1-sol',
+            model: 'gpt-5.5',
             model_provider: 'openai',
             model_reasoning_effort: 'medium',
             approval_policy: 'never',

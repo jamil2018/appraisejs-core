@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 import type { PrismaClient } from '@prisma/client'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { launchOwnedFixtureChild } from '@/lib/quality-journey/codex-app-server/owned-child'
+import { nativeQualificationModel } from '@/lib/quality-journey/codex-app-server/native-qualification-configuration'
 import { providerIntentPolicy, trustedProviderObservation } from '@/lib/quality-journey/provider-intent-contract'
 import { ServiceError } from '@/services/shared/errors'
 import {
@@ -90,9 +91,10 @@ export function createQualityJourneyProcessSupervisor(
       })
     : undefined
   const turnAcknowledgementTimeoutMs = adapter.turnAcknowledgementTimeoutMs
+  const preparationMode = nativeReadiness ? 'native-qualification' : undefined
   const envelope = {
     input: structuredClone(adapter.input),
-    model: providerIntentPolicy.model,
+    model: preparationMode ? nativeQualificationModel : providerIntentPolicy.model,
     effort: providerIntentPolicy.reasoning,
   }
   binding.configurationDigest = adapter.configurationDigest
@@ -306,7 +308,7 @@ export function createQualityJourneyProcessSupervisor(
 
   async function armInitialIntent() {
     if (fenced) throw new Error('fenced before preparation')
-    const prepared = await prepareQualityJourneyProviderRun(binding, client)
+    const prepared = await prepareQualityJourneyProviderRun(binding, client, preparationMode)
     if (fenced) throw new Error('fenced before claim')
     const request = { ...binding, intentId: prepared.intent.id, claimOwner: `m05:${transportId}` }
     const claim = await claimQualityJourneyProviderIntent(request, client)
@@ -377,7 +379,7 @@ export function createQualityJourneyProcessSupervisor(
       return child!.transport.request(method, {
         ...(armed!.run.threadId ? { threadId: armed!.run.threadId } : {}),
         ...(nativeReadiness ? { cwd: nativeReadiness.cwd, ephemeral: true } : {}),
-        model: providerIntentPolicy.model,
+        model: envelope.model,
         approvalPolicy: 'never',
         sandbox: 'read-only',
       })

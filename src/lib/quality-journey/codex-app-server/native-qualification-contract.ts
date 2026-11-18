@@ -6,7 +6,7 @@ import { createRequire } from 'node:module'
 import { z } from 'zod'
 import { assertNativePublicInput, readNativePublicBytes, verifyNativeCredential } from './native-credential-topology'
 import schemaOrigin from './native-qualification-schemas/origin.json'
-import { nativeQualificationFeatureControls } from './native-qualification-configuration'
+import { nativeQualificationFeatureControls, nativeQualificationModel } from './native-qualification-configuration'
 
 const sha = z.string().regex(/^[a-f0-9]{64}$/)
 const digest = z.string().regex(/^sha256:[a-f0-9]{64}$/)
@@ -117,7 +117,7 @@ function assert(condition: unknown): asserts condition {
 /** Exact rendered configuration is reviewed as bytes, including this single connector capability. */
 export function renderNativeQualificationConfiguration(manifest: NativeQualificationManifest, capability: string) {
   return [
-    'model = "gpt-6.1-sol"',
+    `model = "${nativeQualificationModel}"`,
     'model_provider = "openai"',
     'model_reasoning_effort = "medium"',
     'cli_auth_credentials_store = "file"',

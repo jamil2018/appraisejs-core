@@ -1,6 +1,8 @@
 import { isDeepStrictEqual } from 'node:util'
 import { z } from 'zod'
 
+export const nativeQualificationModel = 'gpt-5.5'
+
 export const nativeQualificationFeatureControls = Object.freeze([
   'shell_tool',
   'apps',
@@ -35,7 +37,7 @@ const record = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === 'object' && !Array.isArray(value)
 const criticalSchema = z
   .object({
-    model: z.literal('gpt-6.1-sol'),
+    model: z.literal(nativeQualificationModel),
     model_provider: z.literal('openai'),
     model_reasoning_effort: z.literal('medium'),
     approval_policy: z.literal('never'),

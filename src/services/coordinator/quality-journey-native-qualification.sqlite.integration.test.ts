@@ -59,7 +59,7 @@ async function oneRole(event: M10OfflineDispatchEvent) {
     f.manifest.enabledTools = delivery.profile.tools.map(tool => tool.name)
     f.manifest.configurationSha256 = f.sha(renderNativeQualificationConfiguration(f.manifest, f.capability))
     const config = {
-      model: 'gpt-6.1-sol',
+      model: 'gpt-5.5',
       model_provider: 'openai',
       model_reasoning_effort: 'medium',
       approval_policy: 'never',
@@ -100,7 +100,7 @@ async function oneRole(event: M10OfflineDispatchEvent) {
     })
     const envelope = [{ type: 'text', text: 'Synthetic offline producer. No native executable or model call.' }]
     f.manifest.envelopeDigest = nativeQualificationDigest(
-      canonicalContractJson({ input: envelope, model: 'gpt-6.1-sol', effort: 'medium' }),
+      canonicalContractJson({ input: envelope, model: 'gpt-5.5', effort: 'medium' }),
     )
     const plan = captureNativeQualificationPlan(f.manifest, f.capability)
     const args = structuredClone(event.arguments)
@@ -122,7 +122,7 @@ async function oneRole(event: M10OfflineDispatchEvent) {
             if (method === 'config/read') return { config }
             if (method === 'thread/start')
               return {
-                model: 'gpt-6.1-sol',
+                model: 'gpt-5.5',
                 reasoningEffort: 'medium',
                 approvalPolicy: 'never',
                 modelProvider: 'openai',
@@ -249,9 +249,16 @@ async function oneRole(event: M10OfflineDispatchEvent) {
     ).toBe(1)
     const slot = await client.qualityJourneyProviderSlot.findUniqueOrThrow({ where: { id: 'HUB' } })
     expect(slot.intentId).not.toBeNull()
-    expect(
-      await client.qualityJourneyProviderDispatchIntent.findUniqueOrThrow({ where: { id: slot.intentId! } }),
-    ).toMatchObject({ reconciledAt: null, turnId: 'synthetic-turn' })
+    const sealedIntent = await client.qualityJourneyProviderDispatchIntent.findUniqueOrThrow({
+      where: { id: slot.intentId! },
+      include: { run: true },
+    })
+    expect(sealedIntent).toMatchObject({ reconciledAt: null, turnId: 'synthetic-turn' })
+    expect(JSON.parse(sealedIntent.run.policyJson)).toMatchObject({
+      version: 'APP_SERVER_M13_NATIVE_QUALIFICATION_V1',
+      model: 'gpt-5.5',
+      reasoning: 'medium',
+    })
     expect(native.launch).toHaveBeenCalledTimes(1)
     return { role: event.binding.role, result }
   } finally {

@@ -51,7 +51,7 @@ function thread(request) {
       approvalPolicy: 'never',
       approvalsReviewer: 'user',
       cwd: request.params.cwd,
-      model: 'gpt-6.1-sol',
+      model: 'gpt-5.5',
       modelProvider: 'openai',
       sandbox: { type: 'readOnly' },
       thread: {

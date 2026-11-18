@@ -54,7 +54,8 @@ vi.mock('./native-outcome-profile', async importOriginal => ({
   inspectNativeOutcomeProfile: fake.profile,
 }))
 vi.mock('./native-qualification-contract', () => ({ inspectNativeQualificationPlan: fake.plan }))
-vi.mock('./native-qualification-configuration', () => ({
+vi.mock('./native-qualification-configuration', async importOriginal => ({
+  ...(await importOriginal<typeof import('./native-qualification-configuration')>()),
   verifyNativeQualificationConfiguration: (value: unknown) => (value as { valid?: boolean }).valid === true,
 }))
 vi.mock('../provider-source-database', () => ({
@@ -115,7 +116,7 @@ async function fixture(
       { runId: randomUUID(), intentId: randomUUID(), sendBoundaryId: randomUUID(), claimEpoch: 1 },
       trustedProviderArm,
     )
-  const envelope = { input: [{ type: 'text', text: 'source-only fake' }], model: 'gpt-6.1-sol', effort: 'medium' }
+  const envelope = { input: [{ type: 'text', text: 'source-only fake' }], model: 'gpt-5.5', effort: 'medium' }
   const plan = {} as CapturedNativeQualificationPlan
   fake.profile.mockReturnValue({
     profileDigest: digest,
@@ -233,7 +234,7 @@ async function fixture(
       {
         cwd: '/private/fresh/cwd',
         ephemeral: true,
-        model: 'gpt-6.1-sol',
+        model: 'gpt-5.5',
         sandbox: 'read-only',
         approvalPolicy: 'never',
       },

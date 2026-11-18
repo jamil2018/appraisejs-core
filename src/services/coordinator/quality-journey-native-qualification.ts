@@ -44,6 +44,7 @@ import {
 } from '@/lib/quality-journey/codex-app-server/native-qualification-contract'
 import {
   inspectNativeQualificationConfiguration,
+  nativeQualificationModel,
   type NativeConfigurationInspection,
 } from '@/lib/quality-journey/codex-app-server/native-qualification-configuration'
 import { createManagedQualityJourneyRoleDelivery } from './quality-journey-managed-role-delivery'
@@ -58,7 +59,7 @@ const record = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === 'object' && !Array.isArray(value)
 const emptyThreadSchema = z
   .object({
-    model: z.literal('gpt-6.1-sol'),
+    model: z.literal(nativeQualificationModel),
     reasoningEffort: z.literal('medium'),
     approvalPolicy: z.literal('never'),
     modelProvider: z.literal('openai'),
@@ -194,7 +195,7 @@ export async function createNativeQualityJourneyQualification(
   if (JSON.stringify(envelope).includes(input.assignmentSecret))
     throw new Error('Native envelope contains private authority')
   const envelopeDigest = nativeQualificationDigest(
-    canonicalContractJson({ input: envelope, model: 'gpt-6.1-sol', effort: 'medium' }),
+    canonicalContractJson({ input: envelope, model: nativeQualificationModel, effort: 'medium' }),
   )
   if (
     envelopeDigest !== manifest.envelopeDigest ||

@@ -25,6 +25,7 @@ import {
   inspectNativeOutcomeProfile,
 } from '../../../../src/lib/quality-journey/codex-app-server/native-outcome-profile'
 import type { NativeOutcomeReviewControl } from '../../../../src/lib/quality-journey/codex-app-server/native-outcome-source'
+import { nativeQualificationModel } from '../../../../src/lib/quality-journey/codex-app-server/native-qualification-configuration'
 import { prepareReviewedC1Task, requiredC1TaskInputPaths } from './runner.mts'
 import {
   createOriginalNativeCaseControl,
@@ -198,7 +199,7 @@ export async function prepareOriginalNativeDriverCase(
         serverName: 'appraise_worker',
         capabilityCommitment: nativeQualificationDigest(capability),
       },
-      envelopeDigest: driverDigest({ input: envelope, model: 'gpt-6.1-sol', effort: 'medium' }),
+      envelopeDigest: driverDigest({ input: envelope, model: nativeQualificationModel, effort: 'medium' }),
       roleProfileDigest: delivery.profileDigest,
       mcpPromptBypass: 'EXACT_ENABLED_TOOLS_APPROVE',
       enabledTools: delivery.profile.tools.map(tool => tool.name),

@@ -44,7 +44,7 @@ async function setup(scenario: string, invalidConfig = false) {
   const configuration = {
     origins: {},
     config: {
-      model: 'gpt-6.1-sol',
+      model: 'gpt-5.5',
       model_provider: 'openai',
       model_reasoning_effort: 'medium',
       approval_policy: 'never',
@@ -164,7 +164,7 @@ async function setup(scenario: string, invalidConfig = false) {
       {
         cwd: path.join(f.manifest.freshRoot, 'cwd'),
         ephemeral: true,
-        model: 'gpt-6.1-sol',
+        model: 'gpt-5.5',
         sandbox: 'read-only',
         approvalPolicy: 'never',
       },
@@ -312,14 +312,14 @@ describe('genuine original wire snapshot and final admission regressions', () =>
       return {
         cwd: path.join(root, 'cwd'),
         ephemeral: true,
-        model: 'gpt-6.1-sol',
+        model: 'gpt-5.5',
         sandbox: 'read-only',
         approvalPolicy: 'never',
       }
     return {
       threadId: 'inert-thread',
       input: [{ type: 'text', text: 'approved' }],
-      model: 'gpt-6.1-sol',
+      model: 'gpt-5.5',
       effort: 'medium',
     }
   }

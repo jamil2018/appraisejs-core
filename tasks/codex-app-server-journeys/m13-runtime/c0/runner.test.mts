@@ -81,7 +81,7 @@ test('C0 reserves exclusively, spends before a cancelled start, and never refund
     f.manifest.configurationSha256 = f.sha(renderNativeQualificationConfiguration(f.manifest, f.capability))
     const envelope = [{ type: 'text', text: 'Cancelled synthetic C0 reservation test' }]
     f.manifest.envelopeDigest = nativeQualificationDigest(
-      canonicalContractJson({ input: envelope, model: 'gpt-6.1-sol', effort: 'medium' }),
+      canonicalContractJson({ input: envelope, model: 'gpt-5.5', effort: 'medium' }),
     )
     const options = {
       plan: captureNativeQualificationPlan(f.manifest, f.capability),

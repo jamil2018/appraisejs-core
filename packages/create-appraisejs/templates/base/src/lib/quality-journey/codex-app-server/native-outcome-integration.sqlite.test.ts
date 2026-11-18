@@ -30,7 +30,10 @@ vi.mock('./native-outcome-profile', async importOriginal => ({
   inspectNativeOutcomeProfile: fake.profile,
 }))
 vi.mock('./native-qualification-contract', () => ({ inspectNativeQualificationPlan: fake.plan }))
-vi.mock('./native-qualification-configuration', () => ({ verifyNativeQualificationConfiguration: () => true }))
+vi.mock('./native-qualification-configuration', async importOriginal => ({
+  ...(await importOriginal<typeof import('./native-qualification-configuration')>()),
+  verifyNativeQualificationConfiguration: () => true,
+}))
 
 // Actual native source/journal/database/service/SQLite execute. Only native process acquisition/profile
 // are replaced by source-only transport observations; no actual native/provider/account effect exists.
@@ -56,7 +59,7 @@ describe.sequential('registered original native custody on actual disposable can
       reviewMs: 10000,
       reconciliationMs: 10000,
     }
-    const envelope = { input: [{ type: 'text', text: 'native source fake' }], model: 'gpt-6.1-sol', effort: 'medium' }
+    const envelope = { input: [{ type: 'text', text: 'native source fake' }], model: 'gpt-5.5', effort: 'medium' }
     fake.profile.mockReturnValue({
       profileDigest: configurationDigest,
       dossierDigest: configurationDigest,
@@ -142,7 +145,7 @@ describe.sequential('registered original native custody on actual disposable can
         {
           cwd: '/private/source-fake/cwd',
           ephemeral: true,
-          model: 'gpt-6.1-sol',
+          model: 'gpt-5.5',
           approvalPolicy: 'never',
           sandbox: 'read-only',
         },

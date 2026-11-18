@@ -352,3 +352,13 @@ approved compatible model/tool-mode tuple or an explicit revision of the closed 
 `model-tool-mode-boundary.json` binds the verified public producer blobs, current authority, and original observation.
 An accepted Analyzer outcome, its answer-bound follow-up, the remaining roles, real execution, triage and report
 closure, R1/R2/R3, and independent integrated evaluation remain open.
+
+## Approved direct-tool model successor
+
+The user approved changing the qualification model. The digest-verified bundled catalog lists `gpt-5.5` and
+leaves its tool mode unset. With the existing Code Mode controls disabled, the pinned producer selects direct
+tools for this entry. M13 now binds this model with medium reasoning across configuration, native thread and
+turn RPCs, the envelope digest, and its durable qualification policy. Other D05 callers retain their existing
+policy and persisted preparation hashes. The existing executable, login mode, provider, transport, gates, and
+budgets carry forward. Catalogue evidence establishes a candidate, and actual provider eligibility still
+requires fresh qualification. All earlier allocations and UNKNOWN outcomes retain their recorded dispositions.

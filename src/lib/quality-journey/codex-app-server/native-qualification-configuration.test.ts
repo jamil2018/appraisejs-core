@@ -19,7 +19,7 @@ const capability = 'b'.repeat(64)
 function configuration() {
   return {
     config: {
-      model: 'gpt-6.1-sol',
+      model: 'gpt-5.5',
       model_provider: 'openai',
       model_reasoning_effort: 'medium',
       approval_policy: 'never',
@@ -36,6 +36,17 @@ function configuration() {
   }
 }
 describe('native configuration inspect-only refusal', () => {
+  it('renders the new model and refuses the superseded model at configuration readback', () => {
+    const rendered = renderNativeQualificationConfiguration(binding as NativeQualificationManifest, capability)
+    expect(rendered).toContain('model = "gpt-5.5"\n')
+    const value = configuration()
+    value.config.model = 'gpt-6.1-sol'
+    expect(inspectNativeQualificationConfiguration(value, binding, capability)).toEqual({
+      valid: false,
+      reason: 'PUBLIC_CONTROLS_UNVERIFIED',
+      fields: ['model'],
+    })
+  })
   it('requires explicit safe controls and the exact reviewed single HTTP connector without hashing raw config', () => {
     const value = configuration()
     value.config.harmless_public_default = 512

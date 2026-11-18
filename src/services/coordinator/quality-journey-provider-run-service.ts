@@ -5,6 +5,7 @@ import {
   readOriginalNativeOutcomeReplay,
 } from '@/lib/quality-journey/codex-app-server/native-outcome-source'
 import { nativeOutcomeProtocolDigest } from '@/lib/quality-journey/codex-app-server/native-outcome-profile'
+import { nativeQualificationModel } from '@/lib/quality-journey/codex-app-server/native-qualification-configuration'
 import { assertHistoricalHubQuiescent } from './quality-journey-provider-recovery'
 import { createHash, randomUUID } from 'node:crypto'
 import type {
@@ -255,6 +256,7 @@ async function currentAuthority(input: Binding, tx: Prisma.TransactionClient, ru
 export async function prepareQualityJourneyProviderRun(
   input: PrepareQualityJourneyProviderRunInput,
   client: PrismaClient = prisma,
+  mode?: 'native-qualification',
 ) {
   if (
     !boundedIdentifier(input.idempotencyKey) ||
@@ -263,12 +265,17 @@ export async function prepareQualityJourneyProviderRun(
     !validDigest(input.envelopeDigest)
   )
     throw new ServiceError('Provider intent identifiers and digests are invalid.', 'VALIDATION')
+  const nativeQualification = mode === 'native-qualification'
+  const policy = nativeQualification
+    ? { ...providerIntentPolicy, version: 'APP_SERVER_M13_NATIVE_QUALIFICATION_V1', model: nativeQualificationModel }
+    : providerIntentPolicy
   const requestHash = hash({
     attemptId: input.attemptId,
     idempotencyKey: input.idempotencyKey,
     providerNamespace: input.providerNamespace,
     configurationDigest: input.configurationDigest,
     envelopeDigest: input.envelopeDigest,
+    ...(nativeQualification ? { policyVersion: policy.version } : {}),
   })
   return client.$transaction(async tx => {
     await authenticate(input, tx)
@@ -294,7 +301,7 @@ export async function prepareQualityJourneyProviderRun(
         configurationDigest: input.configurationDigest,
         prepareKey: input.idempotencyKey,
         prepareRequestHash: requestHash,
-        policyJson: json(providerIntentPolicy),
+        policyJson: json(policy),
         earliestIntentAt: now,
         unresolvedRetentionAt: after(now, providerIntentPolicy.unresolvedRetentionSeconds),
       },

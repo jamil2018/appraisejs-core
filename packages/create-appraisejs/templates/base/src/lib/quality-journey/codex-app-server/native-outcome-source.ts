@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { inspectNativeQualificationLoss, type NativeQualificationLossControl } from './native-qualification-loss'
 import { NativeStartupMetadata, nativeStartupWarning } from './native-startup-metadata'
+import { nativeQualificationModel } from './native-qualification-configuration'
 import type { PrismaClient } from '@prisma/client'
 import { canonicalOutcomeJson, outcomeDigest } from './outcome-source-contract'
 import {
@@ -329,7 +330,12 @@ class OriginalNativeOutcome {
       this.#healthy()
       assertProviderSendPermitOwned(this.options.permit)
       this.#startup.assertReady()
-      const expected = { ephemeral: true, model: 'gpt-6.1-sol', sandbox: 'read-only', approvalPolicy: 'never' }
+      const expected = {
+        ephemeral: true,
+        model: nativeQualificationModel,
+        sandbox: 'read-only',
+        approvalPolicy: 'never',
+      }
       if (Object.entries(expected).some(([key, value]) => params[key] !== value)) fail()
     }
     if (method === 'turn/start') this.#turnRequest(params)
