@@ -72,6 +72,19 @@ const providerTransportAuthoritySteps = [
 ] as const
 type ProviderTransportAuthorityStep = (typeof providerTransportAuthoritySteps)[number]
 export type ProviderTransportAuthorityTrace = { step: ProviderTransportAuthorityStep }
+const nativeRoleGatewaySteps = [
+  'ROLE_GATEWAY_ADMISSION',
+  'ROLE_GATEWAY_INPUT',
+  'ROLE_GATEWAY_ARGUMENT_VALIDATION',
+  'ROLE_GATEWAY_CURRENT_AUTHORITY',
+  'ROLE_GATEWAY_ORIGINAL_BINDING',
+  'ROLE_GATEWAY_CANONICAL_CALL',
+  'ROLE_GATEWAY_DURABLE_WITNESS',
+  'ROLE_GATEWAY_FINAL_WITNESS',
+  'ROLE_GATEWAY_OUTCOME_OBSERVER',
+] as const
+type NativeRoleGatewayStep = (typeof nativeRoleGatewaySteps)[number]
+export type NativeRoleGatewayTrace = { step: NativeRoleGatewayStep }
 
 const supervisorStopReasons = [
   'AUTHORITY_REVOKED',
@@ -109,6 +122,7 @@ export type NativeSourceNotificationRefusal =
 type NativeDiagnosticReason =
   | NativeSourceNotificationRefusal
   | ProviderTransportAuthorityStep
+  | NativeRoleGatewayStep
   | (typeof supervisorStopReasons)[number]
   | 'PROTOCOL_REFUSED'
   | 'OUTCOME_OBSERVER_REFUSED'
@@ -214,6 +228,15 @@ const lifecyclePairs = new Map<NativeDiagnosticStage, readonly DiagnosticPair[]>
   ],
   ['SUPERVISOR_STOP', supervisorStopReasons.map(reason => ['ENTERED', reason])],
   ['HEARTBEAT_AUTHORITY', providerTransportAuthoritySteps.map(step => ['REFUSED', step])],
+  [
+    'ROLE_GATEWAY',
+    [
+      ['ENTERED', 'NONE'],
+      ['SETTLED', 'NONE'],
+      ['ACCEPTED', 'NONE'],
+      ...nativeRoleGatewaySteps.map(step => ['REFUSED', step] as const),
+    ],
+  ],
 ])
 function matchesDiagnosticPair(
   status: NativeDiagnosticStatus,

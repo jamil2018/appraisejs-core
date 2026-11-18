@@ -76,6 +76,7 @@ describe('closed non-authoritative native diagnostics', () => {
     recordNativeSupervisorStop(f.trace.observer, 'private error text')
     expect(f.trace.observer.record('HEARTBEAT_AUTHORITY', 'REFUSED', 'HEARTBEAT_LIVE_WORK')).toBe(true)
     expect(f.trace.observer.record('ROLE_GATEWAY', 'ENTERED')).toBe(true)
+    expect(f.trace.observer.record('ROLE_GATEWAY', 'REFUSED', 'ROLE_GATEWAY_DURABLE_WITNESS')).toBe(true)
     f.trace.close()
     for (const [index, row] of f.rows().entries()) {
       expect(Object.keys(row)).toEqual(['version', 'sequence', 'stage', 'status', 'reason'])
@@ -100,6 +101,7 @@ describe('closed non-authoritative native diagnostics', () => {
       ['CASE_CLOSE', 'ENTERED', 'NONE'],
       ['CLEANUP', 'ACCEPTED', 'NONE'],
       ['HEARTBEAT_AUTHORITY', 'REFUSED', 'arbitrary private error'],
+      ['ROLE_GATEWAY', 'REFUSED', 'private gateway error'],
       ['unknown', 'ENTERED', 'NONE'],
     ]
     for (const [stage, status, reason] of invalid) {

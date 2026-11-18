@@ -432,3 +432,9 @@ heartbeat began. Prior cases do not establish which provider authority check fai
 write occurred. Native cleanup and provider completion remain UNKNOWN. The next diagnostic records the
 failing authority checkpoint and the original role gateway's finite entry and settlement states without retaining
 errors, arguments or result contents. It preserves the original heartbeat refusal and all effect limits.
+
+The checkpoint case recorded the scoped gateway entering and refusing before the first heartbeat. The heartbeat
+stopped at the permit checkpoint before a recorded canonical authority check. No provider completion or native
+cleanup was established. The fresh offline fixture accepted the same required-question Analyzer charter via the
+installed SDK and passed all 12 tests. The native gateway diagnostic now identifies its last finite validation,
+invocation, or witness checkpoint. It retains no raw arguments, errors or results and changes no admission.

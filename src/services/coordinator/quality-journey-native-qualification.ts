@@ -33,6 +33,7 @@ import {
   requireNativeDiagnostic,
   type NativeDiagnosticObserver,
   type NativeDiagnosticStage,
+  type NativeRoleGatewayTrace,
 } from '@/lib/quality-journey/codex-app-server/native-qualification-diagnostics'
 import {
   launchNativeQualificationChild,
@@ -258,6 +259,18 @@ export async function createNativeQualityJourneyQualification(
   let disconnectOriginal: (() => boolean) | undefined
   let gatewayInFlight = 0
   let submissionAccepted = false
+  function assertGatewayAdmission(call: Parameters<NativeEndpointOptions['callGateway']>[0]) {
+    assertNativeQualificationLossGateway(loss)
+    const state = supervisor.snapshot()
+    if (
+      state.fenced ||
+      !state.turnStartEntered ||
+      submissionAccepted ||
+      call.sealedGrant !== delivery.sealedGrant ||
+      call.profileDigest !== delivery.profileDigest
+    )
+      throw new Error('Native managed delivery admission refused')
+  }
   function validate(stage: NativeDiagnosticStage, check: () => boolean) {
     requireNativeDiagnostic(diagnostics, stage)
     try {
@@ -356,25 +369,25 @@ export async function createNativeQualityJourneyQualification(
             ...manifest.limits,
             async callGateway(call) {
               diagnostics?.record('ROLE_GATEWAY', 'ENTERED')
+              const trace: NativeRoleGatewayTrace = { step: 'ROLE_GATEWAY_ADMISSION' }
               gatewayInFlight++
               try {
                 await supervisor.waitInFlightAuthorityCheck()
-                assertNativeQualificationLossGateway(loss)
-                const state = supervisor.snapshot()
-                if (
-                  state.fenced ||
-                  !state.turnStartEntered ||
-                  submissionAccepted ||
-                  call.sealedGrant !== delivery.sealedGrant ||
-                  call.profileDigest !== delivery.profileDigest
+                assertGatewayAdmission(call)
+                const operation = delivery.invoke(
+                  {
+                    callId: randomUUID(),
+                    toolName: call.toolName,
+                    arguments: call.arguments,
+                  },
+                  trace,
                 )
-                  throw new Error('Native managed delivery admission refused')
-                const operation = delivery.invoke({
-                  callId: randomUUID(),
-                  toolName: call.toolName,
-                  arguments: call.arguments,
-                })
-                nativeOutcome?.gateway(operation)
+                try {
+                  nativeOutcome?.gateway(operation)
+                } catch (error) {
+                  trace.step = 'ROLE_GATEWAY_OUTCOME_OBSERVER'
+                  throw error
+                }
                 const result = await operation
                 if (result.receipt.accepted) {
                   submissionAccepted = true
@@ -383,7 +396,11 @@ export async function createNativeQualityJourneyQualification(
                 diagnostics?.record('ROLE_GATEWAY', result.receipt.accepted ? 'ACCEPTED' : 'SETTLED')
                 return result
               } catch (error) {
-                diagnostics?.record('ROLE_GATEWAY', 'REFUSED', 'BOUNDARY_REFUSED')
+                diagnostics?.record(
+                  'ROLE_GATEWAY',
+                  'REFUSED',
+                  error instanceof z.ZodError ? 'ROLE_GATEWAY_ARGUMENT_VALIDATION' : trace.step,
+                )
                 throw error
               } finally {
                 gatewayInFlight--

@@ -9,6 +9,7 @@ import { randomBytes } from 'node:crypto'
 import { createSubmissionPayloadCapture } from './quality-journey-submission-payload-observation'
 import type { PrismaClient } from '@prisma/client'
 import { z } from 'zod'
+import type { NativeRoleGatewayTrace } from '@/lib/quality-journey/codex-app-server/native-qualification-diagnostics'
 import { analysisCharterSchema, hashAnalysisCharter, qualityJourneyContractVersion } from '@/lib/quality-journey'
 import {
   createManagedWorkerRegistrationProfile,
@@ -368,6 +369,7 @@ export async function createManagedQualityJourneyRoleDelivery(options: {
     args: Record<string, unknown>,
     key: string,
     argumentsDigest: string,
+    trace: NativeRoleGatewayTrace,
   ) {
     let entered = false,
       returned = false
@@ -382,6 +384,7 @@ export async function createManagedQualityJourneyRoleDelivery(options: {
         if (entered) throw new Error('Duplicate offline canonical call')
         entered = true
         const original = originalCalls.get(key)
+        trace.step = 'ROLE_GATEWAY_CANONICAL_CALL'
         const value = original
           ? await original.capture.run(() => invokeCanonical(call.toolName, args))
           : await invokeCanonical(call.toolName, args)
@@ -389,6 +392,7 @@ export async function createManagedQualityJourneyRoleDelivery(options: {
         if (call.toolName === entry.submit) {
           originalResults.set(key, structuredClone(originalResult))
           if (!original) throw new Error('Original canonical submission capture is missing')
+          trace.step = 'ROLE_GATEWAY_DURABLE_WITNESS'
           originalReceipt = await readWitness(key, original.capture)
           accepted.set(key, { argumentsDigest, capture: original.capture })
           acceptSelectedAnalysis(originalResult, original.capture)
@@ -420,36 +424,49 @@ export async function createManagedQualityJourneyRoleDelivery(options: {
   async function invokeOriginal(
     call: OfflineProviderCall,
     pin: (key: string, argumentsDigest: string) => void,
+    trace: NativeRoleGatewayTrace,
   ): Promise<{ result: unknown; receipt: OfflineRoleDeliveryReceipt }> {
     assertNativeQualificationLossGateway(loss)
+    trace.step = 'ROLE_GATEWAY_INPUT'
     const args = capture(call)
     const key = typeof args.idempotencyKey === 'string' ? args.idempotencyKey : ''
     const argumentsDigest = offlineCompositionDigest({ toolName: call.toolName, arguments: args })
     pin(key, argumentsDigest)
     const previous = accepted.get(key)
+    trace.step = 'ROLE_GATEWAY_ORIGINAL_BINDING'
     if (previous) {
       if (previous.argumentsDigest !== argumentsDigest) throw new Error('Changed offline replay payload')
       return { result: structuredClone(originalResults.get(key)), receipt: await readWitness(key, previous.capture) }
     }
+    trace.step = 'ROLE_GATEWAY_CURRENT_AUTHORITY'
     assertAdmission()
     await current()
     assertAdmission()
+    trace.step = 'ROLE_GATEWAY_ORIGINAL_BINDING'
     if (call.toolName === entry.submit) await rememberOriginal(key, argumentsDigest)
     assertAdmission()
-    const canonical = originalCanonical(call, args, key, argumentsDigest)
+    const canonical = originalCanonical(call, args, key, argumentsDigest, trace)
     if (exchange) await exchange(call.toolName, args, canonical.invoke)
     else await canonical.invoke()
     if (!canonical.returned()) throw new Error('Offline exchange omitted canonical delivery')
+    trace.step = 'ROLE_GATEWAY_FINAL_WITNESS'
     return {
       result: canonical.result(),
       receipt: loss && canonical.receipt() ? canonical.receipt()! : await deliveryReceipt(call.toolName, key),
     }
   }
-  function observeOriginalDelivery(call: OfflineProviderCall) {
+  function observeOriginalDelivery(
+    call: OfflineProviderCall,
+    trace: NativeRoleGatewayTrace = { step: 'ROLE_GATEWAY_ADMISSION' },
+  ) {
     let captured: { key: string; argumentsDigest: string } | undefined
-    const operation = invokeOriginal(call, (key, argumentsDigest) => {
-      captured = { key, argumentsDigest }
-    })
+    const operation = invokeOriginal(
+      call,
+      (key, argumentsDigest) => {
+        captured = { key, argumentsDigest }
+      },
+      trace,
+    )
     void operation.then(
       value => {
         if (
