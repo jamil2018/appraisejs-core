@@ -163,7 +163,7 @@ test('the closed current preparation pin matches the accepted profile; old and a
     candidateTree: 'a'.repeat(40),
     native: {
       path: path.join(f.root, 'synthetic-native-never-executed'),
-      sha256: '3ea20787e106af94573d3d6c19480aed93a1334b0dd32b6b04e2f780ce82cf4b',
+      sha256: 'f69d8040091fc4997fb37e7f5ada428ec2fd06656b66ff5a72b31e12e0e67c20',
     },
     codeMode: {
       ...installedCodeModeFiles,
@@ -197,7 +197,11 @@ test('the closed current preparation pin matches the accepted profile; old and a
     assert.equal(packet.native.sha256, nativeOutcomeSourceIdentity.installedSha256)
     assert.equal(validatePreparation(packet, f.root), undefined)
     assert.equal(existsSync(path.join(f.root, packet.campaignId)), false)
-    for (const sha256 of ['7cb8700a47be3c81bb3c5efbf2d2adc716ce3db4806e9dc992f2925f78b2b194', '0'.repeat(64)]) {
+    for (const sha256 of [
+      '7cb8700a47be3c81bb3c5efbf2d2adc716ce3db4806e9dc992f2925f78b2b194',
+      '3ea20787e106af94573d3d6c19480aed93a1334b0dd32b6b04e2f780ce82cf4b',
+      '0'.repeat(64),
+    ]) {
       const refused = {
         ...packet,
         native: { ...packet.native, sha256 },

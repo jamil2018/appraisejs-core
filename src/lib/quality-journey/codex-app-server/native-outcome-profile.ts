@@ -14,11 +14,11 @@ import {
 } from './native-qualification-contract'
 
 export const nativeOutcomeSourceIdentity = Object.freeze({
-  sourceCommit: '226fa88979b1a9d76dc36f339ee9c5fbdb2c8e7f',
-  installedSha256: '3ea20787e106af94573d3d6c19480aed93a1334b0dd32b6b04e2f780ce82cf4b',
-  sourceGitTree: 'ef95f6dd78bcba8de5c6aa434551cf74a6bdc1de',
-  treeSha256: 'a9371b4fbfe87e6a7a87443f119e9806ac39156026a1179d1258484f01f6d033',
-  staticBindingSha256: '9e4bd18c6ae72e615a2b586a0e21f73a315d0188bdc8764677119aba445dde75',
+  sourceCommit: 'c376cf7396eff83ce4c6ac61b9553df142e7a0be',
+  installedSha256: 'f69d8040091fc4997fb37e7f5ada428ec2fd06656b66ff5a72b31e12e0e67c20',
+  sourceGitTree: '1728946c25d18e1f04e8489e223a9f7400338570',
+  treeSha256: '82ad73d4a57d699ef4377ffd45d1872511f4462cbaab17e840f1d3601ed46d20',
+  staticBindingSha256: '2534e8717afdad979feb62adb7ed13b61c8e0e7e7b7bd06866199be57cdc35ab',
 })
 // Exact reviewed public program bodies establish conditional source semantics only.
 export const nativeOutcomeSourceRequirements = Object.freeze({
@@ -74,7 +74,7 @@ export const nativeOutcomeSourceRequirements = Object.freeze({
   'codex-rs/core/src/agent/control/api.rs': '64184e5f2927f5befbc3f08baefb8dc4ed6d750b541b16d68a5dab2c4225dd46',
   'codex-rs/core/src/agent/control/delivery.rs': 'e5e93d5eb3ca6deb7cf1b1b4914644c0d844324cc30197e5c51c6a5582295a16',
   'codex-rs/core/src/agent/control/mailbox.rs': '3ad60664879f8ee349724c35e0b7e56f12592da4e932225e7957cc071b385ae7',
-  'codex-rs/core/src/client.rs': '544c428df0ebe2eb7e99bdaf507eb7873d6a8ec8e4e193885b3bfa37a200d03f',
+  'codex-rs/core/src/client.rs': 'e5e9b2eb096a8491c3839761d68d1e79e4163b36ef036aae3ac639c3f7c4cac9',
   'codex-rs/core/src/config/mod.rs': 'a56536664f910cfa10cc35f0a0905fb6fe66bfe2cb760e5d06bb9be99544b54c',
   'codex-rs/core/src/session/async_compaction.rs': '34543cc79dd5e291ce87a94d116ec9b0e87a2f786dc7a3cbf1e992f6b8337995',
   'codex-rs/core/src/session/handlers.rs': 'aeb2ea64830f88f6a460a00945b466949d3da846b11038b862a3de92a30835e2',
@@ -104,7 +104,7 @@ export const nativeOutcomeSourceRequirements = Object.freeze({
   'codex-rs/ext/queue/src/lib.rs': 'faa932b001c7adcf8466898bdd22b751d5302edcce0c4510eb90c38817542451',
   'codex-rs/ext/queue/src/service.rs': '369a2187e5dc5b9ae8ac0d02851cfc2cf54cff4d80ca60f0c2640c213be550b7',
   'codex-rs/features/src/feature_configs.rs': 'c11a331ff31a66b8750026c18ce8ef7b74a34616b8aa9ee6799e4777b5d90aa4',
-  'codex-rs/features/src/lib.rs': 'ae5067b54222326863207b2c3f9fdcf08d3476dfb850f9084b9ea34a0eb2d649',
+  'codex-rs/features/src/lib.rs': 'd2d099a2aad69991fb002d34bf2dbb21124123dee98c7f328328ad72a21de151',
   'codex-rs/rollout/src/state_db.rs': '8efc713593cfb5d524cd74486e2a2355167ffcbb335d39bf1c81020a9a20d7f4',
   'codex-rs/state/src/runtime/queued_items.rs': '3296b37044ebc00e92f47f794b689af469498e8f15b0b8fcec94e4f5bd4761b6',
   'codex-rs/state/src/sqlite.rs': '30c2375ce82d94b518c86029ce11db758c06f501fc2ee5e394a61941af5cb753',
@@ -120,10 +120,10 @@ export const nativeOutcomeProtocolDigest = digest(
 )
 // Exact independently accepted actual D3 R3 evidence; these static pins grant no effects allocation.
 export const nativeStartupEvidenceRequirements = Object.freeze({
-  'observation-review.json': 'ebe0dbe978f69c5da3194e3599481158abe84d8b6b1b0a2505e5667eb5f945bf',
-  'execution-observation.json': '3b035760db1c2b1d0286dc60a6ebb9e21c867364a830d96e94cb2ae7561da0ca',
-  'manifest.json': '646b2569e627e4309d1b8ad66544529cfa2d5b3f847ba7420b6087c2251c5bd6',
-  'packet.json': '7b7931dffabaeb0de433119bbb58fdf7a5af960e1d487c56a650c2f7dd2c0131',
+  'observation-review.json': 'c23f3303a90c796cd7b8f2f9dda5615486f4dcc8283a9a5a3f8eb46b324d2e88',
+  'execution-observation.json': '0673edb94926e6c97b292e62d40da4f8e6c4ac52259f4ffbcad57d1347afc2a5',
+  'manifest.json': '4caf084961ecacd8103cae212ffdb4741f342570f0da197e79343a0dd082f447',
+  'packet.json': '367203d80b1620f5647b1b00bb0e02a337848825aa8f8b5394e431bd39118a24',
 })
 /** Non-issuing checks only. Guarded profile capture computes these hashes from public bytes. */
 export function assertNativeStartupEvidenceFacts(observed: readonly Readonly<{ path: string; sha256: string }>[]) {

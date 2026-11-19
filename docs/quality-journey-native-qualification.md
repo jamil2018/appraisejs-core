@@ -74,6 +74,13 @@ evidence. Finite cleanup diagnostics identify the unresolved original group, SDK
 root boundary, or expiry. The diagnostic records no process identities, paths, or error contents. The proof is
 specific to this pinned local producer and does not attest host isolation or general helper lifetime.
 
+The disposable C1 task currently binds the installed Codex 0.169.1 macOS ARM64 executable, its paired
+Code Mode stdio host, the package metadata, and the generated protocol fixtures from that exact executable.
+The positive and required-MCP refusal probes, one existing-login status read, and the initialize-only startup
+observation were requalified for this tuple. Those receipts establish prerequisite observations for the
+disposable candidate. Each model or recovery effect still requires its own exact review. GPT-6.1 Sol at
+medium keeps Code Mode enabled. Prewarm, the gRPC host route, and legacy incremental tool discovery are disabled.
+
 The native protocol facade validates outbound requests, responses and notifications against the committed generated
 installed-schema closure. Scoped MCP items must match the captured server and enabled tool set. Command, file, web,
 image, collaborator, unknown active items and cross-turn activity poison the native transport using a fixed fault;

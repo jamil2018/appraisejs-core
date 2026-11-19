@@ -11,6 +11,8 @@ export const nativeQualificationFeatureControls = Object.freeze([
   'code_mode_only',
   'code_mode_host',
   'code_mode_prewarm',
+  // Codex 0.169.1 enables legacy incremental tool discovery by default.
+  'incremental_tools_legacy',
   'goals',
   'multi_agent',
   'multi_agent_v2',

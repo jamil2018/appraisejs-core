@@ -465,3 +465,14 @@ macOS observer now acquires a bounded direct-fork watch before the original AppS
 event for that exact process, with no fork event and an empty initial child list, can certify that the pinned
 producer never acquired the companion. A fork, missing record, or observer uncertainty still requires positive
 original cleanup proof. This adds no process control, tool invocation, or broader helper or isolation claim.
+
+## Verified replacement bundle prerequisites
+
+The installed Codex bundle changed during recovery. After explicit approval, the 0.169.1 replacement was
+verified against the OpenAI-signed installed binaries and the official release program bodies. Original version
+and schema export, required-MCP readiness and refusal, existing-login status, and the finite startup metadata
+and cleanup checks passed. B1, B2 and startup actual observations were reviewed separately from their effect
+packets. The new source and generated schema pins bind the replacement; previously spent recovery attempts and
+provider uncertainty remain historical. R1 and R2 use fresh independently reviewed effects with the same model,
+one consuming turn, at most one scoped MCP call, 45-second case and 10-second cleanup. The 120-second follow-up
+allocations were already consumed.

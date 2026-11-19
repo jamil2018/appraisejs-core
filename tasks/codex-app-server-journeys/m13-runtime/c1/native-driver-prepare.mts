@@ -41,16 +41,16 @@ import {
 } from '../../../../src/lib/quality-journey/codex-app-server/native-qualification-loss'
 import { getQualityJourney } from '../../../../src/services/coordinator/quality-journey-service'
 
-const installedSha256 = '3ea20787e106af94573d3d6c19480aed93a1334b0dd32b6b04e2f780ce82cf4b'
+const installedSha256 = 'f69d8040091fc4997fb37e7f5ada428ec2fd06656b66ff5a72b31e12e0e67c20'
 const installedPackageRoot = '/Applications/ChatGPT.app/Contents/Resources/codex-cli'
 export const installedCodeModeFiles = Object.freeze({
   host: {
     path: path.join(installedPackageRoot, 'bin/codex-code-mode-host'),
-    sha256: '71fd9c6b974387dc43c0f9729d38799872f2dd0f34947c9749112187d90ab8b5',
+    sha256: 'a9b25a40c8d5e00a3c30a6e1e1f5ce6224e7dd7bc3cdf46c2fe51483919ee4c8',
   },
   packageMetadata: {
     path: path.join(installedPackageRoot, 'codex-package.json'),
-    sha256: '57c5a200a7dd98e713e6b653ea6ff57ea7a4c5805c825e4b4a0050b6f4d60a9f',
+    sha256: '3fcbea530e1e8e494c1a1e540b92a345ed15614c9f017b2910a730bcfd53a358',
   },
 })
 export type NativeCasePreparation = Readonly<{

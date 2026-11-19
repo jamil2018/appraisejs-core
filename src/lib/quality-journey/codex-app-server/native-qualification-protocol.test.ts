@@ -31,6 +31,8 @@ describe('pinned native protocol facade', () => {
     expect(notifyInitialized).toHaveBeenCalledTimes(1)
     await expect(facade.request('thread/resume', { threadId: 'existing' })).rejects.toThrow(/protocol refused/)
     await expect(facade.request('config/read', { cwd: 12 })).rejects.toThrow(/protocol refused/)
+    // The replacement publishes this RPC in its full schema, but C1 does not issue it.
+    await expect(facade.request('account/securitySetup/read' as never, {})).rejects.toThrow(/protocol refused/)
     expect(request).not.toHaveBeenCalled()
   })
   it('validates real installed response and notification schemas without accepting malformed provider data', async () => {
