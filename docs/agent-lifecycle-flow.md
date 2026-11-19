@@ -1,3 +1,9 @@
+> Current M13 continuation: B1 readiness, B2 existing-login presence and the limited D3 startup categories have accepted
+> observations. Integrated offline checks and source review passed separately. Actual role and recovery qualification
+> remains incomplete; spent failures and historical UNKNOWN native/turn evidence remain preserved. Production dispatch
+> remains disabled. Follow the [integrated backlog](../tasks/codex-app-server-journeys/M13-INTEGRATED-IMPLEMENTATION.md)
+> and the local runtime evidence authority chain. Older checkpoint paragraphs retain their historical scopes.
+
 > Current repository checkpoint: M06 PR #307 and M07 PR #308 are merged. [M08 internal Discovery](quality-journey-internal-discovery.md)
 > is implemented for disposable managed Journeys. `runtimeQualified=false`. The M06 STOP and spent attempts
 > remain historical evidence. Earlier checkpoints below describe their own qualification scopes.

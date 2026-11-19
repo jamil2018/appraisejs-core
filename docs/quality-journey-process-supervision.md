@@ -8,6 +8,53 @@
 
 M05 implements an internal owned-process supervision core and a local Node fixture adapter. Production app-server dispatch and the real provider launcher refuse unconditionally. No route, CLI, MCP registration, scheduler, role instruction loop or M06 behavior enables this sender. [M05 continuation](../tasks/codex-app-server-journeys/M05-CURRENT-WORK-01.md) records evidence and limitations; [the bounded plan](../tasks/codex-app-server-journeys/m05-supervision-plan-01.md) records acceptance criteria.
 
+## Unregistered native qualification composition
+
+C0 adds a separate [native qualification composition](quality-journey-native-qualification.md) using the same canonical
+prepare/claim/arm and transactional write gates. Captured native readiness hooks add config/read, a fresh ephemeral
+thread and exact required-MCP status before the sole consuming turn. A captured delivery hook fences synchronously
+before persistence or cleanup. Both original production refusal functions remain unconditional. The offline provider
+port and fixture behavior retain their existing semantics; no native effect allocation or production registration is
+created by this implementation.
+
+## Complete offline provider composition
+
+`createOfflineQualityJourneyProviderComposition` is a separate injected synthetic path. It checks admitted authority
+before acquisition and performs initialize/required-MCP inspection on the same original port **before** canonical
+provider prepare/claim/arm. All thread/turn writes still use the canonical transactional provider writer and D05 bounds.
+The original fixture behavior and both production refusals remain unchanged. The stopped B0-R1 receipt is never a handoff.
+
+The offline path adds original-owner cancellation/cleanup, a synchronous canonical-delivery admission fence, 40-second authority monitoring, lease expiry, arm-reply-loss
+UNKNOWN, six canonical role delivery paths and bounded synthetic phase receipts. The [managed package SDK composition](../tasks/codex-app-server-journeys/M13-OFFLINE-IMPLEMENTATION-PLAN.md)
+correlates exact public tool arguments/results through InMemoryTransport; root canonical services alone prove acceptance.
+Original lost-reply recovery captures the exact normalized payload hash at canonical acceptance within the original
+async call, then requires an authenticated durable row with that hash. Gateway entry, a shared idempotency key or a
+public argument digest alone cannot correlate acceptance. Conflicting or missing hash observations refuse recovery.
+A completed turn, accepted artifact, acknowledgement or successful fake stop cannot reconcile physical effects or release
+HUB. Per-role test snapshots deliberately retain occupied unreconciled slots. Restart never recreates a send permit.
+
+This offline path enables no native acquisition, real account/key source, public registration, scheduler or default-mode change.
+Every receipt keeps synthetic provenance, `runtimeQualified=false`, no observed native tuple and null/UNQUALIFIED usage.
+
+## B0-R1 offline readiness contract
+
+The internal `createOfflineReadinessController` accepts only a captured `OFFLINE_FAKE_PORT` with semantic
+initialize/required-MCP inspection, fence and original stop functions. It acquires no process/resource, accepts no
+Prisma client or credential, and is consumed only by its explicit unit/disposable-SQLite tests. It is not wired to
+the turn supervisor or any public barrel, route, CLI, MCP tool or scheduler. Both production refusals are unchanged.
+
+The controller validates and captures bindings, functions, required IDs and bounded deadlines before operations.
+Run/cancel join one finalization; cancellation synchronously closes probe admission and aborts pending work.
+Late results cannot advance the sequence. Every path fences before attempting the original stop once. Cleanup
+uncertainty, contradiction, timeout, rejection or unproved fencing produces synthetic UNKNOWN, never a positive
+cleanup or native receipt. Successful fake readiness requires both valid probes and all four positive cleanup facts.
+
+All receipts retain `runtimeQualified=false` and `observedNativeTuple=null`. The semantic readiness-contract digest
+is not an observed native protocol. This slice does not implement native launch/status decoding, login or recoverable
+assignment-secret custody, role transport, provider reconciliation or canonical slot release. It cannot by itself
+unblock B1. See [B0-R1 verification](../tasks/codex-app-server-journeys/M13-B0-R1-VERIFICATION.md) for the approved
+packet hashes, exact checks and limits; native product-adapter and M13 qualification remain incomplete.
+
 ## Lifetime and authority
 
 Each reserved turn owns one private child and transport. A persistent child could save initialization/MCP setup cost but would retain cross-intent queues and state without a measured need. Per-turn ownership bounds shutdown and state lifetime; startup cost is unmeasured. Native resume framing captures and checks the same attempt's thread ID, without fallback to a new thread. M04 exposes only the initial intent; M05 does not create a second intent, automatic resume, correction turn or replacement after an ambiguous start.

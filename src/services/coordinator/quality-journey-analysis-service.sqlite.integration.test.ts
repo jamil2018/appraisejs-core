@@ -761,7 +761,7 @@ async function seedDiscoveryBuiltIns(client: PrismaClient) {
 }
 
 describe('Quality Journey Phase 3 through Phase 5 control plane', () => {
-  it('fences all five canonical specialized worker writes on managed sessions and preserves accepted outcome lookup', async () => {
+  it('covers replay, revocation, stale sessions and changed payloads for Analyzer, Scout, Explorer, Designer and Automator', async () => {
     const client = await fixture()
     try {
       await seedDiscoveryBuiltIns(client)

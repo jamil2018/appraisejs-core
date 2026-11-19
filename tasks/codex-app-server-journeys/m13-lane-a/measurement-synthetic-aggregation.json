@@ -1,0 +1,16 @@
+{
+  "evidenceClass": "SYNTHETIC_DESIGN_VALIDATION",
+  "sampleCount": 2,
+  "acceptedArtifactCount": 1,
+  "failedAttemptCount": 0,
+  "unknownAttemptCount": 1,
+  "correctionAttemptCount": 1,
+  "acceptedArtifactLatencyMs": [65],
+  "humanWaitMs": 4000,
+  "modelTokens": null,
+  "cost": null,
+  "usageStatus": "UNQUALIFIED",
+  "negativeValidationCases": 6,
+  "crossClockLatency": "UNQUALIFIED_NOT_ZERO",
+  "runtimeQualification": false
+}

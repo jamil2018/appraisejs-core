@@ -16,7 +16,7 @@ export type TrustedWorkerBridgeRequest = {
   action: Action
   payload: unknown
 }
-export type TrustedWorkerBridgeResponse = {
+type TrustedWorkerBridgeResponse = {
   requestId: string
   ok: boolean
   value?: unknown

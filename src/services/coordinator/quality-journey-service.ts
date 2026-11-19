@@ -1,3 +1,4 @@
+import { recordSubmissionPayloadIdentity } from './quality-journey-submission-payload-observation'
 import { contendSharedResourceDomainsForJourneyCreation } from './quality-journey-shared-resource-guard-service'
 import {
   assertJourneyBusinessGroupSupportsNoInvalidationInTransaction,
@@ -238,6 +239,7 @@ export async function acceptExternalQualityJourneySubmissionInTransaction<T>(
 ) {
   return withJourneyBusinessWriteJoinInTransaction(tx, input, input, async (beforeWrite, queueAttemptTerminal) => {
   const payloadHash = hash(input.payload)
+  recordSubmissionPayloadIdentity(input, payloadHash)
   const existing = await tx.qualityJourneyExternalSubmissionAcceptance.findUnique({
     where: {
       journeyId_targetProjectId_principalId_operation_attemptId_idempotencyKey: {
@@ -300,10 +302,10 @@ export async function acceptExternalQualityJourneySubmissionInTransaction<T>(
 
 export async function readExternalQualityJourneySubmissionOutcome(
   input: Pick<ExternalQualityJourneyAcceptanceInput, 'operation' | 'idempotencyKey'> &
-    ExternalQualityJourneySubmissionBinding,
+    ExternalQualityJourneySubmissionBinding & { expectedPayloadHash?: string },
   client: PrismaClient = prisma,
 ) {
-  return client.$transaction(async tx => {
+  const result = await client.$transaction(async tx => {
     await authenticateExternalQualityJourneySubmission(input, tx)
     const receipt = await tx.qualityJourneyExternalSubmissionAcceptance.findUnique({
       where: {
@@ -317,11 +319,19 @@ export async function readExternalQualityJourneySubmissionOutcome(
         },
       },
     })
-    if (!receipt) throw new ServiceError('External submission outcome is not available.', 'NOT_FOUND')
+    if (!receipt) return null
+    if (
+      input.expectedPayloadHash !== undefined &&
+      (!/^sha256:[a-f0-9]{64}$/.test(input.expectedPayloadHash) || receipt.payloadHash !== input.expectedPayloadHash)
+    )
+      throw new ServiceError('External submission payload does not match the original canonical call.', 'CONFLICT')
     if (receipt.outcomeHash !== hash(JSON.parse(receipt.outcomeJson)))
       throw new ServiceError('External submission acceptance lineage is invalid.', 'UNAUTHORIZED')
     return { replayed: true, outcome: JSON.parse(receipt.outcomeJson) }
   })
+  // A receipt is absent before the first submission. Keep that expected read separate from a failed transaction.
+  if (!result) throw new ServiceError('External submission outcome is not available.', 'NOT_FOUND')
+  return result
 }
 
 /** A managed gateway confirms acceptance after the canonical write closes the active assignment. */

@@ -1,0 +1,138 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "appraise.m13.measurement-design/v1",
+  "title": "Synthetic-only M13 measurement design; not a runtime qualification receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "evidenceClass",
+    "sampleId",
+    "tuple",
+    "attemptKind",
+    "outcome",
+    "acceptedArtifactId",
+    "cacheClass",
+    "phases",
+    "usage",
+    "dispatchesDuringHumanWait"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "appraise.m13.measurement-design/v1"
+    },
+    "evidenceClass": {
+      "const": "SYNTHETIC_DESIGN_VALIDATION"
+    },
+    "sampleId": {
+      "type": "string",
+      "pattern": "^synthetic-[a-z0-9-]+$"
+    },
+    "tuple": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["commit", "tree", "configurationHash", "artifactHash"],
+      "properties": {
+        "commit": {
+          "$ref": "#/definitions/git"
+        },
+        "tree": {
+          "$ref": "#/definitions/git"
+        },
+        "configurationHash": {
+          "$ref": "#/definitions/hash"
+        },
+        "artifactHash": {
+          "$ref": "#/definitions/hash"
+        }
+      }
+    },
+    "attemptKind": {
+      "enum": ["INITIAL", "CORRECTION"]
+    },
+    "outcome": {
+      "enum": ["ACCEPTED", "FAILED", "UNKNOWN"]
+    },
+    "acceptedArtifactId": {
+      "type": ["string", "null"],
+      "maxLength": 200
+    },
+    "cacheClass": {
+      "enum": ["COLD_DECLARED_SYNTHETIC", "WARM_DECLARED_SYNTHETIC"]
+    },
+    "phases": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["queue", "startupMcp", "dispatch", "acceptance", "humanWait", "cleanup"],
+      "properties": {
+        "queue": {
+          "$ref": "#/definitions/interval"
+        },
+        "startupMcp": {
+          "$ref": "#/definitions/interval"
+        },
+        "dispatch": {
+          "$ref": "#/definitions/interval"
+        },
+        "acceptance": {
+          "$ref": "#/definitions/interval"
+        },
+        "humanWait": {
+          "$ref": "#/definitions/interval"
+        },
+        "cleanup": {
+          "$ref": "#/definitions/interval"
+        }
+      }
+    },
+    "usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "modelTokens", "cost"],
+      "properties": {
+        "status": {
+          "const": "UNQUALIFIED"
+        },
+        "modelTokens": {
+          "type": "null"
+        },
+        "cost": {
+          "type": "null"
+        }
+      }
+    },
+    "dispatchesDuringHumanWait": {
+      "const": 0
+    }
+  },
+  "definitions": {
+    "git": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "interval": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["clockDomain", "startMs", "endMs"],
+      "properties": {
+        "clockDomain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "startMs": {
+          "type": "number",
+          "minimum": 0
+        },
+        "endMs": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

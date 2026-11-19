@@ -15,8 +15,20 @@ import {
   admitExternalQualityJourneyWork,
 } from '@/services/coordinator/quality-journey-service'
 
+function qualificationFixtureLease(value: 900 | undefined) {
+  if (value !== undefined && value !== 900)
+    throw new Error('Qualification fixture lease must be exactly 900 seconds or absent')
+  return value === undefined ? {} : { leaseSeconds: value }
+}
+
 /** Real canonical claim/admission fixture. It supplies no provider transport. */
-export async function addManagedProviderAssignment(client: PrismaClient, targetProjectId: string, key = 'primary') {
+export async function addManagedProviderAssignment(
+  client: PrismaClient,
+  targetProjectId: string,
+  key = 'primary',
+  qualificationLeaseSeconds?: 900,
+) {
+  const qualificationLease = qualificationFixtureLease(qualificationLeaseSeconds)
   const principalId = `project:m04-${key}`
   const principal = { principalId, assurance: 'PROJECT_CREDENTIAL_ONLY' as const }
   const assignmentSecret = `synthetic-m04-${key}-${'s'.repeat(32)}`
@@ -77,6 +89,7 @@ export async function addManagedProviderAssignment(client: PrismaClient, targetP
     principal,
     assignmentSecret,
     idempotencyKey: `${key}-claim`,
+    ...qualificationLease,
   }
   const claimed = await claimExternalQualityJourneyWork(claimRequest, client)
   const binding = {
@@ -101,8 +114,28 @@ export async function addManagedProviderAssignment(client: PrismaClient, targetP
   return { created, scope, registered, credentials, principal, binding, prepareInput, claimRequest, claimed }
 }
 
-export async function createProviderFixture() {
-  const workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'appraise-m04-regression-'))
+async function providerFixtureParent(explicit: string | undefined): Promise<string> {
+  if (explicit === undefined) return os.tmpdir()
+  const metadata = await fs.lstat(explicit)
+  if (
+    !path.isAbsolute(explicit) ||
+    (await fs.realpath(explicit)) !== explicit ||
+    metadata.isSymbolicLink() ||
+    !metadata.isDirectory() ||
+    (metadata.mode & 0o777) !== 0o700 ||
+    metadata.uid !== process.getuid?.()
+  )
+    throw new Error('An explicit private fixture workspace parent is required')
+  return explicit
+}
+
+export async function createProviderFixture(
+  options: { workspaceParent?: string; qualificationLeaseSeconds?: 900 } = {},
+) {
+  const qualificationLeaseSeconds = options.qualificationLeaseSeconds
+  qualificationFixtureLease(qualificationLeaseSeconds)
+  const parent = await providerFixtureParent(options.workspaceParent)
+  const workspace = await fs.mkdtemp(path.join(parent, 'appraise-m04-regression-'))
   const databasePath = path.join(workspace, 'test.db')
   await copyMigratedTestDatabase(databasePath)
   const clients: PrismaClient[] = []
@@ -122,7 +155,7 @@ export async function createProviderFixture() {
     fingerprint: `sha256:${'a'.repeat(64)}`,
   })
   try {
-    const assignment = await addManagedProviderAssignment(client, targetProjectId)
+    const assignment = await addManagedProviderAssignment(client, targetProjectId, 'primary', qualificationLeaseSeconds)
     return {
       ...assignment,
       workspace,

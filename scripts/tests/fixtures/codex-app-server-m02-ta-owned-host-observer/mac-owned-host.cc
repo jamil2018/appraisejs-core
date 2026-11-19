@@ -1,11 +1,15 @@
 #include <node_api.h>
 
 #include <errno.h>
+#include <fcntl.h>
 #include <libproc.h>
 #include <limits.h>
+#include <new>
 #include <stdint.h>
 #include <string.h>
+#include <sys/event.h>
 #include <sys/proc_info.h>
+#include <unistd.h>
 
 #include "proc-result-classification.h"
 
@@ -140,11 +144,102 @@ napi_value DirectChildMetadata(napi_env env, napi_callback_info callback) {
   return result;
 }
 
+struct DirectForkWatch {
+  int fd;
+  int pid;
+};
+
+void CloseForkWatch(DirectForkWatch* watch) {
+  if (watch->fd < 0) return;
+  close(watch->fd);
+  watch->fd = -1;
+}
+
+void FinalizeForkWatch(napi_env, void* data, void*) {
+  auto* watch = static_cast<DirectForkWatch*>(data);
+  CloseForkWatch(watch);
+  delete watch;
+}
+
+DirectForkWatch* UnwrapForkWatch(napi_env env, napi_callback_info callback) {
+  size_t count = 0;
+  napi_value receiver;
+  void* data = nullptr;
+  if (napi_get_cb_info(env, callback, &count, nullptr, &receiver, nullptr) != napi_ok ||
+      napi_unwrap(env, receiver, &data) != napi_ok)
+    return nullptr;
+  return static_cast<DirectForkWatch*>(data);
+}
+
+napi_value StopForkWatch(napi_env env, napi_callback_info callback) {
+  auto* watch = UnwrapForkWatch(env, callback);
+  if (!watch) return Fail(env, "original process watch required");
+  CloseForkWatch(watch);
+  napi_value result;
+  return napi_get_undefined(env, &result) == napi_ok ? result : nullptr;
+}
+
+napi_value ObserveForkWatchExit(napi_env env, napi_callback_info callback) {
+  auto* watch = UnwrapForkWatch(env, callback);
+  if (!watch) return Fail(env, "original process watch required");
+  const char* evidence = "EXIT_UNPROVEN";
+  if (watch->fd >= 0) {
+    struct kevent event;
+    const struct timespec nonblocking = {0, 0};
+    const int found = kevent(watch->fd, nullptr, 0, &event, 1, &nonblocking);
+    if (found == 1 && event.ident == static_cast<uintptr_t>(watch->pid) &&
+        event.filter == EVFILT_PROC && (event.flags & EV_ERROR) == 0) {
+      // A coalesced NOTE_FORK defeats even an otherwise valid terminal note.
+      if ((event.fflags & NOTE_FORK) != 0) evidence = "FORK_OBSERVED";
+      else if ((event.flags & EV_EOF) != 0 && event.fflags == NOTE_EXIT) evidence = "EXIT_NO_FORK";
+    }
+    CloseForkWatch(watch);
+  }
+  napi_value result;
+  return napi_create_string_utf8(env, evidence, NAPI_AUTO_LENGTH, &result) == napi_ok ? result : nullptr;
+}
+
+napi_value WatchDirectForks(napi_env env, napi_callback_info callback) {
+  int pid;
+  if (!GetOnePidArg(env, callback, &pid)) return Fail(env, "positive original process PID required");
+  proc_bsdinfo before, after;
+  if (ReadIdentity(pid, &before) != ProcIdentityResult::kPresent)
+    return Fail(env, "original process watch identity unavailable");
+  const int fd = kqueue();
+  if (fd < 0) return Fail(env, "original process watch unavailable");
+  struct kevent registration;
+  EV_SET(&registration, pid, EVFILT_PROC, EV_ADD | EV_ENABLE | EV_CLEAR, NOTE_FORK | NOTE_EXIT, 0, nullptr);
+  if (fcntl(fd, F_SETFD, FD_CLOEXEC) == -1 || kevent(fd, &registration, 1, nullptr, 0, nullptr) != 0 ||
+      ReadIdentity(pid, &after) != ProcIdentityResult::kPresent || !SameBirth(before, after) ||
+      before.pbi_ppid != after.pbi_ppid) {
+    close(fd);
+    return Fail(env, "original process watch registration uncertain");
+  }
+  napi_value result;
+  const napi_property_descriptor methods[] = {
+      {"observeExit", nullptr, ObserveForkWatchExit, nullptr, nullptr, nullptr, napi_default, nullptr},
+      {"close", nullptr, StopForkWatch, nullptr, nullptr, nullptr, napi_default, nullptr},
+  };
+  auto* watch = new (std::nothrow) DirectForkWatch{fd, pid};
+  if (!watch) {
+    close(fd);
+    return Fail(env, "could not allocate original process watch");
+  }
+  if (napi_create_object(env, &result) != napi_ok ||
+      napi_define_properties(env, result, sizeof(methods) / sizeof(methods[0]), methods) != napi_ok ||
+      napi_wrap(env, result, watch, FinalizeForkWatch, nullptr, nullptr) != napi_ok) {
+    FinalizeForkWatch(env, watch, nullptr);
+    return Fail(env, "could not bind original process watch");
+  }
+  return result;
+}
+
 napi_value Init(napi_env env, napi_value exports) {
   napi_property_descriptor methods[] = {
       {"identity", nullptr, Identity, nullptr, nullptr, nullptr, napi_default, nullptr},
       {"listDirectChildren", nullptr, ListDirectChildren, nullptr, nullptr, nullptr, napi_default, nullptr},
       {"directChildMetadata", nullptr, DirectChildMetadata, nullptr, nullptr, nullptr, napi_default, nullptr},
+      {"watchDirectForks", nullptr, WatchDirectForks, nullptr, nullptr, nullptr, napi_default, nullptr},
   };
   if (napi_define_properties(env, exports, sizeof(methods) / sizeof(methods[0]), methods) != napi_ok)
     return Fail(env, "could not initialize metadata API");

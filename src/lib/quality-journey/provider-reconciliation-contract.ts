@@ -48,7 +48,7 @@ export type ProviderReconciliationContext = Readonly<{
   selection: 'NATIVE' | 'SYNTHETIC_REPOSITORY'
   source?: ProviderPhysicalOutcomeSource
 }>
-/** No native issuer exists. There is deliberately no environment-variable or fixture fallback. */
+/** Production default remains unavailable; task-private native issuers have no implicit fallback. */
 export const unavailableNativeProviderReconciliation: ProviderReconciliationContext = Object.freeze({
   selection: 'NATIVE',
 })
@@ -313,6 +313,9 @@ export function assertCommittedProviderSourceReplay(
   observation: Readonly<{ id: string; requestHash: string }>,
   receipt: ProviderReconciliationReceipt,
 ): void {
+  // Original native replay has a separate CREATED-to-binding join; no generic fallback can authorize it.
+  if (receipt.physical.provenance === 'NATIVE_QUALIFIED' || receipt.physical.sourceId.startsWith('native_outcome_'))
+    fail()
   if (!state) {
     if (receipt.physical.protocolDigest === sqliteOutcomeSourceProtocolDigest) fail()
     return // Existing exact legacy committed receipt, without a new source row.

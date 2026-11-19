@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs'
 import type { PrismaClient } from '@prisma/client'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { launchOwnedFixtureChild } from '@/lib/quality-journey/codex-app-server/owned-child'
+import { nativeQualificationModel } from '@/lib/quality-journey/codex-app-server/native-qualification-configuration'
+import type { ProviderTransportAuthorityTrace } from '@/lib/quality-journey/codex-app-server/native-qualification-diagnostics'
 import { providerIntentPolicy, trustedProviderObservation } from '@/lib/quality-journey/provider-intent-contract'
 import { ServiceError } from '@/services/shared/errors'
 import {
@@ -38,6 +40,15 @@ function nativeHandle(value: unknown, key: 'thread' | 'turn') {
   return handle(value[key].id)
 }
 
+export type JourneyNativeReadiness = Readonly<{
+  cwd: string
+  validateConfiguration: (value: unknown) => boolean
+  validateThread: (value: unknown) => boolean
+  validateRequiredMcp: (value: unknown) => boolean
+  mcpStatusParams: Readonly<Record<string, unknown>>
+  deferAuthorityCheck?: () => boolean
+}>
+
 /** A server-owned adapter is code, never a model-supplied configuration or authority grant. */
 export const trustedJourneyProcessAdapter: unique symbol = Symbol('trusted Journey owned process adapter')
 export type JourneyOwnedProcessAdapter = {
@@ -52,6 +63,14 @@ export type JourneyOwnedProcessAdapter = {
     onFault: (reason: string) => void
   }) => Promise<Child>
   validateReadiness: (result: unknown) => boolean
+  nativeReadiness?: JourneyNativeReadiness
+  fenceDelivery?: () => void
+  nativeOutcome?: Readonly<{
+    armed: (permit: NonNullable<Armed['permit']>, transportId: string) => Promise<void>
+    operation: (operation: Promise<unknown>) => void
+    heartbeatRefused?: (trace: ProviderTransportAuthorityTrace) => void
+    stop: (operation: Promise<unknown>, reason: string | null) => void
+  }>
 }
 
 /** Internal supervision core; no CLI, route, MCP or scheduler registers this sender. */
@@ -66,10 +85,19 @@ export function createQualityJourneyProcessSupervisor(
   const binding = structuredClone(input)
   const launch = adapter.launch
   const validateReadiness = adapter.validateReadiness
+  const fenceDelivery = adapter.fenceDelivery
+  const nativeOutcome = adapter.nativeOutcome ? Object.freeze({ ...adapter.nativeOutcome }) : undefined
+  const nativeReadiness = adapter.nativeReadiness
+    ? Object.freeze({
+        ...adapter.nativeReadiness,
+        mcpStatusParams: structuredClone(adapter.nativeReadiness.mcpStatusParams),
+      })
+    : undefined
   const turnAcknowledgementTimeoutMs = adapter.turnAcknowledgementTimeoutMs
+  const preparationMode = nativeReadiness ? 'native-qualification' : undefined
   const envelope = {
     input: structuredClone(adapter.input),
-    model: providerIntentPolicy.model,
+    model: preparationMode ? nativeQualificationModel : providerIntentPolicy.model,
     effort: providerIntentPolicy.reasoning,
   }
   binding.configurationDigest = adapter.configurationDigest
@@ -79,6 +107,7 @@ export function createQualityJourneyProcessSupervisor(
   let originalStartState: OriginalStartState = 'NOT_CALLED'
   let childLaunchEntered = false
   let fenced = false
+  let deliveryFenceFailed = false
   let reason: string | null = null
   let child: Child | undefined
   let launchFlight: Promise<Child> | undefined
@@ -104,7 +133,12 @@ export function createQualityJourneyProcessSupervisor(
       state,
       originalStartState,
       childLaunchEntered,
+      turnStartEntered,
       fenced,
+      deliveryFenceFailed,
+      ...(nativeReadiness
+        ? { provenance: 'NATIVE_QUALIFICATION_OBSERVATION' as const, runtimeQualified: false as const }
+        : {}),
       reason,
       transportId: registeredTurn?.transportId ?? transportId,
       journeyId: binding.journeyId,
@@ -158,6 +192,12 @@ export function createQualityJourneyProcessSupervisor(
     if (!fenced) {
       fenced = true
       reason = code
+      // Revoke retained delivery thunks before any persistence or process cleanup.
+      try {
+        fenceDelivery?.()
+      } catch {
+        deliveryFenceFailed = true
+      }
       child?.transport.fence(code)
     }
     if (poll) clearInterval(poll)
@@ -172,24 +212,30 @@ export function createQualityJourneyProcessSupervisor(
     }
   }
 
+  async function drainOriginalChild() {
+    // Retain and join the original launch and complete heartbeat chain after fencing.
+    if (launchFlight && !child) await joinOriginalLaunch(launchFlight)
+    const originalHeartbeat = heartbeatFlight
+    if (originalHeartbeat) await originalHeartbeat
+    if (child) cleanup = await child.stop()
+  }
+
+  function cleanChildObserved() {
+    return !!child && cleanup?.status === 'stopped' && !deliveryFenceFailed
+  }
+
   async function stop(code = 'CANCELLED') {
     fence(code)
-    stopFlight ??= (async () => {
-      state = 'draining'
-      // A concurrent launch may still be completing. start checks the closed gate
-      // before any writes and joins this same owned cleanup path below.
-      if (launchFlight && !child) {
-        await joinOriginalLaunch(launchFlight)
-      }
-      // Join the original complete heartbeat chain after fencing admission.
-      // Its rejection handler calls fault without awaiting this stop flight.
-      const originalHeartbeat = heartbeatFlight
-      if (originalHeartbeat) await originalHeartbeat
-      if (child) cleanup = await child.stop()
-      state = child && cleanup?.status === 'stopped' ? 'stopped' : 'uncertain'
-      await observe(state === 'stopped' ? 'DRAINED_UNCERTAIN' : 'FENCED')
-      return snapshot()
-    })()
+    if (!stopFlight) {
+      stopFlight = (async () => {
+        state = 'draining'
+        await drainOriginalChild()
+        state = cleanChildObserved() ? 'stopped' : 'uncertain'
+        await observe(state === 'stopped' ? 'DRAINED_UNCERTAIN' : 'FENCED')
+        return snapshot()
+      })()
+      nativeOutcome?.stop(stopFlight, reason)
+    }
     return stopFlight
   }
 
@@ -248,22 +294,25 @@ export function createQualityJourneyProcessSupervisor(
     }
   }
 
-  async function write<T>(consume: boolean, send: () => Promise<T>) {
+  async function write<T>(consume: boolean, send: () => Promise<T>, trace?: ProviderTransportAuthorityTrace) {
     if (fenced || !armed?.permit) throw new ServiceError('Owned sender is fenced.', 'CONFLICT')
-    const box = await writeQualityJourneyProviderTransport(
+    const operation = writeQualityJourneyProviderTransport(
       { ...binding, permit: armed.permit, consume },
       () => {
         if (fenced) return Promise.reject(new ServiceError('Owned sender is fenced.', 'CONFLICT'))
         return send()
       },
       client,
+      trace,
     )
+    nativeOutcome?.operation(operation)
+    const box = await operation
     return box.reply
   }
 
   async function armInitialIntent() {
     if (fenced) throw new Error('fenced before preparation')
-    const prepared = await prepareQualityJourneyProviderRun(binding, client)
+    const prepared = await prepareQualityJourneyProviderRun(binding, client, preparationMode)
     if (fenced) throw new Error('fenced before claim')
     const request = { ...binding, intentId: prepared.intent.id, claimOwner: `m05:${transportId}` }
     const claim = await claimQualityJourneyProviderIntent(request, client)
@@ -271,6 +320,8 @@ export function createQualityJourneyProcessSupervisor(
     armed = await armQualityJourneyProviderIntent({ ...request, claimEpoch: claim.intent.claimEpoch }, client)
     if (!armed.permit || armed.replayed) throw new ServiceError('Ambiguous start cannot be replayed.', 'CONFLICT')
     if (fenced) throw new Error('fenced')
+    await nativeOutcome?.armed(armed.permit, transportId)
+    if (fenced) throw new Error('fenced after native source admission')
     await observe('STARTUP')
     if (fenced) throw new Error('fenced before launch')
   }
@@ -283,39 +334,64 @@ export function createQualityJourneyProcessSupervisor(
     child = await launchFlight
     if (fenced) {
       cleanup = await child.stop()
-      state = cleanup.status === 'stopped' ? 'stopped' : 'uncertain'
+      state = cleanup.status === 'stopped' && !deliveryFenceFailed ? 'stopped' : 'uncertain'
       throw new Error('fenced during launch')
     }
     state = 'readiness'
     const initialized = await write(false, () =>
       child!.transport.request('initialize', {
         clientInfo: { name: 'appraise-journey-supervisor', version: '1' },
-        capabilities: { experimentalApi: true },
+        capabilities: { experimentalApi: !nativeReadiness },
       }),
     )
     if (!validateReadiness(initialized)) throw new Error('owned process readiness failed')
     await write(false, () => child!.transport.notifyInitialized())
+    if (nativeReadiness) {
+      const configuration = await write(false, () =>
+        child!.transport.request('config/read', {
+          cwd: nativeReadiness.cwd,
+          includeLayers: false,
+        }),
+      )
+      if (!nativeReadiness.validateConfiguration(configuration)) throw new Error('native configuration refused')
+    }
+  }
+
+  function verifyThreadCorrelation(nativeThread: string, previousThread: string | null | undefined) {
+    if (previousThread && nativeThread !== previousThread) throw new Error('thread mismatch')
+    if (events.has('thread') && events.get('thread') !== nativeThread) throw new Error('thread mismatch')
+  }
+
+  async function inspectNativeMcp() {
+    if (!nativeReadiness) return
+    const status = await write(false, () =>
+      child!.transport.request('mcpServerStatus/list', {
+        ...nativeReadiness.mcpStatusParams,
+        threadId,
+      }),
+    )
+    if (!nativeReadiness.validateRequiredMcp(status)) throw new Error('native required MCP refused')
   }
 
   async function readyNativeThread() {
     if (!armed) throw new Error('missing owned intent')
     // Initial intent only. M04 never manufactures a resume handle after a crash.
+    if (nativeReadiness && armed.run.threadId) throw new Error('native qualification resume refused')
     const method = armed.run.threadId ? 'thread/resume' : 'thread/start'
     const thread = await write(false, () => {
       threadStartEntered = true
       return child!.transport.request(method, {
         ...(armed!.run.threadId ? { threadId: armed!.run.threadId } : {}),
-        model: providerIntentPolicy.model,
+        ...(nativeReadiness ? { cwd: nativeReadiness.cwd, ephemeral: true } : {}),
+        model: envelope.model,
         approvalPolicy: 'never',
         sandbox: 'read-only',
       })
     })
+    if (nativeReadiness && !nativeReadiness.validateThread(thread)) throw new Error('native thread refused')
     threadId = nativeHandle(thread, 'thread')
-    if (
-      (armed.run.threadId && threadId !== armed.run.threadId) ||
-      (events.has('thread') && events.get('thread') !== threadId)
-    )
-      throw new Error('thread mismatch')
+    verifyThreadCorrelation(threadId, armed.run.threadId)
+    await inspectNativeMcp()
     await observe('READY')
   }
 
@@ -361,22 +437,26 @@ export function createQualityJourneyProcessSupervisor(
     if (fenced) throw new Error('fenced after reply')
   }
 
+  function checkHeartbeatAuthority() {
+    if (heartbeatFlight || fenced || nativeReadiness?.deferAuthorityCheck?.()) return
+    const trace: ProviderTransportAuthorityTrace = { step: 'HEARTBEAT_PERMIT' }
+    const flight = write(false, () => Promise.resolve(), trace)
+      .catch(() => {
+        nativeOutcome?.heartbeatRefused?.(trace)
+        fault('AUTHORITY_REVOKED')
+      })
+      .finally(() => {
+        if (heartbeatFlight === flight) heartbeatFlight = undefined
+      })
+    heartbeatFlight = flight
+  }
+
   async function activateAndMonitor() {
     if (fenced) return stop(reason ?? 'FENCED')
     state = 'active'
     await observe('ACTIVE')
     if (fenced) return snapshot()
-    poll = setInterval(() => {
-      if (heartbeatFlight || fenced) return
-      const flight = write(false, () => Promise.resolve())
-        .catch(() => {
-          fault('AUTHORITY_REVOKED')
-        })
-        .finally(() => {
-          if (heartbeatFlight === flight) heartbeatFlight = undefined
-        })
-      heartbeatFlight = flight
-    }, providerIntentPolicy.heartbeatSeconds * 1000)
+    poll = setInterval(checkHeartbeatAuthority, providerIntentPolicy.heartbeatSeconds * 1000)
     if (completed) await stop('LOGICAL_COMPLETION')
     return snapshot()
   }
@@ -419,6 +499,12 @@ export function createQualityJourneyProcessSupervisor(
         )
       }
       return startFlight
+    },
+    waitOriginalStop() {
+      return stopFlight ?? Promise.reject(new Error('Original supervisor stop is not available.'))
+    },
+    waitInFlightAuthorityCheck() {
+      return heartbeatFlight
     },
     cancel() {
       return stop('CANCELLED')

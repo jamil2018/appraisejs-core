@@ -7,6 +7,44 @@ import {
 import { describe, expect, it } from 'vitest'
 
 describe('shouldExcludeTemplatePath', () => {
+  it('retains portable native composition and excludes only its cross-package proof', () => {
+    for (const prefix of ['', 'src/']) {
+      expect(shouldExcludeTemplatePath(prefix + 'services/coordinator/quality-journey-c1-task.inert.test.ts')).toBe(
+        true,
+      )
+      expect(
+        shouldExcludeTemplatePath(
+          prefix + 'services/coordinator/quality-journey-native-qualification.sqlite.integration.test.ts',
+        ),
+      ).toBe(true)
+      for (const file of [
+        'services/coordinator/quality-journey-native-qualification.ts',
+        'services/coordinator/quality-journey-native-qualification.test.ts',
+        'lib/quality-journey/codex-app-server/native-qualification-child.ts',
+        'lib/quality-journey/codex-app-server/native-qualification-schemas/v2/TurnStartResponse.json',
+      ])
+        expect(shouldExcludeTemplatePath(prefix + file)).toBe(false)
+    }
+  })
+
+  it('keeps offline composition dependencies portable while retaining cross-package harness exclusions', () => {
+    for (const prefix of ['', 'src/']) {
+      for (const name of [
+        'services/coordinator/quality-journey-internal-worker-authority.ts',
+        'services/coordinator/quality-journey-internal-triage-gateway.ts',
+        'services/coordinator/quality-journey-offline-provider-composition.ts',
+        'services/coordinator/quality-journey-assignment-custody-service.ts',
+      ])
+        expect(shouldExcludeTemplatePath(prefix + name)).toBe(false)
+      for (const name of [
+        'lib/quality-journey/managed-worker-gateway.test.ts',
+        'test/m10-journey-fixture.ts',
+        'services/coordinator/quality-journey-offline-role-lifecycle.sqlite.integration.test.ts',
+      ])
+        expect(shouldExcludeTemplatePath(prefix + name)).toBe(true)
+    }
+  })
+
   it('excludes the producer-only M12 packed-install proof from generated apps', () => {
     expect(shouldExcludeTemplatePath('scripts/tests/m12-packed-install.test.mjs')).toBe(true)
   })
@@ -119,12 +157,12 @@ describe('shouldExcludeTemplatePath', () => {
     expect(shouldExcludeTemplatePath('scripts/fixtures/p0-r2f-serializer/input.json')).toBe(true)
     expect(shouldExcludeTemplatePath('lib/p0-r2d-canonical-bridge.ts')).toBe(true)
     expect(shouldExcludeTemplatePath('qualify-managed-journey-provider.mjs')).toBe(true)
-    expect(shouldExcludeTemplatePath('src/lib/quality-journey/managed-worker-gateway.ts')).toBe(true)
+    expect(shouldExcludeTemplatePath('src/lib/quality-journey/managed-worker-gateway.ts')).toBe(false)
     expect(
       shouldExcludeTemplatePath('src/services/coordinator/quality-journey-internal-scenario-automation-gateway.ts'),
-    ).toBe(true)
+    ).toBe(false)
     expect(shouldExcludeTemplatePath('src/services/coordinator/quality-journey-internal-discovery-gateway.ts')).toBe(
-      true,
+      false,
     )
     expect(
       shouldExcludeTemplatePath(

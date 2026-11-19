@@ -1,5 +1,5 @@
-import { PrismaClient, type Prisma } from '@prisma/client'
-import { createHash } from 'node:crypto'
+import { PrismaClient, Prisma } from '@prisma/client'
+import { createHash, randomBytes } from 'node:crypto'
 import { readFileSync, realpathSync, statSync } from 'node:fs'
 import path from 'node:path'
 import { OutcomeCleanupCell, outcomeSafeInteger, outcomeSourceBounds } from './codex-app-server/outcome-source-contract'
@@ -13,6 +13,16 @@ class ProviderSourceDatabaseError extends Error {
 declare const databaseBrand: unique symbol
 /** Minted only by the original private two-client factory. Never imported from durable data. */
 export type ProviderSourceDatabase = Readonly<{ [databaseBrand]: true }>
+declare const nativeDomainBrand: unique symbol
+/** Cooperative original-connection evidence, never physical-source or hostile-process containment proof. */
+export type ProviderSourceNativeConnectionDomain = Readonly<{ [nativeDomainBrand]: true }>
+export type ProviderSourceNativeConnectionScope = Readonly<{
+  sourceId: string
+  sourceIncarnation: string
+  providerRunId: string
+  intentId: string
+  providerNamespace: string
+}>
 export type ProviderSourceTransaction = Prisma.TransactionClient
 export type ProviderSourceOperationKind = 'INITIALIZE' | 'SEND' | 'RECEIPT' | 'CLOSE' | 'ENCODING_HOLE' | 'RECONCILE'
 export type ProviderSourcePhase = 'INITIALIZE' | 'RESERVE' | 'SEND_CANONICAL' | 'RECONCILE_CANONICAL' | 'FLUSH' | 'SEAL'
@@ -31,6 +41,28 @@ type Engine = {
   engine?: { disconnect(...args: unknown[]): Promise<unknown> }
 }
 type CleanupLayer = 'CLIENT' | 'ENGINE' | 'NATIVE'
+type ConnectionMarker = Readonly<{ table: string; nonce: string }>
+type NativeDomainOperation = {
+  connection: 'canonical' | 'resolver'
+  label: string
+  promise: Promise<unknown>
+  state: 'PENDING' | 'FULFILLED' | 'REJECTED'
+  error?: unknown
+}
+type NativeDomain = {
+  canonical: ConnectionMarker
+  resolver: ConnectionMarker
+  attempted: boolean
+  probing: boolean
+  canonicalTransaction: 'CLOSED' | 'OPEN' | 'UNKNOWN'
+  resolverTransaction: 'CLOSED' | 'OPEN' | 'UNKNOWN'
+  operations: NativeDomainOperation[]
+  transactions: Set<Promise<unknown>>
+  scope?: ProviderSourceNativeConnectionScope
+  proof?: ProviderSourceNativeConnectionDomain
+  operation?: Promise<ProviderSourceNativeConnectionDomain>
+  failure?: Readonly<{ error: unknown }>
+}
 type Mint = {
   client: PrismaClient
   raw: object
@@ -90,11 +122,13 @@ type Binding = {
   // The retained private closure captures its actual source owner/operation; never retried.
   handoffFailure?: Readonly<{ hold: HoldRecord; finalizeSource: () => void; error: unknown }>
   library?: Readonly<{ path: string; digest: string; constructor: unknown }>
+  nativeDomain?: NativeDomain
 }
 const holds = new WeakMap<ProviderSourceDatabaseHold, HoldRecord>()
 const byClient = new WeakMap<PrismaClient, ProviderSourceDatabase>()
 const bindings = new WeakMap<ProviderSourceDatabase, Binding>()
 const mints = new WeakMap<PrismaClient, Mint>()
+const nativeDomains = new WeakMap<ProviderSourceNativeConnectionDomain, Binding>()
 const MintConstructor = PrismaClient
 const MintPrototype = PrismaClient.prototype
 // Strong retention is intentional for unresolved initialization, engine, lookup and cleanup operations.
@@ -177,6 +211,7 @@ function independentRetirement(owned: Binding): boolean {
     !!owned.lookupFailure ||
     !!owned.cleanupFailure ||
     !!owned.handoffFailure ||
+    !!owned.nativeDomain?.failure ||
     mintList(owned).some(mint =>
       Object.values(mint.cells).some(cell => cell.state === 'REJECTED' || cell.state === 'RETAINED_BLOCKED'),
     )
@@ -193,6 +228,7 @@ function fullyClosed(owned: Binding): boolean {
     !owned.initializing &&
     !owned.hold &&
     !owned.lookup &&
+    !owned.nativeDomain?.transactions.size &&
     mintList(owned).length === 2 &&
     mintList(owned).every(
       mint =>
@@ -205,6 +241,15 @@ function reserveLane(owned: Binding): void {
   if ((active && active !== owned) || (retired && retired !== owned)) fail('source_custody_slot_unavailable')
   active = owned
 }
+function laneQuiescent(owned: Binding): boolean {
+  return (
+    !owned.initializing &&
+    !owned.hold &&
+    !owned.lookup &&
+    !owned.nativeDomain?.probing &&
+    !owned.nativeDomain?.transactions.size
+  )
+}
 function updateLane(owned: Binding): void {
   if (isRetired(owned)) {
     retired = owned
@@ -212,14 +257,7 @@ function updateLane(owned: Binding): void {
     return
   }
   if (retired === owned) retired = undefined
-  if (
-    active === owned &&
-    !owned.initializing &&
-    !owned.hold &&
-    !owned.lookup &&
-    (!closing(owned) || fullyClosed(owned))
-  )
-    active = undefined
+  if (active === owned && laneQuiescent(owned) && (!closing(owned) || fullyClosed(owned))) active = undefined
 }
 /** Admit/observe exactly one original layer; the driver retains its fixed outer-to-inner order. */
 function pumpCleanupCell(owned: Binding, mint: Mint, layer: CleanupLayer): void {
@@ -229,7 +267,14 @@ function pumpCleanupCell(owned: Binding, mint: Mint, layer: CleanupLayer): void 
     cell.request(true)
     return
   }
-  if (owned.initializing || owned.hold || owned.lookup) return
+  if (
+    owned.initializing ||
+    owned.hold ||
+    owned.lookup ||
+    owned.nativeDomain?.probing ||
+    owned.nativeDomain?.transactions.size
+  )
+    return
   mint.cleanupAdmitted = true
   cell.admit(
     () => {
@@ -384,6 +429,12 @@ async function prepare(owned: Binding, mint: Mint, queryOnly: boolean): Promise<
   assertMint(mint.client)
   await mint.client.$connect()
   ownNativeDisconnect(mint)
+  const marker = owned.nativeDomain?.[queryOnly ? 'resolver' : 'canonical']
+  if (marker) {
+    // Install once, before query_only. An admitted connection never recreates a missing TEMP marker.
+    await mint.client.$executeRawUnsafe(`CREATE TEMP TABLE "${marker.table}" (nonce TEXT NOT NULL PRIMARY KEY)`)
+    await mint.client.$executeRawUnsafe(`INSERT INTO temp."${marker.table}" (nonce) VALUES (?)`, marker.nonce)
+  }
   await prepareConnectionSettings(mint, queryOnly)
   const flags = await mint.client.$queryRawUnsafe<SettingsRow[]>(flagsSql)
   if (flags.length !== 1) fail('source_database_binding')
@@ -489,7 +540,10 @@ function endHold(record: HoldRecord): void {
   updateLane(record.binding)
 }
 /** Genuine factory proxy/raw pairs and initialization ownership precede all async preparation. */
-export function createProviderSourcePrismaClient(explicitDatabaseUrl: string): {
+function createSourcePrismaClient(
+  explicitDatabaseUrl: string,
+  nativeDomain?: NativeDomain,
+): {
   client: PrismaClient
   ready: Promise<ProviderSourceDatabase>
 } {
@@ -505,6 +559,7 @@ export function createProviderSourcePrismaClient(explicitDatabaseUrl: string): {
     initializing: true,
     finalCloseRequested: false,
     pumping: false,
+    nativeDomain,
   } as Binding
   canonical.binding = owned
   active = owned
@@ -516,6 +571,10 @@ export function createProviderSourcePrismaClient(explicitDatabaseUrl: string): {
     owned.reader = mintClient(url)
     owned.reader.binding = owned
     owned.resolver = owned.reader.client
+    if (nativeDomain) {
+      ownNativeTransactions(owned, canonical.client)
+      ownNativeTransactions(owned, owned.resolver)
+    }
     ready = (async () => {
       await prepare(owned, canonical, false)
       await prepare(owned, owned.reader, true)
@@ -537,6 +596,304 @@ export function createProviderSourcePrismaClient(explicitDatabaseUrl: string): {
     pumpCleanup(owned)
   })
   return { client: canonical.client, ready }
+}
+export function createProviderSourcePrismaClient(explicitDatabaseUrl: string): {
+  client: PrismaClient
+  ready: Promise<ProviderSourceDatabase>
+} {
+  return createSourcePrismaClient(explicitDatabaseUrl)
+}
+/** C1 opt-in only. This creates a candidate pair, not a qualified physical source. */
+export function createProviderSourceNativePrismaClient(explicitDatabaseUrl: string): {
+  client: PrismaClient
+  ready: Promise<ProviderSourceDatabase>
+} {
+  const marker = (): ConnectionMarker =>
+    Object.freeze({
+      table: `provider_source_c1_${randomBytes(24).toString('hex')}`,
+      nonce: randomBytes(32).toString('hex'),
+    })
+  return createSourcePrismaClient(explicitDatabaseUrl, {
+    canonical: marker(),
+    resolver: marker(),
+    attempted: false,
+    probing: false,
+    canonicalTransaction: 'CLOSED',
+    resolverTransaction: 'CLOSED',
+    operations: [],
+    transactions: new Set(),
+  })
+}
+function ownNativeTransactions(owned: Binding, client: PrismaClient): void {
+  const original = client.$transaction
+  Object.defineProperty(client, '$transaction', {
+    configurable: false,
+    writable: false,
+    value: (...args: unknown[]) => {
+      const domain = owned.nativeDomain!
+      assertNewSourceAdmission(owned)
+      if (domain.probing || domain.transactions.size) fail('source_native_domain_transaction_admission')
+      reserveLane(owned)
+      const sourceHold = owned.hold
+      let operation: Promise<unknown>
+      try {
+        operation = Reflect.apply(original, client, args) as Promise<unknown>
+      } catch (error) {
+        domain.failure ??= Object.freeze({ error })
+        updateLane(owned)
+        throw error
+      }
+      domain.transactions.add(operation)
+      void operation.then(
+        () => {
+          domain.transactions.delete(operation)
+          pumpCleanup(owned)
+          updateLane(owned)
+        },
+        error => {
+          if (sourceHold && owned.hold === sourceHold && !sourceHold.closed) {
+            // The existing original hold owns ambiguous commit recovery through its exact clean resolver.
+            sourceHold.operation ??= operation
+            sourceHold.retired = true
+            domain.transactions.delete(operation)
+          } else domain.failure ??= Object.freeze({ error }) // Unowned rejection cannot acquire source resolution authority.
+          updateLane(owned)
+          pumpCleanup(owned)
+        },
+      )
+      return operation
+    },
+  })
+}
+async function assertConnectionMarker(
+  connection: Pick<ProviderSourceTransaction, '$queryRawUnsafe'>,
+  marker: ConnectionMarker,
+): Promise<void> {
+  const rows = await connection.$queryRawUnsafe<SettingsRow[]>(`SELECT nonce FROM temp."${marker.table}" LIMIT 2`)
+  assertConnectionMarkerRows(rows, marker)
+}
+function assertConnectionMarkerRows(rows: SettingsRow[], marker: ConnectionMarker): void {
+  if (rows.length !== 1 || rows[0].nonce !== marker.nonce || Reflect.ownKeys(rows[0]).length !== 1)
+    fail('source_native_connection_marker')
+}
+function captureNativeScope(scope: ProviderSourceNativeConnectionScope): ProviderSourceNativeConnectionScope {
+  const keys = ['sourceId', 'sourceIncarnation', 'providerRunId', 'intentId', 'providerNamespace'] as const
+  if (Reflect.ownKeys(scope).length !== keys.length) fail('source_native_domain_scope')
+  for (const key of keys) {
+    if (typeof scope[key] !== 'string' || !/^[a-zA-Z0-9_.:/-]{1,200}$/.test(scope[key]))
+      fail('source_native_domain_scope')
+  }
+  // The original owner supplies its fresh CSPRNG incarnation, also persisted by its CREATED record.
+  if (!/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(scope.sourceIncarnation))
+    fail('source_native_domain_scope')
+  return Object.freeze(Object.fromEntries(keys.map(key => [key, scope[key]]))) as ProviderSourceNativeConnectionScope
+}
+const nativePersistentMarkerSql = `SELECT s.sourceId,s.sourceIncarnation,s.providerRunId,s.intentId,s.providerNamespace,
+ l.dataJson AS createdJson FROM QualityJourneyProviderSourceState s
+ JOIN QualityJourneyProviderSourceLedgerRecord l ON l.sourceId=s.sourceId AND l.sequence=1 AND l.kind='CREATED'
+ WHERE s.sourceId=? AND s.sourceIncarnation=? AND s.providerRunId=? AND s.intentId=? AND s.providerNamespace=? LIMIT 2`
+function persistentNativeMarkerQuery(
+  connection: Pick<ProviderSourceTransaction, '$queryRawUnsafe'>,
+  scope: ProviderSourceNativeConnectionScope,
+): Promise<SettingsRow[]> {
+  return connection.$queryRawUnsafe<SettingsRow[]>(
+    nativePersistentMarkerSql,
+    scope.sourceId,
+    scope.sourceIncarnation,
+    scope.providerRunId,
+    scope.intentId,
+    scope.providerNamespace,
+  )
+}
+function assertPersistentNativeMarkerRows(rows: SettingsRow[], scope: ProviderSourceNativeConnectionScope): void {
+  if (rows.length !== 1) fail('source_native_persistent_marker')
+  const created = parseNativeCreatedMarker(rows[0].createdJson)
+  for (const key of Object.keys(scope) as Array<keyof ProviderSourceNativeConnectionScope>) {
+    if (rows[0][key] !== scope[key] || created[key] !== scope[key]) fail('source_native_persistent_marker')
+  }
+}
+function parseNativeCreatedMarker(value: unknown): Record<string, unknown> {
+  if (typeof value !== 'string' || Buffer.byteLength(value) > 16384) fail('source_native_persistent_marker')
+  const created: unknown = JSON.parse(value)
+  if (!created || typeof created !== 'object' || Array.isArray(created)) fail('source_native_persistent_marker')
+  return created as Record<string, unknown>
+}
+/** Each original leaf is retained even if its finite observation deadline wins. */
+async function nativeDomainStep<T>(
+  domain: NativeDomain,
+  connection: NativeDomainOperation['connection'],
+  label: string,
+  action: () => Promise<T>,
+): Promise<T> {
+  const promise = action()
+  const record: NativeDomainOperation = { connection, label, promise, state: 'PENDING' }
+  domain.operations.push(record)
+  void promise.then(
+    () => {
+      record.state = 'FULFILLED'
+    },
+    error => {
+      record.state = 'REJECTED'
+      record.error = error
+    },
+  )
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const deadline = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(() => reject(new ProviderSourceDatabaseError('source_native_domain_deadline')), 1000)
+    timer.unref()
+  })
+  try {
+    return await Promise.race([promise, deadline])
+  } finally {
+    if (timer) clearTimeout(timer)
+  }
+}
+function exactInstalledSqliteBusy(error: unknown): boolean {
+  if (
+    !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+    error.code !== 'P2010' ||
+    error.clientVersion !== '6.19.3'
+  )
+    return false
+  const meta = error.meta
+  return !!meta && Reflect.ownKeys(meta).length === 2 && meta.code === '5' && meta.message === 'database is locked'
+}
+async function nativeDomainTransaction(
+  owned: Binding,
+  connection: NativeDomainOperation['connection'],
+  sql: 'BEGIN' | 'BEGIN EXCLUSIVE' | 'COMMIT' | 'ROLLBACK',
+): Promise<void> {
+  const domain = owned.nativeDomain!
+  const state = connection === 'canonical' ? 'canonicalTransaction' : 'resolverTransaction'
+  domain[state] = 'UNKNOWN' // No rejected or pending BEGIN/COMMIT is inferred to have settled.
+  const client = connection === 'canonical' ? owned.client : owned.resolver
+  await nativeDomainStep(domain, connection, sql, () => client.$executeRawUnsafe(sql))
+  domain[state] = sql.startsWith('BEGIN') ? 'OPEN' : 'CLOSED'
+}
+async function checkNativeConnection(owned: Binding, connection: NativeDomainOperation['connection']): Promise<void> {
+  const domain = owned.nativeDomain!,
+    client = connection === 'canonical' ? owned.client : owned.resolver
+  const marker = domain[connection]
+  const temporary = await nativeDomainStep(domain, connection, 'TEMP_MARKER', () =>
+    client.$queryRawUnsafe<SettingsRow[]>(`SELECT nonce FROM temp."${marker.table}" LIMIT 2`),
+  )
+  assertConnectionMarkerRows(temporary, marker)
+  const persistent = await nativeDomainStep(domain, connection, 'PERSISTENT_MARKER', () =>
+    persistentNativeMarkerQuery(client, domain.scope!),
+  )
+  assertPersistentNativeMarkerRows(persistent, domain.scope!)
+  const rows = await nativeDomainStep(domain, connection, 'SETTINGS', () =>
+    client.$queryRawUnsafe<SettingsRow[]>(flagsSql),
+  )
+  if (rows.length !== 1) fail('source_native_domain_settings')
+  assertFlags(owned, rows[0], connection === 'resolver', true)
+}
+async function requireHeldNativeBusy(owned: Binding): Promise<void> {
+  const domain = owned.nativeDomain!
+  let busy = false
+  domain.canonicalTransaction = 'UNKNOWN'
+  try {
+    await nativeDomainStep(domain, 'canonical', 'HELD_BEGIN_EXCLUSIVE', () =>
+      owned.client.$executeRawUnsafe('BEGIN EXCLUSIVE'),
+    )
+    domain.canonicalTransaction = 'OPEN'
+  } catch (error) {
+    if (!exactInstalledSqliteBusy(error)) throw error
+    domain.canonicalTransaction = 'CLOSED'
+    busy = true
+  }
+  if (!busy) fail('source_native_domain_exclusion_missing')
+}
+async function rollbackFailedNativeProbe(owned: Binding): Promise<void> {
+  const domain = owned.nativeDomain!
+  // Never overlap cleanup with an unresolved original query/BEGIN/COMMIT.
+  if (domain.operations.some(operation => operation.state === 'PENDING')) return
+  for (const connection of ['canonical', 'resolver'] as const) {
+    const state = connection === 'canonical' ? 'canonicalTransaction' : 'resolverTransaction'
+    if (domain[state] !== 'OPEN') continue
+    try {
+      await nativeDomainTransaction(owned, connection, 'ROLLBACK')
+    } catch {
+      // The original state, rejection and Promise remain retained.
+    }
+  }
+}
+async function runNativeDomainProbe(owned: Binding): Promise<ProviderSourceNativeConnectionDomain> {
+  const domain = owned.nativeDomain!
+  try {
+    await checkNativeConnection(owned, 'canonical')
+    await checkNativeConnection(owned, 'resolver')
+    await nativeDomainTransaction(owned, 'canonical', 'BEGIN EXCLUSIVE')
+    await nativeDomainTransaction(owned, 'canonical', 'ROLLBACK')
+    await nativeDomainTransaction(owned, 'resolver', 'BEGIN')
+    const heldMarker = await nativeDomainStep(domain, 'resolver', 'HELD_PERSISTENT_MARKER', () =>
+      persistentNativeMarkerQuery(owned.resolver, domain.scope!),
+    )
+    assertPersistentNativeMarkerRows(heldMarker, domain.scope!)
+    await requireHeldNativeBusy(owned)
+    await nativeDomainTransaction(owned, 'resolver', 'COMMIT')
+    await nativeDomainTransaction(owned, 'canonical', 'BEGIN EXCLUSIVE')
+    await nativeDomainTransaction(owned, 'canonical', 'ROLLBACK')
+    await checkNativeConnection(owned, 'canonical')
+    await checkNativeConnection(owned, 'resolver')
+    provenance(owned)
+    assertNewSourceAdmission(owned)
+    const proof = Object.freeze({}) as ProviderSourceNativeConnectionDomain
+    domain.proof = proof
+    nativeDomains.set(proof, owned)
+    domain.probing = false
+    for (const mint of mintList(owned)) mint.holds--
+    pumpCleanup(owned)
+    updateLane(owned)
+    return proof
+  } catch (error) {
+    domain.failure = Object.freeze({ error }) // Poison before observing cleanup; retain this original admission permanently.
+    updateLane(owned)
+    await rollbackFailedNativeProbe(owned)
+    throw error
+  }
+}
+/** Once only, after original journal initialization and before native acquisition. No business writes/releases. */
+export function proveProviderSourceNativeConnectionDomain(
+  token: ProviderSourceDatabase,
+  scope: ProviderSourceNativeConnectionScope,
+): Promise<ProviderSourceNativeConnectionDomain> {
+  const owned = actualBinding(token),
+    domain = owned.nativeDomain
+  assertNewSourceAdmission(owned)
+  if (!domain || domain.attempted || active || retired || owned.hold || owned.lookup || domain.transactions.size)
+    fail('source_native_domain_admission')
+  domain.scope = captureNativeScope(scope)
+  domain.attempted = true
+  domain.probing = true
+  for (const mint of mintList(owned)) mint.holds++
+  reserveLane(owned)
+  const operation = runNativeDomainProbe(owned)
+  domain.operation = operation
+  void operation.catch(() => {})
+  return operation
+}
+/** Original opaque domain and exact original source scope only; never reconstructed from evidence. */
+export function assertProviderSourceNativeConnectionDomain(
+  proof: ProviderSourceNativeConnectionDomain,
+  token: ProviderSourceDatabase,
+  scope: ProviderSourceNativeConnectionScope,
+): void {
+  const owned = actualBinding(token),
+    domain = owned.nativeDomain
+  if (
+    nativeDomains.get(proof) !== owned ||
+    !domain ||
+    domain.proof !== proof ||
+    domain.probing ||
+    domain.failure ||
+    independentRetirement(owned)
+  )
+    fail('source_native_domain_binding')
+  const expected = domain.scope!,
+    actual = captureNativeScope(scope)
+  if (Object.keys(expected).some(key => expected[key as keyof typeof expected] !== actual[key as keyof typeof actual]))
+    fail('source_native_domain_binding')
 }
 export function providerSourceDatabaseIsOwned(client: PrismaClient): boolean {
   return byClient.has(client)
@@ -560,6 +917,8 @@ export function acquireProviderSourceDatabaseHold(
 ): ProviderSourceDatabaseHold {
   const owned = actualBinding(token)
   assertNewSourceAdmission(owned)
+  if (owned.nativeDomain && (owned.nativeDomain.probing || (!owned.nativeDomain.proof && kind !== 'INITIALIZE')))
+    fail('source_native_domain_not_admitted')
   if (active || retired || owned.hold || owned.lookup) fail('source_custody_slot_unavailable')
   if (!Object.hasOwn(phases, kind) || (kind === 'RECONCILE') !== !!scope) fail('source_database_request_binding')
   const capturedScope = scope
@@ -630,9 +989,18 @@ export function resolveProviderSourceDatabaseHold(
   return true
 }
 async function assertTransactionSettings(owned: Binding, tx: ProviderSourceTransaction): Promise<void> {
-  const rows = await tx.$queryRawUnsafe<SettingsRow[]>(flagsSql)
-  if (rows.length !== 1) fail('source_database_binding')
-  assertFlags(owned, rows[0], false, true)
+  try {
+    const rows = await tx.$queryRawUnsafe<SettingsRow[]>(flagsSql)
+    if (rows.length !== 1) fail('source_database_binding')
+    assertFlags(owned, rows[0], false, true)
+    if (owned.nativeDomain) await assertConnectionMarker(tx, owned.nativeDomain.canonical)
+  } catch (error) {
+    if (owned.nativeDomain) {
+      owned.nativeDomain.failure ??= Object.freeze({ error })
+      updateLane(owned)
+    }
+    throw error
+  }
 }
 export async function assertProviderSourceTransactionSettingsForClient(
   client: PrismaClient,
@@ -759,6 +1127,45 @@ const replaySql = `SELECT
  CROSS JOIN pragma_query_only pq CROSS JOIN pragma_read_uncommitted pu
  CROSS JOIN pragma_busy_timeout pb CROSS JOIN pragma_database_list pd
  WHERE i.id=? AND pd.name='main' LIMIT 2`
+const nativeReplayColumns: readonly ReplayColumn[] = [
+  ...[
+    ['nativeLedgerCount', ''],
+    ['nativeCreatedCount', " AND kind='CREATED'"],
+    ['nativeBoundCount', " AND kind='RECEIPT_RESERVED'"],
+  ].map(([key, predicate]): ReplayColumn => ({
+    key,
+    kind: 'integer',
+    expression: `(SELECT COUNT(*) FROM (SELECT 1 FROM QualityJourneyProviderSourceLedgerRecord
+      WHERE sourceId=s.sourceId${predicate} LIMIT ${outcomeSourceBounds.journalRecords + 1}))`,
+  })),
+  ...[
+    ['nativeCreatedJson', 'dataJson', 'CREATED'],
+    ['nativeCreatedHead', 'head', 'CREATED'],
+    ['nativeCreatedPreviousHead', 'previousHead', 'CREATED'],
+    ['nativeBoundJson', 'dataJson', 'RECEIPT_RESERVED'],
+    ['nativeBoundHead', 'head', 'RECEIPT_RESERVED'],
+    ['nativeBoundPreviousHead', 'previousHead', 'RECEIPT_RESERVED'],
+  ].map(([key, column, kind]): ReplayColumn => ({
+    key,
+    kind: 'text',
+    nullable: true,
+    expression: `(SELECT CASE WHEN typeof(${column})='text' AND
+      length(CAST(${column} AS BLOB))<=${outcomeSourceBounds.envelopeBytes} THEN ${column} ELSE NULL END
+      FROM QualityJourneyProviderSourceLedgerRecord WHERE sourceId=s.sourceId AND kind='${kind}' ORDER BY sequence LIMIT 1)`,
+  })),
+  ...[
+    ['nativeCreatedSequence', 'sequence', 'CREATED'],
+    ['nativeCreatedByteCount', 'byteCount', 'CREATED'],
+    ['nativeBoundSequence', 'sequence', 'RECEIPT_RESERVED'],
+    ['nativeBoundByteCount', 'byteCount', 'RECEIPT_RESERVED'],
+  ].map(([key, column, kind]): ReplayColumn => ({
+    key,
+    kind: 'integer',
+    nullable: true,
+    expression: `(SELECT ${column} FROM QualityJourneyProviderSourceLedgerRecord
+      WHERE sourceId=s.sourceId AND kind='${kind}' ORDER BY sequence LIMIT 1)`,
+  })),
+]
 /** Actual bounded SELECT fields only; numeric SQLite scalars are normalized without text coercion. */
 export type ProviderSourceCommittedSnapshot = Readonly<Record<string, string | number | null>>
 function normalizeReplayScalar(column: ReplayColumn, value: unknown): string | number | null {
@@ -774,9 +1181,13 @@ function normalizeReplaySnapshot(row: SettingsRow): ProviderSourceCommittedSnaps
   for (const column of replayColumns) result[column.key] = normalizeReplayScalar(column, row[column.key])
   return Object.freeze(result)
 }
+function assertNativeLookupAdmission(domain: NativeDomain | undefined): void {
+  if (domain && (domain.probing || !domain.proof)) fail('source_native_domain_not_admitted')
+}
 function assertLookupReaderAvailable(owned: Binding): void {
   if (active && active !== owned) fail('source_custody_slot_unavailable')
   if (owned.lookup) fail('source_replay_lookup_pending')
+  assertNativeLookupAdmission(owned.nativeDomain)
   if (!owned.library || independentRetirement(owned) || owned.reader.cleanupAdmitted)
     fail('source_replay_resolver_unavailable')
 }
@@ -830,7 +1241,15 @@ export async function readProviderSourceCommittedSnapshot(
   const lookup = admitLookup(owned, intentId, observationKey, capability, requestHash)
   let fulfilled = false
   try {
-    const query = owned.resolver.$queryRawUnsafe<SettingsRow[]>(replaySql, observationKey, intentId)
+    const marker = owned.nativeDomain?.resolver
+    const sql = marker
+      ? replaySql.replace(
+          'SELECT',
+          `SELECT (SELECT CASE WHEN COUNT(*)=1 THEN MAX(nonce) ELSE NULL END FROM temp."${marker.table}") AS domainNonce,
+          ${nativeReplayColumns.map(column => `${column.expression} AS "${column.key}"`).join(',')},`,
+        )
+      : replaySql
+    const query = owned.resolver.$queryRawUnsafe<SettingsRow[]>(sql, observationKey, intentId)
     lookup.operation = query
     let timer: ReturnType<typeof setTimeout> | undefined
     const deadline = new Promise<never>((_resolve, reject) => {
@@ -849,7 +1268,16 @@ export async function readProviderSourceCommittedSnapshot(
       return
     }
     assertFlags(owned, rows[0], true, false)
-    const snapshot = normalizeReplaySnapshot(rows[0])
+    if (marker && rows[0].domainNonce !== marker.nonce) fail('source_native_connection_marker')
+    const normalized = normalizeReplaySnapshot(rows[0])
+    const snapshot = marker
+      ? Object.freeze({
+          ...normalized,
+          ...Object.fromEntries(
+            nativeReplayColumns.map(column => [column.key, normalizeReplayScalar(column, rows[0][column.key])]),
+          ),
+        })
+      : normalized
     fulfilled = true
     return snapshot
   } catch (error) {
@@ -897,6 +1325,21 @@ export function providerSourceDatabaseSnapshot(token: ProviderSourceDatabase) {
     canonical: mintSnapshot(owned.canonical),
     resolver: mintSnapshot(owned.reader),
     library: owned.library ? Object.freeze({ path: owned.library.path, digest: owned.library.digest }) : undefined,
+    nativeDomain: owned.nativeDomain
+      ? Object.freeze({
+          attempted: owned.nativeDomain.attempted,
+          probing: owned.nativeDomain.probing,
+          admitted: !!owned.nativeDomain.proof && !isRetired(owned),
+          canonicalTransaction: owned.nativeDomain.canonicalTransaction,
+          resolverTransaction: owned.nativeDomain.resolverTransaction,
+          interactiveTransactions: owned.nativeDomain.transactions.size,
+          operations: Object.freeze(
+            owned.nativeDomain.operations.map(({ connection, label, state }) =>
+              Object.freeze({ connection, label, state }),
+            ),
+          ),
+        })
+      : undefined,
   })
 }
 /** Final close intent and cached completion precede both genuine client requests. */

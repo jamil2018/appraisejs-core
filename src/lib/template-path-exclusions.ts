@@ -2,14 +2,12 @@ const EXCLUDED_DIRS = new Set(['node_modules', '.next', '.git', 'dist', 'graphif
 const EXCLUDED_EXTENSIONS = new Set(['.db', '.sqlite', '.sqlite3', '.tsbuildinfo'])
 const EXCLUDED_PATH_PREFIXES = ['automation/reports/']
 const REPOSITORY_ONLY_TEMPLATE_PREFIXES = [
-  'services/coordinator/quality-journey-internal-worker-authority.',
-  'src/services/coordinator/quality-journey-internal-worker-authority.',
+  'test/offline-provider-',
+  'src/test/offline-provider-',
   'test/m10-',
   'src/test/m10-',
   'scripts/m10-',
   'm10-',
-  'services/coordinator/quality-journey-internal-triage-gateway.',
-  'src/services/coordinator/quality-journey-internal-triage-gateway.',
   'services/coordinator/quality-journey-m10-',
   'src/services/coordinator/quality-journey-m10-',
   'scripts/test-harness/m06/',
@@ -28,14 +26,13 @@ const REPOSITORY_ONLY_TEMPLATE_PREFIXES = [
   'scripts/tests/p0-',
   'tests/managed-journey-',
   'tests/p0-',
-  'lib/quality-journey/managed-worker-gateway.',
-  'src/lib/quality-journey/managed-worker-gateway.',
-  'services/coordinator/quality-journey-internal-scenario-automation-gateway.',
-  'src/services/coordinator/quality-journey-internal-scenario-automation-gateway.',
-  'services/coordinator/quality-journey-internal-discovery-gateway.',
-  'src/services/coordinator/quality-journey-internal-discovery-gateway.',
 ]
 const REPOSITORY_ONLY_TEMPLATE_PATHS = new Set([
+  'src/lib/quality-journey/managed-worker-gateway.test.ts',
+  'src/services/coordinator/quality-journey-internal-discovery-gateway.sqlite.integration.test.ts',
+  'src/services/coordinator/quality-journey-offline-role-lifecycle.sqlite.integration.test.ts',
+  'src/services/coordinator/quality-journey-native-qualification.sqlite.integration.test.ts',
+  'src/services/coordinator/quality-journey-c1-task.inert.test.ts',
   'scripts/tests/m12-packed-install.test.mjs',
   'scripts/m06-native-fixture-workspace-13.mjs',
   'm06-native-fixture-workspace-13.mjs',

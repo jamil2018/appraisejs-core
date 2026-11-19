@@ -1,0 +1,95 @@
+{
+  "files": [
+    {
+      "path": "tasks/codex-app-server-journeys/m00-host-authority-contract.md",
+      "sha256": "1e39e733d5211db80705a1c34235d24580db618a9f505e7a16dc163398568133",
+      "currentFilePresent": true,
+      "expectedApprovedSha256": "1e39e733d5211db80705a1c34235d24580db618a9f505e7a16dc163398568133",
+      "matchesApprovedBytes": true
+    },
+    {
+      "path": "tasks/codex-app-server-journeys/m00-r3-approval.md",
+      "sha256": "911c45e907931be6adc5583d0bc5f58ab21a0d4e0ed66f119c813685fe6ef618",
+      "currentFilePresent": true
+    },
+    {
+      "path": "tasks/codex-app-server-journeys/m00-auth-amendment-01.md",
+      "sha256": "9a3fb4c3716363316900ea7d6569d0c35186a1886936bc0ffd05d3ae84c4ff49",
+      "currentFilePresent": true
+    },
+    {
+      "path": "tasks/codex-app-server-journeys/m00-trust-amendment-02.md",
+      "sha256": "779ca16e070427fa9bbc649671344d5949d60e13f2365ff4dd3f8b50a11310e9",
+      "currentFilePresent": true,
+      "expectedApprovedSha256": "779ca16e070427fa9bbc649671344d5949d60e13f2365ff4dd3f8b50a11310e9",
+      "matchesApprovedBytes": true
+    },
+    {
+      "path": "tasks/codex-app-server-journeys/m00-ta02-approval.md",
+      "sha256": "2c4504b2e2e07cb6832e72b6b80cfae8af8724bf65a1ca764a56fb549e625b61",
+      "currentFilePresent": true
+    },
+    {
+      "path": "tasks/codex-app-server-journeys/m02-ta03-helper-evidence-proposal-01.md",
+      "sha256": "5cb5637323d5c6a6dce67e0697e8a473e69ad476c31568fa7a695abcf9b3dab3",
+      "currentFilePresent": true,
+      "expectedApprovedSha256": "5cb5637323d5c6a6dce67e0697e8a473e69ad476c31568fa7a695abcf9b3dab3",
+      "matchesApprovedBytes": true
+    },
+    {
+      "path": "tasks/codex-app-server-journeys/m02-ta03-approval-01.md",
+      "sha256": "8ca7635b537ef1fda04dc859f98eb04beb66eae4f05e3c697b12be53b411a8fc",
+      "currentFilePresent": true
+    },
+    {
+      "path": "tasks/codex-app-server-journeys/M02-SHIPPED-SCRIPTED-QUALIFICATION-01.md",
+      "sha256": "1419e5a8eb60b6695d3be4b613fcfa919e23c12ce32049cbd5c1c363be192fe4",
+      "currentFilePresent": true
+    },
+    {
+      "path": "tasks/codex-app-server-journeys/m02-evidence/r55/m02-r55-final-scripted-evidence-review-01.json",
+      "sha256": "80b70a4d024e5cedb4db0e0257a246e0d6837e291ea3a818647203e5a9476ac8",
+      "currentFilePresent": true
+    },
+    {
+      "path": "tasks/codex-app-server-journeys/M11-VERIFICATION.md",
+      "sha256": "4ddba60d2fec4909d336922f4b77361a3eb968b1b38e42fccc8d3af3e251bc9a",
+      "currentFilePresent": true
+    },
+    {
+      "path": "tasks/codex-app-server-journeys/M12-VERIFICATION.md",
+      "sha256": "212733cd0f882fbf4891857cfc3bfff3f7192d2e53e72f9b94fc55aa08f60182",
+      "currentFilePresent": true
+    },
+    {
+      "path": "tasks/codex-app-server-journeys/M12-POST-MERGE-CI.md",
+      "sha256": "bdbde29b27b4997c7cf1c10471260d88dadec047599cd2108a3a78edefee18e8",
+      "currentFilePresent": true
+    },
+    {
+      "path": "tasks/codex-app-server-journeys/M13-VERIFICATION.md",
+      "sha256": "9bbf331821aaecf8f154cc6da43f96953f27d851d1152bbf8056adb029513710",
+      "currentFilePresent": true
+    },
+    {
+      "path": "tasks/codex-app-server-journeys/M13-REPLAY-VERIFICATION.md",
+      "sha256": "4289d51f8a42df15bec850e89aa0b974c40ae176e1e22b826f8c1bfe822e1a75",
+      "currentFilePresent": true
+    },
+    {
+      "path": "tasks/codex-app-server-journeys/M13-RUNTIME-QUALIFICATION-PLAN.md",
+      "sha256": "9a56b232433e027db995ea96cd1b8c3f944105bb5e85007e36681ec2e70430e9",
+      "currentFilePresent": true
+    }
+  ],
+  "authorityInterpretation": {
+    "M00": "approved frozen design; no current native allowance",
+    "authAmendment": "existing login/error-if-missing direction; M01 topology and 3 starts consumed, not renewed",
+    "TA02": "approved trusted local profile; same-user bypass; hostile containment withdrawn not passed",
+    "TA03": "approved narrower helper criterion; actual lifetime inventory UNKNOWN_NOT_INDEPENDENTLY_OBSERVED; known original-owned cleanup still required",
+    "M02": "scripted scope accepted; runtimeQualified false; no campaign replay",
+    "M13": "six-role canonical replay gap closed; runtime not qualified",
+    "currentUser": "A1-A6 offline completion and prepare B0 packet only; B0 implementation not granted"
+  },
+  "observationScope": "Input commit 3d60db3f61995580ec3f49e73e03f61bb4b3bbd9 before this documentation delivery; plan hash is historical input, not current successor."
+}

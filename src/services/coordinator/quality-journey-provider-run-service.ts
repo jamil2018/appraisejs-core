@@ -1,3 +1,11 @@
+import { readStoredNativeOutcomeCommittedReplay } from '@/lib/quality-journey/codex-app-server/native-outcome-replay'
+import {
+  acquireOriginalNativeOutcomeCustody,
+  isOriginalNativeOutcomeSource,
+  readOriginalNativeOutcomeReplay,
+} from '@/lib/quality-journey/codex-app-server/native-outcome-source'
+import { nativeOutcomeProtocolDigest } from '@/lib/quality-journey/codex-app-server/native-outcome-profile'
+import { nativeQualificationModel } from '@/lib/quality-journey/codex-app-server/native-qualification-configuration'
 import { assertHistoricalHubQuiescent } from './quality-journey-provider-recovery'
 import { createHash, randomUUID } from 'node:crypto'
 import type {
@@ -23,6 +31,7 @@ import {
   type ProviderSendPermit,
 } from '@/lib/quality-journey/provider-intent-contract'
 import { ServiceError } from '@/services/shared/errors'
+import type { ProviderTransportAuthorityTrace } from '@/lib/quality-journey/codex-app-server/native-qualification-diagnostics'
 import {
   validateProviderReconciliationEvidence,
   assertCommittedProviderSourceReplay,
@@ -228,18 +237,32 @@ function assertRunCurrent(run: QualityJourneyProviderRun, snapshot: AuthoritySna
     conflict('Provider run requires explicit recovery.')
 }
 
-async function currentAuthority(input: Binding, tx: Prisma.TransactionClient, run?: QualityJourneyProviderRun) {
+async function currentAuthority(
+  input: Binding,
+  tx: Prisma.TransactionClient,
+  run?: QualityJourneyProviderRun,
+  trace: ProviderTransportAuthorityTrace = { step: 'HEARTBEAT_PERMIT' },
+) {
+  trace.step = 'HEARTBEAT_ASSIGNMENT_BINDING'
   const attempt = await authenticate(input, tx)
+  trace.step = 'HEARTBEAT_COORDINATOR_SESSION'
   await assertCoordinatorMutationSession(input, { ...input, attemptId: input.attemptId }, tx)
+  trace.step = 'HEARTBEAT_JOURNEY_STATE'
   const journey = await tx.qualityJourney.findUniqueOrThrow({ where: { id: input.journeyId } })
   assertQualityJourneyMutable(journey)
   managedSessionIdentity(input, journey, attempt)
+  trace.step = 'HEARTBEAT_LIVE_WORK'
   assertLiveWork(journey, attempt)
+  trace.step = 'HEARTBEAT_HUMAN_WAIT'
   assertNoHumanWait(journey)
+  trace.step = 'HEARTBEAT_WORK_AUTHORIZATION'
   assertAuthorizationScope(input, attempt)
   assertAdmittedAssignment(attempt)
+  trace.step = 'HEARTBEAT_ATTEMPT_BUDGET'
   await assertAttemptBudget(attempt, tx)
+  trace.step = 'HEARTBEAT_HUB'
   await assertHistoricalHubQuiescent(tx)
+  trace.step = 'HEARTBEAT_RUN_CORRELATION'
   const snapshot = authoritySnapshot(input, journey, attempt)
   if (run) assertRunCurrent(run, snapshot)
   return snapshot
@@ -248,6 +271,7 @@ async function currentAuthority(input: Binding, tx: Prisma.TransactionClient, ru
 export async function prepareQualityJourneyProviderRun(
   input: PrepareQualityJourneyProviderRunInput,
   client: PrismaClient = prisma,
+  mode?: 'native-qualification',
 ) {
   if (
     !boundedIdentifier(input.idempotencyKey) ||
@@ -256,12 +280,17 @@ export async function prepareQualityJourneyProviderRun(
     !validDigest(input.envelopeDigest)
   )
     throw new ServiceError('Provider intent identifiers and digests are invalid.', 'VALIDATION')
+  const nativeQualification = mode === 'native-qualification'
+  const policy = nativeQualification
+    ? { ...providerIntentPolicy, version: 'APP_SERVER_M13_NATIVE_QUALIFICATION_V2', model: nativeQualificationModel }
+    : providerIntentPolicy
   const requestHash = hash({
     attemptId: input.attemptId,
     idempotencyKey: input.idempotencyKey,
     providerNamespace: input.providerNamespace,
     configurationDigest: input.configurationDigest,
     envelopeDigest: input.envelopeDigest,
+    ...(nativeQualification ? { policyVersion: policy.version } : {}),
   })
   return client.$transaction(async tx => {
     await authenticate(input, tx)
@@ -287,7 +316,7 @@ export async function prepareQualityJourneyProviderRun(
         configurationDigest: input.configurationDigest,
         prepareKey: input.idempotencyKey,
         prepareRequestHash: requestHash,
-        policyJson: json(providerIntentPolicy),
+        policyJson: json(policy),
         earliestIntentAt: now,
         unresolvedRetentionAt: after(now, providerIntentPolicy.unresolvedRetentionSeconds),
       },
@@ -544,16 +573,20 @@ export async function writeQualityJourneyProviderTransport<T>(
   input: Binding & { permit: ProviderSendPermit; consume: boolean },
   send: () => Promise<T>,
   client: PrismaClient = prisma,
+  trace: ProviderTransportAuthorityTrace = { step: 'HEARTBEAT_PERMIT' },
 ): Promise<{ reply: Promise<T> }> {
   const captured = Object.freeze({ ...input, principal: Object.freeze({ ...input.principal }) })
+  trace.step = 'HEARTBEAT_PERMIT'
   assertProviderSendPermitOwned(captured.permit)
   const operation = await beginOriginalSqliteDiscardSend(captured.permit, client)
   let engineOperation: Promise<{ reply: Promise<T> }> | undefined
   try {
     engineOperation = client.$transaction(async tx => {
       if (operation) await operation.assertTransactionSettings(tx)
+      trace.step = 'HEARTBEAT_INTENT'
       const intent = await readIntent({ ...captured, intentId: captured.permit.intentId }, tx)
-      await currentAuthority(captured, tx, intent.run)
+      await currentAuthority(captured, tx, intent.run, trace)
+      trace.step = 'HEARTBEAT_SEND_STATE'
       if (operation) await assertOriginalDiscardReservation(operation.reservation, tx)
       assertPermitIdentity(intent, captured.permit)
       if (captured.consume) assertSendWindowCurrent(intent)
@@ -573,6 +606,7 @@ export async function writeQualityJourneyProviderTransport<T>(
       const reply = sendOriginal()
       // Observe rejection even if commit acknowledgement is lost before returning the box.
       void reply.catch(() => {})
+      trace.step = 'HEARTBEAT_SETTLEMENT'
       return { reply }
     })
     const result = await engineOperation
@@ -1167,6 +1201,9 @@ export async function reconcileConsumedQualityJourneyProviderIntent(
   const capturedContext = captureProviderReconciliationContext(context)
   const capturedInput = Object.freeze({ ...input })
   validateConsumedReconciliationInput(capturedInput)
+  // Native custody dispatch precedes every synthetic/legacy replay and permissive fallback.
+  if (nativeReconciliationDialect(capturedContext))
+    return reconcileNativeConsumedIntent(capturedInput, capturedContext, client)
   const originalReplay = await readOriginalSqliteCommittedReplay(capturedInput, capturedContext, client)
   if (originalReplay) return originalReplay
   rejectUnmatchedOwnedReplayRequest(capturedInput, client)
@@ -1197,6 +1234,59 @@ export async function reconcileConsumedQualityJourneyProviderIntent(
   return reconcileFreshOriginalConsumedIntent(input, capturedInput, capturedContext, request, client, request.candidate)
 }
 
+function nativeReconciliationDialect(context: ProviderReconciliationContext): boolean {
+  return (
+    context.selection === 'NATIVE' ||
+    context.source?.provenance === 'NATIVE_QUALIFIED' ||
+    context.source?.sourceId.startsWith('native_outcome_') === true
+  )
+}
+function registeredOriginalNativeSource(context: ProviderReconciliationContext) {
+  const source = context.source
+  if (
+    context.selection !== 'NATIVE' ||
+    !source ||
+    source.protocolDigest !== nativeOutcomeProtocolDigest ||
+    !isOriginalNativeOutcomeSource(source)
+  )
+    conflict('Exact registered original native custody is required.')
+  return source
+}
+async function replayStoredNativeConsumedIntent(
+  input: Readonly<ReconcileConsumedProviderIntentInput>,
+  client: PrismaClient,
+) {
+  if (
+    input.senderExcluded ||
+    input.physicalEvidence ||
+    providerSourceDatabaseIsOwned(client) ||
+    !input.replayRequestHash
+  )
+    conflict('Original live native custody must use its original clean resolver.')
+  const durable = await readStoredNativeOutcomeCommittedReplay(client, {
+    intentId: input.intentId,
+    observationKey: input.observationKey,
+    replayRequestHash: input.replayRequestHash,
+  })
+  if (!durable) conflict('No exact committed native reconciliation exists.')
+  return durable
+}
+/** Explicit native dialect only; this path never enters a synthetic or legacy fallback. */
+async function reconcileNativeConsumedIntent(
+  input: Readonly<ReconcileConsumedProviderIntentInput>,
+  context: ProviderReconciliationContext,
+  client: PrismaClient,
+) {
+  if (!context.source && input.replayRequestHash) return replayStoredNativeConsumedIntent(input, client)
+  const source = registeredOriginalNativeSource(context)
+  const replay = await readOriginalNativeOutcomeReplay(source, input, client)
+  if (replay) return replay
+  if (input.replayRequestHash) conflict('No exact committed native reconciliation exists.')
+  const request = consumedReconciliationRequest(input, context)
+  if (!request.candidate) conflict('Original native candidate is required.')
+  return reconcileFreshOriginalConsumedIntent(input, input, context, request, client, request.candidate)
+}
+
 /** The fresh original source path retains its actual transaction Promise through completion or ambiguity. */
 async function reconcileFreshOriginalConsumedIntent(
   input: ReconcileConsumedProviderIntentInput,
@@ -1207,7 +1297,9 @@ async function reconcileFreshOriginalConsumedIntent(
   candidate: ProviderReconciliationReceipt,
 ) {
   if (!capturedContext.source || !input.senderExcluded) conflict('Original source custody is required.')
-  const custody = acquireOriginalSqliteOutcomeCustody(
+  const native = isOriginalNativeOutcomeSource(capturedContext.source)
+  const acquire = native ? acquireOriginalNativeOutcomeCustody : acquireOriginalSqliteOutcomeCustody
+  const custody = acquire(
     capturedContext.source,
     input.physicalEvidence,
     input.senderExcluded,
@@ -1242,6 +1334,7 @@ async function reconcileFreshOriginalConsumedIntent(
       }
       return result
     })
+    if (native) (custody as ReturnType<typeof acquireOriginalNativeOutcomeCustody>).captureTransaction(engineOperation)
     result = await engineOperation
   } catch (error) {
     custody.retire(engineOperation)
@@ -1266,5 +1359,9 @@ function rejectUnmatchedOwnedReplayRequest(
 
 /** Select the existing clean resolver route for the legacy source dialect. */
 function isOwnedLegacyReconciliation(ownedClient: boolean, request: ConsumedReconciliationRequest): boolean {
-  return ownedClient && request.candidate?.physical.protocolDigest !== sqliteOutcomeSourceProtocolDigest
+  return (
+    ownedClient &&
+    request.candidate?.physical.provenance !== 'NATIVE_QUALIFIED' &&
+    request.candidate?.physical.protocolDigest !== sqliteOutcomeSourceProtocolDigest
+  )
 }

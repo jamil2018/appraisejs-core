@@ -1,3 +1,7 @@
+> M13 bounded exact-candidate review: [verification and readiness limits](M13-VERIFICATION.md).
+> Candidate `5727e209`; managed release/public/default rollout remains BLOCKED / NOT QUALIFIED.
+> The M13 acceptance checkbox stays open; no release authority follows. Earlier milestone headers are historical.
+
 > M12 adds [local packed-install and hosting-mode transfer verification](M12-VERIFICATION.md) from M11 merge `8d8d8254`.
 > Scope is disposable local installation and internal Journeys; provider/runtime/host/distribution qualification,
 > public managed opt-in, default-mode change, M13 and shipping remain open. Earlier checkpoints retain historical scope.
@@ -259,6 +263,41 @@ bounded startup/cancellation and late-authority repair evidence, with historical
 
 ### M13: Review the exact release candidate
 
+[Additive six-role replay coverage](M13-REPLAY-VERIFICATION.md) closes the specified matrix gap; runtime/provider and
+release qualification remain open. The [bounded runtime qualification plan](M13-RUNTIME-QUALIFICATION-PLAN.md)
+separates permitted offline checks from future actions requiring new exact authorization; it grants no execution.
+[Lane A is complete](M13-LANE-A-COMPLETION.md); the [exact B0-R1 implementation packet](M13-B0-AUTHORIZATION-PACKET.md)
+was explicitly approved at `efddc307` for the offline readiness-controller implementation only.
+[B0-R1 implementation evidence](M13-B0-R1-VERIFICATION.md) records the completed offline seam, checks, three approved hashes and qualification limits.
+The full native product adapter remains incomplete; M13 remains unchecked.
+The user subsequently authorized [remaining offline implementation](M13-OFFLINE-IMPLEMENTATION-PLAN.md) under unchanged
+limits. [Offline verification](M13-OFFLINE-IMPLEMENTATION-VERIFICATION.md) records the completed offline implementation and checks separately from live
+runtime qualification; the overall M13 checkbox remains open.
+
+The user subsequently lifted native launch, existing-login access and inference limits for bounded qualification.
+[Current runtime execution](M13-RUNTIME-EXECUTION-2026-11-14.md) records accepted B1 readiness/B2 login observations,
+C0/C1 source and actual packed offline proof, and current native qualification blockers. Three historical armed B3
+cases remain spent UNKNOWN. After the installed native program and credential metadata changed, fresh B1 readiness
+and B2 existing-login observations passed independent review for the current tuple. Current-native source `bc280828`
+passed normal hooks and exact 17-file SOURCE/ARTIFACT ONLY review: 404 generated tests, eight installed SDK tests and
+one six-role offline aggregate pass. The new source profile binds 59 public source files and three additional disabled
+code-mode controls; this does not qualify physical provider effects. A fresh preparation then refused before native
+entry because its separate task driver still pinned the previous binary. That case/database is preserved without
+replay or allocation; the narrow task-pin successor requires focused checks, a normal-hook commit and exact review
+before another fresh preparation. Eighteen native allocations are frozen, zero unspent; fourteen native acquisitions
+are confirmed plus historical UNKNOWN zero-or-one, and historical new consuming-provider effects remain UNKNOWN
+zero-or-one. Exact execution packets and additive allowances precede effects. No sign-in, account switch, production
+activation, push, merge or publication.
+The [runtime continuation checkpoint](M13-RUNTIME-CONTINUE.md) supersedes the historical M01-only checkpoint below.
+
+**Requested pause (2026-11-16):** [recoverable handoff](M13-PAUSE-2026-11-16.md). The task-pin successor passed
+31 checks and exact review, but its fresh C1 native case remains spent UNKNOWN after an unclassified initialization
+notification. A separately reviewed D2 initialize-only diagnostic observed public classes `configWarning`,
+`remoteControl/status/changed` and `account/updated`; its own exit/drain/link cleanup passed. The original C1 method
+and cleanup remain UNKNOWN. Twenty native allocations are frozen, zero unspent; four B3 turn slots remain consumed.
+Source notification policy is unchanged, all-role provider and recovery qualification remain open, and no new effects
+are scheduled. The latest dated pause handoff supersedes the earlier numerical progress snapshots above.
+
 - [ ] Implement and verify this slice.
 
 **Dependencies:** M12. **Estimated scope:** S; split further before implementation if the actual diff spans independent concerns.
@@ -285,7 +324,9 @@ During implementation use affected-file ESLint/Prettier and `npx vitest run <aff
 
 Schema, session, gateway and supervisor changes are sequential shared contracts. After these settle, role-specific tests and UI presentation work can run independently with explicit ownership. No worker may revert unrelated work.
 
-## Current checkpoint handoff
+## Historical M01 checkpoint handoff
+
+For current M13 work use [runtime continuation](M13-RUNTIME-CONTINUE.md). The following is preserved historical scope.
 
 Read [CONTINUE-HERE](CONTINUE-HERE.md) and [M01 qualification](m01-qualification.md).
 M00 bytes remain frozen; M01 protocol qualification is complete for the pinned tuple only.

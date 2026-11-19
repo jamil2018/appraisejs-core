@@ -579,7 +579,7 @@ function passingReport(
 }
 
 describe('Quality Journey triage service on migrated SQLite', () => {
-  it('fences the canonical managed Triager write and reads its accepted outcome after transfer', async () => {
+  it('covers replay, revocation, stale sessions and changed payloads for the canonical Triager', async () => {
     const value = await fixture({ managed: true })
     const { client, journeyId, authority } = value
     if (!authority) throw new Error('Managed authority fixture was not activated.')

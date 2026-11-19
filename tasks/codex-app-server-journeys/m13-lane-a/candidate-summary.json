@@ -1,0 +1,97 @@
+{
+  "baseCommit": "3d60db3f61995580ec3f49e73e03f61bb4b3bbd9",
+  "baseTree": "664e6818a26d4c808e421968cfd2bb67de2acea1",
+  "trackedFileCount": 5545,
+  "trackedSourceManifestSha256": "6ef4d79823433667d973bcec0a2054b7daf6c8ee8db6f6753d2ef39af14ab9cc",
+  "host": {
+    "system": "Darwin",
+    "release": "27.2.0",
+    "architecture": "arm64",
+    "productVersion": "27.2.1",
+    "buildVersion": "26B131"
+  },
+  "executables": [
+    {
+      "path": "/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex",
+      "status": "CURRENT_FILE_HASH_ONLY",
+      "sha256": "7cb8700a47be3c81bb3c5efbf2d2adc716ce3db4806e9dc992f2925f78b2b194",
+      "bytes": 273669024,
+      "device": 16777231,
+      "inode": 83652709,
+      "uid": 502,
+      "mode": "0o755",
+      "nlink": 1,
+      "stableNoFollowRead": true,
+      "executed": false,
+      "runtimeVersion": "UNOBSERVED"
+    },
+    {
+      "path": "/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex-code-mode-host",
+      "status": "CURRENT_FILE_HASH_ONLY",
+      "sha256": "1cf6ad4fa020d5d7165a62d18b0e1673204a5985b693f22c2b890ac02a6822ba",
+      "bytes": 70141920,
+      "device": 16777231,
+      "inode": 83652717,
+      "uid": 502,
+      "mode": "0o755",
+      "nlink": 1,
+      "stableNoFollowRead": true,
+      "executed": false,
+      "runtimeVersion": "UNOBSERVED"
+    }
+  ],
+  "qualifications": {
+    "nativeRuntime": false,
+    "account": "NOT_ACCESSED",
+    "helperLifetime": "UNKNOWN_NOT_INDEPENDENTLY_OBSERVED",
+    "hostIsolation": "NOT_ATTESTED"
+  },
+  "retainedTarballs": [
+    {
+      "sha256": "0d0e593599832d4be8c4d0a223d9eaf18aa559f8a5c35fbeed833590ed891a9d",
+      "bytes": 158897,
+      "stableNoFollowRead": true
+    },
+    {
+      "sha256": "8fbf578467e70f17a40fe27311b707c9794cd1c0397d50e3a83be7cfa241d2b2",
+      "bytes": 2686389,
+      "stableNoFollowRead": true
+    }
+  ],
+  "migrationInventory": {
+    "sha256": "2913a2bc02c364afec3e379ffed91cd6fc095ad7e1c3dd1a0b64118d603f0078",
+    "count": 98
+  },
+  "configAndLockHashes": {
+    "package.json": "53dde6d1f249aef67a67ee7b2eefdb1373f7d42a4957ab8a54579b555033b8c8",
+    "package-lock.json": "89d5801e4ceb1175de18d0b343a6e89243ee6aed1d8015ac53662aceb1b3f2df",
+    "packages/appraisejs/package-lock.json": "fa7a0393a2a44f64fddc66cd40191cfe58e584a77c62b2c8670fb77f114f99d3",
+    "packages/create-appraisejs/package-lock.json": "bacd47f2412f1bc30b2114d28c9ef434173355068b90878ae325ef996ade4400",
+    "vitest.config.ts": "3c58a35b52c2008b1142b76d385d3f934503076d9d85c456139be7836a943e63",
+    "playwright.config.ts": "2299e9ba7e13a80ea0a97b675f10f3dada0f2efc4848fc7e8be9637aaae6af52",
+    "prisma/schema.prisma": "9dca4f2a116dadfc02f2764ea35e952d6461a63939bd68079d58adeeaa683fe3",
+    "src/lib/quality-journey/provider-intent-contract.ts": "69dcc9fe91a0bc10cfc2976751e80bbf2151447104c4841b3e7fa338c5c78d6f",
+    "src/services/coordinator/quality-journey-process-supervisor.ts": "6b3138f915017a7ad01c37a0cfa16330c8b68b06805047998b3bc6524787572d"
+  },
+  "tooling": {
+    "node": "v26.11.0",
+    "versions": {
+      "node_modules/next": "16.2.10",
+      "node_modules/playwright": "1.61.1",
+      "node_modules/vitest": "4.1.10",
+      "node_modules/@prisma/client": "6.19.3",
+      "node_modules/zod": "3.25.76",
+      "node_modules/@modelcontextprotocol/sdk": "1.29.0",
+      "packages/appraisejs/node_modules/zod": "4.4.3",
+      "packages/appraisejs/node_modules/@modelcontextprotocol/sdk": "1.29.0"
+    }
+  },
+  "nativeVersion": "UNOBSERVED; binary files were hashed only",
+  "historicalComparisons": {
+    "codexM01Sha256": "0d5ac7aae20c4eda6242428d5e218c55ba96d8763fda2a271088ff37104b9d28",
+    "codexMatchesM01": false,
+    "codeModeTA04ObservationSha256": "ffc2b1e5c10c7f369ccc0fa755a712c5c2ba38d93246e7144111e4dd972ae938",
+    "codeModeMatchesTA04HistoricalObservation": false,
+    "scope": "TA04 reference is a historical file observation, not a claim it is the latest accepted R55 tuple. No new runtime version or protocol was inferred."
+  }
+}

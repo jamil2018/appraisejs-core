@@ -1,0 +1,317 @@
+import { describe, expect, it } from 'vitest'
+import {
+  expectedNativeMcpConfiguration,
+  inspectNativeQualificationConfiguration,
+  nativeQualificationFeatureControls,
+  nativeQualificationFeatures,
+  verifyNativeQualificationConfiguration,
+} from './native-qualification-configuration'
+
+import {
+  renderNativeQualificationConfiguration,
+  type NativeQualificationManifest,
+} from './native-qualification-contract'
+
+const binding = {
+  endpoint: { port: 39187, path: `/appraise-worker/${'a'.repeat(32)}` },
+  enabledTools: ['quality_journey_analysis_get', 'quality_journey_analysis_submit'],
+}
+const capability = 'b'.repeat(64)
+function configuration() {
+  return {
+    config: {
+      model: 'gpt-6.1-sol',
+      model_provider: 'openai',
+      model_reasoning_effort: 'medium',
+      approval_policy: 'never',
+      sandbox_mode: 'read-only',
+      web_search: 'disabled',
+      cli_auth_credentials_store: 'file',
+      mcp_oauth_credentials_store: 'file',
+      features: Object.fromEntries(nativeQualificationFeatureControls.map(key => [key, false])),
+      analytics: { enabled: false },
+      feedback: { enabled: false },
+      history: { persistence: 'none' },
+      mcp_servers: { appraise_worker: structuredClone(expectedNativeMcpConfiguration(binding, capability)) },
+    } as Record<string, unknown>,
+  }
+}
+describe('native configuration inspect-only refusal', () => {
+  it('renders the new model and refuses the superseded model at configuration readback', () => {
+    const rendered = renderNativeQualificationConfiguration(binding as NativeQualificationManifest, capability)
+    expect(rendered).toContain('model = "gpt-6.1-sol"\n')
+    const value = configuration()
+    value.config.model = 'gpt-5.5'
+    expect(inspectNativeQualificationConfiguration(value, binding, capability)).toEqual({
+      valid: false,
+      reason: 'PUBLIC_CONTROLS_UNVERIFIED',
+      fields: ['model'],
+    })
+  })
+  it('enables only the scoped hosted Code Mode configuration', () => {
+    const mode = { ...binding, codeMode: {} }
+    const rendered = renderNativeQualificationConfiguration(mode as NativeQualificationManifest, capability)
+    expect(rendered).toContain('code_mode_host = true\n')
+    expect(rendered).toContain('code_mode_host_grpc = false\n')
+    expect(rendered).toContain('shell_snapshot = false\n')
+    const value = configuration()
+    value.config.features = nativeQualificationFeatures(true)
+    expect(verifyNativeQualificationConfiguration(value, mode, capability)).toBe(true)
+    expect(verifyNativeQualificationConfiguration(value, binding, capability)).toBe(false)
+    value.config.features = { ...nativeQualificationFeatures(true), code_mode_host_grpc: true }
+    expect(inspectNativeQualificationConfiguration(value, mode, capability)).toEqual({
+      valid: false,
+      reason: 'FEATURE_CONTROL_UNVERIFIED',
+      feature: 'code_mode_host_grpc',
+    })
+  })
+  it('requires explicit safe controls and the exact reviewed single HTTP connector without hashing raw config', () => {
+    const value = configuration()
+    value.config.harmless_public_default = 512
+    expect(verifyNativeQualificationConfiguration(value, binding, capability)).toBe(true)
+    expect(verifyNativeQualificationConfiguration(value, binding, 'c'.repeat(64))).toBe(false)
+  })
+  it.each([
+    'api_key',
+    'openai_api_key',
+    'model_providers',
+    'endpoint',
+    'http_headers',
+    'plugins',
+    'hooks',
+    'capabilities',
+  ])('refuses unexpected nonempty %s', key => {
+    const value = configuration()
+    value.config[key] = { active: 'synthetic-forbidden-value' }
+    expect(verifyNativeQualificationConfiguration(value, binding, capability)).toBe(false)
+  })
+  it.each(nativeQualificationFeatureControls)('refuses missing or enabled %s', key => {
+    const value = configuration(),
+      features = value.config.features as Record<string, unknown>
+    delete features[key]
+    expect(verifyNativeQualificationConfiguration(value, binding, capability)).toBe(false)
+    features[key] = true
+    expect(verifyNativeQualificationConfiguration(value, binding, capability)).toBe(false)
+  })
+  it('refuses foreign nested credentials, unexpected active features and extra MCP servers', () => {
+    const value = configuration()
+    value.config.other_defaults = [{ innocent: { api_key: 'synthetic' } }]
+    expect(verifyNativeQualificationConfiguration(value, binding, capability)).toBe(false)
+    delete value.config.other_defaults
+    ;(value.config.features as Record<string, unknown>).unknown_tool = true
+    expect(verifyNativeQualificationConfiguration(value, binding, capability)).toBe(false)
+    delete (value.config.features as Record<string, unknown>).unknown_tool
+    ;(value.config.mcp_servers as Record<string, unknown>).foreign = { enabled: true }
+    expect(verifyNativeQualificationConfiguration(value, binding, capability)).toBe(false)
+  })
+  it('refuses header drift and foreign server commands even when the native fields have the expected values', () => {
+    const value = configuration(),
+      server = (value.config.mcp_servers as Record<string, Record<string, unknown>>).appraise_worker
+    ;(server.http_headers as Record<string, unknown>).Extra = 'synthetic'
+    expect(verifyNativeQualificationConfiguration(value, binding, capability)).toBe(false)
+    delete (server.http_headers as Record<string, unknown>).Extra
+    server.command = '/foreign/command'
+    expect(verifyNativeQualificationConfiguration(value, binding, capability)).toBe(false)
+  })
+})
+
+describe('finite generic configuration refusal categories', () => {
+  it('collects every fixed match once without retaining key prefixes, paths, or private values', () => {
+    const value = configuration()
+    value.config.custom_instance_prefix_123 = {
+      external_api_key_suffix_456: 'private-credential-value',
+      nested: [
+        { plugins: { custom_HEADERS_prefix_789: 'private-header-value', hooks: true } },
+        { tools: ['private-tool-value'], PLUGINS: { secret: 'private-secret-value' } },
+      ],
+      external_authorization_secret_suffix: 'private-combined-value',
+    }
+    const inspection = inspectNativeQualificationConfiguration(value, binding, capability)
+    expect(inspection).toEqual({
+      valid: false,
+      reason: 'UNEXPECTED_ACTIVE_CONFIGURATION',
+      fields: ['apikey', 'authorization', 'headers', 'hooks', 'plugins', 'secret', 'tools'],
+    })
+    expect(verifyNativeQualificationConfiguration(value, binding, capability)).toBe(false)
+    expect(JSON.stringify(inspection)).not.toMatch(/custom_|external_|prefix|suffix|nested|private-|123|456|789/)
+  })
+  it.each([false, null, '', [], {}, [false, null, ''], { enabled: false }])(
+    'preserves the existing unpopulated-value allowance for %j',
+    empty => {
+      const value = configuration()
+      value.config.plugins = empty
+      value.config.custom_tools_suffix = true // The existing tools alternative is anchored to the entire key.
+      expect(inspectNativeQualificationConfiguration(value, binding, capability)).toEqual({
+        valid: true,
+        reason: 'NONE',
+      })
+    },
+  )
+  it('keeps the exact privately compared MCP slots out of generic field observations', () => {
+    expect(inspectNativeQualificationConfiguration(configuration(), binding, capability)).toEqual({
+      valid: true,
+      reason: 'NONE',
+    })
+  })
+})
+
+describe('pinned app-server effective feature readback', () => {
+  const reportedDefaults = [
+    'api_key_cyber_access_programs',
+    'api_key_model_discovery',
+    'auth_elicitation',
+    'mentions_v2',
+    'tool_suggest',
+  ]
+
+  it.each(reportedDefaults)('renders %s disabled and rejects an enabled readback', key => {
+    const rendered = renderNativeQualificationConfiguration(binding as NativeQualificationManifest, capability)
+    const featureSection = rendered.split('[features]\n')[1].split('\n[')[0]
+    expect(featureSection.split('\n').filter(line => line.startsWith(`${key} = `))).toEqual([`${key} = false`])
+    const value = configuration()
+    ;(value.config.features as Record<string, unknown>)[key] = true
+    expect(inspectNativeQualificationConfiguration(value, binding, capability)).toEqual({
+      valid: false,
+      reason: 'FEATURE_CONTROL_UNVERIFIED',
+      feature: key,
+    })
+  })
+  it('renders the optional network proxy as false and rejects its serialized unset value', () => {
+    const rendered = renderNativeQualificationConfiguration(binding as NativeQualificationManifest, capability)
+    expect(rendered.split('\n').filter(line => line.startsWith('network_proxy = '))).toEqual(['network_proxy = false'])
+    const value = configuration()
+    ;(value.config.features as Record<string, unknown>).network_proxy = null
+    expect(inspectNativeQualificationConfiguration(value, binding, capability)).toEqual({
+      valid: false,
+      reason: 'FEATURE_CONTROL_UNVERIFIED',
+      feature: 'network_proxy',
+    })
+  })
+  it('projects only fixed labels for all failed public controls in the same readback', () => {
+    const value = configuration()
+    value.config.model = 'private-unexpected-model'
+    value.config.feedback = { enabled: true, private_extra: 'private-value' }
+    ;(value.config.features as Record<string, unknown>).private_unexpected_feature = true
+    expect(inspectNativeQualificationConfiguration(value, binding, capability)).toEqual({
+      valid: false,
+      reason: 'PUBLIC_CONTROLS_UNVERIFIED',
+      fields: ['features', 'feedback', 'model'],
+    })
+  })
+})
+
+describe('serialized native MCP local environment binding', () => {
+  function serializedConfiguration() {
+    const value = configuration()
+    // Literal native connector readback; do not derive this fixture from the verifier's expected-value helper.
+    value.config.mcp_servers = {
+      appraise_worker: {
+        environment_id: 'local',
+        url: `http://127.0.0.1:${binding.endpoint.port}${binding.endpoint.path}`,
+        http_headers: { Authorization: `Bearer ${capability}` },
+        enabled: true,
+        required: true,
+        enabled_tools: ['quality_journey_analysis_get', 'quality_journey_analysis_submit'],
+        tools: {
+          quality_journey_analysis_get: { approval_mode: 'approve' },
+          quality_journey_analysis_submit: { approval_mode: 'approve' },
+        },
+        startup_timeout_sec: 10,
+        tool_timeout_sec: 30,
+      },
+    }
+    return value
+  }
+  it('accepts the serialized local connector with exact native tool approval and closed controls', () => {
+    expect(inspectNativeQualificationConfiguration(serializedConfiguration(), binding, capability)).toEqual({
+      valid: true,
+      reason: 'NONE',
+    })
+  })
+  it.each([undefined, null, 'remote', 'local-other', '', false])(
+    'refuses absent or nonlocal environment_id %j',
+    environment => {
+      const value = serializedConfiguration()
+      const server = (value.config.mcp_servers as Record<string, Record<string, unknown>>).appraise_worker
+      if (environment === undefined) delete server.environment_id
+      else server.environment_id = environment
+      expect(inspectNativeQualificationConfiguration(value, binding, capability)).toEqual({
+        valid: false,
+        reason: 'MCP_CONNECTOR_UNVERIFIED',
+      })
+    },
+  )
+  it('renders the exact local environment explicitly once in the reviewed connector section', () => {
+    const rendered = renderNativeQualificationConfiguration(binding as NativeQualificationManifest, capability)
+    expect(rendered).toContain('[mcp_servers.appraise_worker]\nenvironment_id = "local"\n')
+    expect(rendered.split('\n').filter(line => line === 'environment_id = "local"')).toHaveLength(1)
+  })
+})
+
+describe('explicit MCP native prompt policy and sanitized refusal metadata', () => {
+  it.each(['missing', 'wrong', 'extra'] as const)('refuses %s native per-tool approval scope', mode => {
+    const value = configuration(),
+      servers = value.config.mcp_servers as Record<string, Record<string, unknown>>
+    const tools = servers.appraise_worker.tools as Record<string, Record<string, unknown>>
+    if (mode === 'missing') delete tools.quality_journey_analysis_get
+    if (mode === 'wrong') tools.quality_journey_analysis_get.approval_mode = 'auto'
+    if (mode === 'extra') tools.foreign_tool = { approval_mode: 'approve' }
+    expect(inspectNativeQualificationConfiguration(value, binding, capability)).toEqual({
+      valid: false,
+      reason: 'MCP_TOOL_APPROVAL_SCOPE_MISMATCH',
+    })
+  })
+  it('requires a file-only MCP OAuth backend and retains only finite safe refusal reasons', () => {
+    const value = configuration()
+    delete value.config.mcp_oauth_credentials_store
+    expect(inspectNativeQualificationConfiguration(value, binding, capability)).toEqual({
+      valid: false,
+      reason: 'MCP_OAUTH_BACKEND_UNVERIFIED',
+    })
+    value.config.mcp_oauth_credentials_store = 'file'
+    ;(value.config.features as Record<string, unknown>).sleep_tool = true
+    expect(inspectNativeQualificationConfiguration(value, binding, capability)).toEqual({
+      valid: false,
+      reason: 'FEATURE_CONTROL_UNVERIFIED',
+      feature: 'sleep_tool',
+    })
+  })
+  it('never broadens approval to an entire server or global unlisted tools', () => {
+    const value = configuration(),
+      servers = value.config.mcp_servers as Record<string, Record<string, unknown>>
+    servers.appraise_worker.default_tools_approval_mode = 'approve'
+    expect(verifyNativeQualificationConfiguration(value, binding, capability)).toBe(false)
+  })
+})
+
+describe('current-native code-mode producer closure', () => {
+  const controls = ['code_mode_only', 'code_mode_host', 'code_mode_prewarm'] as const
+  it('renders each new explicit false control exactly once in the captured configuration', () => {
+    const rendered = renderNativeQualificationConfiguration(binding as NativeQualificationManifest, capability)
+    for (const key of controls) expect(rendered.split('\n').filter(line => line === `${key} = false`)).toHaveLength(1)
+    expect(rendered).not.toMatch(/responses_websockets|supports_websockets|model_providers/)
+  })
+  it.each(controls)('refuses structured %s even when its enabled member is false', key => {
+    const value = configuration()
+    ;(value.config.features as Record<string, unknown>)[key] = { enabled: false }
+    expect(inspectNativeQualificationConfiguration(value, binding, capability)).toEqual({
+      valid: false,
+      reason: 'FEATURE_CONTROL_UNVERIFIED',
+      feature: key,
+    })
+  })
+  it.each([true, false])('refuses code_mode_host options with disable_in_process_fallback=%s', fallback => {
+    const value = configuration()
+    ;(value.config.features as Record<string, unknown>).code_mode_host = {
+      enabled: false,
+      disable_in_process_fallback: fallback,
+    }
+    expect(verifyNativeQualificationConfiguration(value, binding, capability)).toBe(false)
+  })
+  it.each(controls)('rechecks %s after an accepted readback instead of retaining acceptance', key => {
+    const value = configuration()
+    expect(verifyNativeQualificationConfiguration(value, binding, capability)).toBe(true)
+    ;(value.config.features as Record<string, unknown>)[key] = true
+    expect(verifyNativeQualificationConfiguration(value, binding, capability)).toBe(false)
+  })
+})

@@ -1,657 +1,657 @@
-# Graph Report - scripts  (2026-11-12)
+# Graph Report - scripts  (2026-11-14)
 
 ## Corpus Check
-- 1877 files · ~1,590,618 words
-- Verdict: corpus is large enough that graph structure adds value.
+- Large corpus: 1877 files · ~1,590,665 words. Semantic extraction will be expensive (many Claude tokens). Consider running on a subfolder.
 
 ## Summary
-- 17469 nodes · 42891 edges · 648 communities (586 shown, 62 thin omitted)
-- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 170 edges (avg confidence: 0.8)
+- 17469 nodes · 42878 edges · 649 communities (587 shown, 62 thin omitted)
+- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 158 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `8d8d8254`
+- Built from commit: `b8aaa949`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- [[_COMMUNITY_Community 0|Community 0]]
-- [[_COMMUNITY_Community 1|Community 1]]
-- [[_COMMUNITY_Community 2|Community 2]]
-- [[_COMMUNITY_Community 3|Community 3]]
-- [[_COMMUNITY_Community 4|Community 4]]
-- [[_COMMUNITY_Community 5|Community 5]]
-- [[_COMMUNITY_Community 6|Community 6]]
-- [[_COMMUNITY_Community 7|Community 7]]
-- [[_COMMUNITY_Community 8|Community 8]]
-- [[_COMMUNITY_Community 9|Community 9]]
-- [[_COMMUNITY_Community 10|Community 10]]
-- [[_COMMUNITY_Community 11|Community 11]]
-- [[_COMMUNITY_Community 12|Community 12]]
-- [[_COMMUNITY_Community 13|Community 13]]
-- [[_COMMUNITY_Community 14|Community 14]]
-- [[_COMMUNITY_Community 15|Community 15]]
-- [[_COMMUNITY_Community 16|Community 16]]
-- [[_COMMUNITY_Community 17|Community 17]]
-- [[_COMMUNITY_Community 18|Community 18]]
-- [[_COMMUNITY_Community 19|Community 19]]
-- [[_COMMUNITY_Community 20|Community 20]]
-- [[_COMMUNITY_Community 21|Community 21]]
-- [[_COMMUNITY_Community 22|Community 22]]
-- [[_COMMUNITY_Community 23|Community 23]]
-- [[_COMMUNITY_Community 24|Community 24]]
-- [[_COMMUNITY_Community 25|Community 25]]
-- [[_COMMUNITY_Community 26|Community 26]]
-- [[_COMMUNITY_Community 27|Community 27]]
-- [[_COMMUNITY_Community 28|Community 28]]
-- [[_COMMUNITY_Community 29|Community 29]]
-- [[_COMMUNITY_Community 30|Community 30]]
-- [[_COMMUNITY_Community 31|Community 31]]
-- [[_COMMUNITY_Community 32|Community 32]]
-- [[_COMMUNITY_Community 33|Community 33]]
-- [[_COMMUNITY_Community 34|Community 34]]
-- [[_COMMUNITY_Community 35|Community 35]]
-- [[_COMMUNITY_Community 36|Community 36]]
-- [[_COMMUNITY_Community 37|Community 37]]
-- [[_COMMUNITY_Community 38|Community 38]]
-- [[_COMMUNITY_Community 39|Community 39]]
-- [[_COMMUNITY_Community 40|Community 40]]
-- [[_COMMUNITY_Community 41|Community 41]]
-- [[_COMMUNITY_Community 42|Community 42]]
-- [[_COMMUNITY_Community 43|Community 43]]
-- [[_COMMUNITY_Community 44|Community 44]]
-- [[_COMMUNITY_Community 45|Community 45]]
-- [[_COMMUNITY_Community 46|Community 46]]
-- [[_COMMUNITY_Community 47|Community 47]]
-- [[_COMMUNITY_Community 48|Community 48]]
-- [[_COMMUNITY_Community 49|Community 49]]
-- [[_COMMUNITY_Community 50|Community 50]]
-- [[_COMMUNITY_Community 51|Community 51]]
-- [[_COMMUNITY_Community 52|Community 52]]
-- [[_COMMUNITY_Community 53|Community 53]]
-- [[_COMMUNITY_Community 54|Community 54]]
-- [[_COMMUNITY_Community 55|Community 55]]
-- [[_COMMUNITY_Community 56|Community 56]]
-- [[_COMMUNITY_Community 57|Community 57]]
-- [[_COMMUNITY_Community 58|Community 58]]
-- [[_COMMUNITY_Community 59|Community 59]]
-- [[_COMMUNITY_Community 60|Community 60]]
-- [[_COMMUNITY_Community 61|Community 61]]
-- [[_COMMUNITY_Community 62|Community 62]]
-- [[_COMMUNITY_Community 63|Community 63]]
-- [[_COMMUNITY_Community 64|Community 64]]
-- [[_COMMUNITY_Community 65|Community 65]]
-- [[_COMMUNITY_Community 66|Community 66]]
-- [[_COMMUNITY_Community 67|Community 67]]
-- [[_COMMUNITY_Community 68|Community 68]]
-- [[_COMMUNITY_Community 69|Community 69]]
-- [[_COMMUNITY_Community 70|Community 70]]
-- [[_COMMUNITY_Community 71|Community 71]]
-- [[_COMMUNITY_Community 72|Community 72]]
-- [[_COMMUNITY_Community 73|Community 73]]
-- [[_COMMUNITY_Community 74|Community 74]]
-- [[_COMMUNITY_Community 75|Community 75]]
-- [[_COMMUNITY_Community 76|Community 76]]
-- [[_COMMUNITY_Community 77|Community 77]]
-- [[_COMMUNITY_Community 78|Community 78]]
-- [[_COMMUNITY_Community 79|Community 79]]
-- [[_COMMUNITY_Community 80|Community 80]]
-- [[_COMMUNITY_Community 81|Community 81]]
-- [[_COMMUNITY_Community 82|Community 82]]
-- [[_COMMUNITY_Community 83|Community 83]]
-- [[_COMMUNITY_Community 84|Community 84]]
-- [[_COMMUNITY_Community 85|Community 85]]
-- [[_COMMUNITY_Community 86|Community 86]]
-- [[_COMMUNITY_Community 87|Community 87]]
-- [[_COMMUNITY_Community 88|Community 88]]
-- [[_COMMUNITY_Community 89|Community 89]]
-- [[_COMMUNITY_Community 90|Community 90]]
-- [[_COMMUNITY_Community 91|Community 91]]
-- [[_COMMUNITY_Community 92|Community 92]]
-- [[_COMMUNITY_Community 93|Community 93]]
-- [[_COMMUNITY_Community 94|Community 94]]
-- [[_COMMUNITY_Community 95|Community 95]]
-- [[_COMMUNITY_Community 96|Community 96]]
-- [[_COMMUNITY_Community 97|Community 97]]
-- [[_COMMUNITY_Community 98|Community 98]]
-- [[_COMMUNITY_Community 99|Community 99]]
-- [[_COMMUNITY_Community 100|Community 100]]
-- [[_COMMUNITY_Community 101|Community 101]]
-- [[_COMMUNITY_Community 102|Community 102]]
-- [[_COMMUNITY_Community 103|Community 103]]
-- [[_COMMUNITY_Community 104|Community 104]]
-- [[_COMMUNITY_Community 105|Community 105]]
-- [[_COMMUNITY_Community 106|Community 106]]
-- [[_COMMUNITY_Community 107|Community 107]]
-- [[_COMMUNITY_Community 108|Community 108]]
-- [[_COMMUNITY_Community 109|Community 109]]
-- [[_COMMUNITY_Community 110|Community 110]]
-- [[_COMMUNITY_Community 111|Community 111]]
-- [[_COMMUNITY_Community 112|Community 112]]
-- [[_COMMUNITY_Community 113|Community 113]]
-- [[_COMMUNITY_Community 114|Community 114]]
-- [[_COMMUNITY_Community 115|Community 115]]
-- [[_COMMUNITY_Community 116|Community 116]]
-- [[_COMMUNITY_Community 117|Community 117]]
-- [[_COMMUNITY_Community 118|Community 118]]
-- [[_COMMUNITY_Community 119|Community 119]]
-- [[_COMMUNITY_Community 120|Community 120]]
-- [[_COMMUNITY_Community 121|Community 121]]
-- [[_COMMUNITY_Community 122|Community 122]]
-- [[_COMMUNITY_Community 123|Community 123]]
-- [[_COMMUNITY_Community 124|Community 124]]
-- [[_COMMUNITY_Community 125|Community 125]]
-- [[_COMMUNITY_Community 126|Community 126]]
-- [[_COMMUNITY_Community 127|Community 127]]
-- [[_COMMUNITY_Community 128|Community 128]]
-- [[_COMMUNITY_Community 129|Community 129]]
-- [[_COMMUNITY_Community 130|Community 130]]
-- [[_COMMUNITY_Community 131|Community 131]]
-- [[_COMMUNITY_Community 132|Community 132]]
-- [[_COMMUNITY_Community 133|Community 133]]
-- [[_COMMUNITY_Community 134|Community 134]]
-- [[_COMMUNITY_Community 135|Community 135]]
-- [[_COMMUNITY_Community 136|Community 136]]
-- [[_COMMUNITY_Community 137|Community 137]]
-- [[_COMMUNITY_Community 138|Community 138]]
-- [[_COMMUNITY_Community 139|Community 139]]
-- [[_COMMUNITY_Community 140|Community 140]]
-- [[_COMMUNITY_Community 141|Community 141]]
-- [[_COMMUNITY_Community 142|Community 142]]
-- [[_COMMUNITY_Community 143|Community 143]]
-- [[_COMMUNITY_Community 144|Community 144]]
-- [[_COMMUNITY_Community 145|Community 145]]
-- [[_COMMUNITY_Community 146|Community 146]]
-- [[_COMMUNITY_Community 147|Community 147]]
-- [[_COMMUNITY_Community 148|Community 148]]
-- [[_COMMUNITY_Community 149|Community 149]]
-- [[_COMMUNITY_Community 150|Community 150]]
-- [[_COMMUNITY_Community 151|Community 151]]
-- [[_COMMUNITY_Community 152|Community 152]]
-- [[_COMMUNITY_Community 153|Community 153]]
-- [[_COMMUNITY_Community 154|Community 154]]
-- [[_COMMUNITY_Community 155|Community 155]]
-- [[_COMMUNITY_Community 156|Community 156]]
-- [[_COMMUNITY_Community 157|Community 157]]
-- [[_COMMUNITY_Community 158|Community 158]]
-- [[_COMMUNITY_Community 159|Community 159]]
-- [[_COMMUNITY_Community 160|Community 160]]
-- [[_COMMUNITY_Community 161|Community 161]]
-- [[_COMMUNITY_Community 162|Community 162]]
-- [[_COMMUNITY_Community 163|Community 163]]
-- [[_COMMUNITY_Community 164|Community 164]]
-- [[_COMMUNITY_Community 165|Community 165]]
-- [[_COMMUNITY_Community 166|Community 166]]
-- [[_COMMUNITY_Community 167|Community 167]]
-- [[_COMMUNITY_Community 168|Community 168]]
-- [[_COMMUNITY_Community 169|Community 169]]
-- [[_COMMUNITY_Community 170|Community 170]]
-- [[_COMMUNITY_Community 171|Community 171]]
-- [[_COMMUNITY_Community 172|Community 172]]
-- [[_COMMUNITY_Community 173|Community 173]]
-- [[_COMMUNITY_Community 174|Community 174]]
-- [[_COMMUNITY_Community 175|Community 175]]
-- [[_COMMUNITY_Community 176|Community 176]]
-- [[_COMMUNITY_Community 177|Community 177]]
-- [[_COMMUNITY_Community 178|Community 178]]
-- [[_COMMUNITY_Community 179|Community 179]]
-- [[_COMMUNITY_Community 180|Community 180]]
-- [[_COMMUNITY_Community 181|Community 181]]
-- [[_COMMUNITY_Community 182|Community 182]]
-- [[_COMMUNITY_Community 183|Community 183]]
-- [[_COMMUNITY_Community 184|Community 184]]
-- [[_COMMUNITY_Community 185|Community 185]]
-- [[_COMMUNITY_Community 186|Community 186]]
-- [[_COMMUNITY_Community 187|Community 187]]
-- [[_COMMUNITY_Community 188|Community 188]]
-- [[_COMMUNITY_Community 189|Community 189]]
-- [[_COMMUNITY_Community 190|Community 190]]
-- [[_COMMUNITY_Community 191|Community 191]]
-- [[_COMMUNITY_Community 192|Community 192]]
-- [[_COMMUNITY_Community 193|Community 193]]
-- [[_COMMUNITY_Community 194|Community 194]]
-- [[_COMMUNITY_Community 195|Community 195]]
-- [[_COMMUNITY_Community 196|Community 196]]
-- [[_COMMUNITY_Community 197|Community 197]]
-- [[_COMMUNITY_Community 198|Community 198]]
-- [[_COMMUNITY_Community 199|Community 199]]
-- [[_COMMUNITY_Community 200|Community 200]]
-- [[_COMMUNITY_Community 201|Community 201]]
-- [[_COMMUNITY_Community 202|Community 202]]
-- [[_COMMUNITY_Community 203|Community 203]]
-- [[_COMMUNITY_Community 204|Community 204]]
-- [[_COMMUNITY_Community 205|Community 205]]
-- [[_COMMUNITY_Community 206|Community 206]]
-- [[_COMMUNITY_Community 207|Community 207]]
-- [[_COMMUNITY_Community 208|Community 208]]
-- [[_COMMUNITY_Community 209|Community 209]]
-- [[_COMMUNITY_Community 210|Community 210]]
-- [[_COMMUNITY_Community 211|Community 211]]
-- [[_COMMUNITY_Community 212|Community 212]]
-- [[_COMMUNITY_Community 213|Community 213]]
-- [[_COMMUNITY_Community 214|Community 214]]
-- [[_COMMUNITY_Community 215|Community 215]]
-- [[_COMMUNITY_Community 216|Community 216]]
-- [[_COMMUNITY_Community 217|Community 217]]
-- [[_COMMUNITY_Community 218|Community 218]]
-- [[_COMMUNITY_Community 219|Community 219]]
-- [[_COMMUNITY_Community 220|Community 220]]
-- [[_COMMUNITY_Community 221|Community 221]]
-- [[_COMMUNITY_Community 222|Community 222]]
-- [[_COMMUNITY_Community 223|Community 223]]
-- [[_COMMUNITY_Community 224|Community 224]]
-- [[_COMMUNITY_Community 225|Community 225]]
-- [[_COMMUNITY_Community 226|Community 226]]
-- [[_COMMUNITY_Community 227|Community 227]]
-- [[_COMMUNITY_Community 228|Community 228]]
-- [[_COMMUNITY_Community 229|Community 229]]
-- [[_COMMUNITY_Community 230|Community 230]]
-- [[_COMMUNITY_Community 231|Community 231]]
-- [[_COMMUNITY_Community 232|Community 232]]
-- [[_COMMUNITY_Community 233|Community 233]]
-- [[_COMMUNITY_Community 234|Community 234]]
-- [[_COMMUNITY_Community 235|Community 235]]
-- [[_COMMUNITY_Community 236|Community 236]]
-- [[_COMMUNITY_Community 237|Community 237]]
-- [[_COMMUNITY_Community 238|Community 238]]
-- [[_COMMUNITY_Community 239|Community 239]]
-- [[_COMMUNITY_Community 240|Community 240]]
-- [[_COMMUNITY_Community 241|Community 241]]
-- [[_COMMUNITY_Community 242|Community 242]]
-- [[_COMMUNITY_Community 243|Community 243]]
-- [[_COMMUNITY_Community 244|Community 244]]
-- [[_COMMUNITY_Community 245|Community 245]]
-- [[_COMMUNITY_Community 246|Community 246]]
-- [[_COMMUNITY_Community 247|Community 247]]
-- [[_COMMUNITY_Community 248|Community 248]]
-- [[_COMMUNITY_Community 249|Community 249]]
-- [[_COMMUNITY_Community 250|Community 250]]
-- [[_COMMUNITY_Community 251|Community 251]]
-- [[_COMMUNITY_Community 252|Community 252]]
-- [[_COMMUNITY_Community 253|Community 253]]
-- [[_COMMUNITY_Community 254|Community 254]]
-- [[_COMMUNITY_Community 255|Community 255]]
-- [[_COMMUNITY_Community 256|Community 256]]
-- [[_COMMUNITY_Community 257|Community 257]]
-- [[_COMMUNITY_Community 258|Community 258]]
-- [[_COMMUNITY_Community 259|Community 259]]
-- [[_COMMUNITY_Community 260|Community 260]]
-- [[_COMMUNITY_Community 261|Community 261]]
-- [[_COMMUNITY_Community 262|Community 262]]
-- [[_COMMUNITY_Community 263|Community 263]]
-- [[_COMMUNITY_Community 264|Community 264]]
-- [[_COMMUNITY_Community 265|Community 265]]
-- [[_COMMUNITY_Community 266|Community 266]]
-- [[_COMMUNITY_Community 267|Community 267]]
-- [[_COMMUNITY_Community 268|Community 268]]
-- [[_COMMUNITY_Community 269|Community 269]]
-- [[_COMMUNITY_Community 270|Community 270]]
-- [[_COMMUNITY_Community 271|Community 271]]
-- [[_COMMUNITY_Community 272|Community 272]]
-- [[_COMMUNITY_Community 273|Community 273]]
-- [[_COMMUNITY_Community 274|Community 274]]
-- [[_COMMUNITY_Community 275|Community 275]]
-- [[_COMMUNITY_Community 276|Community 276]]
-- [[_COMMUNITY_Community 277|Community 277]]
-- [[_COMMUNITY_Community 278|Community 278]]
-- [[_COMMUNITY_Community 279|Community 279]]
-- [[_COMMUNITY_Community 280|Community 280]]
-- [[_COMMUNITY_Community 281|Community 281]]
-- [[_COMMUNITY_Community 282|Community 282]]
-- [[_COMMUNITY_Community 283|Community 283]]
-- [[_COMMUNITY_Community 284|Community 284]]
-- [[_COMMUNITY_Community 285|Community 285]]
-- [[_COMMUNITY_Community 286|Community 286]]
-- [[_COMMUNITY_Community 287|Community 287]]
-- [[_COMMUNITY_Community 288|Community 288]]
-- [[_COMMUNITY_Community 289|Community 289]]
-- [[_COMMUNITY_Community 290|Community 290]]
-- [[_COMMUNITY_Community 291|Community 291]]
-- [[_COMMUNITY_Community 292|Community 292]]
-- [[_COMMUNITY_Community 293|Community 293]]
-- [[_COMMUNITY_Community 294|Community 294]]
-- [[_COMMUNITY_Community 295|Community 295]]
-- [[_COMMUNITY_Community 296|Community 296]]
-- [[_COMMUNITY_Community 297|Community 297]]
-- [[_COMMUNITY_Community 298|Community 298]]
-- [[_COMMUNITY_Community 299|Community 299]]
-- [[_COMMUNITY_Community 300|Community 300]]
-- [[_COMMUNITY_Community 301|Community 301]]
-- [[_COMMUNITY_Community 302|Community 302]]
-- [[_COMMUNITY_Community 303|Community 303]]
-- [[_COMMUNITY_Community 304|Community 304]]
-- [[_COMMUNITY_Community 305|Community 305]]
-- [[_COMMUNITY_Community 306|Community 306]]
-- [[_COMMUNITY_Community 307|Community 307]]
-- [[_COMMUNITY_Community 308|Community 308]]
-- [[_COMMUNITY_Community 309|Community 309]]
-- [[_COMMUNITY_Community 310|Community 310]]
-- [[_COMMUNITY_Community 311|Community 311]]
-- [[_COMMUNITY_Community 312|Community 312]]
-- [[_COMMUNITY_Community 313|Community 313]]
-- [[_COMMUNITY_Community 314|Community 314]]
-- [[_COMMUNITY_Community 315|Community 315]]
-- [[_COMMUNITY_Community 316|Community 316]]
-- [[_COMMUNITY_Community 317|Community 317]]
-- [[_COMMUNITY_Community 318|Community 318]]
-- [[_COMMUNITY_Community 319|Community 319]]
-- [[_COMMUNITY_Community 320|Community 320]]
-- [[_COMMUNITY_Community 321|Community 321]]
-- [[_COMMUNITY_Community 322|Community 322]]
-- [[_COMMUNITY_Community 323|Community 323]]
-- [[_COMMUNITY_Community 324|Community 324]]
-- [[_COMMUNITY_Community 325|Community 325]]
-- [[_COMMUNITY_Community 326|Community 326]]
-- [[_COMMUNITY_Community 327|Community 327]]
-- [[_COMMUNITY_Community 328|Community 328]]
-- [[_COMMUNITY_Community 329|Community 329]]
-- [[_COMMUNITY_Community 330|Community 330]]
-- [[_COMMUNITY_Community 331|Community 331]]
-- [[_COMMUNITY_Community 332|Community 332]]
-- [[_COMMUNITY_Community 333|Community 333]]
-- [[_COMMUNITY_Community 334|Community 334]]
-- [[_COMMUNITY_Community 335|Community 335]]
-- [[_COMMUNITY_Community 336|Community 336]]
-- [[_COMMUNITY_Community 337|Community 337]]
-- [[_COMMUNITY_Community 338|Community 338]]
-- [[_COMMUNITY_Community 339|Community 339]]
-- [[_COMMUNITY_Community 340|Community 340]]
-- [[_COMMUNITY_Community 341|Community 341]]
-- [[_COMMUNITY_Community 342|Community 342]]
-- [[_COMMUNITY_Community 343|Community 343]]
-- [[_COMMUNITY_Community 344|Community 344]]
-- [[_COMMUNITY_Community 345|Community 345]]
-- [[_COMMUNITY_Community 346|Community 346]]
-- [[_COMMUNITY_Community 347|Community 347]]
-- [[_COMMUNITY_Community 348|Community 348]]
-- [[_COMMUNITY_Community 349|Community 349]]
-- [[_COMMUNITY_Community 350|Community 350]]
-- [[_COMMUNITY_Community 351|Community 351]]
-- [[_COMMUNITY_Community 352|Community 352]]
-- [[_COMMUNITY_Community 353|Community 353]]
-- [[_COMMUNITY_Community 354|Community 354]]
-- [[_COMMUNITY_Community 355|Community 355]]
-- [[_COMMUNITY_Community 356|Community 356]]
-- [[_COMMUNITY_Community 357|Community 357]]
-- [[_COMMUNITY_Community 358|Community 358]]
-- [[_COMMUNITY_Community 359|Community 359]]
-- [[_COMMUNITY_Community 360|Community 360]]
-- [[_COMMUNITY_Community 361|Community 361]]
-- [[_COMMUNITY_Community 362|Community 362]]
-- [[_COMMUNITY_Community 363|Community 363]]
-- [[_COMMUNITY_Community 364|Community 364]]
-- [[_COMMUNITY_Community 365|Community 365]]
-- [[_COMMUNITY_Community 366|Community 366]]
-- [[_COMMUNITY_Community 367|Community 367]]
-- [[_COMMUNITY_Community 368|Community 368]]
-- [[_COMMUNITY_Community 369|Community 369]]
-- [[_COMMUNITY_Community 370|Community 370]]
-- [[_COMMUNITY_Community 371|Community 371]]
-- [[_COMMUNITY_Community 372|Community 372]]
-- [[_COMMUNITY_Community 373|Community 373]]
-- [[_COMMUNITY_Community 374|Community 374]]
-- [[_COMMUNITY_Community 375|Community 375]]
-- [[_COMMUNITY_Community 376|Community 376]]
-- [[_COMMUNITY_Community 377|Community 377]]
-- [[_COMMUNITY_Community 378|Community 378]]
-- [[_COMMUNITY_Community 379|Community 379]]
-- [[_COMMUNITY_Community 380|Community 380]]
-- [[_COMMUNITY_Community 381|Community 381]]
-- [[_COMMUNITY_Community 382|Community 382]]
-- [[_COMMUNITY_Community 383|Community 383]]
-- [[_COMMUNITY_Community 384|Community 384]]
-- [[_COMMUNITY_Community 385|Community 385]]
-- [[_COMMUNITY_Community 386|Community 386]]
-- [[_COMMUNITY_Community 387|Community 387]]
-- [[_COMMUNITY_Community 388|Community 388]]
-- [[_COMMUNITY_Community 389|Community 389]]
-- [[_COMMUNITY_Community 390|Community 390]]
-- [[_COMMUNITY_Community 391|Community 391]]
-- [[_COMMUNITY_Community 392|Community 392]]
-- [[_COMMUNITY_Community 393|Community 393]]
-- [[_COMMUNITY_Community 394|Community 394]]
-- [[_COMMUNITY_Community 395|Community 395]]
-- [[_COMMUNITY_Community 396|Community 396]]
-- [[_COMMUNITY_Community 397|Community 397]]
-- [[_COMMUNITY_Community 398|Community 398]]
-- [[_COMMUNITY_Community 399|Community 399]]
-- [[_COMMUNITY_Community 400|Community 400]]
-- [[_COMMUNITY_Community 401|Community 401]]
-- [[_COMMUNITY_Community 402|Community 402]]
-- [[_COMMUNITY_Community 403|Community 403]]
-- [[_COMMUNITY_Community 404|Community 404]]
-- [[_COMMUNITY_Community 405|Community 405]]
-- [[_COMMUNITY_Community 406|Community 406]]
-- [[_COMMUNITY_Community 407|Community 407]]
-- [[_COMMUNITY_Community 408|Community 408]]
-- [[_COMMUNITY_Community 409|Community 409]]
-- [[_COMMUNITY_Community 410|Community 410]]
-- [[_COMMUNITY_Community 411|Community 411]]
-- [[_COMMUNITY_Community 412|Community 412]]
-- [[_COMMUNITY_Community 413|Community 413]]
-- [[_COMMUNITY_Community 414|Community 414]]
-- [[_COMMUNITY_Community 415|Community 415]]
-- [[_COMMUNITY_Community 416|Community 416]]
-- [[_COMMUNITY_Community 417|Community 417]]
-- [[_COMMUNITY_Community 418|Community 418]]
-- [[_COMMUNITY_Community 419|Community 419]]
-- [[_COMMUNITY_Community 420|Community 420]]
-- [[_COMMUNITY_Community 421|Community 421]]
-- [[_COMMUNITY_Community 422|Community 422]]
-- [[_COMMUNITY_Community 423|Community 423]]
-- [[_COMMUNITY_Community 424|Community 424]]
-- [[_COMMUNITY_Community 425|Community 425]]
-- [[_COMMUNITY_Community 426|Community 426]]
-- [[_COMMUNITY_Community 427|Community 427]]
-- [[_COMMUNITY_Community 428|Community 428]]
-- [[_COMMUNITY_Community 429|Community 429]]
-- [[_COMMUNITY_Community 430|Community 430]]
-- [[_COMMUNITY_Community 431|Community 431]]
-- [[_COMMUNITY_Community 432|Community 432]]
-- [[_COMMUNITY_Community 433|Community 433]]
-- [[_COMMUNITY_Community 434|Community 434]]
-- [[_COMMUNITY_Community 435|Community 435]]
-- [[_COMMUNITY_Community 436|Community 436]]
-- [[_COMMUNITY_Community 437|Community 437]]
-- [[_COMMUNITY_Community 438|Community 438]]
-- [[_COMMUNITY_Community 439|Community 439]]
-- [[_COMMUNITY_Community 440|Community 440]]
-- [[_COMMUNITY_Community 441|Community 441]]
-- [[_COMMUNITY_Community 442|Community 442]]
-- [[_COMMUNITY_Community 443|Community 443]]
-- [[_COMMUNITY_Community 444|Community 444]]
-- [[_COMMUNITY_Community 445|Community 445]]
-- [[_COMMUNITY_Community 446|Community 446]]
-- [[_COMMUNITY_Community 447|Community 447]]
-- [[_COMMUNITY_Community 448|Community 448]]
-- [[_COMMUNITY_Community 449|Community 449]]
-- [[_COMMUNITY_Community 450|Community 450]]
-- [[_COMMUNITY_Community 451|Community 451]]
-- [[_COMMUNITY_Community 452|Community 452]]
-- [[_COMMUNITY_Community 453|Community 453]]
-- [[_COMMUNITY_Community 454|Community 454]]
-- [[_COMMUNITY_Community 455|Community 455]]
-- [[_COMMUNITY_Community 456|Community 456]]
-- [[_COMMUNITY_Community 457|Community 457]]
-- [[_COMMUNITY_Community 458|Community 458]]
-- [[_COMMUNITY_Community 459|Community 459]]
-- [[_COMMUNITY_Community 460|Community 460]]
-- [[_COMMUNITY_Community 461|Community 461]]
-- [[_COMMUNITY_Community 462|Community 462]]
-- [[_COMMUNITY_Community 463|Community 463]]
-- [[_COMMUNITY_Community 464|Community 464]]
-- [[_COMMUNITY_Community 465|Community 465]]
-- [[_COMMUNITY_Community 466|Community 466]]
-- [[_COMMUNITY_Community 467|Community 467]]
-- [[_COMMUNITY_Community 468|Community 468]]
-- [[_COMMUNITY_Community 469|Community 469]]
-- [[_COMMUNITY_Community 470|Community 470]]
-- [[_COMMUNITY_Community 471|Community 471]]
-- [[_COMMUNITY_Community 472|Community 472]]
-- [[_COMMUNITY_Community 473|Community 473]]
-- [[_COMMUNITY_Community 474|Community 474]]
-- [[_COMMUNITY_Community 475|Community 475]]
-- [[_COMMUNITY_Community 476|Community 476]]
-- [[_COMMUNITY_Community 477|Community 477]]
-- [[_COMMUNITY_Community 478|Community 478]]
-- [[_COMMUNITY_Community 479|Community 479]]
-- [[_COMMUNITY_Community 480|Community 480]]
-- [[_COMMUNITY_Community 481|Community 481]]
-- [[_COMMUNITY_Community 482|Community 482]]
-- [[_COMMUNITY_Community 483|Community 483]]
-- [[_COMMUNITY_Community 484|Community 484]]
-- [[_COMMUNITY_Community 485|Community 485]]
-- [[_COMMUNITY_Community 486|Community 486]]
-- [[_COMMUNITY_Community 487|Community 487]]
-- [[_COMMUNITY_Community 488|Community 488]]
-- [[_COMMUNITY_Community 489|Community 489]]
-- [[_COMMUNITY_Community 490|Community 490]]
-- [[_COMMUNITY_Community 491|Community 491]]
-- [[_COMMUNITY_Community 492|Community 492]]
-- [[_COMMUNITY_Community 493|Community 493]]
-- [[_COMMUNITY_Community 494|Community 494]]
-- [[_COMMUNITY_Community 495|Community 495]]
-- [[_COMMUNITY_Community 496|Community 496]]
-- [[_COMMUNITY_Community 497|Community 497]]
-- [[_COMMUNITY_Community 498|Community 498]]
-- [[_COMMUNITY_Community 499|Community 499]]
-- [[_COMMUNITY_Community 500|Community 500]]
-- [[_COMMUNITY_Community 501|Community 501]]
-- [[_COMMUNITY_Community 502|Community 502]]
-- [[_COMMUNITY_Community 503|Community 503]]
-- [[_COMMUNITY_Community 504|Community 504]]
-- [[_COMMUNITY_Community 505|Community 505]]
-- [[_COMMUNITY_Community 506|Community 506]]
-- [[_COMMUNITY_Community 507|Community 507]]
-- [[_COMMUNITY_Community 508|Community 508]]
-- [[_COMMUNITY_Community 510|Community 510]]
-- [[_COMMUNITY_Community 513|Community 513]]
-- [[_COMMUNITY_Community 514|Community 514]]
-- [[_COMMUNITY_Community 515|Community 515]]
-- [[_COMMUNITY_Community 516|Community 516]]
-- [[_COMMUNITY_Community 517|Community 517]]
-- [[_COMMUNITY_Community 518|Community 518]]
-- [[_COMMUNITY_Community 519|Community 519]]
-- [[_COMMUNITY_Community 521|Community 521]]
-- [[_COMMUNITY_Community 522|Community 522]]
-- [[_COMMUNITY_Community 523|Community 523]]
-- [[_COMMUNITY_Community 524|Community 524]]
-- [[_COMMUNITY_Community 525|Community 525]]
-- [[_COMMUNITY_Community 526|Community 526]]
-- [[_COMMUNITY_Community 527|Community 527]]
-- [[_COMMUNITY_Community 530|Community 530]]
-- [[_COMMUNITY_Community 531|Community 531]]
-- [[_COMMUNITY_Community 532|Community 532]]
-- [[_COMMUNITY_Community 533|Community 533]]
-- [[_COMMUNITY_Community 534|Community 534]]
-- [[_COMMUNITY_Community 535|Community 535]]
-- [[_COMMUNITY_Community 536|Community 536]]
-- [[_COMMUNITY_Community 537|Community 537]]
-- [[_COMMUNITY_Community 539|Community 539]]
-- [[_COMMUNITY_Community 541|Community 541]]
-- [[_COMMUNITY_Community 542|Community 542]]
-- [[_COMMUNITY_Community 543|Community 543]]
-- [[_COMMUNITY_Community 545|Community 545]]
-- [[_COMMUNITY_Community 546|Community 546]]
-- [[_COMMUNITY_Community 547|Community 547]]
-- [[_COMMUNITY_Community 548|Community 548]]
-- [[_COMMUNITY_Community 549|Community 549]]
-- [[_COMMUNITY_Community 550|Community 550]]
-- [[_COMMUNITY_Community 552|Community 552]]
-- [[_COMMUNITY_Community 553|Community 553]]
-- [[_COMMUNITY_Community 554|Community 554]]
-- [[_COMMUNITY_Community 555|Community 555]]
-- [[_COMMUNITY_Community 556|Community 556]]
-- [[_COMMUNITY_Community 557|Community 557]]
-- [[_COMMUNITY_Community 558|Community 558]]
-- [[_COMMUNITY_Community 559|Community 559]]
-- [[_COMMUNITY_Community 560|Community 560]]
-- [[_COMMUNITY_Community 561|Community 561]]
-- [[_COMMUNITY_Community 562|Community 562]]
-- [[_COMMUNITY_Community 563|Community 563]]
-- [[_COMMUNITY_Community 564|Community 564]]
-- [[_COMMUNITY_Community 567|Community 567]]
-- [[_COMMUNITY_Community 568|Community 568]]
-- [[_COMMUNITY_Community 570|Community 570]]
-- [[_COMMUNITY_Community 571|Community 571]]
-- [[_COMMUNITY_Community 573|Community 573]]
-- [[_COMMUNITY_Community 574|Community 574]]
-- [[_COMMUNITY_Community 575|Community 575]]
-- [[_COMMUNITY_Community 576|Community 576]]
-- [[_COMMUNITY_Community 577|Community 577]]
-- [[_COMMUNITY_Community 578|Community 578]]
-- [[_COMMUNITY_Community 579|Community 579]]
-- [[_COMMUNITY_Community 580|Community 580]]
-- [[_COMMUNITY_Community 581|Community 581]]
-- [[_COMMUNITY_Community 583|Community 583]]
-- [[_COMMUNITY_Community 584|Community 584]]
-- [[_COMMUNITY_Community 585|Community 585]]
-- [[_COMMUNITY_Community 587|Community 587]]
-- [[_COMMUNITY_Community 588|Community 588]]
-- [[_COMMUNITY_Community 590|Community 590]]
-- [[_COMMUNITY_Community 591|Community 591]]
-- [[_COMMUNITY_Community 593|Community 593]]
-- [[_COMMUNITY_Community 594|Community 594]]
-- [[_COMMUNITY_Community 595|Community 595]]
-- [[_COMMUNITY_Community 596|Community 596]]
-- [[_COMMUNITY_Community 597|Community 597]]
-- [[_COMMUNITY_Community 598|Community 598]]
-- [[_COMMUNITY_Community 599|Community 599]]
-- [[_COMMUNITY_Community 600|Community 600]]
-- [[_COMMUNITY_Community 601|Community 601]]
-- [[_COMMUNITY_Community 602|Community 602]]
-- [[_COMMUNITY_Community 603|Community 603]]
-- [[_COMMUNITY_Community 604|Community 604]]
-- [[_COMMUNITY_Community 605|Community 605]]
-- [[_COMMUNITY_Community 606|Community 606]]
-- [[_COMMUNITY_Community 607|Community 607]]
-- [[_COMMUNITY_Community 608|Community 608]]
-- [[_COMMUNITY_Community 609|Community 609]]
-- [[_COMMUNITY_Community 610|Community 610]]
-- [[_COMMUNITY_Community 611|Community 611]]
-- [[_COMMUNITY_Community 612|Community 612]]
-- [[_COMMUNITY_Community 613|Community 613]]
-- [[_COMMUNITY_Community 614|Community 614]]
-- [[_COMMUNITY_Community 615|Community 615]]
-- [[_COMMUNITY_Community 616|Community 616]]
-- [[_COMMUNITY_Community 617|Community 617]]
-- [[_COMMUNITY_Community 618|Community 618]]
-- [[_COMMUNITY_Community 619|Community 619]]
-- [[_COMMUNITY_Community 627|Community 627]]
-- [[_COMMUNITY_Community 628|Community 628]]
-- [[_COMMUNITY_Community 629|Community 629]]
-- [[_COMMUNITY_Community 630|Community 630]]
-- [[_COMMUNITY_Community 631|Community 631]]
-- [[_COMMUNITY_Community 633|Community 633]]
-- [[_COMMUNITY_Community 636|Community 636]]
-- [[_COMMUNITY_Community 637|Community 637]]
-- [[_COMMUNITY_Community 638|Community 638]]
-- [[_COMMUNITY_Community 639|Community 639]]
-- [[_COMMUNITY_Community 641|Community 641]]
-- [[_COMMUNITY_Community 642|Community 642]]
-- [[_COMMUNITY_Community 643|Community 643]]
-- [[_COMMUNITY_Community 645|Community 645]]
-- [[_COMMUNITY_Community 646|Community 646]]
-- [[_COMMUNITY_Community 648|Community 648]]
-- [[_COMMUNITY_Community 650|Community 650]]
-- [[_COMMUNITY_Community 653|Community 653]]
-- [[_COMMUNITY_Community 656|Community 656]]
-- [[_COMMUNITY_Community 658|Community 658]]
-- [[_COMMUNITY_Community 659|Community 659]]
-- [[_COMMUNITY_Community 660|Community 660]]
-- [[_COMMUNITY_Community 662|Community 662]]
-- [[_COMMUNITY_Community 667|Community 667]]
-- [[_COMMUNITY_Community 668|Community 668]]
-- [[_COMMUNITY_Community 671|Community 671]]
-- [[_COMMUNITY_Community 672|Community 672]]
-- [[_COMMUNITY_Community 673|Community 673]]
-- [[_COMMUNITY_Community 676|Community 676]]
-- [[_COMMUNITY_Community 679|Community 679]]
-- [[_COMMUNITY_Community 682|Community 682]]
-- [[_COMMUNITY_Community 683|Community 683]]
-- [[_COMMUNITY_Community 686|Community 686]]
-- [[_COMMUNITY_Community 689|Community 689]]
-- [[_COMMUNITY_Community 690|Community 690]]
+- [[_COMMUNITY_Harness Validation Run Cucumber|Harness Validation Run Cucumber]]
+- [[_COMMUNITY_Benchmark Repository Queries|Benchmark Repository Queries]]
+- [[_COMMUNITY_Build Cucumber Runtime Operation|Build Cucumber Runtime Operation]]
+- [[_COMMUNITY_Operation Architecture Certify Build|Operation Architecture Certify Build]]
+- [[_COMMUNITY_Build Prisma Graph|Build Prisma Graph]]
+- [[_COMMUNITY_Check Agent Harness|Check Agent Harness]]
+- [[_COMMUNITY_Check Capsule Only Cutover|Check Capsule Only Cutover]]
+- [[_COMMUNITY_Check Documentation Links|Check Documentation Links]]
+- [[_COMMUNITY_Check Generated Artifacts|Check Generated Artifacts]]
+- [[_COMMUNITY_Check Generic Planning Boundary|Check Generic Planning Boundary]]
+- [[_COMMUNITY_Harness Learning|Harness Learning]]
+- [[_COMMUNITY_Step File Parser Operation|Step File Parser Operation]]
+- [[_COMMUNITY_Migration Inventory Check Package|Migration Inventory Check Package]]
+- [[_COMMUNITY_Quality Journey Integrity Check|Quality Journey Integrity Check]]
+- [[_COMMUNITY_Quality Ratchet Check|Quality Ratchet Check]]
+- [[_COMMUNITY_Check Release|Check Release]]
+- [[_COMMUNITY_Release Readiness Check|Release Readiness Check]]
+- [[_COMMUNITY_Toml Validator Swarm Check|Toml Validator Swarm Check]]
+- [[_COMMUNITY_Configure Git Line Endings|Configure Git Line Endings]]
+- [[_COMMUNITY_Dev With Mcp Startup|Dev With Mcp Startup]]
+- [[_COMMUNITY_Generate Coordinator Reference|Generate Coordinator Reference]]
+- [[_COMMUNITY_Generate Operation Handler Source|Generate Operation Handler Source]]
+- [[_COMMUNITY_Harness Diagnostic|Harness Diagnostic]]
+- [[_COMMUNITY_Graphify Freshness Update Graphs|Graphify Freshness Update Graphs]]
+- [[_COMMUNITY_Harness Artifact Review|Harness Artifact Review]]
+- [[_COMMUNITY_Install Playwright|Install Playwright]]
+- [[_COMMUNITY_Agent Setup Capabilities|Agent Setup Capabilities]]
+- [[_COMMUNITY_Local Readiness Startup Built|Local Readiness Startup Built]]
+- [[_COMMUNITY_Commit Policy Fallow Scope|Commit Policy Fallow Scope]]
+- [[_COMMUNITY_Database Compatibility Migrate Compatible|Database Compatibility Migrate Compatible]]
+- [[_COMMUNITY_Environment Secret Policy|Environment Secret Policy]]
+- [[_COMMUNITY_Swarm Ledger Store Harness|Swarm Ledger Store Harness]]
+- [[_COMMUNITY_Harness Selection|Harness Selection]]
+- [[_COMMUNITY_Managed Journey Browser Qualification|Managed Journey Browser Qualification]]
+- [[_COMMUNITY_Managed Journey Isolated Launch|Managed Journey Isolated Launch]]
+- [[_COMMUNITY_Qualify R2F Auth Managed|Qualify R2F Auth Managed]]
+- [[_COMMUNITY_Managed Journey Provider Qualification|Managed Journey Provider Qualification]]
+- [[_COMMUNITY_Managed Journey Recovery Qualification|Managed Journey Recovery Qualification]]
+- [[_COMMUNITY_Config Mcp Print Agent|Config Mcp Print Agent]]
+- [[_COMMUNITY_R2C Dynamic Tools Experiment|R2C Dynamic Tools Experiment]]
+- [[_COMMUNITY_R2D Interlock Experiment Qualify|R2D Interlock Experiment Qualify]]
+- [[_COMMUNITY_R2D Canonical Bridge|R2D Canonical Bridge]]
+- [[_COMMUNITY_R2F Schema Qualify R2D|R2F Schema Qualify R2D]]
+- [[_COMMUNITY_R2F Profiles|R2F Profiles]]
+- [[_COMMUNITY_Quality Journey Compatibility Sqlite|Quality Journey Compatibility Sqlite]]
+- [[_COMMUNITY_Swarm Cli Harness Select|Swarm Cli Harness Select]]
+- [[_COMMUNITY_Swarm Ledger Lock Access|Swarm Ledger Lock Access]]
+- [[_COMMUNITY_Swarm Routing Contract Router|Swarm Routing Contract Router]]
+- [[_COMMUNITY_Tag Parsing|Tag Parsing]]
+- [[_COMMUNITY_M05 Owned Process Smoke|M05 Owned Process Smoke]]
+- [[_COMMUNITY_M06 Analysis Smoke|M06 Analysis Smoke]]
+- [[_COMMUNITY_M06 Native Patch|M06 Native Patch]]
+- [[_COMMUNITY_M06 Native Patch|M06 Native Patch]]
+- [[_COMMUNITY_M06 Native Patch|M06 Native Patch]]
+- [[_COMMUNITY_M06 Native Patch Cli|M06 Native Patch Cli]]
+- [[_COMMUNITY_M10 Local Flow|M10 Local Flow]]
+- [[_COMMUNITY_Owned Process Supervisor|Owned Process Supervisor]]
+- [[_COMMUNITY_Protect Seeded Files|Protect Seeded Files]]
+- [[_COMMUNITY_Record Swarm Run|Record Swarm Run]]
+- [[_COMMUNITY_Setup Graphify|Setup Graphify]]
+- [[_COMMUNITY_Analysis Retained Ambient|Analysis Retained Ambient]]
+- [[_COMMUNITY_Analysis Retained Owned Child|Analysis Retained Owned Child]]
+- [[_COMMUNITY_Offline Grant Adapter|Offline Grant Adapter]]
+- [[_COMMUNITY_Source Custody Controller Launch|Source Custody Controller Launch]]
+- [[_COMMUNITY_Custody Fixture Admission Complement|Custody Fixture Admission Complement]]
+- [[_COMMUNITY_Fixture Custody Ipc Evidence|Fixture Custody Ipc Evidence]]
+- [[_COMMUNITY_Terminal Fixture Codecs Source|Terminal Fixture Codecs Source]]
+- [[_COMMUNITY_Fixture Custody Terminal Receipt|Fixture Custody Terminal Receipt]]
+- [[_COMMUNITY_Source Custody Launch Fixture|Source Custody Launch Fixture]]
+- [[_COMMUNITY_Prepare Offline Bootstrap Contract|Prepare Offline Bootstrap Contract]]
+- [[_COMMUNITY_Prepare Offline Case|Prepare Offline Case]]
+- [[_COMMUNITY_Prepare Offline Contract Case|Prepare Offline Contract Case]]
+- [[_COMMUNITY_Prepare Offline Discovery Lineage|Prepare Offline Discovery Lineage]]
+- [[_COMMUNITY_Prepare Offline Prisma Case|Prepare Offline Prisma Case]]
+- [[_COMMUNITY_Prepare Offline Service Case|Prepare Offline Service Case]]
+- [[_COMMUNITY_Prepare Offline Shared Use|Prepare Offline Shared Use]]
+- [[_COMMUNITY_Prepare Offline Sqlite Case|Prepare Offline Sqlite Case]]
+- [[_COMMUNITY_Prepare Offline Terminal Join|Prepare Offline Terminal Join]]
+- [[_COMMUNITY_Run Isolated Prisma|Run Isolated Prisma]]
+- [[_COMMUNITY_Run Offline Bootstrap Contract|Run Offline Bootstrap Contract]]
+- [[_COMMUNITY_Run Offline Case|Run Offline Case]]
+- [[_COMMUNITY_Run Offline Contract Case|Run Offline Contract Case]]
+- [[_COMMUNITY_Run Offline Discovery Lineage|Run Offline Discovery Lineage]]
+- [[_COMMUNITY_Run Offline Service Case|Run Offline Service Case]]
+- [[_COMMUNITY_Run Offline Shared Use|Run Offline Shared Use]]
+- [[_COMMUNITY_Run Offline Sqlite Case|Run Offline Sqlite Case]]
+- [[_COMMUNITY_Run Offline Terminal Join|Run Offline Terminal Join]]
+- [[_COMMUNITY_Custody Service Build Owner|Custody Service Build Owner]]
+- [[_COMMUNITY_Custody Activation Proof|Custody Activation Proof]]
+- [[_COMMUNITY_Custody Proof Service Retained|Custody Proof Service Retained]]
+- [[_COMMUNITY_Custody Complement Observation Service|Custody Complement Observation Service]]
+- [[_COMMUNITY_Custody Service Owner Source|Custody Service Owner Source]]
+- [[_COMMUNITY_Custody Fixture Transport Legacy|Custody Fixture Transport Legacy]]
+- [[_COMMUNITY_Custody Ipc Fault Controller|Custody Ipc Fault Controller]]
+- [[_COMMUNITY_Custody Service Supervision Supervisor|Custody Service Supervision Supervisor]]
+- [[_COMMUNITY_Custody Inspect After Exit|Custody Inspect After Exit]]
+- [[_COMMUNITY_M05 Owned Child Custody|M05 Owned Child Custody]]
+- [[_COMMUNITY_Custody Native Contender|Custody Native Contender]]
+- [[_COMMUNITY_Custody Owned Child Origin|Custody Owned Child Origin]]
+- [[_COMMUNITY_Custody Owner Ambient|Custody Owner Ambient]]
+- [[_COMMUNITY_Custody Service Admission|Custody Service Admission]]
+- [[_COMMUNITY_Custody Service Composition Driver|Custody Service Composition Driver]]
+- [[_COMMUNITY_Custody Service Fresh Driver|Custody Service Fresh Driver]]
+- [[_COMMUNITY_Custody Service Fresh Driver|Custody Service Fresh Driver]]
+- [[_COMMUNITY_Custody Service Syntax|Custody Service Syntax]]
+- [[_COMMUNITY_Source Custody Fault Ipc|Source Custody Fault Ipc]]
+- [[_COMMUNITY_Source Custody Client Build|Source Custody Client Build]]
+- [[_COMMUNITY_Source Custody Cases Case|Source Custody Cases Case]]
+- [[_COMMUNITY_Source Custody Owner Evidence|Source Custody Owner Evidence]]
+- [[_COMMUNITY_Finite Responses Source Custody|Finite Responses Source Custody]]
+- [[_COMMUNITY_Source Custody Client Binding|Source Custody Client Binding]]
+- [[_COMMUNITY_M12 Packed Install Source|M12 Packed Install Source]]
+- [[_COMMUNITY_Check Capsule Only Cutover|Check Capsule Only Cutover]]
+- [[_COMMUNITY_Codex App Server M01|Codex App Server M01]]
+- [[_COMMUNITY_Codex App Server M01|Codex App Server M01]]
+- [[_COMMUNITY_Codex App Server M01|Codex App Server M01]]
+- [[_COMMUNITY_Protocol Fixture Model Probe|Protocol Fixture Model Probe]]
+- [[_COMMUNITY_Framing Codex App Server|Framing Codex App Server]]
+- [[_COMMUNITY_Protocol P00 Storage Codex|Protocol P00 Storage Codex]]
+- [[_COMMUNITY_Canonical Fixture Codex App|Canonical Fixture Codex App]]
+- [[_COMMUNITY_Codec Policy Script Session|Codec Policy Script Session]]
+- [[_COMMUNITY_Policy Composition Protocol Codex|Policy Composition Protocol Codex]]
+- [[_COMMUNITY_Preparation Entrypoint Policy Runner|Preparation Entrypoint Policy Runner]]
+- [[_COMMUNITY_Journal Codex App Server|Journal Codex App Server]]
+- [[_COMMUNITY_Entrypoint Codex App Server|Entrypoint Codex App Server]]
+- [[_COMMUNITY_Codex App Server M02|Codex App Server M02]]
+- [[_COMMUNITY_Protocol Codex App Server|Protocol Codex App Server]]
+- [[_COMMUNITY_Codex App Server M02|Codex App Server M02]]
+- [[_COMMUNITY_Manifest Canonical Build Startup|Manifest Canonical Build Startup]]
+- [[_COMMUNITY_Manifest Canonical Build Codex|Manifest Canonical Build Codex]]
+- [[_COMMUNITY_Manifest Preflight Evidence Canonical|Manifest Preflight Evidence Canonical]]
+- [[_COMMUNITY_Provider Failure Codex App|Provider Failure Codex App]]
+- [[_COMMUNITY_Codex App Server M02|Codex App Server M02]]
+- [[_COMMUNITY_Prior Evidence Codex App|Prior Evidence Codex App]]
+- [[_COMMUNITY_Codex App Server M02|Codex App Server M02]]
+- [[_COMMUNITY_Observer Host File|Observer Host File]]
+- [[_COMMUNITY_Prior Evidence Codex App|Prior Evidence Codex App]]
+- [[_COMMUNITY_Codex App Server M02|Codex App Server M02]]
+- [[_COMMUNITY_Codex App Server M02|Codex App Server M02]]
+- [[_COMMUNITY_Codex App Server M02|Codex App Server M02]]
+- [[_COMMUNITY_Codex App Server M02|Codex App Server M02]]
+- [[_COMMUNITY_Package Qualification Codex App|Package Qualification Codex App]]
+- [[_COMMUNITY_Evidence Preparation R21 Sealed|Evidence Preparation R21 Sealed]]
+- [[_COMMUNITY_Policy Composition Plans Approval|Policy Composition Plans Approval]]
+- [[_COMMUNITY_Session Native Script Route|Session Native Script Route]]
+- [[_COMMUNITY_Collect Codex App Server|Collect Codex App Server]]
+- [[_COMMUNITY_Protocol P00 Rate Limit|Protocol P00 Rate Limit]]
+- [[_COMMUNITY_Receipts Codex App Server|Receipts Codex App Server]]
+- [[_COMMUNITY_Effects Case Receipts Codex|Effects Case Receipts Codex]]
+- [[_COMMUNITY_Finite Responses Continuation Diagnostic|Finite Responses Continuation Diagnostic]]
+- [[_COMMUNITY_Specimencheck Preparation Codex App|Specimencheck Preparation Codex App]]
+- [[_COMMUNITY_Policy Manifest R24 Evidence|Policy Manifest R24 Evidence]]
+- [[_COMMUNITY_Matrix Runner Codex App|Matrix Runner Codex App]]
+- [[_COMMUNITY_Route Sealed Capture Case|Route Sealed Capture Case]]
+- [[_COMMUNITY_Runner Prior Attempt Codex|Runner Prior Attempt Codex]]
+- [[_COMMUNITY_Codex App Server M02|Codex App Server M02]]
+- [[_COMMUNITY_Policy Composition Protocol Launcher|Policy Composition Protocol Launcher]]
+- [[_COMMUNITY_Codex App Server M02|Codex App Server M02]]
+- [[_COMMUNITY_Policy Composition Launcher Runtime|Policy Composition Launcher Runtime]]
+- [[_COMMUNITY_Codex App Server M02|Codex App Server M02]]
+- [[_COMMUNITY_Policy Composition Launcher Runtime|Policy Composition Launcher Runtime]]
+- [[_COMMUNITY_Codex App Server M02|Codex App Server M02]]
+- [[_COMMUNITY_Policy Composition Launcher Runtime|Policy Composition Launcher Runtime]]
+- [[_COMMUNITY_Runner Module Stage Codex|Runner Module Stage Codex]]
+- [[_COMMUNITY_Runner Error Adapter Codex|Runner Error Adapter Codex]]
+- [[_COMMUNITY_Proof Owned Scratch Codex|Proof Owned Scratch Codex]]
+- [[_COMMUNITY_Codex App Server M02|Codex App Server M02]]
+- [[_COMMUNITY_Manifest Codex App Server|Manifest Codex App Server]]
+- [[_COMMUNITY_Codex App Server M02|Codex App Server M02]]
+- [[_COMMUNITY_Codex App Server M02|Codex App Server M02]]
+- [[_COMMUNITY_Codex App Server M02|Codex App Server M02]]
+- [[_COMMUNITY_Codex App Server M02|Codex App Server M02]]
+- [[_COMMUNITY_Mcp Elicitation Probe|Mcp Elicitation Probe]]
+- [[_COMMUNITY_Mcp Manifest Diagnostic|Mcp Manifest Diagnostic]]
+- [[_COMMUNITY_Native Provider Probe|Native Provider Probe]]
+- [[_COMMUNITY_Stream Fixture Probe|Stream Fixture Probe]]
+- [[_COMMUNITY_Evidence.Mjs Component|Evidence.Mjs Component]]
+- [[_COMMUNITY_History Cleanup|History Cleanup]]
+- [[_COMMUNITY_Phase History Cleanup|Phase History Cleanup]]
+- [[_COMMUNITY_Phase History Cleanup|Phase History Cleanup]]
+- [[_COMMUNITY_Phase History Cleanup|Phase History Cleanup]]
+- [[_COMMUNITY_Readiness Mcp Journal Adapter|Readiness Mcp Journal Adapter]]
+- [[_COMMUNITY_Manifest Preparation Canonical Build|Manifest Preparation Canonical Build]]
+- [[_COMMUNITY_Matrix Stage|Matrix Stage]]
+- [[_COMMUNITY_Scoped Worker Entry Server|Scoped Worker Entry Server]]
+- [[_COMMUNITY_Entrypoint.Mjs Component|Entrypoint.Mjs Component]]
+- [[_COMMUNITY_Entrypoint.Mjs Component|Entrypoint.Mjs Component]]
+- [[_COMMUNITY_Matrix Stage|Matrix Stage]]
+- [[_COMMUNITY_Preparation.Mjs Component|Preparation.Mjs Component]]
+- [[_COMMUNITY_Prior Evidence|Prior Evidence]]
+- [[_COMMUNITY_Protocol P00|Protocol P00]]
+- [[_COMMUNITY_Scoped Entry Worker|Scoped Entry Worker]]
+- [[_COMMUNITY_Entrypoint Preparation|Entrypoint Preparation]]
+- [[_COMMUNITY_Matrix Stage|Matrix Stage]]
+- [[_COMMUNITY_Prior Evidence|Prior Evidence]]
+- [[_COMMUNITY_Scoped Entry Worker|Scoped Entry Worker]]
+- [[_COMMUNITY_Case Receipts Matrix Runner|Case Receipts Matrix Runner]]
+- [[_COMMUNITY_Entrypoint Preparation|Entrypoint Preparation]]
+- [[_COMMUNITY_Matrix Stage|Matrix Stage]]
+- [[_COMMUNITY_Prior Evidence|Prior Evidence]]
+- [[_COMMUNITY_Protocol P00|Protocol P00]]
+- [[_COMMUNITY_Scoped Entry Worker|Scoped Entry Worker]]
+- [[_COMMUNITY_Manifest Preparation Canonical Build|Manifest Preparation Canonical Build]]
+- [[_COMMUNITY_Phase Policy Outer Journal|Phase Policy Outer Journal]]
+- [[_COMMUNITY_Entrypoint.Mjs Component|Entrypoint.Mjs Component]]
+- [[_COMMUNITY_Protocol P00 Framing|Protocol P00 Framing]]
+- [[_COMMUNITY_Matrix Stage|Matrix Stage]]
+- [[_COMMUNITY_Preflight Evidence|Preflight Evidence]]
+- [[_COMMUNITY_Prior Evidence|Prior Evidence]]
+- [[_COMMUNITY_Scoped Entry Worker|Scoped Entry Worker]]
+- [[_COMMUNITY_Manifest Policy Preparation Canonical|Manifest Policy Preparation Canonical]]
+- [[_COMMUNITY_Entrypoint.Mjs Component|Entrypoint.Mjs Component]]
+- [[_COMMUNITY_Protocol P00 Framing|Protocol P00 Framing]]
+- [[_COMMUNITY_Provider Failure Launcher Runtime|Provider Failure Launcher Runtime]]
+- [[_COMMUNITY_Matrix Stage|Matrix Stage]]
+- [[_COMMUNITY_Preflight Evidence|Preflight Evidence]]
+- [[_COMMUNITY_Scoped Entry|Scoped Entry]]
+- [[_COMMUNITY_Canonical Build Manifest|Canonical Build Manifest]]
+- [[_COMMUNITY_Matrix Runner Stage Case|Matrix Runner Stage Case]]
+- [[_COMMUNITY_Entrypoint Preparation Specimencheck|Entrypoint Preparation Specimencheck]]
+- [[_COMMUNITY_Protocol P00 Framing|Protocol P00 Framing]]
+- [[_COMMUNITY_Matrix Runner Policy Launcher|Matrix Runner Policy Launcher]]
+- [[_COMMUNITY_Preflight Evidence|Preflight Evidence]]
+- [[_COMMUNITY_Provider Failure|Provider Failure]]
+- [[_COMMUNITY_Scoped Entry Worker|Scoped Entry Worker]]
+- [[_COMMUNITY_R21 Evidence Manifest Canonical|R21 Evidence Manifest Canonical]]
+- [[_COMMUNITY_Entrypoint Preparation Specimencheck|Entrypoint Preparation Specimencheck]]
+- [[_COMMUNITY_Protocol P00 Framing|Protocol P00 Framing]]
+- [[_COMMUNITY_Matrix Stage|Matrix Stage]]
+- [[_COMMUNITY_Preflight Evidence|Preflight Evidence]]
+- [[_COMMUNITY_Provider Failure|Provider Failure]]
+- [[_COMMUNITY_Scoped Entry|Scoped Entry]]
+- [[_COMMUNITY_Canonical Build Manifest Policy|Canonical Build Manifest Policy]]
+- [[_COMMUNITY_Matrix Runner Policy Launcher|Matrix Runner Policy Launcher]]
+- [[_COMMUNITY_Entrypoint.Mjs Component|Entrypoint.Mjs Component]]
+- [[_COMMUNITY_Protocol P00 Framing|Protocol P00 Framing]]
+- [[_COMMUNITY_Preparation Manifest Specimencheck|Preparation Manifest Specimencheck]]
+- [[_COMMUNITY_Matrix Stage|Matrix Stage]]
+- [[_COMMUNITY_Ta06 Archive Evidence History|Ta06 Archive Evidence History]]
+- [[_COMMUNITY_Preflight Evidence|Preflight Evidence]]
+- [[_COMMUNITY_Evidence Provider Diagnostic R21|Evidence Provider Diagnostic R21]]
+- [[_COMMUNITY_Provider Failure|Provider Failure]]
+- [[_COMMUNITY_R22 Evidence|R22 Evidence]]
+- [[_COMMUNITY_Scoped Entry|Scoped Entry]]
+- [[_COMMUNITY_Entrypoint.Mjs Component|Entrypoint.Mjs Component]]
+- [[_COMMUNITY_Protocol P00 Framing|Protocol P00 Framing]]
+- [[_COMMUNITY_Matrix Stage|Matrix Stage]]
+- [[_COMMUNITY_Preparation.Mjs Component|Preparation.Mjs Component]]
+- [[_COMMUNITY_Scoped Entry Worker|Scoped Entry Worker]]
+- [[_COMMUNITY_Specimencheck.Mjs Component|Specimencheck.Mjs Component]]
+- [[_COMMUNITY_Script Session Continuation Diagnostic|Script Session Continuation Diagnostic]]
+- [[_COMMUNITY_Entrypoint Preparation Specimencheck Receipts|Entrypoint Preparation Specimencheck Receipts]]
+- [[_COMMUNITY_Protocol P00 Framing|Protocol P00 Framing]]
+- [[_COMMUNITY_Evidence Policy Manifest Runtime|Evidence Policy Manifest Runtime]]
+- [[_COMMUNITY_Scoped Entry Worker|Scoped Entry Worker]]
+- [[_COMMUNITY_Case Late Diagnostic Matrix|Case Late Diagnostic Matrix]]
+- [[_COMMUNITY_Finite Responses Continuation Diagnostic|Finite Responses Continuation Diagnostic]]
+- [[_COMMUNITY_Entrypoint Preparation|Entrypoint Preparation]]
+- [[_COMMUNITY_Protocol P00 Framing|Protocol P00 Framing]]
+- [[_COMMUNITY_Matrix Case Diagnostic Runner|Matrix Case Diagnostic Runner]]
+- [[_COMMUNITY_Matrix Stage|Matrix Stage]]
+- [[_COMMUNITY_Scoped Entry Worker|Scoped Entry Worker]]
+- [[_COMMUNITY_Finite Responses Continuation Diagnostic|Finite Responses Continuation Diagnostic]]
+- [[_COMMUNITY_Entrypoint Preparation|Entrypoint Preparation]]
+- [[_COMMUNITY_Protocol P00 Framing|Protocol P00 Framing]]
+- [[_COMMUNITY_Scoped Entry Worker|Scoped Entry Worker]]
+- [[_COMMUNITY_Manifest Canonical Build|Manifest Canonical Build]]
+- [[_COMMUNITY_Matrix Runner Case Receipts|Matrix Runner Case Receipts]]
+- [[_COMMUNITY_Diagnostic Late Case Child|Diagnostic Late Case Child]]
+- [[_COMMUNITY_Finite Responses Continuation Diagnostic|Finite Responses Continuation Diagnostic]]
+- [[_COMMUNITY_Entrypoint.Mjs Component|Entrypoint.Mjs Component]]
+- [[_COMMUNITY_Protocol P00 Framing|Protocol P00 Framing]]
+- [[_COMMUNITY_Git Readiness Host File|Git Readiness Host File]]
+- [[_COMMUNITY_Matrix Stage|Matrix Stage]]
+- [[_COMMUNITY_Evidence R28 Success R27|Evidence R28 Success R27]]
+- [[_COMMUNITY_History Evidence R27 R28|History Evidence R27 R28]]
+- [[_COMMUNITY_Scoped Entry Worker|Scoped Entry Worker]]
+- [[_COMMUNITY_Manifest Canonical Build R21|Manifest Canonical Build R21]]
+- [[_COMMUNITY_Case Diagnostic Matrix Runner|Case Diagnostic Matrix Runner]]
+- [[_COMMUNITY_Finite Responses Continuation Diagnostic|Finite Responses Continuation Diagnostic]]
+- [[_COMMUNITY_Entrypoint.Mjs Component|Entrypoint.Mjs Component]]
+- [[_COMMUNITY_Protocol P00 Framing|Protocol P00 Framing]]
+- [[_COMMUNITY_Matrix Stage|Matrix Stage]]
+- [[_COMMUNITY_Evidence R28 Success Preparation|Evidence R28 Success Preparation]]
+- [[_COMMUNITY_Scoped Entry Worker|Scoped Entry Worker]]
+- [[_COMMUNITY_R29 Evidence Preparation Runtime|R29 Evidence Preparation Runtime]]
+- [[_COMMUNITY_Case Matrix Runner Late|Case Matrix Runner Late]]
+- [[_COMMUNITY_Workspace Runner Matrix Stage|Workspace Runner Matrix Stage]]
+- [[_COMMUNITY_Provider Failure Continuation Diagnostic|Provider Failure Continuation Diagnostic]]
+- [[_COMMUNITY_Entrypoint.Mjs Component|Entrypoint.Mjs Component]]
+- [[_COMMUNITY_Protocol P00 Framing|Protocol P00 Framing]]
+- [[_COMMUNITY_Matrix Stage|Matrix Stage]]
+- [[_COMMUNITY_Scoped Entry Worker|Scoped Entry Worker]]
+- [[_COMMUNITY_Policy Manifest Full Budget|Policy Manifest Full Budget]]
+- [[_COMMUNITY_Matrix Diagnostic Runner Late|Matrix Diagnostic Runner Late]]
+- [[_COMMUNITY_Finite Responses Continuation Diagnostic|Finite Responses Continuation Diagnostic]]
+- [[_COMMUNITY_Entrypoint.Mjs Component|Entrypoint.Mjs Component]]
+- [[_COMMUNITY_Protocol P00 Framing|Protocol P00 Framing]]
+- [[_COMMUNITY_Evidence R32 R30 Preparation|Evidence R32 R30 Preparation]]
+- [[_COMMUNITY_Scoped Entry Worker|Scoped Entry Worker]]
+- [[_COMMUNITY_Diagnostic Matrix Runner Late|Diagnostic Matrix Runner Late]]
+- [[_COMMUNITY_Finite Responses Continuation Diagnostic|Finite Responses Continuation Diagnostic]]
+- [[_COMMUNITY_Entrypoint.Mjs Component|Entrypoint.Mjs Component]]
+- [[_COMMUNITY_Protocol P00 Framing|Protocol P00 Framing]]
+- [[_COMMUNITY_Matrix Stage|Matrix Stage]]
+- [[_COMMUNITY_Phase Journal|Phase Journal]]
+- [[_COMMUNITY_Policy Manifest Canonical Build|Policy Manifest Canonical Build]]
+- [[_COMMUNITY_Preparation.Mjs Component|Preparation.Mjs Component]]
+- [[_COMMUNITY_R33 Evidence Runtime Effects|R33 Evidence Runtime Effects]]
+- [[_COMMUNITY_Scoped Entry Worker|Scoped Entry Worker]]
+- [[_COMMUNITY_Matrix Runner Stage Policy|Matrix Runner Stage Policy]]
+- [[_COMMUNITY_Diagnostic Late Case Child|Diagnostic Late Case Child]]
+- [[_COMMUNITY_Finite Responses Continuation Diagnostic|Finite Responses Continuation Diagnostic]]
+- [[_COMMUNITY_Entrypoint.Mjs Component|Entrypoint.Mjs Component]]
+- [[_COMMUNITY_Protocol P00 Framing|Protocol P00 Framing]]
+- [[_COMMUNITY_Host File Workspace Runner|Host File Workspace Runner]]
+- [[_COMMUNITY_Phase Journal|Phase Journal]]
+- [[_COMMUNITY_Preparation.Mjs Component|Preparation.Mjs Component]]
+- [[_COMMUNITY_History R34 Evidence Preparation|History R34 Evidence Preparation]]
+- [[_COMMUNITY_Scoped Entry Worker|Scoped Entry Worker]]
+- [[_COMMUNITY_Policy Entrypoint Runtime Effects|Policy Entrypoint Runtime Effects]]
+- [[_COMMUNITY_Diagnostic Matrix Runner Late|Diagnostic Matrix Runner Late]]
+- [[_COMMUNITY_Finite Responses Continuation Diagnostic|Finite Responses Continuation Diagnostic]]
+- [[_COMMUNITY_Protocol P00 Permission Request|Protocol P00 Permission Request]]
+- [[_COMMUNITY_Matrix Stage|Matrix Stage]]
+- [[_COMMUNITY_Phase Journal|Phase Journal]]
+- [[_COMMUNITY_Evidence R34 R35|Evidence R34 R35]]
+- [[_COMMUNITY_Evidence Policy Runtime Effects|Evidence Policy Runtime Effects]]
+- [[_COMMUNITY_Diagnostic Matrix Runner Late|Diagnostic Matrix Runner Late]]
+- [[_COMMUNITY_Finite Responses Continuation Diagnostic|Finite Responses Continuation Diagnostic]]
+- [[_COMMUNITY_Entrypoint.Mjs Component|Entrypoint.Mjs Component]]
+- [[_COMMUNITY_Protocol P00 Permission Request|Protocol P00 Permission Request]]
+- [[_COMMUNITY_Matrix Stage|Matrix Stage]]
+- [[_COMMUNITY_Phase Journal|Phase Journal]]
+- [[_COMMUNITY_Evidence R35 R36|Evidence R35 R36]]
+- [[_COMMUNITY_Scoped Entry Worker|Scoped Entry Worker]]
+- [[_COMMUNITY_Policy Runtime Effects Manifest|Policy Runtime Effects Manifest]]
+- [[_COMMUNITY_Case Coordinator|Case Coordinator]]
+- [[_COMMUNITY_Diagnostic Git Readiness Late|Diagnostic Git Readiness Late]]
+- [[_COMMUNITY_Finite Responses Continuation Diagnostic|Finite Responses Continuation Diagnostic]]
+- [[_COMMUNITY_Provider Failure Continuation Diagnostic|Provider Failure Continuation Diagnostic]]
+- [[_COMMUNITY_Entrypoint Preparation Manifest|Entrypoint Preparation Manifest]]
+- [[_COMMUNITY_Protocol P00 Permission Request|Protocol P00 Permission Request]]
+- [[_COMMUNITY_Matrix Stage|Matrix Stage]]
+- [[_COMMUNITY_Phase Journal|Phase Journal]]
+- [[_COMMUNITY_R37 Evidence Process State|R37 Evidence Process State]]
+- [[_COMMUNITY_R36 Evidence|R36 Evidence]]
+- [[_COMMUNITY_Git Readiness Host File|Git Readiness Host File]]
+- [[_COMMUNITY_Policy Environment Profile Runtime|Policy Environment Profile Runtime]]
+- [[_COMMUNITY_Case Coordinator|Case Coordinator]]
+- [[_COMMUNITY_Diagnostic Late Case Child|Diagnostic Late Case Child]]
+- [[_COMMUNITY_Matrix Runner Startup Failure|Matrix Runner Startup Failure]]
+- [[_COMMUNITY_Finite Responses Continuation Diagnostic|Finite Responses Continuation Diagnostic]]
+- [[_COMMUNITY_Entrypoint.Mjs Component|Entrypoint.Mjs Component]]
+- [[_COMMUNITY_Protocol P00 Permission Request|Protocol P00 Permission Request]]
+- [[_COMMUNITY_Preparation Manifest|Preparation Manifest]]
+- [[_COMMUNITY_Matrix Stage|Matrix Stage]]
+- [[_COMMUNITY_Phase Journal|Phase Journal]]
+- [[_COMMUNITY_R39 Evidence Process State|R39 Evidence Process State]]
+- [[_COMMUNITY_Provider Failure|Provider Failure]]
+- [[_COMMUNITY_R36 Evidence|R36 Evidence]]
+- [[_COMMUNITY_Manifest Git Readiness Canonical|Manifest Git Readiness Canonical]]
+- [[_COMMUNITY_Policy Environment Profile Runtime|Policy Environment Profile Runtime]]
+- [[_COMMUNITY_Diagnostic Late Case Child|Diagnostic Late Case Child]]
+- [[_COMMUNITY_Matrix Runner Startup Failure|Matrix Runner Startup Failure]]
+- [[_COMMUNITY_Finite Responses Continuation Diagnostic|Finite Responses Continuation Diagnostic]]
+- [[_COMMUNITY_Entrypoint Preparation|Entrypoint Preparation]]
+- [[_COMMUNITY_Protocol P00 Permission Request|Protocol P00 Permission Request]]
+- [[_COMMUNITY_Matrix Stage|Matrix Stage]]
+- [[_COMMUNITY_Phase Journal|Phase Journal]]
+- [[_COMMUNITY_R41 Evidence Process State|R41 Evidence Process State]]
+- [[_COMMUNITY_Provider Failure|Provider Failure]]
+- [[_COMMUNITY_R35 Evidence|R35 Evidence]]
+- [[_COMMUNITY_R36 Evidence|R36 Evidence]]
+- [[_COMMUNITY_R37 Evidence|R37 Evidence]]
+- [[_COMMUNITY_R41 Evidence Runtime Effects|R41 Evidence Runtime Effects]]
+- [[_COMMUNITY_Scoped Entry Worker|Scoped Entry Worker]]
+- [[_COMMUNITY_Policy Manifest Runtime Effects|Policy Manifest Runtime Effects]]
+- [[_COMMUNITY_Diagnostic Matrix Runner Child|Diagnostic Matrix Runner Child]]
+- [[_COMMUNITY_Finite Responses Continuation Diagnostic|Finite Responses Continuation Diagnostic]]
+- [[_COMMUNITY_Entrypoint.Mjs Component|Entrypoint.Mjs Component]]
+- [[_COMMUNITY_Protocol P00 Permission Request|Protocol P00 Permission Request]]
+- [[_COMMUNITY_R43 Evidence Preparation Manifest|R43 Evidence Preparation Manifest]]
+- [[_COMMUNITY_Matrix Stage|Matrix Stage]]
+- [[_COMMUNITY_Phase Journal|Phase Journal]]
+- [[_COMMUNITY_Provider Failure|Provider Failure]]
+- [[_COMMUNITY_R35 Evidence|R35 Evidence]]
+- [[_COMMUNITY_R36 Evidence|R36 Evidence]]
+- [[_COMMUNITY_R37 Evidence|R37 Evidence]]
+- [[_COMMUNITY_R41 Evidence|R41 Evidence]]
+- [[_COMMUNITY_R43 Evidence Runtime Effects|R43 Evidence Runtime Effects]]
+- [[_COMMUNITY_Scoped Entry Worker|Scoped Entry Worker]]
+- [[_COMMUNITY_Matrix Runner Policy Diagnostic|Matrix Runner Policy Diagnostic]]
+- [[_COMMUNITY_Case Coordinator|Case Coordinator]]
+- [[_COMMUNITY_Workspace Runner Policy Manifest|Workspace Runner Policy Manifest]]
+- [[_COMMUNITY_R44 Evidence Child Path|R44 Evidence Child Path]]
+- [[_COMMUNITY_Finite Responses Continuation Diagnostic|Finite Responses Continuation Diagnostic]]
+- [[_COMMUNITY_Entrypoint Preparation|Entrypoint Preparation]]
+- [[_COMMUNITY_Protocol P00 Permission Request|Protocol P00 Permission Request]]
+- [[_COMMUNITY_Phase Journal|Phase Journal]]
+- [[_COMMUNITY_R44 Evidence Process State|R44 Evidence Process State]]
+- [[_COMMUNITY_Provider Failure|Provider Failure]]
+- [[_COMMUNITY_R35 Evidence|R35 Evidence]]
+- [[_COMMUNITY_R36 Evidence|R36 Evidence]]
+- [[_COMMUNITY_R37 Evidence|R37 Evidence]]
+- [[_COMMUNITY_R41 Evidence|R41 Evidence]]
+- [[_COMMUNITY_R43 Evidence|R43 Evidence]]
+- [[_COMMUNITY_Policy Canonical Build Manifest|Policy Canonical Build Manifest]]
+- [[_COMMUNITY_Case Coordinator|Case Coordinator]]
+- [[_COMMUNITY_Diagnostic Late Case Child|Diagnostic Late Case Child]]
+- [[_COMMUNITY_Matrix Runner Startup Failure|Matrix Runner Startup Failure]]
+- [[_COMMUNITY_Finite Responses Continuation Diagnostic|Finite Responses Continuation Diagnostic]]
+- [[_COMMUNITY_Entrypoint.Mjs Component|Entrypoint.Mjs Component]]
+- [[_COMMUNITY_Protocol P00 Framing|Protocol P00 Framing]]
+- [[_COMMUNITY_Git Readiness Host File|Git Readiness Host File]]
+- [[_COMMUNITY_Preparation Manifest|Preparation Manifest]]
+- [[_COMMUNITY_Matrix Stage|Matrix Stage]]
+- [[_COMMUNITY_Permission Request Diagnostic|Permission Request Diagnostic]]
+- [[_COMMUNITY_Phase Journal|Phase Journal]]
+- [[_COMMUNITY_Provider Failure|Provider Failure]]
+- [[_COMMUNITY_R35 Evidence|R35 Evidence]]
+- [[_COMMUNITY_R36 Evidence|R36 Evidence]]
+- [[_COMMUNITY_R41 Evidence|R41 Evidence]]
+- [[_COMMUNITY_R43 Evidence|R43 Evidence]]
+- [[_COMMUNITY_Scoped Entry|Scoped Entry]]
+- [[_COMMUNITY_Manifest Stage Progress Canonical|Manifest Stage Progress Canonical]]
+- [[_COMMUNITY_Policy Environment Profile Phase|Policy Environment Profile Phase]]
+- [[_COMMUNITY_Case Coordinator|Case Coordinator]]
+- [[_COMMUNITY_Diagnostic Git Readiness Late|Diagnostic Git Readiness Late]]
+- [[_COMMUNITY_Provider Failure Continuation Diagnostic|Provider Failure Continuation Diagnostic]]
+- [[_COMMUNITY_Entrypoint.Mjs Component|Entrypoint.Mjs Component]]
+- [[_COMMUNITY_Protocol P00 Permission Request|Protocol P00 Permission Request]]
+- [[_COMMUNITY_History Evidence R29 R30|History Evidence R29 R30]]
+- [[_COMMUNITY_History Evidence R33 R32|History Evidence R33 R32]]
+- [[_COMMUNITY_History R35 Evidence|History R35 Evidence]]
+- [[_COMMUNITY_History R36 Evidence|History R36 Evidence]]
+- [[_COMMUNITY_History R37 Evidence|History R37 Evidence]]
+- [[_COMMUNITY_History R41 Evidence|History R41 Evidence]]
+- [[_COMMUNITY_History R43 Evidence|History R43 Evidence]]
+- [[_COMMUNITY_History Source Map|History Source Map]]
+- [[_COMMUNITY_Matrix Stage|Matrix Stage]]
+- [[_COMMUNITY_Phase Journal|Phase Journal]]
+- [[_COMMUNITY_Preparation.Mjs Component|Preparation.Mjs Component]]
+- [[_COMMUNITY_R35 Evidence|R35 Evidence]]
+- [[_COMMUNITY_R36 Evidence|R36 Evidence]]
+- [[_COMMUNITY_R37 Evidence|R37 Evidence]]
+- [[_COMMUNITY_R41 Evidence|R41 Evidence]]
+- [[_COMMUNITY_Manifest Host File Canonical|Manifest Host File Canonical]]
+- [[_COMMUNITY_Scoped Entry|Scoped Entry]]
+- [[_COMMUNITY_Policy Environment Profile Runtime|Policy Environment Profile Runtime]]
+- [[_COMMUNITY_Case Coordinator|Case Coordinator]]
+- [[_COMMUNITY_Matrix Runner Case Receipts|Matrix Runner Case Receipts]]
+- [[_COMMUNITY_Diagnostic Git Readiness Late|Diagnostic Git Readiness Late]]
+- [[_COMMUNITY_Finite Responses Continuation Diagnostic|Finite Responses Continuation Diagnostic]]
+- [[_COMMUNITY_Provider Failure Continuation Diagnostic|Provider Failure Continuation Diagnostic]]
+- [[_COMMUNITY_Entrypoint.Mjs Component|Entrypoint.Mjs Component]]
+- [[_COMMUNITY_Protocol P00 Permission Request|Protocol P00 Permission Request]]
+- [[_COMMUNITY_Matrix Stage|Matrix Stage]]
+- [[_COMMUNITY_Phase Journal|Phase Journal]]
+- [[_COMMUNITY_Preparation.Mjs Component|Preparation.Mjs Component]]
+- [[_COMMUNITY_Evidence R32 R30 R21|Evidence R32 R30 R21]]
+- [[_COMMUNITY_R35 Evidence|R35 Evidence]]
+- [[_COMMUNITY_R36 Evidence|R36 Evidence]]
+- [[_COMMUNITY_R37 Evidence|R37 Evidence]]
+- [[_COMMUNITY_R43 Evidence|R43 Evidence]]
+- [[_COMMUNITY_Canonical Build|Canonical Build]]
+- [[_COMMUNITY_Policy Environment Profile Manifest|Policy Environment Profile Manifest]]
+- [[_COMMUNITY_Case Coordinator|Case Coordinator]]
+- [[_COMMUNITY_Diagnostic Git Readiness Late|Diagnostic Git Readiness Late]]
+- [[_COMMUNITY_Matrix Runner Startup Failure|Matrix Runner Startup Failure]]
+- [[_COMMUNITY_Finite Responses Continuation Diagnostic|Finite Responses Continuation Diagnostic]]
+- [[_COMMUNITY_Entrypoint.Mjs Component|Entrypoint.Mjs Component]]
+- [[_COMMUNITY_Protocol P00 Framing|Protocol P00 Framing]]
+- [[_COMMUNITY_Preparation Manifest|Preparation Manifest]]
+- [[_COMMUNITY_Matrix Stage|Matrix Stage]]
+- [[_COMMUNITY_Permission Request Diagnostic|Permission Request Diagnostic]]
+- [[_COMMUNITY_Phase Journal|Phase Journal]]
+- [[_COMMUNITY_Evidence R29 R32 R30|Evidence R29 R32 R30]]
+- [[_COMMUNITY_Provider Failure|Provider Failure]]
+- [[_COMMUNITY_R35 Evidence|R35 Evidence]]
+- [[_COMMUNITY_R36 Evidence|R36 Evidence]]
+- [[_COMMUNITY_R37 Evidence|R37 Evidence]]
+- [[_COMMUNITY_R41 Evidence|R41 Evidence]]
+- [[_COMMUNITY_R43 Evidence|R43 Evidence]]
+- [[_COMMUNITY_R48 Evidence|R48 Evidence]]
+- [[_COMMUNITY_Scoped Entry Worker|Scoped Entry Worker]]
+- [[_COMMUNITY_Policy Manifest Provider Failure|Policy Manifest Provider Failure]]
+- [[_COMMUNITY_Runner Matrix Workspace Diagnostic|Runner Matrix Workspace Diagnostic]]
+- [[_COMMUNITY_Finite Responses Continuation Diagnostic|Finite Responses Continuation Diagnostic]]
+- [[_COMMUNITY_Entrypoint Preparation Manifest|Entrypoint Preparation Manifest]]
+- [[_COMMUNITY_Protocol P00 Permission Request|Protocol P00 Permission Request]]
+- [[_COMMUNITY_Matrix Stage|Matrix Stage]]
+- [[_COMMUNITY_Phase Journal|Phase Journal]]
+- [[_COMMUNITY_R51 Evidence Process State|R51 Evidence Process State]]
+- [[_COMMUNITY_R35 Evidence|R35 Evidence]]
+- [[_COMMUNITY_R37 Evidence|R37 Evidence]]
+- [[_COMMUNITY_R48 Evidence|R48 Evidence]]
+- [[_COMMUNITY_Scoped Entry Worker|Scoped Entry Worker]]
+- [[_COMMUNITY_Policy Native Manifest Ports|Policy Native Manifest Ports]]
+- [[_COMMUNITY_Mac Owned Host|Mac Owned Host]]
+- [[_COMMUNITY_Phase Journal|Phase Journal]]
+- [[_COMMUNITY_Scoped Transport Audit Policy|Scoped Transport Audit Policy]]
+- [[_COMMUNITY_Receipts.Mjs Component|Receipts.Mjs Component]]
+- [[_COMMUNITY_Canonical Variant Build|Canonical Variant Build]]
+- [[_COMMUNITY_Journal.Mjs Component|Journal.Mjs Component]]
+- [[_COMMUNITY_Scoped Entry Worker|Scoped Entry Worker]]
+- [[_COMMUNITY_Module Stage|Module Stage]]
+- [[_COMMUNITY_Trusted Case Coordinator|Trusted Case Coordinator]]
+- [[_COMMUNITY_Journal.Mjs Component|Journal.Mjs Component]]
+- [[_COMMUNITY_Prior Attempt|Prior Attempt]]
+- [[_COMMUNITY_Scoped Entry Worker|Scoped Entry Worker]]
+- [[_COMMUNITY_Module Stage|Module Stage]]
+- [[_COMMUNITY_T1-Runner.Mjs Component|T1-Runner.Mjs Component]]
+- [[_COMMUNITY_Trusted Case Coordinator|Trusted Case Coordinator]]
+- [[_COMMUNITY_Journal.Mjs Component|Journal.Mjs Component]]
+- [[_COMMUNITY_Prior Attempt|Prior Attempt]]
+- [[_COMMUNITY_Protocol.Mjs Component|Protocol.Mjs Component]]
+- [[_COMMUNITY_Scoped Entry Worker|Scoped Entry Worker]]
+- [[_COMMUNITY_Module Stage|Module Stage]]
+- [[_COMMUNITY_T1-Runner.Mjs Component|T1-Runner.Mjs Component]]
+- [[_COMMUNITY_Trusted Case Coordinator|Trusted Case Coordinator]]
+- [[_COMMUNITY_Journal.Mjs Component|Journal.Mjs Component]]
+- [[_COMMUNITY_Protocol.Mjs Component|Protocol.Mjs Component]]
+- [[_COMMUNITY_Scoped Entry Worker|Scoped Entry Worker]]
+- [[_COMMUNITY_Module Stage|Module Stage]]
+- [[_COMMUNITY_T1-Runner.Mjs Component|T1-Runner.Mjs Component]]
+- [[_COMMUNITY_Trusted Case Coordinator|Trusted Case Coordinator]]
+- [[_COMMUNITY_Journal.Mjs Component|Journal.Mjs Component]]
+- [[_COMMUNITY_Notification Envelope Error Adapter|Notification Envelope Error Adapter]]
+- [[_COMMUNITY_Prior Attempt|Prior Attempt]]
+- [[_COMMUNITY_Protocol.Mjs Component|Protocol.Mjs Component]]
+- [[_COMMUNITY_Scoped Entry Worker|Scoped Entry Worker]]
+- [[_COMMUNITY_Module Stage|Module Stage]]
+- [[_COMMUNITY_T1-Runner.Mjs Component|T1-Runner.Mjs Component]]
+- [[_COMMUNITY_Journal.Mjs Component|Journal.Mjs Component]]
+- [[_COMMUNITY_Native Descriptor Capture|Native Descriptor Capture]]
+- [[_COMMUNITY_Protocol Notification Envelope Error|Protocol Notification Envelope Error]]
+- [[_COMMUNITY_Scoped Entry Worker|Scoped Entry Worker]]
+- [[_COMMUNITY_Journal.Mjs Component|Journal.Mjs Component]]
+- [[_COMMUNITY_Module Stage|Module Stage]]
+- [[_COMMUNITY_Scoped Entry Worker|Scoped Entry Worker]]
+- [[_COMMUNITY_Workspace Runner Mcp Readiness|Workspace Runner Mcp Readiness]]
+- [[_COMMUNITY_Prior-T2.Mjs Component|Prior-T2.Mjs Component]]
+- [[_COMMUNITY_Scoped Entry Worker|Scoped Entry Worker]]
+- [[_COMMUNITY_Entrypoint.Mjs Component|Entrypoint.Mjs Component]]
+- [[_COMMUNITY_Prior-T2.Mjs Component|Prior-T2.Mjs Component]]
+- [[_COMMUNITY_Native Contracts Manifest Canonical|Native Contracts Manifest Canonical]]
+- [[_COMMUNITY_Entrypoint.Mjs Component|Entrypoint.Mjs Component]]
+- [[_COMMUNITY_Protocol Framing|Protocol Framing]]
+- [[_COMMUNITY_Native Session Diagnostic|Native Session Diagnostic]]
+- [[_COMMUNITY_Preparation.Mjs Component|Preparation.Mjs Component]]
+- [[_COMMUNITY_R34 Evidence|R34 Evidence]]
+- [[_COMMUNITY_Scoped Entry Worker|Scoped Entry Worker]]
+- [[_COMMUNITY_Native Contracts Manifest Canonical|Native Contracts Manifest Canonical]]
+- [[_COMMUNITY_Entrypoint Preparation|Entrypoint Preparation]]
+- [[_COMMUNITY_Protocol Framing|Protocol Framing]]
+- [[_COMMUNITY_Matrix Stage|Matrix Stage]]
+- [[_COMMUNITY_Native Session Diagnostic|Native Session Diagnostic]]
+- [[_COMMUNITY_Owned Scratch Proof|Owned Scratch Proof]]
+- [[_COMMUNITY_R37 Evidence|R37 Evidence]]
+- [[_COMMUNITY_Scoped Entry Worker|Scoped Entry Worker]]
+- [[_COMMUNITY_Workspace Runner Policy Manifest|Workspace Runner Policy Manifest]]
+- [[_COMMUNITY_Case Coordinator|Case Coordinator]]
+- [[_COMMUNITY_Entrypoint Preparation|Entrypoint Preparation]]
+- [[_COMMUNITY_Protocol Framing|Protocol Framing]]
+- [[_COMMUNITY_Native Session Diagnostic|Native Session Diagnostic]]
+- [[_COMMUNITY_Scoped Entry Worker|Scoped Entry Worker]]
+- [[_COMMUNITY_Workspace Runner Policy Manifest|Workspace Runner Policy Manifest]]
+- [[_COMMUNITY_Case Coordinator|Case Coordinator]]
+- [[_COMMUNITY_Entrypoint Preparation|Entrypoint Preparation]]
+- [[_COMMUNITY_Protocol Framing|Protocol Framing]]
+- [[_COMMUNITY_Native Session Diagnostic|Native Session Diagnostic]]
+- [[_COMMUNITY_R41 Evidence|R41 Evidence]]
+- [[_COMMUNITY_Scoped Entry Worker|Scoped Entry Worker]]
+- [[_COMMUNITY_Case Coordinator|Case Coordinator]]
+- [[_COMMUNITY_Entrypoint Preparation|Entrypoint Preparation]]
+- [[_COMMUNITY_Protocol Framing|Protocol Framing]]
+- [[_COMMUNITY_Matrix Stage|Matrix Stage]]
+- [[_COMMUNITY_Native Session Diagnostic|Native Session Diagnostic]]
+- [[_COMMUNITY_Scoped Entry Worker|Scoped Entry Worker]]
+- [[_COMMUNITY_Workspace Runner Policy Native|Workspace Runner Policy Native]]
+- [[_COMMUNITY_Case Coordinator|Case Coordinator]]
+- [[_COMMUNITY_Entrypoint Preparation|Entrypoint Preparation]]
+- [[_COMMUNITY_Protocol Framing|Protocol Framing]]
+- [[_COMMUNITY_R52 Evidence Native Ports|R52 Evidence Native Ports]]
+- [[_COMMUNITY_Native Session Diagnostic|Native Session Diagnostic]]
+- [[_COMMUNITY_Owned Scratch Proof|Owned Scratch Proof]]
+- [[_COMMUNITY_Native Session Diagnostic|Native Session Diagnostic]]
+- [[_COMMUNITY_Owned Scratch Proof|Owned Scratch Proof]]
+- [[_COMMUNITY_Native Contracts Manifest Preparation|Native Contracts Manifest Preparation]]
+- [[_COMMUNITY_Case Coordinator|Case Coordinator]]
+- [[_COMMUNITY_Entrypoint.Mjs Component|Entrypoint.Mjs Component]]
+- [[_COMMUNITY_Protocol Framing|Protocol Framing]]
+- [[_COMMUNITY_Matrix Stage|Matrix Stage]]
+- [[_COMMUNITY_R54 Evidence Native Ports|R54 Evidence Native Ports]]
+- [[_COMMUNITY_Native Session Diagnostic|Native Session Diagnostic]]
+- [[_COMMUNITY_Owned Scratch Proof|Owned Scratch Proof]]
+- [[_COMMUNITY_Scoped Entry Worker|Scoped Entry Worker]]
+- [[_COMMUNITY_Entrypoint Preparation|Entrypoint Preparation]]
+- [[_COMMUNITY_Protocol Framing|Protocol Framing]]
+- [[_COMMUNITY_Matrix Stage|Matrix Stage]]
+- [[_COMMUNITY_Native Session Diagnostic|Native Session Diagnostic]]
+- [[_COMMUNITY_Owned Scratch Proof|Owned Scratch Proof]]
+- [[_COMMUNITY_Trusted Case Coordinator|Trusted Case Coordinator]]
+- [[_COMMUNITY_Blocked Component|Blocked Component]]
+- [[_COMMUNITY_M06 Analysis Child Charter|M06 Analysis Child Charter]]
+- [[_COMMUNITY_M04 Provider Intent Backfill|M04 Provider Intent Backfill]]
+- [[_COMMUNITY_M06 Native Patch|M06 Native Patch]]
+- [[_COMMUNITY_Qualification Targets|Qualification Targets]]
+- [[_COMMUNITY_Prior Root|Prior Root]]
+- [[_COMMUNITY_Prior Root|Prior Root]]
+- [[_COMMUNITY_Prior Root|Prior Root]]
+- [[_COMMUNITY_Prior Root|Prior Root]]
+- [[_COMMUNITY_Prior Root|Prior Root]]
+- [[_COMMUNITY_Prior Root|Prior Root]]
+- [[_COMMUNITY_Prior Root|Prior Root]]
+- [[_COMMUNITY_Prior Root|Prior Root]]
+- [[_COMMUNITY_Prior Root|Prior Root]]
+- [[_COMMUNITY_Prior Root|Prior Root]]
+- [[_COMMUNITY_Prior Root|Prior Root]]
+- [[_COMMUNITY_Prior Root|Prior Root]]
+- [[_COMMUNITY_Prior Root|Prior Root]]
+- [[_COMMUNITY_Prior Root|Prior Root]]
+- [[_COMMUNITY_Prior Root|Prior Root]]
+- [[_COMMUNITY_Prior Root|Prior Root]]
+- [[_COMMUNITY_Prior Root|Prior Root]]
+- [[_COMMUNITY_Prior Root|Prior Root]]
+- [[_COMMUNITY_Prior Root|Prior Root]]
+- [[_COMMUNITY_Prior Root|Prior Root]]
+- [[_COMMUNITY_Prior Root|Prior Root]]
+- [[_COMMUNITY_Prior Root|Prior Root]]
+- [[_COMMUNITY_Prior Root|Prior Root]]
+- [[_COMMUNITY_Prior Root|Prior Root]]
+- [[_COMMUNITY_Owned Scratch Proof|Owned Scratch Proof]]
+- [[_COMMUNITY_Owned Scratch Proof|Owned Scratch Proof]]
+- [[_COMMUNITY_Process State|Process State]]
+- [[_COMMUNITY_Readme.Md Component|Readme.Md Component]]
+- [[_COMMUNITY_Native Addon|Native Addon]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `digest()` - 896 edges
@@ -670,2317 +670,2321 @@
   lib/quality-journey-integrity.ts → test-harness/m06/service-custody/custody-service-retained-proof.ts
 - `main()` --calls--> `readFileSync()`  [INFERRED]
   generate-coordinator-reference.ts → test-harness/m06/source-custody/source-custody-client-binding.test.mjs
-- `main()` --calls--> `writeFileSync()`  [INFERRED]
-  generate-coordinator-reference.ts → tests/codex-app-server-m02-ta-matrix-r19-provider-failure.test.mjs
 - `cucumberRuntimeReceiptIsCurrent()` --calls--> `readFileSync()`  [INFERRED]
   lib/cucumber-runtime-fingerprint.mjs → test-harness/m06/source-custody/source-custody-client-binding.test.mjs
 - `fingerprintEntries()` --calls--> `readFileSync()`  [INFERRED]
   lib/cucumber-runtime-fingerprint.mjs → test-harness/m06/source-custody/source-custody-client-binding.test.mjs
+- `databaseCompatibilityUrl()` --calls--> `readFileSync()`  [INFERRED]
+  lib/database-compatibility.mjs → test-harness/m06/source-custody/source-custody-client-binding.test.mjs
 
 ## Import Cycles
 - None detected.
 
-## Communities (648 total, 62 thin omitted)
+## Communities (649 total, 62 thin omitted)
 
-### Community 0 - "Community 0"
-Cohesion: 0.13
-Nodes (26): verifyR43HistoricalClosure(), AUTHORITY_PINS, CASES, CHILD_PATH_OBSERVATIONS, ENVIRONMENT_PROFILE, expectedNames(), fail(), GIT_READINESS (+18 more)
-
-### Community 1 - "Community 1"
-Cohesion: 0.12
-Nodes (28): AUTHORITY_PINS, fail(), INDEX, MANIFEST, privateDirectory(), R30_COUNTS, readPrepared(), REPO (+20 more)
-
-### Community 2 - "Community 2"
-Cohesion: 0.03
-Nodes (107): createMatrixAuditSession(), createB14PermissionEvidence(), createMatrixJournalAdapter(), canonicalOutcome(), consistentOwnedExit(), initialize(), runPreparedT2Matrix(), sha() (+99 more)
-
-### Community 3 - "Community 3"
-Cohesion: 0.08
-Nodes (19): createT1ErrorAdapter(), assertT1ObservedTuple(), R9_REPLACEMENT, t1InitializeParams(), capture(), captureWith(), collectorContext, descriptor (+11 more)
-
-### Community 4 - "Community 4"
-Cohesion: 0.01
-Nodes (252): buildR29PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, ownedWrite(), readExactOutput(), REPO, serializeR29Preparation() (+244 more)
-
-### Community 5 - "Community 5"
-Cohesion: 0.13
-Nodes (24): AUTHORITY_PINS, CASES, ENVIRONMENT_PROFILE, expectedNames(), fail(), GIT_READINESS, INDEX, KINDS (+16 more)
-
-### Community 6 - "Community 6"
-Cohesion: 0.02
-Nodes (230): buildR30CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), GIT_FILE_PIN, AUTHORITY, BUILD (+222 more)
-
-### Community 7 - "Community 7"
-Cohesion: 0.19
-Nodes (21): blocked(), equal(), validateMatrixProviderRequest(), bad(), exact(), freeze(), hash(), object() (+13 more)
-
-### Community 8 - "Community 8"
-Cohesion: 0.15
-Nodes (24): validateProcessStateDiagnostic(), AUTHORITY_PINS, CASES, consistentOwnedExit(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX (+16 more)
-
-### Community 9 - "Community 9"
-Cohesion: 0.02
-Nodes (121): prepareTrustedCase(), createTrustedLauncher(), createNativePorts(), realIo, prepareTrustedCase(), POLICY, prepareTrustedCase(), POLICY (+113 more)
-
-### Community 10 - "Community 10"
-Cohesion: 0.04
-Nodes (97): ownDirectory(), writeMatrixCaseReceipt(), POLICY, fullT2Maximum(), fullT2RecoveryBudget(), RETAINED_R28_CEILINGS, fullT2Maximum(), fullT2RecoveryBudget() (+89 more)
-
-### Community 11 - "Community 11"
-Cohesion: 0.08
-Nodes (53): serializeR35Preparation(), verifyR35HistoricalClosure(), readPrepared(), serializeR37Preparation(), readPrepared(), verifyR37HistoricalClosure(), readPrepared(), AUTHORITY_PINS (+45 more)
-
-### Community 12 - "Community 12"
-Cohesion: 0.15
-Nodes (11): ownDirectory(), writeMatrixCaseReceipt(), createOfflineEffects(), redirectFs(), serializedCanonicalRead(), composed(), observer, prepared (+3 more)
-
-### Community 13 - "Community 13"
-Cohesion: 0.15
-Nodes (19): prepareR23MatrixManifest(), buildR23PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite(), readExactOutput() (+11 more)
-
-### Community 14 - "Community 14"
-Cohesion: 0.12
-Nodes (16): ownDirectory(), writeMatrixCaseReceipt(), createOfflineEffects(), redirectFs(), entry, receipts(), repo, sha() (+8 more)
-
-### Community 15 - "Community 15"
-Cohesion: 0.03
-Nodes (104): decodeWithDiagnostic(), emitDiagnostic(), checkedString(), exactKeys(), FiniteBufferedResponses, makeCustomToolEvents(), makeTerminalEvents(), scriptDigest() (+96 more)
-
-### Community 16 - "Community 16"
-Cohesion: 0.04
-Nodes (69): absent, boundedJson(), canonical(), CODEC_SOURCE, decodeCodeModeContinuation(), digest(), exact(), fail() (+61 more)
-
-### Community 17 - "Community 17"
-Cohesion: 0.15
-Nodes (24): AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX (+16 more)
-
-### Community 18 - "Community 18"
+### Community 27 - "Harness Validation Run Cucumber"
 Cohesion: 0.05
-Nodes (87): assertExactApproval(), DECISION, dispatchHostPreflight(), ENTRY, prefix(), privateJson(), REPO, REVIEW (+79 more)
+Nodes (58): root, registry, fixtureRoot, delay, run(), source, generated, start (+50 more)
 
-### Community 19 - "Community 19"
-Cohesion: 0.04
-Nodes (62): assertComplementHeldBaseline(), assertFixtureDatabaseClosed(), serviceNormalReportDelivered(), Admission, assertSettledCompositionSnapshot(), composeServiceOriginalNonstart(), SuccessfulNonstart, assertActivationUnrequestedDatabase() (+54 more)
-
-### Community 20 - "Community 20"
-Cohesion: 0.09
-Nodes (26): buildR37CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), ownDirectory(), writeMatrixCaseReceipt(), prepareTrustedCase() (+18 more)
-
-### Community 21 - "Community 21"
-Cohesion: 0.14
-Nodes (24): validateChildPathDiagnostics(), validateProcessStateDiagnostic(), AUTHORITY_PINS, CASES, COMPLETED_CASES, consistentOwnedExit(), countsValid(), expectedNames() (+16 more)
-
-### Community 22 - "Community 22"
-Cohesion: 0.10
-Nodes (23): buildMatrixCanonicalBytes(), HISTORICAL_BUNDLE, REPO, sha(), BUILD, filePin(), HERE, prepareR12MatrixManifest() (+15 more)
-
-### Community 23 - "Community 23"
-Cohesion: 0.15
-Nodes (25): AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX (+17 more)
-
-### Community 24 - "Community 24"
-Cohesion: 0.16
-Nodes (17): ADDON, assertDecision(), assertReview(), DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT, fail(), fixedFileIdentity() (+9 more)
-
-### Community 25 - "Community 25"
-Cohesion: 0.05
-Nodes (34): JsonLines, line(), runtimeUnavailable(), EmptyDenial, OfflineMcp, requireNativeMapping(), canonical(), completeManifest() (+26 more)
-
-### Community 26 - "Community 26"
-Cohesion: 0.07
-Nodes (73): journalPath, result, sourceObservedAtByRef, appendObservation(), [command, ...argv], commands, definitions, measurements() (+65 more)
-
-### Community 27 - "Community 27"
-Cohesion: 0.07
-Nodes (35): NOTIFICATION_ENVELOPE_FAILURE_REASONS, COLLECTOR_REASONS, CONTENT_ENCODING_CLASSES, CONTENT_TYPE_CLASSES, PROVIDER_FAILURE_CATEGORIES, UNINTERPRETED_OUTCOMES, CASE_ROOT, classifyT1PreparationFailure() (+27 more)
-
-### Community 28 - "Community 28"
-Cohesion: 0.05
-Nodes (49): FixtureTerminalScope, compositionServiceCase, compositionServiceCases, runServiceController(), serviceControllerResult(), assertInstalledExpectation(), createServiceMatrixExpect(), ServiceFixtureExpect (+41 more)
-
-### Community 29 - "Community 29"
-Cohesion: 0.04
-Nodes (24): DECISION, EVIDENCE, PROPOSAL, qualifyRootPackage(), REPO, ROOT_PACKAGE, SCRIPT_DELTA, sha() (+16 more)
-
-### Community 30 - "Community 30"
-Cohesion: 0.06
-Nodes (50): buildR34CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), ADDON, assertDecision(), assertReview() (+42 more)
-
-### Community 31 - "Community 31"
-Cohesion: 0.05
-Nodes (56): ownDirectory(), writeMatrixCaseReceipt(), CHILD_PATH_CLASSES, createChildPathDiagnostics(), entryKeys, nameClasses, NAMES, pathClasses (+48 more)
-
-### Community 32 - "Community 32"
-Cohesion: 0.16
-Nodes (23): AUTHORITY_PINS, CASES, consistentOwnedExit(), expectedNames(), fail(), INDEX, KINDS, MANIFEST (+15 more)
-
-### Community 33 - "Community 33"
-Cohesion: 0.07
-Nodes (36): CHILD_PATH_CLASSES, entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), createGitReadinessGate(), fail() (+28 more)
-
-### Community 34 - "Community 34"
-Cohesion: 0.06
-Nodes (34): buildR51CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), TrustedCaseCoordinator, ownDirectory(), writeMatrixCaseReceipt() (+26 more)
-
-### Community 35 - "Community 35"
-Cohesion: 0.10
-Nodes (22): createGitReadinessGate(), fail(), failureNames, GIT_FILE_PIN, ownErrors, pathInput(), pinnedFile(), READINESS_POLICY (+14 more)
-
-### Community 36 - "Community 36"
-Cohesion: 0.09
-Nodes (55): publishFixtureAuditRecord(), readFixtureAuditRecord(), admission(), assertExternalPath(), cases, controllerScript, sourceControllerEffects, environment() (+47 more)
-
-### Community 37 - "Community 37"
-Cohesion: 0.05
-Nodes (55): ownDirectory(), writeMatrixCaseReceipt(), CHILD_PATH_CLASSES, createChildPathDiagnostics(), entryKeys, nameClasses, NAMES, pathClasses (+47 more)
-
-### Community 38 - "Community 38"
-Cohesion: 0.09
-Nodes (63): applyExactPatch(), applyPatchHunk(), captureTrackedInputs(), consumePatchContext(), consumePatchHunk(), consumePatchLine(), copyPinnedLicense(), copyTrackedRegularFiles() (+55 more)
-
-### Community 39 - "Community 39"
-Cohesion: 0.13
-Nodes (8): copyBounded(), ScopedTransportAudit, SETUP_METHODS, sha(), strict(), canonical(), planFor(), producer()
-
-### Community 40 - "Community 40"
-Cohesion: 0.06
-Nodes (51): CHILD_PATH_CLASSES, createChildPathDiagnostics(), entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), createGitReadinessGate() (+43 more)
-
-### Community 41 - "Community 41"
-Cohesion: 0.06
-Nodes (51): ownDirectory(), writeMatrixCaseReceipt(), CHILD_PATH_CLASSES, createChildPathDiagnostics(), entryKeys, nameClasses, NAMES, pathClasses (+43 more)
-
-### Community 42 - "Community 42"
-Cohesion: 0.06
-Nodes (38): CHILD_PATH_CLASSES, entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), createGitReadinessGate(), fail() (+30 more)
-
-### Community 43 - "Community 43"
-Cohesion: 0.04
-Nodes (45): allInputs, { build }, bundle, commonModules, commonRoot, compositionControllerBundle, controllerBundle, generated (+37 more)
-
-### Community 44 - "Community 44"
-Cohesion: 0.04
-Nodes (37): bootstrap, closureHandlers, closureState, descriptorEvidence(), [directory, selectedLabel, nonce, faultSelector], functionHash(), lifetime, ownValue() (+29 more)
-
-### Community 45 - "Community 45"
-Cohesion: 0.13
-Nodes (20): CHILD_PATH_CLASSES, entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), checkParents(), codes (+12 more)
-
-### Community 46 - "Community 46"
-Cohesion: 0.07
-Nodes (40): ownDirectory(), writeMatrixCaseReceipt(), createGitReadinessGate(), fail(), failureNames, GIT_READINESS_FAILURE_REASONS, ownErrors, pathInput() (+32 more)
-
-### Community 47 - "Community 47"
-Cohesion: 0.10
-Nodes (52): absent(), captureAdditions(), captureFinalEntry(), createAncestor(), digest(), exactUtf8Text(), exclusiveFile(), expectedRegularHash() (+44 more)
-
-### Community 48 - "Community 48"
-Cohesion: 0.07
-Nodes (26): prepareTrustedCase(), prepareTrustedComposition(), sha(), offlineEvidence(), createTrustedLauncher(), absentAnalyzerOperations, authorityFields, canonical() (+18 more)
-
-### Community 49 - "Community 49"
-Cohesion: 0.15
-Nodes (24): AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX (+16 more)
-
-### Community 50 - "Community 50"
-Cohesion: 0.09
-Nodes (36): buildWorkspaceCanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), DEDICATED_TOOL_HELPER_SOURCE_EXPECTATIONS, fullT3RecoveryBudget(), BUILD (+28 more)
-
-### Community 51 - "Community 51"
-Cohesion: 0.07
-Nodes (46): DISABLED_FEATURES, canonicalJson(), composeR2dLaunch(), consumeReleasedCall(), createRequestInterlock(), evaluateInterlockResults(), execFile, freezeDeep() (+38 more)
-
-### Community 52 - "Community 52"
-Cohesion: 0.05
-Nodes (61): delay, fixtureRoot, registry, root, run(), finish, generated, source (+53 more)
-
-### Community 53 - "Community 53"
-Cohesion: 0.36
-Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
-
-### Community 54 - "Community 54"
-Cohesion: 0.06
-Nodes (37): allowed, fail(), writeT1PreparationReceipt(), fail(), PRIOR_JOURNAL, sha(), verifyPriorAttempt(), createT1ErrorAdapter() (+29 more)
-
-### Community 55 - "Community 55"
-Cohesion: 0.05
-Nodes (28): callback, send(), capture(), actualExternalValidators(), actualObserver(), actualPreparedStage(), caught(), directEffects (+20 more)
-
-### Community 56 - "Community 56"
-Cohesion: 0.15
-Nodes (21): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+13 more)
-
-### Community 57 - "Community 57"
-Cohesion: 0.07
-Nodes (48): addFieldModifiers(), addFieldTypeEdges(), addLink(), addLocalForeignKeys(), addModelConstraint(), addModelField(), addNode(), addReferencedFields() (+40 more)
-
-### Community 58 - "Community 58"
-Cohesion: 0.07
-Nodes (22): arch, binary, build, children, configurationRecord(), emptySystemLayer(), here, launch() (+14 more)
-
-### Community 59 - "Community 59"
-Cohesion: 0.05
-Nodes (53): externalEffectAttempts, categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText() (+45 more)
-
-### Community 60 - "Community 60"
-Cohesion: 0.08
-Nodes (30): CountedJsonLines, approvalFields, b14Workspace, createPermissionDiagnostic(), nullableFieldShape(), only(), PERMISSION_DIAGNOSTIC_REASONS, permissionRequestFailure() (+22 more)
-
-### Community 61 - "Community 61"
-Cohesion: 0.10
-Nodes (48): adaptSelectionForCodex(), assert(), assertActiveCandidate(), assertCandidateCompatible(), assertExactKeys(), assertHostProfileAuthority(), assertObject(), assertStringArray() (+40 more)
-
-### Community 62 - "Community 62"
-Cohesion: 0.14
-Nodes (24): AUTHORITY_PINS, CASES, CHILD_PATH_OBSERVATIONS, countsValid(), ENVIRONMENT_PROFILE, expectedNames(), fail(), GIT_READINESS (+16 more)
-
-### Community 63 - "Community 63"
-Cohesion: 0.07
-Nodes (33): createR21OwnedHostObserver(), R21_INSTALLED_HOST_FILE, same(), verifyR21HostFile(), createR22OwnedHostObserver(), R22_INSTALLED_HOST_FILE, same(), verifyR22HostFile() (+25 more)
-
-### Community 64 - "Community 64"
-Cohesion: 0.09
-Nodes (35): buildWorkspaceCanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), DEDICATED_TOOL_HELPER_SOURCE_EXPECTATIONS, BUILD, HERE (+27 more)
-
-### Community 65 - "Community 65"
-Cohesion: 0.05
-Nodes (55): CHILD_PATH_CLASSES, createChildPathDiagnostics(), entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), createGitReadinessGate() (+47 more)
-
-### Community 66 - "Community 66"
-Cohesion: 0.13
-Nodes (24): buildWorkspaceCanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), DEDICATED_TOOL_HELPER_SOURCE_EXPECTATIONS, fullT3RecoveryBudget(), BUILD (+16 more)
-
-### Community 67 - "Community 67"
-Cohesion: 0.07
-Nodes (38): createRoutingDecision(), defaultValue(), hasMaterialRisk(), normalizedSignals(), recommendSwarmRoute(), riskSignals, routingRules, unverifiedRuntimeProof() (+30 more)
-
-### Community 68 - "Community 68"
-Cohesion: 0.06
-Nodes (39): allowedAgentKeys, allProfiles, config, failures, isIgnorableAgentLine(), parseAgentLine(), parseAgentValue(), parseFlatAgentToml() (+31 more)
-
-### Community 69 - "Community 69"
-Cohesion: 0.15
-Nodes (16): buildWorkspaceCanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), DEDICATED_TOOL_HELPER_SOURCE_EXPECTATIONS, BUILD, HERE (+8 more)
-
-### Community 70 - "Community 70"
-Cohesion: 0.12
-Nodes (31): requireTA04Absent(), verifyR21Predecessor(), verifyRetainedP7(), verifyR22Predecessor(), INDEX, R23_COUNTS, readFrozenR23(), REPO (+23 more)
-
-### Community 71 - "Community 71"
-Cohesion: 0.08
-Nodes (37): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+29 more)
-
-### Community 72 - "Community 72"
-Cohesion: 0.08
-Nodes (37): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+29 more)
-
-### Community 73 - "Community 73"
-Cohesion: 0.08
-Nodes (37): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+29 more)
-
-### Community 74 - "Community 74"
-Cohesion: 0.08
-Nodes (37): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+29 more)
-
-### Community 75 - "Community 75"
-Cohesion: 0.08
-Nodes (37): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+29 more)
-
-### Community 76 - "Community 76"
-Cohesion: 0.08
-Nodes (37): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+29 more)
-
-### Community 77 - "Community 77"
-Cohesion: 0.08
-Nodes (37): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+29 more)
-
-### Community 78 - "Community 78"
-Cohesion: 0.08
-Nodes (37): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+29 more)
-
-### Community 79 - "Community 79"
-Cohesion: 0.12
-Nodes (21): CHILD_PATH_CLASSES, entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), GIT_READINESS_FAILURE_REASONS, checkParents() (+13 more)
-
-### Community 80 - "Community 80"
-Cohesion: 0.12
-Nodes (22): categories, classifyOutputObservation(), controlledMarkers, DIAGNOSTIC_CATEGORIES, exactText(), groups, OUTPUT_STATUSES, SCRIPT_FAILURE_MARKERS (+14 more)
-
-### Community 81 - "Community 81"
-Cohesion: 0.21
-Nodes (13): captureParents(), checkParents(), classes, createProviderFailureRecorder(), FAILURE_CLASSES, FAILURE_STAGES, ownDirectory(), ownFile() (+5 more)
-
-### Community 82 - "Community 82"
-Cohesion: 0.12
-Nodes (24): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+16 more)
-
-### Community 83 - "Community 83"
-Cohesion: 0.09
-Nodes (34): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+26 more)
-
-### Community 84 - "Community 84"
-Cohesion: 0.12
-Nodes (6): Fixture, owned_file(), PhaseHistoryCleanupTest, private(), Disposable, offline tests for the fixed T2/T3 retention cleanup boundary., sha()
-
-### Community 85 - "Community 85"
-Cohesion: 0.08
-Nodes (37): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+29 more)
-
-### Community 86 - "Community 86"
-Cohesion: 0.08
-Nodes (40): composeIsolatedLaunch(), execFile, fixtureConfig(), ISOLATED_ENV_ALLOWLIST, ISOLATION_MODES, mcpConfigBlock(), normalizeMcpInventory(), sameProcessIdentity() (+32 more)
-
-### Community 87 - "Community 87"
-Cohesion: 0.07
-Nodes (48): assertSourceRetentionHandoffMatch(), boundedMessage(), checkRetainedMessage(), createSourceRetentionBinding(), decodeServiceTerminalAck(), decodeSourceOwnerFailure(), decodeSourceRetentionAck(), decodeSourceRetentionCallbackCommit() (+40 more)
-
-### Community 88 - "Community 88"
-Cohesion: 0.12
-Nodes (17): allowedDatabaseFixtures, assertMigrationParity(), expectedMigrations, packages, rootPackage, rootPublishRefusal, assertDatabaseMigrationParity(), enumerateDatabaseMigrations() (+9 more)
-
-### Community 89 - "Community 89"
-Cohesion: 0.15
-Nodes (23): AUTHORITY_PINS, CASES, consistentOwnedExit(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX, KINDS (+15 more)
-
-### Community 90 - "Community 90"
-Cohesion: 0.15
-Nodes (18): buildR29CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), GIT_FILE_PIN, AUTHORITY, BUILD (+10 more)
-
-### Community 91 - "Community 91"
-Cohesion: 0.07
-Nodes (46): acceptSourceSendReservation(), assertSourceFactoryRefusal(), assertSourceFinalizerHandoff(), completeSourceCaptureRefusal(), completeSourceCaseResult(), createSourceRefusalTransaction(), startSourceSendReservation(), adoptionRefusal() (+38 more)
-
-### Community 92 - "Community 92"
-Cohesion: 0.12
-Nodes (6): Fixture, owned_file(), PhaseHistoryCleanupTest, private(), Disposable, offline tests for the fixed T2/T3 retention cleanup boundary., sha()
-
-### Community 93 - "Community 93"
-Cohesion: 0.09
-Nodes (30): ownDirectory(), writeMatrixCaseReceipt(), readMatrixChildReceipt(), createChildPathDiagnostics(), createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize() (+22 more)
-
-### Community 94 - "Community 94"
-Cohesion: 0.07
-Nodes (35): CHILD_PATH_CLASSES, entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), createGitReadinessGate(), fail() (+27 more)
-
-### Community 95 - "Community 95"
-Cohesion: 0.05
-Nodes (68): CHILD_PATH_CLASSES, createChildPathDiagnostics(), entryKeys, nameClasses, NAMES, pathClasses, createGitReadinessGate(), fail() (+60 more)
-
-### Community 96 - "Community 96"
-Cohesion: 0.08
-Nodes (28): createT1ErrorAdapter(), CASE_ROOT, expectedTreeRoots, fixedPaths, HERE, MANIFEST_DIR, MANIFEST_FILE, normalStopJournal() (+20 more)
-
-### Community 97 - "Community 97"
-Cohesion: 0.08
-Nodes (37): createProcessStateDiagnostics(), ownDirectory(), writeWorkspaceCaseReceipt(), BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS (+29 more)
-
-### Community 98 - "Community 98"
-Cohesion: 0.14
-Nodes (24): ADDON, assertCommonBindings(), assertDecision(), assertPredecessor(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, COMMON_FIELDS (+16 more)
-
-### Community 99 - "Community 99"
-Cohesion: 0.14
-Nodes (24): ADDON, assertCommonBindings(), assertDecision(), assertPredecessor(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, COMMON_FIELDS (+16 more)
-
-### Community 100 - "Community 100"
-Cohesion: 0.14
-Nodes (24): ADDON, assertCommonBindings(), assertDecision(), assertPredecessor(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, COMMON_FIELDS (+16 more)
-
-### Community 101 - "Community 101"
-Cohesion: 0.06
-Nodes (43): retainFixtureActual(), Admission, Channel, disconnectFixtureRetainedOwner(), fixtureRetainedFailureReport(), Identity, Message, notifyFixtureRetainedFailure() (+35 more)
-
-### Community 102 - "Community 102"
-Cohesion: 0.13
-Nodes (6): Fixture, owned_file(), PhaseHistoryCleanupTest, private(), Disposable, offline tests for the fixed T2/T3 retention cleanup boundary., sha()
-
-### Community 103 - "Community 103"
-Cohesion: 0.07
-Nodes (32): actualSignatures, expectedHandlers, expectedSignatures, extra, extraHandlers, handlerRefs, missing, missingHandlers (+24 more)
-
-### Community 104 - "Community 104"
-Cohesion: 0.09
-Nodes (27): buildR21CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), AVAILABILITY, BUILD, EXPECTED (+19 more)
-
-### Community 105 - "Community 105"
-Cohesion: 0.07
-Nodes (28): createB14NativeSession(), inspectP00RequiredMcpError(), sha(), validateIssuedTranscript(), syntheticB14Output(), syntheticB14PermissionEvidence(), syntheticB14Request(), RESULT (+20 more)
-
-### Community 106 - "Community 106"
-Cohesion: 0.15
-Nodes (23): AUTHORITY_PINS, CASES, consistentOwnedExit(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX, KINDS (+15 more)
-
-### Community 107 - "Community 107"
-Cohesion: 0.16
-Nodes (31): DirectChildMetadata(), Fail(), GetOnePidArg(), GetPid(), Identity(), Init(), ListDirectChildren(), MakeIdentity() (+23 more)
-
-### Community 108 - "Community 108"
-Cohesion: 0.15
-Nodes (21): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+13 more)
-
-### Community 109 - "Community 109"
-Cohesion: 0.20
-Nodes (15): createChildPathDiagnostics(), R37_INSTALLED_HOST_FILE, createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize(), runPreparedT2Matrix(), sha() (+7 more)
-
-### Community 110 - "Community 110"
-Cohesion: 0.08
-Nodes (28): GRAPH_COMMANDS, withDefaultGraph(), resolveGraphifyExecutable(), graphFreshness(), graphInputDigest(), graphScopes, recordGraphFreshness(), scopeFiles() (+20 more)
-
-### Community 111 - "Community 111"
-Cohesion: 0.10
-Nodes (35): withLockedSwarmJournal(), acquireLedgerLock(), attemptLockAcquisition(), createLock(), existingLockReclaim(), existingLockState(), inspectExistingLock(), isLockOwnerRecord() (+27 more)
-
-### Community 112 - "Community 112"
-Cohesion: 0.17
-Nodes (14): children, exitCode(), exitLabel(), handleProcessError(), handleProcessExit(), handleProcessStop(), inferredBaseUrl(), mcp (+6 more)
-
-### Community 113 - "Community 113"
-Cohesion: 0.06
-Nodes (48): ownDirectory(), writeMatrixCaseReceipt(), CHILD_PATH_CLASSES, createChildPathDiagnostics(), entryKeys, nameClasses, NAMES, pathClasses (+40 more)
-
-### Community 114 - "Community 114"
-Cohesion: 0.15
-Nodes (24): AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX (+16 more)
-
-### Community 115 - "Community 115"
-Cohesion: 0.10
-Nodes (35): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+27 more)
-
-### Community 116 - "Community 116"
-Cohesion: 0.36
-Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
-
-### Community 117 - "Community 117"
-Cohesion: 0.15
-Nodes (28): { build }, buildAndBindSourceStage(), buildSourceCustodyPacket(), buildSourceIpcFaultPacket(), canonicalInputs(), commonNames, here, materializeSourcePacketScripts() (+20 more)
-
-### Community 118 - "Community 118"
-Cohesion: 0.10
-Nodes (24): buildR19CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), BUILD, DESIGN, EXPECTED (+16 more)
-
-### Community 119 - "Community 119"
-Cohesion: 0.13
-Nodes (5): BLOCKED, BUILD, REPO, REVIEW, verifyR22Predecessor()
-
-### Community 120 - "Community 120"
-Cohesion: 0.11
-Nodes (22): CountedJsonLines, approvalFields, b14Workspace, createPermissionDiagnostic(), nullableFieldShape(), only(), PERMISSION_DIAGNOSTIC_REASONS, permissionRequestFailure() (+14 more)
-
-### Community 121 - "Community 121"
-Cohesion: 0.11
-Nodes (22): CountedJsonLines, approvalFields, b14Workspace, createPermissionDiagnostic(), nullableFieldShape(), only(), PERMISSION_DIAGNOSTIC_REASONS, permissionRequestFailure() (+14 more)
-
-### Community 122 - "Community 122"
-Cohesion: 0.11
-Nodes (22): CountedJsonLines, approvalFields, b14Workspace, createPermissionDiagnostic(), nullableFieldShape(), only(), PERMISSION_DIAGNOSTIC_REASONS, permissionRequestFailure() (+14 more)
-
-### Community 123 - "Community 123"
-Cohesion: 0.11
-Nodes (22): CountedJsonLines, approvalFields, b14Workspace, createPermissionDiagnostic(), nullableFieldShape(), only(), PERMISSION_DIAGNOSTIC_REASONS, permissionRequestFailure() (+14 more)
-
-### Community 124 - "Community 124"
-Cohesion: 0.15
-Nodes (13): CountedJsonLines, nullableString(), only(), PROTOCOL_FAILURE_CATEGORIES, record(), telemetryKinds, textPosition(), textRange() (+5 more)
-
-### Community 125 - "Community 125"
-Cohesion: 0.11
-Nodes (22): CountedJsonLines, approvalFields, b14Workspace, createPermissionDiagnostic(), nullableFieldShape(), only(), PERMISSION_DIAGNOSTIC_REASONS, permissionRequestFailure() (+14 more)
-
-### Community 126 - "Community 126"
-Cohesion: 0.11
-Nodes (22): CountedJsonLines, approvalFields, b14Workspace, createPermissionDiagnostic(), nullableFieldShape(), only(), PERMISSION_DIAGNOSTIC_REASONS, permissionRequestFailure() (+14 more)
-
-### Community 127 - "Community 127"
-Cohesion: 0.15
-Nodes (13): CountedJsonLines, nullableString(), only(), PROTOCOL_FAILURE_CATEGORIES, record(), telemetryKinds, textPosition(), textRange() (+5 more)
-
-### Community 128 - "Community 128"
-Cohesion: 0.11
-Nodes (22): CountedJsonLines, approvalFields, b14Workspace, createPermissionDiagnostic(), nullableFieldShape(), only(), PERMISSION_DIAGNOSTIC_REASONS, permissionRequestFailure() (+14 more)
-
-### Community 129 - "Community 129"
-Cohesion: 0.15
-Nodes (32): boundaryFindings(), boundaryShapeFindings(), canonicalEqual(), canonicalSchemaHash(), canonicalValue(), evaluatePreTurnQualification(), exactToolFindings(), expectedManifestFindings() (+24 more)
-
-### Community 130 - "Community 130"
-Cohesion: 0.15
-Nodes (30): parseUniqueJson(), absolute(), bindingFileRecord(), clientOutputNames, digest(), envTargets(), inside(), inspectPhysicalClient() (+22 more)
-
-### Community 131 - "Community 131"
-Cohesion: 0.07
-Nodes (30): assertOwnedSupervisorDeclaration(), digest(), inspectEmittedAnalysisOwnedChildOrigin(), preserveAnalysisOwnedChildOrigin(), soleOwnedSupervisorOrigin(), collectAnalysisRuntimePackageInputs(), inspectAnalysisPreRuntimeClosure(), binding (+22 more)
-
-### Community 132 - "Community 132"
-Cohesion: 0.16
-Nodes (21): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+13 more)
-
-### Community 133 - "Community 133"
-Cohesion: 0.13
-Nodes (16): prepareWorkspaceManifest(), createWorkspaceNativeSession(), sha(), HERE, REPO, sha(), verifyWorkspacePreparation(), WORKSPACE_BUILD (+8 more)
-
-### Community 134 - "Community 134"
-Cohesion: 0.16
-Nodes (17): ADDON, assertDecision(), assertReview(), DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT, fail(), fixedFileIdentity() (+9 more)
-
-### Community 135 - "Community 135"
-Cohesion: 0.09
-Nodes (25): connected(), inputs, rawMutations, validate(), exactKeys(), failureKeys, injectSourceIpcFault(), readSourceFaultJson() (+17 more)
-
-### Community 136 - "Community 136"
-Cohesion: 0.14
-Nodes (22): ADDON, assertReview(), BASE_ENTRYPOINT, dispatchMatrixEntrypoint(), ENTRYPOINT, fail(), fixedFileIdentity(), HERE (+14 more)
-
-### Community 137 - "Community 137"
-Cohesion: 0.08
-Nodes (35): buildR20CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), BUILD, DESIGN, EXPECTED (+27 more)
-
-### Community 138 - "Community 138"
-Cohesion: 0.12
-Nodes (21): buildR47CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), same(), verifyR47HostFile(), BUILD (+13 more)
-
-### Community 139 - "Community 139"
-Cohesion: 0.11
-Nodes (20): CountedJsonLines, approvalFields, b14Workspace, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record() (+12 more)
-
-### Community 140 - "Community 140"
-Cohesion: 0.12
-Nodes (20): ADDON, assertReview(), dispatchMatrixEntrypoint(), ENTRYPOINT, fail(), fixedFileIdentity(), HERE, invocationPrefix() (+12 more)
-
-### Community 141 - "Community 141"
-Cohesion: 0.16
-Nodes (17): ADDON, assertDecision(), assertReview(), DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT, fail(), fixedFileIdentity() (+9 more)
-
-### Community 142 - "Community 142"
-Cohesion: 0.15
-Nodes (18): ADDON, assertDecision(), assertReview(), DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT, fail(), fixedFileIdentity() (+10 more)
-
-### Community 143 - "Community 143"
-Cohesion: 0.15
-Nodes (19): ownDirectory(), writeMatrixCaseReceipt(), createChildPathDiagnostics(), createR48OwnedHostObserver(), R48_INSTALLED_HOST_FILE, createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit() (+11 more)
-
-### Community 144 - "Community 144"
-Cohesion: 0.09
-Nodes (27): CASE_ROOT, classifyT1PreparationFailure(), expectedTreeRoots, fixedPaths, HERE, MANIFEST_DIR, MANIFEST_FILE, prepareT1() (+19 more)
-
-### Community 145 - "Community 145"
-Cohesion: 0.09
-Nodes (27): CASE_ROOT, classifyT1PreparationFailure(), expectedTreeRoots, fixedPaths, HERE, MANIFEST_DIR, MANIFEST_FILE, ownedCodexExitProved() (+19 more)
-
-### Community 146 - "Community 146"
-Cohesion: 0.08
-Nodes (23): allowed, fail(), writeT1PreparationReceipt(), fail(), pinned, REPO, sha(), verifyPriorAttempt() (+15 more)
-
-### Community 147 - "Community 147"
-Cohesion: 0.15
-Nodes (31): assert(), assertSanitizedLearningText(), containsForbiddenLearningDetail(), sanitizeLegacyLearningText(), addRecordedRun(), appendEvent(), applyRunTransition(), assert() (+23 more)
-
-### Community 148 - "Community 148"
-Cohesion: 0.12
-Nodes (24): CanonicalBridgeBootstrapConfig, createCanonicalSupervisorBridge(), createLazyCanonicalSupervisorBridge(), Fixture, approvedPhaseRoots, assertOwnedSupervisorWorkspace(), Binding, canonicalJson() (+16 more)
-
-### Community 149 - "Community 149"
-Cohesion: 0.10
-Nodes (27): ownDirectory(), writeMatrixCaseReceipt(), createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize(), runPreparedT2Matrix(), sha() (+19 more)
-
-### Community 150 - "Community 150"
-Cohesion: 0.17
-Nodes (22): verifyR39HistoricalClosure(), AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid(), expectedNames(), fail(), INDEX (+14 more)
-
-### Community 151 - "Community 151"
-Cohesion: 0.08
-Nodes (36): ADDON, assertDecision(), assertReview(), DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT, fail(), fixedFileIdentity() (+28 more)
-
-### Community 152 - "Community 152"
-Cohesion: 0.18
-Nodes (21): AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid(), expectedNames(), fail(), INDEX, KINDS (+13 more)
-
-### Community 153 - "Community 153"
-Cohesion: 0.06
-Nodes (39): CHILD_PATH_CLASSES, entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), createGitReadinessGate(), fail() (+31 more)
-
-### Community 154 - "Community 154"
-Cohesion: 0.08
-Nodes (47): serializeR44Preparation(), verifyR44HistoricalClosure(), AUTHORITY_PINS, CASES, COMPLETED_CASES, consistentOwnedExit(), countsValid(), expectedNames() (+39 more)
-
-### Community 155 - "Community 155"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
-
-### Community 156 - "Community 156"
-Cohesion: 0.08
-Nodes (8): ARCHIVE, exactFile(), exactPrivateDir(), PINS, REPO, same(), sha(), verifyConsumedPreflights()
-
-### Community 157 - "Community 157"
-Cohesion: 0.13
-Nodes (18): CountedJsonLines, approvalFields, b14Workspace, createPermissionDiagnostic(), nullableFieldShape(), only(), PERMISSION_DIAGNOSTIC_REASONS, permissionRequestFailure() (+10 more)
-
-### Community 158 - "Community 158"
-Cohesion: 0.15
-Nodes (23): AUTHORITY_PINS, CASES, consistentOwnedExit(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX, KINDS (+15 more)
-
-### Community 159 - "Community 159"
-Cohesion: 0.20
-Nodes (15): decodeWithDiagnostic(), emitDiagnostic(), checkedString(), exactKeys(), FiniteBufferedResponses, makeCustomToolEvents(), makeTerminalEvents(), scriptDigest() (+7 more)
-
-### Community 160 - "Community 160"
-Cohesion: 0.13
-Nodes (23): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+15 more)
-
-### Community 161 - "Community 161"
-Cohesion: 0.20
-Nodes (15): decodeWithDiagnostic(), emitDiagnostic(), checkedString(), exactKeys(), FiniteBufferedResponses, makeCustomToolEvents(), makeTerminalEvents(), scriptDigest() (+7 more)
-
-### Community 162 - "Community 162"
-Cohesion: 0.12
-Nodes (24): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+16 more)
-
-### Community 163 - "Community 163"
-Cohesion: 0.10
-Nodes (25): CASE_ROOT, classifyT1PreparationFailure(), expectedTreeRoots, fixedPaths, HERE, MANIFEST_DIR, MANIFEST_FILE, ownedCodexExitProved() (+17 more)
-
-### Community 164 - "Community 164"
-Cohesion: 0.10
-Nodes (25): CASE_ROOT, classifyT1PreparationFailure(), expectedTreeRoots, fixedPaths, HERE, MANIFEST_DIR, MANIFEST_FILE, ownedCodexExitProved() (+17 more)
-
-### Community 165 - "Community 165"
-Cohesion: 0.12
-Nodes (28): sha256(), buildProbeProfiles(), captureRequest(), close(), collectSchemaDifferences(), compactionSchema(), createRpc(), deferred() (+20 more)
-
-### Community 166 - "Community 166"
-Cohesion: 0.07
-Nodes (25): checkedDirectory(), checkedFile(), checkedLimits(), checkedRoot(), clone(), DEFAULT_LIMITS, DisposableStore, HARD_LIMITS (+17 more)
-
-### Community 167 - "Community 167"
-Cohesion: 0.17
-Nodes (14): buildR23CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), BUILD, HERE, pin() (+6 more)
-
-### Community 168 - "Community 168"
-Cohesion: 0.06
-Nodes (53): CHILD_PATH_CLASSES, createChildPathDiagnostics(), entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), createGitReadinessGate() (+45 more)
-
-### Community 169 - "Community 169"
-Cohesion: 0.16
-Nodes (17): ADDON, assertDecision(), assertReview(), DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT, fail(), fixedFileIdentity() (+9 more)
-
-### Community 170 - "Community 170"
-Cohesion: 0.16
-Nodes (17): ADDON, assertDecision(), assertReview(), DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT, fail(), fixedFileIdentity() (+9 more)
-
-### Community 171 - "Community 171"
-Cohesion: 0.07
-Nodes (37): CHILD_PATH_CLASSES, entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), createGitReadinessGate(), fail() (+29 more)
-
-### Community 172 - "Community 172"
-Cohesion: 0.22
-Nodes (14): prepareR50MatrixManifest(), sha(), buildR50PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite() (+6 more)
-
-### Community 173 - "Community 173"
-Cohesion: 0.15
-Nodes (25): AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX (+17 more)
-
-### Community 174 - "Community 174"
-Cohesion: 0.21
-Nodes (13): captureParents(), checkParents(), classes, createProviderFailureRecorder(), FAILURE_CLASSES, FAILURE_STAGES, ownDirectory(), ownFile() (+5 more)
-
-### Community 175 - "Community 175"
-Cohesion: 0.13
-Nodes (15): apply(), assertRoot(), blank(), copy(), DurableT1Journal, JOURNAL_ROOT, KINDS, own() (+7 more)
-
-### Community 176 - "Community 176"
-Cohesion: 0.13
-Nodes (15): apply(), assertRoot(), blank(), copy(), DurableT1Journal, JOURNAL_ROOT, KINDS, own() (+7 more)
-
-### Community 177 - "Community 177"
-Cohesion: 0.13
-Nodes (15): apply(), assertRoot(), blank(), copy(), DurableT1Journal, JOURNAL_ROOT, KINDS, own() (+7 more)
-
-### Community 178 - "Community 178"
-Cohesion: 0.13
-Nodes (17): CountedJsonLines, approvalFields, b14Workspace, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record() (+9 more)
-
-### Community 179 - "Community 179"
-Cohesion: 0.13
-Nodes (17): CountedJsonLines, approvalFields, b14Workspace, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record() (+9 more)
-
-### Community 180 - "Community 180"
-Cohesion: 0.13
-Nodes (17): CountedJsonLines, approvalFields, b14Workspace, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record() (+9 more)
-
-### Community 181 - "Community 181"
-Cohesion: 0.06
-Nodes (62): buildR41PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite(), readExactOutput(), REPO (+54 more)
-
-### Community 182 - "Community 182"
-Cohesion: 0.13
-Nodes (17): CountedJsonLines, approvalFields, b14Workspace, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record() (+9 more)
-
-### Community 183 - "Community 183"
-Cohesion: 0.13
-Nodes (17): CountedJsonLines, approvalFields, b14Workspace, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record() (+9 more)
-
-### Community 184 - "Community 184"
-Cohesion: 0.13
-Nodes (17): CountedJsonLines, approvalFields, b14Workspace, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record() (+9 more)
-
-### Community 185 - "Community 185"
-Cohesion: 0.24
-Nodes (18): absent(), absentPair(), buildContext(), checkIndexWitness(), context(), exactPath(), fail(), qualification (+10 more)
-
-### Community 186 - "Community 186"
-Cohesion: 0.13
-Nodes (3): AdmissionTests, InertAdmission, Actual admission with inert reads/context/metadata/allocation only; no driver ma
-
-### Community 187 - "Community 187"
-Cohesion: 0.18
-Nodes (19): No-model RPC-only MCP cancellation observations; no permission grants or native, run(), Connection, digest(), environment(), main(), preflight(), prepare() (+11 more)
-
-### Community 188 - "Community 188"
-Cohesion: 0.18
-Nodes (18): Blocked, BudgetJournal, case_configuration(), denial_reply(), DenialGuard, digest(), encoded(), evidence_projection() (+10 more)
-
-### Community 189 - "Community 189"
-Cohesion: 0.08
-Nodes (35): ADDON, assertDecision(), assertReview(), DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT, fail(), fixedFileIdentity() (+27 more)
-
-### Community 190 - "Community 190"
-Cohesion: 0.10
-Nodes (25): buildR35CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), ownDirectory(), writeMatrixCaseReceipt(), prepareTrustedCase() (+17 more)
-
-### Community 191 - "Community 191"
-Cohesion: 0.18
-Nodes (13): apply(), casesFor(), clone(), conservativeHostBudget(), DurablePhaseJournal, EFFECT_KINDS, exactTime(), initial() (+5 more)
-
-### Community 192 - "Community 192"
-Cohesion: 0.13
-Nodes (30): validateChildPathDiagnostics(), verifyR51HistoricalClosure(), fail(), validateStageProgress(), AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid() (+22 more)
-
-### Community 193 - "Community 193"
-Cohesion: 0.14
-Nodes (14): apply(), assertRoot(), blank(), copy(), DurableT1Journal, JOURNAL_ROOT, KINDS, own() (+6 more)
-
-### Community 194 - "Community 194"
-Cohesion: 0.14
-Nodes (14): apply(), assertRoot(), blank(), copy(), DurableT1Journal, JOURNAL_ROOT, KINDS, own() (+6 more)
-
-### Community 195 - "Community 195"
-Cohesion: 0.11
-Nodes (19): prepareTrustedCase(), prepareTrustedComposition(), sha(), createTrustedLauncher(), absentAnalyzerOperations, authorityFields, canonical(), casePolicy() (+11 more)
-
-### Community 196 - "Community 196"
-Cohesion: 0.14
-Nodes (14): apply(), assertRoot(), blank(), copy(), DurableT1Journal, JOURNAL_ROOT, KINDS, own() (+6 more)
-
-### Community 197 - "Community 197"
-Cohesion: 0.11
-Nodes (20): prepareTrustedCase(), prepareTrustedComposition(), sha(), createTrustedLauncher(), absentAnalyzerOperations, authorityFields, canonical(), casePolicy() (+12 more)
-
-### Community 198 - "Community 198"
-Cohesion: 0.11
-Nodes (20): prepareTrustedCase(), prepareTrustedComposition(), sha(), createTrustedLauncher(), absentAnalyzerOperations, authorityFields, canonical(), casePolicy() (+12 more)
-
-### Community 199 - "Community 199"
-Cohesion: 0.14
-Nodes (14): apply(), assertRoot(), blank(), copy(), DurableT1Journal, JOURNAL_ROOT, KINDS, own() (+6 more)
-
-### Community 200 - "Community 200"
-Cohesion: 0.13
-Nodes (25): ADDON, assertCommonBindings(), assertDecision(), assertPredecessor(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, COMMON_FIELDS (+17 more)
-
-### Community 201 - "Community 201"
-Cohesion: 0.11
-Nodes (15): bundle12, bundle13, prepareNativePatch13(), bundle15, prepareNativePatch15(), bundle21, prepareNativePatch21(), flags (+7 more)
-
-### Community 202 - "Community 202"
-Cohesion: 0.08
-Nodes (22): argv, comparableWindow(), contexts, criticalObservation, dimensionOptions, dimensions, linkedRoutingDecision(), metricNames (+14 more)
-
-### Community 203 - "Community 203"
-Cohesion: 0.09
-Nodes (27): activationFunction, actualConstructorText, actualDeclaration(), actualNestedDeclaration(), compile(), constructActualDiagnostic, constructMessage(), definitions (+19 more)
-
-### Community 204 - "Community 204"
-Cohesion: 0.10
-Nodes (29): ADDON, assertDecision(), assertReview(), DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT, fail(), fixedFileIdentity() (+21 more)
-
-### Community 205 - "Community 205"
-Cohesion: 0.16
-Nodes (17): ADDON, assertDecision(), assertReview(), DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT, fail(), fixedFileIdentity() (+9 more)
-
-### Community 206 - "Community 206"
-Cohesion: 0.19
-Nodes (12): apply(), casesFor(), clone(), conservativeHostBudget(), DurablePhaseJournal, EFFECT_KINDS, exactTime(), initial() (+4 more)
-
-### Community 207 - "Community 207"
-Cohesion: 0.19
-Nodes (12): apply(), casesFor(), clone(), conservativeHostBudget(), DurablePhaseJournal, EFFECT_KINDS, exactTime(), initial() (+4 more)
-
-### Community 208 - "Community 208"
-Cohesion: 0.19
-Nodes (12): apply(), casesFor(), clone(), conservativeHostBudget(), DurablePhaseJournal, EFFECT_KINDS, exactTime(), initial() (+4 more)
-
-### Community 209 - "Community 209"
-Cohesion: 0.19
-Nodes (12): apply(), casesFor(), clone(), conservativeHostBudget(), DurablePhaseJournal, EFFECT_KINDS, exactTime(), initial() (+4 more)
-
-### Community 210 - "Community 210"
-Cohesion: 0.10
-Nodes (25): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+17 more)
-
-### Community 211 - "Community 211"
-Cohesion: 0.19
-Nodes (12): apply(), casesFor(), clone(), conservativeHostBudget(), DurablePhaseJournal, EFFECT_KINDS, exactTime(), initial() (+4 more)
-
-### Community 212 - "Community 212"
-Cohesion: 0.19
-Nodes (12): apply(), casesFor(), clone(), conservativeHostBudget(), DurablePhaseJournal, EFFECT_KINDS, exactTime(), initial() (+4 more)
-
-### Community 213 - "Community 213"
-Cohesion: 0.20
-Nodes (10): apply(), casesFor(), clone(), conservativeHostBudget(), DurablePhaseJournal, exactTime(), initial(), ownDirectory() (+2 more)
-
-### Community 214 - "Community 214"
-Cohesion: 0.19
-Nodes (12): apply(), casesFor(), clone(), conservativeHostBudget(), DurablePhaseJournal, EFFECT_KINDS, exactTime(), initial() (+4 more)
-
-### Community 215 - "Community 215"
-Cohesion: 0.19
-Nodes (12): apply(), casesFor(), clone(), conservativeHostBudget(), DurablePhaseJournal, EFFECT_KINDS, exactTime(), initial() (+4 more)
-
-### Community 216 - "Community 216"
-Cohesion: 0.17
-Nodes (13): apply(), casesFor(), clone(), conservativeHostBudget(), DurablePhaseJournal, EFFECT_KINDS, exactTime(), initial() (+5 more)
-
-### Community 217 - "Community 217"
-Cohesion: 0.10
-Nodes (19): prepareTrustedCase(), prepareTrustedComposition(), sha(), createTrustedLauncher(), absentAnalyzerOperations, authorityFields, canonical(), casePolicy() (+11 more)
-
-### Community 218 - "Community 218"
-Cohesion: 0.09
-Nodes (37): ADDON, assertCommonBindings(), assertDecision(), assertPredecessor(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, COMMON_FIELDS (+29 more)
-
-### Community 219 - "Community 219"
-Cohesion: 0.09
-Nodes (36): ADDON, assertCommonBindings(), assertDecision(), assertPredecessor(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, COMMON_FIELDS (+28 more)
-
-### Community 220 - "Community 220"
-Cohesion: 0.11
-Nodes (22): assertServiceCallbackReceipt(), acknowledgement, failureReceipt, fixture(), identity, result, terminalFixture(), terminalScope (+14 more)
-
-### Community 221 - "Community 221"
-Cohesion: 0.15
-Nodes (21): admission_directory(), admission_inventory(), AdmissionEffects, allocate_service_attempt(), main(), ordinary_admission_file(), OriginalEffects, Exact-reviewed fresh SERVICE OS-parent driver. Import is inert; CLI requires ope (+13 more)
-
-### Community 222 - "Community 222"
-Cohesion: 0.12
-Nodes (22): commandResults, ledger, ledgerOnly, ledgerPath, repoRoot, result, schemaErrors, evaluateReleaseLedger() (+14 more)
-
-### Community 223 - "Community 223"
-Cohesion: 0.15
-Nodes (10): apply(), assertRoot(), blank(), copy(), DurableTrustedJournal, KINDS, own(), validateOuter() (+2 more)
-
-### Community 224 - "Community 224"
-Cohesion: 0.16
-Nodes (20): AUTHORITY_PINS, CASES, countsValid(), expectedNames(), fail(), INDEX, KINDS, MANIFEST (+12 more)
-
-### Community 225 - "Community 225"
-Cohesion: 0.15
-Nodes (17): buildMatrixCanonicalBytes(), HISTORICAL_BUNDLE, REPO, sha(), BUILD, filePin(), HERE, PREDICATE (+9 more)
-
-### Community 226 - "Community 226"
-Cohesion: 0.15
-Nodes (23): AUTHORITY_PINS, CASES, consistentOwnedExit(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX, KINDS (+15 more)
-
-### Community 227 - "Community 227"
-Cohesion: 0.12
-Nodes (21): HERE, ownPin(), prepareWorkspaceManifest(), R10_REVIEW, REPO, selectT3CanonicalPins(), sha(), stableBytes() (+13 more)
-
-### Community 228 - "Community 228"
-Cohesion: 0.13
-Nodes (25): ADDON, assertCommonBindings(), assertDecision(), assertPredecessor(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, COMMON_FIELDS (+17 more)
-
-### Community 229 - "Community 229"
-Cohesion: 0.08
-Nodes (44): ADDON, assertCommonBindings(), assertDecision(), assertPredecessor(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, COMMON_FIELDS (+36 more)
-
-### Community 230 - "Community 230"
-Cohesion: 0.14
-Nodes (18): ARCHIVE, CANONICAL, cases, caseSet, DECISION, EXACT_REVIEW, exactFile(), EXPECTED (+10 more)
-
-### Community 231 - "Community 231"
-Cohesion: 0.15
-Nodes (13): approvalFields, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record(), telemetryKinds, textPosition() (+5 more)
-
-### Community 232 - "Community 232"
-Cohesion: 0.16
-Nodes (21): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+13 more)
-
-### Community 233 - "Community 233"
-Cohesion: 0.11
-Nodes (22): CountedJsonLines, approvalFields, b14Workspace, createPermissionDiagnostic(), nullableFieldShape(), only(), PERMISSION_DIAGNOSTIC_REASONS, permissionRequestFailure() (+14 more)
-
-### Community 234 - "Community 234"
-Cohesion: 0.16
-Nodes (18): AUTHORITY_PINS, CASES, ENVIRONMENT_PROFILE, fail(), GIT_READINESS, INDEX, MANIFEST, privateDirectory() (+10 more)
-
-### Community 235 - "Community 235"
-Cohesion: 0.02
-Nodes (234): buildR36CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), TrustedCaseCoordinator, prepareTrustedCase(), assertMinimalEnvironmentProfile() (+226 more)
-
-### Community 236 - "Community 236"
-Cohesion: 0.06
-Nodes (53): CHILD_PATH_CLASSES, createChildPathDiagnostics(), entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), createGitReadinessGate() (+45 more)
-
-### Community 237 - "Community 237"
-Cohesion: 0.18
-Nodes (18): AUTHORITY_PINS, CASES, expectedNames(), fail(), INDEX, KINDS, MANIFEST, nonnegative() (+10 more)
-
-### Community 238 - "Community 238"
-Cohesion: 0.02
-Nodes (237): buildR32PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite(), readExactOutput(), REPO (+229 more)
-
-### Community 239 - "Community 239"
-Cohesion: 0.08
-Nodes (39): AUTHORITY_PINS, EXECUTION_PLAN, fail(), INDEX, MANIFEST, privateDirectory(), R28_COUNTS, readFrozenR28() (+31 more)
-
-### Community 240 - "Community 240"
-Cohesion: 0.10
-Nodes (17): allowed, fail(), writeT1PreparationReceipt(), createT1ErrorAdapter(), assertT1ObservedTuple(), R6_REPLACEMENT, t1InitializeParams(), driveAdapter() (+9 more)
-
-### Community 241 - "Community 241"
-Cohesion: 0.12
-Nodes (19): buildOperationCapabilityLedger(), main(), outputPath, repoRoot, buildOperationArchitectureCertification(), CapabilityLedger, forbiddenLegacySymbols, ledgerPath (+11 more)
-
-### Community 242 - "Community 242"
-Cohesion: 0.15
-Nodes (13): CountedJsonLines, approvalFields, b14Workspace, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record() (+5 more)
-
-### Community 243 - "Community 243"
-Cohesion: 0.15
-Nodes (13): CountedJsonLines, approvalFields, b14Workspace, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record() (+5 more)
-
-### Community 244 - "Community 244"
-Cohesion: 0.15
-Nodes (13): CountedJsonLines, approvalFields, b14Workspace, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record() (+5 more)
-
-### Community 245 - "Community 245"
-Cohesion: 0.11
-Nodes (34): absolute(), addons, ancestors(), assertHash(), assertLauncher(), base, baselinePacketPath, canonical() (+26 more)
-
-### Community 246 - "Community 246"
-Cohesion: 0.15
-Nodes (13): CountedJsonLines, approvalFields, b14Workspace, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record() (+5 more)
-
-### Community 247 - "Community 247"
-Cohesion: 0.15
-Nodes (13): CountedJsonLines, approvalFields, b14Workspace, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record() (+5 more)
-
-### Community 248 - "Community 248"
-Cohesion: 0.15
-Nodes (13): CountedJsonLines, approvalFields, b14Workspace, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record() (+5 more)
-
-### Community 249 - "Community 249"
-Cohesion: 0.15
-Nodes (13): CountedJsonLines, approvalFields, b14Workspace, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record() (+5 more)
-
-### Community 250 - "Community 250"
-Cohesion: 0.15
-Nodes (13): CountedJsonLines, approvalFields, b14Workspace, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record() (+5 more)
-
-### Community 251 - "Community 251"
-Cohesion: 0.15
-Nodes (13): CountedJsonLines, approvalFields, b14Workspace, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record() (+5 more)
-
-### Community 252 - "Community 252"
-Cohesion: 0.15
-Nodes (13): CountedJsonLines, approvalFields, b14Workspace, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record() (+5 more)
-
-### Community 253 - "Community 253"
-Cohesion: 0.15
-Nodes (13): CountedJsonLines, approvalFields, b14Workspace, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record() (+5 more)
-
-### Community 254 - "Community 254"
-Cohesion: 0.12
-Nodes (22): categories, classifyOutputObservation(), controlledMarkers, DIAGNOSTIC_CATEGORIES, exactText(), groups, OUTPUT_STATUSES, SCRIPT_FAILURE_MARKERS (+14 more)
-
-### Community 255 - "Community 255"
-Cohesion: 0.15
-Nodes (13): CountedJsonLines, approvalFields, b14Workspace, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record() (+5 more)
-
-### Community 256 - "Community 256"
-Cohesion: 0.15
-Nodes (13): CountedJsonLines, approvalFields, b14Workspace, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record() (+5 more)
-
-### Community 257 - "Community 257"
-Cohesion: 0.15
-Nodes (13): CountedJsonLines, approvalFields, b14Workspace, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record() (+5 more)
-
-### Community 258 - "Community 258"
-Cohesion: 0.15
-Nodes (13): CountedJsonLines, approvalFields, b14Workspace, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record() (+5 more)
-
-### Community 259 - "Community 259"
-Cohesion: 0.11
-Nodes (29): AUTHORITY_PINS, EXECUTION_PLAN, fail(), INDEX, MANIFEST, privateDirectory(), R28_COUNTS, readFrozenR28() (+21 more)
-
-### Community 260 - "Community 260"
-Cohesion: 0.16
-Nodes (20): AUTHORITY_PINS, CASES, countsValid(), expectedNames(), fail(), INDEX, KINDS, MANIFEST (+12 more)
-
-### Community 261 - "Community 261"
-Cohesion: 0.19
-Nodes (12): apply(), casesFor(), clone(), conservativeHostBudget(), DurablePhaseJournal, EFFECT_KINDS, exactTime(), initial() (+4 more)
-
-### Community 263 - "Community 263"
-Cohesion: 0.13
-Nodes (26): AUTHORITY_PINS, CASES, CHILD_PATH_OBSERVATIONS, countsValid(), ENVIRONMENT_PROFILE, expectedNames(), fail(), GIT_READINESS (+18 more)
-
-### Community 264 - "Community 264"
-Cohesion: 0.19
-Nodes (18): AUTHORITY_PINS, fail(), INDEX, MANIFEST, ownedFile(), PENDING, privateDirectory(), R48_COUNTS (+10 more)
-
-### Community 265 - "Community 265"
-Cohesion: 0.13
-Nodes (34): absolute(), addons, assertHash(), assertLauncher(), assertMirror(), base, baselinePacketPath, caseBase (+26 more)
-
-### Community 266 - "Community 266"
-Cohesion: 0.15
-Nodes (17): ARCHIVE, CANONICAL, caseSet, DECISION, EXACT_REVIEW, exactFile(), EXPECTED, identity() (+9 more)
-
-### Community 267 - "Community 267"
-Cohesion: 0.16
-Nodes (16): buildR28CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), GIT_FILE_PIN, AUTHORITY, BUILD (+8 more)
-
-### Community 268 - "Community 268"
-Cohesion: 0.16
-Nodes (16): DIAGNOSTIC_CATEGORIES, OUTPUT_STATUSES, SCRIPT_FAILURE_MARKERS, captureParents(), checkParents(), classes, createProviderFailureRecorder(), FAILURE_CLASSES (+8 more)
-
-### Community 269 - "Community 269"
-Cohesion: 0.12
-Nodes (32): absolute(), addons, ancestors(), assertHash(), assertLauncher(), base, canonical(), caseBase (+24 more)
-
-### Community 270 - "Community 270"
-Cohesion: 0.15
-Nodes (13): CountedJsonLines, approvalFields, b14Workspace, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record() (+5 more)
-
-### Community 271 - "Community 271"
-Cohesion: 0.18
-Nodes (22): canonicalJson(), composeDynamicToolsLaunch(), configFor(), DYNAMIC_TOOL_SCHEMA, dynamicTool(), evaluateDispatch(), evaluateExperimentResults(), exactRequestTools() (+14 more)
-
-### Community 272 - "Community 272"
-Cohesion: 0.11
-Nodes (18): argumentName(), argumentWriters, assertKnownArgument(), assertRequiredArguments(), normalizeArgumentValue(), parseStrictArgs(), readArgument(), readArgumentValue() (+10 more)
-
-### Community 273 - "Community 273"
-Cohesion: 0.23
-Nodes (11): approvalFields, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record(), telemetryKinds, textPosition() (+3 more)
-
-### Community 274 - "Community 274"
-Cohesion: 0.20
-Nodes (17): classifyTA04ArchiveMapping(), exactFile(), FIXED, R19_MANIFEST, R20, REPO, requireTA04Absent(), reviewedR20Tree() (+9 more)
-
-### Community 275 - "Community 275"
-Cohesion: 0.14
-Nodes (22): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+14 more)
-
-### Community 276 - "Community 276"
-Cohesion: 0.08
-Nodes (24): buildR43CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), TrustedCaseCoordinator, ownDirectory(), writeMatrixCaseReceipt() (+16 more)
-
-### Community 277 - "Community 277"
-Cohesion: 0.14
-Nodes (33): absolute(), addons, assertHash(), assertLauncher(), assertMirror(), base, caseBase, dependencyPacketPath (+25 more)
-
-### Community 278 - "Community 278"
-Cohesion: 0.19
-Nodes (12): apply(), casesFor(), clone(), conservativeHostBudget(), DurablePhaseJournal, EFFECT_KINDS, exactTime(), initial() (+4 more)
-
-### Community 279 - "Community 279"
-Cohesion: 0.18
-Nodes (15): createGitReadinessGate(), fail(), failureNames, ownErrors, pathInput(), pinnedFile(), sameBirth(), sameParent() (+7 more)
-
-### Community 280 - "Community 280"
-Cohesion: 0.13
-Nodes (26): AUTHORITY_PINS, CASES, CHILD_PATH_OBSERVATIONS, countsValid(), ENVIRONMENT_PROFILE, expectedNames(), fail(), GIT_READINESS (+18 more)
-
-### Community 281 - "Community 281"
-Cohesion: 0.16
-Nodes (21): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+13 more)
-
-### Community 282 - "Community 282"
-Cohesion: 0.14
-Nodes (21): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), emitDiagnostic(), exactText(), groups, unknownOutput (+13 more)
-
-### Community 283 - "Community 283"
-Cohesion: 0.08
-Nodes (47): AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX (+39 more)
-
-### Community 284 - "Community 284"
-Cohesion: 0.11
-Nodes (18): allowed, fail(), writeT1PreparationReceipt(), createT1ErrorAdapter(), assertT1ObservedTuple(), R8_REPLACEMENT, t1InitializeParams(), driveAdapter() (+10 more)
-
-### Community 285 - "Community 285"
-Cohesion: 0.08
-Nodes (36): ownDirectory(), writeWorkspaceCaseReceipt(), BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE (+28 more)
-
-### Community 286 - "Community 286"
-Cohesion: 0.15
-Nodes (21): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+13 more)
-
-### Community 287 - "Community 287"
-Cohesion: 0.06
-Nodes (50): buildR32CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), ownDirectory(), writeMatrixCaseReceipt(), fullT2Maximum() (+42 more)
-
-### Community 288 - "Community 288"
-Cohesion: 0.10
-Nodes (33): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+25 more)
-
-### Community 289 - "Community 289"
-Cohesion: 0.09
-Nodes (34): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+26 more)
-
-### Community 290 - "Community 290"
-Cohesion: 0.14
-Nodes (22): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+14 more)
-
-### Community 291 - "Community 291"
-Cohesion: 0.13
-Nodes (26): AUTHORITY_PINS, CASES, countsValid(), ENVIRONMENT_PROFILE, expectedNames(), fail(), GIT_READINESS, INDEX (+18 more)
-
-### Community 292 - "Community 292"
-Cohesion: 0.08
-Nodes (37): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+29 more)
-
-### Community 293 - "Community 293"
-Cohesion: 0.07
-Nodes (51): GIT_FILE_PIN, states, validateProcessStateDiagnostic(), AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid(), expectedNames() (+43 more)
-
-### Community 294 - "Community 294"
-Cohesion: 0.10
-Nodes (23): verifyR44Predecessor(), buildR48CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), READINESS_POLICY, same() (+15 more)
-
-### Community 295 - "Community 295"
-Cohesion: 0.16
-Nodes (21): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+13 more)
-
-### Community 296 - "Community 296"
-Cohesion: 0.18
-Nodes (15): buildR26CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), AUTHORITY, BUILD, HERE (+7 more)
-
-### Community 297 - "Community 297"
-Cohesion: 0.15
-Nodes (21): verifyR54HistoricalClosure(), AUTHORITY_PINS, CONSUMED, fail(), INDEX, KINDS, MANIFEST, ownedFile() (+13 more)
-
-### Community 298 - "Community 298"
-Cohesion: 0.05
-Nodes (62): buildWorkspaceCanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), ownDirectory(), writeWorkspaceCaseReceipt(), prepareTrustedCase() (+54 more)
-
-### Community 299 - "Community 299"
-Cohesion: 0.21
-Nodes (19): identity, environment(), inspectServiceFaultArtifacts(), launch(), leaveOwnedChild(), observeFault(), outer(), readBoundedArtifact() (+11 more)
-
-### Community 300 - "Community 300"
-Cohesion: 0.24
-Nodes (21): _check_plan(), cleanup_once(), _erase_tree(), _exclusive_json(), _identity(), _inspect_tree(), _journal_finishes(), _layout() (+13 more)
-
-### Community 301 - "Community 301"
-Cohesion: 0.24
-Nodes (21): _check_plan(), cleanup_once(), _erase_tree(), _exclusive_json(), _identity(), _inspect_tree(), _journal_finishes(), _layout() (+13 more)
-
-### Community 302 - "Community 302"
-Cohesion: 0.24
-Nodes (21): _check_plan(), cleanup_once(), _erase_tree(), _exclusive_json(), _identity(), _inspect_tree(), _journal_finishes(), _layout() (+13 more)
-
-### Community 303 - "Community 303"
-Cohesion: 0.12
-Nodes (24): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+16 more)
-
-### Community 304 - "Community 304"
-Cohesion: 0.06
-Nodes (50): CHILD_PATH_CLASSES, createChildPathDiagnostics(), entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), createGitReadinessGate() (+42 more)
-
-### Community 305 - "Community 305"
-Cohesion: 0.15
-Nodes (19): buildR25PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite(), readExactOutput(), REPO (+11 more)
-
-### Community 306 - "Community 306"
-Cohesion: 0.16
-Nodes (21): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+13 more)
-
-### Community 307 - "Community 307"
-Cohesion: 0.16
-Nodes (21): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+13 more)
-
-### Community 308 - "Community 308"
-Cohesion: 0.14
-Nodes (25): AUTHORITY_PINS, CASES, CHILD_PATH_OBSERVATIONS, ENVIRONMENT_PROFILE, expectedNames(), fail(), GIT_READINESS, INDEX (+17 more)
-
-### Community 309 - "Community 309"
-Cohesion: 0.15
-Nodes (14): ownDirectory(), writeMatrixCaseReceipt(), prepareTrustedCase(), assertMinimalEnvironmentProfile(), cases, MINIMAL_ENVIRONMENT_PROFILE, minimalPathForCase(), EFFECT_KINDS (+6 more)
-
-### Community 310 - "Community 310"
-Cohesion: 0.12
-Nodes (30): absolute(), ancestors(), assertHash(), assertLauncher(), base, caseBase, copyNew(), dependencyRoot (+22 more)
-
-### Community 311 - "Community 311"
-Cohesion: 0.10
-Nodes (17): activeFiles, checkRootRelativeReferences(), ciContents, ciNodeMajor, collectEntryFiles(), failures, hasRootAgentHarness, lineFor() (+9 more)
-
-### Community 312 - "Community 312"
-Cohesion: 0.20
-Nodes (9): apply(), casesFor(), clone(), DurablePhaseJournal, exactTime(), initial(), ownDirectory(), ownFile() (+1 more)
-
-### Community 313 - "Community 313"
-Cohesion: 0.16
-Nodes (7): createNativePorts(), realIo, verifyR22HistoricalClosure(), historicalIndexes, interpreter, offlinePorts(), verifySynthetic()
-
-### Community 314 - "Community 314"
-Cohesion: 0.18
-Nodes (14): createGitReadinessGate(), fail(), failureNames, GIT_READINESS_FAILURE_REASONS, ownErrors, pathInput(), pinnedFile(), sameBirth() (+6 more)
-
-### Community 315 - "Community 315"
-Cohesion: 0.07
-Nodes (37): buildR39CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), prepareTrustedCase(), assertMinimalEnvironmentProfile(), cases (+29 more)
-
-### Community 316 - "Community 316"
-Cohesion: 0.14
-Nodes (23): AUTHORITY_PINS, CASES, ENVIRONMENT_PROFILE, expectedNames(), fail(), GIT_READINESS, INDEX, KINDS (+15 more)
-
-### Community 317 - "Community 317"
-Cohesion: 0.11
-Nodes (25): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+17 more)
-
-### Community 319 - "Community 319"
-Cohesion: 0.15
-Nodes (23): AUTHORITY_PINS, CASES, consistentOwnedExit(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX, KINDS (+15 more)
-
-### Community 320 - "Community 320"
-Cohesion: 0.19
-Nodes (18): AUTHORITY_PINS, fail(), INDEX, MANIFEST, ownedFile(), PENDING, privateDirectory(), R48_COUNTS (+10 more)
-
-### Community 321 - "Community 321"
-Cohesion: 0.12
-Nodes (12): allowed, fail(), writeT1PreparationReceipt(), createT1ErrorAdapter(), R5_REPLACEMENT, driveAdapter(), schema(), schemaRoot (+4 more)
-
-### Community 322 - "Community 322"
-Cohesion: 0.27
-Nodes (8): nullableString(), only(), PROTOCOL_FAILURE_CATEGORIES, record(), telemetryKinds, textPosition(), textRange(), TrustedAppServerPeer
-
-### Community 323 - "Community 323"
-Cohesion: 0.16
-Nodes (20): AUTHORITY_PINS, CASES, countsValid(), expectedNames(), fail(), INDEX, KINDS, MANIFEST (+12 more)
-
-### Community 324 - "Community 324"
-Cohesion: 0.15
-Nodes (19): inspectProcessIdentity(), collectBoundedBody(), forwardLocal(), canary(), canonicalJson(), close(), compareBodies(), configText() (+11 more)
-
-### Community 325 - "Community 325"
-Cohesion: 0.18
-Nodes (14): assemblyResult(), expectedInventory(), intermediateScopeBytes(), prepareExactNativeBundle12(), prepareNativePatch12(), capturePhysicalPath(), expectedFixed12Identities(), fixture() (+6 more)
-
-### Community 326 - "Community 326"
-Cohesion: 0.12
-Nodes (15): ownDirectory(), writeMatrixCaseReceipt(), createOfflineEffects(), redirectFs(), entry, receipts(), repo, sha() (+7 more)
-
-### Community 327 - "Community 327"
-Cohesion: 0.11
-Nodes (25): ADDON, assertDecision(), assertReview(), DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT, fail(), fixedFileIdentity() (+17 more)
-
-### Community 328 - "Community 328"
-Cohesion: 0.11
-Nodes (26): ADDON, assertDecision(), assertReview(), DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT, fail(), fixedFileIdentity() (+18 more)
-
-### Community 329 - "Community 329"
-Cohesion: 0.12
-Nodes (28): absolute(), addons, ancestors(), assertHash(), assertLauncher(), base, baselinePacketPath, canonical() (+20 more)
-
-### Community 330 - "Community 330"
-Cohesion: 0.16
-Nodes (17): ADDON, assertDecision(), assertReview(), DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT, fail(), fixedFileIdentity() (+9 more)
-
-### Community 331 - "Community 331"
-Cohesion: 0.21
-Nodes (15): createChildPathDiagnostics(), createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize(), runPreparedT2Matrix(), sha(), T2 (+7 more)
-
-### Community 332 - "Community 332"
-Cohesion: 0.08
-Nodes (40): prepareR43MatrixManifest(), sha(), buildR43PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite() (+32 more)
-
-### Community 333 - "Community 333"
-Cohesion: 0.16
-Nodes (20): AUTHORITY_PINS, CASES, countsValid(), expectedNames(), fail(), INDEX, KINDS, MANIFEST (+12 more)
-
-### Community 334 - "Community 334"
-Cohesion: 0.13
-Nodes (14): isStrictlyDocumentationOnly(), requiresReleaseBaselineAudit(), env, fallowArgs, fallowCli, repoRoot, scriptDir, stagedChanges (+6 more)
-
-### Community 335 - "Community 335"
-Cohesion: 0.18
-Nodes (18): childClose, completionCode(), consumeResourceData(), consumeResourceLine(), drain(), escalateGroup(), finishDrain(), members() (+10 more)
-
-### Community 336 - "Community 336"
-Cohesion: 0.20
-Nodes (16): commandIndex(), commandsFor(), requireBefore(), requireCommand(), requiredJobs, validateAggregateJobs(), validateDefinedJobs(), validateDependabot() (+8 more)
-
-### Community 337 - "Community 337"
-Cohesion: 0.19
-Nodes (14): approvalFields, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record(), telemetryKinds, textPosition() (+6 more)
-
-### Community 338 - "Community 338"
-Cohesion: 0.16
-Nodes (12): CountedJsonLines, approvalFields, nullableString(), only(), permissionRequestId(), PROTOCOL_FAILURE_CATEGORIES, record(), telemetryKinds (+4 more)
-
-### Community 339 - "Community 339"
-Cohesion: 0.17
-Nodes (19): AUTHORITY_PINS, CASES, expectedNames(), fail(), INDEX, KINDS, MANIFEST, nonnegative() (+11 more)
-
-### Community 340 - "Community 340"
-Cohesion: 0.19
-Nodes (15): AUTHORITY_PINS, CHILD_PATH_OBSERVATIONS, EXECUTION_PLAN, fail(), INDEX, MANIFEST, privateDirectory(), R27_COUNTS (+7 more)
-
-### Community 341 - "Community 341"
-Cohesion: 0.21
-Nodes (14): AUTHORITY_PINS, fail(), INDEX, MANIFEST, privateDirectory(), R26_COUNTS, readFrozenR26(), REPO (+6 more)
-
-### Community 342 - "Community 342"
-Cohesion: 0.25
-Nodes (16): canonical(), CaptureError, descriptorFields, fail(), freezeTree(), hashBytes(), hashValue(), inspectJsonLexically() (+8 more)
-
-### Community 343 - "Community 343"
-Cohesion: 0.16
-Nodes (12): createPreChangeExternalAssignment(), { DatabaseSync }, fixtureTarget, insert(), migrationRoot, recordAppliedMigration(), seedHistoricalRows(), snapshot() (+4 more)
-
-### Community 344 - "Community 344"
-Cohesion: 0.18
-Nodes (16): assertExactControlMutation(), closeKnownSettledDatabase(), db, dispatchExactDatabaseRequest(), dispatchStateOrLifetimeRequest(), fail(), filename, lifetime (+8 more)
-
-### Community 345 - "Community 345"
-Cohesion: 0.14
-Nodes (5): CompositionSelectionTests, DriverTests, FakeEffects, fixture(), Actual driver algorithm with fixed inert effects; no Popen/ps/client/owner is ex
-
-### Community 346 - "Community 346"
-Cohesion: 0.15
-Nodes (28): absolute(), addons, assertHash(), assertLauncher(), assertMirror(), base, baselinePacketPath, caseBase (+20 more)
-
-### Community 347 - "Community 347"
-Cohesion: 0.21
-Nodes (15): args, database, { DatabaseSync }, auditQualityJourneyIntegrity(), checkDirectOwnership(), checkJourneyHeads(), checkOwnershipEdges(), checkRelationalOwnership() (+7 more)
-
-### Community 348 - "Community 348"
-Cohesion: 0.07
-Nodes (36): buildMatrixCanonicalBytes(), HISTORICAL_BUNDLE, REPO, sha(), BUILD, filePin(), HERE, PREDICATE (+28 more)
-
-### Community 349 - "Community 349"
-Cohesion: 0.21
-Nodes (15): createChildPathDiagnostics(), createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize(), runPreparedT2Matrix(), sha(), T2 (+7 more)
-
-### Community 350 - "Community 350"
-Cohesion: 0.15
-Nodes (17): ARCHIVE, CANONICAL, caseSet, DECISION, EXACT_REVIEW, exactFile(), EXPECTED, INDEX (+9 more)
-
-### Community 351 - "Community 351"
-Cohesion: 0.18
-Nodes (12): captureParents(), checkParents(), classes, FAILURE_CLASSES, FAILURE_STAGES, ownDirectory(), ownFile(), providerCount() (+4 more)
-
-### Community 352 - "Community 352"
-Cohesion: 0.19
-Nodes (15): GIT_READINESS_FAILURE_REASONS, checkParents(), codes, fixedError(), fixedGates(), LATE_CASE_FAILURE_CODES, LATE_CASE_FAILURE_REASONS, LATE_CASE_FAILURE_STAGES (+7 more)
-
-### Community 353 - "Community 353"
-Cohesion: 0.23
-Nodes (16): canonical(), captureRole(), collectOfflineSdkProfiles(), digest(), guardEnvironmentReads(), HERE, listedToolsOnly(), OUTPUT_DIR (+8 more)
-
-### Community 354 - "Community 354"
-Cohesion: 0.24
-Nodes (14): verifyR25HistoricalClosure(), AUTHORITY_PINS, fail(), INDEX, MANIFEST, privateDirectory(), R25_COUNTS, readFrozenR25() (+6 more)
-
-### Community 355 - "Community 355"
-Cohesion: 0.09
-Nodes (34): buildWorkspaceCanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), DEDICATED_TOOL_HELPER_SOURCE_EXPECTATIONS, BUILD, HERE (+26 more)
-
-### Community 356 - "Community 356"
-Cohesion: 0.14
-Nodes (9): createBrowserBoundarySession(), blockedRequests, fixtureHandlers, html(), mutationPage(), mutationRequests, newSession(), privatePage() (+1 more)
-
-### Community 357 - "Community 357"
-Cohesion: 0.14
-Nodes (26): absolute(), addons, ancestors(), assertHash(), assertLauncher(), base, canonical(), caseBase (+18 more)
-
-### Community 358 - "Community 358"
-Cohesion: 0.02
-Nodes (224): buildR28PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, ownedWrite(), readExactOutput(), REPO, serializeR28Preparation() (+216 more)
-
-### Community 359 - "Community 359"
-Cohesion: 0.21
-Nodes (13): captureParents(), checkParents(), classes, createProviderFailureRecorder(), FAILURE_CLASSES, FAILURE_STAGES, ownDirectory(), ownFile() (+5 more)
-
-### Community 360 - "Community 360"
-Cohesion: 0.14
-Nodes (26): absolute(), addons, ancestors(), assertHash(), assertLauncher(), base, canonical(), caseBase (+18 more)
-
-### Community 361 - "Community 361"
-Cohesion: 0.03
-Nodes (90): serializeR23Preparation(), classifyTA04ArchiveMapping(), exactFile(), FIXED, R19_MANIFEST, R20, REPO, reviewedR20Tree() (+82 more)
-
-### Community 362 - "Community 362"
-Cohesion: 0.14
-Nodes (26): absolute(), addons, ancestors(), assertHash(), assertLauncher(), base, canonical(), caseBase (+18 more)
-
-### Community 363 - "Community 363"
-Cohesion: 0.16
-Nodes (26): absolute(), assertHash(), assertLauncher(), assertMirror(), base, caseBase, dependencyRoot, exact() (+18 more)
-
-### Community 364 - "Community 364"
-Cohesion: 0.16
-Nodes (24): AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX (+16 more)
-
-### Community 365 - "Community 365"
-Cohesion: 0.19
-Nodes (25): absolute(), assertHash(), assertLauncher(), assertTree(), base, caseBase, dependencyPath(), dependencyRoot (+17 more)
-
-### Community 366 - "Community 366"
-Cohesion: 0.17
-Nodes (26): absolute(), addons, assertHash(), assertLauncher(), assertMirror(), base, caseBase, dependencyRoot (+18 more)
-
-### Community 367 - "Community 367"
-Cohesion: 0.17
-Nodes (26): assertCaseDirectories(), assertHash(), assertLauncherEnvironment(), caseBase, digestFile(), exactKeys(), fail(), hostFileRoots (+18 more)
-
-### Community 368 - "Community 368"
-Cohesion: 0.17
-Nodes (26): absolute(), addons, assertHash(), assertLauncher(), assertMirror(), base, caseBase, dependencyRoot (+18 more)
-
-### Community 369 - "Community 369"
-Cohesion: 0.19
-Nodes (11): coordinator(), coordinatorOperationPrefixes, exactCoordinatorOperations, generateCoordinatorReference(), localDiscoveryTools, main(), McpDefinition, McpFixture (+3 more)
-
-### Community 370 - "Community 370"
-Cohesion: 0.17
-Nodes (26): absolute(), addons, assertHash(), assertLauncher(), assertMirror(), base, caseBase, dependencyRoot (+18 more)
-
-### Community 371 - "Community 371"
-Cohesion: 0.13
-Nodes (22): buildMatrixCanonicalBundle(), buildMatrixCanonicalBytes(), HERE, REPO, sha(), ADDON, BASE, BUILD (+14 more)
-
-### Community 372 - "Community 372"
-Cohesion: 0.08
-Nodes (33): readFileSync(), corruptLedger(), sql, manifest, migrate(), minimal(), [packet, directory, selected, mode], observation (+25 more)
-
-### Community 373 - "Community 373"
-Cohesion: 0.23
-Nodes (14): credits(), fields(), int32(), isPassiveRateLimitsParams(), nullable(), PLAN_TYPES, RATE_FIELDS, rateLimits() (+6 more)
-
-### Community 374 - "Community 374"
-Cohesion: 0.14
-Nodes (19): POLICY_DIGEST, ownDirectory(), writeMatrixCaseReceipt(), readMatrixChildReceipt(), createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize() (+11 more)
-
-### Community 375 - "Community 375"
-Cohesion: 0.10
-Nodes (28): ownDirectory(), writeMatrixCaseReceipt(), checkParents(), codes, fixedError(), fixedGates(), LATE_CASE_FAILURE_CODES, LATE_CASE_FAILURE_REASONS (+20 more)
-
-### Community 376 - "Community 376"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
-
-### Community 377 - "Community 377"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
-
-### Community 378 - "Community 378"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
-
-### Community 379 - "Community 379"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
-
-### Community 380 - "Community 380"
-Cohesion: 0.09
-Nodes (36): buildWorkspaceCanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), DEDICATED_TOOL_HELPER_SOURCE_EXPECTATIONS, fullT3RecoveryBudget(), BUILD (+28 more)
-
-### Community 381 - "Community 381"
-Cohesion: 0.24
-Nodes (12): buildR26PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite(), readExactOutput(), REPO (+4 more)
-
-### Community 382 - "Community 382"
-Cohesion: 0.21
-Nodes (13): captureParents(), checkParents(), classes, createProviderFailureRecorder(), FAILURE_CLASSES, FAILURE_STAGES, ownDirectory(), ownFile() (+5 more)
-
-### Community 383 - "Community 383"
-Cohesion: 0.24
-Nodes (12): buildR39PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite(), readExactOutput(), REPO (+4 more)
-
-### Community 384 - "Community 384"
-Cohesion: 0.17
-Nodes (19): AUTHORITY_PINS, CASES, expectedNames(), fail(), INDEX, KINDS, MANIFEST, nonnegative() (+11 more)
-
-### Community 385 - "Community 385"
-Cohesion: 0.17
-Nodes (19): AUTHORITY_PINS, CASES, expectedNames(), fail(), INDEX, KINDS, MANIFEST, nonnegative() (+11 more)
-
-### Community 386 - "Community 386"
-Cohesion: 0.16
-Nodes (20): AUTHORITY_PINS, CASES, countsValid(), expectedNames(), fail(), INDEX, KINDS, MANIFEST (+12 more)
-
-### Community 387 - "Community 387"
-Cohesion: 0.17
-Nodes (19): AUTHORITY_PINS, CASES, expectedNames(), fail(), INDEX, KINDS, MANIFEST, nonnegative() (+11 more)
-
-### Community 388 - "Community 388"
-Cohesion: 0.27
-Nodes (8): nullableString(), only(), PROTOCOL_FAILURE_CATEGORIES, record(), telemetryKinds, textPosition(), textRange(), TrustedAppServerPeer
-
-### Community 389 - "Community 389"
-Cohesion: 0.27
-Nodes (8): nullableString(), only(), PROTOCOL_FAILURE_CATEGORIES, record(), telemetryKinds, textPosition(), textRange(), TrustedAppServerPeer
-
-### Community 390 - "Community 390"
-Cohesion: 0.27
-Nodes (8): nullableString(), only(), PROTOCOL_FAILURE_CATEGORIES, record(), telemetryKinds, textPosition(), textRange(), TrustedAppServerPeer
-
-### Community 391 - "Community 391"
-Cohesion: 0.09
-Nodes (25): POLICY_DIGEST, ownDirectory(), writeMatrixCaseReceipt(), POLICY, POLICY_DIGEST, ROOT_AMENDMENT, captureParents(), checkParents() (+17 more)
-
-### Community 392 - "Community 392"
-Cohesion: 0.21
-Nodes (13): captureParents(), checkParents(), classes, createProviderFailureRecorder(), FAILURE_CLASSES, FAILURE_STAGES, ownDirectory(), ownFile() (+5 more)
-
-### Community 393 - "Community 393"
+### Community 577 - "Benchmark Repository Queries"
 Cohesion: 0.47
-Nodes (5): buildR44CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha()
+Nodes (5): root, database, runSql(), plan(), measure()
 
-### Community 394 - "Community 394"
-Cohesion: 0.17
-Nodes (19): AUTHORITY_PINS, CASES, expectedNames(), fail(), INDEX, KINDS, MANIFEST, nonnegative() (+11 more)
+### Community 578 - "Build Cucumber Runtime Operation"
+Cohesion: 0.47
+Nodes (4): root, result, sourceCheckOptions(), ensureOperationHandlerSourceCurrent()
 
-### Community 395 - "Community 395"
-Cohesion: 0.24
-Nodes (12): buildR48PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite(), readExactOutput(), REPO (+4 more)
-
-### Community 396 - "Community 396"
-Cohesion: 0.15
-Nodes (20): assertR12ActualIdentity(), cases, caseSet, EXACT_REVIEW, identity(), pinnedArtifact(), PROPOSAL, R12_ENTRY (+12 more)
-
-### Community 397 - "Community 397"
-Cohesion: 0.20
-Nodes (14): ownDirectory(), writeMatrixCaseReceipt(), createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize(), runPreparedT2Matrix(), sha() (+6 more)
-
-### Community 398 - "Community 398"
-Cohesion: 0.08
-Nodes (37): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+29 more)
-
-### Community 399 - "Community 399"
-Cohesion: 0.27
-Nodes (12): checkAncestor(), checkPrivateDirectory(), clean(), ORIGINAL_BUNDLE, PACKAGE_ROOTS, REPO, ROOT_PACKAGE, sha() (+4 more)
-
-### Community 400 - "Community 400"
-Cohesion: 0.17
-Nodes (20): ownDirectory(), writeWorkspaceCaseReceipt(), exact(), verifyWorkspaceMcpReceipt(), createTrustedLauncher(), consistentOwnedExit(), initialize(), runPreparedT3Workspace() (+12 more)
-
-### Community 401 - "Community 401"
-Cohesion: 0.19
-Nodes (14): OUTPUT_STATUSES, captureParents(), checkParents(), classes, createProviderFailureRecorder(), FAILURE_CLASSES, FAILURE_STAGES, ownDirectory() (+6 more)
-
-### Community 402 - "Community 402"
-Cohesion: 0.24
-Nodes (12): buildWorkspacePreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite(), readExactOutput(), REPO (+4 more)
-
-### Community 403 - "Community 403"
-Cohesion: 0.18
-Nodes (9): createOfflineEffects(), redirectFs(), externalEffectAttempts, entry, observer, receipts(), repo, sha() (+1 more)
-
-### Community 404 - "Community 404"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
-
-### Community 405 - "Community 405"
-Cohesion: 0.24
-Nodes (12): buildWorkspacePreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite(), readExactOutput(), REPO (+4 more)
-
-### Community 406 - "Community 406"
-Cohesion: 0.22
-Nodes (14): anchorRoles, cases, closeAnchors(), componentLabels, createOwnedScratchProofIssuer(), exactInteger(), fail(), failDirectoryIdentity() (+6 more)
-
-### Community 407 - "Community 407"
-Cohesion: 0.23
-Nodes (13): anchorRoles, cases, closeAnchors(), componentLabels, exactInteger(), fail(), failDirectoryIdentity(), identityComponents (+5 more)
-
-### Community 408 - "Community 408"
-Cohesion: 0.25
-Nodes (14): failures, finishTurn(), handlers, initialize(), input, isolatedEnvironment(), privateConfig(), privateModes() (+6 more)
-
-### Community 409 - "Community 409"
-Cohesion: 0.16
-Nodes (8): bin, blob(), fixture(), licenseFixture(), prepare(), root, roots, upstreamSource
-
-### Community 410 - "Community 410"
+### Community 266 - "Operation Architecture Certify Build"
 Cohesion: 0.12
-Nodes (24): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+16 more)
+Nodes (19): repoRoot, outputPath, buildOperationCapabilityLedger(), main(), CapabilityLedger, repoRoot, ledgerPath, receiptPath (+11 more)
 
-### Community 411 - "Community 411"
-Cohesion: 0.18
-Nodes (3): CountedJsonLines, HERE, REPO
-
-### Community 412 - "Community 412"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
-
-### Community 413 - "Community 413"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
-
-### Community 414 - "Community 414"
-Cohesion: 0.23
-Nodes (8): createOfflineEffects(), redirectFs(), entry, observer, receipts(), repo, sha(), wire()
-
-### Community 415 - "Community 415"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
-
-### Community 416 - "Community 416"
-Cohesion: 0.14
-Nodes (25): ancestors(), assertLauncherEnvironment(), canonical(), caseBase, digest(), exactKeys(), fail(), fileDigest() (+17 more)
-
-### Community 417 - "Community 417"
-Cohesion: 0.24
-Nodes (9): MATRIX_MANIFEST, verifyR24MatrixPreparation(), ACTUAL_DECISION, checkR24GeneratedSpecimen(), ENTRYPOINT, HERE, REPO, REVIEW (+1 more)
-
-### Community 418 - "Community 418"
-Cohesion: 0.27
-Nodes (10): buildR24PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, ownedWrite(), readExactOutput(), REPO, serializeR24Preparation() (+2 more)
-
-### Community 419 - "Community 419"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
-
-### Community 420 - "Community 420"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
-
-### Community 421 - "Community 421"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
-
-### Community 422 - "Community 422"
-Cohesion: 0.11
-Nodes (24): ownDirectory(), writeMatrixCaseReceipt(), readMatrixChildReceipt(), R44_INSTALLED_HOST_FILE, createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize() (+16 more)
-
-### Community 423 - "Community 423"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
-
-### Community 424 - "Community 424"
-Cohesion: 0.19
-Nodes (15): ADDON, assertReview(), dispatchWorkspaceEntrypoint(), ENTRYPOINT, fail(), HERE, invocationPrefix(), macTextEncoding() (+7 more)
-
-### Community 425 - "Community 425"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
-
-### Community 426 - "Community 426"
+### Community 54 - "Build Prisma Graph"
 Cohesion: 0.07
-Nodes (33): buildR41CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), TrustedCaseCoordinator, ownDirectory(), writeMatrixCaseReceipt() (+25 more)
+Nodes (48): repoRoot, prismaRoot, schemaPath, migrationsRoot, outDir, schemaText, nodes, links (+40 more)
 
-### Community 428 - "Community 428"
+### Community 346 - "Check Agent Harness"
+Cohesion: 0.10
+Nodes (17): repoRoot, packageFiles, nodeFloors, ciContents, ciNodeMajor, literalForbidden, regexForbidden, hasRootAgentHarness (+9 more)
+
+### Community 505 - "Check Capsule Only Cutover"
+Cohesion: 0.18
+Nodes (8): root, forbiddenSymbols, ignoredDirectories, scanRoots, sources, matches, forbiddenPaths, forbiddenPathCandidates
+
+### Community 586 - "Check Documentation Links"
+Cohesion: 0.40
+Nodes (3): roots, ignoredDirectories, failures
+
+### Community 512 - "Check Generated Artifacts"
+Cohesion: 0.29
+Nodes (8): allowedDatabaseFixtures, committedGraphifyScopes, committedGraphifyFiles, runtimeDirectoryPatterns, runtimeArtifactReason(), findForbiddenRuntimeArtifacts(), gitPaths(), main()
+
+### Community 527 - "Check Generic Planning Boundary"
+Cohesion: 0.28
+Nodes (8): repoRoot, roots, forbiddenProductionPatterns, walk(), collectEntry(), isProductionSource(), failures, harnessDoc
+
+### Community 21 - "Harness Learning"
+Cohesion: 0.07
+Nodes (73): journalPath, sourceObservedAtByRef, result, [command, ...argv], commands, definitions, values, root (+65 more)
+
+### Community 108 - "Step File Parser Operation"
+Cohesion: 0.07
+Nodes (32): expectedSignatures, expectedHandlers, actualSignatures, repoRoot, missing, extra, handlerRefs, missingHandlers (+24 more)
+
+### Community 296 - "Migration Inventory Check Package"
+Cohesion: 0.12
+Nodes (17): expectedMigrations, assertMigrationParity(), packages, rootPackage, rootPublishRefusal, allowedDatabaseFixtures, refusal(), enumerateDatabaseMigrations() (+9 more)
+
+### Community 387 - "Quality Journey Integrity Check"
+Cohesion: 0.21
+Nodes (15): { DatabaseSync }, args, database, { DatabaseSync }, Row, JourneyAuditDatabase, Issue, identifier() (+7 more)
+
+### Community 571 - "Quality Ratchet Check"
+Cohesion: 0.48
+Nodes (4): baseIndex, suppressions, readQualityDiff(), addedQualitySuppressions()
+
+### Community 372 - "Check Release"
 Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
+Nodes (16): requiredJobs, commandsFor(), requireCommand(), validateRequiredJobs(), validatePullRequestBranch(), validateDefinedJobs(), validateAggregateJobs(), commandIndex() (+8 more)
 
-### Community 429 - "Community 429"
+### Community 224 - "Release Readiness Check"
+Cohesion: 0.12
+Nodes (22): repoRoot, ledgerPath, ledger, ledgerOnly, schemaErrors, commandResults, result, FINDING_IDS (+14 more)
+
+### Community 69 - "Toml Validator Swarm Check"
 Cohesion: 0.06
-Nodes (39): TrustedCaseCoordinator, ownDirectory(), writeWorkspaceCaseReceipt(), prepareTrustedCase(), BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside() (+31 more)
+Nodes (39): repoRoot, selectionContracts, allProfiles, roles, requiredInstructionTokens, allowedAgentKeys, parseAgentLine(), parseMultilineValue() (+31 more)
 
-### Community 430 - "Community 430"
-Cohesion: 0.04
-Nodes (74): buildR46CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), ownDirectory(), writeMatrixCaseReceipt(), ADDON (+66 more)
+### Community 511 - "Configure Git Line Endings"
+Cohesion: 0.35
+Nodes (10): scriptDir, repoRoot, quiet, log(), runGit(), isGitRepository(), getLocalConfig(), setLocalConfig() (+2 more)
 
-### Community 431 - "Community 431"
-Cohesion: 0.33
-Nodes (9): approvalFields, b14Workspace, createPermissionDiagnostic(), nullableFieldShape(), only(), PERMISSION_DIAGNOSTIC_REASONS, permissionRequestFailure(), permissionRequestId() (+1 more)
-
-### Community 432 - "Community 432"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
-
-### Community 433 - "Community 433"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
-
-### Community 434 - "Community 434"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
-
-### Community 436 - "Community 436"
+### Community 384 - "Dev With Mcp Startup"
 Cohesion: 0.17
-Nodes (24): absolute(), ancestors(), assertHash(), assertLauncher(), base, canonical(), caseBase, dependencyPath() (+16 more)
+Nodes (14): children, handleProcessExit(), exitLabel(), exitCode(), handleProcessError(), handleProcessStop(), stopChildren(), shutdown() (+6 more)
 
-### Community 437 - "Community 437"
+### Community 465 - "Generate Coordinator Reference"
 Cohesion: 0.19
-Nodes (14): allowedDirectChildPaths, Apple libproc implementation, assertLiveHostBeforeCaseComplete(), directChildMetadata(parentPid, childPid), identity(pid), listDirectChildren(parentPid), Native addon, M02 owned Code Mode host observer (+6 more)
+Nodes (11): McpDefinition, McpFixture, PublicOperationReference, localDiscoveryTools, exactCoordinatorOperations, coordinatorOperationPrefixes, referenceForMcpTool(), coordinator() (+3 more)
 
-### Community 438 - "Community 438"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
+### Community 569 - "Generate Operation Handler Source"
+Cohesion: 0.25
+Nodes (5): root, runtimeSource, manifest, files, digest
 
-### Community 439 - "Community 439"
-Cohesion: 0.19
-Nodes (14): readMatrixChildReceipt(), createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize(), runPreparedT2Matrix(), sha(), T2 (+6 more)
+### Community 111 - "Graphify Freshness Update Graphs"
+Cohesion: 0.08
+Nodes (28): GRAPH_COMMANDS, withDefaultGraph(), resolveGraphifyExecutable(), graphScopes, scopeFiles(), graphInputDigest(), graphFreshness(), recordGraphFreshness() (+20 more)
 
-### Community 440 - "Community 440"
-Cohesion: 0.33
-Nodes (9): approvalFields, b14Workspace, createPermissionDiagnostic(), nullableFieldShape(), only(), PERMISSION_DIAGNOSTIC_REASONS, permissionRequestFailure(), permissionRequestId() (+1 more)
+### Community 562 - "Harness Artifact Review"
+Cohesion: 0.42
+Nodes (6): [action, file, reviewer, evidence], artifact, git(), artifactIdentity(), bindReview(), verifyReview()
 
-### Community 441 - "Community 441"
-Cohesion: 0.05
-Nodes (49): TrustedCaseCoordinator, ownDirectory(), writeWorkspaceCaseReceipt(), prepareTrustedCase(), BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside() (+41 more)
-
-### Community 442 - "Community 442"
-Cohesion: 0.15
-Nodes (11): classifyNativeSessionError(), directoryErrorReasons, errorReasons, exactErrors, NATIVE_SESSION_DIAGNOSTIC_REASONS, NATIVE_SESSION_DIAGNOSTIC_STAGES, NATIVE_SESSION_ROUTE_REASONS, ownData() (+3 more)
-
-### Community 443 - "Community 443"
-Cohesion: 0.28
-Nodes (8): HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite(), REPO, sha(), writeR12MatrixPreparation()
-
-### Community 444 - "Community 444"
-Cohesion: 0.22
-Nodes (14): anchorRoles, cases, closeAnchors(), componentLabels, createOwnedScratchProofIssuer(), exactInteger(), fail(), failDirectoryIdentity() (+6 more)
-
-### Community 445 - "Community 445"
-Cohesion: 0.27
-Nodes (12): analysisCharter(), analysisCandidate(), candidateCharter(), completeTurn(), emitCandidates(), fixtureIsolationChecked(), handlers, initialize() (+4 more)
-
-### Community 446 - "Community 446"
-Cohesion: 0.15
-Nodes (16): assertActivationCanonicalUnknown(), assertActivationDatabaseHold(), assertActivationRetainedOutcome(), assertActivationSourceTransition(), Message, fixtureDateTime(), fixtureOriginalTemporal(), assertServiceComplementRetainedOutcome() (+8 more)
-
-### Community 447 - "Community 447"
+### Community 397 - "Local Readiness Startup Built"
 Cohesion: 0.18
-Nodes (10): classifyNativeSessionError(), errorReasons, exactErrors, NATIVE_SESSION_DIAGNOSTIC_REASONS, NATIVE_SESSION_DIAGNOSTIC_STAGES, NATIVE_SESSION_ROUTE_REASONS, ownData(), reasons (+2 more)
+Nodes (10): ensureBuiltInStepDefinitionReadiness(), hostOption(), assertLoopbackHost(), resolveLocalNextArgs(), ensureCucumberRuntimeReadiness(), SummarySection, printSyncSummary(), [mode = '', ...args] (+2 more)
 
-### Community 448 - "Community 448"
-Cohesion: 0.14
-Nodes (25): AUTHORITY_PINS, CASES, CHILD_PATH_OBSERVATIONS, ENVIRONMENT_PROFILE, expectedNames(), fail(), GIT_READINESS, INDEX (+17 more)
+### Community 368 - "Commit Policy Fallow Scope"
+Cohesion: 0.13
+Nodes (14): isStrictlyDocumentationOnly(), requiresReleaseBaselineAudit(), scriptDir, repoRoot, fallowCli, fallowArgs, env, stagedPatch (+6 more)
 
-### Community 449 - "Community 449"
-Cohesion: 0.18
-Nodes (10): classifyNativeSessionError(), errorReasons, exactErrors, NATIVE_SESSION_DIAGNOSTIC_REASONS, NATIVE_SESSION_DIAGNOSTIC_STAGES, NATIVE_SESSION_ROUTE_REASONS, ownData(), reasons (+2 more)
-
-### Community 450 - "Community 450"
-Cohesion: 0.36
-Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
-
-### Community 451 - "Community 451"
-Cohesion: 0.28
-Nodes (8): HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite(), REPO, sha(), writeR13MatrixPreparation()
-
-### Community 452 - "Community 452"
-Cohesion: 0.23
-Nodes (11): allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry(), ancestors, BOOTSTRAP, ownedDirectory(), runT1ScopedEntry(), sha() (+3 more)
-
-### Community 453 - "Community 453"
-Cohesion: 0.27
-Nodes (12): checkAncestor(), checkPrivateDirectory(), clean(), ORIGINAL_BUNDLE, PACKAGE_ROOTS, REPO, ROOT_PACKAGE, sha() (+4 more)
-
-### Community 454 - "Community 454"
-Cohesion: 0.23
-Nodes (11): allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry(), ancestors, BOOTSTRAP, ownedDirectory(), runT1ScopedEntry(), sha() (+3 more)
-
-### Community 455 - "Community 455"
-Cohesion: 0.27
-Nodes (12): checkAncestor(), checkPrivateDirectory(), clean(), ORIGINAL_BUNDLE, PACKAGE_ROOTS, REPO, ROOT_PACKAGE, sha() (+4 more)
-
-### Community 456 - "Community 456"
-Cohesion: 0.23
-Nodes (11): allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry(), ancestors, BOOTSTRAP, ownedDirectory(), runT1ScopedEntry(), sha() (+3 more)
-
-### Community 457 - "Community 457"
-Cohesion: 0.27
-Nodes (12): checkAncestor(), checkPrivateDirectory(), clean(), ORIGINAL_BUNDLE, PACKAGE_ROOTS, REPO, ROOT_PACKAGE, sha() (+4 more)
-
-### Community 458 - "Community 458"
-Cohesion: 0.23
-Nodes (11): allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry(), ancestors, BOOTSTRAP, ownedDirectory(), runT1ScopedEntry(), sha() (+3 more)
-
-### Community 459 - "Community 459"
-Cohesion: 0.27
-Nodes (12): checkAncestor(), checkPrivateDirectory(), clean(), ORIGINAL_BUNDLE, PACKAGE_ROOTS, REPO, ROOT_PACKAGE, sha() (+4 more)
-
-### Community 460 - "Community 460"
-Cohesion: 0.23
-Nodes (11): allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry(), ancestors, BOOTSTRAP, ownedDirectory(), runT1ScopedEntry(), sha() (+3 more)
-
-### Community 461 - "Community 461"
-Cohesion: 0.27
-Nodes (12): checkAncestor(), checkPrivateDirectory(), clean(), ORIGINAL_BUNDLE, PACKAGE_ROOTS, REPO, ROOT_PACKAGE, sha() (+4 more)
-
-### Community 462 - "Community 462"
-Cohesion: 0.23
-Nodes (11): allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry(), ancestors, BOOTSTRAP, ownedDirectory(), runT1ScopedEntry(), sha() (+3 more)
-
-### Community 463 - "Community 463"
-Cohesion: 0.16
-Nodes (23): serializeR34Preparation(), AUTHORITY_PINS, CASES, consistentOwnedExit(), countsValid(), expectedNames(), fail(), INDEX (+15 more)
-
-### Community 464 - "Community 464"
-Cohesion: 0.27
-Nodes (12): checkAncestor(), checkPrivateDirectory(), clean(), ORIGINAL_BUNDLE, PACKAGE_ROOTS, REPO, ROOT_PACKAGE, sha() (+4 more)
-
-### Community 465 - "Community 465"
-Cohesion: 0.19
-Nodes (12): directChildMetadata(parentPid, childPid), identity(pid), MakeIdentity, OTHER, PROC_PIDTBSDINFO, processState, R33 process-state observation, source-pin.json (+4 more)
-
-### Community 466 - "Community 466"
-Cohesion: 0.23
-Nodes (11): ancestors, BOOTSTRAP, ownedDirectory(), runT1ScopedEntry(), sha(), SUPERVISOR, t1ReceiptContext(), writeT1ChildReceipt() (+3 more)
-
-### Community 467 - "Community 467"
-Cohesion: 0.15
-Nodes (16): openEvidence(), readDescriptor(), readReleaseEvidenceFile(), readTerminalEvidenceFile(), createIpcFaultGate(), Failure, Identity, IpcFaultReferenceIds (+8 more)
-
-### Community 468 - "Community 468"
-Cohesion: 0.17
-Nodes (11): classifyNativeSessionError(), directoryErrorReasons, errorReasons, exactErrors, NATIVE_SESSION_DIAGNOSTIC_REASONS, NATIVE_SESSION_DIAGNOSTIC_STAGES, NATIVE_SESSION_ROUTE_REASONS, ownData() (+3 more)
-
-### Community 469 - "Community 469"
-Cohesion: 0.17
-Nodes (11): classifyNativeSessionError(), directoryErrorReasons, errorReasons, exactErrors, NATIVE_SESSION_DIAGNOSTIC_REASONS, NATIVE_SESSION_DIAGNOSTIC_STAGES, NATIVE_SESSION_ROUTE_REASONS, ownData() (+3 more)
-
-### Community 470 - "Community 470"
-Cohesion: 0.21
-Nodes (8): approval(), entry, manifestPath, repo, reverse(), sha(), specimen(), wire()
-
-### Community 471 - "Community 471"
-Cohesion: 0.21
-Nodes (8): approval(), entry, manifestPath, repo, reverse(), sha(), specimen(), wire()
-
-### Community 473 - "Community 473"
-Cohesion: 0.18
-Nodes (10): classifyNativeSessionError(), errorReasons, exactErrors, NATIVE_SESSION_DIAGNOSTIC_REASONS, NATIVE_SESSION_DIAGNOSTIC_STAGES, NATIVE_SESSION_ROUTE_REASONS, ownData(), reasons (+2 more)
-
-### Community 475 - "Community 475"
-Cohesion: 0.18
-Nodes (10): classifyNativeSessionError(), errorReasons, exactErrors, NATIVE_SESSION_DIAGNOSTIC_REASONS, NATIVE_SESSION_DIAGNOSTIC_STAGES, NATIVE_SESSION_ROUTE_REASONS, ownData(), reasons (+2 more)
-
-### Community 476 - "Community 476"
-Cohesion: 0.18
-Nodes (10): classifyNativeSessionError(), errorReasons, exactErrors, NATIVE_SESSION_DIAGNOSTIC_REASONS, NATIVE_SESSION_DIAGNOSTIC_STAGES, NATIVE_SESSION_ROUTE_REASONS, ownData(), reasons (+2 more)
-
-### Community 477 - "Community 477"
-Cohesion: 0.18
-Nodes (10): classifyNativeSessionError(), errorReasons, exactErrors, NATIVE_SESSION_DIAGNOSTIC_REASONS, NATIVE_SESSION_DIAGNOSTIC_STAGES, NATIVE_SESSION_ROUTE_REASONS, ownData(), reasons (+2 more)
-
-### Community 478 - "Community 478"
-Cohesion: 0.36
-Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
-
-### Community 479 - "Community 479"
+### Community 489 - "Database Compatibility Migrate Compatible"
 Cohesion: 0.26
-Nodes (8): canonicalJson(), canonicalValue(), classifyLateResult(), DeliveryLedger, processIdentityMatches(), reconcileDispatch(), recoveryHandlers, unknownReconcile
+Nodes (9): { PrismaClient }, databaseCompatibilityUrl(), knownDatabaseMigrations(), completedMigrations(), migrationReadiness(), assertDatabaseCompatibility(), workspaces, producerRoot (+1 more)
 
-### Community 480 - "Community 480"
+### Community 593 - "Environment Secret Policy"
+Cohesion: 0.60
+Nodes (3): EnvironmentColumn, environmentSchemaFailures(), environmentJsonFailures()
+
+### Community 148 - "Swarm Ledger Store Harness"
+Cohesion: 0.15
+Nodes (31): assert(), containsForbiddenLearningDetail(), assertSanitizedLearningText(), sanitizeLegacyLearningText(), phases, nonBlank(), assert(), validateObservation() (+23 more)
+
+### Community 60 - "Harness Selection"
+Cohesion: 0.10
+Nodes (48): harnessRoot, profileIds, efforts, profileFields, selectionInputValues, profileInvariants, SelectionLimitationError, loadHarnessSelectionContracts() (+40 more)
+
+### Community 398 - "Managed Journey Browser Qualification"
+Cohesion: 0.14
+Nodes (9): createBrowserBoundarySession(), blockedRequests, mutationRequests, fixtureHandlers, startPage(), html(), privatePage(), mutationPage() (+1 more)
+
+### Community 87 - "Managed Journey Isolated Launch"
+Cohesion: 0.08
+Nodes (39): execFile, ISOLATED_ENV_ALLOWLIST, ISOLATION_MODES, composeIsolatedLaunch(), sanitizeLaunchComposition(), sanitizeResolvedConfiguration(), normalizeMcpInventory(), terminateOwnedProcessGroup() (+31 more)
+
+### Community 362 - "Qualify R2F Auth Managed"
+Cohesion: 0.17
+Nodes (17): inspectProcessIdentity(), results, fixturePassed, subject, output, runArm(), rpcClient(), configText() (+9 more)
+
+### Community 128 - "Managed Journey Provider Qualification"
+Cohesion: 0.15
+Nodes (33): LAUNCH_HASH_FIELDS, LAUNCH_TEXT_FIELDS, REQUIRED_BOUNDARY_FIELDS, canonicalJson(), canonicalSchemaHash(), evaluatePreTurnQualification(), finding(), legacyAuthorityFindings() (+25 more)
+
+### Community 501 - "Managed Journey Recovery Qualification"
+Cohesion: 0.26
+Nodes (8): processIdentityMatches(), reconcileDispatch(), unknownReconcile, recoveryHandlers, DeliveryLedger, canonicalJson(), canonicalValue(), classifyLateResult()
+
+### Community 502 - "Config Mcp Print Agent"
 Cohesion: 0.24
 Nodes (7): envValue(), normalizeEndpointPath(), resolveMcpConfig(), config, staleCapabilityRecovery, toolsNotVisibleRecovery, config
 
-### Community 481 - "Community 481"
-Cohesion: 0.17
-Nodes (10): artifacts, counts, db, [filename, pidText, nativePidText, profile = 'ORIGINAL_C1'], ownerPid, preserved, recoveredFilename, recoveryDirectory (+2 more)
-
-### Community 482 - "Community 482"
-Cohesion: 0.42
-Nodes (7): owned(), runWorkspaceScopedEntry(), sha(), writeWorkspaceChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
-
-### Community 484 - "Community 484"
+### Community 294 - "R2C Dynamic Tools Experiment"
 Cohesion: 0.18
-Nodes (8): forbiddenPathCandidates, forbiddenPaths, forbiddenSymbols, ignoredDirectories, matches, root, scanRoots, sources
+Nodes (22): DYNAMIC_TOOL_SCHEMA, sha256(), canonicalJson(), dynamicTool(), composeDynamicToolsLaunch(), summarizeResponsesRequest(), evaluateExperimentResults(), evaluateDispatch() (+14 more)
 
-### Community 485 - "Community 485"
-Cohesion: 0.29
-Nodes (7): ACTUAL_DECISION, checkR24GeneratedSpecimen(), ENTRYPOINT, HERE, REPO, REVIEW, sha()
-
-### Community 486 - "Community 486"
-Cohesion: 0.54
-Nodes (7): applyNativeContractConfiguration(), assertFixedNativePlanContract(), fail(), NATIVE_CONTRACT_QUALIFICATION, validCase(), verifyNativeContractConfiguration(), verifyNativeContractSources()
-
-### Community 487 - "Community 487"
-Cohesion: 0.29
-Nodes (5): CHILD_PATH_CLASSES, entryKeys, nameClasses, NAMES, pathClasses
-
-### Community 488 - "Community 488"
-Cohesion: 0.47
-Nodes (5): buildR50CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha()
-
-### Community 489 - "Community 489"
-Cohesion: 0.35
-Nodes (10): ensureGitInclude(), getLocalConfig(), isGitRepository(), log(), main(), quiet, repoRoot, runGit() (+2 more)
-
-### Community 490 - "Community 490"
-Cohesion: 0.29
-Nodes (8): allowedDatabaseFixtures, committedGraphifyFiles, committedGraphifyScopes, findForbiddenRuntimeArtifacts(), gitPaths(), main(), runtimeArtifactReason(), runtimeDirectoryPatterns
-
-### Community 491 - "Community 491"
-Cohesion: 0.47
-Nodes (5): entry, receipts(), repo, sha(), wire()
-
-### Community 492 - "Community 492"
-Cohesion: 0.21
-Nodes (13): captureParents(), checkParents(), classes, createProviderFailureRecorder(), FAILURE_CLASSES, FAILURE_STAGES, ownDirectory(), ownFile() (+5 more)
-
-### Community 493 - "Community 493"
-Cohesion: 0.47
-Nodes (5): fail(), pinned, REPO, sha(), verifyPriorAttempt()
-
-### Community 495 - "Community 495"
-Cohesion: 0.36
-Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
-
-### Community 496 - "Community 496"
-Cohesion: 0.70
-Nodes (4): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt()
-
-### Community 498 - "Community 498"
-Cohesion: 0.36
-Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
-
-### Community 499 - "Community 499"
+### Community 50 - "R2D Interlock Experiment Qualify"
 Cohesion: 0.07
-Nodes (49): createChildPathDiagnostics(), buildWorkspaceCanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), ownDirectory(), writeWorkspaceCaseReceipt() (+41 more)
+Nodes (48): DISABLED_FEATURES, execFile, P0_R2D_BRIDGE, canonicalJson(), loadCanonicalProfile(), projectDynamicTools(), projectResponsesTools(), composeR2dLaunch() (+40 more)
 
-### Community 500 - "Community 500"
-Cohesion: 0.27
-Nodes (9): BRIDGE, buildT1CanonicalVariant(), FIXTURE, HERE, R4_CANONICAL_BUILD, R4_CANONICAL_BUNDLE, REPO, sha() (+1 more)
+### Community 584 - "R2D Canonical Bridge"
+Cohesion: 0.60
+Nodes (5): role, profile(), digest(), invokeSyntheticGateway(), main()
 
-### Community 501 - "Community 501"
-Cohesion: 0.70
-Nodes (4): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt()
+### Community 169 - "R2F Schema Qualify R2D"
+Cohesion: 0.12
+Nodes (28): sha256(), execFile, P0_R2F_BRIDGE, P0_R2F_SOURCE_PATHS, projectResponsesTools(), buildProbeProfiles(), compactionSchema(), knownSupportedSchema() (+20 more)
 
-### Community 502 - "Community 502"
-Cohesion: 0.67
-Nodes (3): allowed, fail(), writeT1PreparationReceipt()
+### Community 585 - "R2F Profiles"
+Cohesion: 0.47
+Nodes (5): P0_R2F_ROLES, P0R2fRole, canonicalDefinitions(), createP0R2fProfiles(), main()
 
-### Community 504 - "Community 504"
-Cohesion: 0.09
-Nodes (29): ownDirectory(), writeMatrixCaseReceipt(), createChildPathDiagnostics(), R28_INSTALLED_HOST_FILE, createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize() (+21 more)
+### Community 369 - "Quality Journey Compatibility Sqlite"
+Cohesion: 0.15
+Nodes (12): SqlValue, SqlRow, SqlConnection, { DatabaseSync }, SqlDatabase, migrationRoot, fixtureTarget, insert() (+4 more)
 
-### Community 505 - "Community 505"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
+### Community 295 - "Swarm Cli Harness Select"
+Cohesion: 0.11
+Nodes (18): parseStrictArgs(), readArgument(), argumentName(), assertKnownArgument(), readArgumentValue(), recordArgument(), normalizeArgumentValue(), argumentWriters (+10 more)
 
-### Community 506 - "Community 506"
-Cohesion: 0.31
-Nodes (6): BaseHTTPRequestHandler, Handler, Disposable loopback Responses fixture; no real model/provider inference or crede, receive(), rpc(), send()
-
-### Community 507 - "Community 507"
-Cohesion: 0.28
-Nodes (8): collectEntry(), failures, forbiddenProductionPatterns, harnessDoc, isProductionSource(), repoRoot, roots, walk()
-
-### Community 508 - "Community 508"
-Cohesion: 0.42
-Nodes (8): erase_contents(), exclusive_receipt(), inspect_tree(), main(), One-shot successful-P6 raw-history retention cleanup. Never touches UNKNOWN root, FD-relative traversal; metadata only. Symlink targets are never opened., same(), verify_archive()
-
-### Community 510 - "Community 510"
-Cohesion: 0.36
-Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
-
-### Community 513 - "Community 513"
-Cohesion: 0.23
-Nodes (13): cases, closeAnchors(), createOwnedScratchProofIssuer(), exactInteger(), fail(), metadata(), ownedDirectory(), ownedFile() (+5 more)
-
-### Community 514 - "Community 514"
-Cohesion: 0.36
-Nodes (8): ARCHIVE, exactFile(), exactPrivateDir(), PINS, REPO, same(), sha(), verifyConsumedPreflights()
-
-### Community 515 - "Community 515"
-Cohesion: 0.36
-Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
-
-### Community 516 - "Community 516"
-Cohesion: 0.36
-Nodes (8): ARCHIVE, exactFile(), exactPrivateDir(), PINS, REPO, same(), sha(), verifyConsumedPreflights()
-
-### Community 517 - "Community 517"
-Cohesion: 0.36
-Nodes (8): ARCHIVE, exactFile(), exactPrivateDir(), PINS, REPO, same(), sha(), verifyConsumedPreflights()
-
-### Community 518 - "Community 518"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
-
-### Community 519 - "Community 519"
-Cohesion: 0.36
-Nodes (8): ARCHIVE, exactFile(), exactPrivateDir(), PINS, REPO, same(), sha(), verifyConsumedPreflights()
-
-### Community 521 - "Community 521"
-Cohesion: 0.36
-Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
-
-### Community 522 - "Community 522"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
-
-### Community 523 - "Community 523"
-Cohesion: 0.36
-Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
-
-### Community 524 - "Community 524"
-Cohesion: 0.07
-Nodes (33): allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry(), instrumentScopedServerTransport(), SETUP, allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry() (+25 more)
-
-### Community 525 - "Community 525"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
-
-### Community 526 - "Community 526"
-Cohesion: 0.36
-Nodes (7): owned(), runWorkspaceScopedEntry(), sha(), writeWorkspaceChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
-
-### Community 527 - "Community 527"
-Cohesion: 0.36
-Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
-
-### Community 530 - "Community 530"
-Cohesion: 0.07
-Nodes (41): verifyR33HistoricalClosure(), GIT_FILE_PIN, states, validateProcessStateDiagnostic(), AUTHORITY_PINS, CASES, ENVIRONMENT_PROFILE, fail() (+33 more)
-
-### Community 531 - "Community 531"
-Cohesion: 0.36
-Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
-
-### Community 532 - "Community 532"
+### Community 112 - "Swarm Ledger Lock Access"
 Cohesion: 0.10
-Nodes (29): verifyR26HistoricalClosure(), buildR27CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), AUTHORITY, BUILD (+21 more)
+Nodes (35): withLockedSwarmJournal(), processExists(), createLock(), staleLockAge(), readLockOwner(), validLockOwner(), isLockOwnerRecord(), validLockOwnerFields() (+27 more)
 
-### Community 534 - "Community 534"
-Cohesion: 0.42
-Nodes (7): owned(), runWorkspaceScopedEntry(), sha(), writeWorkspaceChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+### Community 67 - "Swarm Routing Contract Router"
+Cohesion: 0.07
+Nodes (38): riskSignals, hasMaterialRisk(), normalizedSignals(), recommendSwarmRoute(), routingRules, createRoutingDecision(), defaultValue(), unverifiedRuntimeProof() (+30 more)
 
-### Community 535 - "Community 535"
-Cohesion: 0.42
-Nodes (7): owned(), runWorkspaceScopedEntry(), sha(), writeWorkspaceChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+### Community 38 - "M06 Native Patch"
+Cohesion: 0.09
+Nodes (63): here, sha256(), fail(), PINNED_LICENSE, gitBlob(), sameFields(), pinnedLinkBytesMatch(), pinnedTargetBytesMatch() (+55 more)
 
-### Community 536 - "Community 536"
-Cohesion: 0.42
-Nodes (7): owned(), runWorkspaceScopedEntry(), sha(), writeWorkspaceChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+### Community 344 - "M06 Native Patch"
+Cohesion: 0.13
+Nodes (16): defaultBundle, bundle11, prepareNativePatch11(), bundle12, upstreamSource, root, expected, upstreamSource (+8 more)
 
-### Community 537 - "Community 537"
-Cohesion: 0.42
-Nodes (7): owned(), runWorkspaceScopedEntry(), sha(), writeWorkspaceChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+### Community 45 - "M06 Native Patch"
+Cohesion: 0.10
+Nodes (57): hash(), fail(), digest(), validatePathText(), safePath(), noLinks(), sameFields(), fileModeMatches() (+49 more)
 
-### Community 539 - "Community 539"
-Cohesion: 0.42
-Nodes (6): [action, file, reviewer, evidence], artifact, artifactIdentity(), bindReview(), git(), verifyReview()
+### Community 197 - "M06 Native Patch Cli"
+Cohesion: 0.11
+Nodes (14): bundle13, prepareNativePatch13(), bundle15, prepareNativePatch15(), bundle21, prepareNativePatch21(), flags, parseNativePatchArguments() (+6 more)
 
-### Community 543 - "Community 543"
-Cohesion: 0.36
-Nodes (4): inspectNotificationEnvelope(), NOTIFICATION_ENVELOPE_FAILURE_REASONS, object(), own()
+### Community 371 - "Owned Process Supervisor"
+Cohesion: 0.18
+Nodes (18): nonce, childClose, send(), members(), waitForDrain(), waitForChildClose(), terminateMembers(), escalateGroup() (+10 more)
 
-### Community 545 - "Community 545"
-Cohesion: 0.25
-Nodes (5): digest, files, manifest, root, runtimeSource
+### Community 594 - "Protect Seeded Files"
+Cohesion: 0.60
+Nodes (4): SEEDED_TEMPLATE_PATHS, trimTrailingBlankLines(), setSeededTemplateFilesTracked(), main()
 
-### Community 547 - "Community 547"
-Cohesion: 0.48
-Nodes (4): baseIndex, suppressions, addedQualitySuppressions(), readQualityDiff()
+### Community 199 - "Record Swarm Run"
+Cohesion: 0.08
+Nodes (22): argv, values, dimensionOptions, contexts, triggerCodes, observationDomains, observations, dimensions (+14 more)
 
-### Community 548 - "Community 548"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
-
-### Community 549 - "Community 549"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
-
-### Community 553 - "Community 553"
+### Community 573 - "Setup Graphify"
 Cohesion: 0.38
-Nodes (6): findCommand(), findCommandInUvToolBin(), findCommandOnPath(), graphifyCommand, install, uvCommand
+Nodes (6): graphifyCommand, uvCommand, install, findCommand(), findCommandOnPath(), findCommandInUvToolBin()
 
-### Community 556 - "Community 556"
-Cohesion: 0.47
-Nodes (5): database, measure(), plan(), root, runSql()
+### Community 131 - "Analysis Retained Owned Child"
+Cohesion: 0.07
+Nodes (30): digest(), assertOwnedSupervisorDeclaration(), soleOwnedSupervisorOrigin(), preserveAnalysisOwnedChildOrigin(), inspectEmittedAnalysisOwnedChildOrigin(), collectAnalysisRuntimePackageInputs(), inspectAnalysisPreRuntimeClosure(), root (+22 more)
 
-### Community 557 - "Community 557"
-Cohesion: 0.47
-Nodes (5): fail(), pinned, REPO, sha(), verifyPriorAttempt()
+### Community 466 - "Offline Grant Adapter"
+Cohesion: 0.31
+Nodes (13): FixtureManifest, E2OfflineGrantCase, E2OfflineGrantCaseResult, digest(), hex(), uuid(), fail(), exists() (+5 more)
 
-### Community 558 - "Community 558"
-Cohesion: 0.47
-Nodes (5): fail(), pinned, REPO, sha(), verifyPriorAttempt()
+### Community 33 - "Source Custody Controller Launch"
+Cohesion: 0.09
+Nodes (52): readFixtureAuditRecord(), publishFixtureAuditRecord(), sourceControllerEffects, controllerScript, cases, verifyPacket(), verifySourcePacketInputs(), environment() (+44 more)
 
-### Community 559 - "Community 559"
-Cohesion: 0.47
-Nodes (5): fail(), pinned, REPO, sha(), verifyPriorAttempt()
+### Community 263 - "Custody Fixture Admission Complement"
+Cohesion: 0.12
+Nodes (18): retainDiagnosticFailure(), decodeServiceTerminalHandoff(), fixture(), Message, CanonicalSnapshot, captureServiceComplementCanonical(), assertComplementCanonicalSnapshot(), FixtureFailure (+10 more)
 
-### Community 560 - "Community 560"
-Cohesion: 0.60
-Nodes (5): digest(), invokeSyntheticGateway(), main(), profile(), role
+### Community 343 - "Fixture Custody Ipc Evidence"
+Cohesion: 0.15
+Nodes (16): openEvidence(), readDescriptor(), readTerminalEvidenceFile(), readReleaseEvidenceFile(), fixture(), Identity, Failure, IpcFaultReferenceIds (+8 more)
 
-### Community 561 - "Community 561"
-Cohesion: 0.47
-Nodes (5): canonicalDefinitions(), createP0R2fProfiles(), main(), P0_R2F_ROLES, P0R2fRole
+### Community 42 - "Terminal Fixture Codecs Source"
+Cohesion: 0.07
+Nodes (48): encodeServiceTerminalAck(), decodeServiceTerminalAck(), retainedMessageKeys, retainedTupleKeys, exactKeys(), matchTuple(), createSourceRetentionBinding(), boundedMessage() (+40 more)
 
-### Community 562 - "Community 562"
-Cohesion: 0.40
-Nodes (3): failures, ignoredDirectories, roots
+### Community 370 - "Fixture Custody Terminal Receipt"
+Cohesion: 0.16
+Nodes (16): assertServiceCallbackReceipt(), fixture(), identity, result, acknowledgement, terminalScope, failureReceipt, terminalFixture() (+8 more)
 
-### Community 563 - "Community 563"
-Cohesion: 0.40
-Nodes (4): inspect_tool_manifest(), Pinned no-model MCP form/URL cancellation fixture; no auth or native effects., Inspect manifest locations/types/names only; never return input or schema bodies, run()
+### Community 68 - "Source Custody Launch Fixture"
+Cohesion: 0.05
+Nodes (26): callback, send(), capture(), observeSourceIpcFaultOwner(), fixedControllerScript, fixedEffects, directEffects, withVerifiedPacketClient() (+18 more)
 
-### Community 564 - "Community 564"
-Cohesion: 0.36
-Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+### Community 219 - "Prepare Offline Bootstrap Contract"
+Cohesion: 0.14
+Nodes (26): script, sourceRoot, base, caseBase, reviewBase, dependencyRoot, sourcePaths, selectors (+18 more)
 
-### Community 567 - "Community 567"
+### Community 264 - "Prepare Offline Case"
+Cohesion: 0.14
+Nodes (25): scriptPath, sourceRoot, physicalDependencyRoot, caseBase, packetBase, launcherEnvKeys, sourcePaths, testPaths (+17 more)
+
+### Community 220 - "Prepare Offline Contract Case"
+Cohesion: 0.14
+Nodes (26): script, sourceRoot, base, caseBase, reviewBase, dependencyRoot, sourcePaths, selectors (+18 more)
+
+### Community 140 - "Prepare Offline Discovery Lineage"
+Cohesion: 0.12
+Nodes (32): script, sourceRoot, base, caseBase, reviewBase, dependencyRoot, sourcePaths, selectors (+24 more)
+
+### Community 265 - "Prepare Offline Prisma Case"
+Cohesion: 0.17
+Nodes (24): script, worktree, base, packetBase, caseBase, dependencyRoot, hostRoots, fail() (+16 more)
+
+### Community 221 - "Prepare Offline Service Case"
+Cohesion: 0.14
+Nodes (26): script, sourceRoot, base, caseBase, reviewBase, dependencyRoot, sourcePaths, selectors (+18 more)
+
+### Community 129 - "Prepare Offline Shared Use"
+Cohesion: 0.11
+Nodes (34): script, sourceRoot, base, caseBase, reviewBase, dependencyRoot, sourcePaths, selectors (+26 more)
+
+### Community 152 - "Prepare Offline Sqlite Case"
+Cohesion: 0.12
+Nodes (30): script, sourceRoot, base, caseBase, reviewBase, dependencyRoot, generatedRoot, fixtureEvidencePath (+22 more)
+
+### Community 183 - "Prepare Offline Terminal Join"
+Cohesion: 0.12
+Nodes (28): script, sourceRoot, base, caseBase, reviewBase, dependencyRoot, expectedSources, sourcePaths (+20 more)
+
+### Community 234 - "Run Isolated Prisma"
+Cohesion: 0.19
+Nodes (25): script, worktree, base, caseBase, reviewBase, dependencyRoot, hostRoots, fail() (+17 more)
+
+### Community 235 - "Run Offline Bootstrap Contract"
+Cohesion: 0.17
+Nodes (26): script, sourceRoot, base, caseBase, reviewBase, dependencyRoot, sourcePaths, selectors (+18 more)
+
+### Community 236 - "Run Offline Case"
+Cohesion: 0.17
+Nodes (26): scriptPath, sourceRoot, physicalDependencyRoot, caseBase, reviewBase, launcherEnvKeys, selectedSource, selectedTests (+18 more)
+
+### Community 237 - "Run Offline Contract Case"
+Cohesion: 0.17
+Nodes (26): script, sourceRoot, base, caseBase, reviewBase, dependencyRoot, sourcePaths, selectors (+18 more)
+
+### Community 141 - "Run Offline Discovery Lineage"
+Cohesion: 0.14
+Nodes (33): script, sourceRoot, base, caseBase, reviewBase, dependencyRoot, sourcePaths, selectors (+25 more)
+
+### Community 238 - "Run Offline Service Case"
+Cohesion: 0.17
+Nodes (26): script, sourceRoot, base, caseBase, reviewBase, dependencyRoot, sourcePaths, selectors (+18 more)
+
+### Community 135 - "Run Offline Shared Use"
+Cohesion: 0.13
+Nodes (34): script, sourceRoot, base, caseBase, reviewBase, dependencyRoot, sourcePaths, selectors (+26 more)
+
+### Community 222 - "Run Offline Sqlite Case"
+Cohesion: 0.16
+Nodes (26): script, sourceRoot, base, caseBase, reviewBase, dependencyRoot, generatedRoot, sourcePaths (+18 more)
+
+### Community 198 - "Run Offline Terminal Join"
+Cohesion: 0.15
+Nodes (28): script, sourceRoot, base, caseBase, reviewBase, dependencyRoot, expectedSources, sourcePaths (+20 more)
+
+### Community 58 - "Custody Service Build Owner"
+Cohesion: 0.04
+Nodes (45): here, root, [outputArgument, generatedArgument], require, { build }, output, generated, commonRoot (+37 more)
+
+### Community 200 - "Custody Activation Proof"
+Cohesion: 0.09
+Nodes (27): root, require, ts, harness, ownerFile, matrixFile, actualDeclaration(), compile() (+19 more)
+
+### Community 333 - "Custody Proof Service Retained"
+Cohesion: 0.15
+Nodes (16): Message, assertActivationRetainedOutcome(), assertActivationSourceTransition(), assertActivationDatabaseHold(), assertActivationCanonicalUnknown(), fixtureDateTime(), fixtureOriginalTemporal(), classifications (+8 more)
+
+### Community 431 - "Custody Complement Observation Service"
+Cohesion: 0.26
+Nodes (12): fixture(), cleanupFixture(), Admission, ComplementMethod, ComplementObservationState, observeComplementAction(), countComplementPersistence(), forwardComplementRaw() (+4 more)
+
+### Community 20 - "Custody Service Owner Source"
+Cohesion: 0.04
+Nodes (62): assertComplementHeldBaseline(), assertFixtureDatabaseClosed(), serviceNormalReportDelivered(), SuccessfulNonstart, Admission, assertSettledCompositionSnapshot(), composeServiceOriginalNonstart(), Source (+54 more)
+
+### Community 51 - "Custody Fixture Transport Legacy"
+Cohesion: 0.06
+Nodes (43): retainFixtureActual(), transport(), Message, Admission, Channel, Identity, sendFixtureTerminalHandoff(), fixtureRetainedFailureReport() (+35 more)
+
+### Community 334 - "Custody Ipc Fault Controller"
 Cohesion: 0.21
-Nodes (13): captureParents(), checkParents(), classes, createProviderFailureRecorder(), FAILURE_CLASSES, FAILURE_STAGES, ownDirectory(), ownFile() (+5 more)
+Nodes (19): identity, self, validateWindow(), validateLatch(), validateFence(), validateInvocation(), validateLiveness(), readBoundedArtifact() (+11 more)
 
-### Community 568 - "Community 568"
-Cohesion: 0.70
-Nodes (4): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt()
+### Community 23 - "Custody Service Supervision Supervisor"
+Cohesion: 0.05
+Nodes (55): FixtureTerminalScope, compositionServiceCase, compositionServiceCases, runServiceController(), serviceControllerResult(), ServiceFixtureExpect, assertInstalledExpectation(), createServiceMatrixExpect() (+47 more)
 
-### Community 570 - "Community 570"
+### Community 503 - "Custody Inspect After Exit"
+Cohesion: 0.17
+Nodes (10): [filename, pidText, nativePidText, profile = 'ORIGINAL_C1'], ownerPid, workspace, preserved, artifacts, recoveryDirectory, recoveredFilename, db (+2 more)
+
+### Community 430 - "M05 Owned Child Custody"
+Cohesion: 0.25
+Nodes (14): packetFixture(), send(), reply(), turnEvent(), privateModes(), privateConfig(), isolatedEnvironment(), initialize() (+6 more)
+
+### Community 385 - "Custody Native Contender"
+Cohesion: 0.18
+Nodes (16): filename, lifetimeFile, receipt(), db, metadata, lifetime, send(), fail() (+8 more)
+
+### Community 345 - "Custody Owned Child Origin"
+Cohesion: 0.11
+Nodes (10): ts, sourceOriginExpression(), preserveServiceOwnedChildOrigin(), emittedURLConstructors(), assertServiceOwnedChildEmittedOrigin(), callbackFixture(), mainFixture(), actualCompositionAdapter (+2 more)
+
+### Community 184 - "Custody Service Admission"
+Cohesion: 0.13
+Nodes (3): InertAdmission, AdmissionTests, Actual admission with inert reads/context/metadata/allocation only; no driver ma
+
+### Community 223 - "Custody Service Fresh Driver"
+Cohesion: 0.15
+Nodes (21): write_exclusive(), validate_owner_evidence(), validate_ps_command(), OriginalEffects, retain_driver_failure(), supervise_original_controller(), require_admission(), unique_admission_object() (+13 more)
+
+### Community 386 - "Custody Service Fresh Driver"
+Cohesion: 0.14
+Nodes (5): fixture(), FakeEffects, DriverTests, CompositionSelectionTests, Actual driver algorithm with fixed inert effects; no Popen/ps/client/owner is ex
+
+### Community 136 - "Source Custody Fault Ipc"
+Cohesion: 0.09
+Nodes (25): connected(), inputs, validate(), rawMutations, sourceIpcFaultCases, sourceIpcFaultPhase, failureKeys, exactKeys() (+17 more)
+
+### Community 170 - "Source Custody Client Build"
+Cohesion: 0.15
+Nodes (28): here, require, { build }, ts, commonNames, sourcePacketCommonImportMap, ownerNames, testPaths (+20 more)
+
+### Community 34 - "Source Custody Cases Case"
+Cohesion: 0.07
+Nodes (48): startSourceSendReservation(), acceptSourceSendReservation(), assertSourceFactoryRefusal(), completeSourceCaseResult(), assertSourceFinalizerHandoff(), createSourceRefusalTransaction(), completeSourceCaptureRefusal(), fixture() (+40 more)
+
+### Community 35 - "Source Custody Owner Evidence"
+Cohesion: 0.04
+Nodes (37): [directory, selectedLabel, nonce, faultSelector], retained, lifetime, closureState, bootstrap, closureHandlers, ownValue(), functionHash() (+29 more)
+
+### Community 340 - "Finite Responses Source Custody"
+Cohesion: 0.18
+Nodes (16): observe(), emitDiagnostic(), decodeWithDiagnostic(), sha(), exactKeys(), checkedString(), sse(), scriptDigest() (+8 more)
+
+### Community 130 - "Source Custody Client Binding"
+Cohesion: 0.15
+Nodes (30): clientOutputNames, digest(), inside(), absolute(), metadata(), bindingFileRecord(), verifyRecord(), verifyLoaderTail() (+22 more)
+
+### Community 89 - "M12 Packed Install Source"
+Cohesion: 0.07
+Nodes (36): readFileSync(), readFixtureAuditRecord(), actualPreparedStage(), actualExternalValidators(), corruptLedger(), sql, [packet, directory, selected, mode], manifest (+28 more)
+
+### Community 55 - "Protocol Fixture Model Probe"
+Cohesion: 0.07
+Nodes (23): pin, sha(), here, binary, os, build, arch, root (+15 more)
+
+### Community 22 - "Framing Codex App Server"
+Cohesion: 0.05
+Nodes (34): journal(), supervisor(), provider(), mcpReady(), roles, root, fixturePath, policy (+26 more)
+
+### Community 47 - "Protocol P00 Storage Codex"
+Cohesion: 0.07
+Nodes (25): encode(), threadPending(), HARD_LIMITS, DEFAULT_LIMITS, StorageBlocked, identity(), clone(), checkedLimits() (+17 more)
+
+### Community 149 - "Canonical Fixture Codex App"
+Cohesion: 0.12
+Nodes (24): fixtures, sessions, setup(), Fixture, fixtures, Fixture, CanonicalBridgeBootstrapConfig, createCanonicalSupervisorBridge() (+16 more)
+
+### Community 7 - "Codec Policy Script Session"
+Cohesion: 0.03
+Nodes (93): options, result, audit, revised(), clone(), duplicate(), sessionTrace(), planFor() (+85 more)
+
+### Community 46 - "Policy Composition Protocol Codex"
+Cohesion: 0.06
+Nodes (27): pins, fakeBridge, prepared(), b07, fakeRun(), fakeRun(), readPreparedManifest(), readPreparedManifest() (+19 more)
+
+### Community 13 - "Preparation Entrypoint Policy Runner"
+Cohesion: 0.05
+Nodes (87): observedFs(), disposableIo(), ENTRY, REPO, REVIEW, DECISION, prefix(), privateJson() (+79 more)
+
+### Community 225 - "Journal Codex App Server"
+Cohesion: 0.15
+Nodes (10): outerCeilings, ZERO, KINDS, own(), copy(), validateOuter(), assertRoot(), blank() (+2 more)
+
+### Community 297 - "Entrypoint Codex App Server"
+Cohesion: 0.12
+Nodes (20): entrypoint, sourceSha256, manifestFileSha256, reviewSha256, cases, fixture(), HERE, REPO (+12 more)
+
+### Community 525 - "Codex App Server M02"
 Cohesion: 0.24
-Nodes (12): buildR47PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite(), readExactOutput(), REPO (+4 more)
+Nodes (9): entrypoint, baseEntrypoint, reviewSha256, cases, sha(), baseEnvelope, manifestFileSha256, boundArtifacts() (+1 more)
 
-### Community 571 - "Community 571"
-Cohesion: 0.60
-Nodes (3): EnvironmentColumn, environmentJsonFailures(), environmentSchemaFailures()
+### Community 239 - "Protocol Codex App Server"
+Cohesion: 0.15
+Nodes (13): encode(), startTurn(), record(), only(), nullableString(), textPosition(), textRange(), approvalFields (+5 more)
 
-### Community 573 - "Community 573"
-Cohesion: 0.60
-Nodes (4): main(), SEEDED_TEMPLATE_PATHS, setSeededTemplateFilesTracked(), trimTrailingBlankLines()
+### Community 28 - "Codex App Server M02"
+Cohesion: 0.05
+Nodes (33): planned, T2, scripted, T2, scripted, T2, scripted, T2 (+25 more)
 
-### Community 575 - "Community 575"
+### Community 153 - "Manifest Canonical Build Startup"
+Cohesion: 0.10
+Nodes (23): REPO, HERE, ENTRY, MANIFEST, REPO, HISTORICAL_BUNDLE, sha(), buildMatrixCanonicalBytes() (+15 more)
+
+### Community 154 - "Manifest Canonical Build Codex"
+Cohesion: 0.09
+Nodes (20): REPO, HERE, REPO, HISTORICAL_BUNDLE, sha(), buildMatrixCanonicalBytes(), CountedJsonLines, HERE (+12 more)
+
+### Community 98 - "Manifest Preflight Evidence Canonical"
+Cohesion: 0.08
+Nodes (28): REPO, HERE, REPO, HISTORICAL_BUNDLE, sha(), buildMatrixCanonicalBytes(), CountedJsonLines, HERE (+20 more)
+
+### Community 390 - "Provider Failure Codex App"
+Cohesion: 0.17
+Nodes (12): FAILURE_STAGES, FAILURE_CLASSES, stages, classes, ownDirectory(), ownFile(), same(), captureParents() (+4 more)
+
+### Community 405 - "Codex App Server M02"
+Cohesion: 0.20
+Nodes (6): fakeListenerScenario(), launcherScenario(), createTrustedLauncher(), createProviderFailureRecorder(), realIo, createNativePorts()
+
+### Community 406 - "Prior Evidence Codex App"
+Cohesion: 0.18
+Nodes (13): repo, evidence, r19Entry, REPO, BUILD, FILES, sha(), same() (+5 more)
+
+### Community 490 - "Codex App Server M02"
+Cohesion: 0.21
+Nodes (8): repo, entry, manifestPath, sha(), wire(), reverse(), specimen(), approval()
+
+### Community 61 - "Observer Host File"
+Cohesion: 0.08
+Nodes (30): fixture(), R21_INSTALLED_HOST_FILE, same(), verifyR21HostFile(), createR21OwnedHostObserver(), R22_INSTALLED_HOST_FILE, same(), verifyR22HostFile() (+22 more)
+
+### Community 348 - "Prior Evidence Codex App"
+Cohesion: 0.20
+Nodes (17): repo, json(), evidence(), REPO, R20, R19_MANIFEST, FIXED, sha() (+9 more)
+
+### Community 491 - "Codex App Server M02"
+Cohesion: 0.21
+Nodes (8): repo, entry, manifestPath, sha(), wire(), reverse(), specimen(), approval()
+
+### Community 416 - "Codex App Server M02"
+Cohesion: 0.18
+Nodes (9): repo, entry, sha(), wire(), observer, receipts(), redirectFs(), createOfflineEffects() (+1 more)
+
+### Community 407 - "Codex App Server M02"
+Cohesion: 0.16
+Nodes (7): verifySynthetic(), historicalIndexes, offlinePorts(), interpreter, realIo, verifyR22HistoricalClosure(), createNativePorts()
+
+### Community 492 - "Codex App Server M02"
+Cohesion: 0.23
+Nodes (8): repo, entry, sha(), wire(), observer, receipts(), redirectFs(), createOfflineEffects()
+
+### Community 91 - "Package Qualification Codex App"
+Cohesion: 0.05
+Nodes (14): historicalIndexes, historicalPackage, currentPackage, offlinePorts(), interpreter, REPO, EVIDENCE, PROPOSAL (+6 more)
+
+### Community 48 - "Evidence Preparation R21 Sealed"
+Cohesion: 0.05
+Nodes (94): verifySynthetic(), serializeR23Preparation(), readStableFile(), verifyR23HistoricalClosure(), REPO, TERMINAL, INDEX, R23_COUNTS (+86 more)
+
+### Community 4 - "Policy Composition Plans Approval"
+Cohesion: 0.03
+Nodes (87): fixture(), fakeRun(), prepareTrustedCase(), createTrustedLauncher(), realIo, createNativePorts(), prepareTrustedCase(), POLICY (+79 more)
+
+### Community 5 - "Session Native Script Route"
+Cohesion: 0.03
+Nodes (116): fixture(), emitDiagnostic(), decodeWithDiagnostic(), sha(), exactKeys(), checkedString(), sse(), scriptDigest() (+108 more)
+
+### Community 394 - "Collect Codex App Server"
+Cohesion: 0.23
+Nodes (16): roles, HERE, REPO, R4, OUTPUT_DIR, ROLES, sha(), canonical() (+8 more)
+
+### Community 117 - "Protocol P00 Rate Limit"
+Cohesion: 0.12
+Nodes (25): schemaPath, record(), only(), nullableString(), textPosition(), textRange(), approvalFields, permissionRequestId() (+17 more)
+
+### Community 319 - "Receipts Codex App Server"
+Cohesion: 0.12
+Nodes (15): observer, serializationRoot, results, composed(), refusals, ownDirectory(), writeMatrixCaseReceipt(), redirectFs() (+7 more)
+
+### Community 376 - "Effects Case Receipts Codex"
+Cohesion: 0.15
+Nodes (11): prepared, observer, serializationRoot, results, composed(), refusals, ownDirectory(), writeMatrixCaseReceipt() (+3 more)
+
+### Community 56 - "Finite Responses Continuation Diagnostic"
+Cohesion: 0.07
+Nodes (39): codecFixture(), producerFixture(), durableFixture(), DIAGNOSTIC_CATEGORIES, OUTPUT_STATUSES, SCRIPT_FAILURE_MARKERS, controlledMarkers, unknownOutput (+31 more)
+
+### Community 493 - "Specimencheck Preparation Codex App"
+Cohesion: 0.24
+Nodes (9): MATRIX_MANIFEST, verifyR24MatrixPreparation(), HERE, REPO, ENTRYPOINT, REVIEW, ACTUAL_DECISION, sha() (+1 more)
+
+### Community 12 - "Policy Manifest R24 Evidence"
+Cohesion: 0.05
+Nodes (46): seal, baseCase(), REPO, HISTORICAL_BUNDLE, sha(), same(), buildR24CanonicalBytes(), prepareTrustedCase() (+38 more)
+
+### Community 70 - "Matrix Runner Codex App"
+Cohesion: 0.07
+Nodes (36): prepared, observer, serializationRoot, results, composed(), refusals, ownDirectory(), writeMatrixCaseReceipt() (+28 more)
+
+### Community 8 - "Route Sealed Capture Case"
+Cohesion: 0.04
+Nodes (80): ownDirectory(), writeMatrixCaseReceipt(), buildMatrixCaseOperations(), readMatrixChildReceipt(), blocked(), equal(), validateMatrixProviderRequest(), sha() (+72 more)
+
+### Community 49 - "Runner Prior Attempt Codex"
+Cohesion: 0.06
+Nodes (39): adapterOutput(), retentionClocks(), retentionFromInit(), allowed, fail(), writeT1PreparationReceipt(), PRIOR_JOURNAL, sha() (+31 more)
+
+### Community 360 - "Codex App Server M02"
+Cohesion: 0.12
+Nodes (12): schemaRoot, validator, schema(), valid(), thread, turn, driveAdapter(), allowed (+4 more)
+
+### Community 134 - "Policy Composition Protocol Launcher"
+Cohesion: 0.10
+Nodes (19): fakeRun(), sha(), prepareTrustedComposition(), prepareTrustedCase(), createTrustedLauncher(), roles, roleTools, authorityFields (+11 more)
+
+### Community 260 - "Codex App Server M02"
+Cohesion: 0.10
+Nodes (17): schemaRoot, validator, schema(), valid(), thread, turn, peerFrame(), offlinePeer() (+9 more)
+
+### Community 192 - "Policy Composition Launcher Runtime"
+Cohesion: 0.11
+Nodes (19): fakeRun(), sha(), prepareTrustedComposition(), prepareTrustedCase(), createTrustedLauncher(), roles, roleTools, authorityFields (+11 more)
+
+### Community 147 - "Codex App Server M02"
+Cohesion: 0.08
+Nodes (23): schemaRoot, validator, schema(), valid(), thread, turn, peerFrame(), offlinePeer() (+15 more)
+
+### Community 194 - "Policy Composition Launcher Runtime"
+Cohesion: 0.11
+Nodes (20): fakeRun(), sha(), prepareTrustedComposition(), prepareTrustedCase(), createTrustedLauncher(), roles, roleTools, authorityFields (+12 more)
+
+### Community 318 - "Codex App Server M02"
+Cohesion: 0.11
+Nodes (18): schemaRoot, validator, schema(), valid(), thread, turn, peerFrame(), offlinePeer() (+10 more)
+
+### Community 195 - "Policy Composition Launcher Runtime"
+Cohesion: 0.11
+Nodes (20): fakeRun(), sha(), prepareTrustedComposition(), prepareTrustedCase(), createTrustedLauncher(), roles, roleTools, authorityFields (+12 more)
+
+### Community 14 - "Runner Module Stage Codex"
+Cohesion: 0.03
+Nodes (74): descriptor, collectorContext, captureWith(), schemaRoot, validator, schema(), valid(), thread (+66 more)
+
+### Community 94 - "Runner Error Adapter Codex"
+Cohesion: 0.08
+Nodes (28): adapterOutput(), createT1ErrorAdapter(), HERE, REPO, CASE_ROOT, SUPERVISOR, MANIFEST_DIR, MANIFEST_FILE (+20 more)
+
+### Community 427 - "Proof Owned Scratch Codex"
+Cohesion: 0.23
+Nodes (13): manifestDigest, expected, fixture(), cases, fail(), exactInteger(), metadata(), sameMetadata() (+5 more)
+
+### Community 395 - "Codex App Server M02"
+Cohesion: 0.16
+Nodes (14): sha(), manifestDigest, seal, baseContext(), request(), native(), prepareWorkspaceManifest(), HERE (+6 more)
+
+### Community 233 - "Manifest Codex App Server"
+Cohesion: 0.12
+Nodes (20): sha(), manifestDigest, seal, baseContext(), request(), native(), HERE, REPO (+12 more)
+
+### Community 90 - "Codex App Server M02"
+Cohesion: 0.12
+Nodes (6): sha(), owned_file(), private(), Fixture, PhaseHistoryCleanupTest, Disposable, offline tests for the fixed T2/T3 retention cleanup boundary.
+
+### Community 84 - "Codex App Server M02"
+Cohesion: 0.12
+Nodes (6): sha(), owned_file(), private(), Fixture, PhaseHistoryCleanupTest, Disposable, offline tests for the fixed T2/T3 retention cleanup boundary.
+
+### Community 107 - "Codex App Server M02"
+Cohesion: 0.13
+Nodes (6): sha(), owned_file(), private(), Fixture, PhaseHistoryCleanupTest, Disposable, offline tests for the fixed T2/T3 retention cleanup boundary.
+
+### Community 587 - "Mcp Elicitation Probe"
+Cohesion: 0.40
+Nodes (4): inspect_tool_manifest(), run(), Pinned no-model MCP form/URL cancellation fixture; no auth or native effects., Inspect manifest locations/types/names only; never return input or schema bodies
+
+### Community 596 - "Mcp Manifest Diagnostic"
 Cohesion: 0.67
 Nodes (3): extract_model(), inspect(), Offline pinned-binary/config metadata inspection. No CLI launch, auth or transpo
 
-### Community 576 - "Community 576"
-Cohesion: 0.67
-Nodes (3): classes, evidence(), sha()
-
-### Community 627 - "Community 627"
-Cohesion: 0.21
-Nodes (13): captureParents(), checkParents(), classes, createProviderFailureRecorder(), FAILURE_CLASSES, FAILURE_STAGES, ownDirectory(), ownFile() (+5 more)
-
-### Community 628 - "Community 628"
-Cohesion: 0.12
-Nodes (22): categories, classifyOutputObservation(), controlledMarkers, DIAGNOSTIC_CATEGORIES, exactText(), groups, OUTPUT_STATUSES, SCRIPT_FAILURE_MARKERS (+14 more)
-
-### Community 629 - "Community 629"
-Cohesion: 0.36
-Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
-
-### Community 630 - "Community 630"
-Cohesion: 0.26
-Nodes (12): Admission, ComplementCleanupState, ComplementMethod, ComplementObservationState, countComplementPersistence(), forwardComplementDisconnect(), forwardComplementRaw(), forwardComplementTransaction() (+4 more)
-
-### Community 631 - "Community 631"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
-
-### Community 633 - "Community 633"
-Cohesion: 0.10
-Nodes (28): CHILD_PATH_CLASSES, createChildPathDiagnostics(), entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), exact() (+20 more)
-
-### Community 636 - "Community 636"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
-
-### Community 637 - "Community 637"
-Cohesion: 0.36
-Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
-
-### Community 638 - "Community 638"
-Cohesion: 0.36
-Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
-
-### Community 639 - "Community 639"
-Cohesion: 0.36
-Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
-
-### Community 641 - "Community 641"
-Cohesion: 0.36
-Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
-
-### Community 642 - "Community 642"
-Cohesion: 0.04
-Nodes (78): ownDirectory(), writeMatrixCaseReceipt(), buildMatrixCaseOperations(), readMatrixChildReceipt(), owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt() (+70 more)
-
-### Community 645 - "Community 645"
-Cohesion: 0.22
-Nodes (13): prepareR44MatrixManifest(), sha(), buildR44PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite() (+5 more)
-
-### Community 648 - "Community 648"
-Cohesion: 0.17
-Nodes (12): prepareTrustedCase(), assertMinimalEnvironmentProfile(), cases, MINIMAL_ENVIRONMENT_PROFILE, minimalPathForCase(), POLICY, createNativePorts(), realIo (+4 more)
-
-### Community 650 - "Community 650"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
-
-### Community 653 - "Community 653"
-Cohesion: 0.06
-Nodes (28): retainDiagnosticFailure(), decodeServiceTerminalHandoff(), assertComplementCanonicalSnapshot(), CanonicalSnapshot, captureServiceComplementCanonical(), Message, fixture(), createFixtureAdmission() (+20 more)
-
-### Community 656 - "Community 656"
-Cohesion: 0.22
-Nodes (10): ARCHIVE, EXACT_REVIEW, exactFile(), EXPECTED, INDEX, REPO, REVIEW, sha() (+2 more)
-
-### Community 660 - "Community 660"
+### Community 185 - "Native Provider Probe"
 Cohesion: 0.18
-Nodes (5): TrustedCaseCoordinator, ownDirectory(), writeWorkspaceCaseReceipt(), prepareTrustedCase(), POLICY
+Nodes (19): run(), No-model RPC-only MCP cancellation observations; no permission grants or native, digest(), save(), preflight(), environment(), receipt(), prepare() (+11 more)
 
-### Community 662 - "Community 662"
-Cohesion: 0.24
-Nodes (9): baseEntrypoint, baseEnvelope, boundArtifacts(), cases, entrypoint, fixture(), manifestFileSha256, reviewSha256 (+1 more)
-
-### Community 667 - "Community 667"
-Cohesion: 0.42
-Nodes (7): owned(), runWorkspaceScopedEntry(), sha(), writeWorkspaceChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
-
-### Community 668 - "Community 668"
+### Community 526 - "Stream Fixture Probe"
 Cohesion: 0.31
-Nodes (13): assertNoSymlink(), digest(), E2OfflineGrantCase, E2OfflineGrantCaseResult, exact(), exists(), fail(), FixtureManifest (+5 more)
+Nodes (6): Handler, BaseHTTPRequestHandler, send(), receive(), rpc(), Disposable loopback Responses fixture; no real model/provider inference or crede
 
-### Community 671 - "Community 671"
-Cohesion: 0.13
-Nodes (25): buildR22CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), BUILD, helperTree(), HERE (+17 more)
+### Community 597 - "Evidence.Mjs Component"
+Cohesion: 0.67
+Nodes (3): classes, sha(), evidence()
 
-### Community 672 - "Community 672"
-Cohesion: 0.18
-Nodes (10): ensureBuiltInStepDefinitionReadiness(), assertLoopbackHost(), hostOption(), resolveLocalNextArgs(), ensureCucumberRuntimeReadiness(), printSyncSummary(), SummarySection, [mode = '', ...args] (+2 more)
+### Community 528 - "History Cleanup"
+Cohesion: 0.42
+Nodes (8): same(), erase_contents(), inspect_tree(), verify_archive(), exclusive_receipt(), main(), One-shot successful-P6 raw-history retention cleanup. Never touches UNKNOWN root, FD-relative traversal; metadata only. Symlink targets are never opened.
 
-### Community 673 - "Community 673"
-Cohesion: 0.26
-Nodes (9): assertDatabaseCompatibility(), completedMigrations(), databaseCompatibilityUrl(), knownDatabaseMigrations(), migrationReadiness(), { PrismaClient }, fixture(), producerRoot (+1 more)
-
-### Community 676 - "Community 676"
-Cohesion: 0.25
-Nodes (10): caseIds, privateRegular(), REPO, safeCopy(), safeSource(), sha(), T2_ACTUAL_REVIEW, T2_ARCHIVE (+2 more)
-
-### Community 679 - "Community 679"
+### Community 335 - "Phase History Cleanup"
 Cohesion: 0.24
-Nodes (6): defaultBundle, bundle11, prepareNativePatch11(), expected, root, upstreamSource
+Nodes (21): _sha(), _require(), _identity(), _private_dir(), _open_absolute(), _read_owned_file(), _layout(), _check_plan() (+13 more)
 
-### Community 682 - "Community 682"
+### Community 336 - "Phase History Cleanup"
+Cohesion: 0.24
+Nodes (21): _sha(), _require(), _identity(), _private_dir(), _open_absolute(), _read_owned_file(), _layout(), _check_plan() (+13 more)
+
+### Community 337 - "Phase History Cleanup"
+Cohesion: 0.24
+Nodes (21): _sha(), _require(), _identity(), _private_dir(), _open_absolute(), _read_owned_file(), _layout(), _check_plan() (+13 more)
+
+### Community 10 - "Readiness Mcp Journal Adapter"
+Cohesion: 0.04
+Nodes (105): createMatrixAuditSession(), createB14PermissionEvidence(), createMatrixJournalAdapter(), sha(), T2, initialize(), turn(), consistentOwnedExit() (+97 more)
+
+### Community 267 - "Manifest Preparation Canonical Build"
+Cohesion: 0.13
+Nodes (22): HERE, REPO, sha(), buildMatrixCanonicalBundle(), buildMatrixCanonicalBytes(), HERE, REPO, BUILD (+14 more)
+
+### Community 432 - "Matrix Stage"
+Cohesion: 0.20
+Nodes (13): HERE, REPO, sha(), inside(), PACKAGE, SDK_DEPENDENCIES, PRISMA_CLIENT, GENERATED_PRISMA (+5 more)
+
+### Community 59 - "Scoped Worker Entry Server"
+Cohesion: 0.07
+Nodes (36): allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry(), SETUP, instrumentScopedServerTransport(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry() (+28 more)
+
+### Community 298 - "Entrypoint.Mjs Component"
+Cohesion: 0.14
+Nodes (22): HERE, REPO, ENTRYPOINT, REVIEW, ADDON, BASE_ENTRYPOINT, SOURCE_PINS, PRIOR_PINS (+14 more)
+
+### Community 363 - "Entrypoint.Mjs Component"
+Cohesion: 0.16
+Nodes (17): HERE, REPO, ENTRYPOINT, REVIEW, ADDON, DECISION, requestActions, sha() (+9 more)
+
+### Community 433 - "Matrix Stage"
+Cohesion: 0.20
+Nodes (13): HERE, REPO, sha(), inside(), PACKAGE, SDK_DEPENDENCIES, PRISMA_CLIENT, GENERATED_PRISMA (+5 more)
+
+### Community 529 - "Preparation.Mjs Component"
+Cohesion: 0.28
+Nodes (8): HERE, REPO, MATRIX_BUILD, MATRIX_MANIFEST, MATRIX_CANONICAL, sha(), ownedWrite(), writeR12MatrixPreparation()
+
+### Community 506 - "Prior Evidence"
+Cohesion: 0.22
+Nodes (10): REPO, ARCHIVE, INDEX, REVIEW, TRANSCRIPTION, EXACT_REVIEW, EXPECTED, sha() (+2 more)
+
+### Community 373 - "Protocol P00"
+Cohesion: 0.23
+Nodes (11): record(), only(), nullableString(), textPosition(), textRange(), approvalFields, permissionRequestId(), validPermissionRequest() (+3 more)
+
+### Community 530 - "Scoped Entry Worker"
 Cohesion: 0.36
-Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+Nodes (7): sha(), owned(), writeMatrixChildReceipt(), runMatrixScopedEntry(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
 
-### Community 683 - "Community 683"
+### Community 187 - "Entrypoint Preparation"
+Cohesion: 0.11
+Nodes (25): HERE, REPO, ENTRYPOINT, REVIEW, ADDON, DECISION, requestActions, sha() (+17 more)
+
+### Community 434 - "Matrix Stage"
+Cohesion: 0.20
+Nodes (13): HERE, REPO, sha(), inside(), PACKAGE, SDK_DEPENDENCIES, PRISMA_CLIENT, GENERATED_PRISMA (+5 more)
+
+### Community 374 - "Prior Evidence"
+Cohesion: 0.14
+Nodes (18): REPO, ARCHIVE, INDEX, REVIEW, RESULT, MANIFEST, CANONICAL, EXACT_REVIEW (+10 more)
+
+### Community 531 - "Scoped Entry Worker"
 Cohesion: 0.36
-Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+Nodes (7): sha(), owned(), writeMatrixChildReceipt(), runMatrixScopedEntry(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
 
-### Community 686 - "Community 686"
+### Community 399 - "Case Receipts Matrix Runner"
+Cohesion: 0.20
+Nodes (14): ownDirectory(), writeMatrixCaseReceipt(), createTrustedLauncher(), sha(), T2, initialize(), turn(), consistentOwnedExit() (+6 more)
+
+### Community 171 - "Entrypoint Preparation"
+Cohesion: 0.11
+Nodes (26): HERE, REPO, ENTRYPOINT, REVIEW, ADDON, DECISION, requestActions, sha() (+18 more)
+
+### Community 435 - "Matrix Stage"
+Cohesion: 0.20
+Nodes (13): HERE, REPO, sha(), inside(), PACKAGE, SDK_DEPENDENCIES, PRISMA_CLIENT, GENERATED_PRISMA (+5 more)
+
+### Community 388 - "Prior Evidence"
+Cohesion: 0.15
+Nodes (17): REPO, ARCHIVE, INDEX, REVIEW, RESULT, MANIFEST, CANONICAL, EXACT_REVIEW (+9 more)
+
+### Community 375 - "Protocol P00"
+Cohesion: 0.23
+Nodes (11): record(), only(), nullableString(), textPosition(), textRange(), approvalFields, permissionRequestId(), validPermissionRequest() (+3 more)
+
+### Community 532 - "Scoped Entry Worker"
+Cohesion: 0.36
+Nodes (7): sha(), owned(), writeMatrixChildReceipt(), runMatrixScopedEntry(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+
+### Community 118 - "Manifest Preparation Canonical Build"
+Cohesion: 0.08
+Nodes (33): REPO, HISTORICAL_BUNDLE, sha(), same(), buildR19CanonicalBytes(), HERE, REPO, BUILD (+25 more)
+
+### Community 9 - "Phase Policy Outer Journal"
+Cohesion: 0.04
+Nodes (100): ownDirectory(), writeMatrixCaseReceipt(), POLICY, RETAINED_R28_CEILINGS, fullT2Maximum(), fullT2RecoveryBudget(), RETAINED_R29_CEILINGS, fullT2Maximum() (+92 more)
+
+### Community 364 - "Entrypoint.Mjs Component"
+Cohesion: 0.16
+Nodes (17): HERE, REPO, ENTRYPOINT, REVIEW, ADDON, DECISION, requestActions, sha() (+9 more)
+
+### Community 268 - "Protocol P00 Framing"
+Cohesion: 0.15
+Nodes (13): CountedJsonLines, record(), only(), nullableString(), textPosition(), textRange(), b14Workspace, approvalFields (+5 more)
+
+### Community 436 - "Matrix Stage"
+Cohesion: 0.20
+Nodes (13): HERE, REPO, sha(), inside(), PACKAGE, SDK_DEPENDENCIES, PRISMA_CLIENT, GENERATED_PRISMA (+5 more)
+
+### Community 533 - "Preflight Evidence"
+Cohesion: 0.36
+Nodes (8): REPO, ARCHIVE, PINS, sha(), same(), exactFile(), exactPrivateDir(), verifyConsumedPreflights()
+
+### Community 389 - "Prior Evidence"
+Cohesion: 0.15
+Nodes (17): REPO, ARCHIVE, INDEX, REVIEW, RESULT, MANIFEST, CANONICAL, EXACT_REVIEW (+9 more)
+
+### Community 534 - "Scoped Entry Worker"
+Cohesion: 0.36
+Nodes (7): sha(), owned(), writeMatrixChildReceipt(), runMatrixScopedEntry(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+
+### Community 99 - "Manifest Policy Preparation Canonical"
+Cohesion: 0.08
+Nodes (35): REPO, HISTORICAL_BUNDLE, sha(), same(), buildR20CanonicalBytes(), ownDirectory(), writeMatrixCaseReceipt(), HERE (+27 more)
+
+### Community 347 - "Entrypoint.Mjs Component"
+Cohesion: 0.15
+Nodes (18): HERE, REPO, ENTRYPOINT, REVIEW, ADDON, DECISION, requestActions, sha() (+10 more)
+
+### Community 269 - "Protocol P00 Framing"
+Cohesion: 0.15
+Nodes (13): CountedJsonLines, record(), only(), nullableString(), textPosition(), textRange(), b14Workspace, approvalFields (+5 more)
+
+### Community 338 - "Provider Failure Launcher Runtime"
+Cohesion: 0.13
+Nodes (15): FAILURE_STAGES, FAILURE_CLASSES, stages, classes, ownDirectory(), ownFile(), same(), captureParents() (+7 more)
+
+### Community 437 - "Matrix Stage"
+Cohesion: 0.20
+Nodes (13): HERE, REPO, sha(), inside(), PACKAGE, SDK_DEPENDENCIES, PRISMA_CLIENT, GENERATED_PRISMA (+5 more)
+
+### Community 535 - "Preflight Evidence"
+Cohesion: 0.36
+Nodes (8): REPO, ARCHIVE, PINS, sha(), same(), exactFile(), exactPrivateDir(), verifyConsumedPreflights()
+
+### Community 588 - "Scoped Entry"
+Cohesion: 0.70
+Nodes (4): sha(), owned(), writeMatrixChildReceipt(), runMatrixScopedEntry()
+
+### Community 188 - "Canonical Build Manifest"
+Cohesion: 0.09
+Nodes (27): REPO, HISTORICAL_BUNDLE, sha(), same(), buildR21CanonicalBytes(), HERE, REPO, BUILD (+19 more)
+
+### Community 155 - "Matrix Runner Stage Case"
 Cohesion: 0.10
-Nodes (21): ownDirectory(), writeMatrixCaseReceipt(), assertMinimalEnvironmentProfile(), cases, MINIMAL_ENVIRONMENT_PROFILE, BUILD, HERE, PROPOSAL (+13 more)
+Nodes (27): ownDirectory(), writeMatrixCaseReceipt(), createTrustedLauncher(), sha(), T2, initialize(), turn(), consistentOwnedExit() (+19 more)
 
-### Community 689 - "Community 689"
+### Community 100 - "Entrypoint Preparation Specimencheck"
+Cohesion: 0.08
+Nodes (35): HERE, REPO, ENTRYPOINT, REVIEW, ADDON, DECISION, requestActions, sha() (+27 more)
+
+### Community 270 - "Protocol P00 Framing"
+Cohesion: 0.15
+Nodes (13): CountedJsonLines, record(), only(), nullableString(), textPosition(), textRange(), b14Workspace, approvalFields (+5 more)
+
+### Community 240 - "Matrix Runner Policy Launcher"
+Cohesion: 0.14
+Nodes (19): POLICY_DIGEST, ownDirectory(), writeMatrixCaseReceipt(), readMatrixChildReceipt(), createTrustedLauncher(), sha(), T2, initialize() (+11 more)
+
+### Community 536 - "Preflight Evidence"
+Cohesion: 0.36
+Nodes (8): REPO, ARCHIVE, PINS, sha(), same(), exactFile(), exactPrivateDir(), verifyConsumedPreflights()
+
+### Community 415 - "Provider Failure"
+Cohesion: 0.21
+Nodes (13): FAILURE_STAGES, FAILURE_CLASSES, stages, classes, ownDirectory(), ownFile(), same(), captureParents() (+5 more)
+
+### Community 537 - "Scoped Entry Worker"
+Cohesion: 0.36
+Nodes (7): sha(), owned(), writeMatrixChildReceipt(), runMatrixScopedEntry(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+
+### Community 201 - "R21 Evidence Manifest Canonical"
+Cohesion: 0.13
+Nodes (25): REPO, HISTORICAL_BUNDLE, sha(), same(), buildR22CanonicalBytes(), HERE, REPO, BUILD (+17 more)
+
+### Community 95 - "Entrypoint Preparation Specimencheck"
+Cohesion: 0.08
+Nodes (36): HERE, REPO, ENTRYPOINT, REVIEW, ADDON, DECISION, requestActions, sha() (+28 more)
+
+### Community 271 - "Protocol P00 Framing"
+Cohesion: 0.15
+Nodes (13): CountedJsonLines, record(), only(), nullableString(), textPosition(), textRange(), b14Workspace, approvalFields (+5 more)
+
+### Community 438 - "Matrix Stage"
+Cohesion: 0.20
+Nodes (13): HERE, REPO, sha(), inside(), PACKAGE, SDK_DEPENDENCIES, PRISMA_CLIENT, GENERATED_PRISMA (+5 more)
+
+### Community 538 - "Preflight Evidence"
+Cohesion: 0.36
+Nodes (8): REPO, ARCHIVE, PINS, sha(), same(), exactFile(), exactPrivateDir(), verifyConsumedPreflights()
+
+### Community 417 - "Provider Failure"
+Cohesion: 0.21
+Nodes (13): FAILURE_STAGES, FAILURE_CLASSES, stages, classes, ownDirectory(), ownFile(), same(), captureParents() (+5 more)
+
+### Community 589 - "Scoped Entry"
+Cohesion: 0.70
+Nodes (4): sha(), owned(), writeMatrixChildReceipt(), runMatrixScopedEntry()
+
+### Community 408 - "Canonical Build Manifest Policy"
+Cohesion: 0.17
+Nodes (14): REPO, HISTORICAL_BUNDLE, sha(), same(), buildR23CanonicalBytes(), HERE, REPO, BUILD (+6 more)
+
+### Community 349 - "Matrix Runner Policy Launcher"
+Cohesion: 0.19
+Nodes (14): readMatrixChildReceipt(), createTrustedLauncher(), sha(), T2, initialize(), turn(), consistentOwnedExit(), canonicalOutcome() (+6 more)
+
+### Community 365 - "Entrypoint.Mjs Component"
+Cohesion: 0.16
+Nodes (17): HERE, REPO, ENTRYPOINT, REVIEW, ADDON, DECISION, requestActions, sha() (+9 more)
+
+### Community 272 - "Protocol P00 Framing"
+Cohesion: 0.15
+Nodes (13): CountedJsonLines, record(), only(), nullableString(), textPosition(), textRange(), b14Workspace, approvalFields (+5 more)
+
+### Community 350 - "Preparation Manifest Specimencheck"
+Cohesion: 0.15
+Nodes (19): prepareR23MatrixManifest(), HERE, REPO, MATRIX_BUILD, MATRIX_MANIFEST, MATRIX_CANONICAL, sha(), buildR23PreparationEnvelope() (+11 more)
+
+### Community 439 - "Matrix Stage"
+Cohesion: 0.20
+Nodes (13): HERE, REPO, sha(), inside(), PACKAGE, SDK_DEPENDENCIES, PRISMA_CLIENT, GENERATED_PRISMA (+5 more)
+
+### Community 18 - "Ta06 Archive Evidence History"
+Cohesion: 0.06
+Nodes (74): ROOT_PACKAGE, requireTA04Absent(), REPO, R21_MANIFEST, R21_SOURCE_REVIEW, R21_ACTUAL_REVIEW, PINS, verifyR21Predecessor() (+66 more)
+
+### Community 156 - "Preflight Evidence"
+Cohesion: 0.08
+Nodes (8): REPO, ARCHIVE, PINS, sha(), same(), exactFile(), exactPrivateDir(), verifyConsumedPreflights()
+
+### Community 6 - "Evidence Provider Diagnostic R21"
+Cohesion: 0.02
+Nodes (62): REPO, R20, R19_MANIFEST, FIXED, sha(), same(), exactFile(), verifyTA04ArchiveCopy() (+54 more)
+
+### Community 418 - "Provider Failure"
+Cohesion: 0.21
+Nodes (13): FAILURE_STAGES, FAILURE_CLASSES, stages, classes, ownDirectory(), ownFile(), same(), captureParents() (+5 more)
+
+### Community 202 - "R22 Evidence"
+Cohesion: 0.13
+Nodes (5): REPO, BUILD, REVIEW, BLOCKED, verifyR22Predecessor()
+
+### Community 590 - "Scoped Entry"
+Cohesion: 0.70
+Nodes (4): sha(), owned(), writeMatrixChildReceipt(), runMatrixScopedEntry()
+
+### Community 366 - "Entrypoint.Mjs Component"
+Cohesion: 0.16
+Nodes (17): HERE, REPO, ENTRYPOINT, REVIEW, ADDON, DECISION, requestActions, sha() (+9 more)
+
+### Community 273 - "Protocol P00 Framing"
+Cohesion: 0.15
+Nodes (13): CountedJsonLines, record(), only(), nullableString(), textPosition(), textRange(), b14Workspace, approvalFields (+5 more)
+
+### Community 440 - "Matrix Stage"
+Cohesion: 0.20
+Nodes (13): HERE, REPO, sha(), inside(), PACKAGE, SDK_DEPENDENCIES, PRISMA_CLIENT, GENERATED_PRISMA (+5 more)
+
+### Community 507 - "Preparation.Mjs Component"
+Cohesion: 0.27
+Nodes (10): HERE, REPO, MATRIX_BUILD, MATRIX_CANONICAL, sha(), buildR24PreparationEnvelope(), serializeR24Preparation(), ownedWrite() (+2 more)
+
+### Community 539 - "Scoped Entry Worker"
+Cohesion: 0.36
+Nodes (7): sha(), owned(), writeMatrixChildReceipt(), runMatrixScopedEntry(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+
+### Community 564 - "Specimencheck.Mjs Component"
 Cohesion: 0.29
-Nodes (4): db, dbPath, tables, workspace
+Nodes (7): HERE, REPO, ENTRYPOINT, REVIEW, ACTUAL_DECISION, sha(), checkR24GeneratedSpecimen()
 
-### Community 690 - "Community 690"
+### Community 64 - "Script Session Continuation Diagnostic"
+Cohesion: 0.08
+Nodes (38): DIAGNOSTIC_CATEGORIES, OUTPUT_STATUSES, SCRIPT_FAILURE_MARKERS, controlledMarkers, unknownOutput, exactText(), classifyOutputObservation(), groups (+30 more)
+
+### Community 72 - "Entrypoint Preparation Specimencheck Receipts"
+Cohesion: 0.07
+Nodes (40): HERE, REPO, ENTRYPOINT, REVIEW, ADDON, DECISION, requestActions, sha() (+32 more)
+
+### Community 274 - "Protocol P00 Framing"
+Cohesion: 0.15
+Nodes (13): CountedJsonLines, record(), only(), nullableString(), textPosition(), textRange(), b14Workspace, approvalFields (+5 more)
+
+### Community 15 - "Evidence Policy Manifest Runtime"
+Cohesion: 0.04
+Nodes (71): serializeR25Preparation(), verifyR25HistoricalClosure(), REPO, HISTORICAL_BUNDLE, sha(), same(), buildR26CanonicalBytes(), prepareTrustedCase() (+63 more)
+
+### Community 540 - "Scoped Entry Worker"
+Cohesion: 0.36
+Nodes (7): sha(), owned(), writeMatrixChildReceipt(), runMatrixScopedEntry(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+
+### Community 150 - "Case Late Diagnostic Matrix"
+Cohesion: 0.10
+Nodes (28): ownDirectory(), writeMatrixCaseReceipt(), LATE_CASE_FAILURE_STAGES, LATE_CASE_GATE_FIELDS, LATE_CASE_FAILURE_CODES, reasons, LATE_CASE_FAILURE_REASONS, stages (+20 more)
+
+### Community 73 - "Finite Responses Continuation Diagnostic"
+Cohesion: 0.08
+Nodes (37): DIAGNOSTIC_CATEGORIES, OUTPUT_STATUSES, SCRIPT_FAILURE_MARKERS, controlledMarkers, unknownOutput, exactText(), classifyOutputObservation(), groups (+29 more)
+
+### Community 142 - "Entrypoint Preparation"
+Cohesion: 0.10
+Nodes (29): HERE, REPO, ENTRYPOINT, REVIEW, ADDON, DECISION, requestActions, sha() (+21 more)
+
+### Community 275 - "Protocol P00 Framing"
+Cohesion: 0.15
+Nodes (13): CountedJsonLines, record(), only(), nullableString(), textPosition(), textRange(), b14Workspace, approvalFields (+5 more)
+
+### Community 52 - "Matrix Case Diagnostic Runner"
+Cohesion: 0.06
+Nodes (48): ownDirectory(), writeMatrixCaseReceipt(), CHILD_PATH_CLASSES, NAMES, pathClasses, nameClasses, entryKeys, createChildPathDiagnostics() (+40 more)
+
+### Community 441 - "Matrix Stage"
+Cohesion: 0.20
+Nodes (13): HERE, REPO, sha(), inside(), PACKAGE, SDK_DEPENDENCIES, PRISMA_CLIENT, GENERATED_PRISMA (+5 more)
+
+### Community 541 - "Scoped Entry Worker"
+Cohesion: 0.36
+Nodes (7): sha(), owned(), writeMatrixChildReceipt(), runMatrixScopedEntry(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+
+### Community 74 - "Finite Responses Continuation Diagnostic"
+Cohesion: 0.08
+Nodes (37): DIAGNOSTIC_CATEGORIES, OUTPUT_STATUSES, SCRIPT_FAILURE_MARKERS, controlledMarkers, unknownOutput, exactText(), classifyOutputObservation(), groups (+29 more)
+
+### Community 143 - "Entrypoint Preparation"
+Cohesion: 0.10
+Nodes (29): HERE, REPO, ENTRYPOINT, REVIEW, ADDON, DECISION, requestActions, sha() (+21 more)
+
+### Community 276 - "Protocol P00 Framing"
+Cohesion: 0.15
+Nodes (13): CountedJsonLines, record(), only(), nullableString(), textPosition(), textRange(), b14Workspace, approvalFields (+5 more)
+
+### Community 542 - "Scoped Entry Worker"
+Cohesion: 0.36
+Nodes (7): sha(), owned(), writeMatrixChildReceipt(), runMatrixScopedEntry(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+
+### Community 391 - "Manifest Canonical Build"
+Cohesion: 0.16
+Nodes (16): REPO, HISTORICAL_BUNDLE, sha(), same(), buildR28CanonicalBytes(), GIT_FILE_PIN, HERE, REPO (+8 more)
+
+### Community 377 - "Matrix Runner Case Receipts"
+Cohesion: 0.18
+Nodes (16): ownDirectory(), writeMatrixCaseReceipt(), createChildPathDiagnostics(), createTrustedLauncher(), sha(), T2, initialize(), turn() (+8 more)
+
+### Community 320 - "Diagnostic Late Case Child"
+Cohesion: 0.13
+Nodes (20): CHILD_PATH_CLASSES, NAMES, pathClasses, nameClasses, entryKeys, validateChildPathDiagnostics(), LATE_CASE_FAILURE_STAGES, LATE_CASE_GATE_FIELDS (+12 more)
+
+### Community 75 - "Finite Responses Continuation Diagnostic"
+Cohesion: 0.08
+Nodes (37): DIAGNOSTIC_CATEGORIES, OUTPUT_STATUSES, SCRIPT_FAILURE_MARKERS, controlledMarkers, unknownOutput, exactText(), classifyOutputObservation(), groups (+29 more)
+
+### Community 351 - "Entrypoint.Mjs Component"
+Cohesion: 0.15
+Nodes (18): HERE, REPO, ENTRYPOINT, REVIEW, ADDON, DECISION, requestActions, sha() (+10 more)
+
+### Community 277 - "Protocol P00 Framing"
+Cohesion: 0.15
+Nodes (13): CountedJsonLines, record(), only(), nullableString(), textPosition(), textRange(), b14Workspace, approvalFields (+5 more)
+
+### Community 400 - "Git Readiness Host File"
+Cohesion: 0.18
+Nodes (14): failureNames, GIT_READINESS_FAILURE_REASONS, ownErrors, fail(), pinnedFile(), verifyQualifiedGitFile(), summaryKeys, validateGitReadinessSummary() (+6 more)
+
+### Community 442 - "Matrix Stage"
+Cohesion: 0.20
+Nodes (13): HERE, REPO, sha(), inside(), PACKAGE, SDK_DEPENDENCIES, PRISMA_CLIENT, GENERATED_PRISMA (+5 more)
+
+### Community 0 - "Evidence R28 Success R27"
+Cohesion: 0.02
+Nodes (237): HERE, REPO, MATRIX_BUILD, MATRIX_CANONICAL, sha(), buildR28PreparationEnvelope(), serializeR28Preparation(), ownedWrite() (+229 more)
+
+### Community 144 - "History Evidence R27 R28"
+Cohesion: 0.10
+Nodes (29): REPO, MANIFEST, TERMINAL, INDEX, AUTHORITY_PINS, EXECUTION_PLAN, CHILD_PATH_OBSERVATIONS, R27_COUNTS (+21 more)
+
+### Community 543 - "Scoped Entry Worker"
+Cohesion: 0.36
+Nodes (7): sha(), owned(), writeMatrixChildReceipt(), runMatrixScopedEntry(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+
+### Community 65 - "Manifest Canonical Build R21"
+Cohesion: 0.16
+Nodes (15): REPO, HISTORICAL_BUNDLE, sha(), same(), buildR29CanonicalBytes(), GIT_FILE_PIN, HERE, REPO (+7 more)
+
+### Community 41 - "Case Diagnostic Matrix Runner"
+Cohesion: 0.06
+Nodes (51): ownDirectory(), writeMatrixCaseReceipt(), CHILD_PATH_CLASSES, NAMES, pathClasses, nameClasses, entryKeys, createChildPathDiagnostics() (+43 more)
+
+### Community 76 - "Finite Responses Continuation Diagnostic"
+Cohesion: 0.08
+Nodes (37): DIAGNOSTIC_CATEGORIES, OUTPUT_STATUSES, SCRIPT_FAILURE_MARKERS, controlledMarkers, unknownOutput, exactText(), classifyOutputObservation(), groups (+29 more)
+
+### Community 299 - "Entrypoint.Mjs Component"
+Cohesion: 0.14
+Nodes (22): HERE, REPO, ENTRYPOINT, REVIEW, ADDON, DECISION, AUTHORIZATION_CONTEXT, STANDING_AUTHORIZATION (+14 more)
+
+### Community 278 - "Protocol P00 Framing"
+Cohesion: 0.15
+Nodes (13): CountedJsonLines, record(), only(), nullableString(), textPosition(), textRange(), b14Workspace, approvalFields (+5 more)
+
+### Community 443 - "Matrix Stage"
+Cohesion: 0.20
+Nodes (13): HERE, REPO, sha(), inside(), PACKAGE, SDK_DEPENDENCIES, PRISMA_CLIENT, GENERATED_PRISMA (+5 more)
+
+### Community 1 - "Evidence R28 Success Preparation"
+Cohesion: 0.02
+Nodes (207): HERE, REPO, MATRIX_BUILD, MATRIX_CANONICAL, sha(), buildR29PreparationEnvelope(), serializeR29Preparation(), ownedWrite() (+199 more)
+
+### Community 544 - "Scoped Entry Worker"
+Cohesion: 0.36
+Nodes (7): sha(), owned(), writeMatrixChildReceipt(), runMatrixScopedEntry(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+
+### Community 2 - "R29 Evidence Preparation Runtime"
+Cohesion: 0.02
+Nodes (192): REPO, HISTORICAL_BUNDLE, sha(), same(), buildR30CanonicalBytes(), prepareTrustedCase(), GIT_FILE_PIN, HERE (+184 more)
+
+### Community 53 - "Case Matrix Runner Late"
+Cohesion: 0.07
+Nodes (44): ownDirectory(), writeMatrixCaseReceipt(), failureNames, GIT_READINESS_FAILURE_REASONS, ownErrors, fail(), pinnedFile(), verifyQualifiedGitFile() (+36 more)
+
+### Community 62 - "Workspace Runner Matrix Stage"
+Cohesion: 0.06
+Nodes (43): CHILD_PATH_CLASSES, NAMES, pathClasses, nameClasses, entryKeys, createChildPathDiagnostics(), validateChildPathDiagnostics(), ownDirectory() (+35 more)
+
+### Community 279 - "Provider Failure Continuation Diagnostic"
+Cohesion: 0.12
+Nodes (22): DIAGNOSTIC_CATEGORIES, OUTPUT_STATUSES, SCRIPT_FAILURE_MARKERS, controlledMarkers, unknownOutput, exactText(), classifyOutputObservation(), groups (+14 more)
+
+### Community 321 - "Entrypoint.Mjs Component"
+Cohesion: 0.15
+Nodes (21): HERE, REPO, ENTRYPOINT, REVIEW, ADDON, DECISION, AUTHORIZATION_CONTEXT, STANDING_AUTHORIZATION (+13 more)
+
+### Community 280 - "Protocol P00 Framing"
+Cohesion: 0.15
+Nodes (13): CountedJsonLines, record(), only(), nullableString(), textPosition(), textRange(), b14Workspace, approvalFields (+5 more)
+
+### Community 444 - "Matrix Stage"
+Cohesion: 0.20
+Nodes (13): HERE, REPO, sha(), inside(), PACKAGE, SDK_DEPENDENCIES, PRISMA_CLIENT, GENERATED_PRISMA (+5 more)
+
+### Community 545 - "Scoped Entry Worker"
+Cohesion: 0.36
+Nodes (7): sha(), owned(), writeMatrixChildReceipt(), runMatrixScopedEntry(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+
+### Community 43 - "Policy Manifest Full Budget"
+Cohesion: 0.06
+Nodes (49): REPO, HISTORICAL_BUNDLE, sha(), same(), buildR32CanonicalBytes(), ownDirectory(), writeMatrixCaseReceipt(), RETAINED_R30_CEILINGS (+41 more)
+
+### Community 29 - "Matrix Diagnostic Runner Late"
+Cohesion: 0.05
+Nodes (63): CHILD_PATH_CLASSES, NAMES, pathClasses, nameClasses, entryKeys, createChildPathDiagnostics(), validateChildPathDiagnostics(), GIT_FILE_PIN (+55 more)
+
+### Community 77 - "Finite Responses Continuation Diagnostic"
+Cohesion: 0.08
+Nodes (37): DIAGNOSTIC_CATEGORIES, OUTPUT_STATUSES, SCRIPT_FAILURE_MARKERS, controlledMarkers, unknownOutput, exactText(), classifyOutputObservation(), groups (+29 more)
+
+### Community 322 - "Entrypoint.Mjs Component"
+Cohesion: 0.15
+Nodes (21): HERE, REPO, ENTRYPOINT, REVIEW, ADDON, DECISION, AUTHORIZATION_CONTEXT, STANDING_AUTHORIZATION (+13 more)
+
+### Community 281 - "Protocol P00 Framing"
+Cohesion: 0.15
+Nodes (13): CountedJsonLines, record(), only(), nullableString(), textPosition(), textRange(), b14Workspace, approvalFields (+5 more)
+
+### Community 3 - "Evidence R32 R30 Preparation"
+Cohesion: 0.02
+Nodes (206): HERE, REPO, MATRIX_BUILD, MATRIX_MANIFEST, MATRIX_CANONICAL, sha(), buildR32PreparationEnvelope(), serializeR32Preparation() (+198 more)
+
+### Community 546 - "Scoped Entry Worker"
+Cohesion: 0.36
+Nodes (7): sha(), owned(), writeMatrixChildReceipt(), runMatrixScopedEntry(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+
+### Community 36 - "Diagnostic Matrix Runner Late"
+Cohesion: 0.06
+Nodes (53): CHILD_PATH_CLASSES, NAMES, pathClasses, nameClasses, entryKeys, createChildPathDiagnostics(), validateChildPathDiagnostics(), GIT_FILE_PIN (+45 more)
+
+### Community 78 - "Finite Responses Continuation Diagnostic"
+Cohesion: 0.08
+Nodes (37): DIAGNOSTIC_CATEGORIES, OUTPUT_STATUSES, SCRIPT_FAILURE_MARKERS, controlledMarkers, unknownOutput, exactText(), classifyOutputObservation(), groups (+29 more)
+
+### Community 323 - "Entrypoint.Mjs Component"
+Cohesion: 0.15
+Nodes (21): HERE, REPO, ENTRYPOINT, REVIEW, ADDON, DECISION, AUTHORIZATION_CONTEXT, STANDING_AUTHORIZATION (+13 more)
+
+### Community 282 - "Protocol P00 Framing"
+Cohesion: 0.15
+Nodes (13): CountedJsonLines, record(), only(), nullableString(), textPosition(), textRange(), b14Workspace, approvalFields (+5 more)
+
+### Community 445 - "Matrix Stage"
+Cohesion: 0.20
+Nodes (13): HERE, REPO, sha(), inside(), PACKAGE, SDK_DEPENDENCIES, PRISMA_CLIENT, GENERATED_PRISMA (+5 more)
+
+### Community 203 - "Phase Journal"
+Cohesion: 0.19
+Nodes (12): ZERO, EFFECT_KINDS, sha(), clone(), casesFor(), ownDirectory(), ownFile(), exactTime() (+4 more)
+
+### Community 339 - "Policy Manifest Canonical Build"
+Cohesion: 0.13
+Nodes (19): POLICY_DIGEST, REPO, HISTORICAL_BUNDLE, sha(), same(), buildR34CanonicalBytes(), READINESS_POLICY, HERE (+11 more)
+
+### Community 468 - "Preparation.Mjs Component"
+Cohesion: 0.24
+Nodes (12): HERE, REPO, MATRIX_BUILD, MATRIX_MANIFEST, MATRIX_CANONICAL, sha(), buildR33PreparationEnvelope(), serializeR33Preparation() (+4 more)
+
+### Community 367 - "R33 Evidence Runtime Effects"
+Cohesion: 0.16
+Nodes (19): verifyR33HistoricalClosure(), REPO, MANIFEST, TERMINAL, INDEX, CASES, WITNESSES, AUTHORITY_PINS (+11 more)
+
+### Community 547 - "Scoped Entry Worker"
+Cohesion: 0.36
+Nodes (7): sha(), owned(), writeMatrixChildReceipt(), runMatrixScopedEntry(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+
+### Community 115 - "Matrix Runner Stage Policy"
+Cohesion: 0.09
+Nodes (30): ownDirectory(), writeMatrixCaseReceipt(), readMatrixChildReceipt(), createChildPathDiagnostics(), createTrustedLauncher(), sha(), T2, initialize() (+22 more)
+
+### Community 283 - "Diagnostic Late Case Child"
+Cohesion: 0.12
+Nodes (22): CHILD_PATH_CLASSES, NAMES, pathClasses, nameClasses, entryKeys, validateChildPathDiagnostics(), GIT_READINESS_FAILURE_REASONS, LATE_CASE_FAILURE_STAGES (+14 more)
+
+### Community 79 - "Finite Responses Continuation Diagnostic"
+Cohesion: 0.08
+Nodes (37): DIAGNOSTIC_CATEGORIES, OUTPUT_STATUSES, SCRIPT_FAILURE_MARKERS, controlledMarkers, unknownOutput, exactText(), classifyOutputObservation(), groups (+29 more)
+
+### Community 324 - "Entrypoint.Mjs Component"
+Cohesion: 0.15
+Nodes (21): HERE, REPO, ENTRYPOINT, REVIEW, ADDON, DECISION, AUTHORIZATION_CONTEXT, STANDING_AUTHORIZATION (+13 more)
+
+### Community 284 - "Protocol P00 Framing"
+Cohesion: 0.15
+Nodes (13): CountedJsonLines, record(), only(), nullableString(), textPosition(), textRange(), b14Workspace, approvalFields (+5 more)
+
+### Community 85 - "Host File Workspace Runner"
+Cohesion: 0.09
+Nodes (31): GIT_FILE_PIN, failureNames, ownErrors, fail(), pinnedFile(), verifyQualifiedGitFile(), summaryKeys, validateGitReadinessSummary() (+23 more)
+
+### Community 204 - "Phase Journal"
+Cohesion: 0.19
+Nodes (12): ZERO, EFFECT_KINDS, sha(), clone(), casesFor(), ownDirectory(), ownFile(), exactTime() (+4 more)
+
+### Community 494 - "Preparation.Mjs Component"
+Cohesion: 0.24
+Nodes (11): HERE, REPO, MATRIX_BUILD, MATRIX_MANIFEST, MATRIX_CANONICAL, sha(), buildR34PreparationEnvelope(), ownedWrite() (+3 more)
+
+### Community 300 - "History R34 Evidence Preparation"
+Cohesion: 0.16
+Nodes (23): serializeR34Preparation(), REPO, MANIFEST, TERMINAL, INDEX, CASES, WITNESS_PINS, R34_COUNTS (+15 more)
+
+### Community 548 - "Scoped Entry Worker"
+Cohesion: 0.36
+Nodes (7): sha(), owned(), writeMatrixChildReceipt(), runMatrixScopedEntry(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+
+### Community 16 - "Policy Entrypoint Runtime Effects"
+Cohesion: 0.04
+Nodes (62): REPO, HISTORICAL_BUNDLE, sha(), same(), buildR35CanonicalBytes(), TrustedCaseCoordinator, ownDirectory(), writeMatrixCaseReceipt() (+54 more)
+
+### Community 39 - "Diagnostic Matrix Runner Late"
+Cohesion: 0.06
+Nodes (52): CHILD_PATH_CLASSES, NAMES, pathClasses, nameClasses, entryKeys, createChildPathDiagnostics(), validateChildPathDiagnostics(), GIT_FILE_PIN (+44 more)
+
+### Community 80 - "Finite Responses Continuation Diagnostic"
+Cohesion: 0.08
+Nodes (37): DIAGNOSTIC_CATEGORIES, OUTPUT_STATUSES, SCRIPT_FAILURE_MARKERS, controlledMarkers, unknownOutput, exactText(), classifyOutputObservation(), groups (+29 more)
+
+### Community 157 - "Protocol P00 Permission Request"
+Cohesion: 0.13
+Nodes (18): CountedJsonLines, record(), only(), b14Workspace, approvalFields, permissionRequestId(), PERMISSION_DIAGNOSTIC_REASONS, permissionRequestFailure() (+10 more)
+
+### Community 446 - "Matrix Stage"
+Cohesion: 0.20
+Nodes (13): HERE, REPO, sha(), inside(), PACKAGE, SDK_DEPENDENCIES, PRISMA_CLIENT, GENERATED_PRISMA (+5 more)
+
+### Community 205 - "Phase Journal"
+Cohesion: 0.19
+Nodes (12): ZERO, EFFECT_KINDS, sha(), clone(), casesFor(), ownDirectory(), ownFile(), exactTime() (+4 more)
+
+### Community 31 - "Evidence R34 R35"
+Cohesion: 0.06
+Nodes (63): REPO, MANIFEST, TERMINAL, INDEX, CASES, WITNESS_PINS, KINDS, same() (+55 more)
+
+### Community 17 - "Evidence Policy Runtime Effects"
+Cohesion: 0.04
+Nodes (62): REPO, HISTORICAL_BUNDLE, sha(), same(), buildR36CanonicalBytes(), TrustedCaseCoordinator, prepareTrustedCase(), cases (+54 more)
+
+### Community 30 - "Diagnostic Matrix Runner Late"
+Cohesion: 0.05
+Nodes (56): ownDirectory(), writeMatrixCaseReceipt(), CHILD_PATH_CLASSES, NAMES, pathClasses, nameClasses, entryKeys, createChildPathDiagnostics() (+48 more)
+
+### Community 81 - "Finite Responses Continuation Diagnostic"
+Cohesion: 0.08
+Nodes (37): DIAGNOSTIC_CATEGORIES, OUTPUT_STATUSES, SCRIPT_FAILURE_MARKERS, controlledMarkers, unknownOutput, exactText(), classifyOutputObservation(), groups (+29 more)
+
+### Community 301 - "Entrypoint.Mjs Component"
+Cohesion: 0.14
+Nodes (22): HERE, REPO, ENTRYPOINT, REVIEW, ADDON, DECISION, AUTHORIZATION_CONTEXT, STANDING_AUTHORIZATION (+14 more)
+
+### Community 119 - "Protocol P00 Permission Request"
+Cohesion: 0.11
+Nodes (22): CountedJsonLines, record(), only(), b14Workspace, approvalFields, permissionRequestId(), PERMISSION_DIAGNOSTIC_REASONS, permissionRequestFailure() (+14 more)
+
+### Community 447 - "Matrix Stage"
+Cohesion: 0.20
+Nodes (13): HERE, REPO, sha(), inside(), PACKAGE, SDK_DEPENDENCIES, PRISMA_CLIENT, GENERATED_PRISMA (+5 more)
+
+### Community 206 - "Phase Journal"
+Cohesion: 0.19
+Nodes (12): ZERO, EFFECT_KINDS, sha(), clone(), casesFor(), ownDirectory(), ownFile(), exactTime() (+4 more)
+
+### Community 82 - "Evidence R35 R36"
+Cohesion: 0.08
+Nodes (44): REPO, MANIFEST, TERMINAL, INDEX, CASES, KINDS, same(), sameFile() (+36 more)
+
+### Community 549 - "Scoped Entry Worker"
+Cohesion: 0.36
+Nodes (7): sha(), owned(), writeMatrixChildReceipt(), runMatrixScopedEntry(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+
+### Community 101 - "Policy Runtime Effects Manifest"
+Cohesion: 0.09
+Nodes (26): REPO, HISTORICAL_BUNDLE, sha(), same(), buildR37CanonicalBytes(), ownDirectory(), writeMatrixCaseReceipt(), prepareTrustedCase() (+18 more)
+
+### Community 71 - "Diagnostic Git Readiness Late"
+Cohesion: 0.06
+Nodes (38): CHILD_PATH_CLASSES, NAMES, pathClasses, nameClasses, entryKeys, validateChildPathDiagnostics(), GIT_FILE_PIN, READINESS_POLICY (+30 more)
+
+### Community 207 - "Finite Responses Continuation Diagnostic"
+Cohesion: 0.14
+Nodes (21): controlledMarkers, unknownOutput, exactText(), classifyOutputObservation(), groups, categories, emitDiagnostic(), decodeWithDiagnostic() (+13 more)
+
+### Community 392 - "Provider Failure Continuation Diagnostic"
+Cohesion: 0.16
+Nodes (16): DIAGNOSTIC_CATEGORIES, OUTPUT_STATUSES, SCRIPT_FAILURE_MARKERS, FAILURE_STAGES, FAILURE_CLASSES, stages, classes, ownDirectory() (+8 more)
+
+### Community 116 - "Entrypoint Preparation Manifest"
+Cohesion: 0.09
+Nodes (34): HERE, REPO, ENTRYPOINT, REVIEW, ADDON, DECISION, AUTHORIZATION_CONTEXT, STANDING_AUTHORIZATION (+26 more)
+
+### Community 120 - "Protocol P00 Permission Request"
+Cohesion: 0.11
+Nodes (22): CountedJsonLines, record(), only(), b14Workspace, approvalFields, permissionRequestId(), PERMISSION_DIAGNOSTIC_REASONS, permissionRequestFailure() (+14 more)
+
+### Community 448 - "Matrix Stage"
+Cohesion: 0.20
+Nodes (13): HERE, REPO, sha(), inside(), PACKAGE, SDK_DEPENDENCIES, PRISMA_CLIENT, GENERATED_PRISMA (+5 more)
+
+### Community 208 - "Phase Journal"
+Cohesion: 0.19
+Nodes (12): ZERO, EFFECT_KINDS, sha(), clone(), casesFor(), ownDirectory(), ownFile(), exactTime() (+4 more)
+
+### Community 285 - "R37 Evidence Process State"
+Cohesion: 0.15
+Nodes (24): validateProcessStateDiagnostic(), REPO, MANIFEST, TERMINAL, INDEX, CASES, R37_COUNTS, WITNESS_PINS (+16 more)
+
+### Community 286 - "R36 Evidence"
+Cohesion: 0.13
+Nodes (24): REPO, MANIFEST, TERMINAL, INDEX, CASES, R36_COUNTS, KINDS, same() (+16 more)
+
+### Community 137 - "Git Readiness Host File"
+Cohesion: 0.08
+Nodes (30): REPO, HISTORICAL_BUNDLE, sha(), same(), buildR39CanonicalBytes(), GIT_FILE_PIN, READINESS_POLICY, failureNames (+22 more)
+
+### Community 241 - "Policy Environment Profile Runtime"
+Cohesion: 0.16
+Nodes (14): ownDirectory(), writeMatrixCaseReceipt(), prepareTrustedCase(), cases, MINIMAL_ENVIRONMENT_PROFILE, minimalPathForCase(), assertMinimalEnvironmentProfile(), POLICY (+6 more)
+
+### Community 302 - "Diagnostic Late Case Child"
+Cohesion: 0.13
+Nodes (20): CHILD_PATH_CLASSES, NAMES, pathClasses, nameClasses, entryKeys, validateChildPathDiagnostics(), LATE_CASE_FAILURE_STAGES, LATE_CASE_GATE_FIELDS (+12 more)
+
+### Community 401 - "Matrix Runner Startup Failure"
+Cohesion: 0.20
+Nodes (15): createChildPathDiagnostics(), createTrustedLauncher(), sha(), T2, initialize(), turn(), consistentOwnedExit(), canonicalOutcome() (+7 more)
+
+### Community 158 - "Finite Responses Continuation Diagnostic"
+Cohesion: 0.12
+Nodes (24): DIAGNOSTIC_CATEGORIES, OUTPUT_STATUSES, SCRIPT_FAILURE_MARKERS, controlledMarkers, unknownOutput, exactText(), classifyOutputObservation(), groups (+16 more)
+
+### Community 303 - "Entrypoint.Mjs Component"
+Cohesion: 0.14
+Nodes (22): HERE, REPO, ENTRYPOINT, REVIEW, ADDON, DECISION, AUTHORIZATION_CONTEXT, STANDING_AUTHORIZATION (+14 more)
+
+### Community 121 - "Protocol P00 Permission Request"
+Cohesion: 0.11
+Nodes (22): CountedJsonLines, record(), only(), b14Workspace, approvalFields, permissionRequestId(), PERMISSION_DIAGNOSTIC_REASONS, permissionRequestFailure() (+14 more)
+
+### Community 469 - "Preparation Manifest"
+Cohesion: 0.27
+Nodes (12): prepareR39MatrixManifest(), HERE, REPO, MATRIX_BUILD, MATRIX_CANONICAL, sha(), buildR39PreparationEnvelope(), serializeR39Preparation() (+4 more)
+
+### Community 449 - "Matrix Stage"
+Cohesion: 0.20
+Nodes (13): HERE, REPO, sha(), inside(), PACKAGE, SDK_DEPENDENCIES, PRISMA_CLIENT, GENERATED_PRISMA (+5 more)
+
+### Community 209 - "Phase Journal"
+Cohesion: 0.19
+Nodes (12): ZERO, EFFECT_KINDS, sha(), clone(), casesFor(), ownDirectory(), ownFile(), exactTime() (+4 more)
+
+### Community 189 - "R39 Evidence Process State"
+Cohesion: 0.13
+Nodes (25): states, validateProcessStateDiagnostic(), verifyR39HistoricalClosure(), REPO, MANIFEST, TERMINAL, INDEX, CASES (+17 more)
+
+### Community 419 - "Provider Failure"
+Cohesion: 0.21
+Nodes (13): FAILURE_STAGES, FAILURE_CLASSES, stages, classes, ownDirectory(), ownFile(), same(), captureParents() (+5 more)
+
+### Community 242 - "R36 Evidence"
+Cohesion: 0.13
+Nodes (25): REPO, MANIFEST, TERMINAL, INDEX, CASES, R36_COUNTS, KINDS, same() (+17 more)
+
+### Community 109 - "Manifest Git Readiness Canonical"
+Cohesion: 0.08
+Nodes (31): REPO, HISTORICAL_BUNDLE, sha(), same(), buildR41CanonicalBytes(), GIT_FILE_PIN, READINESS_POLICY, failureNames (+23 more)
+
+### Community 159 - "Policy Environment Profile Runtime"
+Cohesion: 0.13
+Nodes (11): TrustedCaseCoordinator, ownDirectory(), writeMatrixCaseReceipt(), prepareTrustedCase(), cases, MINIMAL_ENVIRONMENT_PROFILE, minimalPathForCase(), assertMinimalEnvironmentProfile() (+3 more)
+
+### Community 304 - "Diagnostic Late Case Child"
+Cohesion: 0.12
+Nodes (21): CHILD_PATH_CLASSES, NAMES, pathClasses, nameClasses, entryKeys, validateChildPathDiagnostics(), GIT_READINESS_FAILURE_REASONS, LATE_CASE_FAILURE_STAGES (+13 more)
+
+### Community 402 - "Matrix Runner Startup Failure"
+Cohesion: 0.20
+Nodes (15): createChildPathDiagnostics(), createTrustedLauncher(), sha(), T2, initialize(), turn(), consistentOwnedExit(), canonicalOutcome() (+7 more)
+
+### Community 160 - "Finite Responses Continuation Diagnostic"
+Cohesion: 0.12
+Nodes (24): DIAGNOSTIC_CATEGORIES, OUTPUT_STATUSES, SCRIPT_FAILURE_MARKERS, controlledMarkers, unknownOutput, exactText(), classifyOutputObservation(), groups (+16 more)
+
+### Community 122 - "Entrypoint Preparation"
+Cohesion: 0.10
+Nodes (33): HERE, REPO, ENTRYPOINT, REVIEW, ADDON, DECISION, AUTHORIZATION_CONTEXT, STANDING_AUTHORIZATION (+25 more)
+
+### Community 123 - "Protocol P00 Permission Request"
+Cohesion: 0.11
+Nodes (22): CountedJsonLines, record(), only(), b14Workspace, approvalFields, permissionRequestId(), PERMISSION_DIAGNOSTIC_REASONS, permissionRequestFailure() (+14 more)
+
+### Community 450 - "Matrix Stage"
+Cohesion: 0.20
+Nodes (13): HERE, REPO, sha(), inside(), PACKAGE, SDK_DEPENDENCIES, PRISMA_CLIENT, GENERATED_PRISMA (+5 more)
+
+### Community 210 - "Phase Journal"
+Cohesion: 0.19
+Nodes (12): ZERO, EFFECT_KINDS, sha(), clone(), casesFor(), ownDirectory(), ownFile(), exactTime() (+4 more)
+
+### Community 226 - "R41 Evidence Process State"
+Cohesion: 0.15
+Nodes (26): validateProcessStateDiagnostic(), REPO, MANIFEST, TERMINAL, INDEX, CASES, R41_COUNTS, WITNESS_PINS (+18 more)
+
+### Community 420 - "Provider Failure"
+Cohesion: 0.21
+Nodes (13): FAILURE_STAGES, FAILURE_CLASSES, stages, classes, ownDirectory(), ownFile(), same(), captureParents() (+5 more)
+
+### Community 352 - "R35 Evidence"
+Cohesion: 0.16
+Nodes (20): REPO, MANIFEST, TERMINAL, INDEX, CASES, R35_COUNTS, KINDS, same() (+12 more)
+
+### Community 243 - "R36 Evidence"
+Cohesion: 0.13
+Nodes (25): REPO, MANIFEST, TERMINAL, INDEX, CASES, R36_COUNTS, KINDS, same() (+17 more)
+
+### Community 305 - "R37 Evidence"
+Cohesion: 0.15
+Nodes (23): REPO, MANIFEST, TERMINAL, INDEX, CASES, R37_COUNTS, WITNESS_PINS, FAILED_DIAGNOSTIC (+15 more)
+
+### Community 227 - "R41 Evidence Runtime Effects"
+Cohesion: 0.14
+Nodes (26): verifyR41HistoricalClosure(), REPO, MANIFEST, TERMINAL, INDEX, CASES, R41_COUNTS, WITNESS_PINS (+18 more)
+
+### Community 551 - "Scoped Entry Worker"
+Cohesion: 0.36
+Nodes (7): sha(), owned(), writeMatrixChildReceipt(), runMatrixScopedEntry(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+
+### Community 83 - "Policy Manifest Runtime Effects"
+Cohesion: 0.09
+Nodes (22): REPO, HISTORICAL_BUNDLE, sha(), same(), buildR43CanonicalBytes(), TrustedCaseCoordinator, prepareTrustedCase(), cases (+14 more)
+
+### Community 37 - "Diagnostic Matrix Runner Child"
+Cohesion: 0.05
+Nodes (55): ownDirectory(), writeMatrixCaseReceipt(), CHILD_PATH_CLASSES, NAMES, pathClasses, nameClasses, entryKeys, createChildPathDiagnostics() (+47 more)
+
+### Community 161 - "Finite Responses Continuation Diagnostic"
+Cohesion: 0.12
+Nodes (24): DIAGNOSTIC_CATEGORIES, OUTPUT_STATUSES, SCRIPT_FAILURE_MARKERS, controlledMarkers, unknownOutput, exactText(), classifyOutputObservation(), groups (+16 more)
+
+### Community 325 - "Entrypoint.Mjs Component"
+Cohesion: 0.16
+Nodes (21): HERE, REPO, ENTRYPOINT, REVIEW, ADDON, DECISION, AUTHORIZATION_CONTEXT, STANDING_AUTHORIZATION (+13 more)
+
+### Community 124 - "Protocol P00 Permission Request"
+Cohesion: 0.11
+Nodes (22): CountedJsonLines, record(), only(), b14Workspace, approvalFields, permissionRequestId(), PERMISSION_DIAGNOSTIC_REASONS, permissionRequestFailure() (+14 more)
+
+### Community 93 - "R43 Evidence Preparation Manifest"
+Cohesion: 0.08
+Nodes (40): sha(), prepareR43MatrixManifest(), HERE, REPO, MATRIX_BUILD, MATRIX_MANIFEST, MATRIX_CANONICAL, sha() (+32 more)
+
+### Community 451 - "Matrix Stage"
+Cohesion: 0.20
+Nodes (13): HERE, REPO, sha(), inside(), PACKAGE, SDK_DEPENDENCIES, PRISMA_CLIENT, GENERATED_PRISMA (+5 more)
+
+### Community 211 - "Phase Journal"
+Cohesion: 0.19
+Nodes (12): ZERO, EFFECT_KINDS, sha(), clone(), casesFor(), ownDirectory(), ownFile(), exactTime() (+4 more)
+
+### Community 421 - "Provider Failure"
+Cohesion: 0.21
+Nodes (13): FAILURE_STAGES, FAILURE_CLASSES, stages, classes, ownDirectory(), ownFile(), same(), captureParents() (+5 more)
+
+### Community 353 - "R35 Evidence"
+Cohesion: 0.16
+Nodes (20): REPO, MANIFEST, TERMINAL, INDEX, CASES, R35_COUNTS, KINDS, same() (+12 more)
+
+### Community 244 - "R36 Evidence"
+Cohesion: 0.13
+Nodes (25): REPO, MANIFEST, TERMINAL, INDEX, CASES, R36_COUNTS, KINDS, same() (+17 more)
+
+### Community 306 - "R37 Evidence"
+Cohesion: 0.15
+Nodes (23): REPO, MANIFEST, TERMINAL, INDEX, CASES, R37_COUNTS, WITNESS_PINS, FAILED_DIAGNOSTIC (+15 more)
+
+### Community 245 - "R41 Evidence"
+Cohesion: 0.15
+Nodes (25): REPO, MANIFEST, TERMINAL, INDEX, CASES, R41_COUNTS, WITNESS_PINS, FAILED_DIAGNOSTIC (+17 more)
+
+### Community 228 - "R43 Evidence Runtime Effects"
+Cohesion: 0.13
+Nodes (26): verifyR43HistoricalClosure(), REPO, MANIFEST, TERMINAL, INDEX, CASES, R43_COUNTS, KINDS (+18 more)
+
+### Community 552 - "Scoped Entry Worker"
+Cohesion: 0.36
+Nodes (7): sha(), owned(), writeMatrixChildReceipt(), runMatrixScopedEntry(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+
+### Community 11 - "Matrix Runner Policy Diagnostic"
+Cohesion: 0.03
+Nodes (86): REPO, HISTORICAL_BUNDLE, sha(), same(), buildR44CanonicalBytes(), ownDirectory(), writeMatrixCaseReceipt(), readMatrixChildReceipt() (+78 more)
+
+### Community 40 - "Workspace Runner Policy Manifest"
+Cohesion: 0.07
+Nodes (49): createChildPathDiagnostics(), REPO, HISTORICAL_BUNDLE, sha(), same(), buildWorkspaceCanonicalBytes(), ownDirectory(), writeWorkspaceCaseReceipt() (+41 more)
+
+### Community 63 - "R44 Evidence Child Path"
+Cohesion: 0.08
+Nodes (48): validateChildPathDiagnostics(), serializeR44Preparation(), verifyR44HistoricalClosure(), REPO, MANIFEST, TERMINAL, INDEX, CASES (+40 more)
+
+### Community 162 - "Finite Responses Continuation Diagnostic"
+Cohesion: 0.12
+Nodes (24): DIAGNOSTIC_CATEGORIES, OUTPUT_STATUSES, SCRIPT_FAILURE_MARKERS, controlledMarkers, unknownOutput, exactText(), classifyOutputObservation(), groups (+16 more)
+
+### Community 132 - "Entrypoint Preparation"
+Cohesion: 0.10
+Nodes (32): HERE, REPO, ENTRYPOINT, REVIEW, ADDON, DECISION, AUTHORIZATION_CONTEXT, STANDING_AUTHORIZATION (+24 more)
+
+### Community 125 - "Protocol P00 Permission Request"
+Cohesion: 0.11
+Nodes (22): CountedJsonLines, record(), only(), b14Workspace, approvalFields, permissionRequestId(), PERMISSION_DIAGNOSTIC_REASONS, permissionRequestFailure() (+14 more)
+
+### Community 212 - "Phase Journal"
+Cohesion: 0.19
+Nodes (12): ZERO, EFFECT_KINDS, sha(), clone(), casesFor(), ownDirectory(), ownFile(), exactTime() (+4 more)
+
+### Community 246 - "R44 Evidence Process State"
+Cohesion: 0.14
+Nodes (23): validateProcessStateDiagnostic(), REPO, MANIFEST, TERMINAL, INDEX, CASES, COMPLETED_CASES, WITNESS_PINS (+15 more)
+
+### Community 422 - "Provider Failure"
+Cohesion: 0.21
+Nodes (13): FAILURE_STAGES, FAILURE_CLASSES, stages, classes, ownDirectory(), ownFile(), same(), captureParents() (+5 more)
+
+### Community 354 - "R35 Evidence"
+Cohesion: 0.16
+Nodes (20): REPO, MANIFEST, TERMINAL, INDEX, CASES, R35_COUNTS, KINDS, same() (+12 more)
+
+### Community 247 - "R36 Evidence"
+Cohesion: 0.13
+Nodes (25): REPO, MANIFEST, TERMINAL, INDEX, CASES, R36_COUNTS, KINDS, same() (+17 more)
+
+### Community 307 - "R37 Evidence"
+Cohesion: 0.15
+Nodes (23): REPO, MANIFEST, TERMINAL, INDEX, CASES, R37_COUNTS, WITNESS_PINS, FAILED_DIAGNOSTIC (+15 more)
+
+### Community 248 - "R41 Evidence"
+Cohesion: 0.15
+Nodes (25): REPO, MANIFEST, TERMINAL, INDEX, CASES, R41_COUNTS, WITNESS_PINS, FAILED_DIAGNOSTIC (+17 more)
+
+### Community 249 - "R43 Evidence"
+Cohesion: 0.14
+Nodes (25): REPO, MANIFEST, TERMINAL, INDEX, CASES, R43_COUNTS, KINDS, same() (+17 more)
+
+### Community 213 - "Policy Canonical Build Manifest"
+Cohesion: 0.12
+Nodes (22): REPO, HISTORICAL_BUNDLE, sha(), same(), buildR46CanonicalBytes(), ownDirectory(), writeMatrixCaseReceipt(), cases (+14 more)
+
+### Community 190 - "Diagnostic Late Case Child"
+Cohesion: 0.10
+Nodes (23): CHILD_PATH_CLASSES, NAMES, pathClasses, nameClasses, entryKeys, validateChildPathDiagnostics(), GIT_FILE_PIN, LATE_CASE_FAILURE_STAGES (+15 more)
+
+### Community 393 - "Matrix Runner Startup Failure"
+Cohesion: 0.19
+Nodes (16): createChildPathDiagnostics(), createTrustedLauncher(), sha(), T2, initialize(), turn(), consistentOwnedExit(), canonicalOutcome() (+8 more)
+
+### Community 163 - "Finite Responses Continuation Diagnostic"
+Cohesion: 0.12
+Nodes (24): DIAGNOSTIC_CATEGORIES, OUTPUT_STATUSES, SCRIPT_FAILURE_MARKERS, controlledMarkers, unknownOutput, exactText(), classifyOutputObservation(), groups (+16 more)
+
+### Community 326 - "Entrypoint.Mjs Component"
+Cohesion: 0.16
+Nodes (21): HERE, REPO, ENTRYPOINT, REVIEW, ADDON, DECISION, AUTHORIZATION_CONTEXT, STANDING_AUTHORIZATION (+13 more)
+
+### Community 250 - "Protocol P00 Framing"
+Cohesion: 0.15
+Nodes (13): CountedJsonLines, record(), only(), nullableString(), textPosition(), textRange(), telemetryKinds, PROTOCOL_FAILURE_CATEGORIES (+5 more)
+
+### Community 378 - "Git Readiness Host File"
+Cohesion: 0.16
+Nodes (16): READINESS_POLICY, failureNames, GIT_READINESS_FAILURE_REASONS, ownErrors, fail(), pinnedFile(), verifyQualifiedGitFile(), summaryKeys (+8 more)
+
+### Community 423 - "Preparation Manifest"
+Cohesion: 0.22
+Nodes (14): sha(), prepareR46MatrixManifest(), HERE, REPO, MATRIX_BUILD, MATRIX_MANIFEST, MATRIX_CANONICAL, sha() (+6 more)
+
+### Community 452 - "Matrix Stage"
+Cohesion: 0.20
+Nodes (13): HERE, REPO, sha(), inside(), PACKAGE, SDK_DEPENDENCIES, PRISMA_CLIENT, GENERATED_PRISMA (+5 more)
+
+### Community 515 - "Permission Request Diagnostic"
+Cohesion: 0.33
+Nodes (9): record(), only(), b14Workspace, approvalFields, permissionRequestId(), PERMISSION_DIAGNOSTIC_REASONS, permissionRequestFailure(), nullableFieldShape() (+1 more)
+
+### Community 214 - "Phase Journal"
+Cohesion: 0.19
+Nodes (12): ZERO, EFFECT_KINDS, sha(), clone(), casesFor(), ownDirectory(), ownFile(), exactTime() (+4 more)
+
+### Community 424 - "Provider Failure"
+Cohesion: 0.21
+Nodes (13): FAILURE_STAGES, FAILURE_CLASSES, stages, classes, ownDirectory(), ownFile(), same(), captureParents() (+5 more)
+
+### Community 355 - "R35 Evidence"
+Cohesion: 0.16
+Nodes (20): REPO, MANIFEST, TERMINAL, INDEX, CASES, R35_COUNTS, KINDS, same() (+12 more)
+
+### Community 251 - "R36 Evidence"
+Cohesion: 0.13
+Nodes (25): REPO, MANIFEST, TERMINAL, INDEX, CASES, R36_COUNTS, KINDS, same() (+17 more)
+
+### Community 252 - "R41 Evidence"
+Cohesion: 0.15
+Nodes (25): REPO, MANIFEST, TERMINAL, INDEX, CASES, R41_COUNTS, WITNESS_PINS, FAILED_DIAGNOSTIC (+17 more)
+
+### Community 253 - "R43 Evidence"
+Cohesion: 0.14
+Nodes (25): REPO, MANIFEST, TERMINAL, INDEX, CASES, R43_COUNTS, KINDS, same() (+17 more)
+
+### Community 591 - "Scoped Entry"
+Cohesion: 0.70
+Nodes (4): sha(), owned(), writeMatrixChildReceipt(), runMatrixScopedEntry()
+
+### Community 308 - "Manifest Stage Progress Canonical"
+Cohesion: 0.12
+Nodes (21): REPO, HISTORICAL_BUNDLE, sha(), same(), buildR47CanonicalBytes(), same(), verifyR47HostFile(), HERE (+13 more)
+
+### Community 254 - "Policy Environment Profile Phase"
+Cohesion: 0.15
+Nodes (14): ownDirectory(), writeMatrixCaseReceipt(), prepareTrustedCase(), cases, MINIMAL_ENVIRONMENT_PROFILE, minimalPathForCase(), assertMinimalEnvironmentProfile(), ZERO (+6 more)
+
+### Community 86 - "Diagnostic Git Readiness Late"
+Cohesion: 0.07
+Nodes (37): CHILD_PATH_CLASSES, NAMES, pathClasses, nameClasses, entryKeys, validateChildPathDiagnostics(), GIT_FILE_PIN, READINESS_POLICY (+29 more)
+
+### Community 287 - "Provider Failure Continuation Diagnostic"
+Cohesion: 0.12
+Nodes (22): DIAGNOSTIC_CATEGORIES, OUTPUT_STATUSES, SCRIPT_FAILURE_MARKERS, controlledMarkers, unknownOutput, exactText(), classifyOutputObservation(), groups (+14 more)
+
+### Community 327 - "Entrypoint.Mjs Component"
+Cohesion: 0.16
+Nodes (21): HERE, REPO, ENTRYPOINT, REVIEW, ADDON, DECISION, AUTHORIZATION_CONTEXT, STANDING_AUTHORIZATION (+13 more)
+
+### Community 126 - "Protocol P00 Permission Request"
+Cohesion: 0.11
+Nodes (22): CountedJsonLines, record(), only(), b14Workspace, approvalFields, permissionRequestId(), PERMISSION_DIAGNOSTIC_REASONS, permissionRequestFailure() (+14 more)
+
+### Community 172 - "History Evidence R29 R30"
+Cohesion: 0.12
+Nodes (28): REPO, MANIFEST, TERMINAL, INDEX, CASES, WITNESSES, AUTHORITY_PINS, R29_COUNTS (+20 more)
+
+### Community 133 - "History Evidence R33 R32"
+Cohesion: 0.09
+Nodes (33): REPO, MANIFEST, TERMINAL, INDEX, CASES, WITNESSES, AUTHORITY_PINS, R32_COUNTS (+25 more)
+
+### Community 379 - "History R35 Evidence"
+Cohesion: 0.18
+Nodes (18): REPO, MANIFEST, TERMINAL, INDEX, CASES, R35_COUNTS, KINDS, same() (+10 more)
+
+### Community 309 - "History R36 Evidence"
+Cohesion: 0.14
+Nodes (23): REPO, MANIFEST, TERMINAL, INDEX, CASES, R36_COUNTS, KINDS, same() (+15 more)
+
+### Community 310 - "History R37 Evidence"
+Cohesion: 0.16
+Nodes (23): REPO, MANIFEST, TERMINAL, INDEX, CASES, R37_COUNTS, WITNESS_PINS, FAILED_DIAGNOSTIC (+15 more)
+
+### Community 311 - "History R41 Evidence"
+Cohesion: 0.16
+Nodes (23): REPO, MANIFEST, TERMINAL, INDEX, CASES, R41_COUNTS, WITNESS_PINS, FAILED_DIAGNOSTIC (+15 more)
+
+### Community 288 - "History R43 Evidence"
+Cohesion: 0.14
+Nodes (24): REPO, MANIFEST, TERMINAL, INDEX, CASES, R43_COUNTS, KINDS, same() (+16 more)
+
+### Community 453 - "Matrix Stage"
+Cohesion: 0.20
+Nodes (13): HERE, REPO, sha(), inside(), PACKAGE, SDK_DEPENDENCIES, PRISMA_CLIENT, GENERATED_PRISMA (+5 more)
+
+### Community 289 - "Phase Journal"
+Cohesion: 0.20
+Nodes (10): sha(), clone(), casesFor(), ownDirectory(), ownFile(), exactTime(), conservativeHostBudget(), initial() (+2 more)
+
+### Community 470 - "Preparation.Mjs Component"
+Cohesion: 0.24
+Nodes (12): HERE, REPO, MATRIX_BUILD, MATRIX_MANIFEST, MATRIX_CANONICAL, sha(), buildR47PreparationEnvelope(), serializeR47Preparation() (+4 more)
+
+### Community 356 - "R35 Evidence"
+Cohesion: 0.16
+Nodes (20): REPO, MANIFEST, TERMINAL, INDEX, CASES, R35_COUNTS, KINDS, same() (+12 more)
+
+### Community 255 - "R36 Evidence"
+Cohesion: 0.13
+Nodes (25): REPO, MANIFEST, TERMINAL, INDEX, CASES, R36_COUNTS, KINDS, same() (+17 more)
+
+### Community 312 - "R37 Evidence"
+Cohesion: 0.15
+Nodes (23): REPO, MANIFEST, TERMINAL, INDEX, CASES, R37_COUNTS, WITNESS_PINS, FAILED_DIAGNOSTIC (+15 more)
+
+### Community 256 - "R41 Evidence"
+Cohesion: 0.15
+Nodes (25): REPO, MANIFEST, TERMINAL, INDEX, CASES, R41_COUNTS, WITNESS_PINS, FAILED_DIAGNOSTIC (+17 more)
+
+### Community 229 - "Manifest Host File Canonical"
+Cohesion: 0.09
+Nodes (25): verifyR44Predecessor(), REPO, HISTORICAL_BUNDLE, sha(), same(), buildR48CanonicalBytes(), READINESS_POLICY, R48_INSTALLED_HOST_FILE (+17 more)
+
+### Community 592 - "Scoped Entry"
+Cohesion: 0.70
+Nodes (4): sha(), owned(), writeMatrixChildReceipt(), runMatrixScopedEntry()
+
+### Community 313 - "Policy Environment Profile Runtime"
+Cohesion: 0.17
+Nodes (12): prepareTrustedCase(), cases, MINIMAL_ENVIRONMENT_PROFILE, minimalPathForCase(), assertMinimalEnvironmentProfile(), POLICY, realIo, createNativePorts() (+4 more)
+
+### Community 328 - "Matrix Runner Case Receipts"
+Cohesion: 0.17
+Nodes (17): ownDirectory(), writeMatrixCaseReceipt(), createChildPathDiagnostics(), createTrustedLauncher(), sha(), T2, initialize(), turn() (+9 more)
+
+### Community 88 - "Diagnostic Git Readiness Late"
+Cohesion: 0.07
+Nodes (36): CHILD_PATH_CLASSES, NAMES, pathClasses, nameClasses, entryKeys, validateChildPathDiagnostics(), GIT_FILE_PIN, failureNames (+28 more)
+
+### Community 173 - "Finite Responses Continuation Diagnostic"
+Cohesion: 0.13
+Nodes (23): DIAGNOSTIC_CATEGORIES, SCRIPT_FAILURE_MARKERS, controlledMarkers, unknownOutput, exactText(), classifyOutputObservation(), groups, categories (+15 more)
+
+### Community 410 - "Provider Failure Continuation Diagnostic"
+Cohesion: 0.19
+Nodes (14): OUTPUT_STATUSES, FAILURE_STAGES, FAILURE_CLASSES, stages, classes, ownDirectory(), ownFile(), same() (+6 more)
+
+### Community 329 - "Entrypoint.Mjs Component"
+Cohesion: 0.16
+Nodes (21): HERE, REPO, ENTRYPOINT, REVIEW, ADDON, DECISION, AUTHORIZATION_CONTEXT, STANDING_AUTHORIZATION (+13 more)
+
+### Community 57 - "Protocol P00 Permission Request"
+Cohesion: 0.08
+Nodes (30): CountedJsonLines, record(), only(), b14Workspace, approvalFields, permissionRequestId(), PERMISSION_DIAGNOSTIC_REASONS, permissionRequestFailure() (+22 more)
+
+### Community 454 - "Matrix Stage"
+Cohesion: 0.20
+Nodes (13): HERE, REPO, sha(), inside(), PACKAGE, SDK_DEPENDENCIES, PRISMA_CLIENT, GENERATED_PRISMA (+5 more)
+
+### Community 215 - "Phase Journal"
+Cohesion: 0.19
+Nodes (12): ZERO, EFFECT_KINDS, sha(), clone(), casesFor(), ownDirectory(), ownFile(), exactTime() (+4 more)
+
+### Community 471 - "Preparation.Mjs Component"
+Cohesion: 0.24
+Nodes (12): HERE, REPO, MATRIX_BUILD, MATRIX_MANIFEST, MATRIX_CANONICAL, sha(), buildR48PreparationEnvelope(), serializeR48Preparation() (+4 more)
+
+### Community 151 - "Evidence R32 R30 R21"
+Cohesion: 0.10
+Nodes (28): REPO, MANIFEST, TERMINAL, INDEX, AUTHORITY_PINS, R30_COUNTS, fail(), same() (+20 more)
+
+### Community 357 - "R35 Evidence"
+Cohesion: 0.16
+Nodes (20): REPO, MANIFEST, TERMINAL, INDEX, CASES, R35_COUNTS, KINDS, same() (+12 more)
+
+### Community 257 - "R36 Evidence"
+Cohesion: 0.13
+Nodes (25): REPO, MANIFEST, TERMINAL, INDEX, CASES, R36_COUNTS, KINDS, same() (+17 more)
+
+### Community 290 - "R37 Evidence"
+Cohesion: 0.15
+Nodes (24): REPO, MANIFEST, TERMINAL, INDEX, CASES, R37_COUNTS, WITNESS_PINS, FAILED_DIAGNOSTIC (+16 more)
+
+### Community 230 - "R43 Evidence"
+Cohesion: 0.13
+Nodes (26): REPO, MANIFEST, TERMINAL, INDEX, CASES, R43_COUNTS, KINDS, same() (+18 more)
+
+### Community 579 - "Canonical Build"
 Cohesion: 0.47
-Nodes (4): result, root, ensureOperationHandlerSourceCurrent(), sourceCheckOptions()
+Nodes (5): REPO, HISTORICAL_BUNDLE, sha(), same(), buildR50CanonicalBytes()
+
+### Community 138 - "Policy Environment Profile Manifest"
+Cohesion: 0.10
+Nodes (21): ownDirectory(), writeMatrixCaseReceipt(), cases, MINIMAL_ENVIRONMENT_PROFILE, assertMinimalEnvironmentProfile(), HERE, REPO, BUILD (+13 more)
+
+### Community 92 - "Diagnostic Git Readiness Late"
+Cohesion: 0.07
+Nodes (35): CHILD_PATH_CLASSES, NAMES, pathClasses, nameClasses, entryKeys, validateChildPathDiagnostics(), GIT_FILE_PIN, READINESS_POLICY (+27 more)
+
+### Community 403 - "Matrix Runner Startup Failure"
+Cohesion: 0.21
+Nodes (15): createChildPathDiagnostics(), createTrustedLauncher(), sha(), T2, initialize(), turn(), consistentOwnedExit(), canonicalOutcome() (+7 more)
+
+### Community 164 - "Finite Responses Continuation Diagnostic"
+Cohesion: 0.12
+Nodes (24): DIAGNOSTIC_CATEGORIES, OUTPUT_STATUSES, SCRIPT_FAILURE_MARKERS, controlledMarkers, unknownOutput, exactText(), classifyOutputObservation(), groups (+16 more)
+
+### Community 330 - "Entrypoint.Mjs Component"
+Cohesion: 0.16
+Nodes (21): HERE, REPO, ENTRYPOINT, REVIEW, ADDON, DECISION, AUTHORIZATION_CONTEXT, STANDING_AUTHORIZATION (+13 more)
+
+### Community 258 - "Protocol P00 Framing"
+Cohesion: 0.15
+Nodes (13): CountedJsonLines, record(), only(), nullableString(), textPosition(), textRange(), telemetryKinds, PROTOCOL_FAILURE_CATEGORIES (+5 more)
+
+### Community 425 - "Preparation Manifest"
+Cohesion: 0.22
+Nodes (14): sha(), prepareR50MatrixManifest(), HERE, REPO, MATRIX_BUILD, MATRIX_MANIFEST, MATRIX_CANONICAL, sha() (+6 more)
+
+### Community 455 - "Matrix Stage"
+Cohesion: 0.20
+Nodes (13): HERE, REPO, sha(), inside(), PACKAGE, SDK_DEPENDENCIES, PRISMA_CLIENT, GENERATED_PRISMA (+5 more)
+
+### Community 519 - "Permission Request Diagnostic"
+Cohesion: 0.33
+Nodes (9): record(), only(), b14Workspace, approvalFields, permissionRequestId(), PERMISSION_DIAGNOSTIC_REASONS, permissionRequestFailure(), nullableFieldShape() (+1 more)
+
+### Community 216 - "Phase Journal"
+Cohesion: 0.19
+Nodes (12): ZERO, EFFECT_KINDS, sha(), clone(), casesFor(), ownDirectory(), ownFile(), exactTime() (+4 more)
+
+### Community 66 - "Evidence R29 R32 R30"
+Cohesion: 0.07
+Nodes (43): REPO, MANIFEST, TERMINAL, INDEX, CASES, WITNESSES, AUTHORITY_PINS, R29_COUNTS (+35 more)
+
+### Community 426 - "Provider Failure"
+Cohesion: 0.21
+Nodes (13): FAILURE_STAGES, FAILURE_CLASSES, stages, classes, ownDirectory(), ownFile(), same(), captureParents() (+5 more)
+
+### Community 358 - "R35 Evidence"
+Cohesion: 0.16
+Nodes (20): REPO, MANIFEST, TERMINAL, INDEX, CASES, R35_COUNTS, KINDS, same() (+12 more)
+
+### Community 259 - "R36 Evidence"
+Cohesion: 0.13
+Nodes (25): REPO, MANIFEST, TERMINAL, INDEX, CASES, R36_COUNTS, KINDS, same() (+17 more)
+
+### Community 314 - "R37 Evidence"
+Cohesion: 0.15
+Nodes (23): REPO, MANIFEST, TERMINAL, INDEX, CASES, R37_COUNTS, WITNESS_PINS, FAILED_DIAGNOSTIC (+15 more)
+
+### Community 315 - "R41 Evidence"
+Cohesion: 0.15
+Nodes (23): REPO, MANIFEST, TERMINAL, INDEX, CASES, R41_COUNTS, WITNESS_PINS, FAILED_DIAGNOSTIC (+15 more)
+
+### Community 231 - "R43 Evidence"
+Cohesion: 0.13
+Nodes (26): REPO, MANIFEST, TERMINAL, INDEX, CASES, R43_COUNTS, KINDS, same() (+18 more)
+
+### Community 380 - "R48 Evidence"
+Cohesion: 0.19
+Nodes (18): REPO, ROOT_IDENTITY, MANIFEST, TERMINAL, INDEX, R48_COUNTS, PENDING, AUTHORITY_PINS (+10 more)
+
+### Community 553 - "Scoped Entry Worker"
+Cohesion: 0.36
+Nodes (7): sha(), owned(), writeMatrixChildReceipt(), runMatrixScopedEntry(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+
+### Community 32 - "Policy Manifest Provider Failure"
+Cohesion: 0.06
+Nodes (40): REPO, HISTORICAL_BUNDLE, sha(), same(), buildR51CanonicalBytes(), TrustedCaseCoordinator, ownDirectory(), writeMatrixCaseReceipt() (+32 more)
+
+### Community 19 - "Runner Matrix Workspace Diagnostic"
+Cohesion: 0.04
+Nodes (79): CHILD_PATH_CLASSES, NAMES, pathClasses, nameClasses, entryKeys, createChildPathDiagnostics(), validateChildPathDiagnostics(), GIT_FILE_PIN (+71 more)
+
+### Community 165 - "Finite Responses Continuation Diagnostic"
+Cohesion: 0.12
+Nodes (24): DIAGNOSTIC_CATEGORIES, OUTPUT_STATUSES, SCRIPT_FAILURE_MARKERS, controlledMarkers, unknownOutput, exactText(), classifyOutputObservation(), groups (+16 more)
+
+### Community 113 - "Entrypoint Preparation Manifest"
+Cohesion: 0.10
+Nodes (35): HERE, REPO, ENTRYPOINT, REVIEW, ADDON, DECISION, AUTHORIZATION_CONTEXT, STANDING_AUTHORIZATION (+27 more)
+
+### Community 127 - "Protocol P00 Permission Request"
+Cohesion: 0.11
+Nodes (22): CountedJsonLines, record(), only(), b14Workspace, approvalFields, permissionRequestId(), PERMISSION_DIAGNOSTIC_REASONS, permissionRequestFailure() (+14 more)
+
+### Community 456 - "Matrix Stage"
+Cohesion: 0.20
+Nodes (13): HERE, REPO, sha(), inside(), PACKAGE, SDK_DEPENDENCIES, PRISMA_CLIENT, GENERATED_PRISMA (+5 more)
+
+### Community 291 - "Phase Journal"
+Cohesion: 0.20
+Nodes (10): sha(), clone(), casesFor(), ownDirectory(), ownFile(), exactTime(), conservativeHostBudget(), initial() (+2 more)
+
+### Community 166 - "R51 Evidence Process State"
+Cohesion: 0.13
+Nodes (30): validateProcessStateDiagnostic(), verifyR51HistoricalClosure(), fail(), validateStageProgress(), REPO, MANIFEST, TERMINAL, INDEX (+22 more)
+
+### Community 359 - "R35 Evidence"
+Cohesion: 0.16
+Nodes (20): REPO, MANIFEST, TERMINAL, INDEX, CASES, R35_COUNTS, KINDS, same() (+12 more)
+
+### Community 316 - "R37 Evidence"
+Cohesion: 0.15
+Nodes (23): REPO, MANIFEST, TERMINAL, INDEX, CASES, R37_COUNTS, WITNESS_PINS, FAILED_DIAGNOSTIC (+15 more)
+
+### Community 381 - "R48 Evidence"
+Cohesion: 0.19
+Nodes (18): REPO, ROOT_IDENTITY, MANIFEST, TERMINAL, INDEX, R48_COUNTS, PENDING, AUTHORITY_PINS (+10 more)
+
+### Community 554 - "Scoped Entry Worker"
+Cohesion: 0.36
+Nodes (7): sha(), owned(), writeMatrixChildReceipt(), runMatrixScopedEntry(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+
+### Community 24 - "Policy Native Manifest Ports"
+Cohesion: 0.06
+Nodes (38): REPO, HISTORICAL_BUNDLE, sha(), same(), buildWorkspaceCanonicalBytes(), TrustedCaseCoordinator, ownDirectory(), writeWorkspaceCaseReceipt() (+30 more)
+
+### Community 110 - "Mac Owned Host"
+Cohesion: 0.16
+Nodes (31): Fail(), napi_value, napi_env, GetPid(), GetOnePidArg(), napi_callback_info, SetNumber(), SetPath() (+23 more)
+
+### Community 317 - "Phase Journal"
+Cohesion: 0.20
+Nodes (9): sha(), clone(), casesFor(), ownDirectory(), ownFile(), exactTime(), initial(), apply() (+1 more)
+
+### Community 404 - "Scoped Transport Audit Policy"
+Cohesion: 0.21
+Nodes (6): sha(), SETUP_METHODS, copyBounded(), strict(), ScopedTransportAudit, canonical()
+
+### Community 580 - "Receipts.Mjs Component"
+Cohesion: 0.47
+Nodes (5): repo, entry, sha(), wire(), receipts()
+
+### Community 520 - "Canonical Variant Build"
+Cohesion: 0.27
+Nodes (9): HERE, REPO, FIXTURE, BRIDGE, R4_CANONICAL_BUILD, R4_CANONICAL_BUNDLE, sha(), transformT1Fixture() (+1 more)
+
+### Community 232 - "Journal.Mjs Component"
+Cohesion: 0.15
+Nodes (12): SUPERVISOR_ROOT, JOURNAL_ROOT, ZERO, KINDS, own(), copy(), validateOuter(), assertRoot() (+4 more)
+
+### Community 473 - "Scoped Entry Worker"
+Cohesion: 0.23
+Nodes (11): allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry(), BOOTSTRAP, SUPERVISOR, sha(), ancestors, ownedDirectory() (+3 more)
+
+### Community 474 - "Module Stage"
+Cohesion: 0.27
+Nodes (12): REPO, ORIGINAL_BUNDLE, ROOT_PACKAGE, PACKAGE_ROOTS, sha(), within(), clean(), sourceTarget() (+4 more)
+
+### Community 174 - "Journal.Mjs Component"
+Cohesion: 0.13
+Nodes (15): SUPERVISOR_ROOT, JOURNAL_ROOT, ZERO, KINDS, own(), copy(), retentionClocks(), retentionFromInit() (+7 more)
+
+### Community 581 - "Prior Attempt"
+Cohesion: 0.47
+Nodes (5): REPO, pinned, sha(), fail(), verifyPriorAttempt()
+
+### Community 475 - "Scoped Entry Worker"
+Cohesion: 0.23
+Nodes (11): allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry(), BOOTSTRAP, SUPERVISOR, sha(), ancestors, ownedDirectory() (+3 more)
+
+### Community 476 - "Module Stage"
+Cohesion: 0.27
+Nodes (12): REPO, ORIGINAL_BUNDLE, ROOT_PACKAGE, PACKAGE_ROOTS, sha(), within(), clean(), sourceTarget() (+4 more)
+
+### Community 145 - "T1-Runner.Mjs Component"
+Cohesion: 0.09
+Nodes (27): HERE, REPO, CASE_ROOT, SUPERVISOR, SCHEMAS, MANIFEST_DIR, MANIFEST_FILE, sha() (+19 more)
+
+### Community 193 - "Journal.Mjs Component"
+Cohesion: 0.14
+Nodes (14): SUPERVISOR_ROOT, JOURNAL_ROOT, ZERO, KINDS, own(), copy(), retentionClocks(), retentionFromInit() (+6 more)
+
+### Community 582 - "Prior Attempt"
+Cohesion: 0.47
+Nodes (5): REPO, pinned, sha(), fail(), verifyPriorAttempt()
+
+### Community 411 - "Protocol.Mjs Component"
+Cohesion: 0.27
+Nodes (8): record(), only(), nullableString(), textPosition(), textRange(), telemetryKinds, PROTOCOL_FAILURE_CATEGORIES, TrustedAppServerPeer
+
+### Community 477 - "Scoped Entry Worker"
+Cohesion: 0.23
+Nodes (11): allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry(), BOOTSTRAP, SUPERVISOR, sha(), ancestors, ownedDirectory() (+3 more)
+
+### Community 478 - "Module Stage"
+Cohesion: 0.27
+Nodes (12): REPO, ORIGINAL_BUNDLE, ROOT_PACKAGE, PACKAGE_ROOTS, sha(), within(), clean(), sourceTarget() (+4 more)
+
+### Community 146 - "T1-Runner.Mjs Component"
+Cohesion: 0.09
+Nodes (27): HERE, REPO, CASE_ROOT, SUPERVISOR, SCHEMAS, MANIFEST_DIR, MANIFEST_FILE, sha() (+19 more)
+
+### Community 175 - "Journal.Mjs Component"
+Cohesion: 0.13
+Nodes (15): SUPERVISOR_ROOT, JOURNAL_ROOT, ZERO, KINDS, own(), copy(), retentionClocks(), retentionFromInit() (+7 more)
+
+### Community 412 - "Protocol.Mjs Component"
+Cohesion: 0.27
+Nodes (8): record(), only(), nullableString(), textPosition(), textRange(), telemetryKinds, PROTOCOL_FAILURE_CATEGORIES, TrustedAppServerPeer
+
+### Community 479 - "Scoped Entry Worker"
+Cohesion: 0.23
+Nodes (11): allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry(), BOOTSTRAP, SUPERVISOR, sha(), ancestors, ownedDirectory() (+3 more)
+
+### Community 480 - "Module Stage"
+Cohesion: 0.27
+Nodes (12): REPO, ORIGINAL_BUNDLE, ROOT_PACKAGE, PACKAGE_ROOTS, sha(), within(), clean(), sourceTarget() (+4 more)
+
+### Community 167 - "T1-Runner.Mjs Component"
+Cohesion: 0.10
+Nodes (25): HERE, REPO, CASE_ROOT, SUPERVISOR, SCHEMAS, MANIFEST_DIR, MANIFEST_FILE, sha() (+17 more)
+
+### Community 176 - "Journal.Mjs Component"
+Cohesion: 0.13
+Nodes (15): SUPERVISOR_ROOT, JOURNAL_ROOT, ZERO, KINDS, own(), copy(), retentionClocks(), retentionFromInit() (+7 more)
+
+### Community 568 - "Notification Envelope Error Adapter"
+Cohesion: 0.36
+Nodes (4): own(), object(), inspectNotificationEnvelope(), NOTIFICATION_ENVELOPE_FAILURE_REASONS
+
+### Community 583 - "Prior Attempt"
+Cohesion: 0.47
+Nodes (5): REPO, pinned, sha(), fail(), verifyPriorAttempt()
+
+### Community 413 - "Protocol.Mjs Component"
+Cohesion: 0.27
+Nodes (8): record(), only(), nullableString(), textPosition(), textRange(), telemetryKinds, PROTOCOL_FAILURE_CATEGORIES, TrustedAppServerPeer
+
+### Community 481 - "Scoped Entry Worker"
+Cohesion: 0.23
+Nodes (11): allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry(), BOOTSTRAP, SUPERVISOR, sha(), ancestors, ownedDirectory() (+3 more)
+
+### Community 482 - "Module Stage"
+Cohesion: 0.27
+Nodes (12): REPO, ORIGINAL_BUNDLE, ROOT_PACKAGE, PACKAGE_ROOTS, sha(), within(), clean(), sourceTarget() (+4 more)
+
+### Community 168 - "T1-Runner.Mjs Component"
+Cohesion: 0.10
+Nodes (25): HERE, REPO, CASE_ROOT, SUPERVISOR, SCHEMAS, MANIFEST_DIR, MANIFEST_FILE, sha() (+17 more)
+
+### Community 196 - "Journal.Mjs Component"
+Cohesion: 0.14
+Nodes (14): SUPERVISOR_ROOT, JOURNAL_ROOT, ZERO, KINDS, own(), copy(), retentionClocks(), retentionFromInit() (+6 more)
+
+### Community 382 - "Native Descriptor Capture"
+Cohesion: 0.25
+Nodes (16): NATIVE_DESCRIPTOR_LIMITS, CaptureError, fail(), hashBytes(), own(), record(), canonical(), hashValue() (+8 more)
+
+### Community 414 - "Protocol Notification Envelope Error"
+Cohesion: 0.17
+Nodes (11): own(), object(), inspectNotificationEnvelope(), record(), only(), nullableString(), textPosition(), textRange() (+3 more)
+
+### Community 483 - "Scoped Entry Worker"
+Cohesion: 0.23
+Nodes (11): allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry(), BOOTSTRAP, SUPERVISOR, sha(), ancestors, ownedDirectory() (+3 more)
+
+### Community 191 - "Journal.Mjs Component"
+Cohesion: 0.14
+Nodes (14): SUPERVISOR_ROOT, JOURNAL_ROOT, ZERO, KINDS, own(), copy(), retentionClocks(), retentionFromInit() (+6 more)
+
+### Community 484 - "Module Stage"
+Cohesion: 0.27
+Nodes (12): REPO, ORIGINAL_BUNDLE, ROOT_PACKAGE, PACKAGE_ROOTS, sha(), within(), clean(), sourceTarget() (+4 more)
+
+### Community 485 - "Scoped Entry Worker"
+Cohesion: 0.23
+Nodes (11): BOOTSTRAP, SUPERVISOR, sha(), ancestors, ownedDirectory(), t1ReceiptContext(), writeT1ChildReceipt(), runT1ScopedEntry() (+3 more)
+
+### Community 292 - "Workspace Runner Mcp Readiness"
+Cohesion: 0.16
+Nodes (21): ownDirectory(), writeWorkspaceCaseReceipt(), exact(), verifyWorkspaceMcpReceipt(), createTrustedLauncher(), sha(), T3, initialize() (+13 more)
+
+### Community 509 - "Prior-T2.Mjs Component"
+Cohesion: 0.25
+Nodes (10): REPO, T2_ARCHIVE, T2_INDEX, T2_ACTUAL_REVIEW, sha(), safeCopy(), caseIds, safeSource() (+2 more)
+
+### Community 555 - "Scoped Entry Worker"
+Cohesion: 0.36
+Nodes (7): sha(), owned(), writeWorkspaceChildReceipt(), runWorkspaceScopedEntry(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+
+### Community 396 - "Entrypoint.Mjs Component"
+Cohesion: 0.19
+Nodes (15): HERE, REPO, ENTRYPOINT, REVIEW, ADDON, requestActions, sha(), macTextEncoding() (+7 more)
+
+### Community 361 - "Prior-T2.Mjs Component"
+Cohesion: 0.15
+Nodes (20): REPO, T2_MANIFEST, T2_ARCHIVE, T2_INDEX, T2_ACTUAL_REVIEW, EXACT_REVIEW, USER_DECISION, R12_ENTRY (+12 more)
+
+### Community 261 - "Native Contracts Manifest Canonical"
+Cohesion: 0.13
+Nodes (23): REPO, HISTORICAL_BUNDLE, sha(), same(), buildWorkspaceCanonicalBytes(), DEDICATED_TOOL_HELPER_SOURCE_EXPECTATIONS, HERE, REPO (+15 more)
+
+### Community 217 - "Entrypoint.Mjs Component"
+Cohesion: 0.13
+Nodes (25): HERE, REPO, ENTRYPOINT, REVIEW, DECISION, AUTHORIZATION_CONTEXT, STANDING_AUTHORIZATION, ADDON (+17 more)
+
+### Community 293 - "Protocol Framing"
+Cohesion: 0.15
+Nodes (13): CountedJsonLines, record(), only(), nullableString(), textPosition(), textRange(), b14Workspace, approvalFields (+5 more)
+
+### Community 495 - "Native Session Diagnostic"
+Cohesion: 0.18
+Nodes (10): NATIVE_SESSION_DIAGNOSTIC_STAGES, NATIVE_SESSION_ROUTE_REASONS, errorReasons, NATIVE_SESSION_DIAGNOSTIC_REASONS, stages, reasons, routeReasons, exactErrors (+2 more)
+
+### Community 486 - "Preparation.Mjs Component"
+Cohesion: 0.24
+Nodes (12): HERE, REPO, MATRIX_BUILD, MATRIX_MANIFEST, MATRIX_CANONICAL, sha(), buildWorkspacePreparationEnvelope(), serializeWorkspacePreparation() (+4 more)
+
+### Community 383 - "R34 Evidence"
+Cohesion: 0.18
+Nodes (18): REPO, MANIFEST, TERMINAL, INDEX, CASES, KINDS, sameFile(), sha() (+10 more)
+
+### Community 556 - "Scoped Entry Worker"
+Cohesion: 0.42
+Nodes (7): sha(), owned(), writeWorkspaceChildReceipt(), runWorkspaceScopedEntry(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+
+### Community 262 - "Native Contracts Manifest Canonical"
+Cohesion: 0.13
+Nodes (23): REPO, HISTORICAL_BUNDLE, sha(), same(), buildWorkspaceCanonicalBytes(), DEDICATED_TOOL_HELPER_SOURCE_EXPECTATIONS, HERE, REPO (+15 more)
+
+### Community 102 - "Entrypoint Preparation"
+Cohesion: 0.09
+Nodes (36): HERE, REPO, ENTRYPOINT, REVIEW, DECISION, AUTHORIZATION_CONTEXT, STANDING_AUTHORIZATION, ADDON (+28 more)
+
+### Community 177 - "Protocol Framing"
+Cohesion: 0.13
+Nodes (17): CountedJsonLines, record(), only(), nullableString(), textPosition(), textRange(), b14Workspace, approvalFields (+9 more)
+
+### Community 458 - "Matrix Stage"
+Cohesion: 0.20
+Nodes (13): HERE, REPO, sha(), inside(), PACKAGE, SDK_DEPENDENCIES, PRISMA_CLIENT, GENERATED_PRISMA (+5 more)
+
+### Community 496 - "Native Session Diagnostic"
+Cohesion: 0.18
+Nodes (10): NATIVE_SESSION_DIAGNOSTIC_STAGES, NATIVE_SESSION_ROUTE_REASONS, errorReasons, NATIVE_SESSION_DIAGNOSTIC_REASONS, stages, reasons, routeReasons, exactErrors (+2 more)
+
+### Community 510 - "Owned Scratch Proof"
+Cohesion: 0.33
+Nodes (10): cases, fail(), exactInteger(), metadata(), sameMetadata(), sameDirectory(), ownedDirectory(), ownedFile() (+2 more)
+
+### Community 341 - "R37 Evidence"
+Cohesion: 0.18
+Nodes (21): REPO, MANIFEST, TERMINAL, INDEX, CASES, KINDS, same(), sameFile() (+13 more)
+
+### Community 557 - "Scoped Entry Worker"
+Cohesion: 0.42
+Nodes (7): sha(), owned(), writeWorkspaceChildReceipt(), runWorkspaceScopedEntry(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+
+### Community 25 - "Workspace Runner Policy Manifest"
+Cohesion: 0.05
+Nodes (62): REPO, HISTORICAL_BUNDLE, sha(), same(), buildWorkspaceCanonicalBytes(), ownDirectory(), writeWorkspaceCaseReceipt(), prepareTrustedCase() (+54 more)
+
+### Community 103 - "Entrypoint Preparation"
+Cohesion: 0.09
+Nodes (36): HERE, REPO, ENTRYPOINT, REVIEW, DECISION, AUTHORIZATION_CONTEXT, STANDING_AUTHORIZATION, ADDON (+28 more)
+
+### Community 178 - "Protocol Framing"
+Cohesion: 0.13
+Nodes (17): CountedJsonLines, record(), only(), nullableString(), textPosition(), textRange(), b14Workspace, approvalFields (+9 more)
+
+### Community 497 - "Native Session Diagnostic"
+Cohesion: 0.18
+Nodes (10): NATIVE_SESSION_DIAGNOSTIC_STAGES, NATIVE_SESSION_ROUTE_REASONS, errorReasons, NATIVE_SESSION_DIAGNOSTIC_REASONS, stages, reasons, routeReasons, exactErrors (+2 more)
+
+### Community 558 - "Scoped Entry Worker"
+Cohesion: 0.42
+Nodes (7): sha(), owned(), writeWorkspaceChildReceipt(), runWorkspaceScopedEntry(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+
+### Community 26 - "Workspace Runner Policy Manifest"
+Cohesion: 0.05
+Nodes (62): REPO, HISTORICAL_BUNDLE, sha(), same(), buildWorkspaceCanonicalBytes(), ownDirectory(), writeWorkspaceCaseReceipt(), prepareTrustedCase() (+54 more)
+
+### Community 104 - "Entrypoint Preparation"
+Cohesion: 0.09
+Nodes (36): HERE, REPO, ENTRYPOINT, REVIEW, DECISION, AUTHORIZATION_CONTEXT, STANDING_AUTHORIZATION, ADDON (+28 more)
+
+### Community 179 - "Protocol Framing"
+Cohesion: 0.13
+Nodes (17): CountedJsonLines, record(), only(), nullableString(), textPosition(), textRange(), b14Workspace, approvalFields (+9 more)
+
+### Community 498 - "Native Session Diagnostic"
+Cohesion: 0.18
+Nodes (10): NATIVE_SESSION_DIAGNOSTIC_STAGES, NATIVE_SESSION_ROUTE_REASONS, errorReasons, NATIVE_SESSION_DIAGNOSTIC_REASONS, stages, reasons, routeReasons, exactErrors (+2 more)
+
+### Community 331 - "R41 Evidence"
+Cohesion: 0.18
+Nodes (22): REPO, MANIFEST, TERMINAL, INDEX, CASES, KINDS, same(), sameFile() (+14 more)
+
+### Community 559 - "Scoped Entry Worker"
+Cohesion: 0.42
+Nodes (7): sha(), owned(), writeWorkspaceChildReceipt(), runWorkspaceScopedEntry(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+
+### Community 96 - "Entrypoint Preparation"
+Cohesion: 0.09
+Nodes (37): HERE, REPO, ENTRYPOINT, REVIEW, DECISION, AUTHORIZATION_CONTEXT, STANDING_AUTHORIZATION, ADDON (+29 more)
+
+### Community 180 - "Protocol Framing"
+Cohesion: 0.13
+Nodes (17): CountedJsonLines, record(), only(), nullableString(), textPosition(), textRange(), b14Workspace, approvalFields (+9 more)
+
+### Community 459 - "Matrix Stage"
+Cohesion: 0.20
+Nodes (13): HERE, REPO, sha(), inside(), PACKAGE, SDK_DEPENDENCIES, PRISMA_CLIENT, GENERATED_PRISMA (+5 more)
+
+### Community 499 - "Native Session Diagnostic"
+Cohesion: 0.18
+Nodes (10): NATIVE_SESSION_DIAGNOSTIC_STAGES, NATIVE_SESSION_ROUTE_REASONS, errorReasons, NATIVE_SESSION_DIAGNOSTIC_REASONS, stages, reasons, routeReasons, exactErrors (+2 more)
+
+### Community 560 - "Scoped Entry Worker"
+Cohesion: 0.42
+Nodes (7): sha(), owned(), writeWorkspaceChildReceipt(), runWorkspaceScopedEntry(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+
+### Community 44 - "Workspace Runner Policy Native"
+Cohesion: 0.05
+Nodes (61): REPO, HISTORICAL_BUNDLE, sha(), same(), buildWorkspaceCanonicalBytes(), ownDirectory(), writeWorkspaceCaseReceipt(), prepareTrustedCase() (+53 more)
+
+### Community 105 - "Entrypoint Preparation"
+Cohesion: 0.09
+Nodes (36): HERE, REPO, ENTRYPOINT, REVIEW, DECISION, AUTHORIZATION_CONTEXT, STANDING_AUTHORIZATION, ADDON (+28 more)
+
+### Community 181 - "Protocol Framing"
+Cohesion: 0.13
+Nodes (17): CountedJsonLines, record(), only(), nullableString(), textPosition(), textRange(), b14Workspace, approvalFields (+9 more)
+
+### Community 342 - "R52 Evidence Native Ports"
+Cohesion: 0.16
+Nodes (21): verifyR52HistoricalClosure(), REPO, MANIFEST, TERMINAL, INDEX, ROOT_IDENTITY, KINDS, PENDING (+13 more)
+
+### Community 500 - "Native Session Diagnostic"
+Cohesion: 0.18
+Nodes (10): NATIVE_SESSION_DIAGNOSTIC_STAGES, NATIVE_SESSION_ROUTE_REASONS, errorReasons, NATIVE_SESSION_DIAGNOSTIC_REASONS, stages, reasons, routeReasons, exactErrors (+2 more)
+
+### Community 97 - "Owned Scratch Proof"
+Cohesion: 0.33
+Nodes (10): cases, fail(), exactInteger(), metadata(), sameMetadata(), sameDirectory(), ownedDirectory(), ownedFile() (+2 more)
+
+### Community 460 - "Native Session Diagnostic"
+Cohesion: 0.15
+Nodes (11): NATIVE_SESSION_DIAGNOSTIC_STAGES, NATIVE_SESSION_ROUTE_REASONS, directoryErrorReasons, errorReasons, NATIVE_SESSION_DIAGNOSTIC_REASONS, stages, reasons, routeReasons (+3 more)
+
+### Community 428 - "Owned Scratch Proof"
+Cohesion: 0.22
+Nodes (14): cases, fail(), exactInteger(), metadata(), sameMetadata(), sameDirectory(), anchorRoles, identityComponents (+6 more)
+
+### Community 114 - "Native Contracts Manifest Preparation"
+Cohesion: 0.09
+Nodes (34): REPO, HISTORICAL_BUNDLE, sha(), same(), buildWorkspaceCanonicalBytes(), DEDICATED_TOOL_HELPER_SOURCE_EXPECTATIONS, HERE, REPO (+26 more)
+
+### Community 218 - "Entrypoint.Mjs Component"
+Cohesion: 0.13
+Nodes (25): HERE, REPO, ENTRYPOINT, REVIEW, DECISION, AUTHORIZATION_CONTEXT, STANDING_AUTHORIZATION, ADDON (+17 more)
+
+### Community 182 - "Protocol Framing"
+Cohesion: 0.13
+Nodes (17): CountedJsonLines, record(), only(), nullableString(), textPosition(), textRange(), b14Workspace, approvalFields (+9 more)
+
+### Community 461 - "Matrix Stage"
+Cohesion: 0.20
+Nodes (13): HERE, REPO, sha(), inside(), PACKAGE, SDK_DEPENDENCIES, PRISMA_CLIENT, GENERATED_PRISMA (+5 more)
+
+### Community 332 - "R54 Evidence Native Ports"
+Cohesion: 0.15
+Nodes (22): verifyR54HistoricalClosure(), REPO, MANIFEST, TERMINAL, INDEX, ROOT_IDENTITY, KINDS, PENDING (+14 more)
+
+### Community 487 - "Native Session Diagnostic"
+Cohesion: 0.17
+Nodes (11): NATIVE_SESSION_DIAGNOSTIC_STAGES, NATIVE_SESSION_ROUTE_REASONS, directoryErrorReasons, errorReasons, NATIVE_SESSION_DIAGNOSTIC_REASONS, stages, reasons, routeReasons (+3 more)
+
+### Community 429 - "Owned Scratch Proof"
+Cohesion: 0.22
+Nodes (14): cases, fail(), exactInteger(), metadata(), sameMetadata(), sameDirectory(), anchorRoles, identityComponents (+6 more)
+
+### Community 561 - "Scoped Entry Worker"
+Cohesion: 0.42
+Nodes (7): sha(), owned(), writeWorkspaceChildReceipt(), runWorkspaceScopedEntry(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+
+### Community 106 - "Entrypoint Preparation"
+Cohesion: 0.09
+Nodes (36): HERE, REPO, ENTRYPOINT, REVIEW, DECISION, AUTHORIZATION_CONTEXT, STANDING_AUTHORIZATION, ADDON (+28 more)
+
+### Community 139 - "Protocol Framing"
+Cohesion: 0.11
+Nodes (20): CountedJsonLines, record(), only(), nullableString(), textPosition(), textRange(), b14Workspace, approvalFields (+12 more)
+
+### Community 462 - "Matrix Stage"
+Cohesion: 0.20
+Nodes (13): HERE, REPO, sha(), inside(), PACKAGE, SDK_DEPENDENCIES, PRISMA_CLIENT, GENERATED_PRISMA (+5 more)
+
+### Community 488 - "Native Session Diagnostic"
+Cohesion: 0.17
+Nodes (11): NATIVE_SESSION_DIAGNOSTIC_STAGES, NATIVE_SESSION_ROUTE_REASONS, directoryErrorReasons, errorReasons, NATIVE_SESSION_DIAGNOSTIC_REASONS, stages, reasons, routeReasons (+3 more)
+
+### Community 463 - "Owned Scratch Proof"
+Cohesion: 0.23
+Nodes (13): cases, fail(), exactInteger(), metadata(), sameMetadata(), sameDirectory(), anchorRoles, identityComponents (+5 more)
+
+### Community 186 - "Blocked Component"
+Cohesion: 0.18
+Nodes (18): Blocked, encoded(), digest(), load_policy(), validate_policy(), planning_manifest(), case_configuration(), BudgetJournal (+10 more)
+
+### Community 464 - "M06 Analysis Child Charter"
+Cohesion: 0.27
+Nodes (12): analysisCharter(), send(), reply(), fixtureIsolationChecked(), initialize(), readEnvelope(), candidateCharter(), analysisCandidate() (+4 more)
+
+### Community 576 - "M04 Provider Intent Backfill"
+Cohesion: 0.29
+Nodes (4): workspace, dbPath, db, tables
+
+### Community 467 - "M06 Native Patch"
+Cohesion: 0.16
+Nodes (8): upstreamSource, blob(), roots, root, bin, fixture(), prepare(), licenseFixture()
+
+### Community 472 - "Process State"
+Cohesion: 0.19
+Nodes (12): R33 process-state observation, processState, MakeIdentity, PROC_PIDTBSDINFO, identity(pid), directChildMetadata(parentPid, childPid), SRUN / RUNNABLE, SSLEEP / SLEEPING (+4 more)
+
+### Community 457 - "Native Addon"
+Cohesion: 0.19
+Nodes (14): M02 owned Code Mode host observer, spawnOwnedCodex, assertLiveHostBeforeCaseComplete(), stopAndVerify(), UNKNOWN cleanup, Native addon, allowedDirectChildPaths, verifyPinnedHostBinary() (+6 more)
 
 ## Knowledge Gaps
 - **4793 isolated node(s):** `root`, `registry`, `fixtureRoot`, `delay`, `root` (+4788 more)
@@ -2990,17 +2994,67 @@ Nodes (4): result, root, ensureOperationHandlerSourceCurrent(), sourceCheckOptio
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `digest()` connect `Community 9` to `Community 0`, `Community 1`, `Community 2`, `Community 3`, `Community 4`, `Community 5`, `Community 6`, `Community 8`, `Community 10`, `Community 11`, `Community 13`, `Community 16`, `Community 17`, `Community 530`, `Community 532`, `Community 20`, `Community 22`, `Community 21`, `Community 24`, `Community 23`, `Community 27`, `Community 29`, `Community 30`, `Community 32`, `Community 34`, `Community 35`, `Community 39`, `Community 49`, `Community 50`, `Community 56`, `Community 570`, `Community 60`, `Community 62`, `Community 64`, `Community 66`, `Community 69`, `Community 70`, `Community 83`, `Community 89`, `Community 90`, `Community 98`, `Community 99`, `Community 100`, `Community 104`, `Community 106`, `Community 108`, `Community 114`, `Community 115`, `Community 118`, `Community 119`, `Community 120`, `Community 121`, `Community 122`, `Community 123`, `Community 124`, `Community 125`, `Community 126`, `Community 127`, `Community 128`, `Community 132`, `Community 645`, `Community 134`, `Community 133`, `Community 136`, `Community 137`, `Community 138`, `Community 648`, `Community 140`, `Community 141`, `Community 142`, `Community 139`, `Community 660`, `Community 150`, `Community 151`, `Community 152`, `Community 662`, `Community 154`, `Community 157`, `Community 158`, `Community 671`, `Community 166`, `Community 167`, `Community 169`, `Community 170`, `Community 172`, `Community 173`, `Community 686`, `Community 178`, `Community 179`, `Community 180`, `Community 181`, `Community 182`, `Community 183`, `Community 184`, `Community 185`, `Community 189`, `Community 190`, `Community 192`, `Community 200`, `Community 204`, `Community 205`, `Community 218`, `Community 219`, `Community 224`, `Community 225`, `Community 226`, `Community 227`, `Community 228`, `Community 229`, `Community 231`, `Community 232`, `Community 233`, `Community 234`, `Community 235`, `Community 237`, `Community 238`, `Community 239`, `Community 242`, `Community 243`, `Community 244`, `Community 246`, `Community 247`, `Community 248`, `Community 249`, `Community 250`, `Community 251`, `Community 252`, `Community 253`, `Community 255`, `Community 256`, `Community 257`, `Community 258`, `Community 259`, `Community 260`, `Community 263`, `Community 264`, `Community 267`, `Community 270`, `Community 273`, `Community 274`, `Community 275`, `Community 276`, `Community 280`, `Community 281`, `Community 283`, `Community 286`, `Community 287`, `Community 288`, `Community 289`, `Community 290`, `Community 291`, `Community 293`, `Community 294`, `Community 295`, `Community 296`, `Community 297`, `Community 298`, `Community 305`, `Community 306`, `Community 307`, `Community 308`, `Community 309`, `Community 313`, `Community 315`, `Community 316`, `Community 319`, `Community 320`, `Community 322`, `Community 323`, `Community 327`, `Community 328`, `Community 330`, `Community 332`, `Community 333`, `Community 337`, `Community 338`, `Community 339`, `Community 340`, `Community 341`, `Community 348`, `Community 354`, `Community 355`, `Community 358`, `Community 361`, `Community 364`, `Community 371`, `Community 374`, `Community 380`, `Community 381`, `Community 383`, `Community 384`, `Community 385`, `Community 386`, `Community 387`, `Community 391`, `Community 394`, `Community 395`, `Community 396`, `Community 402`, `Community 405`, `Community 411`, `Community 417`, `Community 418`, `Community 422`, `Community 424`, `Community 426`, `Community 429`, `Community 430`, `Community 439`, `Community 441`, `Community 443`, `Community 448`, `Community 451`, `Community 463`, `Community 470`, `Community 471`, `Community 499`?**
-  _High betweenness centrality (0.334) - this node is a cross-community bridge._
-- **Why does `casePolicy()` connect `Community 642` to `Community 2`, `Community 515`, `Community 6`, `Community 7`, `Community 9`, `Community 10`, `Community 521`, `Community 12`, `Community 523`, `Community 14`, `Community 527`, `Community 16`, `Community 15`, `Community 526`, `Community 531`, `Community 20`, `Community 534`, `Community 535`, `Community 536`, `Community 537`, `Community 31`, `Community 34`, `Community 37`, `Community 39`, `Community 41`, `Community 46`, `Community 564`, `Community 53`, `Community 567`, `Community 568`, `Community 59`, `Community 60`, `Community 71`, `Community 72`, `Community 73`, `Community 74`, `Community 75`, `Community 76`, `Community 77`, `Community 78`, `Community 80`, `Community 81`, `Community 82`, `Community 85`, `Community 90`, `Community 93`, `Community 95`, `Community 97`, `Community 113`, `Community 633`, `Community 627`, `Community 116`, `Community 629`, `Community 628`, `Community 120`, `Community 121`, `Community 122`, `Community 123`, `Community 124`, `Community 637`, `Community 638`, `Community 639`, `Community 125`, `Community 641`, `Community 126`, `Community 127`, `Community 128`, `Community 648`, `Community 139`, `Community 143`, `Community 658`, `Community 659`, `Community 660`, `Community 149`, `Community 667`, `Community 157`, `Community 159`, `Community 160`, `Community 161`, `Community 162`, `Community 166`, `Community 682`, `Community 683`, `Community 686`, `Community 174`, `Community 178`, `Community 179`, `Community 180`, `Community 182`, `Community 183`, `Community 184`, `Community 190`, `Community 231`, `Community 233`, `Community 235`, `Community 242`, `Community 243`, `Community 244`, `Community 246`, `Community 247`, `Community 248`, `Community 249`, `Community 250`, `Community 251`, `Community 252`, `Community 253`, `Community 254`, `Community 255`, `Community 256`, `Community 257`, `Community 258`, `Community 262`, `Community 268`, `Community 270`, `Community 273`, `Community 276`, `Community 282`, `Community 285`, `Community 287`, `Community 292`, `Community 298`, `Community 303`, `Community 309`, `Community 315`, `Community 317`, `Community 318`, `Community 322`, `Community 326`, `Community 337`, `Community 338`, `Community 351`, `Community 359`, `Community 361`, `Community 374`, `Community 375`, `Community 382`, `Community 391`, `Community 392`, `Community 397`, `Community 398`, `Community 400`, `Community 401`, `Community 410`, `Community 422`, `Community 426`, `Community 427`, `Community 429`, `Community 430`, `Community 435`, `Community 439`, `Community 441`, `Community 450`, `Community 472`, `Community 474`, `Community 478`, `Community 482`, `Community 492`, `Community 494`, `Community 495`, `Community 496`, `Community 497`, `Community 498`, `Community 499`, `Community 501`, `Community 503`, `Community 504`, `Community 510`?**
-  _High betweenness centrality (0.165) - this node is a cross-community bridge._
-- **Why does `readFileSync()` connect `Community 372` to `Community 130`, `Community 131`, `Community 148`, `Community 662`, `Community 673`, `Community 36`, `Community 165`, `Community 43`, `Community 299`, `Community 44`, `Community 51`, `Community 52`, `Community 55`, `Community 446`, `Community 324`, `Community 203`, `Community 86`, `Community 88`, `Community 369`, `Community 117`?**
-  _High betweenness centrality (0.074) - this node is a cross-community bridge._
+- **Why does `digest()` connect `Policy Composition Plans Approval` to `Evidence R28 Success R27`, `Evidence R28 Success Preparation`, `R29 Evidence Preparation Runtime`, `Evidence R32 R30 Preparation`, `Evidence Provider Diagnostic R21`, `Codec Policy Script Session`, `Phase Policy Outer Journal`, `Readiness Mcp Journal Adapter`, `Matrix Runner Policy Diagnostic`, `Policy Manifest R24 Evidence`, `Codex App Server M02`, `Runner Module Stage Codex`, `Evidence Policy Manifest Runtime`, `Policy Entrypoint Runtime Effects`, `Preparation.Mjs Component`, `Evidence Policy Runtime Effects`, `Ta06 Archive Evidence History`, `Policy Native Manifest Ports`, `Workspace Runner Policy Manifest`, `Workspace Runner Policy Manifest`, `Codex App Server M02`, `Evidence R34 R35`, `Policy Manifest Provider Failure`, `Workspace Runner Policy Manifest`, `Policy Manifest Full Budget`, `Workspace Runner Policy Native`, `Protocol P00 Storage Codex`, `Evidence Preparation R21 Sealed`, `Protocol P00 Permission Request`, `R44 Evidence Child Path`, `Manifest Canonical Build R21`, `Evidence R29 R32 R30`, `Entrypoint Preparation Specimencheck Receipts`, `Evidence R35 R36`, `Policy Manifest Runtime Effects`, `Package Qualification Codex App`, `R43 Evidence Preparation Manifest`, `Entrypoint Preparation Specimencheck`, `Entrypoint Preparation`, `Manifest Preflight Evidence Canonical`, `Manifest Policy Preparation Canonical`, `Entrypoint Preparation Specimencheck`, `Policy Runtime Effects Manifest`, `Entrypoint Preparation`, `Entrypoint Preparation`, `Entrypoint Preparation`, `Entrypoint Preparation`, `Entrypoint Preparation`, `Manifest Git Readiness Canonical`, `Entrypoint Preparation Manifest`, `Native Contracts Manifest Preparation`, `Entrypoint Preparation Manifest`, `Protocol P00 Rate Limit`, `Manifest Preparation Canonical Build`, `Protocol P00 Permission Request`, `Protocol P00 Permission Request`, `Protocol P00 Permission Request`, `Entrypoint Preparation`, `Protocol P00 Permission Request`, `Protocol P00 Permission Request`, `Protocol P00 Permission Request`, `Protocol P00 Permission Request`, `Protocol P00 Permission Request`, `Entrypoint Preparation`, `History Evidence R33 R32`, `Git Readiness Host File`, `Policy Environment Profile Manifest`, `Protocol Framing`, `Entrypoint Preparation`, `Entrypoint Preparation`, `History Evidence R27 R28`, `Evidence R32 R30 R21`, `Manifest Canonical Build Startup`, `Manifest Canonical Build Codex`, `Protocol P00 Permission Request`, `Policy Environment Profile Runtime`, `R51 Evidence Process State`, `Entrypoint Preparation`, `History Evidence R29 R30`, `Protocol Framing`, `Protocol Framing`, `Protocol Framing`, `Protocol Framing`, `Protocol Framing`, `Protocol Framing`, `Entrypoint Preparation`, `Canonical Build Manifest`, `R39 Evidence Process State`, `R21 Evidence Manifest Canonical`, `R22 Evidence`, `Policy Canonical Build Manifest`, `Entrypoint.Mjs Component`, `Entrypoint.Mjs Component`, `R41 Evidence Process State`, `R41 Evidence Runtime Effects`, `R43 Evidence Runtime Effects`, `Manifest Host File Canonical`, `R43 Evidence`, `R43 Evidence`, `Manifest Codex App Server`, `Protocol Codex App Server`, `Matrix Runner Policy Launcher`, `Policy Environment Profile Runtime`, `R36 Evidence`, `R36 Evidence`, `R36 Evidence`, `R41 Evidence`, `R44 Evidence Process State`, `R36 Evidence`, `R41 Evidence`, `R43 Evidence`, `Protocol P00 Framing`, `R36 Evidence`, `R41 Evidence`, `R43 Evidence`, `Policy Environment Profile Phase`, `R36 Evidence`, `R41 Evidence`, `R36 Evidence`, `Protocol P00 Framing`, `R36 Evidence`, `Native Contracts Manifest Canonical`, `Native Contracts Manifest Canonical`, `Manifest Preparation Canonical Build`, `Protocol P00 Framing`, `Protocol P00 Framing`, `Protocol P00 Framing`, `Protocol P00 Framing`, `Protocol P00 Framing`, `Protocol P00 Framing`, `Protocol P00 Framing`, `Protocol P00 Framing`, `Protocol P00 Framing`, `Protocol P00 Framing`, `Protocol P00 Framing`, `Protocol P00 Framing`, `Protocol P00 Framing`, `Protocol P00 Framing`, `Protocol P00 Framing`, `R37 Evidence Process State`, `R36 Evidence`, `History R43 Evidence`, `R37 Evidence`, `Workspace Runner Mcp Readiness`, `Protocol Framing`, `Entrypoint Codex App Server`, `Entrypoint.Mjs Component`, `Entrypoint.Mjs Component`, `History R34 Evidence Preparation`, `Entrypoint.Mjs Component`, `Entrypoint.Mjs Component`, `R37 Evidence`, `R37 Evidence`, `R37 Evidence`, `Manifest Stage Progress Canonical`, `History R36 Evidence`, `History R37 Evidence`, `History R41 Evidence`, `R37 Evidence`, `Policy Environment Profile Runtime`, `R37 Evidence`, `R41 Evidence`, `R37 Evidence`, `Entrypoint.Mjs Component`, `Entrypoint.Mjs Component`, `Entrypoint.Mjs Component`, `Entrypoint.Mjs Component`, `Entrypoint.Mjs Component`, `Entrypoint.Mjs Component`, `Entrypoint.Mjs Component`, `Entrypoint.Mjs Component`, `Entrypoint.Mjs Component`, `R41 Evidence`, `R54 Evidence Native Ports`, `Provider Failure Launcher Runtime`, `Policy Manifest Canonical Build`, `R37 Evidence`, `R52 Evidence Native Ports`, `Entrypoint.Mjs Component`, `Prior Evidence Codex App`, `Matrix Runner Policy Launcher`, `Preparation Manifest Specimencheck`, `Entrypoint.Mjs Component`, `R35 Evidence`, `R35 Evidence`, `R35 Evidence`, `R35 Evidence`, `R35 Evidence`, `R35 Evidence`, `R35 Evidence`, `R35 Evidence`, `Prior-T2.Mjs Component`, `Entrypoint.Mjs Component`, `Entrypoint.Mjs Component`, `Entrypoint.Mjs Component`, `Entrypoint.Mjs Component`, `R33 Evidence Runtime Effects`, `Protocol P00`, `Protocol P00`, `History R35 Evidence`, `R48 Evidence`, `R48 Evidence`, `R34 Evidence`, `Manifest Canonical Build`, `Codex App Server M02`, `Entrypoint.Mjs Component`, `Scoped Transport Audit Policy`, `Codex App Server M02`, `Prior Evidence Codex App`, `Codex App Server M02`, `Canonical Build Manifest Policy`, `Protocol Notification Envelope Error`, `Preparation Manifest`, `Preparation Manifest`, `Preparation.Mjs Component`, `Preparation Manifest`, `Preparation.Mjs Component`, `Preparation.Mjs Component`, `Preparation.Mjs Component`, `Codex App Server M02`, `Codex App Server M02`, `Specimencheck Preparation Codex App`, `Preparation.Mjs Component`, `Preparation.Mjs Component`?**
+  _High betweenness centrality (0.337) - this node is a cross-community bridge._
+- **Why does `casePolicy()` connect `Route Sealed Capture Case` to `Case Coordinator`, `R29 Evidence Preparation Runtime`, `Case Coordinator`, `Policy Composition Plans Approval`, `Session Native Script Route`, `Evidence Provider Diagnostic R21`, `Codec Policy Script Session`, `Case Coordinator`, `Phase Policy Outer Journal`, `Readiness Mcp Journal Adapter`, `Matrix Runner Policy Diagnostic`, `Policy Manifest R24 Evidence`, `Case Coordinator`, `Case Coordinator`, `Evidence Policy Manifest Runtime`, `Policy Entrypoint Runtime Effects`, `Evidence Policy Runtime Effects`, `Scoped Entry Worker`, `Scoped Entry Worker`, `Scoped Entry Worker`, `Case Coordinator`, `Scoped Entry Worker`, `Runner Matrix Workspace Diagnostic`, `Policy Native Manifest Ports`, `Scoped Entry Worker`, `Workspace Runner Policy Manifest`, `Scoped Entry Worker`, `Scoped Entry Worker`, `Scoped Entry Worker`, `Scoped Entry Worker`, `Scoped Entry Worker`, `Scoped Entry Worker`, `Scoped Entry Worker`, `Scoped Entry Worker`, `Scoped Entry Worker`, `Scoped Entry Worker`, `Diagnostic Matrix Runner Late`, `Scoped Entry Worker`, `Case Coordinator`, `Scoped Entry Worker`, `Case Diagnostic Matrix Runner`, `Diagnostic Matrix Runner Child`, `Policy Manifest Full Budget`, `Scoped Entry Worker`, `Scoped Entry Worker`, `Scoped Entry Worker`, `Protocol P00 Storage Codex`, `Scoped Entry Worker`, `Scoped Entry Worker`, `Scoped Entry Worker`, `Scoped Entry Worker`, `Matrix Case Diagnostic Runner`, `Case Matrix Runner Late`, `Scoped Entry Worker`, `Scoped Entry Worker`, `Finite Responses Continuation Diagnostic`, `Protocol P00 Permission Request`, `Scoped Entry Worker`, `Workspace Runner Matrix Stage`, `Case Coordinator`, `Script Session Continuation Diagnostic`, `Case Coordinator`, `Matrix Runner Codex App`, `Case Coordinator`, `Finite Responses Continuation Diagnostic`, `Finite Responses Continuation Diagnostic`, `Finite Responses Continuation Diagnostic`, `Scoped Entry`, `Scoped Entry`, `Scoped Entry`, `Finite Responses Continuation Diagnostic`, `Finite Responses Continuation Diagnostic`, `Finite Responses Continuation Diagnostic`, `Finite Responses Continuation Diagnostic`, `Finite Responses Continuation Diagnostic`, `Finite Responses Continuation Diagnostic`, `Policy Manifest Runtime Effects`, `Scoped Entry`, `Scoped Entry`, `Host File Workspace Runner`, `Manifest Policy Preparation Canonical`, `Policy Runtime Effects Manifest`, `Matrix Runner Stage Policy`, `Protocol P00 Rate Limit`, `Protocol P00 Permission Request`, `Protocol P00 Permission Request`, `Protocol P00 Permission Request`, `Protocol P00 Permission Request`, `Protocol P00 Permission Request`, `Protocol P00 Permission Request`, `Protocol P00 Permission Request`, `Protocol P00 Permission Request`, `Workspace Runner Policy Manifest`, `Policy Environment Profile Manifest`, `Protocol Framing`, `Case Late Diagnostic Matrix`, `Matrix Runner Stage Case`, `Protocol P00 Permission Request`, `Finite Responses Continuation Diagnostic`, `Policy Environment Profile Runtime`, `Finite Responses Continuation Diagnostic`, `Finite Responses Continuation Diagnostic`, `Finite Responses Continuation Diagnostic`, `Finite Responses Continuation Diagnostic`, `Finite Responses Continuation Diagnostic`, `Policy Manifest Provider Failure`, `Finite Responses Continuation Diagnostic`, `Finite Responses Continuation Diagnostic`, `Protocol Framing`, `Protocol Framing`, `Protocol Framing`, `Protocol Framing`, `Protocol Framing`, `Protocol Framing`, `Workspace Runner Policy Manifest`, `Finite Responses Continuation Diagnostic`, `Policy Canonical Build Manifest`, `Workspace Runner Policy Native`, `Protocol Codex App Server`, `Matrix Runner Policy Launcher`, `Policy Environment Profile Runtime`, `Protocol P00 Framing`, `Policy Environment Profile Phase`, `Protocol P00 Framing`, `Protocol P00 Framing`, `Protocol P00 Framing`, `Protocol P00 Framing`, `Protocol P00 Framing`, `Protocol P00 Framing`, `Protocol P00 Framing`, `Protocol P00 Framing`, `Protocol P00 Framing`, `Protocol P00 Framing`, `Protocol P00 Framing`, `Protocol P00 Framing`, `Provider Failure Continuation Diagnostic`, `Protocol P00 Framing`, `Protocol P00 Framing`, `Protocol P00 Framing`, `Protocol P00 Framing`, `Provider Failure Continuation Diagnostic`, `Workspace Runner Mcp Readiness`, `Protocol Framing`, `Policy Environment Profile Runtime`, `Receipts Codex App Server`, `Matrix Runner Case Receipts`, `Provider Failure Launcher Runtime`, `Policy Manifest Canonical Build`, `Finite Responses Source Custody`, `Matrix Runner Policy Launcher`, `Protocol P00`, `Protocol P00`, `Effects Case Receipts Codex`, `Matrix Runner Case Receipts`, `Provider Failure Codex App`, `Provider Failure Continuation Diagnostic`, `Case Receipts Matrix Runner`, `Scoped Transport Audit Policy`, `Codex App Server M02`, `Case Coordinator`, `Provider Failure Continuation Diagnostic`, `Protocol Notification Envelope Error`, `Provider Failure`, `Provider Failure`, `Provider Failure`, `Provider Failure`, `Provider Failure`, `Provider Failure`, `Provider Failure`, `Provider Failure`, `Provider Failure`, `Case Coordinator`?**
+  _High betweenness centrality (0.150) - this node is a cross-community bridge._
+- **Why does `readFileSync()` connect `M12 Packed Install Source` to `Source Custody Client Binding`, `Analysis Retained Owned Child`, `Codex App Server M02`, `Canonical Fixture Codex App`, `Harness Validation Run Cucumber`, `Source Custody Controller Launch`, `Source Custody Owner Evidence`, `Migration Inventory Check Package`, `R2F Schema Qualify R2D`, `Source Custody Client Build`, `R2D Interlock Experiment Qualify`, `Custody Service Build Owner`, `Source Custody Launch Fixture`, `Custody Activation Proof`, `Custody Proof Service Retained`, `Custody Ipc Fault Controller`, `Generate Coordinator Reference`, `Managed Journey Isolated Launch`, `Database Compatibility Migrate Compatible`, `Qualify R2F Auth Managed`?**
+  _High betweenness centrality (0.085) - this node is a cross-community bridge._
 - **What connects `root`, `registry`, `fixtureRoot` to the rest of the system?**
   _4825 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.13105413105413105 - nodes in this community are weakly interconnected._
-- **Should `Community 1` be split into smaller, more focused modules?**
-  _Cohesion score 0.11724137931034483 - nodes in this community are weakly interconnected._
-- **Should `Community 2` be split into smaller, more focused modules?**
-  _Cohesion score 0.032342657342657344 - nodes in this community are weakly interconnected._
+- **Should `Harness Validation Run Cucumber` be split into smaller, more focused modules?**
+  _Cohesion score 0.05220288781932617 - nodes in this community are weakly interconnected._
+- **Should `Operation Architecture Certify Build` be split into smaller, more focused modules?**
+  _Cohesion score 0.11666666666666667 - nodes in this community are weakly interconnected._
+- **Should `Build Prisma Graph` be split into smaller, more focused modules?**
+  _Cohesion score 0.06787330316742081 - nodes in this community are weakly interconnected._
+## Host Accounting And Freshness
+
+Structural extraction used the installed deterministic AST extractor. Existing document concepts and relationships were retained only after current host review and exact public-document byte comparison with the recorded base commit. No provider/model API was called. Host task token usage is not exposed; zero extraction counters do not measure host review or community-label usage. The commit identifies the checked-out base; current worktree byte freshness is bound by the ignored harness content receipt.
+
+## Graph Health Warnings
+
+[graphify] MultiDiGraph edge-collapse diagnostic
+input: <in-memory>
+input_stage: provided JSON (normal graph.json is post-build)
+effective_directed: <direct-call>
+nodes: 17469
+raw_edges: 50816
+valid_candidate_edges: 43463
+missing_endpoint_edges: 0
+dangling_endpoint_edges: 7353
+self_loop_edges: 0
+exact_duplicate_edges: 2
+directed_unique_endpoint_pairs: 43004
+directed_same_endpoint_collapsed_edges: 459
+undirected_unique_endpoint_pairs: 42996
+undirected_same_endpoint_collapsed_edges: 467
+same_endpoint_group_count: 395
+relation_variant_groups: 346
+source_file_variant_groups: 0
+source_location_variant_groups: 69
+context_variant_groups: 26
+post_build_graph_type: Graph
+post_build_edges: 42878
+producer_suppression_sites: 56
+producer_suppression_examples:
+  - L1404 seen_dyn_pairs arity=unknown
+  - L2391 seen_ids arity=unknown
+  - L2554 seen_swift_base arity=unknown
+  - L2589 seen_swift_base arity=unknown
+  - L3471 seen_call_pairs arity=2
+  - L3472 seen_dyn_import_pairs arity=2
+  - L3473 seen_static_ref_pairs arity=3
+  - L3474 seen_helper_ref_pairs arity=3
+examples:
+  - tests_codex_app_server_m02_ta_runtime_r8_test -> tests_codex_app_server_m02_ta_runtime_r8_test_get edges=11 relations=['contains'] locations=['L1265', 'L433', 'L783', 'L796', 'L819', 'L836', 'L865', 'L890', 'L919', 'L947', 'L965'] contexts=['']
+  - tests_codex_app_server_m02_ta_runtime_r9_test -> tests_codex_app_server_m02_ta_runtime_r9_test_get edges=11 relations=['contains'] locations=['L1005', 'L1305', 'L472', 'L823', 'L836', 'L859', 'L876', 'L905', 'L930', 'L959', 'L987'] contexts=['']
+  - tests_codex_app_server_m02_ta_runtime_r7_test -> tests_codex_app_server_m02_ta_runtime_r7_test_get edges=8 relations=['contains'] locations=['L1025', 'L423', 'L618', 'L631', 'L654', 'L671', 'L700', 'L725'] contexts=['']
+  - tests_codex_app_server_m02_ta_r24_diagnostics_test -> tests_codex_app_server_m02_ta_r24_diagnostics_test_get edges=5 relations=['contains'] locations=['L320', 'L484', 'L490', 'L606', 'L613'] contexts=['']
+  - tests_codex_app_server_m02_ta_runtime_r6_test -> tests_codex_app_server_m02_ta_runtime_r6_test_get edges=5 relations=['contains'] locations=['L499', 'L512', 'L535', 'L552', 'L852'] contexts=['']
+note: normal graph.json is post-build; raw producer loss must be measured earlier.
+These raw extraction/aggregation diagnostics are separate from final JSON endpoint integrity and are not product-validation or native-runtime evidence. No new-regression attribution is made from counts alone.
+
+## Visualization Scope
+
+The graph exceeds 5,000 nodes. HTML shows Graphify's aggregated community view; graph.json retains the full scoped graph.

@@ -105,3 +105,84 @@ owner disconnect; point liveness is checked only after actual supervisor exit. T
 nor permanently live ownership. The historical first normal packet completed three cases before source-happy failed and retained its original owner; its unrun normal/fault allocations were not reused after source changes. Fresh reviewed successors completed the remaining normal and both fault selectors. Independent source20 result review accepted all 18 normal and two fault results with branch-bounded applicability across their frozen packet generations. Failed source-happy and journal-binding predecessors remain consumed and retained. Original31 bundles remain static-only and blocked for execution; acceptance belongs only to the exact reviewed safe physical-client artifacts and actual runs.
 
 The accepted source results cover original positive release, late mutation/destruction races, async lifecycle and bounds, and legacy/disposed replay. The fresh 17-case service/crash matrix also has independent actual-result acceptance. The earlier scaffold synchronization and seven product cases have accepted results. Scaffold synchronization must be renewed after the later browser dependency repairs and final build outputs. The fresh composed NONSTART follow-up integration has original-main exit zero and independent result acceptance, and the current browser/type/export repair passed full application BUILD16. Independent exact source review accepted the 20-file repair. The later current-owner applicability renewal also has bounded independent acceptance by static equivalence, including historical metadata limits; it emits no fresh bundle or runtime observation. Final template propagation and integrated artifact binding remain separate acceptance items. Historical composition failures include a missing sibling bundle, stale caller lineage and an incorrect control-intent retirement oracle. The latter two corrections and fixed successor physical-file metadata were independently reviewed and committed without overwriting historical descriptors or relaxing identity equality. The accepted fresh composition covers original NONSTART to authored A, a saved human answer and fresh B; B remains physically UNKNOWN, canonically ACKNOWLEDGED and slot-occupying. Their original owners remain retained, and neither failure invalidates the accepted source20 or service17 results. Offline fixture success does not authorize provider launches, authentication, inference, native qualification or releases. Preserve historical UNKNOWN outcomes, consumed allocations and original crash databases/journals.
+
+## M13 startup metadata and exact native request candidate
+
+The isolated offline candidate uses `M13_ORIGINAL_NATIVE_STARTUP_METADATA_V2`. Its source inventory retains the
+existing 59 public pins and adds seven startup warning/account producer pins plus the native thread-ID implementation pin. Actual D3 R3 category evidence has
+independent acceptance: review `ebe0dbe978f69c5da3194e3599481158abe84d8b6b1b0a2505e5667eb5f945bf`, observation
+`3b035760db1c2b1d0286dc60a6ebb9e21c867364a830d96e94cb2ae7561da0ca`, manifest
+`646b2569e627e4309d1b8ad66544529cfa2d5b3f847ba7420b6087c2251c5bd6` and packet
+`7b7931dffabaeb0de433119bbb58fdf7a5af960e1d487c56a650c2f7dd2c0131`. Profile capture reads these exact guarded
+public bytes from its dossier's `startup-policy/observation-review.json`, `execution-observation.json`, `manifest.json`
+and `packet.json`; missing, replaced or drifted files refuse. The profile digest binds their hashes, reviewed policy
+identity and fixed `SCHEMA_VALUE` plan-presence category. Existing original plan/dossier/artifact/issuer checks remain.
+The pinned `codex-rs/protocol/src/thread_id.rs` (`6f1f15040fd6cd6e63ecedd632fad5d7efd7d9404356d54a22f521157c127b7d`)
+uses `Uuid::now_v7()` for new native threads. Native thread reply/notification IDs admit canonical UUID-shaped v4 or v7
+with the RFC variant, preserving exact thread correlation. Review nonces and domain UUID contracts remain v4-only.
+No caller override exists. This category acceptance supplies no account identity, sameness, entitlement, implementation
+acceptance, effects allocation, runtime/provider qualification or production activation. Exact artifact review remains external.
+
+Only the original claimed child's passive, correlated and schema-valid successful initialize reply opens the startup
+window. Same-chunk metadata is provisional until the original initialization Promise settles successfully. The window
+accepts exactly one `configWarning` with the pinned public CW_009 summary and only absent/null `details`, `path` and
+`range`, plus exactly one `account/updated` with explicit `chatgpt` auth and schema-valid non-null plan presence. Extra
+keys, other warnings/auth, duplicate identical snapshots and late metadata refuse permanently. Plan enum values remain
+transient and are neither persisted nor used as account identity. Whole-frame pinned schema validation precedes policy.
+
+Native requests capture their absolute request-entry budgets before reflection or cloning. A bounded recursive snapshot
+retains only immutable JSON data with plain/null-prototype records and ordinary arrays. A captured native `isProxy`
+predicate rejects root or nested Proxies before reflection or traps. Accessors, `toJSON`, non-JSON prototypes, cycles,
+hidden or symbol fields and unsupported values refuse without invoking their getters/serializers.
+Pinned request schemas and original source shape/control/envelope checks inspect this same frozen snapshot. Stdio
+serializes only that inert data; original caller mutation cannot change validated controls or nested turn input. Cloned
+arrays have a frozen own nonenumerable undefined serializer shadow, and the transport-owned frame envelope has a null
+prototype. Inherited Object/Array serializers therefore cannot substitute the checked method, ID or native params. Generic
+raw caller params retain their existing serializer behavior. This boundary does not claim immunity to arbitrary
+replacement of every JavaScript intrinsic or hostile-host containment.
+
+The original `thread/start` path waits for both metadata observations, successful initialization and complete existing
+strict configuration/private-state-home verification before registering any protocol reply ID or raw pending request.
+Waiting consumes only remaining absolute original initialize/request/case budgets and existing cancellation signals;
+it adds no RPC, grace, retry or deadline reset. The raw transport's actual third-argument observation rechecks original
+controller/source/owner/permit admission after snapshot validation and serialization. Its synchronous final write hook
+closes the metadata window before stdin admission and retains absolute deadline/signal checks afterward. No asynchronous
+hook or scheduled send is admitted. The window also closes irrevocably on fault, fence, cleanup, expiry, candidate freeze
+or revocation. A guessed same-ID reply during startup wait cannot acknowledge an unwritten request. Absence at expiry
+leaves thread and turn unissued. Passive drain refusal immediately fences the original transport; later frames cannot repair it.
+
+The 16 false feature controls, code-mode exclusion, exact MCP approval/config/default controls, remote-disabled checks,
+global notification limits, private home, credential-link/metadata checks, original cleanup/drain certainty, source
+database authority, sender seal, thread/turn completion and reconciliation remain independent requirements. Inert tests
+retain any uncertain original cleanup; logical refusal never upgrades UNKNOWN into physical acceptance.
+
+## M13 controlled acknowledgement loss
+
+The offline qualification composition binds `M13_ORIGINAL_LOSS_CONTROL_V1` alongside the startup policy in the native
+profile identity. One opaque original-object control is bound once to the reviewed plan/profile, original fixture and
+client, then the claimed child, transport and existing endpoint. Serialized case intent cannot reconstruct that
+authority. The absent/`NONE` path loads no recovery service or default database and preserves normal delivery.
+
+R2 consumes a private receipt only for an actually written, fully schema-valid and correlated `turn/start` result with
+`inProgress`, no error and allowed items. The original passive parser must still be healthy when the raw pending reply
+settles; later invalid data in the same chunk invalidates the receipt. The control enters `HOLDING` before refusal
+callbacks, rejects the SDK reply and blocks canonical gateway submission throughout R2. R3 instead selects the first
+eligible normalized Analysis submission inside the original managed authorized invoke path, after its existing schema,
+grant, profile and pre-I/O checks. It preserves trusted scope/schema injection, freezes the original arguments and
+charter revision, and verifies the actual accepted Analysis witness before the existing endpoint drops that selected
+original HTTP socket. Neither mode exposes native reply bodies or treats a task callback as proof of acceptance.
+
+Both modes share one physical release gate. Logical fencing closes admission, rejects pending SDK requests and stops
+active parsing while the original passive drain remains alive. Stream closure, original group stop, endpoint/worker
+closure, credential-link/private-root removal and captured process disconnect join that gate. The controller lazily
+invokes canonical operational pause through the original client and polls one original read at a time within the
+existing absolute cleanup deadline and the five-second boundary cap. Release requires the exact committed PAUSED
+successor, predecessor/successor hashes, request/reason hashes and latest pause event with no resume. R2 uses its fixed
+predecessor; R3 derives it once from the verified post-accept ACTIVE lineage. A timeout supplies no commit proof.
+
+The fixed proof facts are `VALIDATED`, `WITHHELD`, `PAUSE_COMMITTED` and `UNPROVEN`. Late pause/read/cleanup promises
+remain retained and observed; snapshot and disconnect require their settlement and the original child's genuine group,
+drain and private-root cleanup proof. Emergency release fails qualification. A closed local endpoint can prove local
+cleanup under the complete controlled-loss proof while its provider effect remains UNKNOWN. Loss mode emits no positive
+native candidate or reconciliation authority. Genuine inert-child and canonical local HTTP tests exercise these
+boundaries; they confer no real native/provider qualification, execution allocation or production activation.
