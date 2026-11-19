@@ -43,10 +43,10 @@ No sign-in/account switch, fallback, global installation, production/default act
       tests, 603 packed portable tests and 12 installed SDK/six-role checks passed with every control/budget preserved.
 - [x] Preserve only the generic configuration check's fixed category labels on refusal. The fresh case observed
       `apikey`; close the pinned producer's enabled-by-default feature readbacks and retain the strict checker.
-- [ ] Complete the six native roles (including the answer-bound Analysis follow-up), one real execution cycle,
+- [x] Complete the six native roles (including the answer-bound Analysis follow-up), one real execution cycle,
       triage/report closure, then the three original R1/R2/R3 recovery cases under their exact effect/lifecycle controls.
       Keep every predecessor permanently spent/UNKNOWN.
-- [ ] Perform one affected independent evaluation of the integrated working artifact after the authorized flow works;
+- [x] Perform one affected independent evaluation of the integrated working artifact after the authorized flow works;
       batch any defects and reassess affected behavior only.
 - [x] Perform one independent engineering evaluation of the integrated offline artifact; batch the R1 cleanup repair
       and reassess its affected behavior. Runtime admission repairs below require affected integrated verification,
@@ -476,3 +476,23 @@ packets. The new source and generated schema pins bind the replacement; previous
 provider uncertainty remain historical. R1 and R2 use fresh independently reviewed effects with the same model,
 one consuming turn, at most one scoped MCP call, 45-second case and 10-second cleanup. The 120-second follow-up
 allocations were already consumed.
+
+## Scoped M13 acceptance
+
+The reviewed release candidate is `bf28db3e911bf3c4de8a62a96d59633f04b65064`. The final artifact audit
+passed the production build, normal commit hooks, 89 task regressions, 644 packed runtime tests and
+12 installed SDK and six-role checks. Package and scaffold verification matched all 98 migrations.
+
+The predecessor signed runtime completed the six-role journey and answer-bound follow-up, sealed one
+passing Cucumber/Chromium TestRun, closed and archived the report, and proved the original R3 accepted
+submission and zero-byte reply loss. The independently verified Codex 0.169.1 replacement proved R1
+acknowledged interruption and R2 acknowledgement loss, plus one independently reviewed successful
+Code Mode Analysis submission and native terminal reconciliation. The replacement proved cleanup of
+the original matching companion after the accepted submission. The independent affected reassessment
+accepted this bounded scope. All three recovery provider outcomes and earlier unresolved attempts
+remain UNKNOWN. General host isolation, general helper lifetime and a full end-to-end journey on the
+replacement remain unqualified.
+
+The local evidence seal is `M13-FINAL-SCOPED-COMPLETION.json` in the M13 qualification evidence
+directory. It binds the accepted source and review, preserves zero unspent allocations, and grants no
+further native effects or release authority.
