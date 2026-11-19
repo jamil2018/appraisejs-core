@@ -154,6 +154,7 @@ type NativeDiagnosticReason =
   | 'CHILD_FAULT'
   | NativeCleanupFailureReason
   | 'NATIVE_EXIT_NO_FORK'
+  | 'NATIVE_EXIT_NO_FORK_AFTER_STARTUP'
   | 'DIAGNOSTIC_UNAVAILABLE'
 export type NativeDiagnosticObserver = Readonly<{
   record(
@@ -241,6 +242,7 @@ const lifecyclePairs = new Map<NativeDiagnosticStage, readonly DiagnosticPair[]>
       ['ENTERED', 'NONE'],
       ['SETTLED', 'NONE'],
       ['SETTLED', 'NATIVE_EXIT_NO_FORK'],
+      ['SETTLED', 'NATIVE_EXIT_NO_FORK_AFTER_STARTUP'],
       ...cleanupFailureReasons.map<DiagnosticPair>(reason => ['UNKNOWN', reason]),
     ],
   ],

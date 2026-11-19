@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { execFileSync, spawn } from 'node:child_process'
 import { once } from 'node:events'
+import { createRequire } from 'node:module'
 import { mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -79,6 +80,49 @@ module.exports = {
           original.stdin!.end('start')
           assert.deepEqual(await exited, [0, null])
           assert.equal(await observer.verifyGone(Date.now() + 1000), expected)
+        } finally {
+          observer?.close()
+          if (!original.stdin!.writableEnded) original.stdin!.end()
+          await exited
+        }
+      }
+
+      // An unrelated child may already exist before the first consuming request. A fork
+      // after arming must still defeat a negative Code Mode witness.
+      const metadata = createRequire(import.meta.url)(addon) as { listDirectChildren(pid: number): number[] }
+      for (const forkAfterArm of [false, true]) {
+        const original = spawn(
+          process.execPath,
+          [
+            '-e',
+            `const { spawn } = require('node:child_process')
+            process.stdin.once('data', () => {
+              const other = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 1200)'], { stdio: 'ignore' })
+              process.stdin.once('data', () => {
+                if (process.argv[1] === 'fork') spawn('/usr/bin/true', { stdio: 'ignore' })
+              })
+              other.once('spawn', () => process.stdout.write('ready'))
+            })`,
+            forkAfterArm ? 'fork' : 'quiet',
+          ],
+          { stdio: ['pipe', 'pipe', 'ignore'] },
+        )
+        const exited = once(original, 'exit')
+        await once(original, 'spawn')
+        let observer: ReturnType<typeof observeNativeCodeModeHost> | undefined
+        try {
+          observer = observeNativeCodeModeHost(original.pid!, process.pid, host, addon)
+          const ready = once(original.stdout!, 'data')
+          original.stdin!.write('bootstrap')
+          await ready
+          assert.equal(metadata.listDirectChildren(original.pid!).length, 1)
+          observer.armBeforeFirstTurn()
+          original.stdin!.end('turn')
+          assert.deepEqual(await exited, [0, null])
+          assert.equal(
+            await observer.verifyGone(Date.now() + 1000),
+            forkAfterArm ? 'CODE_MODE_FORK_OBSERVED' : 'NATIVE_EXIT_NO_FORK_AFTER_STARTUP',
+          )
         } finally {
           observer?.close()
           if (!original.stdin!.writableEnded) original.stdin!.end()

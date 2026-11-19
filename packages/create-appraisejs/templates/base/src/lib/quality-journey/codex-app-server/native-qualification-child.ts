@@ -17,7 +17,8 @@ import { mkdir, lstat, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import type { SpawnedProcess } from '../../process/task-spawner'
 import { ownedProcessChildPid, spawnOwnedProcessGroup, stopOwnedProcessGroup } from '../../process/owned-process-stop'
-import { observeNativeCodeModeHost } from './native-code-mode-host'
+import { nativeCodeModeBeforeTurnRelease, observeNativeCodeModeHost } from './native-code-mode-host'
+import { verifyNativeQualificationConfiguration } from './native-qualification-configuration'
 import {
   assertNativePublicInput,
   readNativePublicBytes,
@@ -170,7 +171,12 @@ export async function launchNativeQualificationChild(
     const proof = inspectNativeQualificationLoss(loss).proof
     return proof.VALIDATED && proof.WITHHELD && !proof.UNPROVEN
   }
-  const { manifest, config, protocol } = verifyOriginalNativeChildPlan(plan, diagnostics)
+  const { manifest, config, protocol, capability } = verifyOriginalNativeChildPlan(plan, diagnostics)
+  const beforeTurnWitnessSupported =
+    manifest.native.sha256 === nativeCodeModeBeforeTurnRelease.native &&
+    manifest.codeMode?.host.sha256 === nativeCodeModeBeforeTurnRelease.host &&
+    manifest.codeMode.packageMetadata.sha256 === nativeCodeModeBeforeTurnRelease.packageMetadata
+  let codeModeConfigurationVerified = false
   const root = manifest.freshRoot
   const caseDeadline = Date.now() + manifest.limits.caseMs
   let startupDeadline: number | undefined
@@ -408,7 +414,7 @@ export async function launchNativeQualificationChild(
     diagnostics?.record('CLEANUP', 'ENTERED')
     let groupExitObserved = false,
       expired = false
-    let stoppedReason: 'NONE' | 'NATIVE_EXIT_NO_FORK' = 'NONE'
+    let stoppedReason: 'NONE' | 'NATIVE_EXIT_NO_FORK' | 'NATIVE_EXIT_NO_FORK_AFTER_STARTUP' = 'NONE'
     let unprovenReason: NativeCleanupFailureReason = 'CLEANUP_MCP_UNPROVEN'
     let timer: ReturnType<typeof setTimeout> | undefined
     async function observeOriginalGroup() {
@@ -439,7 +445,7 @@ export async function launchNativeQualificationChild(
       unprovenReason = 'CODE_MODE_COMPANION_UNPROVEN'
       const witness = await hostObservation?.verifyGone(cleanupExpiresAt)
       if (witness === 'OBSERVED_HOST_GONE') return true
-      if (witness === 'NATIVE_EXIT_NO_FORK') {
+      if (witness === 'NATIVE_EXIT_NO_FORK' || witness === 'NATIVE_EXIT_NO_FORK_AFTER_STARTUP') {
         stoppedReason = witness
         return true
       }
@@ -621,6 +627,8 @@ export async function launchNativeQualificationChild(
             closeStartup()
           }
           boundCallbacks.assertAdmission()
+          if (wireRequest?.method === 'turn/start' && codeModeConfigurationVerified)
+            hostObservation?.armBeforeFirstTurn()
           // Keep absolute deadlines/signals after closing the timer and window.
           assertWireTime()
         },
@@ -705,6 +713,11 @@ export async function launchNativeQualificationChild(
         if (startupSignal?.aborted) startupExpired()
       }
     }
+    function observeConfigurationReply(method: RpcRequestMethod, result: unknown) {
+      if (method === 'config/read' && beforeTurnWitnessSupported)
+        codeModeConfigurationVerified = verifyNativeQualificationConfiguration(result, manifest, capability)
+      return result
+    }
     function snapshotRequest(params: Record<string, unknown>, deadline: number, signal?: AbortSignal) {
       const snapshot = captureNativeRequestSnapshot(params)
       if (Date.now() >= deadline || signal?.aborted) throw new Error('Native request entry budget expired')
@@ -740,7 +753,7 @@ export async function launchNativeQualificationChild(
                 // Every raw write is synchronous; no scheduled continuation retains this capability.
                 wireRequest = undefined
               }
-              return await operation
+              return observeConfigurationReply(method, await operation)
             } catch {
               closeStartup()
               if (!expectedWithheldStart(method)) originalChild?.observer?.fault()

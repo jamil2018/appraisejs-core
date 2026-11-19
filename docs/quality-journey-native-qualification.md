@@ -64,15 +64,19 @@ The first submission can look up an absent acceptance receipt. SQLite completes 
 reports `NOT_FOUND` after the read transaction settles. An actual transaction failure still closes the
 original C1 connection to new operations.
 
-The pinned local Code Mode producer starts its companion lazily. The original AppServer process is watched before
-its first request. After the original process group and delivery streams close, cleanup can use either an observed
-companion identity that is now gone or the original macOS terminal event proving no direct child fork after watch
-registration. The second path requires the same original process identity and an empty initial child list. A fork
-without an observed companion or a missing terminal event leaves cleanup UNKNOWN. A valid terminal no-fork event
-stands even if a later poll of process metadata failed. A sampled companion still requires uninterrupted identity
-evidence. Finite cleanup diagnostics identify the unresolved original group, SDK, stream, companion, credential or
-root boundary, or expiry. The diagnostic records no process identities, paths, or error contents. The proof is
-specific to this pinned local producer and does not attest host isolation or general helper lifetime.
+The pinned local Code Mode producer starts its companion through a tool session or explicitly enabled prewarm.
+The original AppServer process is first watched before any request. The exact Codex 0.169.1 executable, matching
+stdio host and package metadata can arm again immediately before the first consuming request after the original
+effective configuration was verified with prewarm disabled. This later watch requires the original process birth
+and successful identity checks excluding the matching Code Mode companion from the initial direct-child inventory.
+A separately owned no-input run observed a non-Code Mode startup fork, which an initial watch cannot distinguish
+from a companion fork. The later watch continues to reject every fork after registration.
+
+After the original process group and delivery streams close, cleanup can use an observed original companion that
+has since gone or a valid original macOS terminal event without a fork in the applicable observation window.
+Missing or ambiguous evidence remains UNKNOWN. Finite cleanup diagnostics distinguish the earlier and later
+terminal witness and record no process identities, paths, or error contents. This proof is limited to the exact
+direct companion, with general host isolation and helper lifetime unqualified.
 
 The disposable C1 task currently binds the installed Codex 0.169.1 macOS ARM64 executable, its paired
 Code Mode stdio host, the package metadata, and the generated protocol fixtures from that exact executable.

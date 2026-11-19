@@ -4,12 +4,12 @@
 - cluster-only mode — file stats not available
 
 ## Summary
-- 12136 nodes · 28102 edges · 412 communities (402 shown, 10 thin omitted)
+- 12138 nodes · 28102 edges · 420 communities (410 shown, 10 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 143 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `23f21a17`
+- Built from commit: `66ec2af2`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -407,14 +407,22 @@
 - [[_COMMUNITY_Community 390|Community 390]]
 - [[_COMMUNITY_Community 391|Community 391]]
 - [[_COMMUNITY_Community 392|Community 392]]
+- [[_COMMUNITY_Community 393|Community 393]]
 - [[_COMMUNITY_Community 394|Community 394]]
 - [[_COMMUNITY_Community 395|Community 395]]
-- [[_COMMUNITY_Community 406|Community 406]]
+- [[_COMMUNITY_Community 396|Community 396]]
+- [[_COMMUNITY_Community 397|Community 397]]
+- [[_COMMUNITY_Community 398|Community 398]]
+- [[_COMMUNITY_Community 399|Community 399]]
+- [[_COMMUNITY_Community 400|Community 400]]
+- [[_COMMUNITY_Community 401|Community 401]]
+- [[_COMMUNITY_Community 402|Community 402]]
+- [[_COMMUNITY_Community 403|Community 403]]
+- [[_COMMUNITY_Community 404|Community 404]]
+- [[_COMMUNITY_Community 405|Community 405]]
 - [[_COMMUNITY_Community 407|Community 407]]
 - [[_COMMUNITY_Community 408|Community 408]]
-- [[_COMMUNITY_Community 409|Community 409]]
-- [[_COMMUNITY_Community 410|Community 410]]
-- [[_COMMUNITY_Community 411|Community 411]]
+- [[_COMMUNITY_Community 419|Community 419]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `canonicalContractJson()` - 248 edges
@@ -429,1021 +437,1013 @@
 10. `serviceErrorToActionResponse()` - 57 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `CreateLocatorGroup()` --calls--> `getAllModulesAction()`  [INFERRED]
-  app/(base)/locator-groups/create/page.tsx → actions/modules/module-actions.ts
-- `TestCases()` --calls--> `getAllTestCasesAction()`  [INFERRED]
-  app/(base)/test-cases/page.tsx → actions/test-case/test-case-actions.ts
 - `archiveIfRequested()` --calls--> `Archive`  [INFERRED]
   services/repository-collaboration/materialization-helpers.ts → app/api/test-runs/[runId]/download/route.ts
 - `withJourneyBusinessWriteJoinInTransaction()` --calls--> `body()`  [INFERRED]
   services/coordinator/quality-journey-business-write-join.ts → lib/quality-journey/codex-app-server/outcome-source-envelope.test.ts
-- `LocatorGroups()` --calls--> `getAllLocatorGroupsAction()`  [EXTRACTED]
-  app/(base)/locator-groups/page.tsx → actions/locator-groups/locator-group-actions.ts
+- `ModifyTemplateTestCase()` --calls--> `getAllLocatorsAction()`  [INFERRED]
+  app/(base)/template-test-cases/modify/[id]/page.tsx → actions/locator/locator-actions.ts
+- `ModifyLocator()` --calls--> `getAllModulesAction()`  [INFERRED]
+  app/(base)/locator-groups/modify/[id]/page.tsx → actions/modules/module-actions.ts
+- `CreateLocatorGroup()` --calls--> `getAllModulesAction()`  [INFERRED]
+  app/(base)/locator-groups/create/page.tsx → actions/modules/module-actions.ts
 
 ## Import Cycles
 - None detected.
 
-## Communities (412 total, 10 thin omitted)
+## Communities (420 total, 10 thin omitted)
 
 ### Community 0 - "Community 0"
-Cohesion: 0.02
-Nodes (100): metadata, getQualityJourneyClosure(), AppDrawerItemConfig, { pushMock }, DashboardExperienceState, DashboardStartPanel(), getDashboardExperienceState(), metrics (+92 more)
+Cohesion: 0.03
+Nodes (144): createAndSubmitDraftJourney(), advanceAfterWorkCompletion(), advisoryInputRefsForJourneyRole(), advisoryRefsFromSeeds(), analysisFollowupArtifactReference(), AnalysisFollowupLeaf, AnalysisFollowupSnapshot, AppliedJourneyCommand (+136 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.03
-Nodes (147): createAndSubmitDraftJourney(), advanceAfterWorkCompletion(), advisoryInputRefsForJourneyRole(), advisoryRefsFromSeeds(), analysisFollowupArtifactReference(), AnalysisFollowupLeaf, AnalysisFollowupSnapshot, AppliedJourneyCommand (+139 more)
+Cohesion: 0.02
+Nodes (105): metadata, getQualityJourneyClosure(), AppDrawerItemConfig, { pushMock }, DashboardExperienceState, DashboardStartPanel(), getDashboardExperienceState(), metrics (+97 more)
 
 ### Community 2 - "Community 2"
-Cohesion: 0.03
-Nodes (146): authorityRequestDigest(), canonicalize(), canonicalJson(), collaborationHash(), appendCollaborationJournalEntry(), Transaction, acquireDivergentMutationLease(), acquirePreparationLease() (+138 more)
+Cohesion: 0.05
+Nodes (118): ensureOnce(), ensureRequestHash(), validateRetainedAutomationMaterialization(), validateSelectedAutomationResources(), withJourneySharedResourcePublicationInTransaction(), descriptor(), fixture(), fixtures (+110 more)
 
 ### Community 3 - "Community 3"
-Cohesion: 0.03
-Nodes (81): metadata, metadata, metadata, metadata, metadata, metadata, metadata, metadata (+73 more)
+Cohesion: 0.04
+Nodes (99): canonicalContractJson(), persistAutomationFailure(), assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(), ClosureContext, closureGates(), conflict(), Db, idFor() (+91 more)
 
 ### Community 4 - "Community 4"
-Cohesion: 0.05
-Nodes (113): seedRetainedReplay(), descriptor(), fixture(), fixtures, H(), inIds(), matchingRoots(), owner() (+105 more)
+Cohesion: 0.03
+Nodes (64): DEFAULT_EDGE_STYLE, FlowEdgeMutationGuard, flowEdgeMutationGuardRef, FlowDiagramBlockDialog(), FlowDiagramBlockDialogProps, FlowDiagramGroupingHintsProps, InvocationParseResult, parseInputValue() (+56 more)
 
 ### Community 5 - "Community 5"
-Cohesion: 0.05
-Nodes (76): approveQualityJourneyRerun(), assertConsumableExecutionConsent(), assertInitialPreparedSelection(), assertRerunReportCurrent(), cancelQualityJourneyExecution(), cancelsEntireExecutionCycle(), conflict(), consentScope() (+68 more)
+Cohesion: 0.03
+Nodes (81): CapsuleExecutionRequest, CapsuleExecutorAdapter, sealedCredentialReceipt(), ensureOwnedProcessGroupExited(), buildCapsuleExecutionArgv(), buildCapsulePreflightArgv(), absolutePath, ALLOWED_ENV_KEYS (+73 more)
 
 ### Community 6 - "Community 6"
-Cohesion: 0.03
-Nodes (73): DEFAULT_EDGE_STYLE, FlowEdgeMutationGuard, flowEdgeMutationGuardRef, FlowDiagramBlockDialog(), FlowDiagramBlockDialogProps, FlowDiagramGroupingHintsProps, FlowDiagramNodeSearchProps, InvocationParseResult (+65 more)
+Cohesion: 0.04
+Nodes (87): BaseNode(), DataCard(), DataCardHeader(), DataCardProps, DataCardValue(), DEFAULT_THEME, ENTITY_THEMES, EntityTheme (+79 more)
 
 ### Community 7 - "Community 7"
-Cohesion: 0.03
-Nodes (79): BaseNode(), DataCard(), DataCardHeader(), DataCardProps, DataCardValue(), DEFAULT_THEME, ENTITY_THEMES, EntityTheme (+71 more)
+Cohesion: 0.04
+Nodes (102): retained(), credentials, events, fixture(), H(), owner, acceptExternalAutomation(), activeAutomationJourney() (+94 more)
 
 ### Community 8 - "Community 8"
-Cohesion: 0.04
-Nodes (72): CapsuleExecutionRequest, CapsuleExecutorAdapter, ensureOwnedProcessGroupExited(), Unique, buildCapsuleExecutionArgv(), buildCapsulePreflightArgv(), absolutePath, ALLOWED_ENV_KEYS (+64 more)
-
-### Community 9 - "Community 9"
 Cohesion: 0.06
 Nodes (41): NativeRangeVerifier, Operation, Origin, RawRecord, b, d, emptyManifest, emptyRpc() (+33 more)
 
+### Community 9 - "Community 9"
+Cohesion: 0.04
+Nodes (57): metadata, metadata, metadata, metadata, metadata, metadata, metadata, metadata (+49 more)
+
 ### Community 10 - "Community 10"
+Cohesion: 0.05
+Nodes (57): EnvironmentTableRow, EnvironmentRegistryProps, environments, getFilterTags(), TagShape, formatDateTime(), CommandBadgeProps, buildModulePath() (+49 more)
+
+### Community 11 - "Community 11"
 Cohesion: 0.05
 Nodes (92): outcomeSafeInteger(), acquireProviderSourceDatabaseHold(), actualBinding(), admitLookup(), assertConnectionMarker(), assertConnectionMarkerRows(), assertFile(), assertFlags() (+84 more)
 
-### Community 11 - "Community 11"
-Cohesion: 0.04
-Nodes (75): assertCompleteCoverage(), assertCompleteLiveGuard(), assertFreshRootAbsent(), assertLiveResourceTarget(), assertSharedResourcesMutable(), assertTargetId(), assertUnknownOrCompleteCoverage(), caseKey (+67 more)
-
 ### Community 12 - "Community 12"
 Cohesion: 0.03
-Nodes (94): allowedRequest(), allowsTargetRequest(), applyPendingMainFrameCommit(), assertAuthenticatedReceiptBinding(), assertDiscoveryBrowserReceiptAdmission(), assertObservationReceiptBindings(), assertOwnershipStatusAuthority(), assertReceiptMatchesDiscovery() (+86 more)
+Nodes (89): assertInternalScenarioAutomationAssignment(), getInternalScenarioAutomationReadiness(), InternalScenarioAutomationRole, readers, Readiness, registerInternalScenarioAutomationReadiness(), approvedRequirementIds(), assertDecisionCommandAuthority() (+81 more)
 
 ### Community 13 - "Community 13"
 Cohesion: 0.04
-Nodes (78): fixtures, setup(), readyExternalAnalyzer(), createQualityJourneyAssignmentCustodyService(), Fixture, fixtures, roots, trustedHumanCoordinatorSession (+70 more)
+Nodes (60): fixture(), context, operation, RouteContext, commitSnapshot(), execFile, git(), originalCwd (+52 more)
 
 ### Community 14 - "Community 14"
 Cohesion: 0.04
-Nodes (49): AdmissionOwner, mocks, RetainedExecutionIdentity, admissionHash(), authority(), authorityWithAttempt(), bytes, capsuleHash (+41 more)
+Nodes (84): beforeWrite(), decideQualityJourneyAnalysisInTransaction(), QueueAttemptTerminal, readInternalScoutEvidence(), approvedAnalysisOrThrow(), approvedRequirementSetHash(), assertAttempt(), assertBundleBase() (+76 more)
 
 ### Community 15 - "Community 15"
 Cohesion: 0.04
-Nodes (92): readCoordinatorJson(), getQualityJourneyAutomationContext(), readHistoricalAutomationContext(), redeemQualityJourneyHandoff(), admitExternalQualityJourneyAnalyzer(), cancelQualityJourneyWork(), claimExternalQualityJourneyAnalyzer(), completeQualityJourneyWork() (+84 more)
+Nodes (90): allowedRequest(), allowsTargetRequest(), armHumanReturn(), assertAuthenticatedReceiptBinding(), assertDiscoveryBrowserReceiptAdmission(), assertDurableOwnershipAllowsStart(), assertFrozenScopeStillMatchesSession(), assertNoUnresolvedOwnedCleanup() (+82 more)
 
 ### Community 16 - "Community 16"
-Cohesion: 0.04
-Nodes (80): requestQualityJourneyAnalysisRevision(), advisorySeedDigest(), archiveQualityJourneyDraft(), confirmQualityJourneyDraft(), copyQualityJourneyBriefToDraft(), createQualityJourneyDraft(), Db, DraftRow (+72 more)
+Cohesion: 0.03
+Nodes (58): fake, NativeOutcomeReplay, createOriginalNativeOutcomeCandidate(), isOriginalNativeOutcomeSource(), NativeOutcomeCandidateOptions, NativeOutcomeReviewDecision, Operation, requestSequence (+50 more)
 
 ### Community 17 - "Community 17"
-Cohesion: 0.04
-Nodes (94): credentials, events, fixture(), H(), owner, acceptExternalAutomation(), activeAutomationJourney(), addLocatorInputs() (+86 more)
+Cohesion: 0.06
+Nodes (62): closeQualityJourneyDiscoveryBrowserSession(), DiscoveryBrowserRuntime, getOwnedQualityJourneyDiscoveryBrowserCleanup(), defaultRuntimeAdapter(), grantQualityJourneyExecutionConsent(), registerQualityJourneyExecutionRuntimeAdapter(), resetQualityJourneyExecutionRuntimeAdapter(), createQualityJourneyInternalDiscoveryGateway() (+54 more)
 
 ### Community 18 - "Community 18"
-Cohesion: 0.05
-Nodes (66): GET(), { findUnique, readDiagnostic }, createParsedReportGraph(), createReportFeature(), createReportScenario(), createReportScenarioExecutionRows(), getScenarioDuration(), linkReportScenarioToTestCase() (+58 more)
+Cohesion: 0.04
+Nodes (94): canonicalTagExpression(), canonicalTagName(), GET(), LogMode, parseLogMode(), readTestRunStatusForLogs(), selectLogs(), sseErrorResponse() (+86 more)
 
 ### Community 19 - "Community 19"
-Cohesion: 0.05
-Nodes (83): assertCurrentExternalAnalysisAuthorization(), assertExternalAnalysisGeneration(), assertManagedAnalysisArtifactBindings(), assertManagedAnalysisAssignmentEvidence(), assertManagedAnalysisCurrentInputs(), assertManagedAnalysisRoleContract(), assertManagedAnalysisSuccessorInputs(), assertPublishableAnalysisAttempt() (+75 more)
-
-### Community 20 - "Community 20"
 Cohesion: 0.02
 Nodes (84): description, type, enum, type, type, oneOf, enum, type (+76 more)
 
+### Community 20 - "Community 20"
+Cohesion: 0.05
+Nodes (52): TestRunExecutionResult, testRunFormOpts, testRunSchema, appliedPageLimit(), cursorSchema, decodePageCursor(), encodePageCursor(), Page (+44 more)
+
 ### Community 21 - "Community 21"
-Cohesion: 0.06
-Nodes (43): metadata, InfoCards, ActionResponse, ActionResponseData, TestSuite, testSuiteFormOpts, testSuiteSchema, EntitySearchCommand() (+35 more)
+Cohesion: 0.05
+Nodes (81): assertCurrentExternalAnalysisAuthorization(), assertExternalAnalysisGeneration(), assertManagedAnalysisArtifactBindings(), assertManagedAnalysisAssignmentEvidence(), assertManagedAnalysisCurrentInputs(), assertManagedAnalysisRoleContract(), assertManagedAnalysisSuccessorInputs(), assertPublishableAnalysisAttempt() (+73 more)
 
 ### Community 22 - "Community 22"
-Cohesion: 0.05
-Nodes (75): beforeWrite(), BeforeJourneyBusinessWrite, QueueAttemptTerminal, DiscoveryBootstrap, getInternalDiscoveryReadiness(), getQualityJourneyDiscoveryBootstrap(), InternalDiscoveryReadiness, registerQualityJourneyDiscoveryBootstrap() (+67 more)
+Cohesion: 0.06
+Nodes (42): methods(), hashRuntimeCapsuleBytes(), parseCanonicalRuntimeCapsuleManifest(), runtimeCapsuleFilePathSchema, RuntimeCapsuleManifest, runtimeCapsuleManifestEnvelopeSchema, runtimeCapsuleManifestSchemaInternal, runtimeCapsuleSegmentSchema (+34 more)
 
 ### Community 23 - "Community 23"
-Cohesion: 0.05
-Nodes (68): ensureProjectDatabaseUrl(), globalForPrisma, normalizeDatabaseUrl(), { PrismaClient }, PrismaClientInstance, readProjectDatabaseUrl(), require, activeDependencies() (+60 more)
+Cohesion: 0.04
+Nodes (83): executeToCompletion(), assertCurrentFilesystemRecovery(), assertDecisionOperation(), assertFilesystemRecoveryStep(), assertIdempotentOperation(), assertMatchingPortableProject(), assertNoConflictingPersistedDecision(), assertPinnedGitSnapshotBeforeDatabaseApply() (+75 more)
 
 ### Community 24 - "Community 24"
-Cohesion: 0.06
-Nodes (47): EnvironmentTableRow, EnvironmentRegistryProps, environments, canonicalTagExpression(), canonicalTagName(), getFilterTags(), TagShape, formatDateTime() (+39 more)
+Cohesion: 0.04
+Nodes (55): refused(), scope, when, defaultOperationDefinitions, defaultOperationRegistry, operationValidationRegistry, automationMaterializationRequestSchema, automationScenarioMaterializationSchema (+47 more)
 
 ### Community 25 - "Community 25"
-Cohesion: 0.05
-Nodes (62): captureOfflineProviderBinding(), captureOfflineProviderJson(), captureOfflineProviderTimeouts(), digest, id, offlineCompositionDigest(), OfflineCompositionReason, OfflineOwnedProviderPort (+54 more)
+Cohesion: 0.06
+Nodes (66): readCoordinatorJson(), admitExternalQualityJourneyAnalyzer(), admitExternalQualityJourneyWork(), claimExternalQualityJourneyAnalyzer(), claimExternalQualityJourneyWork(), completeQualityJourneyWork(), inspectQualityJourneyFactoryEvidence(), listQualityJourneyArtifacts() (+58 more)
 
 ### Community 26 - "Community 26"
 Cohesion: 0.06
-Nodes (58): metadata, getPageTransitionVariant(), PageTransitionVariant, Template(), { usePathnameMock }, TestRunDetailPage(), TestRunDetailPageProps, MotionDivProps (+50 more)
+Nodes (66): metadata, Dashboard(), CreateTestRun(), getDashboardMetricsAction(), getEntityMetricsAction(), getRunningTestRunsCountAction(), getTestSuiteExecutionDataAction(), getDashboardMetrics() (+58 more)
 
 ### Community 27 - "Community 27"
-Cohesion: 0.06
-Nodes (26): acquireOriginalNativeOutcomeCustody(), fail(), nativeThreadUuid(), OriginalNativeOutcome, readOriginalNativeOutcomeReplay(), record(), NativeSourceNotificationRefusal, cleanup (+18 more)
+Cohesion: 0.05
+Nodes (57): metadata, collectSharedModuleMutationEffectsInTransaction(), ModuleRow, moduleSelect, refuse(), rootSelect, SharedModuleMutationEffects, SharedModuleMutationEffectsRefusalReason (+49 more)
 
 ### Community 28 - "Community 28"
 Cohesion: 0.05
-Nodes (68): fake, readStoredNativeOutcomeCommittedReplay(), acknowledgementConflicts(), after(), ArmQualityJourneyProviderIntentInput, assertAdmittedAssignment(), assertAttemptBudget(), assertAuthorizationScope() (+60 more)
+Nodes (64): Admission, admitBusinessGroup(), assertTerminalInput(), assertTerminalRows(), AttemptTerminalInput, BeforeJourneyBusinessWrite, conflict(), digestJson() (+56 more)
 
 ### Community 29 - "Community 29"
 Cohesion: 0.05
-Nodes (41): assertArtifactBinding(), assertArtifactConformance(), assertBuiltInDefinitionIsUnchanged(), assertBuiltInRegistration(), assertDraftCreationIsAllowed(), assertReuseEvidenceIsFresh(), assertReviewedArtifactIsCurrent(), assertReviewedExtensionIsActive() (+33 more)
+Nodes (69): DivergentProposalHooks, activeRedeemedHandoffTicket(), acquireCollaborationMutationLock(), assertAttemptIdentity(), assertAttemptLease(), assertAttemptOwnership(), assertedAttempt(), assertQueueInput() (+61 more)
 
 ### Community 30 - "Community 30"
-Cohesion: 0.07
-Nodes (41): hashRuntimeCapsuleBytes(), parseCanonicalRuntimeCapsuleManifest(), runtimeCapsuleHashSchema, RuntimeCapsuleManifest, runtimeCapsuleManifestEnvelopeSchema, runtimeCapsuleManifestSchemaInternal, runtimeCapsuleSegmentSchema, sealedStepDefinitionSchema (+33 more)
+Cohesion: 0.06
+Nodes (62): decideQualityJourneyAnalysis(), publishQualityJourneyAnalysis(), charter(), completedDiscovery(), databasePaths, digest(), externalPrincipal, fixture() (+54 more)
 
 ### Community 31 - "Community 31"
 Cohesion: 0.05
-Nodes (67): DivergentProposalHooks, activeRedeemedHandoffTicket(), getCollaborationStatus(), acquireCollaborationMutationLock(), assertAttemptIdentity(), assertAttemptLease(), assertAttemptOwnership(), assertedAttempt() (+59 more)
+Nodes (69): approveQualityJourneyRerun(), assertConsumableExecutionConsent(), assertInitialPreparedSelection(), assertRerunReportCurrent(), cancelQualityJourneyExecution(), cancelsEntireExecutionCycle(), conflict(), consentScope() (+61 more)
 
 ### Community 32 - "Community 32"
 Cohesion: 0.05
-Nodes (57): ActiveOperation, CollaborationControls(), ConnectForm(), Mutation, Status, mocks, status, useCollaborationMutation() (+49 more)
+Nodes (45): cleanupFailedLaunch(), cleanupOwnedChild(), fixtureCommand(), launchOwnedFixtureChild(), launchOwnedProviderChild(), OwnedChildLaunchError, ownedFixture(), OwnedFixtureChildOptions (+37 more)
 
 ### Community 33 - "Community 33"
-Cohesion: 0.07
-Nodes (65): CollaborationGitStep, completeStep(), executeCollaborationGitStep(), ExecuteCollaborationGitStepInput, executeStartedGitStep(), getCollaborationGitStatus(), observeOperationRepository(), parseCreateCommitIntent() (+57 more)
+Cohesion: 0.10
+Nodes (27): handleStandardFormResult(), StandardFormResultOptions, Action, ActionType, addToRemoveQueue(), dispatch(), genId(), listeners (+19 more)
 
 ### Community 34 - "Community 34"
 Cohesion: 0.07
-Nodes (33): metadata, ModifyLocator(), LocatorGroup, locatorGroupFormOpts, locatorGroupSchema, checkLocatorGroupNameUnique(), checkUniqueName(), collectEffects() (+25 more)
+Nodes (51): metadata, metadata, metadata, CreateFromTemplateForm(), CreateFromTemplateFormProps, collectTemplateStepReferences(), loadCreateFromTemplateRouteResources(), resolveTemplateTestCaseSelection() (+43 more)
 
 ### Community 35 - "Community 35"
+Cohesion: 0.06
+Nodes (65): readStoredNativeOutcomeCommittedReplay(), acknowledgementConflicts(), after(), ArmQualityJourneyProviderIntentInput, assertAdmittedAssignment(), assertAttemptBudget(), assertAuthorizationScope(), assertConsumedObservationReceipt() (+57 more)
+
+### Community 36 - "Community 36"
+Cohesion: 0.07
+Nodes (66): authorityRequestDigest(), canonicalJson(), collaborationHash(), appendCollaborationJournalEntry(), Transaction, acquireDivergentMutationLease(), acquirePreparationLease(), assertDivergentCollaborationReadyForIntegration() (+58 more)
+
+### Community 37 - "Community 37"
+Cohesion: 0.08
+Nodes (62): CollaborationGitStep, completeStep(), executeCollaborationGitStep(), ExecuteCollaborationGitStepInput, executeStartedGitStep(), getCollaborationGitStatus(), observeOperationRepository(), parseCreateCommitIntent() (+54 more)
+
+### Community 38 - "Community 38"
+Cohesion: 0.06
+Nodes (47): ActiveOperation, CollaborationControls(), ConnectForm(), Mutation, Status, mocks, status, useCollaborationMutation() (+39 more)
+
+### Community 39 - "Community 39"
+Cohesion: 0.07
+Nodes (23): DynamicParameterFieldLabel(), DynamicParameterFieldShellProps, EnvironmentFormProps, { push, toast }, environmentFieldValidators, EnvironmentFormSubmitAction, getActionErrorMessage(), ErrorMessage() (+15 more)
+
+### Community 40 - "Community 40"
 Cohesion: 0.03
 Nodes (70): description, type, description, type, description, type, description, format (+62 more)
 
-### Community 36 - "Community 36"
-Cohesion: 0.05
-Nodes (56): GeneratedBindingStep, generateExecutableBindings(), registrationLines(), reloadInvocation, sealedDefinitions, runtimeCapsuleManifestSchema, assertSingleLineGherkin(), generateCucumberConfig() (+48 more)
-
-### Community 37 - "Community 37"
-Cohesion: 0.07
-Nodes (61): Dashboard(), getDashboardMetricsAction(), getEntityMetricsAction(), getRunningTestRunsCountAction(), getTestSuiteExecutionDataAction(), getDashboardMetrics(), getEntityMetrics(), getRunningTestRunsCount() (+53 more)
-
-### Community 38 - "Community 38"
-Cohesion: 0.05
-Nodes (43): fixture(), fixture(), pauseInput, scope, workspaces, context, operation, RouteContext (+35 more)
-
-### Community 39 - "Community 39"
-Cohesion: 0.05
-Nodes (55): canonicalContractJson(), detail(), refused(), retained(), scope, when, QualityJourneyArtifactLibraryEntry, fixture() (+47 more)
-
-### Community 40 - "Community 40"
-Cohesion: 0.04
-Nodes (30): { push, refresh, toast, startLocatorPickerSessionAction, savePickedLocatorAction }, configureTypeScript(), MonacoEditor, StepDefinitionCodeEditor(), TypeScriptDefaults, CompositionSearchResponse, DraftReference, executionLabels (+22 more)
-
 ### Community 41 - "Community 41"
-Cohesion: 0.06
-Nodes (63): assertBootstrapInventory(), bootstrapClassifications, bootstrapDirectJourneyIdModels, bootstrapDirectTargetProjectIdModels, BootstrapDomainEpoch, bootstrapEdgeClassifications, BootstrapEdgeSummary, bootstrapExtractorIds (+55 more)
+Cohesion: 0.03
+Nodes (55): metadata, metadata, { push, refresh, toast, startLocatorPickerSessionAction, savePickedLocatorAction }, TestRunDetailPageProps, EMPTY_PARENT_OPTIONS, getActionErrorMessage(), ModuleForm(), ModuleFormProps (+47 more)
 
 ### Community 42 - "Community 42"
-Cohesion: 0.07
-Nodes (59): assertCollaborationOnlyWorktree(), assertCommit(), assertDivergentReconciliationReview(), assertOperationId(), assertPreparedSource(), assertProposal(), changedDivergentWorktreePaths(), changedPaths() (+51 more)
+Cohesion: 0.06
+Nodes (58): materialize, archiveReview(), recordKey(), archiveIfRequested(), CollisionCheck, CollisionLookup, collisionLookupByKind, createCollisionChecker() (+50 more)
 
 ### Community 43 - "Community 43"
-Cohesion: 0.07
-Nodes (32): acquireOriginalSqliteOutcomeCustody(), assertCommittedTuple(), committedResult(), committedState(), createSyntheticOutcomeCustodian(), OutcomeEnvelopeBody, hasOriginalExclusionBrand(), Issued (+24 more)
+Cohesion: 0.06
+Nodes (54): assertCompleteCoverage(), assertCompleteLiveGuard(), assertFreshRootAbsent(), assertLiveResourceTarget(), assertSharedResourcesMutable(), assertTargetId(), assertUnknownOrCompleteCoverage(), caseKey (+46 more)
 
 ### Community 44 - "Community 44"
-Cohesion: 0.07
-Nodes (37): appendFlowNode(), assertValidAuthoredFlow(), AuthoredFlow, AuthoredFlowItem, AuthoredFlowNode, createAuthoredFlowNode(), createTemplateAuthoredFlowNode(), initialInvocation() (+29 more)
+Cohesion: 0.08
+Nodes (31): appendFlowNode(), assertValidAuthoredFlow(), AuthoredFlow, AuthoredFlowNode, createAuthoredFlowNode(), createTemplateAuthoredFlowNode(), initialInvocation(), inputParameters() (+23 more)
 
 ### Community 45 - "Community 45"
-Cohesion: 0.06
-Nodes (55): archiveReview(), recordKey(), archiveIfRequested(), CollisionCheck, CollisionLookup, collisionLookupByKind, createCollisionChecker(), entityKindByRecordKind (+47 more)
+Cohesion: 0.05
+Nodes (49): GeneratedBindingStep, generateExecutableBindings(), registrationLines(), reloadInvocation, sealedDefinitions, refineSelection(), canonicalRuntimeCapsuleJson(), runtimeCapsuleManifestSchema (+41 more)
 
 ### Community 46 - "Community 46"
 Cohesion: 0.05
-Nodes (48): NativeOutcomeReplay, createOriginalNativeOutcomeCandidate(), isOriginalNativeOutcomeSource(), NativeOutcomeCandidateOptions, NativeOutcomeReviewDecision, Operation, requestSequence, sources (+40 more)
+Nodes (58): detail(), collect(), Db, entryId(), evidenceProjection(), exportQualityJourney(), getQualityJourneyLibraryArtifact(), hash() (+50 more)
 
 ### Community 47 - "Community 47"
 Cohesion: 0.07
-Nodes (47): decideQualityJourneyAnalysis(), publishQualityJourneyAnalysis(), charter(), completedDiscovery(), databasePaths, digest(), externalPrincipal, fixture() (+39 more)
+Nodes (48): getPageTransitionVariant(), PageTransitionVariant, Template(), { usePathnameMock }, TestRunDetailPage(), MotionDivProps, motionReactMVitestMock, motionReactVitestMock (+40 more)
 
 ### Community 48 - "Community 48"
-Cohesion: 0.06
-Nodes (56): collect(), Db, entryId(), evidenceProjection(), exportQualityJourney(), getQualityJourneyLibraryArtifact(), hash(), historicalEnrollment() (+48 more)
+Cohesion: 0.07
+Nodes (62): assertBootstrapInventory(), bootstrapClassifications, bootstrapDirectJourneyIdModels, bootstrapDirectTargetProjectIdModels, BootstrapDomainEpoch, bootstrapEdgeClassifications, BootstrapEdgeSummary, bootstrapExtractorIds (+54 more)
 
 ### Community 49 - "Community 49"
-Cohesion: 0.06
-Nodes (61): assertInternalScenarioAutomationAssignment(), getInternalScenarioAutomationReadiness(), InternalScenarioAutomationRole, readers, Readiness, registerInternalScenarioAutomationReadiness(), approvedRequirementIds(), assertDecisionCommandAuthority() (+53 more)
+Cohesion: 0.05
+Nodes (45): IntakeGuide(), intakeStepMarkerClassNames, IntakeStepState, QualityJourneyCreateForm(), ChecksIntakeScreen(), EditableCardList(), EnvironmentIntakeScreen(), GoalIntakeScreen() (+37 more)
 
 ### Community 50 - "Community 50"
 Cohesion: 0.06
-Nodes (45): generateUniqueTestCaseIdentifier(), isSharedResourceId(), deleteTags(), effects(), Examined, getTagByIdOrThrow(), refuse(), scoped() (+37 more)
+Nodes (58): activeDependencies(), archivePreparation(), beforeImage(), localStateHash(), operationAfterImage(), operationInput(), orderedRecords(), prepareCollaborationArchive() (+50 more)
 
 ### Community 51 - "Community 51"
-Cohesion: 0.06
-Nodes (54): metadata, actionError(), artifactFingerprint(), ArtifactFingerprintSetter, BooleanSetter, compileAndReadDraft(), CompileData, CompiledDraftState (+46 more)
+Cohesion: 0.08
+Nodes (32): acquireOriginalSqliteOutcomeCustody(), assertCommittedTuple(), committedReceipt(), committedResult(), committedState(), createSyntheticOutcomeCustodian(), OutcomeEnvelopeBody, hasOriginalExclusionBrand() (+24 more)
 
 ### Community 52 - "Community 52"
-Cohesion: 0.05
-Nodes (48): CoordinatorProjectDetails, CoordinatorProjectIdentityError, deriveCoordinatorProjectIdentity(), assertLoopbackUrl(), CoordinatorProjectMismatchError, guardCoordinatorRequest(), LOOPBACK_HOSTS, readCoordinatorToken() (+40 more)
+Cohesion: 0.06
+Nodes (48): authPolicy(), execFile, listen(), LoginResult, mockClient(), realChromiumRuntime(), scope, startServers() (+40 more)
 
 ### Community 53 - "Community 53"
-Cohesion: 0.05
-Nodes (46): dispatchActivity(), getQualityJourneyStatusSnapshot(), hasLiveAcknowledgedTurn(), hasOpenHumanGate(), json(), JsonRecord, lifecycleRuntimeStatus(), listQualityJourneys() (+38 more)
+Cohesion: 0.04
+Nodes (56): AdmissionOwner, mocks, RetainedExecutionIdentity, OwnedProcessStopError, localPacket, restoreJourneyExecutionEnvironment(), environment, url (+48 more)
 
 ### Community 54 - "Community 54"
 Cohesion: 0.05
-Nodes (52): assertE2EnsureModels(), assertExistingGroupContract(), conflict(), deterministicId(), EnsuredGroup, EnsuredModule, ensureOnce(), ensureRequestHash() (+44 more)
-
-### Community 55 - "Community 55"
-Cohesion: 0.06
-Nodes (48): appliedPageLimit(), cursorSchema, decodePageCursor(), encodePageCursor(), Page, PageCursor, pageFromItems(), PageRequest (+40 more)
-
-### Community 56 - "Community 56"
-Cohesion: 0.11
-Nodes (25): applyUpdater(), applyChildCheckboxSelection(), applySuiteCheckboxSelection(), buildNormalizedSelectionsFromDraft(), createDraftSelections(), DraftSelectionMap, normalizeSuiteSelection(), suiteMatchesQuery() (+17 more)
-
-### Community 57 - "Community 57"
-Cohesion: 0.08
-Nodes (49): metadata, GET(), PUT(), RouteContext, POST(), POST(), initialStageFrom(), ResumeStepDefinitionDraftPage() (+41 more)
-
-### Community 58 - "Community 58"
-Cohesion: 0.05
 Nodes (49): catalogEntityIdSchema, catalogEntityVersionSchema, locatorCatalogReferenceSchema, ComponentNode, componentNodeSchema, createLocatorGraph(), hash, LOCATOR_GRAPH_CONTRACT_VERSION (+41 more)
 
-### Community 59 - "Community 59"
+### Community 55 - "Community 55"
+Cohesion: 0.05
+Nodes (50): assertE2EnsureModels(), assertExistingGroupContract(), conflict(), deterministicId(), EnsuredGroup, EnsuredModule, ensureResponse(), ensureTargetLocator() (+42 more)
+
+### Community 56 - "Community 56"
+Cohesion: 0.05
+Nodes (43): dispatchActivity(), getQualityJourneyStatusSnapshot(), hasLiveAcknowledgedTurn(), hasOpenHumanGate(), json(), JsonRecord, lifecycleRuntimeStatus(), object() (+35 more)
+
+### Community 57 - "Community 57"
 Cohesion: 0.06
-Nodes (49): createQualityJourneyInternalDiscoveryGateway(), digest(), submissionArguments, createQualityJourneyInternalScenarioAutomationGateway(), hash(), idempotencyKey, roles, evidenceSelectors (+41 more)
+Nodes (45): assertE2PrivateReceiptMatchesGrant(), commandExtras, common, decodeE2PrivateFrame(), digestFields, E2_PRIVATE_MAGIC, E2_PRIVATE_VERSION, E2PayloadAssembly (+37 more)
+
+### Community 58 - "Community 58"
+Cohesion: 0.08
+Nodes (52): assertCollaborationOnlyWorktree(), assertCommit(), assertDivergentReconciliationReview(), assertOperationId(), assertPreparedSource(), assertProposal(), changedDivergentWorktreePaths(), changedPaths() (+44 more)
+
+### Community 59 - "Community 59"
+Cohesion: 0.07
+Nodes (40): metadata, Draft, Environment, QualityJourneyDraftPage(), assertLoopbackOriginReservation(), EnvironmentClient, foreignEnvironmentOrigins(), normalizedLoopbackOrigin() (+32 more)
 
 ### Community 60 - "Community 60"
-Cohesion: 0.05
-Nodes (55): addApprovedRequirementIssues(), addCanonicalOrderIssue(), addClassificationPresenceIssue(), addCrossTargetIssue(), addEvidenceReceiptIssues(), addInputArtifactIdentityIssue(), addInputArtifactOrderIssue(), addProvenanceIssues() (+47 more)
+Cohesion: 0.06
+Nodes (46): canonicalize(), authoredStepSchema, COLLABORATION_FORMAT, collaborationEntityKinds, collaborationEntityKindSchema, CollaborationManifest, collaborationManifestSchema, collaborationRecordSchema (+38 more)
 
 ### Community 61 - "Community 61"
-Cohesion: 0.06
-Nodes (46): assertE2PrivateCommandMatchesGrant(), assertE2PrivateReceiptMatchesGrant(), commandExtras, common, decodeE2PrivateFrame(), digestFields, E2_PRIVATE_MAGIC, E2_PRIVATE_VERSION (+38 more)
+Cohesion: 0.09
+Nodes (38): AnalysisFollowupController, AnalysisFollowupDelivery, AnalysisFollowupSchedulerInput, answerQualityJourneyAnalysisQuestion(), submitExternalQualityJourneyAnalysisSuccessor(), ensureQualityJourneyAnalysisFollowupInTransaction(), claimQualityJourneyWake(), listQualityJourneyWakeWork() (+30 more)
 
 ### Community 62 - "Community 62"
-Cohesion: 0.05
-Nodes (34): TestRunExecutionResult, globalForTaskSpawner, killTask(), removeTask(), SpawnedProcess, SpawnerOptions, spawnTask(), TaskSpawner (+26 more)
-
-### Community 63 - "Community 63"
-Cohesion: 0.06
-Nodes (26): addCapsuleDownloadArtifacts(), Archive, createZipArchive(), createZipDownloadResponse(), finalizeArchive(), GET(), getDownloadTestRun(), { mockFindFirst, mockReadBytes, archiveState } (+18 more)
-
-### Community 64 - "Community 64"
 Cohesion: 0.04
 Nodes (56): description, type, enum, type, type, description, enum, type (+48 more)
 
-### Community 65 - "Community 65"
-Cohesion: 0.03
-Nodes (58): description, type, enum, type, enum, type, enum, type (+50 more)
+### Community 63 - "Community 63"
+Cohesion: 0.04
+Nodes (56): description, type, enum, type, enum, type, enum, type (+48 more)
 
-### Community 66 - "Community 66"
+### Community 64 - "Community 64"
 Cohesion: 0.04
 Nodes (56): description, type, enum, type, enum, type, oneOf, enum (+48 more)
 
-### Community 67 - "Community 67"
-Cohesion: 0.05
-Nodes (49): closeQualityJourney(), approveQualityJourneyRemediation(), requestQualityJourneyReportRevision(), closeQualityJourneyAction(), input, mocks, analysisRevision(), digest() (+41 more)
+### Community 65 - "Community 65"
+Cohesion: 0.07
+Nodes (32): ensureProjectDatabaseUrl(), globalForPrisma, normalizeDatabaseUrl(), { PrismaClient }, PrismaClientInstance, readProjectDatabaseUrl(), require, addCapsuleDownloadArtifacts() (+24 more)
 
-### Community 68 - "Community 68"
-Cohesion: 0.06
-Nodes (45): authPolicy(), execFile, listen(), LoginResult, mockClient(), realChromiumRuntime(), scope, startServers() (+37 more)
-
-### Community 69 - "Community 69"
-Cohesion: 0.06
-Nodes (45): authoredStepSchema, COLLABORATION_FORMAT, collaborationEntityKinds, collaborationEntityKindSchema, CollaborationManifest, collaborationManifestSchema, collaborationRecordSchema, commonRecordShape (+37 more)
-
-### Community 70 - "Community 70"
-Cohesion: 0.04
-Nodes (51): description, type, enum, type, description, type, enum, type (+43 more)
-
-### Community 71 - "Community 71"
+### Community 66 - "Community 66"
 Cohesion: 0.04
 Nodes (54): anyOf, anyOf, anyOf, anyOf, description, type, anyOf, additionalProperties (+46 more)
 
-### Community 72 - "Community 72"
+### Community 67 - "Community 67"
+Cohesion: 0.11
+Nodes (7): acquireOriginalNativeOutcomeCustody(), fail(), nativeThreadUuid(), OriginalNativeOutcome, readOriginalNativeOutcomeReplay(), record(), NativeSourceNotificationRefusal
+
+### Community 68 - "Community 68"
+Cohesion: 0.06
+Nodes (36): deleteLocatorAction(), getAllLocatorsAction(), collectLocatorEffects(), deleteLocators(), detectAndCreateConflicts(), getLocatorByIdOrThrow(), listLocators(), LocatorRow (+28 more)
+
+### Community 69 - "Community 69"
 Cohesion: 0.08
-Nodes (36): metadata, browserEngineToBadge(), ViewReport(), DurationChart, FeatureChart, OverviewChart, browserIcons, formatDateTime() (+28 more)
+Nodes (39): NativeOutcomeProfile, claimOriginalNativeQualificationChild(), NativeChildOutcomeObserver, callbacks, fixture(), observer, roots, owned (+31 more)
+
+### Community 70 - "Community 70"
+Cohesion: 0.08
+Nodes (35): metadata, browserEngineToBadge(), ViewReport(), DurationChart, FeatureChart, OverviewChart, browserIcons, formatDateTime() (+27 more)
+
+### Community 71 - "Community 71"
+Cohesion: 0.06
+Nodes (36): metadata, inter, interTight, metadata, redirectInvalidProjectScope(), RootLayout(), viewport, GET() (+28 more)
+
+### Community 72 - "Community 72"
+Cohesion: 0.05
+Nodes (55): Logo(), LogoProps, StepDefinitionPickerProps, AppSidebar(), ariaCurrent(), SidebarNavItem(), MobileNavigation(), MobileNavigationItem() (+47 more)
 
 ### Community 73 - "Community 73"
-Cohesion: 0.05
-Nodes (41): coordinatorStepDefinitionService, correlationIdSchema, createCoordinatorStepDefinitionService(), createDraft(), DefinitionActionHandler, definitionActionHandlers, DraftActionHandler, draftActionHandlers (+33 more)
+Cohesion: 0.04
+Nodes (51): description, type, enum, type, description, type, enum, type (+43 more)
 
 ### Community 74 - "Community 74"
-Cohesion: 0.08
-Nodes (45): assertE2BusinessAdmission(), assertExactCredentials(), assertJourneyVersion(), assertRow(), commitE2RetirementRequest(), conflict(), E2Journey, E2RetirementReason (+37 more)
+Cohesion: 0.09
+Nodes (38): metadata, CreateTestSuite(), TestSuite, testSuiteFormOpts, testSuiteSchema, getAllTestSuitesAction(), getEditableTestSuite(), isEditableTestSuite() (+30 more)
 
 ### Community 75 - "Community 75"
-Cohesion: 0.10
-Nodes (30): testCasePickerColumns, applyUpdater(), createInitialPickerState(), defaultPagination, createSelectionState(), getSavedTestCases(), getSelectedIdsFromRowSelection(), getSelectionSummaryLabel() (+22 more)
+Cohesion: 0.06
+Nodes (46): addApprovedRequirementIssues(), addCanonicalOrderIssue(), addClassificationPresenceIssue(), addCrossTargetIssue(), addEvidenceReceiptIssues(), addInputArtifactIdentityIssue(), addInputArtifactOrderIssue(), addProvenanceIssues() (+38 more)
 
 ### Community 76 - "Community 76"
-Cohesion: 0.10
-Nodes (35): buildJsonReportFormat(), getAutomationActionStepsDir(), getAutomationConfigDir(), getAutomationEnvironmentsDir(), getAutomationFeaturesDir(), getAutomationLocatorsDir(), getAutomationMappingDir(), getAutomationReportLogsDir() (+27 more)
+Cohesion: 0.07
+Nodes (34): metadata, ModifyLocator(), LocatorGroup, locatorGroupFormOpts, locatorGroupSchema, checkLocatorGroupNameUnique(), checkUniqueName(), collectEffects() (+26 more)
 
 ### Community 77 - "Community 77"
-Cohesion: 0.07
-Nodes (39): approveQualityJourneyHandoffTakeover(), prepareQualityJourneyHandoff(), handleStandardFormResult(), StandardFormResultOptions, Action, ActionType, addToRemoveQueue(), dispatch() (+31 more)
+Cohesion: 0.10
+Nodes (35): buildJsonReportFormat(), getAutomationActionStepsDir(), getAutomationConfigDir(), getAutomationEnvironmentsDir(), getAutomationFeaturesDir(), getAutomationLocatorsDir(), getAutomationMappingDir(), getAutomationReportLogsDir() (+27 more)
 
 ### Community 78 - "Community 78"
 Cohesion: 0.04
 Nodes (48): description, type, enum, type, enum, type, oneOf, description (+40 more)
 
 ### Community 79 - "Community 79"
-Cohesion: 0.13
-Nodes (26): metadata, ModifyLocator(), metadata, getAllEnvironmentsAction(), ModifyTemplateTestCase(), getAllLocatorGroupsAction(), getAllLocatorsAction(), getLocatorByIdAction() (+18 more)
+Cohesion: 0.07
+Nodes (37): createQualityJourneyAssignmentCustodyService(), fixtures, roots, ExternalQualityJourneyWorkClaimInput, AssignmentAttemptIdentity, AssignmentClaimRequest, AssignmentCredentialCustody, AssignmentCredentialMaterial (+29 more)
 
 ### Community 80 - "Community 80"
-Cohesion: 0.06
-Nodes (34): FlowDiagramTestHarness(), useFlowInvocationController(), useMergedStepDefinitionOptions(), templateTestCaseSchema, testCaseSchema, flowBlockSchema, testCaseStepSchema, testCaseStepsSchema (+26 more)
+Cohesion: 0.13
+Nodes (26): assertActiveAtAuthorityEpoch(), assertAuthenticatedReturnAtFrozenTarget(), assertCaptureAllowed(), assertCaptureOperationCurrent(), assertCleanupConfirmed(), assertCurrentSessionOperation(), canonical(), captureAccessOutcome() (+18 more)
 
 ### Community 81 - "Community 81"
-Cohesion: 0.11
-Nodes (41): NativeOutcomeProfile, acceptNativeQualificationAnalysis(), Artifact, assertNativeQualificationLossGateway(), assertNativeQualificationLossQuiescent(), assertNativeQualificationLossSender(), bindNativeQualificationAnalysisSource(), bindNativeQualificationLossControl() (+33 more)
+Cohesion: 0.08
+Nodes (31): metadata, tagFormOpts, tagSchema, ModifyTag(), ModifyTestSuite(), createTag(), deleteTags(), effects() (+23 more)
 
 ### Community 82 - "Community 82"
-Cohesion: 0.07
-Nodes (38): cleanupFailedLaunch(), cleanupOwnedChild(), fixtureCommand(), launchOwnedFixtureChild(), launchOwnedProviderChild(), OwnedChildLaunchError, ownedFixture(), OwnedFixtureChildOptions (+30 more)
+Cohesion: 0.10
+Nodes (32): NativeOutcomeAdmissionIdentity, NativeOutcomeJournal, fixture(), assertNativeLedger(), assertNativeLedgerChain(), assertNativeState(), committedReceipt(), exactFields() (+24 more)
 
 ### Community 83 - "Community 83"
-Cohesion: 0.09
-Nodes (45): armHumanReturn(), armQualityJourneyDiscoveryBrowserHumanReturn(), assertActiveAtAuthorityEpoch(), assertAuthenticatedReturnAtFrozenTarget(), assertCaptureAllowed(), assertCaptureOperationCurrent(), assertCleanupConfirmed(), assertCurrentSessionOperation() (+37 more)
+Cohesion: 0.07
+Nodes (37): candidateSchema, createQualityJourneyAnalysisFixtureDelivery(), digest(), QualityJourneyAnalysisFixtureDeliveryOptions, deliveries, Delivery, Fixture, fixtures (+29 more)
 
 ### Community 84 - "Community 84"
 Cohesion: 0.07
-Nodes (28): metadata, EnvironmentFormProps, { push, toast }, environmentFieldValidators, EnvironmentFormSubmitAction, getActionErrorMessage(), FormSubmitButton(), TextFormField() (+20 more)
+Nodes (42): requestQualityJourneyAnalysisRevision(), confirmQualityJourneyDraft(), commentQualityJourneyScenarioPortfolio(), disposeQualityJourneyScenarioComment(), requestQualityJourneyScenarioRevision(), answerQualityJourneyAnalysisQuestionAction(), answerQuestionSchema, approveQualityJourneyAnalysisAction() (+34 more)
 
 ### Community 85 - "Community 85"
-Cohesion: 0.10
-Nodes (33): NativeOutcomeAdmissionIdentity, NativeOutcomeJournal, fixture(), nativeOutcomeProtocolDigest, assertNativeLedger(), assertNativeLedgerChain(), assertNativeState(), committedReceipt() (+25 more)
-
-### Community 86 - "Community 86"
-Cohesion: 0.09
-Nodes (42): activeOwnedBrowserRows(), assertOwnedQualityJourneyDiscoveryBrowserCleanupReconciled(), pauseOwnedQualityJourneyDiscoveryBrowserCleanup(), pauseCurrent(), stopOwnedQualityJourneyTurns(), hasUnreconciledProviderEffects(), invalidateUnsentProviderIntents(), RunScope (+34 more)
-
-### Community 87 - "Community 87"
-Cohesion: 0.08
-Nodes (29): ensureTestSuiteIdentifierTags(), getOrCreateTestSuiteIdentifierTagId(), refuse(), repairIdentifiers(), identifier, prepare, { root, tx }, generateUniqueTestSuiteIdentifier() (+21 more)
-
-### Community 88 - "Community 88"
-Cohesion: 0.09
-Nodes (33): ProviderTransportAuthorityTrace, readOwnedJourneyTurnDatabaseIdentity(), Armed, Child, createQualityJourneyFixtureSupervisor(), createQualityJourneyProcessSupervisor(), digest(), FixtureOptions (+25 more)
-
-### Community 89 - "Community 89"
-Cohesion: 0.08
-Nodes (32): bindingSchema, captureOfflineReadiness(), initializeSchema, OfflineCleanupFacts, OfflineReadinessPort, OfflineReadinessReason, OfflineReadinessReceipt, OfflineReadinessSnapshot (+24 more)
-
-### Community 90 - "Community 90"
-Cohesion: 0.06
-Nodes (63): metadata, metadata, metadata, metadata, CreateFromTemplateForm(), CreateFromTemplateFormProps, collectTemplateStepReferences(), loadCreateFromTemplateRouteResources() (+55 more)
-
-### Community 91 - "Community 91"
 Cohesion: 0.05
 Nodes (27): InlineTagCreationDialog(), InlineTestSuiteCreationDialog(), DetailsStepProps, detailsStepSchema, EMPTY_FLOW_BLOCKS, FlowPanel(), FlowPanelProps, FlowStepProps (+19 more)
 
+### Community 86 - "Community 86"
+Cohesion: 0.06
+Nodes (32): useMergedStepDefinitionOptions(), templateTestCaseSchema, testCaseSchema, flowBlockSchema, testCaseStepSchema, testCaseStepsSchema, formatOrderedGherkinSteps(), GHERKIN_KEYWORDS (+24 more)
+
+### Community 87 - "Community 87"
+Cohesion: 0.08
+Nodes (42): JourneyHeader(), analysisDecisionAction(), AttentionItem, attentionItems(), blockerAction(), blockerCandidate(), candidateForHandoffStatus(), closedAction() (+34 more)
+
+### Community 88 - "Community 88"
+Cohesion: 0.08
+Nodes (32): bindingSchema, captureOfflineReadiness(), initializeSchema, OfflineCleanupFacts, OfflineReadinessPort, OfflineReadinessReason, OfflineReadinessReceipt, OfflineReadinessSnapshot (+24 more)
+
+### Community 89 - "Community 89"
+Cohesion: 0.08
+Nodes (12): createCoordinatorStepDefinitionService(), assertDraftCreationIsAllowed(), assertReuseEvidenceIsFresh(), executionKind(), loadCompositionClosure(), parseDraftJson(), parsePersistedDefinition(), parseReuseEvidence() (+4 more)
+
+### Community 90 - "Community 90"
+Cohesion: 0.08
+Nodes (40): bindingForTarget(), collaborationRequestSchemas, divergentProposalDecisionRequest, id, operationSummary(), policyVersion, postActions, postConnect() (+32 more)
+
+### Community 91 - "Community 91"
+Cohesion: 0.08
+Nodes (32): closeQualityJourney(), trustedHumanCoordinatorSession, approveQualityJourneyRemediation(), requestQualityJourneyReportRevision(), closeQualityJourneyAction(), input, mocks, analysisRevision() (+24 more)
+
 ### Community 92 - "Community 92"
-Cohesion: 0.13
-Nodes (33): answerQualityJourneyAnalysisQuestion(), submitExternalQualityJourneyAnalysisSuccessor(), ensureQualityJourneyAnalysisFollowupInTransaction(), acknowledgeQualityJourneyWake(), assertMachineKey(), claimQualityJourneyWake(), listQualityJourneyWakeWork(), retainedCanonicalAnalysisABC() (+25 more)
+Cohesion: 0.10
+Nodes (39): activeOwnedBrowserRows(), assertOwnedQualityJourneyDiscoveryBrowserCleanupReconciled(), pauseOwnedQualityJourneyDiscoveryBrowserCleanup(), stopOwnedQualityJourneyTurns(), appendOperationalEvent(), assertCapturedProviderCleanupForResume(), assertManagedTurnCleanup(), assertManagedTurnReceipts() (+31 more)
 
 ### Community 93 - "Community 93"
-Cohesion: 0.07
-Nodes (36): classifyAutomationFailure(), persistAutomationFailure(), Admission, admitBusinessGroup(), assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(), assertTerminalInput(), assertTerminalRows(), AttemptTerminalInput (+28 more)
-
-### Community 94 - "Community 94"
-Cohesion: 0.12
-Nodes (41): ensureQualityJourneyAutomationForApprovedScenarios(), assertCoordinatorMutationSession(), completeTriagerWorkWithBusinessJoinInTransaction(), createAttemptBudgetBlocker(), issueQualityJourneySpecializedWorkItemWithBusinessJoinInTransaction(), json(), publishTriageReportWithBusinessJoinInTransaction(), resumeRefusedFactoryWork() (+33 more)
-
-### Community 95 - "Community 95"
-Cohesion: 0.09
-Nodes (31): metadata, CreateModule(), Module, moduleFormOpts, moduleSchema, ModifyModule(), assertUpdatedParentInTransaction(), createModule() (+23 more)
-
-### Community 96 - "Community 96"
 Cohesion: 0.10
 Nodes (29): assertOutcomeIdentity(), captureOutcomeRequestPin(), OutcomeCleanupCell, OutcomeCleanupState, outcomeEffectRouteInventory, OutcomeRequestPin, outcomeRequestPinMatches(), outcomeSourceBounds (+21 more)
 
-### Community 97 - "Community 97"
+### Community 94 - "Community 94"
 Cohesion: 0.07
-Nodes (34): ExternalQualityJourneyWorkClaimInput, AssignmentAttemptIdentity, AssignmentClaimRequest, AssignmentCredentialCustody, AssignmentCredentialMaterial, AssignmentCredentialStore, AssignmentCustodyError, AssignmentCustodyReceipt (+26 more)
+Nodes (35): captureOfflineProviderBinding(), captureOfflineProviderJson(), captureOfflineProviderTimeouts(), digest, id, offlineCompositionDigest(), OfflineCompositionReason, OfflineOwnedProviderPort (+27 more)
 
-### Community 98 - "Community 98"
-Cohesion: 0.09
-Nodes (39): analysisDecisionAction(), AttentionItem, attentionItems(), blockerAction(), blockerCandidate(), candidateForHandoffStatus(), closedAction(), closedCandidate() (+31 more)
+### Community 95 - "Community 95"
+Cohesion: 0.15
+Nodes (8): GET(), { findUnique, readDiagnostic }, parseCanonicalCapsuleCommandReceipt(), ACTIVE_ATTEMPTS, attemptBlocker(), readRuntimeCapsuleDiagnostic(), TestRunArtifactAccessService, testRunEvidenceLinks()
 
-### Community 99 - "Community 99"
-Cohesion: 0.08
-Nodes (31): AuthoredStep, authoredStepBase(), exactDefinitionForAuthoredStep(), FlowBlock, flowBlockCreates(), templateTestCaseStepCreates(), authoredStep(), definition (+23 more)
-
-### Community 100 - "Community 100"
+### Community 96 - "Community 96"
 Cohesion: 0.07
 Nodes (34): commandBrand, createInertE2CustodyCore(), E2CoreObservation, E2CoreOwner, E2CoreResult, E2GrantRequest, E2InertGrantCandidate, E2InertReceipt (+26 more)
 
-### Community 101 - "Community 101"
-Cohesion: 0.09
-Nodes (32): createSearchReceipt(), canonicalStepDiscoveryText(), conceptByTerm, semanticConcepts, StepDiscoveryDescriptor, stepDiscoveryTerms(), assertReadyIndexMatchesSource(), BuiltInReadinessReceipt (+24 more)
+### Community 97 - "Community 97"
+Cohesion: 0.10
+Nodes (40): assertE2PrivateCommandMatchesGrant(), e2DueAtSourceDigest(), Actor, applyInertE2GrantSqlKernel(), Attempt, Authorization, costs(), count() (+32 more)
 
-### Community 102 - "Community 102"
+### Community 98 - "Community 98"
+Cohesion: 0.09
+Nodes (30): ProviderTransportAuthorityTrace, Armed, Child, createQualityJourneyFixtureSupervisor(), createQualityJourneyProcessSupervisor(), digest(), FixtureOptions, handle() (+22 more)
+
+### Community 99 - "Community 99"
 Cohesion: 0.06
 Nodes (33): artifactReferenceContractSchema, journeyCommandKindSchema, journeyCommandResultSchema, journeyCommandSchema, journeyWorkItemStatusSchema, qualityJourneyStageSchema, testOutcomeAttributionSchema, workerSpawnReceiptSchema (+25 more)
 
+### Community 100 - "Community 100"
+Cohesion: 0.08
+Nodes (38): reviseStepDefinitionDraftAction(), saveStepDefinitionDraftArtifactAction(), actionError(), artifactFingerprint(), ArtifactFingerprintSetter, BooleanSetter, compileAndReadDraft(), CompileData (+30 more)
+
+### Community 101 - "Community 101"
+Cohesion: 0.09
+Nodes (39): analysisFollowupIssuancePayloadsForAuthorization(), assertAnalysisFollowupAttemptBudget(), readAnalysisFollowupAttemptBudget(), selectAnalysisFollowupIssuance(), acknowledgeQualityJourneyWake(), AdmittedAttempt, AnalysisFollowupWakeHint, AnalysisWakeItem (+31 more)
+
+### Community 102 - "Community 102"
+Cohesion: 0.07
+Nodes (22): ActionResponse, ActionResponseData, EntitySearchCommand(), EntitySearchCommandProps, LoadAction, LoadState, NavCommandSearch(), NavCommandSearchProps (+14 more)
+
 ### Community 103 - "Community 103"
-Cohesion: 0.10
-Nodes (39): e2DueAtSourceDigest(), Actor, applyInertE2GrantSqlKernel(), Attempt, Authorization, costs(), count(), date() (+31 more)
+Cohesion: 0.11
+Nodes (35): nativeOutcomeProtocolDigest, matrix, assertNoRelease(), boundary, deferred(), digest(), fixture(), rejectedCallback() (+27 more)
 
 ### Community 104 - "Community 104"
-Cohesion: 0.09
-Nodes (38): bindingForTarget(), collaborationRequestSchemas, divergentProposalDecisionRequest, id, operationSummary(), policyVersion, postActions, postConnect() (+30 more)
+Cohesion: 0.06
+Nodes (35): cleanupFailureReasons, closePairs, commonOutcomeReasons, DiagnosticPair, failurePairs, lifecyclePairs, matchesDiagnosticPair(), NativeCleanupFailureReason (+27 more)
 
 ### Community 105 - "Community 105"
-Cohesion: 0.08
-Nodes (33): fixture(), analysisFollowupDescriptorSchema, AnalysisFollowupDescriptorV1, AnalysisFollowupExpectedWork, analysisFollowupExpectedWorkSchema, analysisFollowupIssuanceSchema, AnalysisFollowupIssuanceV1, compileAnalysisFollowupDescriptor() (+25 more)
+Cohesion: 0.10
+Nodes (26): fixtures, setup(), Controls, Owned, fixture(), fixtures, prepared(), armQualityJourneyProviderIntent() (+18 more)
 
 ### Community 106 - "Community 106"
-Cohesion: 0.09
-Nodes (33): reportReviewKernelState(), JourneyCommand, JourneyWorkItemStatus, QualityJourneyStage, applyProjection(), commandBlockerId(), CommittedCommand, conflict() (+25 more)
+Cohesion: 0.08
+Nodes (32): fixture(), mocks, analysisFollowupDescriptorSchema, AnalysisFollowupDescriptorV1, AnalysisFollowupExpectedWork, analysisFollowupExpectedWorkSchema, analysisFollowupIssuanceSchema, AnalysisFollowupIssuanceV1 (+24 more)
 
 ### Community 107 - "Community 107"
-Cohesion: 0.11
-Nodes (30): ClosureContext, closureGates(), conflict(), Db, idFor(), readClosureContext(), Scope, validateApprovedAnalysis() (+22 more)
-
-### Community 108 - "Community 108"
 Cohesion: 0.06
 Nodes (39): properties, type, description, type, ConfigReadParams, ExternalAgentConfigImportHistoryRecordSuccessParams, ExternalAgentConfigImportItemTypeFailure, ExternalAgentConfigMigrationItem (+31 more)
 
+### Community 108 - "Community 108"
+Cohesion: 0.09
+Nodes (22): SpawnedProcess, CAPTCHA_DETECTOR_VERSION, CHECKPOINTS, findHumanVerificationEvent(), HUMAN_VERIFICATION_EVENT, HUMAN_VERIFICATION_REASON, humanVerificationData(), HumanVerificationEvent (+14 more)
+
 ### Community 109 - "Community 109"
-Cohesion: 0.07
-Nodes (32): advisorySeedReadSchema, assertAdvisoryReuseLease(), assignmentMatchesAdvisoryLease(), attemptIsCurrentForAdvisoryLease(), attemptMatchesAdvisoryLease(), createQualityJourneyDraftFromReuseBrief(), Db, exactReferences() (+24 more)
+Cohesion: 0.06
+Nodes (46): digest(), submissionArguments, hash(), idempotencyKey, roles, evidenceSelectors, readInternalWorkerAuthority(), ExternalQualityJourneySubmissionBinding (+38 more)
 
 ### Community 110 - "Community 110"
-Cohesion: 0.10
-Nodes (37): analysisFollowupIssuancePayloadsForAuthorization(), assertAnalysisFollowupAttemptBudget(), readAnalysisFollowupAttemptBudget(), selectAnalysisFollowupIssuance(), AdmittedAttempt, AnalysisFollowupWakeHint, AnalysisWakeItem, assertExactWakeClaim() (+29 more)
+Cohesion: 0.14
+Nodes (36): acceptNativeQualificationAnalysis(), Artifact, assertNativeQualificationLossGateway(), assertNativeQualificationLossQuiescent(), assertNativeQualificationLossSender(), bindNativeQualificationAnalysisSource(), bindNativeQualificationLossControl(), bindNativeQualificationLossParser() (+28 more)
 
 ### Community 111 - "Community 111"
 Cohesion: 0.09
-Nodes (32): advanceClaimedAnalysisFollowup(), advanceQualityJourneyAnalysisFollowup(), analysisFollowupOperationKeys(), AnalysisFollowupSchedulerInput, fixtureAnalysisConflictClass(), fixtureAnalysisConflictClasses, fixtureAnalysisConflictTemplateClass(), fixtureAnalysisTraceabilityFields (+24 more)
+Nodes (32): assertHandoffSnapshotCurrent(), codexCoordinatorProvider, CoordinatorProvider, coordinatorProviderRegistry, createNeutralWorkspace(), currentLaunchResult(), Db, digest() (+24 more)
 
 ### Community 112 - "Community 112"
-Cohesion: 0.06
-Nodes (26): admitted, canonicalAdmission, credentials, JourneyRow, scope, SessionRow, CoordinatorSessionCredentials, discoveryEnvelope (+18 more)
+Cohesion: 0.14
+Nodes (33): CreateLocatorWorkspace(), applyExistingGroupSuggestion(), applyNewGroupSuggestion(), applyPickedLocatorToWorkspaceState(), applyPickedSelector(), applySuggestedLocatorName(), applySuggestedRoute(), canLaunchPicker() (+25 more)
 
 ### Community 113 - "Community 113"
-Cohesion: 0.12
-Nodes (34): matrix, assertNoRelease(), boundary, deferred(), digest(), fixture(), rejectedCallback(), sourceFixtureMode() (+26 more)
-
-### Community 114 - "Community 114"
 Cohesion: 0.06
 Nodes (38): type, description, properties, required, type, anyOf, anyOf, AppInfo (+30 more)
 
+### Community 114 - "Community 114"
+Cohesion: 0.15
+Nodes (20): getFieldErrorMessage(), TestRun, getActionErrorMessage(), getTestRunSuccessPath(), getBrowserEngineOptions(), testRunQuickTips, testRunFieldValidators, TestRunFormSubmitAction (+12 more)
+
 ### Community 115 - "Community 115"
 Cohesion: 0.09
-Nodes (26): cleanup, hash(), operator(), proof(), approvedScout(), disposableHerokuSameOriginSubresources, Phase, sanitizedOriginPath() (+18 more)
+Nodes (27): flowFromNodeOrder(), FlowDiagram(), FlowDiagramWithControllerProps, DiagramNodeData, useFlowDiagramInteractions(), useFlowDiagramModel(), FlowInvocationController, FlowBlocksOptions (+19 more)
 
 ### Community 116 - "Community 116"
 Cohesion: 0.07
-Nodes (22): sealedCredentialReceipt(), bindCucumberImport(), collectAndValidateImports(), compileCustomExtension(), CompiledCustomExtension, compiledCustomExtensionSchema, CustomExtensionCompilationError, CustomExtensionCompilerPolicy (+14 more)
-
-### Community 117 - "Community 117"
-Cohesion: 0.07
 Nodes (37): properties, required, type, properties, required, type, properties, required (+29 more)
 
-### Community 118 - "Community 118"
-Cohesion: 0.07
-Nodes (32): cleanupFailureReasons, closePairs, commonOutcomeReasons, DiagnosticPair, failurePairs, lifecyclePairs, matchesDiagnosticPair(), NativeDiagnosticReason (+24 more)
-
-### Community 119 - "Community 119"
-Cohesion: 0.08
-Nodes (29): admission(), assertPublished(), AuthorityFields, authorizationFence(), carrier, client(), contentHash(), dataOf() (+21 more)
-
-### Community 120 - "Community 120"
-Cohesion: 0.07
-Nodes (22): ADD_NODE_PROMPT_NODE_TYPE, AddNodePromptNodeData, isAddNodePromptNode(), FlowBlockBounds, getFlowBlockBounds(), normalizeFlowBlocks(), FlowDiagramBlockOverlays(), FlowDiagramBlockOverlaysProps (+14 more)
-
-### Community 121 - "Community 121"
-Cohesion: 0.06
-Nodes (36): properties, type, additionalProperties, properties, required, type, items, type (+28 more)
-
-### Community 122 - "Community 122"
-Cohesion: 0.10
-Nodes (27): createReportShell(), ExecutedTestCaseSets, getAllTestCaseMetricsForFilter(), getAllTestSuiteMetricsForFilter(), getLegacySuiteIds(), getReportByIdOrThrow(), getReportStorageTestRun(), listReports() (+19 more)
-
-### Community 123 - "Community 123"
+### Community 117 - "Community 117"
 Cohesion: 0.05
 Nodes (37): description, type, enum, type, oneOf, description, enum, type (+29 more)
 
-### Community 124 - "Community 124"
+### Community 118 - "Community 118"
+Cohesion: 0.08
+Nodes (29): admission(), assertPublished(), AuthorityFields, authorizationFence(), carrier, client(), contentHash(), dataOf() (+21 more)
+
+### Community 119 - "Community 119"
+Cohesion: 0.07
+Nodes (22): ADD_NODE_PROMPT_NODE_TYPE, AddNodePromptNodeData, isAddNodePromptNode(), FlowBlockBounds, getFlowBlockBounds(), normalizeFlowBlocks(), FlowDiagramBlockOverlays(), FlowDiagramBlockOverlaysProps (+14 more)
+
+### Community 120 - "Community 120"
 Cohesion: 0.06
-Nodes (36): anyOf, description, type, anyOf, description, description, description, type (+28 more)
+Nodes (36): properties, type, additionalProperties, properties, required, type, items, type (+28 more)
 
-### Community 125 - "Community 125"
+### Community 121 - "Community 121"
 Cohesion: 0.09
-Nodes (26): DirectForkWatch, NativeProcessMetadata, observeNativeCodeModeHost(), ProcessIdentity, sameBirth(), watchBeforeFirstRequest(), claimOriginalNativeQualificationChild(), launchNativeQualificationChild() (+18 more)
+Nodes (24): cleanup, hash(), operator(), proof(), approvedScout(), disposableHerokuSameOriginSubresources, Phase, sanitizedOriginPath() (+16 more)
 
-### Community 126 - "Community 126"
+### Community 122 - "Community 122"
 Cohesion: 0.15
 Nodes (34): activeWorkItemIds(), assertActiveTriageCycle(), assertAdmissionBindings(), assertAdmissionPrincipal(), assertAdmissionReceipt(), assertAdmissionRequest(), assertAttemptIdentity(), assertEvidenceScope() (+26 more)
 
-### Community 127 - "Community 127"
-Cohesion: 0.07
-Nodes (32): ExternalAgentConfigImportHistoryRecordParams, ExternalAgentConfigImportHistoryRecordTypeResultParams, ExternalAgentConfigImportParams, properties, required, type, properties, required (+24 more)
+### Community 123 - "Community 123"
+Cohesion: 0.08
+Nodes (30): assertArtifactBinding(), assertArtifactConformance(), assertBuiltInDefinitionIsUnchanged(), assertBuiltInRegistration(), assertReviewedArtifactIsCurrent(), assertReviewedExtensionIsActive(), bindReviewedArtifactForReview(), CreateDraftOptions (+22 more)
 
-### Community 128 - "Community 128"
+### Community 124 - "Community 124"
+Cohesion: 0.06
+Nodes (34): anyOf, description, type, anyOf, description, description, description, type (+26 more)
+
+### Community 125 - "Community 125"
 Cohesion: 0.08
 Nodes (32): DeadlineField, due(), E2_DUE_AT_SOURCE_DOMAIN, E2DueAtSource, evaluateSyntheticE2Admission(), issueE2GrantInTx(), readE2IdentityAndLineage(), refused() (+24 more)
 
-### Community 129 - "Community 129"
-Cohesion: 0.10
-Nodes (28): assertHandoffSnapshotCurrent(), codexCoordinatorProvider, CoordinatorProvider, coordinatorProviderRegistry, createNeutralWorkspace(), currentLaunchResult(), Db, digest() (+20 more)
-
-### Community 130 - "Community 130"
+### Community 126 - "Community 126"
 Cohesion: 0.11
 Nodes (28): AppraiseMetadataReadResult, AppraiseTestCaseMetadata, AppraiseTestCaseMetadataEntry, AppraiseTestCaseMetadataFlowBlock, AppraiseTestCaseMetadataNode, getAppraiseMetadataPath(), getMetadataByIdentifier(), isRecord() (+20 more)
 
-### Community 131 - "Community 131"
-Cohesion: 0.12
-Nodes (30): callbacks, fixture(), observer, roots, absolute, assert(), captureNativeQualificationPlan(), credential (+22 more)
+### Community 127 - "Community 127"
+Cohesion: 0.08
+Nodes (28): AdvisoryReuseInputReference, advisoryReuseInputReferenceSchema, advisorySeedReadSchema, assertAdvisoryReuseLease(), assignmentMatchesAdvisoryLease(), attemptIsCurrentForAdvisoryLease(), attemptMatchesAdvisoryLease(), Db (+20 more)
 
-### Community 132 - "Community 132"
-Cohesion: 0.10
-Nodes (24): flowFromNodeOrder(), FlowDiagram(), FlowDiagramWithControllerProps, DiagramNodeData, useFlowDiagramInteractions(), useFlowDiagramModel(), FlowBlocksOptions, FlowGraphOptions (+16 more)
+### Community 128 - "Community 128"
+Cohesion: 0.08
+Nodes (31): retryQualityJourneyDiscovery(), revalidateQualityJourneyDiscovery(), snapshotDiscoveryCoordinatorSession(), submitQualityJourneyResourceResolution(), withTransaction(), DiscoveryPostHandler, externalTargetObservationSubmissionSchema, hash (+23 more)
 
-### Community 133 - "Community 133"
-Cohesion: 0.09
-Nodes (22): collectLocatorEffects(), deleteLocators(), detectAndCreateConflicts(), LocatorRow, locatorSelect, refuse(), savePickedLocatorFromRequest(), SavePickedLocatorOutcome (+14 more)
-
-### Community 134 - "Community 134"
-Cohesion: 0.10
-Nodes (24): IntakeGuide(), intakeStepMarkerClassNames, IntakeStepState, ChecksIntakeScreen(), EditableCardList(), EnvironmentIntakeScreen(), GoalIntakeScreen(), ScopeIntakeScreen() (+16 more)
-
-### Community 135 - "Community 135"
+### Community 129 - "Community 129"
 Cohesion: 0.13
 Nodes (30): assertDossierIdentity(), assertDossierSourceBlob(), assertDossierStaticBinding(), assertDossierTreePaths(), assertNativeOutcomeDossierFacts(), assertNativeOutcomeSourceFacts(), assertNativeStartupEvidenceFacts(), captureNativeOutcomeProfile() (+22 more)
 
-### Community 136 - "Community 136"
-Cohesion: 0.07
-Nodes (22): OriginalNativeOutcomeCandidate, NativeConfigurationInspection, CapturedNativeQualificationPlan, digest, nativeQualificationDigest(), NativeDiagnosticStage, NativeRoleGatewayTrace, retainNativeQualificationLossOperation() (+14 more)
-
-### Community 137 - "Community 137"
+### Community 130 - "Community 130"
 Cohesion: 0.07
 Nodes (15): carrier, client(), Fixture, fixtureFault, hashFile(), migrationIds, newFixture(), openFreshCase() (+7 more)
 
-### Community 138 - "Community 138"
+### Community 131 - "Community 131"
 Cohesion: 0.06
 Nodes (32): description, properties, required, type, CommandExecParams, description, type, description (+24 more)
 
-### Community 139 - "Community 139"
+### Community 132 - "Community 132"
+Cohesion: 0.07
+Nodes (32): ExternalAgentConfigImportHistoryRecordParams, ExternalAgentConfigImportHistoryRecordTypeResultParams, ExternalAgentConfigImportParams, properties, required, type, properties, required (+24 more)
+
+### Community 133 - "Community 133"
 Cohesion: 0.07
 Nodes (32): properties, type, AdditionalFileSystemPermissions, ExternalAgentConfigImportTypeResult, items, type, properties, required (+24 more)
 
-### Community 140 - "Community 140"
+### Community 134 - "Community 134"
 Cohesion: 0.06
-Nodes (32): additionalProperties, properties, required, type, AsyncUserInputQuestion, MemoryCitation, items, type (+24 more)
+Nodes (34): allOf, description, $ref, MemoryCitation, ThreadEnvironment, items, type, type (+26 more)
 
-### Community 141 - "Community 141"
+### Community 135 - "Community 135"
+Cohesion: 0.11
+Nodes (25): absolute, assert(), CapturedNativeQualificationPlan, credential, digest, file, hashPublic(), id (+17 more)
+
+### Community 136 - "Community 136"
+Cohesion: 0.15
+Nodes (25): advisorySeedDigest(), archiveQualityJourneyDraft(), copyQualityJourneyBriefToDraft(), createQualityJourneyDraft(), Db, DraftRow, draftValues(), getQualityJourneyDraft() (+17 more)
+
+### Community 137 - "Community 137"
 Cohesion: 0.10
-Nodes (23): fixture(), historical(), buildWorkerSpawnRequest(), createReplacementAssignment(), createWorkerSpawnRequest(), resolveRegistryAuthority(), digest(), manifest() (+15 more)
+Nodes (24): fixture(), journey(), successor(), ActivateQualityJourneyCoordinatorSessionInput, ApprovedSessionRequest, assertBrowserCleanup(), assertExecutionQuiescent(), assertLegacyTransitionEnrollment() (+16 more)
 
-### Community 142 - "Community 142"
-Cohesion: 0.13
-Nodes (26): inspectQualityJourneyAnalysisContinuation(), assertActiveSessionScope(), assertAttemptAssignmentLineage(), assertBindingJourneyScope(), assertBindingSession(), assertBindingWorkAuthority(), assertCoordinatorAttemptSession(), assertCoordinatorRecoverySession() (+18 more)
-
-### Community 143 - "Community 143"
-Cohesion: 0.13
-Nodes (22): getQualityJourneyTriage(), adapterFor(), clients, digest(), fixture(), json(), passingReport(), publishReport() (+14 more)
-
-### Community 144 - "Community 144"
+### Community 138 - "Community 138"
 Cohesion: 0.09
-Nodes (28): retryQualityJourneyDiscovery(), revalidateQualityJourneyDiscovery(), DiscoveryPostHandler, externalTargetObservationSubmissionSchema, hash, id, postHandlers, postQualityJourneyDiscoveryRoute() (+20 more)
+Nodes (24): OriginalNativeOutcomeCandidate, launchNativeQualificationChild(), OriginalNativeChild, originalNativeChildren, originalNativeQualificationLossOwner(), recordNativeAcquisitionRefusal(), verifyOriginalNativeChildPlan(), NativeConfigurationInspection (+16 more)
 
-### Community 145 - "Community 145"
-Cohesion: 0.08
-Nodes (27): digest, qualityJourneyClosureInputSchema, AdvisoryReuseInputReference, advisoryReuseInputReferenceSchema, artifactReferenceSchema, assignmentAuthorityViolations(), assignmentBoundaryViolations(), assignmentIdentityViolations() (+19 more)
+### Community 139 - "Community 139"
+Cohesion: 0.09
+Nodes (27): correlationIdSchema, createDraft(), DefinitionActionHandler, definitionActionHandlers, DraftActionHandler, draftActionHandlers, draftActionInput, normalizeDraftComposition() (+19 more)
 
-### Community 146 - "Community 146"
+### Community 140 - "Community 140"
 Cohesion: 0.19
 Nodes (5): makeRecord(), OutcomeSourceSqliteJournal, readProviderSourceLedgerRecords(), unknown(), ProviderSourceDatabaseHold
 
-### Community 147 - "Community 147"
-Cohesion: 0.09
-Nodes (19): AnalysisFollowupController, AnalysisFollowupDelivery, admission, admittedCases, digest(), FileRecord, fileRecordSchema, manifestSchema (+11 more)
-
-### Community 148 - "Community 148"
-Cohesion: 0.10
-Nodes (4): CdpFrame, CdpPage, frameTreeFrames(), navigateReply()
-
-### Community 149 - "Community 149"
+### Community 141 - "Community 141"
 Cohesion: 0.10
 Nodes (23): activateUse(), admission(), assertOneAdmissionBeforeEffects(), assertPublished(), authorizationFence(), carrier, client(), dataOf() (+15 more)
 
-### Community 150 - "Community 150"
-Cohesion: 0.10
-Nodes (25): AgentFactoryDispatchNotStartedError, AgentFactoryProviderAdapter, boundaryViolations(), digest, dispatchWorkerSpawnRequest(), effectiveCapabilityViolations(), id, judgmentRank (+17 more)
-
-### Community 151 - "Community 151"
-Cohesion: 0.07
-Nodes (29): description, format, type, Turn, description, format, type, anyOf (+21 more)
-
-### Community 152 - "Community 152"
-Cohesion: 0.07
-Nodes (29): description, format, type, Turn, description, format, type, anyOf (+21 more)
-
-### Community 153 - "Community 153"
-Cohesion: 0.14
-Nodes (12): NativeStartupMetadata, refusal(), account(), metadata(), opened(), ready(), warning(), title (+4 more)
-
-### Community 154 - "Community 154"
-Cohesion: 0.19
-Nodes (23): CreateLocatorWorkspace(), canLaunchPicker(), canSaveLocator(), createInitialWorkspaceState(), createWorkspaceAutoFillSnapshot(), formatStatus(), getLocatorSourceType(), getLocatorWorkspaceResolutionMode() (+15 more)
-
-### Community 155 - "Community 155"
-Cohesion: 0.23
-Nodes (9): getTemplateSelectionOptions(), getTemplateSelectionRows(), getTemplateTestCaseWithSteps(), isTemplateTestCaseWithSteps(), TemplateSelectionOption, TemplateSelectionRow, TemplateTestCaseWithSteps, getFieldErrorMessage() (+1 more)
-
-### Community 156 - "Community 156"
-Cohesion: 0.07
-Nodes (28): description, items, type, description, properties, required, type, description (+20 more)
-
-### Community 157 - "Community 157"
-Cohesion: 0.08
-Nodes (28): description, properties, type, description, properties, type, description, type (+20 more)
-
-### Community 158 - "Community 158"
-Cohesion: 0.07
-Nodes (28): description, type, description, properties, required, type, description, properties (+20 more)
-
-### Community 159 - "Community 159"
-Cohesion: 0.09
-Nodes (23): sortedUniqueQualityJourneyIdsSchema(), behavioralIntentSchema, digest, enrichmentSchema, graphEdgeSchema, hash(), layoutSchema, corpus (+15 more)
-
-### Community 160 - "Community 160"
-Cohesion: 0.08
-Nodes (28): properties, type, description, properties, type, anyOf, description, properties (+20 more)
-
-### Community 161 - "Community 161"
-Cohesion: 0.15
-Nodes (24): cancelQualityJourneyExecutionRuntime(), capsuleEvidenceIdentity(), collectEvidence(), collectRunEvidence(), conflict(), EvidenceBinding, EvidenceCycle, LaunchBinding (+16 more)
-
-### Community 162 - "Community 162"
-Cohesion: 0.09
-Nodes (17): InlineLocatorSaveResult, definition, deprecatedDefinition, deprecatedTemplateDefinition, jsonDefinition, locatorDefinition, resources, FlowInvocationController (+9 more)
-
-### Community 163 - "Community 163"
-Cohesion: 0.15
-Nodes (24): buildRecalculatedMetricUpdateData(), CompletedTestRunTestCase, countConsecutiveFailures(), findMostRecentOlderTestRunTestCases(), findOlderResultDate(), findRecentCompletedTestRunTestCases(), getCompletedAt(), getMostRecentResultDate() (+16 more)
-
-### Community 164 - "Community 164"
-Cohesion: 0.16
-Nodes (4): deadline(), record(), replyFault(), RpcTransport
-
-### Community 165 - "Community 165"
-Cohesion: 0.17
-Nodes (17): Logo(), LogoProps, AppSidebar(), ariaCurrent(), SidebarNavItem(), MobileNavigation(), MobileNavigationItem(), NavigationCommandItem (+9 more)
-
-### Community 166 - "Community 166"
+### Community 142 - "Community 142"
 Cohesion: 0.08
 Nodes (29): properties, required, type, properties, required, type, properties, required (+21 more)
 
-### Community 167 - "Community 167"
+### Community 143 - "Community 143"
+Cohesion: 0.12
+Nodes (24): postTargetProject(), ActiveProjectContext, ActiveProjectSelectionSource, detectPackageManager(), execFileAsync, extractScripts(), initializeTargetGitRepository(), isLocalTargetProject() (+16 more)
+
+### Community 144 - "Community 144"
+Cohesion: 0.11
+Nodes (25): POST(), deprecateStepDefinitionAction(), deprecationReasonSchema, draftIdSchema, exactStepReferenceSchema, extensions, listStepDefinitionDraftsAction(), previewStepDefinitionDraftAction() (+17 more)
+
+### Community 145 - "Community 145"
+Cohesion: 0.10
+Nodes (25): AgentFactoryDispatchNotStartedError, AgentFactoryProviderAdapter, boundaryViolations(), digest, dispatchWorkerSpawnRequest(), effectiveCapabilityViolations(), id, judgmentRank (+17 more)
+
+### Community 146 - "Community 146"
+Cohesion: 0.07
+Nodes (29): description, format, type, Turn, description, format, type, anyOf (+21 more)
+
+### Community 147 - "Community 147"
+Cohesion: 0.07
+Nodes (29): description, format, type, Turn, description, format, type, anyOf (+21 more)
+
+### Community 148 - "Community 148"
+Cohesion: 0.14
+Nodes (12): NativeStartupMetadata, refusal(), account(), metadata(), opened(), ready(), warning(), title (+4 more)
+
+### Community 149 - "Community 149"
+Cohesion: 0.09
+Nodes (19): cleanup, Gate, gateFor(), opened(), ready(), Attachment, autoAttach, deferred() (+11 more)
+
+### Community 150 - "Community 150"
+Cohesion: 0.12
+Nodes (21): fixture(), historical(), buildWorkerSpawnRequest(), createReplacementAssignment(), createWorkerSpawnRequest(), resolveRegistryAuthority(), digest(), manifest() (+13 more)
+
+### Community 151 - "Community 151"
+Cohesion: 0.10
+Nodes (18): InlineLocatorSaveResult, definition, deprecatedDefinition, deprecatedTemplateDefinition, jsonDefinition, locatorDefinition, resources, StepInvocationEditor() (+10 more)
+
+### Community 152 - "Community 152"
+Cohesion: 0.07
+Nodes (28): description, items, type, description, properties, required, type, description (+20 more)
+
+### Community 153 - "Community 153"
+Cohesion: 0.08
+Nodes (28): description, properties, type, description, properties, type, description, type (+20 more)
+
+### Community 154 - "Community 154"
+Cohesion: 0.07
+Nodes (28): description, type, description, properties, required, type, description, properties (+20 more)
+
+### Community 155 - "Community 155"
+Cohesion: 0.08
+Nodes (28): properties, type, description, properties, type, anyOf, description, properties (+20 more)
+
+### Community 156 - "Community 156"
+Cohesion: 0.15
+Nodes (24): inspectQualityJourneyAnalysisContinuation(), assertActiveSessionScope(), assertAttemptAssignmentLineage(), assertBindingJourneyScope(), assertBindingSession(), assertBindingWorkAuthority(), assertCoordinatorAttemptSession(), assertCoordinatorRecoverySession() (+16 more)
+
+### Community 157 - "Community 157"
+Cohesion: 0.09
+Nodes (27): CoordinatorSessionCredentials, ExternalAnalyzerProjectPrincipal, getQualityJourneyTriage(), prepareQualityJourneyTriage(), submitExternalQualityJourneyTriageReport(), submitQualityJourneyTriageReport(), withTransaction(), assertResolvedAuthority() (+19 more)
+
+### Community 158 - "Community 158"
+Cohesion: 0.15
+Nodes (24): buildRecalculatedMetricUpdateData(), CompletedTestRunTestCase, countConsecutiveFailures(), findMostRecentOlderTestRunTestCases(), findOlderResultDate(), findRecentCompletedTestRunTestCases(), getCompletedAt(), getMostRecentResultDate() (+16 more)
+
+### Community 159 - "Community 159"
+Cohesion: 0.13
+Nodes (17): getConvertedTemplateTestCaseData(), AuthoredFlowItem, FlowBlock, NodeData, NodeOrderMap, TemplateTestCaseNodeData, TemplateTestCaseNodeOrderMap, FlowDiagramProps (+9 more)
+
+### Community 160 - "Community 160"
+Cohesion: 0.16
+Nodes (4): deadline(), record(), replyFault(), RpcTransport
+
+### Community 161 - "Community 161"
+Cohesion: 0.10
+Nodes (22): Fixture, appendCleanupFixture(), CleanupPayload, cleanups, fixture(), hash(), HostingMode, pauseCurrent() (+14 more)
+
+### Community 162 - "Community 162"
+Cohesion: 0.14
+Nodes (23): bodyRecord(), coordinatorEffectContext(), CoordinatorEffectState, coordinatorErrorCode(), CoordinatorErrorContext, coordinatorErrorDetails(), coordinatorErrorMessage(), coordinatorErrorPayload() (+15 more)
+
+### Community 163 - "Community 163"
 Cohesion: 0.13
 Nodes (16): FeatureChartProps, OverviewChartProps, ChartConfig, ChartContainer(), ChartContext, ChartContextProps, ChartTooltipContent(), ChartTooltipContentActive() (+8 more)
 
-### Community 168 - "Community 168"
+### Community 164 - "Community 164"
 Cohesion: 0.08
 Nodes (26): description, format, type, Turn, description, format, type, anyOf (+18 more)
 
-### Community 169 - "Community 169"
+### Community 165 - "Community 165"
+Cohesion: 0.16
+Nodes (3): CdpRuntime, frameTreeFrames(), DiscoveryBrowserProtocolEvent
+
+### Community 166 - "Community 166"
 Cohesion: 0.11
 Nodes (12): boundedBrowserStartupStep(), deferred(), DiscoveryBrowserStartupCleanup, DiscoveryBrowserStartupError, DiscoveryBrowserStartupFailure, DiscoveryBrowserStartupPhase, Resource, retainedStartups (+4 more)
 
-### Community 170 - "Community 170"
+### Community 167 - "Community 167"
+Cohesion: 0.17
+Nodes (22): cancelQualityJourneyExecutionRuntime(), capsuleEvidenceIdentity(), collectEvidence(), collectRunEvidence(), conflict(), EvidenceBinding, EvidenceCycle, LaunchBinding (+14 more)
+
+### Community 168 - "Community 168"
 Cohesion: 0.12
 Nodes (22): E2_ENVELOPE_DIGEST_DOMAIN, E2_ENVELOPE_VERSION, E2_PAYLOAD_RECEIVE_TIMEOUT_MS, E2ActorTotals, E2ContractError, E2GrantKind, e2Limits, E2SetupStage (+14 more)
 
-### Community 171 - "Community 171"
+### Community 169 - "Community 169"
 Cohesion: 0.11
 Nodes (16): artifactManifest(), CompileResult, compileSource(), conformanceEvidence(), containedDraftDirectory(), DraftExample, ExampleResult, executeExamples() (+8 more)
 
-### Community 172 - "Community 172"
+### Community 170 - "Community 170"
+Cohesion: 0.12
+Nodes (16): type, properties, type, ComputerUseWindowsConfig, items, type, $ref, items (+8 more)
+
+### Community 171 - "Community 171"
 Cohesion: 0.08
 Nodes (24): description, type, definitions, McpServerStatusDetail, anyOf, description, description, format (+16 more)
+
+### Community 172 - "Community 172"
+Cohesion: 0.08
+Nodes (25): additionalProperties, properties, required, type, AsyncUserInputQuestion, MemoryCitation, items, type (+17 more)
 
 ### Community 173 - "Community 173"
 Cohesion: 0.08
 Nodes (25): additionalProperties, properties, required, type, AsyncUserInputQuestion, MemoryCitation, items, type (+17 more)
 
 ### Community 174 - "Community 174"
-Cohesion: 0.08
-Nodes (25): additionalProperties, properties, required, type, AsyncUserInputQuestion, MemoryCitation, items, type (+17 more)
+Cohesion: 0.10
+Nodes (16): bindCucumberImport(), collectAndValidateImports(), compileCustomExtension(), CompiledCustomExtension, compiledCustomExtensionSchema, CustomExtensionCompilationError, CustomExtensionCompilerPolicy, FORBIDDEN_GLOBALS (+8 more)
 
 ### Community 175 - "Community 175"
-Cohesion: 0.14
-Nodes (16): cleanupLingeringCompanionSessions(), delay(), getSessionAgeMs(), isMissingProcessError(), isTerminalStatus(), LocatorPickerSessionManager, processExists(), safeUrlParts() (+8 more)
+Cohesion: 0.12
+Nodes (5): post(), CdpResponse, CdpRoute, deferred(), isRedirect()
 
 ### Community 176 - "Community 176"
+Cohesion: 0.12
+Nodes (19): allowsAuthTransitRequest(), identityProviderOriginsFromDiscoveryAuthTransitPolicy(), canonicalAbsolutePath(), canonicalArray(), canonicalHttpsOrigin(), canonicalReturn(), canonicalRule(), discoveryAuthTransitPathMatches() (+11 more)
+
+### Community 177 - "Community 177"
+Cohesion: 0.13
+Nodes (18): canonicalStepDiscoveryText(), conceptByTerm, semanticConcepts, StepDiscoveryDescriptor, stepDiscoveryTerms(), cachedIndexes, cachedReadyRows, contextTerms() (+10 more)
+
+### Community 178 - "Community 178"
+Cohesion: 0.16
+Nodes (20): generateUniqueTestCaseIdentifier(), caseSelect, children(), createTestCaseFromInput(), deletionReferences(), Examined, inputIds(), keys() (+12 more)
+
+### Community 179 - "Community 179"
+Cohesion: 0.13
+Nodes (16): cleanupLingeringCompanionSessions(), delay(), getSessionAgeMs(), isMissingProcessError(), isTerminalStatus(), LocatorPickerSessionManager, processExists(), safeUrlParts() (+8 more)
+
+### Community 180 - "Community 180"
 Cohesion: 0.08
 Nodes (23): format, type, definitions, JSONRPCErrorError, RequestId, description, $ref, $ref (+15 more)
 
-### Community 177 - "Community 177"
+### Community 181 - "Community 181"
 Cohesion: 0.08
 Nodes (24): anyOf, type, additionalProperties, type, type, type, type, type (+16 more)
 
-### Community 178 - "Community 178"
+### Community 182 - "Community 182"
+Cohesion: 0.26
+Nodes (8): getTemplateSelectionOptions(), getTemplateSelectionRows(), getTemplateTestCaseWithSteps(), isTemplateTestCaseWithSteps(), TemplateSelectionOption, TemplateSelectionRow, TemplateTestCaseWithSteps, templateSelectionSchema
+
+### Community 183 - "Community 183"
 Cohesion: 0.09
 Nodes (23): properties, required, type, properties, required, type, properties, required (+15 more)
 
-### Community 179 - "Community 179"
-Cohesion: 0.10
-Nodes (23): type, FeedbackSaveParams, FeedbackUploadParams, items, type, properties, required, type (+15 more)
-
-### Community 180 - "Community 180"
+### Community 184 - "Community 184"
 Cohesion: 0.09
 Nodes (23): properties, required, type, anyOf, default, description, ActivePermissionProfile, ThreadSection (+15 more)
 
-### Community 181 - "Community 181"
+### Community 185 - "Community 185"
+Cohesion: 0.19
+Nodes (19): metadata, metadata, ModifyLocator(), getEnvironmentRows(), getLocatorGroupRows(), getModuleRows(), CreateLocatorPage(), CreateTemplateTestCase() (+11 more)
+
+### Community 186 - "Community 186"
+Cohesion: 0.21
+Nodes (16): GET(), PUT(), RouteContext, POST(), POST(), DELETE(), PATCH(), RouteContext (+8 more)
+
+### Community 187 - "Community 187"
 Cohesion: 0.12
 Nodes (15): carrier, client(), Fixture, fixtureFault, guardRows(), hashFile(), migrationIds, newFixture() (+7 more)
 
-### Community 182 - "Community 182"
-Cohesion: 0.13
-Nodes (18): allowsAuthTransitRequest(), identityProviderOriginsFromDiscoveryAuthTransitPolicy(), canonicalAbsolutePath(), canonicalArray(), canonicalHttpsOrigin(), canonicalReturn(), canonicalRule(), discoveryAuthTransitPathMatches() (+10 more)
+### Community 188 - "Community 188"
+Cohesion: 0.12
+Nodes (33): abortRouteFailClosed(), authorizedRedirect(), authorizeQualityJourneyDiscoveryBrowserExactReturn(), beginTerminalSessionTransition(), browserLivenessCause(), captureTargetUrl(), closeSessionAfterLivenessLoss(), denyHumanReturnRequest() (+25 more)
 
-### Community 183 - "Community 183"
-Cohesion: 0.23
-Nodes (20): getEnvironmentRows(), getInlineLocatorSaveResult(), getLocatorGroupRows(), getLocatorPickerSession(), getLocatorRow(), getModuleRows(), hasDateProp(), hasDateProps() (+12 more)
+### Community 189 - "Community 189"
+Cohesion: 0.16
+Nodes (19): validatePolicy(), toyPolicy(), CounterField, E2_CAMPAIGN_POLICY_DOMAIN, E2CampaignPolicyCharges, E2CampaignPolicyContractError, e2CampaignPolicyCounterCaps, e2CampaignPolicyDigest() (+11 more)
 
-### Community 184 - "Community 184"
+### Community 190 - "Community 190"
 Cohesion: 0.11
 Nodes (11): Portfolio, read(), Scenario, ScenarioDependency, scenarioFlow(), ScenarioMetadata(), ScenarioPortfolioReview(), ScenarioPortfolioReviewContent() (+3 more)
 
-### Community 185 - "Community 185"
+### Community 191 - "Community 191"
 Cohesion: 0.11
 Nodes (13): carrier, client(), Fixture, fixtureFault, hashFile(), migrationIds, newFixture(), openFreshCase() (+5 more)
 
-### Community 186 - "Community 186"
-Cohesion: 0.10
-Nodes (22): type, ExternalAgentConfigImportItemTypeFailure, ExternalAgentConfigImportItemTypeSuccess, type, properties, required, type, properties (+14 more)
-
-### Community 187 - "Community 187"
-Cohesion: 0.17
-Nodes (21): bodyRecord(), coordinatorEffectContext(), CoordinatorEffectState, coordinatorErrorCode(), CoordinatorErrorContext, coordinatorErrorDetails(), coordinatorErrorMessage(), coordinatorErrorPayload() (+13 more)
-
-### Community 188 - "Community 188"
-Cohesion: 0.10
-Nodes (21): $ref, properties, required, type, properties, required, type, ConfigLayer (+13 more)
-
-### Community 189 - "Community 189"
-Cohesion: 0.09
-Nodes (22): anyOf, $ref, type, properties, type, properties, required, type (+14 more)
-
-### Community 190 - "Community 190"
-Cohesion: 0.19
-Nodes (19): codeModeHostControls, ConfigurationBinding, criticalSchema, expectedMcp(), expectedNativeMcpConfiguration(), inspectConnector(), inspectNativeQualificationConfiguration(), inspectRequiredControls() (+11 more)
-
-### Community 191 - "Community 191"
-Cohesion: 0.15
-Nodes (5): post(), CdpResponse, CdpRoute, deferred(), isRedirect()
-
 ### Community 192 - "Community 192"
-Cohesion: 0.14
-Nodes (9): completion(), liveOwnedProcessIds(), OwnedChromiumProcess, ownedGroupExited(), Pending, PipeLaunch, pipeLaunchFromPlaywright(), ProbeCustody (+1 more)
+Cohesion: 0.15
+Nodes (17): locatorGroupTableCols, LocatorGroupTable(), getAllTestCaseMetricsForFilter(), getAllTestSuiteMetricsForFilter(), getReportByIdOrThrow(), listReports(), getAllReportsAction(), getAllTestCaseMetricsAction() (+9 more)
 
 ### Community 193 - "Community 193"
 Cohesion: 0.10
-Nodes (17): acceptsWithoutWrites(), { configuredDatabaseReads }, hash(), leaseExpiresAt, Mode, modes, principal, readMethods (+9 more)
+Nodes (23): type, FeedbackSaveParams, FeedbackUploadParams, items, type, properties, required, type (+15 more)
 
 ### Community 194 - "Community 194"
-Cohesion: 0.14
-Nodes (17): ensureQualityJourneyIntakeEnvironmentAction(), actionId(), DraftSnapshot, focusIntakeField(), IntakeState, missingRequiredIntake(), draftRequirementForSave(), environmentFrom() (+9 more)
+Cohesion: 0.10
+Nodes (22): type, ExternalAgentConfigImportItemTypeFailure, ExternalAgentConfigImportItemTypeSuccess, type, properties, required, type, properties (+14 more)
 
 ### Community 195 - "Community 195"
-Cohesion: 0.15
-Nodes (19): authorizeQualityJourneyDiscoveryBrowserExactReturnAction(), binding, capture, captureQualityJourneyDiscoveryBrowserReceiptAction(), closeQualityJourneyDiscoveryBrowserAction(), confirmQualityJourneyDiscoveryBrowserAccessAction(), failure(), id (+11 more)
+Cohesion: 0.09
+Nodes (22): anyOf, $ref, type, properties, type, properties, required, type (+14 more)
 
 ### Community 196 - "Community 196"
-Cohesion: 0.10
-Nodes (20): description, type, allOf, description, definitions, AbsolutePathBuf, description, type (+12 more)
+Cohesion: 0.11
+Nodes (20): submitQualityJourneyAnalysisSuccessor(), AnalysisPostHandler, answer(), answerSchema, commandBase(), commandBaseSchema, CommandInput, decide() (+12 more)
 
 ### Community 197 - "Community 197"
-Cohesion: 0.10
-Nodes (21): type, type, type, McpAppUi, McpToolCallAppContext, type, description, properties (+13 more)
+Cohesion: 0.14
+Nodes (9): completion(), liveOwnedProcessIds(), OwnedChromiumProcess, ownedGroupExited(), Pending, PipeLaunch, pipeLaunchFromPlaywright(), ProbeCustody (+1 more)
 
 ### Community 198 - "Community 198"
 Cohesion: 0.10
-Nodes (21): type, type, type, McpAppUi, McpToolCallAppContext, type, description, properties (+13 more)
+Nodes (17): acceptsWithoutWrites(), { configuredDatabaseReads }, hash(), leaseExpiresAt, Mode, modes, principal, readMethods (+9 more)
 
 ### Community 199 - "Community 199"
+Cohesion: 0.12
+Nodes (20): artifactReferenceSchema, assignmentAuthorityViolations(), assignmentBoundaryViolations(), assignmentIdentityViolations(), ClosureContractInput, closureContractIssues(), closureDecisionIssues(), closureIdentityIssues() (+12 more)
+
+### Community 200 - "Community 200"
+Cohesion: 0.15
+Nodes (19): authorizeQualityJourneyDiscoveryBrowserExactReturnAction(), binding, capture, captureQualityJourneyDiscoveryBrowserReceiptAction(), closeQualityJourneyDiscoveryBrowserAction(), confirmQualityJourneyDiscoveryBrowserAccessAction(), failure(), id (+11 more)
+
+### Community 201 - "Community 201"
+Cohesion: 0.10
+Nodes (20): description, type, allOf, description, definitions, AbsolutePathBuf, description, type (+12 more)
+
+### Community 202 - "Community 202"
 Cohesion: 0.10
 Nodes (21): type, type, type, McpAppUi, McpToolCallAppContext, type, description, properties (+13 more)
 
-### Community 200 - "Community 200"
+### Community 203 - "Community 203"
+Cohesion: 0.10
+Nodes (21): type, type, type, McpAppUi, McpToolCallAppContext, type, description, properties (+13 more)
+
+### Community 204 - "Community 204"
+Cohesion: 0.10
+Nodes (21): type, type, type, McpAppUi, McpToolCallAppContext, type, description, properties (+13 more)
+
+### Community 205 - "Community 205"
 Cohesion: 0.12
 Nodes (7): captureNativeRequestSnapshot(), refuse(), RpcTransportObservation, RpcTransportOptions, initialized(), jsonl(), transports
 
-### Community 201 - "Community 201"
+### Community 206 - "Community 206"
 Cohesion: 0.13
-Nodes (14): candidateSchema, createQualityJourneyAnalysisFixtureDelivery(), digest(), QualityJourneyAnalysisFixtureDeliveryOptions, deliveries, Delivery, Fixture, fixtures (+6 more)
+Nodes (15): Attachment, autoAttach, CdpFrame, FrameRecord, nonemptyString(), Pause, PendingResponse, projectPause() (+7 more)
 
-### Community 202 - "Community 202"
-Cohesion: 0.11
-Nodes (19): assertDurableOwnershipAllowsStart(), assertFrozenScopeStillMatchesSession(), assertNoUnresolvedOwnedCleanup(), assertOriginalLaunchingOwnership(), cleanupFailedBrowserStart(), closeStartupResources(), loadFrozenScope(), loadSessionFrozenScope() (+11 more)
-
-### Community 203 - "Community 203"
+### Community 207 - "Community 207"
 Cohesion: 0.19
 Nodes (18): E2_REVIEWED_PROVIDER_INTENT_POLICY_DIGEST, E2_REVIEWED_PROVIDER_INTENT_POLICY_JSON, E2KernelExpectedCustody, E2KernelFreshIds, E2KernelRequest, at(), expected(), freshIds (+10 more)
 
-### Community 204 - "Community 204"
+### Community 208 - "Community 208"
 Cohesion: 0.11
 Nodes (20): properties, required, type, ConfigWarningNotification, DeprecationNoticeNotification, properties, required, type (+12 more)
 
-### Community 205 - "Community 205"
+### Community 209 - "Community 209"
+Cohesion: 0.13
+Nodes (16): JourneyCommand, JourneyWorkItemStatus, command(), digest(), JourneyTransition, stageRoleEligibility, workItemTransitions, activeRunnerStates (+8 more)
+
+### Community 210 - "Community 210"
+Cohesion: 0.18
+Nodes (18): deleteTestSuitesByIds(), getTestSuiteByIdOrThrow(), inputIds(), keys(), members(), missing(), refuse(), relationships() (+10 more)
+
+### Community 211 - "Community 211"
 Cohesion: 0.10
 Nodes (20): $ref, description, type, properties, type, authStatus, httpOrigin, pluginId (+12 more)
 
-### Community 206 - "Community 206"
+### Community 212 - "Community 212"
 Cohesion: 0.10
 Nodes (20): description, type, oneOf, definitions, AbsolutePathBuf, AskForApproval, DynamicToolNamespaceTool, DynamicToolSpec (+12 more)
 
-### Community 207 - "Community 207"
+### Community 213 - "Community 213"
 Cohesion: 0.10
 Nodes (20): FileUpdateChange, ImageGenerationInputImage, type, properties, required, type, description, properties (+12 more)
 
-### Community 208 - "Community 208"
-Cohesion: 0.16
-Nodes (12): metadata, CreateTestRun(), CreateTestRunPageData, loadCreateTestRunPageData(), getAllEnvironmentsActionMock, getAllTagsActionMock, getAllTestSuiteTestCasesActionMock, getEnvironmentRows() (+4 more)
-
-### Community 209 - "Community 209"
+### Community 214 - "Community 214"
 Cohesion: 0.17
 Nodes (8): Allocation, Frame, SyntheticOutcomeCustodian, OutcomeActivationRoute, outcomeActivationRoutes, OutcomeCustodyState, OutcomeObservationJournal, RpcTransportSeal
 
-### Community 210 - "Community 210"
-Cohesion: 0.19
-Nodes (3): CdpRuntime, validAttachment(), DiscoveryBrowserProtocolEvent
-
-### Community 211 - "Community 211"
-Cohesion: 0.20
-Nodes (19): abortRouteFailClosed(), authorizedRedirect(), denyHumanReturnRequest(), denyOrdinaryRoute(), denyRedirect(), denyRedirectInterceptionUnavailable(), denyRouteNotActive(), fulfillAllowedBrowserRoute() (+11 more)
-
-### Community 212 - "Community 212"
-Cohesion: 0.20
-Nodes (14): checkUniqueName(), createEnvironment(), createOrReplayEnvironment(), deleteEnvironments(), EnsuredEnvironment, ensureEnvironment(), environmentRegistryHash(), exactEnvironmentMatch() (+6 more)
-
-### Community 213 - "Community 213"
-Cohesion: 0.16
-Nodes (16): selectorFingerprint(), validatePickedLocatorObservation(), buildModulePathMap(), humanizeSegment(), inferGroupSuggestion(), normalizeRoute(), normalizeText(), SuggestionLocatorGroup (+8 more)
-
-### Community 214 - "Community 214"
-Cohesion: 0.11
-Nodes (19): properties, required, type, AccountLoginCompletedNotification, ErrorNotification, $ref, type, properties (+11 more)
-
 ### Community 215 - "Community 215"
-Cohesion: 0.12
-Nodes (15): digest, discoveryBrowserAccessModeSchema, DiscoveryBrowserReceipt, discoveryBrowserReceiptIssuer, discoveryBrowserReceiptKind, discoveryBrowserReceiptSchema, DiscoveryBrowserSessionState, discoveryBrowserVerificationStrength (+7 more)
+Cohesion: 0.15
+Nodes (16): E2RetirementScope, digest(), fileHash(), fixture(), openFreshHarnessCase(), refuse(), regular(), sample (+8 more)
 
 ### Community 216 - "Community 216"
 Cohesion: 0.11
-Nodes (19): FileUpdateChange, ImageGenerationInputImage, type, properties, required, type, description, properties (+11 more)
+Nodes (19): properties, required, type, AccountLoginCompletedNotification, ErrorNotification, $ref, type, properties (+11 more)
 
 ### Community 217 - "Community 217"
+Cohesion: 0.12
+Nodes (15): digest, discoveryBrowserAccessModeSchema, DiscoveryBrowserReceipt, discoveryBrowserReceiptIssuer, discoveryBrowserReceiptKind, discoveryBrowserReceiptSchema, DiscoveryBrowserSessionState, discoveryBrowserVerificationStrength (+7 more)
+
+### Community 218 - "Community 218"
 Cohesion: 0.11
 Nodes (19): FileUpdateChange, ImageGenerationInputImage, type, properties, required, type, description, properties (+11 more)
 
-### Community 218 - "Community 218"
+### Community 219 - "Community 219"
+Cohesion: 0.11
+Nodes (19): FileUpdateChange, ImageGenerationInputImage, type, properties, required, type, description, properties (+11 more)
+
+### Community 220 - "Community 220"
 Cohesion: 0.18
 Nodes (12): listLatestAgentPreflightReceipts(), receiptSummary(), recordAgentPreflightReceipt(), snapshotHash(), AgentPreflight, agentPreflightLayerStatusSchema, AgentPreflightReceiptInput, agentPreflightReceiptInputSchema (+4 more)
 
-### Community 219 - "Community 219"
-Cohesion: 0.25
-Nodes (3): LossController, record(), PauseQualityJourneyInput
+### Community 221 - "Community 221"
+Cohesion: 0.17
+Nodes (15): createSearchReceipt(), assertReadyIndexMatchesSource(), BuiltInReadinessReceipt, ensureBuiltInStepDefinitionReadiness(), hasCurrentReceipt(), PersistedBuiltIn, sourceManifestHash(), sourceRows() (+7 more)
 
-### Community 220 - "Community 220"
+### Community 222 - "Community 222"
 Cohesion: 0.12
 Nodes (3): CdpContext, Listener, MockEventSource
 
-### Community 221 - "Community 221"
+### Community 223 - "Community 223"
+Cohesion: 0.29
+Nodes (16): getInlineLocatorSaveResult(), getLocatorPickerSession(), getLocatorRow(), hasDateProp(), hasDateProps(), hasNullableStringProp(), hasNullableStringProps(), hasStringProp() (+8 more)
+
+### Community 224 - "Community 224"
+Cohesion: 0.16
+Nodes (8): FlowDiagramNodeSearch(), FlowDiagramNodeSearchProps, FlowNodeSearchResult, FlowDiagramToolbarProps, OptionsHeaderGherkinParameter, Kbd(), KbdGroup(), TooltipContent()
+
+### Community 225 - "Community 225"
+Cohesion: 0.18
+Nodes (15): selectorFingerprint(), validatePickedLocatorObservation(), buildModulePathMap(), humanizeSegment(), inferGroupSuggestion(), normalizeRoute(), normalizeText(), SuggestionLocatorGroup (+7 more)
+
+### Community 226 - "Community 226"
+Cohesion: 0.22
+Nodes (12): hashQualityJourneyRequirementForBrowser(), hashQualityJourneyRequirement(), environmentIds, parseQualityJourneyRequirement(), qualityJourneyCoverageRigorSchema, QualityJourneyRequirement, qualityJourneyRequirementSchema, QualityJourneyRequirementV1 (+4 more)
+
+### Community 227 - "Community 227"
 Cohesion: 0.21
 Nodes (14): hashRepositoryExportBytes(), hashRepositoryExportValue(), repositoryExportFileSchema, RepositoryExportManifest, repositoryExportManifestSchema, repositoryExportPolicySchema, RepositoryExportPolicyValue, assertRelativeExportPath() (+6 more)
 
-### Community 222 - "Community 222"
+### Community 228 - "Community 228"
 Cohesion: 0.26
 Nodes (10): dispatchTestRunExit(), createLogMessage(), parseLogMessages(), fatalErrorPatterns, getConnectionStatusText(), isFatalLogStreamError(), isTerminalRunStatus(), ConnectionStatus (+2 more)
 
-### Community 223 - "Community 223"
-Cohesion: 0.11
-Nodes (18): $ref, type, additionalProperties, properties, type, additionalProperties, type, properties (+10 more)
-
-### Community 224 - "Community 224"
+### Community 229 - "Community 229"
 Cohesion: 0.11
 Nodes (18): properties, required, type, CollabAgentState, McpToolCallError, MisalignmentSteer, properties, required (+10 more)
 
-### Community 225 - "Community 225"
+### Community 230 - "Community 230"
 Cohesion: 0.11
 Nodes (18): description, $ref, type, TurnEnvironmentParams, type, items, type, $ref (+10 more)
 
-### Community 226 - "Community 226"
+### Community 232 - "Community 232"
 Cohesion: 0.15
 Nodes (10): admitted(), AdmittedFixture, Command, CommandHandler, fakeTransport(), flush(), Options, pausedResponseRoute() (+2 more)
 
-### Community 227 - "Community 227"
+### Community 233 - "Community 233"
 Cohesion: 0.16
 Nodes (10): register(), scheduler, CollaborationScheduler, CollaborationSchedulerDependencies, CollaborationSchedulerTimer, createCollaborationScheduler(), SchedulerGlobal, startCollaborationScheduler() (+2 more)
 
-### Community 228 - "Community 228"
+### Community 234 - "Community 234"
 Cohesion: 0.18
 Nodes (14): extractModulePathFromAutomationFile(), getAutomationFeaturesDir(), getAutomationLocatorMapPath(), getAutomationLocatorsDir(), toPosixPath(), EXCLUDED_DIRS, EXCLUDED_EXTENSIONS, EXCLUDED_FILENAMES (+6 more)
 
-### Community 229 - "Community 229"
+### Community 235 - "Community 235"
 Cohesion: 0.12
 Nodes (17): description, properties, required, type, type, AppBranding, type, type (+9 more)
 
-### Community 230 - "Community 230"
+### Community 236 - "Community 236"
 Cohesion: 0.12
 Nodes (17): description, type, description, properties, required, type, CommandExecOutputDeltaNotification, description (+9 more)
 
-### Community 231 - "Community 231"
-Cohesion: 0.12
-Nodes (10): Delegate, IdList, mocks, Model, modelNames, Query, Relation, Row (+2 more)
-
-### Community 232 - "Community 232"
-Cohesion: 0.17
-Nodes (11): inter, interTight, metadata, RootLayout(), viewport, readActiveProjectCookie(), isFeatureEnabled(), isProviderNativeRunsEnabled() (+3 more)
-
-### Community 233 - "Community 233"
-Cohesion: 0.17
-Nodes (14): Attachment, autoAttach, FrameRecord, nonemptyString(), Pause, PendingResponse, projectPause(), ReleasedRedirect (+6 more)
-
-### Community 234 - "Community 234"
-Cohesion: 0.12
-Nodes (16): ExternalAgentConfigDetectParams, properties, type, description, type, description, format, minimum (+8 more)
-
-### Community 235 - "Community 235"
-Cohesion: 0.12
-Nodes (16): items, type, anyOf, WebSearchToolConfig, type, anyOf, allowed_domains, context_size (+8 more)
-
-### Community 236 - "Community 236"
-Cohesion: 0.12
-Nodes (16): type, properties, type, ComputerUseWindowsConfig, items, type, $ref, items (+8 more)
-
 ### Community 237 - "Community 237"
-Cohesion: 0.12
-Nodes (16): properties, required, type, CollabAgentState, McpToolCallError, MisalignmentSteer, properties, required (+8 more)
+Cohesion: 0.21
+Nodes (15): QualityJourneyStage, applyProjection(), commandBlockerId(), CommittedCommand, conflict(), deterministicEventId(), finalize(), hashCommand() (+7 more)
 
 ### Community 238 - "Community 238"
 Cohesion: 0.12
-Nodes (16): properties, required, type, CollabAgentState, McpToolCallError, MisalignmentSteer, properties, required (+8 more)
+Nodes (10): Delegate, IdList, mocks, Model, modelNames, Query, Relation, Row (+2 more)
 
 ### Community 239 - "Community 239"
-Cohesion: 0.15
-Nodes (8): metadata, Draft, Environment, listEnvironments(), metadata, NewQualityJourneyPage(), QualityJourneyCreateForm(), mocks
+Cohesion: 0.11
+Nodes (18): $ref, type, additionalProperties, properties, type, additionalProperties, type, properties (+10 more)
 
 ### Community 240 - "Community 240"
-Cohesion: 0.16
-Nodes (7): createNativeQualificationProtocol(), localReferences(), reject(), responses, OwnedFixtureChild, RpcRequestMethod, invoke()
+Cohesion: 0.20
+Nodes (15): readAnalysisFollowupPhysicalReadiness(), assertHistoricalHubQuiescent(), assertProviderEffectsQuiescent(), assertProviderReplacementSafe(), conflict(), hash(), hasUnreconciledProviderEffects(), HistoricalDispatch (+7 more)
 
 ### Community 241 - "Community 241"
-Cohesion: 0.19
-Nodes (12): QualityJourneyDraftPage(), metadata, PublishedReceiptPage(), PublishedReceiptPageProps, reader, receipt, first(), parsePublishedReceiptParams() (+4 more)
+Cohesion: 0.12
+Nodes (16): ExternalAgentConfigDetectParams, properties, type, description, type, description, format, minimum (+8 more)
 
 ### Community 242 - "Community 242"
-Cohesion: 0.13
-Nodes (15): description, format, minimum, type, description, properties, required, type (+7 more)
+Cohesion: 0.12
+Nodes (16): items, type, anyOf, WebSearchToolConfig, type, anyOf, allowed_domains, context_size (+8 more)
 
 ### Community 243 - "Community 243"
-Cohesion: 0.17
-Nodes (13): workerResultEnvelopeSchema, digest, ids, qualityJourneyReportReviewSchema, qualityJourneyTriageFindingSchema, qualityJourneyTriagePrepareSchema, qualityJourneyTriageReadSchema, qualityJourneyTriageReportSchema (+5 more)
+Cohesion: 0.12
+Nodes (16): properties, required, type, CollabAgentState, McpToolCallError, MisalignmentSteer, properties, required (+8 more)
 
 ### Community 244 - "Community 244"
-Cohesion: 0.13
-Nodes (15): default, description, format, type, ThreadItem, completedAtMs, startedAtMs, default (+7 more)
-
-### Community 245 - "Community 245"
-Cohesion: 0.13
-Nodes (15): MisalignmentErrorDetails, description, type, description, type, properties, type, detailedExplanation (+7 more)
+Cohesion: 0.12
+Nodes (16): properties, required, type, CollabAgentState, McpToolCallError, MisalignmentSteer, properties, required (+8 more)
 
 ### Community 246 - "Community 246"
-Cohesion: 0.13
-Nodes (15): default, type, anyOf, description, CodexErrorInfo, TurnError, anyOf, default (+7 more)
+Cohesion: 0.23
+Nodes (13): approveQualityJourneyHandoffTakeover(), prepareQualityJourneyHandoff(), approveQualityJourneyHandoffTakeoverAction(), failure(), id, inspectQualityJourneyHandoffAction(), inspectSchema, launchQualityJourneyHandoffAction() (+5 more)
 
 ### Community 247 - "Community 247"
-Cohesion: 0.13
-Nodes (15): default, description, format, type, ThreadItem, completedAtMs, startedAtMs, default (+7 more)
+Cohesion: 0.20
+Nodes (9): ensureTestSuiteIdentifierTags(), getOrCreateTestSuiteIdentifierTagId(), refuse(), repairIdentifiers(), identifier, prepare, { root, tx }, generateUniqueTestSuiteIdentifier() (+1 more)
 
 ### Community 248 - "Community 248"
 Cohesion: 0.13
-Nodes (15): MisalignmentErrorDetails, description, type, description, type, properties, type, detailedExplanation (+7 more)
+Nodes (15): description, format, minimum, type, description, properties, required, type (+7 more)
 
 ### Community 249 - "Community 249"
-Cohesion: 0.13
-Nodes (15): default, type, anyOf, description, CodexErrorInfo, TurnError, anyOf, default (+7 more)
+Cohesion: 0.23
+Nodes (14): useDraftEditorState(), applyManagedStepMetadata(), canonicalDraftDefinitionJson(), createHumanStepDraft(), defaultStepInputExampleValue(), deriveStepSearchTerms(), draftContractSource(), DraftDefinition (+6 more)
 
 ### Community 250 - "Community 250"
 Cohesion: 0.13
@@ -1454,344 +1454,344 @@ Cohesion: 0.13
 Nodes (15): MisalignmentErrorDetails, description, type, description, type, properties, type, detailedExplanation (+7 more)
 
 ### Community 252 - "Community 252"
+Cohesion: 0.13
+Nodes (15): default, type, anyOf, description, CodexErrorInfo, TurnError, anyOf, default (+7 more)
+
+### Community 253 - "Community 253"
+Cohesion: 0.13
+Nodes (15): default, description, format, type, ThreadItem, completedAtMs, startedAtMs, default (+7 more)
+
+### Community 254 - "Community 254"
+Cohesion: 0.13
+Nodes (15): MisalignmentErrorDetails, description, type, description, type, properties, type, detailedExplanation (+7 more)
+
+### Community 255 - "Community 255"
+Cohesion: 0.13
+Nodes (15): default, type, anyOf, description, CodexErrorInfo, TurnError, anyOf, default (+7 more)
+
+### Community 256 - "Community 256"
+Cohesion: 0.13
+Nodes (15): default, description, format, type, ThreadItem, completedAtMs, startedAtMs, default (+7 more)
+
+### Community 257 - "Community 257"
+Cohesion: 0.13
+Nodes (15): MisalignmentErrorDetails, description, type, description, type, properties, type, detailedExplanation (+7 more)
+
+### Community 258 - "Community 258"
 Cohesion: 0.29
 Nodes (11): assertNativePublicInput(), describeLink(), describeNativeCredential(), linkNativeCredential(), NativeCredentialDescriptor, readNativePublicBytes(), requireMetadata(), unlinkNativeCredential() (+3 more)
 
-### Community 253 - "Community 253"
+### Community 259 - "Community 259"
 Cohesion: 0.24
 Nodes (11): browserIsAlive(), C233GracefulRestartQualification, child(), ObserverMessage, OwnerMessage, ownerPath, qualifyC233GracefulOwnerRestart(), Scope (+3 more)
 
-### Community 255 - "Community 255"
-Cohesion: 0.14
-Nodes (14): description, type, description, properties, required, type, type, type (+6 more)
-
-### Community 256 - "Community 256"
-Cohesion: 0.20
-Nodes (12): CommandMode, commandModeLabels, commandModePlaceholders, getControlSection(), getExecutionSection(), getLibrarySection(), getSidebarNavigationSections(), getSystemSection() (+4 more)
-
-### Community 257 - "Community 257"
-Cohesion: 0.20
-Nodes (12): appendUniqueById(), appendUniqueId(), applyUpdater(), AuthoringView, createTestCaseFormState(), CreateTestCaseFormStateInput, definition, TestCaseFormAction (+4 more)
-
-### Community 258 - "Community 258"
-Cohesion: 0.25
-Nodes (12): containsFunctionStart(), countLineDelimiters(), DelimiterCounts, findJSDocStartLine(), findStepCallEndLine(), findStepFunctionBounds(), hasMatchingSignature(), isBalancedStepCall() (+4 more)
-
-### Community 259 - "Community 259"
-Cohesion: 0.14
-Nodes (14): $ref, type, TurnEnvironmentParams, type, $ref, cwd, environmentId, runtimeWorkspaceRoots (+6 more)
-
-### Community 260 - "Community 260"
-Cohesion: 0.14
-Nodes (14): description, type, description, properties, required, type, type, type (+6 more)
-
 ### Community 261 - "Community 261"
 Cohesion: 0.14
-Nodes (14): default, type, anyOf, description, CodexErrorInfo, TurnError, anyOf, default (+6 more)
+Nodes (18): applyPendingMainFrameCommit(), commitMainFrameNavigation(), commitPendingMainFrameNavigation(), committedUrlHash(), completeHumanReturn(), consumeCachedDuplicatePendingRequest(), handleNoPendingMainFrameNavigation(), hasUntaggedHumanReturnCommit() (+10 more)
 
 ### Community 262 - "Community 262"
-Cohesion: 0.14
-Nodes (14): MemoryCitationEntry, format, minimum, type, format, minimum, type, properties (+6 more)
+Cohesion: 0.15
+Nodes (13): type, ExperimentalFeatureEnablementSetParams, additionalProperties, description, type, additionalProperties, description, type (+5 more)
 
 ### Community 263 - "Community 263"
 Cohesion: 0.14
 Nodes (14): description, type, description, properties, required, type, type, type (+6 more)
 
 ### Community 264 - "Community 264"
-Cohesion: 0.14
-Nodes (14): MemoryCitationEntry, format, minimum, type, format, minimum, type, properties (+6 more)
+Cohesion: 0.19
+Nodes (10): AuthoredStep, authoredStepBase(), exactDefinitionForAuthoredStep(), FlowBlock, authoredStep(), definition, invocation(), typedDefinition (+2 more)
 
 ### Community 265 - "Community 265"
+Cohesion: 0.16
+Nodes (8): deleteTestCasesByIds(), caseRow(), definition, identifier(), prepare, { root, tx }, Row, tagRow()
+
+### Community 266 - "Community 266"
+Cohesion: 0.20
+Nodes (12): appendUniqueById(), appendUniqueId(), applyUpdater(), AuthoringView, createTestCaseFormState(), CreateTestCaseFormStateInput, definition, TestCaseFormAction (+4 more)
+
+### Community 267 - "Community 267"
+Cohesion: 0.16
+Nodes (12): admission, admittedCases, digest(), FileRecord, fileRecordSchema, manifestSchema, operationsSchema, owner (+4 more)
+
+### Community 268 - "Community 268"
+Cohesion: 0.25
+Nodes (12): containsFunctionStart(), countLineDelimiters(), DelimiterCounts, findJSDocStartLine(), findStepCallEndLine(), findStepFunctionBounds(), hasMatchingSignature(), isBalancedStepCall() (+4 more)
+
+### Community 269 - "Community 269"
+Cohesion: 0.10
+Nodes (21): $ref, properties, required, type, properties, required, type, ConfigLayer (+13 more)
+
+### Community 270 - "Community 270"
+Cohesion: 0.14
+Nodes (14): $ref, type, TurnEnvironmentParams, type, $ref, cwd, environmentId, runtimeWorkspaceRoots (+6 more)
+
+### Community 271 - "Community 271"
 Cohesion: 0.14
 Nodes (14): description, type, description, properties, required, type, type, type (+6 more)
 
-### Community 266 - "Community 266"
+### Community 272 - "Community 272"
+Cohesion: 0.14
+Nodes (14): default, type, anyOf, description, CodexErrorInfo, TurnError, anyOf, default (+6 more)
+
+### Community 273 - "Community 273"
 Cohesion: 0.14
 Nodes (14): MemoryCitationEntry, format, minimum, type, format, minimum, type, properties (+6 more)
 
-### Community 267 - "Community 267"
-Cohesion: 0.13
-Nodes (23): TestRun, testRunFormOpts, testRunSchema, getActionErrorMessage(), getTestRunSuccessPath(), getBrowserEngineOptions(), testRunQuickTips, testRunFieldValidators (+15 more)
+### Community 274 - "Community 274"
+Cohesion: 0.14
+Nodes (14): description, type, description, properties, required, type, type, type (+6 more)
 
-### Community 268 - "Community 268"
+### Community 275 - "Community 275"
+Cohesion: 0.14
+Nodes (14): MemoryCitationEntry, format, minimum, type, format, minimum, type, properties (+6 more)
+
+### Community 276 - "Community 276"
+Cohesion: 0.14
+Nodes (14): description, type, description, properties, required, type, type, type (+6 more)
+
+### Community 277 - "Community 277"
+Cohesion: 0.14
+Nodes (14): MemoryCitationEntry, format, minimum, type, format, minimum, type, properties (+6 more)
+
+### Community 278 - "Community 278"
+Cohesion: 0.21
+Nodes (9): ArtifactCard(), href(), integer(), label(), LibraryEntry, metadata, PageProps, QualityJourneyArtifactLibraryPage() (+1 more)
+
+### Community 279 - "Community 279"
+Cohesion: 0.21
+Nodes (10): admissionHash(), authority(), authorityWithAttempt(), bytes, capsuleHash, externalAuthority(), manifestHash, mocks (+2 more)
+
+### Community 280 - "Community 280"
 Cohesion: 0.27
 Nodes (12): findNearestJSDocStart(), findTopLevelJSDocStart(), firstTopLevelDeclarationLine(), nextImportLine(), normalizeGroupTypeStrict(), parseGroupJSDocStrict(), parseStepJSDocStrict(), readGroupMetadataLine() (+4 more)
 
-### Community 269 - "Community 269"
-Cohesion: 0.15
-Nodes (13): type, ExperimentalFeatureEnablementSetParams, additionalProperties, description, type, additionalProperties, description, type (+5 more)
-
-### Community 270 - "Community 270"
+### Community 281 - "Community 281"
 Cohesion: 0.15
 Nodes (13): properties, required, type, properties, required, type, AppReview, CollabAgentState (+5 more)
 
-### Community 271 - "Community 271"
+### Community 282 - "Community 282"
 Cohesion: 0.17
 Nodes (13): ExternalAgentConfigImportCompletedNotification, ExternalAgentConfigImportProgressNotification, properties, required, type, properties, required, type (+5 more)
 
-### Community 272 - "Community 272"
-Cohesion: 0.26
-Nodes (10): evaluateLocalRequestBoundary(), forwardedPeersAreLocal(), isLoopbackHost(), LocalRequestBoundaryInput, LocalRequestBoundaryResult, LOOPBACK_HOSTS, MUTATION_METHODS, parseHost() (+2 more)
-
-### Community 273 - "Community 273"
-Cohesion: 0.32
-Nodes (8): isProjectScopedPath(), PROJECT_SCOPED_ROUTE_SEGMENTS, shouldRequireProjectSelection(), staleProjectScopeReturnTo(), withProjectScope(), config, continueRequest(), proxy()
-
-### Community 274 - "Community 274"
-Cohesion: 0.17
-Nodes (12): properties, required, type, ByteRange, format, minimum, type, end (+4 more)
-
-### Community 275 - "Community 275"
-Cohesion: 0.17
-Nodes (12): properties, required, type, ByteRange, format, minimum, type, end (+4 more)
-
-### Community 276 - "Community 276"
-Cohesion: 0.17
-Nodes (12): additionalProperties, properties, type, anyOf, properties, type, AnalyticsConfig, AppToolConfig (+4 more)
-
-### Community 277 - "Community 277"
-Cohesion: 0.17
-Nodes (12): type, type, WebSearchLocation, city, country, region, timezone, type (+4 more)
-
-### Community 278 - "Community 278"
-Cohesion: 0.17
-Nodes (12): SandboxWorkspaceWrite, default, type, default, type, default, type, exclude_slash_tmp (+4 more)
-
-### Community 279 - "Community 279"
-Cohesion: 0.17
-Nodes (12): McpServerInfo, items, type, description, properties, required, type, icons (+4 more)
-
-### Community 280 - "Community 280"
-Cohesion: 0.17
-Nodes (12): ResourceTemplate, type, annotations, mimeType, title, uriTemplate, description, properties (+4 more)
-
-### Community 281 - "Community 281"
-Cohesion: 0.17
-Nodes (12): properties, required, type, ByteRange, format, minimum, type, end (+4 more)
-
-### Community 282 - "Community 282"
-Cohesion: 0.17
-Nodes (12): properties, required, type, ByteRange, format, minimum, type, end (+4 more)
-
 ### Community 283 - "Community 283"
-Cohesion: 0.17
-Nodes (12): properties, required, type, ByteRange, format, minimum, type, end (+4 more)
+Cohesion: 0.28
+Nodes (11): flowBlockCreates(), templateTestCaseStepCreates(), createTemplateTestCase(), deleteTemplateTestCases(), getTemplateTestCaseByIdOrThrow(), prepareTemplateTestCaseWrites(), TemplateTestCaseDetail, templateTestCaseInclude (+3 more)
 
 ### Community 284 - "Community 284"
 Cohesion: 0.17
-Nodes (12): Settings, type, description, type, developer_instructions, model, reasoning_effort, anyOf (+4 more)
+Nodes (12): properties, required, type, ByteRange, format, minimum, type, end (+4 more)
 
 ### Community 285 - "Community 285"
 Cohesion: 0.17
 Nodes (12): properties, required, type, ByteRange, format, minimum, type, end (+4 more)
 
 ### Community 286 - "Community 286"
-Cohesion: 0.31
-Nodes (10): E2RetirementScope, digest(), fileHash(), fixture(), openFreshHarnessCase(), refuse(), regular(), sample (+2 more)
+Cohesion: 0.24
+Nodes (9): metadata, PublishedReceiptPageProps, reader, receipt, first(), parsePublishedReceiptParams(), PublishedReader, resolvePublishedReceipt() (+1 more)
 
 ### Community 287 - "Community 287"
-Cohesion: 0.25
-Nodes (6): createSubmissionPayloadCapture(), exactIdentity(), observations, PayloadObservation, recordSubmissionPayloadIdentity(), SubmissionPayloadIdentity
-
-### Community 288 - "Community 288"
-Cohesion: 0.18
-Nodes (11): properties, required, type, ActivePermissionProfile, default, description, type, description (+3 more)
-
-### Community 289 - "Community 289"
 Cohesion: 0.24
 Nodes (4): leaseDuration(), RuntimeCapsuleLeaseRepository, identity, now
 
+### Community 288 - "Community 288"
+Cohesion: 0.17
+Nodes (12): additionalProperties, properties, type, anyOf, properties, type, AnalyticsConfig, AppToolConfig (+4 more)
+
+### Community 289 - "Community 289"
+Cohesion: 0.17
+Nodes (12): type, type, WebSearchLocation, city, country, region, timezone, type (+4 more)
+
 ### Community 290 - "Community 290"
-Cohesion: 0.18
-Nodes (10): type, description, type, properties, data, nextCursor, required, $schema (+2 more)
+Cohesion: 0.17
+Nodes (12): SandboxWorkspaceWrite, default, type, default, type, default, type, exclude_slash_tmp (+4 more)
 
 ### Community 291 - "Community 291"
 Cohesion: 0.18
-Nodes (11): Resource, _meta, size, uri, description, properties, required, type (+3 more)
+Nodes (11): McpServerInfo, description, properties, required, type, type, name, version (+3 more)
 
 ### Community 292 - "Community 292"
-Cohesion: 0.18
-Nodes (11): Tool, type, type, description, inputSchema, name, outputSchema, description (+3 more)
+Cohesion: 0.11
+Nodes (21): ResourceTemplate, type, type, annotations, description, _meta, mimeType, size (+13 more)
 
 ### Community 293 - "Community 293"
-Cohesion: 0.18
-Nodes (11): SelectedCapabilityRoot, description, type, allOf, description, id, location, description (+3 more)
+Cohesion: 0.17
+Nodes (12): properties, required, type, ByteRange, format, minimum, type, end (+4 more)
 
 ### Community 294 - "Community 294"
-Cohesion: 0.18
-Nodes (11): allOf, description, $ref, ThreadEnvironment, type, cwd, environmentId, description (+3 more)
+Cohesion: 0.17
+Nodes (12): properties, required, type, ByteRange, format, minimum, type, end (+4 more)
 
 ### Community 295 - "Community 295"
-Cohesion: 0.18
-Nodes (11): properties, required, type, AdditionalContextEntry, $ref, description, type, kind (+3 more)
+Cohesion: 0.17
+Nodes (12): properties, required, type, ByteRange, format, minimum, type, end (+4 more)
 
 ### Community 296 - "Community 296"
-Cohesion: 0.18
-Nodes (11): TurnToolOutput, type, $ref, namespace, output, retain, description, type (+3 more)
+Cohesion: 0.17
+Nodes (12): Settings, type, description, type, developer_instructions, model, reasoning_effort, anyOf (+4 more)
+
+### Community 297 - "Community 297"
+Cohesion: 0.17
+Nodes (12): properties, required, type, ByteRange, format, minimum, type, end (+4 more)
 
 ### Community 298 - "Community 298"
-Cohesion: 0.33
-Nodes (8): createLocatorInspectorInjectionScript(), generateCSSPath(), generateXPath(), getLocatorInspectorOrigin(), isLocatorInspectorMessage(), isSelectedElementPayload(), LocatorInspectorMessage, SelectedElementPayload
+Cohesion: 0.25
+Nodes (6): createSubmissionPayloadCapture(), exactIdentity(), observations, PayloadObservation, recordSubmissionPayloadIdentity(), SubmissionPayloadIdentity
 
 ### Community 299 - "Community 299"
-Cohesion: 0.20
-Nodes (10): properties, required, type, description, type, ConsumeAccountRateLimitResetCreditParams, description, type (+2 more)
+Cohesion: 0.18
+Nodes (11): properties, required, type, ActivePermissionProfile, default, description, type, description (+3 more)
 
 ### Community 300 - "Community 300"
-Cohesion: 0.20
-Nodes (10): properties, required, type, AppScreenshot, type, fileId, url, userPrompt (+2 more)
+Cohesion: 0.18
+Nodes (3): listTestSuites(), prepare, { root, tx }
 
 ### Community 301 - "Community 301"
-Cohesion: 0.20
-Nodes (10): type, properties, required, type, CreditsSnapshot, type, balance, hasCredits (+2 more)
+Cohesion: 0.18
+Nodes (10): type, description, type, properties, data, nextCursor, required, $schema (+2 more)
 
 ### Community 302 - "Community 302"
-Cohesion: 0.20
-Nodes (10): properties, required, type, ClientInfo, type, name, title, version (+2 more)
+Cohesion: 0.17
+Nodes (10): CoordinatorProjectDetails, CoordinatorProjectIdentityError, deriveCoordinatorProjectIdentity(), assertLoopbackUrl(), CoordinatorProjectMismatchError, guardCoordinatorRequest(), LOOPBACK_HOSTS, readCoordinatorToken() (+2 more)
 
 ### Community 303 - "Community 303"
 Cohesion: 0.20
-Nodes (10): description, type, properties, description, type, explicitGatewayOauth, mcpServerOpenaiFormElicitation, requiredHumanApproval (+2 more)
+Nodes (10): Tool, items, type, icons, inputSchema, outputSchema, description, properties (+2 more)
 
 ### Community 304 - "Community 304"
-Cohesion: 0.20
-Nodes (9): description, type, type, properties, cwd, includeLayers, $schema, title (+1 more)
+Cohesion: 0.18
+Nodes (11): SelectedCapabilityRoot, description, type, allOf, description, id, location, description (+3 more)
 
 ### Community 305 - "Community 305"
-Cohesion: 0.20
-Nodes (10): definitions, McpAuthStatus, McpServerConnectionStatus, McpServerStatus, enum, type, enum, type (+2 more)
+Cohesion: 0.22
+Nodes (9): additionalProperties, properties, required, type, AsyncUserInputQuestion, type, options, title (+1 more)
 
 ### Community 306 - "Community 306"
-Cohesion: 0.20
-Nodes (10): allOf, description, TextElement, description, type, byteRange, placeholder, properties (+2 more)
+Cohesion: 0.18
+Nodes (11): properties, required, type, AdditionalContextEntry, $ref, description, type, kind (+3 more)
 
 ### Community 307 - "Community 307"
-Cohesion: 0.20
-Nodes (9): properties, threadId, turn, required, $schema, type, title, $ref (+1 more)
+Cohesion: 0.18
+Nodes (11): TurnToolOutput, type, $ref, namespace, output, retain, description, type (+3 more)
 
 ### Community 308 - "Community 308"
-Cohesion: 0.20
-Nodes (10): allOf, description, TextElement, description, type, byteRange, placeholder, properties (+2 more)
-
-### Community 309 - "Community 309"
-Cohesion: 0.20
-Nodes (10): allOf, description, TextElement, description, type, byteRange, placeholder, properties (+2 more)
+Cohesion: 0.27
+Nodes (8): childrenExcludeCompanion(), DirectForkWatch, nativeCodeModeBeforeTurnRelease, NativeProcessMetadata, observeNativeCodeModeHost(), ProcessIdentity, sameBirth(), watchOriginalForks()
 
 ### Community 310 - "Community 310"
-Cohesion: 0.20
-Nodes (10): allOf, description, TextElement, description, type, byteRange, placeholder, properties (+2 more)
+Cohesion: 0.33
+Nodes (8): createLocatorInspectorInjectionScript(), generateCSSPath(), generateXPath(), getLocatorInspectorOrigin(), isLocatorInspectorMessage(), isSelectedElementPayload(), LocatorInspectorMessage, SelectedElementPayload
 
 ### Community 311 - "Community 311"
-Cohesion: 0.25
-Nodes (6): cleanup, fixture(), Hit, listen(), PausedRequest, RequestFacts
+Cohesion: 0.20
+Nodes (10): properties, required, type, description, type, ConsumeAccountRateLimitResetCreditParams, description, type (+2 more)
 
 ### Community 312 - "Community 312"
-Cohesion: 0.25
-Nodes (4): launchDiscoveryBrowserTransport(), fixture(), mocks, OwnedChild
+Cohesion: 0.20
+Nodes (10): properties, required, type, AppScreenshot, type, fileId, url, userPrompt (+2 more)
 
 ### Community 313 - "Community 313"
-Cohesion: 0.36
-Nodes (9): applyExistingGroupSuggestion(), applyNewGroupSuggestion(), applyPickedLocatorToWorkspaceState(), applyPickedSelector(), applySuggestedLocatorName(), applySuggestedRoute(), canReplaceAutoValue(), canReplaceRoute() (+1 more)
+Cohesion: 0.20
+Nodes (10): type, properties, required, type, CreditsSnapshot, type, balance, hasCredits (+2 more)
 
 ### Community 314 - "Community 314"
-Cohesion: 0.44
-Nodes (7): contiguousNodeIds(), groupedNodeIds(), nodeIndexById(), normalizeAuthoredFlowBlocks(), definition, flow, updatedFlowBlockMembership()
-
-### Community 315 - "Community 315"
-Cohesion: 0.22
-Nodes (9): description, properties, required, type, CollaborationMode, $ref, mode, settings (+1 more)
-
-### Community 316 - "Community 316"
-Cohesion: 0.22
-Nodes (9): description, properties, required, type, CollaborationMode, $ref, mode, settings (+1 more)
-
-### Community 317 - "Community 317"
-Cohesion: 0.25
-Nodes (7): bounded, failureCode, identity, orchestrationCode, recoveryCode, runtimeCapsuleDiagnosticV1Schema, diagnostic
-
-### Community 318 - "Community 318"
 Cohesion: 0.22
 Nodes (8): definitions, InitializeCapabilities, description, type, required, $schema, title, type
 
+### Community 315 - "Community 315"
+Cohesion: 0.20
+Nodes (10): description, type, properties, description, type, explicitGatewayOauth, mcpServerOpenaiFormElicitation, requiredHumanApproval (+2 more)
+
+### Community 316 - "Community 316"
+Cohesion: 0.20
+Nodes (9): description, type, type, properties, cwd, includeLayers, $schema, title (+1 more)
+
+### Community 317 - "Community 317"
+Cohesion: 0.14
+Nodes (14): definitions, McpAuthStatus, McpServerConnectionStatus, McpServerStatus, Resource, enum, type, enum (+6 more)
+
+### Community 318 - "Community 318"
+Cohesion: 0.20
+Nodes (10): allOf, description, TextElement, description, type, byteRange, placeholder, properties (+2 more)
+
 ### Community 319 - "Community 319"
-Cohesion: 0.22
-Nodes (9): properties, type, anyOf, ComputerUseConfig, anyOf, default_app_access, macos, windows (+1 more)
+Cohesion: 0.20
+Nodes (9): properties, threadId, turn, required, $schema, type, title, $ref (+1 more)
 
 ### Community 320 - "Community 320"
-Cohesion: 0.22
-Nodes (9): type, GitInfo, properties, type, type, branch, originUrl, sha (+1 more)
+Cohesion: 0.20
+Nodes (10): allOf, description, TextElement, description, type, byteRange, placeholder, properties (+2 more)
 
 ### Community 321 - "Community 321"
-Cohesion: 0.22
-Nodes (9): items, type, McpToolCallResult, properties, required, type, content, _meta (+1 more)
+Cohesion: 0.20
+Nodes (10): allOf, description, TextElement, description, type, byteRange, placeholder, properties (+2 more)
 
 ### Community 322 - "Community 322"
-Cohesion: 0.22
-Nodes (9): items, type, McpToolCallResult, properties, required, type, content, _meta (+1 more)
+Cohesion: 0.20
+Nodes (10): allOf, description, TextElement, description, type, byteRange, placeholder, properties (+2 more)
 
 ### Community 323 - "Community 323"
 Cohesion: 0.22
-Nodes (9): description, properties, required, type, CollaborationMode, $ref, mode, settings (+1 more)
+Nodes (4): metadata, StepDefinitionDraftEditor(), mocks, useEditorActions()
 
 ### Community 324 - "Community 324"
-Cohesion: 0.22
-Nodes (9): items, type, McpToolCallResult, properties, required, type, content, _meta (+1 more)
+Cohesion: 0.25
+Nodes (5): coordinatorStepDefinitionService, prismaMocks, eventSchema, readStepDefinitionTelemetry(), StepDefinitionTelemetryEvent
 
 ### Community 325 - "Community 325"
 Cohesion: 0.25
-Nodes (6): metadata, redirectInvalidProjectScope(), Redirect, GenerateTestCaseFromTemplate(), LocatorPickerPage(), metadata
+Nodes (6): cleanup, fixture(), Hit, listen(), PausedRequest, RequestFacts
 
 ### Community 326 - "Community 326"
-Cohesion: 0.36
-Nodes (5): CoordinatorMethod, CoordinatorOperationId, coordinatorOperationRegistry, createCoordinatorOperationRegistry(), OperationDefinition
+Cohesion: 0.25
+Nodes (4): launchDiscoveryBrowserTransport(), fixture(), mocks, OwnedChild
 
 ### Community 327 - "Community 327"
-Cohesion: 0.29
-Nodes (6): OwnedTurn, registerOwnedQualityJourneyTurn(), Scope, scope, turns, TurnSnapshot
+Cohesion: 0.44
+Nodes (7): contiguousNodeIds(), groupedNodeIds(), nodeIndexById(), normalizeAuthoredFlowBlocks(), definition, flow, updatedFlowBlockMembership()
 
 ### Community 328 - "Community 328"
-Cohesion: 0.36
-Nodes (3): DynamicParameterFieldLabel(), DynamicParameterFieldShellProps, ErrorMessage()
+Cohesion: 0.22
+Nodes (9): description, properties, required, type, CollaborationMode, $ref, mode, settings (+1 more)
 
 ### Community 329 - "Community 329"
-Cohesion: 0.54
-Nodes (5): assertLoopbackOriginReservation(), EnvironmentClient, foreignEnvironmentOrigins(), normalizedLoopbackOrigin(), suggestAvailableLoopbackBaseUrl()
+Cohesion: 0.22
+Nodes (9): description, properties, required, type, CollaborationMode, $ref, mode, settings (+1 more)
 
 ### Community 330 - "Community 330"
 Cohesion: 0.25
-Nodes (8): properties, required, type, AgentMessageModeration, anyOf, type, display, moderated
+Nodes (6): InvocationInput, resolveReadyExactStepDefinitions(), StepDefinitionReader, client, definition, validateTestCaseRelationships()
 
 ### Community 331 - "Community 331"
-Cohesion: 0.25
-Nodes (8): description, properties, required, type, items, type, AppListUpdatedNotification, data
+Cohesion: 0.28
+Nodes (7): CompositionAuthoringChild, compositionAuthoringChildrenSchema, compositionAuthoringChildSchema, compositionChildFromContract(), identifierSchema, ReadyCompositionChildContract, readyChild
 
 ### Community 332 - "Community 332"
-Cohesion: 0.25
-Nodes (8): items, $ref, resources, resourceTemplates, items, type, items, type
+Cohesion: 0.22
+Nodes (9): properties, type, anyOf, ComputerUseConfig, anyOf, default_app_access, macos, windows (+1 more)
 
 ### Community 333 - "Community 333"
-Cohesion: 0.25
-Nodes (8): properties, required, type, AgentMessageModeration, anyOf, type, display, moderated
+Cohesion: 0.22
+Nodes (9): type, GitInfo, properties, type, type, branch, originUrl, sha (+1 more)
 
 ### Community 334 - "Community 334"
-Cohesion: 0.25
-Nodes (8): type, ThreadSectionAppearance, type, color, icon, description, properties, type
+Cohesion: 0.22
+Nodes (9): items, type, McpToolCallResult, properties, required, type, content, _meta (+1 more)
 
 ### Community 335 - "Community 335"
-Cohesion: 0.25
-Nodes (8): HookPromptFragment, properties, required, type, type, hookRunId, text, type
+Cohesion: 0.22
+Nodes (9): items, type, McpToolCallResult, properties, required, type, content, _meta (+1 more)
 
 ### Community 336 - "Community 336"
-Cohesion: 0.25
-Nodes (8): properties, required, type, AgentMessageModeration, anyOf, type, display, moderated
+Cohesion: 0.22
+Nodes (9): description, properties, required, type, CollaborationMode, $ref, mode, settings (+1 more)
 
 ### Community 337 - "Community 337"
-Cohesion: 0.25
-Nodes (8): HookPromptFragment, properties, required, type, type, hookRunId, text, type
+Cohesion: 0.22
+Nodes (9): items, type, McpToolCallResult, properties, required, type, content, _meta (+1 more)
 
 ### Community 338 - "Community 338"
-Cohesion: 0.25
-Nodes (7): properties, turn, required, $schema, title, $ref, type
+Cohesion: 0.36
+Nodes (5): CoordinatorMethod, CoordinatorOperationId, coordinatorOperationRegistry, createCoordinatorOperationRegistry(), OperationDefinition
 
 ### Community 339 - "Community 339"
 Cohesion: 0.25
@@ -1799,215 +1799,255 @@ Nodes (8): properties, required, type, AgentMessageModeration, anyOf, type, disp
 
 ### Community 340 - "Community 340"
 Cohesion: 0.25
-Nodes (8): HookPromptFragment, properties, required, type, type, hookRunId, text, type
+Nodes (8): description, properties, required, type, items, type, AppListUpdatedNotification, data
 
 ### Community 341 - "Community 341"
+Cohesion: 0.25
+Nodes (8): items, $ref, resources, resourceTemplates, items, type, items, type
+
+### Community 342 - "Community 342"
+Cohesion: 0.25
+Nodes (8): properties, required, type, AgentMessageModeration, anyOf, type, display, moderated
+
+### Community 343 - "Community 343"
+Cohesion: 0.25
+Nodes (8): type, ThreadSectionAppearance, type, color, icon, description, properties, type
+
+### Community 344 - "Community 344"
+Cohesion: 0.25
+Nodes (8): HookPromptFragment, properties, required, type, type, hookRunId, text, type
+
+### Community 345 - "Community 345"
+Cohesion: 0.25
+Nodes (8): properties, required, type, AgentMessageModeration, anyOf, type, display, moderated
+
+### Community 346 - "Community 346"
+Cohesion: 0.25
+Nodes (8): HookPromptFragment, properties, required, type, type, hookRunId, text, type
+
+### Community 347 - "Community 347"
+Cohesion: 0.25
+Nodes (7): properties, turn, required, $schema, title, $ref, type
+
+### Community 348 - "Community 348"
+Cohesion: 0.25
+Nodes (8): properties, required, type, AgentMessageModeration, anyOf, type, display, moderated
+
+### Community 349 - "Community 349"
+Cohesion: 0.25
+Nodes (8): HookPromptFragment, properties, required, type, type, hookRunId, text, type
+
+### Community 350 - "Community 350"
+Cohesion: 0.38
+Nodes (6): metadata, initialStageFrom(), ResumeStepDefinitionDraftPage(), GET(), readStepDefinitionDraftAction(), StepDefinitionEditorDraft
+
+### Community 351 - "Community 351"
 Cohesion: 0.29
 Nodes (7): description, properties, required, type, ConfigurationReasoning, $ref, effort
 
-### Community 342 - "Community 342"
+### Community 352 - "Community 352"
 Cohesion: 0.29
 Nodes (7): description, properties, required, type, AccountRateLimitsUpdatedNotification, rateLimits, $ref
 
-### Community 343 - "Community 343"
+### Community 353 - "Community 353"
 Cohesion: 0.29
 Nodes (7): properties, type, anyOf, AccountUpdatedNotification, anyOf, authMode, planType
 
-### Community 344 - "Community 344"
-Cohesion: 0.33
-Nodes (6): properties, required, type, CancelLoginAccountParams, type, loginId
-
-### Community 345 - "Community 345"
-Cohesion: 0.33
-Nodes (6): properties, type, anyOf, default, AppsConfig, _default
-
-### Community 346 - "Community 346"
-Cohesion: 0.33
-Nodes (6): anyOf, description, enum, type, ApprovalsReviewer, approvalsReviewer
-
-### Community 347 - "Community 347"
-Cohesion: 0.33
-Nodes (6): Personality, anyOf, description, enum, type, personality
-
-### Community 348 - "Community 348"
-Cohesion: 0.33
-Nodes (6): ReasoningEffort, reasoningEffort, anyOf, description, minLength, type
-
-### Community 349 - "Community 349"
-Cohesion: 0.33
-Nodes (6): anyOf, description, enum, type, ApprovalsReviewer, approvalsReviewer
-
-### Community 350 - "Community 350"
-Cohesion: 0.33
-Nodes (6): Personality, anyOf, description, enum, type, personality
-
-### Community 351 - "Community 351"
-Cohesion: 0.50
-Nodes (3): EnvironmentConfig, ProjectableEnvironment, projectEnvironmentConfig()
-
-### Community 352 - "Community 352"
-Cohesion: 0.70
-Nodes (4): getTagTypeFromExpression(), getTagTypeFromName(), isIdentifierTagExpression(), isIdentifierTagName()
-
-### Community 353 - "Community 353"
-Cohesion: 0.40
-Nodes (5): properties, type, AdditionalNetworkPermissions, type, enabled
-
 ### Community 354 - "Community 354"
-Cohesion: 0.40
-Nodes (5): anyOf, $ref, properties, capabilities, clientInfo
+Cohesion: 0.20
+Nodes (10): properties, required, type, ClientInfo, type, name, title, version (+2 more)
 
 ### Community 355 - "Community 355"
 Cohesion: 0.40
-Nodes (5): type, description, items, type, optOutNotificationMethods
+Nodes (5): anyOf, $ref, properties, capabilities, clientInfo
 
 ### Community 356 - "Community 356"
-Cohesion: 0.40
-Nodes (5): ToolsV2, web_search, properties, type, anyOf
+Cohesion: 0.53
+Nodes (4): getTagTypeFromExpression(), getTagTypeFromName(), isIdentifierTagExpression(), isIdentifierTagName()
 
 ### Community 357 - "Community 357"
-Cohesion: 0.40
-Nodes (4): required, $schema, title, type
+Cohesion: 0.33
+Nodes (6): properties, required, type, CancelLoginAccountParams, type, loginId
 
 ### Community 358 - "Community 358"
-Cohesion: 0.40
-Nodes (5): description, items, type, type, disabledPluginIds
+Cohesion: 0.33
+Nodes (6): properties, type, anyOf, default, AppsConfig, _default
+
+### Community 359 - "Community 359"
+Cohesion: 0.33
+Nodes (6): anyOf, description, enum, type, ApprovalsReviewer, approvalsReviewer
+
+### Community 360 - "Community 360"
+Cohesion: 0.33
+Nodes (6): Personality, anyOf, description, enum, type, personality
+
+### Community 361 - "Community 361"
+Cohesion: 0.33
+Nodes (6): ReasoningEffort, reasoningEffort, anyOf, description, minLength, type
+
+### Community 362 - "Community 362"
+Cohesion: 0.33
+Nodes (6): anyOf, description, enum, type, ApprovalsReviewer, approvalsReviewer
 
 ### Community 363 - "Community 363"
+Cohesion: 0.33
+Nodes (6): Personality, anyOf, description, enum, type, personality
+
+### Community 364 - "Community 364"
 Cohesion: 0.50
-Nodes (3): oneOf, $schema, title
+Nodes (5): publishTerminalCycleResult(), assertInternalRuntimePublicationScope(), assertInternalRuntimeSealedResult(), matchesRuntimePublicationFields(), publishInternalRuntimeCycleResultInTransaction()
 
 ### Community 365 - "Community 365"
 Cohesion: 0.50
-Nodes (4): default, description, type, experimentalApi
+Nodes (3): EnvironmentConfig, ProjectableEnvironment, projectEnvironmentConfig()
 
 ### Community 366 - "Community 366"
+Cohesion: 0.40
+Nodes (5): properties, type, AdditionalNetworkPermissions, type, enabled
+
+### Community 367 - "Community 367"
+Cohesion: 0.40
+Nodes (5): type, description, items, type, optOutNotificationMethods
+
+### Community 368 - "Community 368"
+Cohesion: 0.40
+Nodes (5): ToolsV2, web_search, properties, type, anyOf
+
+### Community 369 - "Community 369"
+Cohesion: 0.40
+Nodes (5): description, items, type, type, disabledPluginIds
+
+### Community 373 - "Community 373"
+Cohesion: 0.50
+Nodes (3): oneOf, $schema, title
+
+### Community 375 - "Community 375"
+Cohesion: 0.50
+Nodes (4): default, description, type, experimentalApi
+
+### Community 376 - "Community 376"
 Cohesion: 0.50
 Nodes (4): additionalProperties, description, type, extensions
 
-### Community 367 - "Community 367"
+### Community 377 - "Community 377"
 Cohesion: 0.50
 Nodes (4): requestAttestation, default, description, type
 
-### Community 368 - "Community 368"
+### Community 378 - "Community 378"
+Cohesion: 0.50
+Nodes (4): description, enum, type, ApprovalsReviewer
+
+### Community 379 - "Community 379"
 Cohesion: 0.50
 Nodes (4): ReasoningEffort, description, minLength, type
 
-### Community 369 - "Community 369"
+### Community 380 - "Community 380"
 Cohesion: 0.50
 Nodes (4): $ref, tools, additionalProperties, type
 
-### Community 370 - "Community 370"
+### Community 381 - "Community 381"
 Cohesion: 0.50
 Nodes (3): $schema, title, type
 
-### Community 371 - "Community 371"
+### Community 382 - "Community 382"
 Cohesion: 0.50
 Nodes (4): description, enum, type, ApprovalsReviewer
-
-### Community 372 - "Community 372"
-Cohesion: 0.50
-Nodes (4): ModeKind, description, enum, type
-
-### Community 373 - "Community 373"
-Cohesion: 0.14
-Nodes (20): localPacket, restoreJourneyExecutionEnvironment(), environment, url, canonicalFrozenRemoteEnvironmentPacket(), canonicalFrozenRemoteOrigin(), canonicalOrigin(), FrozenEnvironmentOwner (+12 more)
-
-### Community 375 - "Community 375"
-Cohesion: 0.67
-Nodes (3): description, oneOf, CapabilityRootLocation
-
-### Community 376 - "Community 376"
-Cohesion: 0.67
-Nodes (3): SandboxMode, enum, type
-
-### Community 377 - "Community 377"
-Cohesion: 0.67
-Nodes (3): ThreadHistoryMode, enum, type
-
-### Community 378 - "Community 378"
-Cohesion: 0.67
-Nodes (3): threadSource, anyOf, description
-
-### Community 379 - "Community 379"
-Cohesion: 0.67
-Nodes (3): enum, type, CollabAgentTool
-
-### Community 380 - "Community 380"
-Cohesion: 0.67
-Nodes (3): enum, type, CommandExecutionSource
-
-### Community 381 - "Community 381"
-Cohesion: 0.67
-Nodes (3): enum, type, AgentMessageDelivery
-
-### Community 382 - "Community 382"
-Cohesion: 0.67
-Nodes (3): FunctionCallOutputContentItem, description, oneOf
 
 ### Community 383 - "Community 383"
-Cohesion: 0.67
-Nodes (3): McpAppDisplayMode, enum, type
-
-### Community 384 - "Community 384"
-Cohesion: 0.19
-Nodes (12): getConvertedTemplateTestCaseData(), FlowBlock, NodeData, NodeOrderMap, TemplateTestCaseNodeOrderMap, definition, FlowDiagramProps, resolveTemplateSelection() (+4 more)
-
-### Community 385 - "Community 385"
-Cohesion: 0.14
-Nodes (8): actionId(), ReportReviewControls(), ReportRevisionProps, mocks, triage, Triage, TriageInput, TriageReportPanel()
-
-### Community 386 - "Community 386"
-Cohesion: 0.22
-Nodes (5): defaultOperationDefinitions, defaultOperationRegistry, operationValidationRegistry, harmlessOperations, Invocation
-
-### Community 387 - "Community 387"
-Cohesion: 0.67
-Nodes (3): enum, type, AgentMessageDelivery
-
-### Community 388 - "Community 388"
-Cohesion: 0.67
-Nodes (3): enum, type, CollabAgentStatus
-
-### Community 389 - "Community 389"
-Cohesion: 0.67
-Nodes (3): enum, type, CommandExecutionStatus
-
-### Community 390 - "Community 390"
-Cohesion: 0.67
-Nodes (3): MessagePhase, description, oneOf
-
-### Community 391 - "Community 391"
-Cohesion: 0.67
-Nodes (3): PatchApplyStatus, enum, type
-
-### Community 392 - "Community 392"
-Cohesion: 0.67
-Nodes (3): TurnStatus, enum, type
-
-### Community 406 - "Community 406"
-Cohesion: 0.50
-Nodes (4): description, enum, type, ApprovalsReviewer
-
-### Community 407 - "Community 407"
 Cohesion: 0.50
 Nodes (4): updatedAt, description, format, type
 
-### Community 408 - "Community 408"
+### Community 384 - "Community 384"
 Cohesion: 0.50
-Nodes (4): ReasoningEffort, description, minLength, type
+Nodes (4): ModeKind, description, enum, type
 
-### Community 409 - "Community 409"
+### Community 385 - "Community 385"
 Cohesion: 0.67
-Nodes (3): ThreadActiveFlag, enum, type
+Nodes (3): description, oneOf, CapabilityRootLocation
 
-### Community 410 - "Community 410"
+### Community 386 - "Community 386"
+Cohesion: 0.67
+Nodes (3): SandboxMode, enum, type
+
+### Community 387 - "Community 387"
+Cohesion: 0.67
+Nodes (3): ThreadHistoryMode, enum, type
+
+### Community 388 - "Community 388"
+Cohesion: 0.67
+Nodes (3): threadSource, anyOf, description
+
+### Community 389 - "Community 389"
+Cohesion: 0.67
+Nodes (3): enum, type, CollabAgentTool
+
+### Community 390 - "Community 390"
+Cohesion: 0.67
+Nodes (3): enum, type, CommandExecutionSource
+
+### Community 391 - "Community 391"
+Cohesion: 0.67
+Nodes (3): enum, type, AgentMessageDelivery
+
+### Community 392 - "Community 392"
+Cohesion: 0.67
+Nodes (3): FunctionCallOutputContentItem, description, oneOf
+
+### Community 393 - "Community 393"
+Cohesion: 0.67
+Nodes (3): McpAppDisplayMode, enum, type
+
+### Community 394 - "Community 394"
+Cohesion: 0.67
+Nodes (3): MessagePhase, description, oneOf
+
+### Community 395 - "Community 395"
+Cohesion: 0.67
+Nodes (3): NonSteerableTurnKind, enum, type
+
+### Community 396 - "Community 396"
+Cohesion: 0.67
+Nodes (3): TurnStatus, enum, type
+
+### Community 397 - "Community 397"
+Cohesion: 0.67
+Nodes (3): NetworkAccess, enum, type
+
+### Community 398 - "Community 398"
+Cohesion: 0.67
+Nodes (3): serviceTierForTurn, description, type
+
+### Community 399 - "Community 399"
+Cohesion: 0.67
+Nodes (3): NetworkAccess, enum, type
+
+### Community 400 - "Community 400"
+Cohesion: 0.67
+Nodes (3): enum, type, AgentMessageDelivery
+
+### Community 401 - "Community 401"
+Cohesion: 0.67
+Nodes (3): enum, type, CollabAgentStatus
+
+### Community 402 - "Community 402"
+Cohesion: 0.67
+Nodes (3): enum, type, CommandExecutionStatus
+
+### Community 403 - "Community 403"
+Cohesion: 0.67
+Nodes (3): MessagePhase, description, oneOf
+
+### Community 404 - "Community 404"
 Cohesion: 0.67
 Nodes (3): PatchApplyStatus, enum, type
 
-### Community 411 - "Community 411"
+### Community 405 - "Community 405"
 Cohesion: 0.67
-Nodes (3): NetworkAccess, enum, type
+Nodes (3): TurnStatus, enum, type
+
+### Community 419 - "Community 419"
+Cohesion: 0.67
+Nodes (3): turnTrigger, description, type
 
 ## Knowledge Gaps
 - **3772 isolated node(s):** `startLocatorPickerSessionSchema`, `mocks`, `mocks`, `projectSchema`, `collaborationDigestSchema` (+3767 more)
@@ -2017,17 +2057,17 @@ Nodes (3): NetworkAccess, enum, type
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `ServiceError` connect `Community 67` to `Community 0`, `Community 129`, `Community 1`, `Community 2`, `Community 4`, `Community 5`, `Community 133`, `Community 11`, `Community 12`, `Community 13`, `Community 142`, `Community 15`, `Community 16`, `Community 17`, `Community 144`, `Community 19`, `Community 143`, `Community 18`, `Community 22`, `Community 23`, `Community 28`, `Community 31`, `Community 32`, `Community 161`, `Community 34`, `Community 33`, `Community 36`, `Community 37`, `Community 171`, `Community 45`, `Community 46`, `Community 48`, `Community 49`, `Community 50`, `Community 52`, `Community 53`, `Community 54`, `Community 55`, `Community 57`, `Community 58`, `Community 59`, `Community 187`, `Community 63`, `Community 195`, `Community 326`, `Community 14`, `Community 73`, `Community 201`, `Community 74`, `Community 329`, `Community 77`, `Community 79`, `Community 212`, `Community 86`, `Community 87`, `Community 88`, `Community 218`, `Community 90`, `Community 93`, `Community 94`, `Community 95`, `Community 99`, `Community 103`, `Community 104`, `Community 105`, `Community 107`, `Community 109`, `Community 110`, `Community 111`, `Community 112`, `Community 113`, `Community 122`, `Community 126`?**
-  _High betweenness centrality (0.111) - this node is a cross-community bridge._
-- **Why does `NativeStartupMetadata` connect `Community 153` to `Community 81`, `Community 125`, `Community 46`?**
-  _High betweenness centrality (0.065) - this node is a cross-community bridge._
-- **Why does `definitions` connect `Community 64` to `Community 139`, `Community 270`, `Community 271`, `Community 275`, `Community 153`, `Community 288`, `Community 300`, `Community 301`, `Community 186`, `Community 316`, `Community 330`, `Community 331`, `Community 204`, `Community 214`, `Community 343`, `Community 342`, `Community 353`, `Community 229`, `Community 230`, `Community 114`, `Community 117`, `Community 121`, `Community 255`?**
-  _High betweenness centrality (0.057) - this node is a cross-community bridge._
+- **Why does `ServiceError` connect `Community 91` to `Community 0`, `Community 1`, `Community 2`, `Community 3`, `Community 7`, `Community 12`, `Community 13`, `Community 14`, `Community 15`, `Community 16`, `Community 17`, `Community 18`, `Community 20`, `Community 21`, `Community 23`, `Community 25`, `Community 26`, `Community 27`, `Community 28`, `Community 29`, `Community 31`, `Community 34`, `Community 35`, `Community 36`, `Community 37`, `Community 38`, `Community 42`, `Community 43`, `Community 45`, `Community 46`, `Community 50`, `Community 53`, `Community 54`, `Community 55`, `Community 56`, `Community 59`, `Community 65`, `Community 68`, `Community 76`, `Community 81`, `Community 83`, `Community 84`, `Community 90`, `Community 92`, `Community 95`, `Community 97`, `Community 98`, `Community 101`, `Community 102`, `Community 103`, `Community 106`, `Community 109`, `Community 111`, `Community 122`, `Community 127`, `Community 128`, `Community 136`, `Community 137`, `Community 139`, `Community 143`, `Community 144`, `Community 156`, `Community 157`, `Community 162`, `Community 167`, `Community 169`, `Community 178`, `Community 192`, `Community 200`, `Community 210`, `Community 220`, `Community 240`, `Community 246`, `Community 247`, `Community 283`, `Community 302`, `Community 338`?**
+  _High betweenness centrality (0.103) - this node is a cross-community bridge._
+- **Why does `NativeStartupMetadata` connect `Community 148` to `Community 16`, `Community 69`?**
+  _High betweenness centrality (0.073) - this node is a cross-community bridge._
+- **Why does `definitions` connect `Community 62` to `Community 133`, `Community 263`, `Community 148`, `Community 281`, `Community 282`, `Community 285`, `Community 299`, `Community 312`, `Community 313`, `Community 194`, `Community 329`, `Community 208`, `Community 339`, `Community 340`, `Community 216`, `Community 352`, `Community 353`, `Community 235`, `Community 236`, `Community 366`, `Community 113`, `Community 116`, `Community 120`?**
+  _High betweenness centrality (0.072) - this node is a cross-community bridge._
 - **What connects `startLocatorPickerSessionSchema`, `mocks`, `mocks` to the rest of the system?**
   _3772 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.023561890087313814 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.028287841191066997 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
-  _Cohesion score 0.02690868561420269 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.022855464159811986 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
-  _Cohesion score 0.031602155805977465 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.047994000749906264 - nodes in this community are weakly interconnected._

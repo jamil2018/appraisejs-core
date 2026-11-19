@@ -41,16 +41,18 @@ import {
 } from '../../../../src/lib/quality-journey/codex-app-server/native-qualification-loss'
 import { getQualityJourney } from '../../../../src/services/coordinator/quality-journey-service'
 
-const installedSha256 = 'f69d8040091fc4997fb37e7f5ada428ec2fd06656b66ff5a72b31e12e0e67c20'
+import { nativeCodeModeBeforeTurnRelease } from '../../../../src/lib/quality-journey/codex-app-server/native-code-mode-host'
+
+const installedSha256 = nativeCodeModeBeforeTurnRelease.native
 const installedPackageRoot = '/Applications/ChatGPT.app/Contents/Resources/codex-cli'
 export const installedCodeModeFiles = Object.freeze({
   host: {
     path: path.join(installedPackageRoot, 'bin/codex-code-mode-host'),
-    sha256: 'a9b25a40c8d5e00a3c30a6e1e1f5ce6224e7dd7bc3cdf46c2fe51483919ee4c8',
+    sha256: nativeCodeModeBeforeTurnRelease.host,
   },
   packageMetadata: {
     path: path.join(installedPackageRoot, 'codex-package.json'),
-    sha256: '3fcbea530e1e8e494c1a1e540b92a345ed15614c9f017b2910a730bcfd53a358',
+    sha256: nativeCodeModeBeforeTurnRelease.packageMetadata,
   },
 })
 export type NativeCasePreparation = Readonly<{
