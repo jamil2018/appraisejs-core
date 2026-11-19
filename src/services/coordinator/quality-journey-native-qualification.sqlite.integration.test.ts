@@ -5,7 +5,10 @@ import { PrismaClient } from '@prisma/client'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
 import { describe, expect, it, vi } from 'vitest'
-import { expectedNativeMcpConfiguration } from '@/lib/quality-journey/codex-app-server/native-qualification-configuration'
+import {
+  expectedNativeMcpConfiguration,
+  nativeQualificationFeatures,
+} from '@/lib/quality-journey/codex-app-server/native-qualification-configuration'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { prepareM10AutomationFixture, callM10WorkerMcp, type M10OfflineDispatchEvent } from '@/test/m10-journey-fixture'
 import { failedExecution, triager, report, mcpReport } from '@/test/m10-runtime-fixture'
@@ -69,30 +72,7 @@ async function oneRole(event: M10OfflineDispatchEvent) {
       approval_policy: 'never',
       sandbox_mode: 'read-only',
       web_search: 'disabled',
-      features: {
-        shell_tool: false,
-        apps: false,
-        async_compaction: false,
-        code_mode: false,
-        code_mode_only: false,
-        code_mode_host: false,
-        code_mode_prewarm: false,
-        goals: false,
-        multi_agent: false,
-        multi_agent_v2: false,
-        wake_on_agent_messages: false,
-        sleep_tool: false,
-        memories: false,
-        view_image: false,
-        hooks: false,
-        remote_plugin: false,
-        api_key_cyber_access_programs: false,
-        api_key_model_discovery: false,
-        auth_elicitation: false,
-        mentions_v2: false,
-        tool_suggest: false,
-        network_proxy: false,
-      },
+      features: nativeQualificationFeatures(false),
       analytics: { enabled: false },
       feedback: { enabled: false },
       history: { persistence: 'none' },
