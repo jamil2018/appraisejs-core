@@ -16,6 +16,8 @@ import {
 import { NativeStartupMetadata, nativeStartupWarning } from './native-startup-metadata'
 import { syntheticNativeManifest } from './native-qualification.test-support'
 
+const shortRequestMs = 1000
+const fixtureTimeoutMs = 20000
 const roots: string[] = []
 const failedFramingRoots = new Set<string>()
 afterEach(() =>
@@ -38,8 +40,13 @@ function expectOriginalRefusalCleanup(receipt: Awaited<ReturnType<Awaited<Return
   else expect(receipt).toMatchObject({ status: 'uncertain', privateRootRemoved: false, privateRootRetained: true })
 }
 
-async function setup(scenario: string, invalidConfig = false) {
+async function setup(
+  scenario: string,
+  { invalidConfig = false, requestMs = 5000 }: { invalidConfig?: boolean; requestMs?: number } = {},
+) {
   const f = syntheticNativeManifest()
+  // Functional cases need headroom for real child I/O and verification on loaded runners.
+  Object.assign(f.manifest.limits, { caseMs: 15000, requestMs, cleanupMs: 5000 })
   roots.push(f.parent)
   const configuration = {
     origins: {},
@@ -68,7 +75,7 @@ async function setup(scenario: string, invalidConfig = false) {
     { mode: 0o700 },
   )
   f.manifest.native.sha256 = f.sha(readFileSync(f.manifest.native.path))
-  // Entire waiting period must fit the original initialization request's 1000 ms budget.
+  // Startup must still fit the original initialization request's absolute deadline.
   const plan = captureNativeQualificationPlan(f.manifest, f.capability)
   const trace = createNativeQualificationDiagnostics(f.parent, f.manifest.freshRoot)
   const state = new NativeStartupMetadata()
@@ -236,17 +243,17 @@ describe('genuine inert owned child startup policy', () => {
         expect(await f.stop()).toMatchObject({ status: 'stopped', groupExitObserved: true, privateRootRemoved: true })
       }
     },
-    10000,
+    fixtureTimeoutMs,
   )
   it.each(['deadline-before-wait', 'original-signal'])(
     'closes startup on %s without new RPC or waiter',
     async mode => {
-      const f = await setup('missing-account'),
+      const f = await setup('missing-account', { requestMs: shortRequestMs }),
         controller = new AbortController()
       try {
         await f.initialize(controller.signal)
         if (mode === 'original-signal') controller.abort()
-        else await new Promise(resolve => setTimeout(resolve, 1050))
+        else await new Promise(resolve => setTimeout(resolve, shortRequestMs + 50))
         expect(f.child.transport.snapshot()).toMatchObject({ status: 'fenced', issuedRequests: 2 })
         await expect(f.thread()).rejects.toThrow()
         expect(() => f.state.notification('account/updated', { authMode: 'chatgpt', planType: 'unknown' })).toThrow()
@@ -254,7 +261,7 @@ describe('genuine inert owned child startup policy', () => {
         expect(await f.stop()).toMatchObject({ status: 'stopped', groupExitObserved: true, privateRootRemoved: true })
       }
     },
-    10000,
+    fixtureTimeoutMs,
   )
   it.each(['before-init', 'invalid-init', 'nonnull-warning', 'duplicate'])(
     'refuses %s before any thread/turn admission',
@@ -272,15 +279,15 @@ describe('genuine inert owned child startup policy', () => {
         expect(cleanup.privateRootRemoved).toBe(false)
       }
     },
-    10000,
+    fixtureTimeoutMs,
   )
   it.each(['missing-account', 'invalid-config', 'cancel', 'fence', 'drift'])(
     'retains original deadline/config/owner boundary for %s',
     async mode => {
-      const f = await setup(
-        mode === 'invalid-config' || mode === 'drift' ? 'same-chunk' : 'missing-account',
-        mode === 'invalid-config',
-      )
+      const f = await setup(mode === 'invalid-config' || mode === 'drift' ? 'same-chunk' : 'missing-account', {
+        invalidConfig: mode === 'invalid-config',
+        requestMs: shortRequestMs,
+      })
       try {
         await f.initialize()
         if (mode === 'drift') writeFileSync(f.manifest.native.path, 'inert source drift')
@@ -290,7 +297,7 @@ describe('genuine inert owned child startup policy', () => {
         if (mode === 'cancel') controller.abort()
         if (mode === 'fence') f.child.transport.fence('test_fence')
         await waiting
-        expect(Date.now() - started).toBeLessThanOrEqual(1100)
+        expect(Date.now() - started).toBeLessThanOrEqual(shortRequestMs + 100)
         expect(f.child.transport.snapshot()).toMatchObject({ status: 'fenced', issuedRequests: 2 })
         expect(() => f.state.notification('account/updated', { authMode: 'chatgpt', planType: 'unknown' })).toThrow()
       } finally {
@@ -299,7 +306,7 @@ describe('genuine inert owned child startup policy', () => {
         expect(cleanup.status).toBe('stopped')
       }
     },
-    10000,
+    fixtureTimeoutMs,
   )
 })
 
@@ -356,7 +363,7 @@ describe('genuine original wire snapshot and final admission regressions', () =>
           expectOriginalRefusalCleanup(await f.stop())
         }
       },
-      10000,
+      fixtureTimeoutMs,
     )
   it.each(['serializer', 'getter'])(
     'rejects nested turn input %s before digest or serialization can diverge',
@@ -382,19 +389,19 @@ describe('genuine original wire snapshot and final admission regressions', () =>
         expectOriginalRefusalCleanup(await f.stop())
       }
     },
-    10000,
+    fixtureTimeoutMs,
   )
   it.each(['delay', 'abort', 'revoke'])(
     'retains entry budgets and refuses trusted admission %s with zero new writes',
     async mode => {
-      const f = await setup('same-chunk'),
+      const f = await setup('same-chunk', { requestMs: shortRequestMs }),
         controller = new AbortController()
       try {
         await f.initialize(controller.signal)
         const baseline = f.child.transport.snapshot()
         f.setNextAdmissionEffect(() => {
           if (mode === 'delay') {
-            const end = Date.now() + 1050
+            const end = Date.now() + shortRequestMs + 50
             while (Date.now() < end) {
               /* bounded trusted gate delay */
             }
@@ -414,7 +421,7 @@ describe('genuine original wire snapshot and final admission regressions', () =>
         expectOriginalRefusalCleanup(await f.stop())
       }
     },
-    10000,
+    fixtureTimeoutMs,
   )
   for (const location of ['root', 'nested'] as const)
     it.each(['Object', 'Array'] as const)(
@@ -448,90 +455,102 @@ describe('genuine original wire snapshot and final admission regressions', () =>
           expectOriginalRefusalCleanup(await f.stop())
         }
       },
-      10000,
+      fixtureTimeoutMs,
     )
-  it('emits approved nested turn data and method with inherited serializers present', async () => {
-    const f = await setup('same-chunk'),
-      objectOriginal = Object.getOwnPropertyDescriptor(Object.prototype, 'toJSON'),
-      arrayOriginal = Object.getOwnPropertyDescriptor(Array.prototype, 'toJSON')
-    let frameHookCalls = 0,
-      arrayHookCalls = 0,
-      operation!: Promise<unknown>
-    try {
-      await f.initialize()
-      await f.thread()
-      await f.child.transport.request('mcpServerStatus/list', {
-        serverName: 'appraise_worker',
-        threadId: 'inert-thread',
-        detail: 'full',
-        limit: 1,
-      })
+  it(
+    'emits approved nested turn data and method with inherited serializers present',
+    async () => {
+      const f = await setup('same-chunk'),
+        objectOriginal = Object.getOwnPropertyDescriptor(Object.prototype, 'toJSON'),
+        arrayOriginal = Object.getOwnPropertyDescriptor(Array.prototype, 'toJSON')
+      let frameHookCalls = 0,
+        arrayHookCalls = 0,
+        operation!: Promise<unknown>
       try {
-        Object.defineProperty(Object.prototype, 'toJSON', {
-          configurable: true,
-          value: function (this: Record<string, unknown>) {
-            if (Object.hasOwn(this, 'id') && Object.hasOwn(this, 'method')) {
-              frameHookCalls++
-              return { id: 5, method: 'account/logout', params: {} }
-            }
-            return this
-          },
+        await f.initialize()
+        await f.thread()
+        await f.child.transport.request('mcpServerStatus/list', {
+          serverName: 'appraise_worker',
+          threadId: 'inert-thread',
+          detail: 'full',
+          limit: 1,
         })
-        Object.defineProperty(Array.prototype, 'toJSON', {
-          configurable: true,
-          value: function () {
-            arrayHookCalls++
-            return [{ type: 'text', text: 'substituted' }]
-          },
+        try {
+          Object.defineProperty(Object.prototype, 'toJSON', {
+            configurable: true,
+            value: function (this: Record<string, unknown>) {
+              if (Object.hasOwn(this, 'id') && Object.hasOwn(this, 'method')) {
+                frameHookCalls++
+                return { id: 5, method: 'account/logout', params: {} }
+              }
+              return this
+            },
+          })
+          Object.defineProperty(Array.prototype, 'toJSON', {
+            configurable: true,
+            value: function () {
+              arrayHookCalls++
+              return [{ type: 'text', text: 'substituted' }]
+            },
+          })
+          operation = f.child.transport.request('turn/start', paramsFor('turn/start', f.manifest.freshRoot))
+        } finally {
+          if (objectOriginal) Object.defineProperty(Object.prototype, 'toJSON', objectOriginal)
+          else Reflect.deleteProperty(Object.prototype, 'toJSON')
+          if (arrayOriginal) Object.defineProperty(Array.prototype, 'toJSON', arrayOriginal)
+          else Reflect.deleteProperty(Array.prototype, 'toJSON')
+        }
+        expect(await operation).toHaveProperty('turn.id', 'inert-turn')
+        expect(frameHookCalls).toBe(0)
+        expect(arrayHookCalls).toBe(0)
+        expect(f.approvedSnapshots.find(row => row.method === 'turn/start')!.params).toMatchObject({
+          input: [{ type: 'text', text: 'approved' }],
         })
-        operation = f.child.transport.request('turn/start', paramsFor('turn/start', f.manifest.freshRoot))
       } finally {
-        if (objectOriginal) Object.defineProperty(Object.prototype, 'toJSON', objectOriginal)
-        else Reflect.deleteProperty(Object.prototype, 'toJSON')
-        if (arrayOriginal) Object.defineProperty(Array.prototype, 'toJSON', arrayOriginal)
-        else Reflect.deleteProperty(Array.prototype, 'toJSON')
+        expect(await f.stop()).toMatchObject({ status: 'stopped', groupExitObserved: true, privateRootRemoved: true })
       }
-      expect(await operation).toHaveProperty('turn.id', 'inert-turn')
-      expect(frameHookCalls).toBe(0)
-      expect(arrayHookCalls).toBe(0)
-      expect(f.approvedSnapshots.find(row => row.method === 'turn/start')!.params).toMatchObject({
-        input: [{ type: 'text', text: 'approved' }],
-      })
-    } finally {
-      expect(await f.stop()).toMatchObject({ status: 'stopped', groupExitObserved: true, privateRootRemoved: true })
-    }
-  }, 10000)
-  it('does not register or accept an unwritten same-ID reply during startup wait', async () => {
-    const f = await setup('premature-reply')
-    try {
-      await f.initialize()
-      const baseline = f.child.transport.snapshot(),
-        waiting = f.thread()
-      expect(f.child.transport.snapshot()).toMatchObject({ pendingRequests: 0, issuedRequests: 2 })
-      await expect(waiting).rejects.toThrow()
-      expect(f.child.transport.snapshot()).toMatchObject({
-        status: 'fenced',
-        issuedRequests: 2,
-        writtenBytes: baseline.writtenBytes,
-      })
-    } finally {
-      expect((await f.stop()).status).toBe('uncertain')
-    }
-  }, 10000)
-  it('validates and emits a frozen data snapshot even when the original data changes during the wait', async () => {
-    const f = await setup('different-microtasks')
-    try {
-      await f.initialize()
-      const params = paramsFor('thread/start', f.manifest.freshRoot),
-        operation = f.child.transport.request('thread/start', params)
-      params.sandbox = 'danger-full-access'
-      params.ephemeral = false
-      expect(await operation).toHaveProperty('thread.id', 'inert-thread')
-      const approved = f.approvedSnapshots.find(row => row.method === 'thread/start')!.params
-      expect(approved).toMatchObject({ sandbox: 'read-only', ephemeral: true })
-      expect(Object.isFrozen(approved)).toBe(true)
-    } finally {
-      expect(await f.stop()).toMatchObject({ status: 'stopped', groupExitObserved: true, privateRootRemoved: true })
-    }
-  }, 10000)
+    },
+    fixtureTimeoutMs,
+  )
+  it(
+    'does not register or accept an unwritten same-ID reply during startup wait',
+    async () => {
+      const f = await setup('premature-reply')
+      try {
+        await f.initialize()
+        const baseline = f.child.transport.snapshot(),
+          waiting = f.thread()
+        expect(f.child.transport.snapshot()).toMatchObject({ pendingRequests: 0, issuedRequests: 2 })
+        await expect(waiting).rejects.toThrow()
+        expect(f.child.transport.snapshot()).toMatchObject({
+          status: 'fenced',
+          issuedRequests: 2,
+          writtenBytes: baseline.writtenBytes,
+        })
+      } finally {
+        expect((await f.stop()).status).toBe('uncertain')
+      }
+    },
+    fixtureTimeoutMs,
+  )
+  it(
+    'validates and emits a frozen data snapshot even when the original data changes during the wait',
+    async () => {
+      const f = await setup('different-microtasks')
+      try {
+        await f.initialize()
+        const params = paramsFor('thread/start', f.manifest.freshRoot),
+          operation = f.child.transport.request('thread/start', params)
+        params.sandbox = 'danger-full-access'
+        params.ephemeral = false
+        expect(await operation).toHaveProperty('thread.id', 'inert-thread')
+        const approved = f.approvedSnapshots.find(row => row.method === 'thread/start')!.params
+        expect(approved).toMatchObject({ sandbox: 'read-only', ephemeral: true })
+        expect(Object.isFrozen(approved)).toBe(true)
+      } finally {
+        expect(await f.stop()).toMatchObject({ status: 'stopped', groupExitObserved: true, privateRootRemoved: true })
+      }
+    },
+    fixtureTimeoutMs,
+  )
 })
