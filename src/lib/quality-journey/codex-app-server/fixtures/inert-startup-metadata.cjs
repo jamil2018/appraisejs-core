@@ -4,6 +4,7 @@ const readline = require('node:readline')
 const send = value => process.stdout.write(JSON.stringify(value) + '\n')
 const warning = { method: 'configWarning', params: { summary: startupWarning } }
 const account = { method: 'account/updated', params: { authMode: 'chatgpt', planType: 'unknown' } }
+let pendingAccountSuffix = ''
 function initialize(request) {
   const reply = {
     id: request.id,
@@ -25,7 +26,7 @@ function initialize(request) {
     if (startupScenario === 'split') {
       const bytes = JSON.stringify(account) + '\n'
       process.stdout.write(bytes.slice(0, 17))
-      setTimeout(() => process.stdout.write(bytes.slice(17)), 5)
+      pendingAccountSuffix = bytes.slice(17)
     } else if (startupScenario === 'different-microtasks') {
       setTimeout(() => send(account), 40)
     } else if (!['missing-account', 'premature-reply'].includes(startupScenario)) send(account)
@@ -33,6 +34,11 @@ function initialize(request) {
   }
 }
 function configuration(request) {
+  // The request is the barrier between fragments. Finish the frame before emitting the reply.
+  if (pendingAccountSuffix) {
+    process.stdout.write(pendingAccountSuffix)
+    pendingAccountSuffix = ''
+  }
   send({ id: request.id, result: safeConfiguration })
   if (startupScenario === 'premature-reply') setTimeout(() => send({ id: 3, result: {} }), 25)
 }
