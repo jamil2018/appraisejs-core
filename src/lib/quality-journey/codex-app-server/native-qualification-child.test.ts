@@ -218,7 +218,8 @@ describe('real default native route, intercepted without native execution', () =
   })
   it('retains the exact private root and auth link when MCP cleanup reports uncertain effects', async () => {
     const f = setup(),
-      child = await launchNativeQualificationChild(f.plan, f.callbacks)
+      trace = createNativeQualificationDiagnostics(f.parent, f.manifest.freshRoot),
+      child = await launchNativeQualificationChild(f.plan, { ...f.callbacks, diagnostics: trace.observer })
     f.callbacks.closeMcp.mockResolvedValue(false)
     expect(await child.stop()).toMatchObject({
       status: 'uncertain',
@@ -230,6 +231,10 @@ describe('real default native route, intercepted without native execution', () =
     expect(existsSync(f.manifest.freshRoot)).toBe(true)
     expect(existsSync(f.credential)).toBe(true)
     expect(owned.stop).toHaveBeenCalledExactlyOnceWith(f.original)
+    trace.close()
+    expect(readFileSync(path.join(f.parent, 'c1-acquisition-diagnostics.jsonl'), 'utf8')).toContain(
+      '"stage":"CLEANUP","status":"UNKNOWN","reason":"CLEANUP_MCP_UNPROVEN"',
+    )
   })
   it('pins file-backed auth and disables every supported feature explicitly', () => {
     const f = setup()
@@ -270,7 +275,8 @@ describe('real default native route, intercepted without native execution', () =
   })
   it('never removes a replaced auth link and retains private resources on uncertain cleanup', async () => {
     const f = setup(),
-      child = await launchNativeQualificationChild(f.plan, f.callbacks)
+      trace = createNativeQualificationDiagnostics(f.parent, f.manifest.freshRoot),
+      child = await launchNativeQualificationChild(f.plan, { ...f.callbacks, diagnostics: trace.observer })
     const auth = path.join(f.manifest.freshRoot, 'codex-home/auth.json')
     unlinkSync(auth)
     writeFileSync(auth, 'replacement')
@@ -281,6 +287,10 @@ describe('real default native route, intercepted without native execution', () =
     })
     expect(lstatSync(auth).isFile()).toBe(true)
     expect(existsSync(f.credential)).toBe(true)
+    trace.close()
+    expect(readFileSync(path.join(f.parent, 'c1-acquisition-diagnostics.jsonl'), 'utf8')).toContain(
+      '"stage":"CLEANUP","status":"UNKNOWN","reason":"CLEANUP_CREDENTIAL_UNPROVEN"',
+    )
   })
   it('retains unknown original acquisition and never reconstructs a process handle', async () => {
     const f = setup()
@@ -321,7 +331,8 @@ describe('bounded original native lifetime and passive drain', () => {
   })
   it('never settles an unresolved original cleanup as stopped and retains resources after late physical success', async () => {
     const f = setup(),
-      child = await launchNativeQualificationChild(f.plan, f.callbacks)
+      trace = createNativeQualificationDiagnostics(f.parent, f.manifest.freshRoot),
+      child = await launchNativeQualificationChild(f.plan, { ...f.callbacks, diagnostics: trace.observer })
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
     let resolve!: () => void
     owned.stop.mockReturnValue(
@@ -337,6 +348,10 @@ describe('bounded original native lifetime and passive drain', () => {
     await Promise.resolve()
     expect(existsSync(f.manifest.freshRoot)).toBe(true)
     expect(child.stop()).toBe(stopped)
+    trace.close()
+    expect(readFileSync(path.join(f.parent, 'c1-acquisition-diagnostics.jsonl'), 'utf8')).toContain(
+      '"stage":"CLEANUP","status":"UNKNOWN","reason":"CLEANUP_DEADLINE"',
+    )
   })
   it.each(['invalid', 'partial', 'missing-eof'] as const)(
     'retains resources for %s passive output after fencing without canonical callback delivery',

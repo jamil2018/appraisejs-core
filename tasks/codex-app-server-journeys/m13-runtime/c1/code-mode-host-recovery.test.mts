@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { execFileSync, spawn } from 'node:child_process'
 import { once } from 'node:events'
-import { mkdtempSync, realpathSync, rmSync } from 'node:fs'
+import { mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { test } from 'node:test'
@@ -31,13 +31,30 @@ test(
         '-o',
         addon,
       ])
+      const intermittent = path.join(root, 'intermittent-sample.cjs')
+      writeFileSync(
+        intermittent,
+        `const metadata = require(${JSON.stringify(addon)})
+let samples = 0
+module.exports = {
+  identity: metadata.identity,
+  directChildMetadata: metadata.directChildMetadata,
+  watchDirectForks: metadata.watchDirectForks,
+  listDirectChildren(pid) {
+    if (++samples === 2) throw new Error('synthetic sampling failure after watch registration')
+    return metadata.listDirectChildren(pid)
+  },
+}`,
+      )
       const host = realpathSync('/bin/sleep')
       const scenarios = [
-        { executable: '', expected: 'NATIVE_EXIT_NO_FORK' },
-        { executable: '/usr/bin/true', expected: false },
-        { executable: host, expected: 'OBSERVED_HOST_GONE' },
+        { executable: '', observerPath: addon, expected: 'NATIVE_EXIT_NO_FORK' },
+        { executable: '', observerPath: intermittent, expected: 'NATIVE_EXIT_NO_FORK' },
+        { executable: '/usr/bin/true', observerPath: addon, expected: 'CODE_MODE_FORK_OBSERVED' },
+        { executable: '/usr/bin/true', observerPath: intermittent, expected: 'CODE_MODE_FORK_OBSERVED' },
+        { executable: host, observerPath: addon, expected: 'OBSERVED_HOST_GONE' },
       ] as const
-      for (const { executable, expected } of scenarios) {
+      for (const { executable, observerPath, expected } of scenarios) {
         const original = spawn(
           process.execPath,
           [
@@ -58,7 +75,7 @@ test(
         await once(original, 'spawn')
         let observer: ReturnType<typeof observeNativeCodeModeHost> | undefined
         try {
-          observer = observeNativeCodeModeHost(original.pid!, process.pid, host, addon)
+          observer = observeNativeCodeModeHost(original.pid!, process.pid, host, observerPath)
           original.stdin!.end('start')
           assert.deepEqual(await exited, [0, null])
           assert.equal(await observer.verifyGone(Date.now() + 1000), expected)

@@ -119,6 +119,22 @@ export type NativeSourceNotificationRefusal =
   | 'UNCLASSIFIED_NOTIFICATION'
   | 'SOURCE_NOTIFICATION_REFUSED'
   | (typeof warningRefusals)[number]
+const cleanupFailureReasons = [
+  'CLEANUP_UNCERTAIN',
+  'CLEANUP_DEADLINE',
+  'CLEANUP_LOSS_RELEASE_UNPROVEN',
+  'CLEANUP_GROUP_EXIT_UNPROVEN',
+  'CLEANUP_MCP_UNPROVEN',
+  'CLEANUP_DRAIN_UNPROVEN',
+  'CLEANUP_CREDENTIAL_UNPROVEN',
+  'CLEANUP_ROOT_UNPROVEN',
+  'CODE_MODE_FORK_WATCH_UNAVAILABLE',
+  'CODE_MODE_FORK_OBSERVED',
+  'CODE_MODE_EXIT_UNPROVEN',
+  'CODE_MODE_COMPANION_UNPROVEN',
+] as const
+export type NativeCleanupFailureReason = (typeof cleanupFailureReasons)[number]
+
 type NativeDiagnosticReason =
   | NativeSourceNotificationRefusal
   | ProviderTransportAuthorityStep
@@ -136,7 +152,7 @@ type NativeDiagnosticReason =
   | 'VALIDATION_REFUSED'
   | 'PASSIVE_CAPTURE_REFUSED'
   | 'CHILD_FAULT'
-  | 'CLEANUP_UNCERTAIN'
+  | NativeCleanupFailureReason
   | 'NATIVE_EXIT_NO_FORK'
   | 'DIAGNOSTIC_UNAVAILABLE'
 export type NativeDiagnosticObserver = Readonly<{
@@ -225,7 +241,7 @@ const lifecyclePairs = new Map<NativeDiagnosticStage, readonly DiagnosticPair[]>
       ['ENTERED', 'NONE'],
       ['SETTLED', 'NONE'],
       ['SETTLED', 'NATIVE_EXIT_NO_FORK'],
-      ['UNKNOWN', 'CLEANUP_UNCERTAIN'],
+      ...cleanupFailureReasons.map<DiagnosticPair>(reason => ['UNKNOWN', reason]),
     ],
   ],
   ['SUPERVISOR_STOP', supervisorStopReasons.map(reason => ['ENTERED', reason])],

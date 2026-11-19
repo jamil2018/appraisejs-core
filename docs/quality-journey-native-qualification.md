@@ -68,7 +68,10 @@ The pinned local Code Mode producer starts its companion lazily. The original Ap
 its first request. After the original process group and delivery streams close, cleanup can use either an observed
 companion identity that is now gone or the original macOS terminal event proving no direct child fork after watch
 registration. The second path requires the same original process identity and an empty initial child list. A fork
-without an observed companion, missing terminal event, or observer failure leaves cleanup UNKNOWN. The proof is
+without an observed companion or a missing terminal event leaves cleanup UNKNOWN. A valid terminal no-fork event
+stands even if a later poll of process metadata failed. A sampled companion still requires uninterrupted identity
+evidence. Finite cleanup diagnostics identify the unresolved original group, SDK, stream, companion, credential or
+root boundary, or expiry. The diagnostic records no process identities, paths, or error contents. The proof is
 specific to this pinned local producer and does not attest host isolation or general helper lifetime.
 
 The native protocol facade validates outbound requests, responses and notifications against the committed generated

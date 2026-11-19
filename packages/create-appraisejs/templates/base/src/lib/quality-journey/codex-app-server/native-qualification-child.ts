@@ -38,6 +38,7 @@ import {
   nativePassiveOutcomeStage,
   nativePassiveProtocolStage,
   requireNativeDiagnostic,
+  type NativeCleanupFailureReason,
   type NativeDiagnosticObserver,
   type NativeDiagnosticStage,
 } from './native-qualification-diagnostics'
@@ -408,6 +409,7 @@ export async function launchNativeQualificationChild(
     let groupExitObserved = false,
       expired = false
     let stoppedReason: 'NONE' | 'NATIVE_EXIT_NO_FORK' = 'NONE'
+    let unprovenReason: NativeCleanupFailureReason = 'CLEANUP_MCP_UNPROVEN'
     let timer: ReturnType<typeof setTimeout> | undefined
     async function observeOriginalGroup() {
       const original = owned
@@ -424,24 +426,41 @@ export async function launchNativeQualificationChild(
       return drain.wait(loss ? Math.max(0, cleanupExpiresAt - Date.now()) : manifest.limits.cleanupMs)
     }
     async function closeOriginalServices() {
-      if (cleanupExpired() || mcpFenceFailed) return false
-      if (!(await boundCallbacks.closeMcp())) return false
+      if (cleanupExpired()) {
+        unprovenReason = 'CLEANUP_DEADLINE'
+        return false
+      }
+      unprovenReason = 'CLEANUP_MCP_UNPROVEN'
+      if (mcpFenceFailed || !(await boundCallbacks.closeMcp())) return false
+      unprovenReason = 'CLEANUP_DRAIN_UNPROVEN'
       return waitOriginalDrain()
+    }
+    async function observeCompanion() {
+      unprovenReason = 'CODE_MODE_COMPANION_UNPROVEN'
+      const witness = await hostObservation?.verifyGone(cleanupExpiresAt)
+      if (witness === 'OBSERVED_HOST_GONE') return true
+      if (witness === 'NATIVE_EXIT_NO_FORK') {
+        stoppedReason = witness
+        return true
+      }
+      unprovenReason = witness ?? 'CODE_MODE_COMPANION_UNPROVEN'
+      return false
     }
     async function originalCleanup(): Promise<OwnedChildCleanupReceipt> {
       try {
         fenceNative()
+        unprovenReason = 'CLEANUP_LOSS_RELEASE_UNPROVEN'
         if (loss) await waitNativeQualificationLossPhysicalRelease(loss)
+        unprovenReason = 'CLEANUP_GROUP_EXIT_UNPROVEN'
         await observeOriginalGroup()
         if (!(await closeOriginalServices())) return uncertain(groupExitObserved)
-        if (manifest.codeMode) {
-          const witness = await hostObservation?.verifyGone(cleanupExpiresAt)
-          if (!witness) return uncertain(groupExitObserved)
-          if (witness === 'NATIVE_EXIT_NO_FORK') stoppedReason = witness
-        }
+        if (manifest.codeMode && !(await observeCompanion())) return uncertain(groupExitObserved)
+        unprovenReason = 'CLEANUP_DEADLINE'
         if (cleanupExpired()) return uncertain(groupExitObserved)
+        unprovenReason = 'CLEANUP_CREDENTIAL_UNPROVEN'
         verifyNativeCredential(manifest.credentialSource)
         if (link) unlinkNativeCredential(link)
+        unprovenReason = 'CLEANUP_ROOT_UNPROVEN'
         await removeRoot()
         return Object.freeze({
           status: 'stopped',
@@ -472,7 +491,7 @@ export async function launchNativeQualificationChild(
       diagnostics?.record(
         'CLEANUP',
         receipt.status === 'stopped' ? 'SETTLED' : 'UNKNOWN',
-        receipt.status === 'stopped' ? stoppedReason : 'CLEANUP_UNCERTAIN',
+        receipt.status === 'stopped' ? stoppedReason : expired ? 'CLEANUP_DEADLINE' : unprovenReason,
       )
       return receipt
     } finally {

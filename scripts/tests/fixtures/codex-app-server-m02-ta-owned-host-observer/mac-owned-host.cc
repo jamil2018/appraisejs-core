@@ -182,19 +182,21 @@ napi_value StopForkWatch(napi_env env, napi_callback_info callback) {
 napi_value ObserveForkWatchExit(napi_env env, napi_callback_info callback) {
   auto* watch = UnwrapForkWatch(env, callback);
   if (!watch) return Fail(env, "original process watch required");
-  bool no_fork = false;
+  const char* evidence = "EXIT_UNPROVEN";
   if (watch->fd >= 0) {
     struct kevent event;
     const struct timespec nonblocking = {0, 0};
     const int found = kevent(watch->fd, nullptr, 0, &event, 1, &nonblocking);
-    // Consume only the original terminal event. A coalesced NOTE_FORK defeats the witness.
-    no_fork = found == 1 && event.ident == static_cast<uintptr_t>(watch->pid) &&
-              event.filter == EVFILT_PROC && (event.flags & EV_ERROR) == 0 &&
-              (event.flags & EV_EOF) != 0 && event.fflags == NOTE_EXIT;
+    if (found == 1 && event.ident == static_cast<uintptr_t>(watch->pid) &&
+        event.filter == EVFILT_PROC && (event.flags & EV_ERROR) == 0) {
+      // A coalesced NOTE_FORK defeats even an otherwise valid terminal note.
+      if ((event.fflags & NOTE_FORK) != 0) evidence = "FORK_OBSERVED";
+      else if ((event.flags & EV_EOF) != 0 && event.fflags == NOTE_EXIT) evidence = "EXIT_NO_FORK";
+    }
     CloseForkWatch(watch);
   }
   napi_value result;
-  return napi_get_boolean(env, no_fork, &result) == napi_ok ? result : nullptr;
+  return napi_create_string_utf8(env, evidence, NAPI_AUTO_LENGTH, &result) == napi_ok ? result : nullptr;
 }
 
 napi_value WatchDirectForks(napi_env env, napi_callback_info callback) {
@@ -215,7 +217,7 @@ napi_value WatchDirectForks(napi_env env, napi_callback_info callback) {
   }
   napi_value result;
   const napi_property_descriptor methods[] = {
-      {"exitedWithoutForking", nullptr, ObserveForkWatchExit, nullptr, nullptr, nullptr, napi_default, nullptr},
+      {"observeExit", nullptr, ObserveForkWatchExit, nullptr, nullptr, nullptr, napi_default, nullptr},
       {"close", nullptr, StopForkWatch, nullptr, nullptr, nullptr, napi_default, nullptr},
   };
   auto* watch = new (std::nothrow) DirectForkWatch{fd, pid};

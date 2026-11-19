@@ -2,7 +2,11 @@ import { createRequire } from 'node:module'
 import { setTimeout as delay } from 'node:timers/promises'
 
 type ProcessIdentity = Readonly<{ pid: number; ppid: number; birthSec: number; birthUsec: number }>
-type DirectForkWatch = Readonly<{ exitedWithoutForking(): boolean; close(): void }>
+type DirectForkWatch = Readonly<{
+  observeExit?(): 'EXIT_NO_FORK' | 'FORK_OBSERVED' | 'EXIT_UNPROVEN'
+  exitedWithoutForking?(): boolean
+  close(): void
+}>
 type NativeProcessMetadata = Readonly<{
   identity(pid: number): ProcessIdentity | null
   listDirectChildren(pid: number): number[]
@@ -36,7 +40,12 @@ function watchBeforeFirstRequest(metadata: NativeProcessMetadata, parent: Proces
 }
 
 function verifyExitWithoutFork(watch: DirectForkWatch | undefined, deadline: number) {
-  return Date.now() < deadline && watch?.exitedWithoutForking() ? ('NATIVE_EXIT_NO_FORK' as const) : false
+  if (Date.now() >= deadline) return 'CLEANUP_DEADLINE' as const
+  if (!watch) return 'CODE_MODE_FORK_WATCH_UNAVAILABLE' as const
+  const evidence = watch.observeExit ? watch.observeExit() : watch.exitedWithoutForking?.() && 'EXIT_NO_FORK'
+  if (evidence === 'EXIT_NO_FORK') return 'NATIVE_EXIT_NO_FORK' as const
+  if (evidence === 'FORK_OBSERVED') return 'CODE_MODE_FORK_OBSERVED' as const
+  return 'CODE_MODE_EXIT_UNPROVEN' as const
 }
 
 /** Observe the original Codex child's companion. The host owns its own group and receives no signals here. */
@@ -80,14 +89,15 @@ export function observeNativeCodeModeHost(
     },
     async verifyGone(deadline: number) {
       clearInterval(sampler)
-      if (uncertain) return false
+      // A terminal, pre-RPC no-fork witness does not depend on a later metadata sample.
       if (!host) return verifyExitWithoutFork(forkWatch, deadline)
+      if (uncertain) return 'CODE_MODE_COMPANION_UNPROVEN' as const
       while (Date.now() < deadline) {
         const current = metadata.identity(host.pid)
         if (!current || !sameBirth(host, current)) return 'OBSERVED_HOST_GONE' as const
         await delay(25)
       }
-      return false
+      return 'CLEANUP_DEADLINE' as const
     },
   })
 }
