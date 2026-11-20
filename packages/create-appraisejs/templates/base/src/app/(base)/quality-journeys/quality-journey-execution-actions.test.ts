@@ -1,6 +1,16 @@
 import { trustedHumanCoordinatorSession } from '@/services/coordinator/quality-journey-coordinator-session'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-const mocks = vi.hoisted(() => ({ project: vi.fn(), run: vi.fn(), revalidate: vi.fn() }))
+const mocks = vi.hoisted(() => ({
+  project: vi.fn(),
+  run: vi.fn(),
+  revalidate: vi.fn(),
+  get: vi.fn(),
+  schedule: vi.fn(),
+}))
+vi.mock('@/services/coordinator/app-managed-progression-service', () => ({
+  scheduleAppManagedJourneyContinuation: mocks.schedule,
+}))
+vi.mock('@/services/coordinator/quality-journey-service', () => ({ getQualityJourney: mocks.get }))
 vi.mock('@/lib/active-project', () => ({ requireActiveProjectForMutation: mocks.project }))
 vi.mock('next/cache', () => ({ revalidatePath: mocks.revalidate }))
 vi.mock('@/services/coordinator/quality-journey-execution-service', () => ({
@@ -21,6 +31,21 @@ beforeEach(() => {
   mocks.run.mockResolvedValue({ status: 'GRANTED' })
 })
 describe('Journey execution UI authority', () => {
+  it('wakes role work after canonical execution reconciliation using the newly committed state', async () => {
+    mocks.get.mockResolvedValue({ journey: { stateHash: 'fresh-state' } })
+    expect(
+      await qualityJourneyExecutionAction('reconcile', {
+        journeyId: 'journey-1',
+        cycleId: 'cycle-1',
+        idempotencyKey: 'reconcile-1',
+      }),
+    ).toMatchObject({ success: true })
+    expect(mocks.schedule).toHaveBeenCalledWith({
+      journeyId: 'journey-1',
+      targetProjectId: 'target-1',
+      expectedStateHash: 'fresh-state',
+    })
+  })
   it('resolves grant ownership from active project and invalidates the Journey', async () => {
     expect(await qualityJourneyExecutionAction('consent', input)).toMatchObject({ success: true })
     expect(mocks.run).toHaveBeenCalledWith(

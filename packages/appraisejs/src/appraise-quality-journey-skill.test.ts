@@ -7,6 +7,15 @@ const skillUrl = new URL(
 )
 
 describe('Appraise Quality Journey skill', () => {
+  it('teaches managed admission and preserves only historical handoff inspection', async () => {
+    const skill = await readFile(skillUrl, 'utf8')
+    expect(skill).not.toContain('quality_journey_handoff_redeem')
+    expect(skill).toContain('quality_journey_handoff_inspect')
+    expect(skill).toContain('Legacy external Journeys require an explicit managed ownership transfer')
+    expect(skill).toContain('no general production dispatcher')
+    expect(skill).toContain('do not restore desktop onboarding or grant access to managed Journeys')
+  })
+
   it('preserves the authoritative Analysis human-wait and reconnect protocol', async () => {
     const skill = await readFile(skillUrl, 'utf8')
 

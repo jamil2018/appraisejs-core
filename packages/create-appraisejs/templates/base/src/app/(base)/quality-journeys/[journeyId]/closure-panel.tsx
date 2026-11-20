@@ -41,15 +41,18 @@ export function ClosurePanel({ journeyId, stateHash, closure }: Props) {
   return (
     <Card aria-label="Terminal journey review">
       <CardHeader>
-        <CardTitle>{closure.receipt ? 'Journey closed' : 'Terminal report review'}</CardTitle>
+        <CardTitle>{closure.receipt ? 'Journey closed' : 'Close journey'}</CardTitle>
         <CardDescription>
           {closure.receipt
-            ? 'The closure receipt and historical artifacts remain available.'
-            : 'Approve this exact report to end the journey. Further work requires a new journey.'}
+            ? 'Your results and evidence are saved in History.'
+            : 'Closing saves this report as the final result.'}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 text-sm">
-        <ReportReference closure={closure} />
+        <details>
+          <summary className="cursor-pointer text-xs">Report details</summary>
+          <ReportReference closure={closure} />
+        </details>
         {closure.receipt ? <ClosureReceipt closure={closure} /> : null}
         <UnresolvedItems items={closure.unresolvedItems} />
         {!closure.receipt ? (
@@ -90,12 +93,15 @@ function ClosureReceipt({ closure }: Pick<Props, 'closure'>) {
           ? 'Closed with explicit risk acceptance'
           : 'Closed without unresolved items'}
       </p>
-      <p>
-        Recorded by local user possession ({receipt.actorId}) on {receipt.closedAt}.
-      </p>
-      <p className="break-all">
-        Receipt: {receipt.closureId} · {closure.contentHash}
-      </p>
+      <details>
+        <summary className="cursor-pointer text-xs">Closure details</summary>
+        <p>
+          Recorded by {receipt.actorId} on {receipt.closedAt}.
+        </p>
+        <p className="break-all">
+          Receipt: {receipt.closureId} · {closure.contentHash}
+        </p>
+      </details>
       {receipt.riskAcceptance ? <p>Rationale: {receipt.riskAcceptance.rationale}</p> : null}
     </>
   )
@@ -149,9 +155,6 @@ function ClosureDecisionForm({
           </label>
         </>
       ) : null}
-      <p className="text-xs text-muted-foreground">
-        This decision records local user possession; it does not identify an authenticated account.
-      </p>
       <Button onClick={onClose} disabled={disabled}>
         {risk ? 'Accept risks and close journey' : 'Approve report and close journey'}
       </Button>

@@ -1,7 +1,7 @@
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import { resolveActiveProject, type ActiveProjectContext } from '@/services/target-project/target-project-service'
 import { ServiceError } from '@/services/shared/errors'
-import { ACTIVE_PROJECT_COOKIE } from '@/lib/project-scope'
+import { ACTIVE_PROJECT_COOKIE, APPRAISE_REQUEST_TARGET_HEADER } from '@/lib/project-scope'
 
 export { ACTIVE_PROJECT_COOKIE } from '@/lib/project-scope'
 
@@ -20,7 +20,13 @@ export async function requireActiveProject(urlProjectId?: string | null): Promis
 export async function requireActiveProjectForMutation(
   callerTargetProjectId?: string | null,
 ): Promise<ActiveProjectContext> {
-  const project = await requireActiveProject(callerTargetProjectId)
+  // The proxy sets this from the actual action request, including the project in a shared Journey link.
+  const requestTarget = (await headers()).get(APPRAISE_REQUEST_TARGET_HEADER)
+  const journeyUrl =
+    requestTarget && /^\/quality-journeys(?:[/?]|$)/.test(requestTarget)
+      ? new URL(requestTarget, 'http://appraise.local')
+      : null
+  const project = await requireActiveProject(journeyUrl?.searchParams.get('project') || callerTargetProjectId)
   if (callerTargetProjectId && callerTargetProjectId !== project.id) {
     throw new ServiceError('Caller project scope conflicts with the active project.', 'CONFLICT', 409)
   }

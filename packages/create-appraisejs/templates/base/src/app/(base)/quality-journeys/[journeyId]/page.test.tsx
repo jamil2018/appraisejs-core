@@ -4,6 +4,9 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+vi.mock('./managed-journey-progression', () => ({
+  ManagedJourneyProgression: () => <span>Automatic progression</span>,
+}))
 const mocks = vi.hoisted(() => ({
   getAnalysis: vi.fn(),
   readStatus: vi.fn(),
@@ -13,8 +16,62 @@ const mocks = vi.hoisted(() => ({
   getTriage: vi.fn(),
   notFound: vi.fn(),
   project: vi.fn(),
+  discoverySetup: vi.fn(),
+  getDiscovery: vi.fn(),
+  preparationRecovery: vi.fn(),
+  designCorrection: vi.fn(),
+  triageRecovery: vi.fn(),
+  attempts: vi.fn(),
+  discoveryCaptureStatus: vi.fn(),
+  manualRecovery: vi.fn(),
+  manualIssued: vi.fn(),
+  manualChoices: vi.fn(),
+  operatorTriage: vi.fn(),
 }))
 
+vi.mock('@/services/coordinator/quality-journey-query-service', () => ({
+  getQualityJourneyStatusSnapshot: vi.fn(async () => null),
+}))
+vi.mock('./managed-journey-ownership-control', () => ({
+  ManagedJourneyOwnershipControl: ({ journeyId, projectId }: { journeyId: string; projectId: string }) => (
+    <p>
+      Ownership controls for {journeyId} in {projectId}
+    </p>
+  ),
+}))
+vi.mock('./managed-scenario-automation-control', () => ({
+  ManagedScenarioAutomationControl: ({
+    role,
+    correction,
+  }: {
+    role: string
+    correction?: { detail: string } | null
+  }) => (
+    <p>
+      Preparation controls for {role}
+      {correction ? `: ${correction.detail}` : ''}
+    </p>
+  ),
+}))
+vi.mock('./managed-triage-control', () => ({
+  ManagedTriageControl: () => <p>Managed triage controls</p>,
+}))
+vi.mock('./manual-automation-control', () => ({ ManualAutomationControl: () => <p>Manual preparation recovery</p> }))
+vi.mock('./operator-triage-control', () => ({ OperatorTriageControl: () => <p>Operator report review</p> }))
+vi.mock('@/services/coordinator/app-managed-automation-manual-recovery', () => ({
+  getAppManagedAutomatorManualRecovery: mocks.manualRecovery,
+  observePendingManualAutomationRecovery: mocks.manualIssued,
+  getAppManagedManualAutomationDraftContext: mocks.manualChoices,
+}))
+vi.mock('@/services/coordinator/app-managed-triage-service', () => ({
+  getOperatorTriageAvailable: mocks.operatorTriage,
+}))
+vi.mock('@/services/coordinator/app-managed-discovery-capture', () => ({
+  getAppManagedAnonymousDiscoveryCaptureStatus: mocks.discoveryCaptureStatus,
+}))
+vi.mock('@/services/coordinator/app-managed-triage-recovery', () => ({
+  getAppManagedTriageRecovery: mocks.triageRecovery,
+}))
 vi.mock('@/services/coordinator/quality-journey-closure-service', () => ({
   getQualityJourneyClosure: vi.fn().mockResolvedValue({
     receipt: null,
@@ -28,7 +85,7 @@ vi.mock('@/services/coordinator/quality-journey-closure-service', () => ({
 vi.mock('@/config/db-config', () => ({
   default: {
     environment: { findMany: vi.fn().mockResolvedValue([]) },
-    qualityJourneyWorkAttempt: { findMany: vi.fn().mockResolvedValue([]) },
+    qualityJourneyWorkAttempt: { findMany: mocks.attempts },
     qualityJourneyRevision: {
       findFirst: vi.fn().mockResolvedValue({ contentJson: JSON.stringify({ objective: 'Checkout accepts cards' }) }),
     },
@@ -46,6 +103,31 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn() }),
 }))
 vi.mock('@/lib/active-project', () => ({ requireActiveProject: mocks.project }))
+vi.mock('@/services/coordinator/quality-journey-discovery-service', () => ({
+  getQualityJourneyDiscovery: mocks.getDiscovery,
+}))
+vi.mock('./managed-discovery-control', () => ({
+  ManagedDiscoveryControl: ({
+    journeyId,
+    stateHash,
+    enabled,
+  }: {
+    journeyId: string
+    stateHash: string
+    enabled: boolean
+  }) => (
+    <p>
+      Discovery controls for {journeyId} at {stateHash} ({enabled ? 'enabled' : 'disabled'})
+    </p>
+  ),
+}))
+vi.mock('@/services/coordinator/quality-journey-discovery-prerequisites', () => ({
+  getQualityJourneyDiscoveryPrerequisites: mocks.discoverySetup,
+}))
+vi.mock('@/services/coordinator/app-managed-scenario-automation-recovery', () => ({
+  getAppManagedPreparationRecovery: mocks.preparationRecovery,
+  getAppManagedScenarioDesignCorrection: mocks.designCorrection,
+}))
 vi.mock('@/services/coordinator/quality-journey-analysis-service', () => ({
   getQualityJourneyAnalysis: mocks.getAnalysis,
 }))
@@ -75,7 +157,7 @@ const journey = (overrides: Record<string, unknown> = {}) => ({
   journey: {
     journeyId: 'journey-1',
     stage: 'ANALYSIS_REVIEW',
-    hostingMode: 'EXTERNAL_LEGACY',
+    hostingMode: 'APP_SERVER_LOCAL_V1',
     version: 1,
     stateHash: digest('a'),
     activeRevisionIds: {},
@@ -135,7 +217,7 @@ function analysisRevision({
 }
 
 async function renderPage() {
-  render(
+  return render(
     await QualityJourneyDetailPage({
       params: Promise.resolve({ journeyId: 'journey-1' }),
       searchParams: Promise.resolve({ project: 'project-1' }),
@@ -145,7 +227,19 @@ async function renderPage() {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mocks.discoveryCaptureStatus.mockResolvedValue('MANUAL_REQUIRED')
+  mocks.readStatus.mockResolvedValue(null)
   mocks.project.mockResolvedValue(project)
+  mocks.discoverySetup.mockResolvedValue({ ready: true, missing: [] })
+  mocks.preparationRecovery.mockResolvedValue(null)
+  mocks.designCorrection.mockResolvedValue(null)
+  mocks.triageRecovery.mockResolvedValue(null)
+  mocks.manualRecovery.mockResolvedValue(null)
+  mocks.manualIssued.mockResolvedValue(null)
+  mocks.manualChoices.mockResolvedValue(null)
+  mocks.operatorTriage.mockResolvedValue(false)
+  mocks.attempts.mockResolvedValue([])
+  mocks.getDiscovery.mockResolvedValue({ revisions: [], activeDiscoveryRevisionId: null })
   mocks.getJourney.mockResolvedValue(journey())
   mocks.getAnalysis.mockResolvedValue({ revisions: [] })
   mocks.getScenarios.mockResolvedValue({ portfolio: null })
@@ -154,16 +248,188 @@ beforeEach(() => {
 })
 
 describe('QualityJourneyDetailPage', () => {
+  it('shows only eligible manual preparation and operator report controls', async () => {
+    mocks.getJourney.mockResolvedValue(journey({ stage: 'AUTOMATION', status: 'ACTIVE', unresolvedQuestionIds: [] }))
+    mocks.manualIssued.mockResolvedValue({ eventId: 'manual-recovery' })
+    mocks.manualChoices.mockResolvedValue({ choices: { bindings: [] } })
+    const view = await renderPage()
+    expect(screen.getByText('Manual preparation recovery')).toBeVisible()
+    expect(mocks.manualIssued).toHaveBeenCalledWith({ journeyId: 'journey-1', targetProjectId: 'project-1' })
+    view.unmount()
+    mocks.getJourney.mockResolvedValue(journey({ stage: 'TRIAGE', status: 'ACTIVE', unresolvedQuestionIds: [] }))
+    mocks.operatorTriage.mockResolvedValue(true)
+    await renderPage()
+    expect(screen.getByText('Operator report review')).toBeVisible()
+    expect(mocks.operatorTriage).toHaveBeenCalledWith({ journeyId: 'journey-1', targetProjectId: 'project-1' })
+  })
+  it('does not offer a fresh role launch after its current dispatch is consumed without a retained recovery', async () => {
+    mocks.getJourney.mockResolvedValue({
+      ...journey({ stage: 'AUTOMATION', status: 'ACTIVE', activeCycleId: 'cycle', activeWorkItemIds: ['work-auto'] }),
+      workItems: [{ id: 'work-auto', cycleId: 'cycle', role: 'AUTOMATOR', currentAttempt: 1, status: 'IN_PROGRESS' }],
+    })
+    mocks.attempts.mockResolvedValue([
+      {
+        id: 'attempt-auto',
+        workItemId: 'work-auto',
+        attempt: 1,
+        status: 'IN_PROGRESS',
+        startedAt: new Date(),
+        completedAt: null,
+        dispatchAdapterId: 'APP_SERVER_LOCAL_V1_PREPARATION_AUTOMATOR',
+      },
+    ])
+    await renderPage()
+    expect(screen.queryByText('Preparation controls for AUTOMATOR')).not.toBeInTheDocument()
+  })
+
+  it('offers a distinct correction assignment for the consumed Designer with its exact rejection detail', async () => {
+    mocks.getJourney.mockResolvedValue({
+      ...journey({
+        stage: 'SCENARIO_DESIGN',
+        status: 'ACTIVE',
+        activeCycleId: 'cycle',
+        activeWorkItemIds: ['work-designer'],
+      }),
+      workItems: [
+        {
+          id: 'work-designer',
+          cycleId: 'cycle',
+          role: 'TEST_SCENARIO_DESIGNER',
+          currentAttempt: 1,
+          status: 'IN_PROGRESS',
+        },
+      ],
+    })
+    mocks.attempts.mockResolvedValue([
+      {
+        id: 'original',
+        startedAt: new Date(),
+        completedAt: null,
+        workItemId: 'work-designer',
+        attempt: 1,
+        status: 'IN_PROGRESS',
+        dispatchAdapterId: 'APP_SERVER_LOCAL_V1_PREPARATION_TEST_SCENARIO_DESIGNER',
+      },
+    ])
+    mocks.designCorrection.mockResolvedValue({
+      attemptId: 'original',
+      failureHash: digest('f'),
+      detail: 'arguments.portfolio.scenarios.3.enrichment.observationIds (too_small)',
+    })
+    await renderPage()
+    expect(
+      screen.getByText(/Preparation controls for TEST_SCENARIO_DESIGNER: arguments.portfolio.scenarios.3/),
+    ).toBeInTheDocument()
+    expect(mocks.designCorrection).toHaveBeenCalledWith({ journeyId: 'journey-1', targetProjectId: 'project-1' })
+  })
+
+  it('offers retained Designer recovery during scenario review in the exact Journey project', async () => {
+    mocks.getJourney.mockResolvedValue(journey({ stage: 'SCENARIO_REVIEW', status: 'ACTIVE' }))
+    mocks.preparationRecovery.mockResolvedValue({
+      attemptId: 'attempt',
+      candidateHash: digest('c'),
+      detail: 'Retained proposal',
+    })
+    await renderPage()
+    expect(screen.getByText('Preparation controls for TEST_SCENARIO_DESIGNER')).toBeInTheDocument()
+    expect(mocks.preparationRecovery).toHaveBeenCalledWith({
+      journeyId: 'journey-1',
+      targetProjectId: 'project-1',
+      role: 'TEST_SCENARIO_DESIGNER',
+    })
+  })
+
+  it.each(['TRIAGE', 'SCENARIO_DESIGN', 'AUTOMATION', 'DISCOVERY'])(
+    'continues active %s inside Appraise',
+    async stage => {
+      mocks.getJourney.mockResolvedValue(journey({ stage, status: 'ACTIVE', unresolvedQuestionIds: [] }))
+      await renderPage()
+      expect(screen.getByText('Automatic progression')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Pause' })).toBeEnabled()
+      expect(screen.queryByText(/Preparation controls for|Managed triage controls/)).not.toBeInTheDocument()
+    },
+  )
+  it('offers exact retained report recovery inside Appraise', async () => {
+    mocks.getJourney.mockResolvedValue(journey({ stage: 'TRIAGE', status: 'ACTIVE', unresolvedQuestionIds: [] }))
+    mocks.triageRecovery.mockResolvedValue({ attemptId: 'triage-attempt', candidateHash: digest('c') })
+    await renderPage()
+    expect(screen.getByText('Managed triage controls')).toBeInTheDocument()
+    expect(mocks.triageRecovery).toHaveBeenCalledWith({ journeyId: 'journey-1', targetProjectId: 'project-1' })
+  })
+  it('distinguishes an unavailable report proposal from ordinary waiting', async () => {
+    mocks.getJourney.mockResolvedValue({
+      ...journey({ stage: 'TRIAGE', status: 'ACTIVE', activeCycleId: 'cycle-1', unresolvedQuestionIds: [] }),
+      workItems: [{ id: 'triage-work', role: 'TRIAGER', status: 'IN_PROGRESS', cycleId: 'cycle-1', currentAttempt: 1 }],
+    })
+    mocks.attempts.mockResolvedValue([
+      {
+        workItemId: 'triage-work',
+        attempt: 1,
+        dispatchAdapterId: 'APP_SERVER_LOCAL_V1_TRIAGE',
+        failureJson: '{"stage":"CANONICAL_SUBMISSION"}',
+      },
+    ])
+    await renderPage()
+    expect(screen.getByText('Appraise couldn’t save the report. Your test results are in History.')).toBeInTheDocument()
+    expect(screen.queryByText('Managed triage controls')).not.toBeInTheDocument()
+  })
+  it('hides the old Scout recovery action while fresh discovery is underway', async () => {
+    mocks.getJourney.mockResolvedValue({
+      ...journey({ stage: 'DISCOVERY', status: 'ACTIVE', activeCycleId: 'cycle-1', unresolvedQuestionIds: [] }),
+      workItems: [{ id: 'old-scout', role: 'SCOUT', status: 'SUPERSEDED', cycleId: 'cycle-1', currentAttempt: 1 }],
+    })
+    mocks.attempts.mockResolvedValue([
+      {
+        workItemId: 'old-scout',
+        attempt: 1,
+        dispatchAdapterId: 'APP_SERVER_LOCAL_V1_DISCOVERY_SCOUT',
+        failureJson: '{"stage":"NATIVE_SEND"}',
+      },
+    ])
+    await renderPage()
+    expect(screen.queryByText(/Discovery controls for/)).not.toBeInTheDocument()
+  })
+  it('suspends work and offers one-click resume', async () => {
+    mocks.getJourney.mockResolvedValue(journey({ stage: 'DISCOVERY', status: 'PAUSED', unresolvedQuestionIds: [] }))
+    await renderPage()
+    expect(screen.getByRole('button', { name: 'Resume' })).toBeEnabled()
+    expect(screen.queryByText('Automatic progression')).not.toBeInTheDocument()
+  })
+  it('shows missing Discovery setup in the Journey project before Analysis approval', async () => {
+    mocks.discoverySetup.mockResolvedValue({ ready: false, missing: ['module', 'locator-group'] })
+    mocks.getAnalysis.mockResolvedValue({
+      revisions: [
+        {
+          ...analysisRevision({
+            id: 'analysis-1',
+            revision: 1,
+            publication: { reviewHash: digest('b'), publishedAt: new Date() },
+            questionId: 'payment-method',
+          }),
+          questions: [],
+        },
+      ],
+    })
+    mocks.getJourney.mockResolvedValue(
+      journey({ activeRevisionIds: { analysis: 'analysis-1' }, unresolvedQuestionIds: [] }),
+    )
+    await renderPage()
+    expect(mocks.discoverySetup).toHaveBeenCalledWith('project-1')
+    expect(screen.getByText('Set up Discovery before approval')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Create module' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Create environment' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Approve criteria' })).toBeDisabled()
+  })
+
   it('renders the active project-scoped Journey and blocks approval while required answers remain open', async () => {
     await renderPage()
 
-    expect(screen.getByText('Testing journey')).toBeInTheDocument()
-    expect(screen.getByText('1 required question must be answered.')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Answer questions' })).toBeInTheDocument()
-    expect(screen.getByText('1 required question must be resolved before approval.')).toBeInTheDocument()
-    expect(
-      screen.getByText('Review the current published analysis revision or request a revision with durable feedback.'),
-    ).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Checkout accepts cards' })).toBeVisible()
+    expect(screen.getByRole('list', { name: 'Journey stages' })).toHaveTextContent(
+      'RequirementsScenariosTest runResults',
+    )
+    expect(screen.queryByText('Operational control')).not.toBeInTheDocument()
+    expect(screen.queryByText('Open required questions')).not.toBeInTheDocument()
     expect(mocks.getJourney).toHaveBeenCalledWith({ journeyId: 'journey-1', targetProjectId: 'project-1' })
   })
 
@@ -172,110 +438,20 @@ describe('QualityJourneyDetailPage', () => {
 
     await renderPage()
 
-    expect(screen.getByText('No user decision is currently pending.')).toBeInTheDocument()
-    expect(screen.getByText(/no proposed test approach has been submitted/i)).toBeInTheDocument()
+    expect(screen.queryByText('Ready to review acceptance criteria')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Approve criteria' })).not.toBeInTheDocument()
   })
 
-  it('does not claim analysis is active when no approach has been submitted', async () => {
-    await renderPage()
-
-    expect(screen.getByText('No proposed test approach has been submitted for review.')).toBeInTheDocument()
-    expect(screen.queryByText(/appraise is preparing a test approach/i)).not.toBeInTheDocument()
-    expect(screen.queryByText(/ready for your exact-version review/i)).not.toBeInTheDocument()
-  })
-
-  it('keeps the report-review human gate visible in the sidebar', async () => {
+  it('keeps the report review in the main work area', async () => {
     mocks.getJourney.mockResolvedValue(journey({ stage: 'REPORT_REVIEW', unresolvedQuestionIds: [] }))
-
     await renderPage()
-
     expect(
-      screen.getByText('Review the current full report and record the canonical report decision.'),
-    ).toBeInTheDocument()
-    expect(screen.queryByText('No user decision is currently pending.')).not.toBeInTheDocument()
-  })
-
-  it('keeps automation materialization readable after its active stage and excludes failed receipts from prepared counts', async () => {
-    mocks.getJourney.mockResolvedValue(journey({ stage: 'TRIAGE', unresolvedQuestionIds: [] }))
-    mocks.getAutomation.mockResolvedValue({
-      inputHash: digest('c'),
-      inputHashes: [digest('c')],
-      scopeHash: digest('d'),
-      portfolioRevisionId: 'portfolio-r1',
-      scenarioRevisionIds: ['scenario-1', 'scenario-2'],
-      materializations: [
-        {
-          scenarioRevisionId: 'scenario-1',
-          status: 'MATERIALIZED',
-          suiteId: 'suite-1',
-          testCaseId: 'case-1',
-          preparedCapsule: { id: 'prepared-1', status: 'PREPARED' },
-        },
-        {
-          scenarioRevisionId: 'scenario-2',
-          status: 'FAILED',
-          suiteId: null,
-          testCaseId: null,
-          preparedCapsule: null,
-          failureKind: 'DESIGN_DEFECT',
-        },
-      ],
-    })
-
-    await renderPage()
-
-    expect(screen.getByText('1/2 approved scenarios materialized. No TestRun has been created.')).toBeInTheDocument()
-    expect(screen.getByText('DESIGN_DEFECT: repair and retry')).toBeInTheDocument()
-    expect(
-      screen.getByText('1 failed materialization remains visible and is not counted as prepared.'),
-    ).toBeInTheDocument()
-  })
-
-  it('surfaces pending Scenario Portfolio decisions without treating carried decisions as pending', async () => {
-    mocks.getJourney.mockResolvedValue(journey({ stage: 'SCENARIO_REVIEW', unresolvedQuestionIds: [] }))
-    mocks.getScenarios.mockResolvedValue({
-      portfolio: {
-        artifactId: 'portfolio-1',
-        artifactRevisionId: 'portfolio-r1',
-        contentHash: digest('c'),
-        behavioralIntentHash: digest('d'),
-        enrichmentHash: digest('e'),
-        layoutHash: digest('f'),
-        coverageRationale: 'Coverage.',
-        graphJson: JSON.stringify({ edges: [], sharedSetup: [] }),
-        reviewHash: digest('g'),
-        comments: [],
-        scenarios: [
-          {
-            stableScenarioId: 'scenario-1',
-            scenarioRevisionId: 'scenario-r1',
-            behavioralIntentJson: JSON.stringify({ title: 'Carried scenario' }),
-            enrichmentJson: '{}',
-            layoutJson: JSON.stringify({ sequence: 0 }),
-            decisions: [{ decision: 'APPROVED' }],
-          },
-          {
-            stableScenarioId: 'scenario-2',
-            scenarioRevisionId: 'scenario-r2',
-            behavioralIntentJson: JSON.stringify({ title: 'Pending scenario' }),
-            enrichmentJson: '{}',
-            layoutJson: JSON.stringify({ sequence: 1 }),
-            decisions: [],
-          },
-        ],
-      },
-    })
-
-    await renderPage()
-
-    expect(
-      screen.getByText(
-        'Review the pending Scenario Portfolio decisions; existing durable scenario decisions are preserved.',
-      ),
-    ).toBeInTheDocument()
+      within(screen.getByRole('region', { name: 'Current journey focus' })).getByText('Ready to review results'),
+    ).toBeVisible()
   })
 
   it('projects prepared automation without implying a TestRun exists', async () => {
+    mocks.getScenarios.mockResolvedValue({ portfolio: { approvedIntentHash: digest('b'), scenarios: [] } })
     mocks.getJourney.mockResolvedValue(journey({ stage: 'AUTOMATION', unresolvedQuestionIds: [] }))
     mocks.getAutomation.mockResolvedValue({
       inputHash: digest('z'),
@@ -296,8 +472,8 @@ describe('QualityJourneyDetailPage', () => {
 
     await renderPage()
 
-    expect(screen.getByText('Prepared capsule only')).toBeInTheDocument()
-    expect(screen.getByText(/No TestRun has been created/)).toBeInTheDocument()
+    expect(screen.getByText('1 of 1 approved scenarios ready to run.')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /open live run/i })).not.toBeInTheDocument()
     expect(mocks.getAutomation).toHaveBeenCalledWith({ journeyId: 'journey-1', targetProjectId: 'project-1' })
   })
 
@@ -330,9 +506,9 @@ describe('QualityJourneyDetailPage', () => {
 
     await renderPage()
 
-    expect(screen.getByText(/Version 2/)).toBeInTheDocument()
-    expect(screen.getByText('Question for revision 2')).toBeInTheDocument()
-    await user.type(screen.getByLabelText('Answer'), 'Wallet payment.')
+    const focus = within(screen.getByRole('region', { name: 'Current journey focus' }))
+    expect(focus.getByText('Question for revision 2')).toBeInTheDocument()
+    await user.type(screen.getByRole('textbox', { name: /Your answer/ }), 'Wallet payment.')
     expect(screen.getByRole('button', { name: 'Record answer' })).toBeEnabled()
   })
 
@@ -358,7 +534,7 @@ describe('QualityJourneyDetailPage', () => {
 
     await renderPage()
 
-    expect(screen.getByText('Question for revision 1')).toBeInTheDocument()
+    expect(screen.getAllByText('Question for revision 1').length).toBeGreaterThan(0)
     expect(screen.queryByLabelText('Answer')).not.toBeInTheDocument()
   })
 
@@ -392,7 +568,23 @@ it('shows managed runtime inside the current focus and omits desktop handoff', a
   })
   render(await QualityJourneyDetailPage({ params: Promise.resolve({ journeyId: 'journey-1' }) }))
   const focus = screen.getByRole('region', { name: 'Current journey focus' })
-  expect(await within(focus).findByText(/Queued · Appraise/)).toBeInTheDocument()
+  expect(within(focus).getByRole('status')).toBeInTheDocument()
+  expect(screen.queryByRole('region', { name: 'Managed hosting ownership' })).not.toBeInTheDocument()
   expect(screen.queryByText(/Prepare a Codex prompt/)).not.toBeInTheDocument()
   expect(screen.queryByRole('button', { name: /Codex/ })).not.toBeInTheDocument()
+})
+
+it('shows legacy migration ownership without desktop controls and retains history', async () => {
+  mocks.getJourney.mockResolvedValue(
+    journey({ hostingMode: 'EXTERNAL_LEGACY', stage: 'ANALYSIS', unresolvedQuestionIds: [] }),
+  )
+  mocks.getAnalysis.mockResolvedValue({ revisions: [] })
+  render(await QualityJourneyDetailPage({ params: Promise.resolve({ journeyId: 'journey-1' }) }))
+  expect(screen.getByText(/Ready to continue this journey in Appraise/)).toBeInTheDocument()
+  expect(screen.getByRole('region', { name: 'Managed hosting ownership' })).toHaveTextContent(
+    'Ownership controls for journey-1 in project-1',
+  )
+  await userEvent.click(screen.getByText('History'))
+  expect(screen.getByRole('link', { name: 'Browse files and evidence' })).toBeVisible()
+  expect(screen.queryByRole('button', { name: /Codex|prompt|takeover/i })).not.toBeInTheDocument()
 })

@@ -39,6 +39,20 @@ export type QualityJourneyStatusSnapshot = {
   runtimeStatus: JourneyRuntimeStatus | null
   observedAt: string
   closed: boolean
+  activity?: {
+    id: string
+    workItemId: string
+    role: string
+    status: string
+    dispatchAdapterId: string
+    startedAt: string
+    completedAt: string | null
+    leaseExpiresAt: string
+    criteriaSubmissionInterrupted?: boolean
+    needsRecovery: boolean
+    running: boolean
+    phase?: { kind: string; at: string; path?: string }
+  } | null
   lifecycle: {
     stage: string
     status: string
@@ -50,6 +64,7 @@ export type QualityJourneyStatusSnapshot = {
   }
   attention: {
     unresolvedQuestionCount: number
+    awaitingExecutionConsent?: boolean
     activeBlockers: Array<{
       id: string
       reasonCode: string
@@ -67,6 +82,8 @@ function statusSelection(targetProjectId: string) {
     targetProjectId: true,
     hostingMode: true,
     currentCoordinatorSessionId: true,
+    currentCoordinatorSession: { select: { generation: true } },
+    activeWorkItemIdsJson: true,
     providerRuns: {
       where: {
         targetProjectId,
@@ -115,9 +132,6 @@ function statusSelection(targetProjectId: string) {
     workItems: {
       where: {
         targetProjectId,
-        status: {
-          notIn: ['COMPLETED', 'CANCELLED', 'SUPERSEDED'],
-        },
       },
       orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
       select: {
@@ -131,9 +145,17 @@ function statusSelection(targetProjectId: string) {
           orderBy: { attempt: 'desc' },
           take: 1,
           select: {
+            id: true,
             attempt: true,
             status: true,
+            startedAt: true,
+            completedAt: true,
             leaseExpiresAt: true,
+            dispatchAdapterId: true,
+            dispatchReservedAt: true,
+            dispatchStartedAt: true,
+            failureJson: true,
+            sessionBinding: { select: { sessionId: true, coordinatorGeneration: true } },
             providerRun: { select: { status: true } },
           },
         },
@@ -191,10 +213,88 @@ function providerActivity(journey: RuntimeObservation, now: Date): JourneyRuntim
 }
 
 function attemptNeedsRecovery(attempt: WorkObservation['attempts'][number], now: Date) {
+  const local = localAttemptActivity(attempt, now)
   return (
+    local === 'RECOVERY' ||
     attempt.status === 'DISPATCH_UNRESOLVED' ||
     (['CLAIMED', 'WORKER_REQUESTED', 'IN_PROGRESS'].includes(attempt.status) && attempt.leaseExpiresAt <= now)
   )
+}
+
+function localAttemptActivity(attempt: WorkObservation['attempts'][number], now: Date): JourneyRuntimeStatus | null {
+  if (!attempt.dispatchAdapterId?.startsWith('APP_SERVER_LOCAL_V1_')) return null
+  const failure = attempt.failureJson ? object(json(attempt.failureJson)) : null
+  if (
+    failure?.canonicalRecoveryOutcome === 'ACCEPTED' &&
+    attempt.status === 'COMPLETED' &&
+    !attempt.dispatchStartedAt &&
+    !attempt.dispatchReservedAt
+  )
+    return null
+  // The initial marker records consumption before I/O; it is not evidence that the provider failed.
+  if (failure?.stage || attempt.status === 'DISPATCH_UNRESOLVED') return 'RECOVERY'
+  if (['COMPLETED', 'CANCELLED', 'SUPERSEDED'].includes(attempt.status)) return null
+  if (attempt.dispatchStartedAt || attempt.dispatchReservedAt)
+    return attempt.leaseExpiresAt > now ? 'RUNNING' : 'RECOVERY'
+  return null
+}
+
+function currentManagedActivity(journey: RuntimeObservation, now: Date): QualityJourneyStatusSnapshot['activity'] {
+  const activeIds = stringArray(journey.activeWorkItemIdsJson)
+  const current = journey.workItems
+    .flatMap(item =>
+      item.cycleId !== journey.activeCycleId || !activeIds.includes(item.id)
+        ? []
+        : item.attempts
+            .filter(
+              attempt =>
+                attempt.attempt === item.currentAttempt &&
+                attempt.dispatchAdapterId?.startsWith('APP_SERVER_LOCAL_V1_') &&
+                attempt.sessionBinding?.sessionId === journey.currentCoordinatorSessionId &&
+                attempt.sessionBinding?.coordinatorGeneration === journey.currentCoordinatorSession?.generation,
+            )
+            .map(attempt => ({ item, attempt })),
+    )
+    .sort(
+      (a, b) =>
+        (b.attempt.dispatchStartedAt ?? b.attempt.dispatchReservedAt ?? b.attempt.startedAt).getTime() -
+        (a.attempt.dispatchStartedAt ?? a.attempt.dispatchReservedAt ?? a.attempt.startedAt).getTime(),
+    )[0]
+  if (!current) return null
+  const { item, attempt } = current
+  const activity = localAttemptActivity(attempt, now)
+  const phase =
+    attempt.failureJson && item.role === 'REQUIREMENT_ANALYZER'
+      ? object(object(json(attempt.failureJson))?.activity)
+      : null
+  const confirmedPhase =
+    phase &&
+    typeof phase.at === 'string' &&
+    Number.isFinite(Date.parse(phase.at)) &&
+    (phase.kind === 'WRITING' || phase.kind === 'INSPECTING')
+      ? {
+          kind: phase.kind,
+          at: phase.at,
+          path: typeof phase.path === 'string' && /^\/[a-zA-Z0-9/_-]{0,100}$/.test(phase.path) ? phase.path : undefined,
+        }
+      : undefined
+  return {
+    phase: confirmedPhase,
+    criteriaSubmissionInterrupted:
+      item.role === 'REQUIREMENT_ANALYZER' &&
+      activity === 'RECOVERY' &&
+      Boolean(attempt.failureJson && object(json(attempt.failureJson))?.stage === 'CANONICAL_SUBMISSION'),
+    id: attempt.id,
+    workItemId: item.id,
+    role: item.role,
+    status: attempt.status,
+    dispatchAdapterId: attempt.dispatchAdapterId!,
+    startedAt: (attempt.dispatchStartedAt ?? attempt.dispatchReservedAt ?? attempt.startedAt).toISOString(),
+    completedAt: attempt.completedAt?.toISOString() ?? null,
+    leaseExpiresAt: attempt.leaseExpiresAt.toISOString(),
+    needsRecovery: activity === 'RECOVERY',
+    running: activity === 'RUNNING',
+  }
 }
 
 function hasOpenHumanGate(journey: RuntimeObservation, questionCount: number, work: WorkObservation[]) {
@@ -253,13 +353,26 @@ function projectRuntimeStatus(
   if (journey.hostingMode === 'EXTERNAL_LEGACY') return null
   if (journey.hostingMode !== 'APP_SERVER_LOCAL_V1' || journey.status !== 'ACTIVE') return 'RECOVERY'
 
-  const work = journey.workItems.filter(item => item.cycleId === journey.activeCycleId)
+  const activeIds = stringArray(journey.activeWorkItemIdsJson)
+  const work = journey.workItems.filter(item => {
+    if (item.cycleId !== journey.activeCycleId) return false
+    // A retired assignment's failure remains evidence. Once all local effects are
+    // reconciled it should no longer label its successor as stalled.
+    const retired = item.status === 'SUPERSEDED' && !activeIds.includes(item.id)
+    return (
+      !retired ||
+      item.attempts.some(
+        attempt => attempt.dispatchStartedAt || attempt.dispatchReservedAt || attempt.status === 'DISPATCH_UNRESOLVED',
+      )
+    )
+  })
   const attempts = work.flatMap(item => item.attempts.filter(attempt => attempt.attempt === item.currentAttempt))
   const activity = providerActivity(journey, now)
   if (activity === 'RECOVERY' || attempts.some(attempt => attemptNeedsRecovery(attempt, now))) return 'RECOVERY'
   return (
     lifecycleRuntimeStatus(journey, unresolvedQuestionCount, work) ??
     activity ??
+    (attempts.some(attempt => localAttemptActivity(attempt, now) === 'RUNNING') ? 'RUNNING' : null) ??
     pendingRuntimeWork(work, attempts, Boolean(journey.currentCoordinatorSessionId))
   )
 }
@@ -289,6 +402,7 @@ export async function getQualityJourneyStatusSnapshot(input: {
     runtimeStatus: closed ? null : projectRuntimeStatus(journey, unresolvedQuestionCount, now),
     observedAt: now.toISOString(),
     closed,
+    activity: journey.hostingMode === 'APP_SERVER_LOCAL_V1' ? currentManagedActivity(journey, now) : null,
     lifecycle: {
       stage: journey.stage,
       status: journey.status,
@@ -300,24 +414,18 @@ export async function getQualityJourneyStatusSnapshot(input: {
     },
     attention: {
       unresolvedQuestionCount,
+      awaitingExecutionConsent: Boolean(journey.executionConsents?.length),
       activeBlockers: journey.blockers,
-      activeWork: journey.workItems.map(({ id, role, status, updatedAt }) => ({
-        id,
-        role,
-        status,
-        updatedAt: updatedAt.toISOString(),
-      })),
+      activeWork: journey.workItems
+        .filter(item => !['COMPLETED', 'CANCELLED', 'SUPERSEDED'].includes(item.status))
+        .map(({ id, role, status, updatedAt }) => ({
+          id,
+          role,
+          status,
+          updatedAt: updatedAt.toISOString(),
+        })),
     },
   }
-}
-
-function summarizeExternalHandoff(
-  hostingMode: string,
-  handoff?: { status: string; launchedAt: Date | null; connectedAt: Date | null; expiresAt: Date },
-) {
-  if (hostingMode !== 'EXTERNAL_LEGACY' || !handoff) return null
-  const expired = handoff.status === 'PREPARED' && handoff.expiresAt.getTime() <= Date.now()
-  return { ...handoff, status: expired ? 'EXPIRED' : handoff.status }
 }
 
 /** Read-only, project-scoped summaries for the Journey overview list. The
@@ -335,11 +443,6 @@ export async function listQualityJourneys(input: { targetProjectId: string }) {
         select: { responsibleActor: true },
       },
       executionConsents: { where: { status: 'REQUESTED' }, select: { id: true } },
-      coordinatorHandoffs: {
-        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-        take: 1,
-        select: { status: true, launchedAt: true, connectedAt: true, expiresAt: true },
-      },
     },
   })
 
@@ -365,6 +468,5 @@ export async function listQualityJourneys(input: { targetProjectId: string }) {
     activeBlockerCount: journey.blockers.length,
     blockerResponsibleActor: journey.blockers[0]?.responsibleActor ?? null,
     requestedExecutionConsentCount: journey.executionConsents?.length ?? 0,
-    handoff: summarizeExternalHandoff(journey.hostingMode, journey.coordinatorHandoffs[0]),
   }))
 }

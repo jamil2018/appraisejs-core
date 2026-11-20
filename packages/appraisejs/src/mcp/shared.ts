@@ -71,7 +71,7 @@ export function mcpContractHash(definitions: unknown): string {
 
 export const mcpCapabilityMetadata = {
   packageVersion: packageJson.version ?? '0.0.0',
-  mcpSurfaceVersion: '2026-09-06.quality-journey-authority',
+  mcpSurfaceVersion: '2026-11-19.managed-journey-cutover',
   mcpContractHash: mcpContractHash(mcpContractFixture.default),
   serverStartedAt,
   workflowCriticalTools: [...workflowTools],

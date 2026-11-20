@@ -23,6 +23,12 @@ import {
 } from '@/lib/quality-journey'
 import { readVisibleResourceOwnerships } from '@/services/project-resource/project-resource-ownership-service'
 import { ServiceError } from '@/services/shared/errors'
+import { readDiscoveryResourceLabels } from './quality-journey-discovery-resource-labels'
+import {
+  assertDiscoveryPrerequisites,
+  discoveryPrerequisites,
+  readDiscoveryRegistries,
+} from './quality-journey-discovery-prerequisites'
 import {
   builtInStepDefinitions,
   canonicalStepDefinitionJson,
@@ -157,20 +163,17 @@ function canonicalArtifacts(
 }
 
 async function compileFrozenScope(targetProjectId: string, db: Db): Promise<FrozenScope> {
-  const [environments, allGroups, allLocators, modules, steps, ownerships] = await Promise.all([
-    db.environment.findMany({
-      where: { targetProjectId },
-      select: { id: true, baseUrl: true, scopeVersion: true, discoveryAuthTransitPolicyJson: true },
-    }),
-    db.locatorGroup.findMany({ where: { targetProjectId }, select: { id: true, route: true, moduleId: true } }),
+  const [registries, allLocators, steps, ownerships] = await Promise.all([
+    readDiscoveryRegistries(targetProjectId, db),
     db.locator.findMany({ select: { id: true, value: true, updatedAt: true, targetProjectId: true } }),
-    db.module.findMany({ where: { targetProjectId }, select: { id: true, name: true, updatedAt: true } }),
     db.stepDefinition.findMany({
       where: { status: 'ready' },
       select: { id: true, version: true, definitionHash: true, provenanceJson: true },
     }),
     readVisibleResourceOwnerships(targetProjectId, ['locator-group', 'locator', 'step-definition'], db),
   ])
+  assertDiscoveryPrerequisites(discoveryPrerequisites(registries))
+  const { environments, modules, locatorGroups: allGroups } = registries
   const visible = (entityType: string, entityId: string, ownTarget = targetProjectId) =>
     ownerships === null || ownTarget === targetProjectId || ownerships.has(`${entityType}:${entityId}`)
   const sourceTarget = (entityType: string, entityId: string, fallback: string | null) =>
@@ -538,7 +541,7 @@ async function registryStillCurrent(revision: Awaited<ReturnType<typeof getDisco
 
 /**
  * Internal workers see a single current assignment. Scout waits before claim
- * until the human browser has produced admissible evidence for that assignment.
+ * until the scoped Appraise browser has produced admissible evidence for that assignment.
  */
 export async function readInternalDiscoveryAssignment(
   journey: QualityJourney,
@@ -584,12 +587,15 @@ export async function readInternalDiscoveryAssignment(
     inputArtifacts,
     approvedRequirementSetHash: revision.approvedRequirementSetHash,
   }
-  if (!scout)
+  if (!scout) {
+    const scope = JSON.parse(revision.resourceScopeJson) as { resources: FrozenResource[]; operationIds: string[] }
     return {
       ...common,
       role: item.role,
-      scope: JSON.parse(revision.resourceScopeJson) as { resources: FrozenResource[]; operationIds: string[] },
+      scope,
+      resourceLabels: await readDiscoveryResourceLabels(journey.targetProjectId, scope.resources, sourceOwnedBuiltIns, tx),
     }
+  }
 
   const scope = JSON.parse(revision.scoutScopeJson) as { environmentIds: string[]; routes: string[] }
   const evidence = await readInternalScoutEvidence(revision, tx)

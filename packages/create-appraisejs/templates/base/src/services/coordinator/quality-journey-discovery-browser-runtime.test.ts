@@ -108,7 +108,12 @@ function fakeTransport(options: Options = {}) {
     },
     isConnected: () => connected,
   }
-  return { transport, commands, emit }
+  return {
+    transport,
+    commands,
+    emit,
+    setReply: (method: string, handler: CommandHandler) => commandHandlers.set(method, handler),
+  }
 }
 
 async function admitted(options?: Options) {
@@ -1117,5 +1122,55 @@ describe('discovery CDP runtime admission', () => {
       methods.indexOf('Runtime.runIfWaitingForDebugger'),
     )
     expect(methods).not.toContain('Network.setBlockedURLs')
+  })
+})
+
+describe('owned document control-presence capture', () => {
+  const frame = (loaderId: string, url = 'about:blank', id = 'seed-target') => ({
+    frameTree: { frame: { id, url, loaderId } },
+  })
+  const presence = { emailInput: true, passwordInput: true, submitControl: true, heading: false }
+  it('evaluates only its fixed isolated program on the original owned frame and rechecks its document', async () => {
+    const f = await admitted()
+    f.setReply('Page.getFrameTree', () => frame('document-1'))
+    f.setReply('Page.createIsolatedWorld', () => ({ executionContextId: 42 }))
+    f.setReply('Runtime.evaluate', () => ({ result: { value: presence } }))
+    await expect(f.page.captureControlPresence!('about:blank')).resolves.toEqual({
+      documentIdentity: 'seed-target:seed-target:document-1',
+      presence,
+    })
+    const commands = f.commands.filter(
+      command => command.method === 'Page.createIsolatedWorld' || command.method === 'Runtime.evaluate',
+    )
+    expect(commands.every(command => command.sessionId === 'seed-session')).toBe(true)
+    expect(commands[0].params).toEqual({
+      frameId: 'seed-target',
+      worldName: '__appraiseDiscoveryControlPresence',
+      grantUniveralAccess: false,
+    })
+    expect(commands[1].params).toMatchObject({ contextId: 42, returnByValue: true, timeout: 1000, silent: true })
+    await f.browser.close()
+  })
+  it('refuses same-URL document replacement and foreign frame or target URLs before returning evidence', async () => {
+    const f = await admitted()
+    let reads = 0
+    f.setReply('Page.getFrameTree', () => frame(++reads === 1 ? 'document-1' : 'document-2'))
+    f.setReply('Page.createIsolatedWorld', () => ({ executionContextId: 42 }))
+    f.setReply('Runtime.evaluate', () => ({ result: { value: presence } }))
+    await expect(f.page.captureControlPresence!('about:blank')).rejects.toThrow('document changed')
+    f.setReply('Page.getFrameTree', () => frame('document-3', 'https://provider.invalid/login'))
+    await expect(f.page.captureControlPresence!('about:blank')).rejects.toThrow('main document')
+    f.setReply('Page.getFrameTree', () => frame('document-3', 'about:blank', 'foreign-frame'))
+    await expect(f.page.captureControlPresence!('about:blank')).rejects.toThrow('main document')
+    await f.browser.close()
+  })
+  it('rejects malformed extraction and missing execution context without publishing target-controlled data', async () => {
+    const f = await admitted()
+    f.setReply('Page.getFrameTree', () => frame('document-1'))
+    await expect(f.page.captureControlPresence!('about:blank')).rejects.toThrow('isolated world')
+    f.setReply('Page.createIsolatedWorld', () => ({ executionContextId: 42 }))
+    f.setReply('Runtime.evaluate', () => ({ result: { value: { ...presence, targetText: 'private-canary' } } }))
+    await expect(f.page.captureControlPresence!('about:blank')).rejects.toThrow()
+    await f.browser.close()
   })
 })

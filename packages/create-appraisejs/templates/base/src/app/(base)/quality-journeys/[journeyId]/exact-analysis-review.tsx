@@ -1,57 +1,18 @@
 'use client'
 
-import { CheckCircle2, RotateCcw } from 'lucide-react'
-
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
+import { Card, CardContent } from '@/components/ui/card'
 
 import type { AnalysisRevisionView } from './quality-journey-view-model'
 
 type ExactAnalysisReviewProps = {
+  approvalBlockedReason?: string
   analysis: AnalysisRevisionView
   canReview: boolean
   error: string | null
-  feedback: string
   isPending: boolean
   onApprove: () => void
-  onFeedbackChange: (feedback: string) => void
-  onRequestRevision: () => void
   unresolvedQuestionIds: string[]
-}
-
-function ReviewIdentity({ analysis }: Pick<ExactAnalysisReviewProps, 'analysis'>) {
-  return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap gap-2" aria-label="Analysis artifact status" role="status">
-        <Badge variant="outline">Recorded by Appraise</Badge>
-        <Badge variant={analysis.publication ? 'secondary' : 'outline'}>
-          {analysis.publication ? 'Published for review' : 'Not published'}
-        </Badge>
-        <Badge variant={analysis.decision ? 'secondary' : 'outline'}>
-          {analysis.decision ? 'Approved in Appraise' : 'Not approved'}
-        </Badge>
-      </div>
-      <p className="text-sm text-muted-foreground">
-        Recording this immutable artifact does not publish or approve it. Those are separate Appraise-owned facts.
-      </p>
-      <details className="text-muted-foreground">
-        <summary className="cursor-pointer text-sm">Technical details</summary>
-        <div className="mt-2 space-y-2">
-          <p className="break-all font-mono text-[11px]">Version hash: {analysis.contentHash}</p>
-          {analysis.publication ? (
-            <p className="break-all font-mono text-[11px]">Published review hash: {analysis.publication.reviewHash}</p>
-          ) : (
-            <p className="text-sm text-amber-200">
-              This version is still being prepared for review. You cannot decide on it yet.
-            </p>
-          )}
-        </div>
-      </details>
-    </div>
-  )
 }
 
 function RecordedDecision({ decision }: { decision: AnalysisRevisionView['decision'] }) {
@@ -60,47 +21,31 @@ function RecordedDecision({ decision }: { decision: AnalysisRevisionView['decisi
   return (
     <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm">
       <p className="font-medium">{decision.decision.toLocaleLowerCase()} decision recorded</p>
-      <p className="mt-1 break-all font-mono text-[11px] text-muted-foreground">{decision.reviewHash}</p>
     </div>
   )
 }
 
 function ReviewActions({
+  approvalBlockedReason,
   canReview,
-  feedback,
   isPending,
   onApprove,
-  onFeedbackChange,
-  onRequestRevision,
   unresolvedQuestionIds,
 }: Omit<ExactAnalysisReviewProps, 'analysis' | 'error'>) {
   const hasUnresolvedQuestions = unresolvedQuestionIds.length > 0
 
   return (
     <>
-      <div className="space-y-2">
-        <Label htmlFor="analysis-revision-feedback">What should change?</Label>
-        <Textarea
-          id="analysis-revision-feedback"
-          onChange={event => onFeedbackChange(event.target.value)}
-          placeholder="Describe what needs to change in the next immutable analysis revision."
-          value={feedback}
-        />
-      </div>
       <div className="flex flex-wrap gap-2">
-        <Button disabled={isPending || !canReview || hasUnresolvedQuestions} onClick={onApprove} type="button">
-          {isPending ? 'Recording…' : 'Approve this version'}
-        </Button>
         <Button
-          disabled={isPending || !canReview || !feedback.trim()}
-          onClick={onRequestRevision}
+          disabled={isPending || !canReview || hasUnresolvedQuestions || Boolean(approvalBlockedReason)}
+          onClick={onApprove}
           type="button"
-          variant="outline"
         >
-          <RotateCcw aria-hidden="true" className="mr-2 size-4" />
-          Request changes
+          {isPending ? 'Recording…' : 'Approve criteria'}
         </Button>
       </div>
+      {approvalBlockedReason ? <p className="text-sm text-amber-200">{approvalBlockedReason}</p> : null}
       {hasUnresolvedQuestions ? (
         <p className="text-sm text-amber-200">
           Answer {unresolvedQuestionIds.length} required question{unresolvedQuestionIds.length === 1 ? '' : 's'} before
@@ -112,39 +57,24 @@ function ReviewActions({
 }
 
 export function ExactAnalysisReview({
+  approvalBlockedReason,
   analysis,
   canReview,
   error,
-  feedback,
   isPending,
   onApprove,
-  onFeedbackChange,
-  onRequestRevision,
   unresolvedQuestionIds,
 }: ExactAnalysisReviewProps) {
   return (
     <Card className="border-primary/25 bg-primary/[0.04]">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <CheckCircle2 aria-hidden="true" className="size-4 text-primary" />
-          Review the proposed test approach
-        </CardTitle>
-        <CardDescription>
-          Approving allows Appraise to use this exact version for test scenarios. Requesting changes creates a new
-          version; it does not edit your original brief.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <ReviewIdentity analysis={analysis} />
+      <CardContent className="space-y-4 pt-6">
         {analysis.decision ? <RecordedDecision decision={analysis.decision} /> : null}
         {analysis.decision ? null : (
           <ReviewActions
+            approvalBlockedReason={approvalBlockedReason}
             canReview={canReview}
-            feedback={feedback}
             isPending={isPending}
             onApprove={onApprove}
-            onFeedbackChange={onFeedbackChange}
-            onRequestRevision={onRequestRevision}
             unresolvedQuestionIds={unresolvedQuestionIds}
           />
         )}

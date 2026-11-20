@@ -5,7 +5,7 @@ import { expect, test } from '@playwright/test'
 import prisma from '../src/config/db-config'
 import { createTargetProjectFixture } from '../src/test/migrated-test-database'
 import { hashQualityJourneyExecutionValue as hash } from '../src/lib/quality-journey'
-import { createQualityJourney } from '../src/services/coordinator/quality-journey-service'
+import { createAppManagedJourney } from '../src/services/coordinator/quality-journey-service'
 
 const digest = (character: string) => `sha256:${character.repeat(64)}`
 
@@ -28,7 +28,7 @@ async function seedTriageReport() {
   await prisma.environment.create({
     data: { id: environmentId, targetProjectId, name: 'triage local', baseUrl: 'https://example.test' },
   })
-  const created = await createQualityJourney({
+  const created = await createAppManagedJourney({
     targetProjectId,
     idempotencyKey: `create-${targetProjectId}`,
     requirement: { objective: 'Render an immutable triage report.' },
@@ -187,6 +187,7 @@ test('Journey triage renders persisted report lineage and full-report revision c
   await page.getByText('Technical details and sealed evidence', { exact: true }).click()
   await expect(page.getByText('sealed receipt')).toBeVisible()
   await expect(page.getByText('The immutable evidence identifies an automation checkout defect.')).toBeVisible()
+  await page.getByText('View evidence', { exact: true }).click()
   await expect(
     page.getByLabel('Triage report history').getByText('VALIDATION_REALIZATION_DEFECT', { exact: true }),
   ).toBeVisible()
@@ -213,10 +214,11 @@ test('Journey terminal review preserves artifact navigation and blocks acceptanc
   page.on('pageerror', error => errors.push(error.message))
   await page.goto(`/quality-journeys/${journeyId}?project=${targetProjectId}`)
   const terminal = page.getByLabel('Terminal journey review')
-  await expect(terminal.getByText('Terminal report review', { exact: true })).toBeVisible()
+  await expect(terminal.getByText('Close journey', { exact: true })).toBeVisible()
   await expect(terminal.getByRole('button', { name: 'Accept risks and close journey' })).toBeDisabled()
   await expect(terminal.getByLabel('Known failures and limitations')).toContainText('fresh execution cycle')
-  await page.getByRole('link', { name: 'Artifact library and export' }).click()
+  await page.getByText('History', { exact: true }).click()
+  await page.getByRole('link', { name: 'Browse files and evidence' }).click()
   await expect(page.getByText('Artifact library', { exact: true })).toBeVisible()
   const response = await page.request.get(`/quality-journeys/${journeyId}/artifacts/export?project=${targetProjectId}`)
   expect(response.ok()).toBe(true)
@@ -227,7 +229,7 @@ test('Journey terminal review preserves artifact navigation and blocks acceptanc
   expect(errors).toEqual([])
 })
 
-test('Journey progress, responsive navigation, and cross-artifact search share durable state @smoke', async ({
+test('Journey responsive focus, keyboard History, and artifact search share durable state @smoke', async ({
   page,
   context,
   baseURL,
@@ -243,13 +245,25 @@ test('Journey progress, responsive navigation, and cross-artifact search share d
     if (reason !== 'net::ERR_ABORTED') failures.push(`${reason}: ${request.url()}`)
   })
   await page.goto(`/quality-journeys/${journeyId}?project=${targetProjectId}`)
-  await expect(page.getByText('Journey progress', { exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Check for updates' })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Current journey focus' })).toBeVisible()
+  await expect(page.getByText('History', { exact: true })).toBeVisible()
   for (const width of [320, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   }
-  await page.getByRole('link', { name: 'Artifact library and export' }).click()
+  await page.getByText('History', { exact: true }).focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('heading', { name: 'Original brief' })).toBeVisible()
+  const evidenceLink = page.getByRole('link', { name: 'Browse files and evidence' })
+  for (
+    let index = 0;
+    index < 12 && !(await evidenceLink.evaluate(element => element === document.activeElement));
+    index++
+  ) {
+    await page.keyboard.press('Tab')
+  }
+  await expect(evidenceLink).toBeFocused()
+  await page.keyboard.press('Enter')
   await page.getByRole('searchbox', { name: 'Search artifacts' }).fill('TRIAGE_FINDING')
   await page.getByRole('button', { name: 'Search', exact: true }).click()
   await expect(page).toHaveURL(/query=TRIAGE_FINDING/)

@@ -1,3 +1,5 @@
+import { readAppManagedAnalysisCorrectionIssuanceInTransaction } from './app-managed-analysis-correction'
+import { parseAnalysisCriteriaFeedback } from '@/lib/quality-journey/analysis-feedback'
 import {
   assertExternalAnalysisGeneration,
   assertCurrentExternalAnalysisAuthorization,
@@ -247,7 +249,34 @@ export async function getQualityJourneyAnalysis(
       decision: { include: { artifact: true } },
     },
   })
-  return { revisions }
+  const feedbacks = await client.qualityJourneyArtifact.findMany({
+    where: {
+      journeyId: input.journeyId,
+      targetProjectId: input.targetProjectId,
+      kind: 'ANALYSIS_REVISION_FEEDBACK',
+    },
+  })
+  return {
+    revisions: revisions.map(revision => {
+      const matching = feedbacks.filter(artifact => artifact.revisionId === revision.artifactRevisionId)
+      if (matching.length !== 1) return revision
+      const artifact = matching[0]!
+      try {
+        const payload = JSON.parse(artifact.artifactJson)
+        if (
+          hash(payload) !== artifact.contentHash ||
+          payload.reviewedHash !== revision.contentHash ||
+          payload.reviewedRevisionId !== revision.artifactRevisionId ||
+          typeof payload.feedback !== 'string'
+        )
+          return revision
+        const charter = analysisCharterSchema.parse(JSON.parse(revision.artifact.artifactJson))
+        return { ...revision, criteriaFeedback: parseAnalysisCriteriaFeedback(charter, payload.feedback) }
+      } catch {
+        return revision
+      }
+    }),
+  }
 }
 
 type AnalysisSubmission = ReturnType<typeof analysisSubmissionSchema.parse>
@@ -409,7 +438,10 @@ async function validatedAnalysisSubmissionContext(
   return { journey, item, attempt }
 }
 
-type ManagedAnalysisIssuance = Awaited<ReturnType<typeof readQualityJourneyAnalysisFollowupIssuanceInTransaction>>
+type ManagedAnalysisIssuance = Pick<
+  Awaited<ReturnType<typeof readQualityJourneyAnalysisFollowupIssuanceInTransaction>>,
+  'descriptor' | 'causeHash' | 'inputHash' | 'inputArtifacts'
+>
 function assertManagedAnalysisAssignmentBindings(
   issued: ManagedAnalysisIssuance,
   item: QualityJourneyWorkItem,
@@ -457,21 +489,61 @@ async function validatedManagedAnalysisFollowupContext(
   const accepted = await tx.qualityJourneyAnalysisRevision.count({
     where: { journeyId: journey.id, cycleId: journey.activeCycleId },
   })
-  if (!accepted) return null
-  assertManagedAnalysisFollowupAssignment(journey, item, attempt)
-  const issued = await readQualityJourneyAnalysisFollowupIssuanceInTransaction(
-    {
-      journeyId: journey.id,
-      targetProjectId: journey.targetProjectId,
-      workItemId: item.id,
-      authorizationId: attempt.authorizationId,
-    },
+  const correction = await readAppManagedAnalysisCorrectionIssuanceInTransaction(
+    { journeyId: journey.id, targetProjectId: journey.targetProjectId, workItemId: item.id },
     tx,
   )
+  if (!accepted && !correction) return null
+  assertManagedAnalysisFollowupAssignment(journey, item, attempt)
+  if (correction && !accepted) {
+    const authorization = await tx.qualityJourneyWorkAuthorization.findUniqueOrThrow({
+      where: { id: attempt.authorizationId },
+    })
+    const manifest = JSON.parse(attempt.assignmentJson)
+    const authorized = JSON.parse(authorization.authorizationJson)
+    const requirement = (
+      JSON.parse(correction.inputArtifactRefsJson) as Array<{ kind: string; artifactId: string; revisionId?: string }>
+    ).filter(ref => ref.kind === 'JOURNEY_REVISION')
+    if (
+      authorization.id !== correction.authorizationId ||
+      item.inputHash !== correction.inputHash ||
+      manifest.inputHash !== correction.inputHash ||
+      hashCanonical(manifest) !== attempt.assignmentHash ||
+      hashCanonical(authorized) !== authorization.authorizationHash ||
+      canonicalContractJson(manifest.inputArtifacts) !== correction.inputArtifactRefsJson ||
+      canonicalContractJson(authorized.inputArtifacts) !== correction.inputArtifactRefsJson ||
+      requirement.length !== 1 ||
+      charter.requirementRevisionId !== requirement[0]!.revisionId ||
+      submission.predecessorAnalysisRevisionId
+    )
+      throw new ServiceError('Initial Analysis correction does not bind its exact canonical grant.', 'CONFLICT')
+    return correction
+  }
   const snapshot = await readQualityJourneyAnalysisFollowupInTransaction(
     { journeyId: journey.id, targetProjectId: journey.targetProjectId },
     tx,
   )
+  let issued: ManagedAnalysisIssuance
+  if (correction) {
+    if (
+      !snapshot?.ready ||
+      snapshot.inputHash !== correction.inputHash ||
+      canonicalContractJson(snapshot.inputArtifacts) !== correction.inputArtifactRefsJson ||
+      attempt.authorizationId !== correction.authorizationId
+    )
+      throw new ServiceError('Corrected Analysis input differs from its exact issued snapshot.', 'CONFLICT')
+    issued = snapshot
+  } else {
+    issued = await readQualityJourneyAnalysisFollowupIssuanceInTransaction(
+      {
+        journeyId: journey.id,
+        targetProjectId: journey.targetProjectId,
+        workItemId: item.id,
+        authorizationId: attempt.authorizationId,
+      },
+      tx,
+    )
+  }
   const authorization = await tx.qualityJourneyWorkAuthorization.findUniqueOrThrow({
     where: { id: attempt.authorizationId },
   })
@@ -709,11 +781,15 @@ async function reconcileSubmittedAnalysisReview(
     .map(question => question.questionId)
   // Only the finite review projection and ANALYSIS_SUBMITTED event follow
   // terminal completion. This helper never issues follow-up work.
-  await beforeWrite(tx, { journeyId: journey.id, targetProjectId: journey.targetProjectId }, terminal && {
-    kind: 'ROLE_OUTPUT_FINALIZATION',
-    terminalAttemptId: terminal.attemptId,
-    terminalResultHash: terminal.resultHash,
-  })
+  await beforeWrite(
+    tx,
+    { journeyId: journey.id, targetProjectId: journey.targetProjectId },
+    terminal && {
+      kind: 'ROLE_OUTPUT_FINALIZATION',
+      terminalAttemptId: terminal.attemptId,
+      terminalResultHash: terminal.resultHash,
+    },
+  )
   await setAnalysisReviewProjection(
     journey,
     { unresolvedQuestionIds, reviewHash: await currentAnalysisReviewHash(revisionId, tx) },
@@ -792,10 +868,21 @@ export async function submitQualityJourneyAnalysisSuccessor(
   const submissionHash = hash({ ...submission, ownerToken: undefined })
   return client.$transaction(async tx => {
     await assertCoordinatorMutationSession(coordinatorSession, submission, tx)
-    return withJourneyBusinessWriteJoinInTransaction(tx, submission, coordinatorSession, (beforeWrite, queueAttemptTerminal) =>
-      submitQualityJourneyAnalysisSuccessorInTransaction(
-        submission, charter, submissionHash, tx, beforeWrite, queueAttemptTerminal, coordinatorSession,
-      ))
+    return withJourneyBusinessWriteJoinInTransaction(
+      tx,
+      submission,
+      coordinatorSession,
+      (beforeWrite, queueAttemptTerminal) =>
+        submitQualityJourneyAnalysisSuccessorInTransaction(
+          submission,
+          charter,
+          submissionHash,
+          tx,
+          beforeWrite,
+          queueAttemptTerminal,
+          coordinatorSession,
+        ),
+    )
   })
 }
 
@@ -868,21 +955,25 @@ export async function submitExternalQualityJourneyAnalysisSuccessor(
   }
   const submissionHash = hash({ ...submission, ownerToken: undefined })
   return client.$transaction(async tx => {
-    const accepted = await acceptExternalQualityJourneySubmissionInTransaction(acceptance, tx, async (beforeWrite, queueAttemptTerminal) => {
-      await assertCoordinatorMutationSession(coordinatorSession, submission, tx)
-      await authenticateExternalAnalysisReplay(submission, tx)
-      const replay = await replayedAnalysisSubmission(submission, submissionHash, tx)
-      if (replay) return replay
-      return submitQualityJourneyAnalysisSuccessorInTransaction(
-        submission,
-        parsed.charter,
-        submissionHash,
-        tx,
-        beforeWrite,
-        queueAttemptTerminal,
-        coordinatorSession,
-      )
-    })
+    const accepted = await acceptExternalQualityJourneySubmissionInTransaction(
+      acceptance,
+      tx,
+      async (beforeWrite, queueAttemptTerminal) => {
+        await assertCoordinatorMutationSession(coordinatorSession, submission, tx)
+        await authenticateExternalAnalysisReplay(submission, tx)
+        const replay = await replayedAnalysisSubmission(submission, submissionHash, tx)
+        if (replay) return replay
+        return submitQualityJourneyAnalysisSuccessorInTransaction(
+          submission,
+          parsed.charter,
+          submissionHash,
+          tx,
+          beforeWrite,
+          queueAttemptTerminal,
+          coordinatorSession,
+        )
+      },
+    )
     return { ...accepted.outcome, replayed: accepted.replayed || accepted.outcome.replayed }
   })
 }
@@ -934,6 +1025,9 @@ async function assertAnswerTargetsUnreplacedCandidate(
       journeyId: journey.id,
       cycleId: journey.activeCycleId,
       role: 'REQUIREMENT_ANALYZER',
+      ...(journey.hostingMode === 'APP_SERVER_LOCAL_V1'
+        ? { id: { in: JSON.parse(journey.activeWorkItemIdsJson) as string[] } }
+        : {}),
       status: { not: 'COMPLETED' },
     },
     select: { id: true },
@@ -1068,7 +1162,9 @@ async function answerQualityJourneyAnalysisQuestionInTransaction(
     tx,
   )
   await ensureQualityJourneyAnalysisFollowupWithBusinessJoinInTransaction(
-    { journeyId: journey.id, targetProjectId: journey.targetProjectId }, tx, beforeWrite,
+    { journeyId: journey.id, targetProjectId: journey.targetProjectId },
+    tx,
+    beforeWrite,
   )
   return { replayed: false, answer: persisted }
 }
@@ -1085,7 +1181,8 @@ export async function answerQualityJourneyAnalysisQuestion(
   return client.$transaction(async tx => {
     await assertCoordinatorMutationSession(coordinatorSession, request.answer, tx)
     return withJourneyBusinessWriteJoinInTransaction(tx, request.answer, coordinatorSession, beforeWrite =>
-      answerQualityJourneyAnalysisQuestionInTransaction(request, requestHash, tx, beforeWrite))
+      answerQualityJourneyAnalysisQuestionInTransaction(request, requestHash, tx, beforeWrite),
+    )
   })
 }
 
@@ -1119,7 +1216,12 @@ async function replayedAnalysisPublication(
   })
   if (!existingCommand) return null
   const replay = await submitDurableQualityJourneyCommandWithBusinessJoinInTransaction(
-    command, tx, beforeWrite, true, true, coordinatorSession,
+    command,
+    tx,
+    beforeWrite,
+    true,
+    true,
+    coordinatorSession,
   )
   if (replay.outcome !== 'COMMITTED' || !replay.replayed) return replay
   const publication = await tx.qualityJourneyAnalysisPublication.findUnique({ where: { commandId: command.commandId } })
@@ -1205,7 +1307,12 @@ async function publishQualityJourneyAnalysisInTransaction(
   if (journey.analysisReviewHash !== reviewHash)
     throw new ServiceError('Analysis review identity is stale; refresh the current charter and Q&A.', 'CONFLICT')
   const result = await submitDurableQualityJourneyCommandWithBusinessJoinInTransaction(
-    command, tx, beforeWrite, true, true, coordinatorSession,
+    command,
+    tx,
+    beforeWrite,
+    true,
+    true,
+    coordinatorSession,
   )
   if (result.outcome !== 'COMMITTED') return result
   await beforeWrite(tx, command)
@@ -1224,7 +1331,8 @@ export async function publishQualityJourneyAnalysis(
   return client.$transaction(async tx => {
     await assertCoordinatorMutationSession(coordinatorSession, command, tx)
     return withJourneyBusinessWriteJoinInTransaction(tx, command, coordinatorSession, beforeWrite =>
-      publishQualityJourneyAnalysisInTransaction(command, tx, beforeWrite, coordinatorSession))
+      publishQualityJourneyAnalysisInTransaction(command, tx, beforeWrite, coordinatorSession),
+    )
   })
 }
 
@@ -1352,7 +1460,12 @@ async function decideQualityJourneyAnalysisInTransaction(
   // The generic command joins before its first write. An absent sidecar is a
   // protected repair even when the command itself is an exact durable replay.
   const result = await submitDurableQualityJourneyCommandWithBusinessJoinInTransaction(
-    command, tx, beforeWrite, true, true, coordinatorSession,
+    command,
+    tx,
+    beforeWrite,
+    true,
+    true,
+    coordinatorSession,
   )
   if (result.outcome === 'COMMITTED') {
     if (!priorDecision || !priorArtifact || !priorDiscovery) await beforeWrite(tx, command)
@@ -1377,7 +1490,8 @@ export async function decideQualityJourneyAnalysis(
   return client.$transaction(async tx => {
     await assertCoordinatorMutationSession(coordinatorSession, command, tx)
     return withJourneyBusinessWriteJoinInTransaction(tx, command, coordinatorSession, beforeWrite =>
-      decideQualityJourneyAnalysisInTransaction(command, tx, beforeWrite, coordinatorSession))
+      decideQualityJourneyAnalysisInTransaction(command, tx, beforeWrite, coordinatorSession),
+    )
   })
 }
 
@@ -1404,7 +1518,10 @@ export async function requestQualityJourneyAnalysisRevision(
         where: { journeyId: journey.id, artifactRevisionId: command.payload.reviewedRevisionId },
       })
       if (!revision || revision.contentHash !== command.payload.reviewedHash)
-        throw new ServiceError('Analysis revision request does not bind an exact immutable charter revision.', 'CONFLICT')
+        throw new ServiceError(
+          'Analysis revision request does not bind an exact immutable charter revision.',
+          'CONFLICT',
+        )
       assertExactCommandArtifact(command, revision)
       const activeIds = JSON.parse(journey.activeRevisionIdsJson) as Record<string, string>
       if (activeIds.analysis !== revision.artifactRevisionId)
@@ -1421,7 +1538,12 @@ export async function requestQualityJourneyAnalysisRevision(
           'CONFLICT',
         )
       return submitDurableQualityJourneyCommandWithBusinessJoinInTransaction(
-        command, tx, beforeWrite, true, true, coordinatorSession,
+        command,
+        tx,
+        beforeWrite,
+        true,
+        true,
+        coordinatorSession,
       )
     })
   })

@@ -17,6 +17,7 @@ import {
   activateQualityJourneyCoordinatorSession as activate,
   registerQualityJourneyCoordinatorSession as register,
   transferQualityJourneyCoordinatorSession as transfer,
+  readLegacyQualityJourneyMigrationSnapshot as reviewMigration,
   type TransferQualityJourneyCoordinatorSessionInput,
 } from './quality-journey-session-service'
 import {
@@ -210,6 +211,102 @@ async function appendCleanupFixture(scope: Scope, client: PrismaClient, rewrite:
 }
 
 describe('M12 explicit hosting mode transfer', () => {
+  it('reviews and migrates a reconciled mapped legacy owner in place for the local UI principal', async () => {
+    const f = await fixture()
+    await pauseCurrent(f.scope, f.client)
+    const outward = await transferInput(f.scope, f.client, 'EXTERNAL_LEGACY', 'mapped-outward')
+    await transfer(outward, f.client)
+    await f.client.qualityJourneyCoordinatorHandoff.create({
+      data: {
+        id: 'mapped-desktop',
+        ...f.scope,
+        providerId: 'codex',
+        generation: 2,
+        status: 'CONNECTED',
+        ticketHash: hash('mapped-ticket'),
+        promptHash: hash('mapped-prompt'),
+        expiresAt: new Date(Date.now() + 60_000),
+        connectedAt: new Date(),
+        takeoverAt: new Date(),
+      },
+    })
+    await f.client.qualityJourneyCoordinatorSession.update({
+      where: { id: outward.successorSessionId },
+      data: { legacyHandoffId: 'mapped-desktop' },
+    })
+    const localPrincipal = `appraise-local:${f.scope.targetProjectId}`
+    const before = await ownership(f.scope, f.client)
+    const snapshot = await reviewMigration({ ...f.scope, coordinatorPrincipalId: localPrincipal }, f.client)
+    expect(snapshot).toMatchObject({
+      mode: 'TRANSFER',
+      blocker: null,
+      predecessorSessionId: outward.successorSessionId,
+      predecessorGeneration: 2,
+    })
+    expect(await ownership(f.scope, f.client)).toEqual(before)
+    const successor = await register(
+      {
+        ...f.scope,
+        ownerPrincipalId: localPrincipal,
+        hostKind: 'APP_SERVER_LOCAL_V1',
+        idempotencyKey: 'mapped-inward',
+      },
+      f.client,
+    )
+    await expect(
+      transfer(
+        {
+          ...f.scope,
+          authority: trustedHumanCoordinatorSession,
+          approvedBy: 'local-ui',
+          coordinatorPrincipalId: localPrincipal,
+          successorSessionId: successor.session.id,
+          predecessorSessionId: snapshot.predecessorSessionId!,
+          predecessorGeneration: snapshot.predecessorGeneration!,
+          expectedOwnershipVersion: snapshot.expectedOwnershipVersion,
+          expectedStateHash: snapshot.expectedStateHash,
+          reconciliationReceiptId: snapshot.reconciliationReceiptId!,
+          targetHostingMode: 'APP_SERVER_LOCAL_V1',
+          requestId: 'mapped-inward',
+        },
+        f.client,
+      ),
+    ).resolves.toMatchObject({ coordinatorGeneration: 3, current: true })
+    const after = await ownership(f.scope, f.client)
+    expect(after.journey).toMatchObject({
+      id: before.journey.id,
+      status: 'PAUSED',
+      hostingMode: 'APP_SERVER_LOCAL_V1',
+      stateHash: before.journey.stateHash,
+      version: before.journey.version,
+    })
+    expect(after.sessions.find(session => session.id === outward.successorSessionId)?.status).toBe('FENCED')
+    expect(
+      (await f.client.qualityJourneyCoordinatorHandoff.findUniqueOrThrow({ where: { id: 'mapped-desktop' } })).status,
+    ).toBe('FENCED')
+  })
+
+  it('reports unmapped ownership and unresolved provider blockers without changing ownership', async () => {
+    const f = await fixture()
+    await pauseCurrent(f.scope, f.client)
+    const outward = await transferInput(f.scope, f.client, 'EXTERNAL_LEGACY', 'blocked-outward')
+    await transfer(outward, f.client)
+    const before = await ownership(f.scope, f.client)
+    const foreign = await reviewMigration(
+      { ...f.scope, coordinatorPrincipalId: 'appraise-local:another-owner' },
+      f.client,
+    )
+    expect(foreign.blocker).toBeTruthy()
+    await f.client.qualityJourneyProviderSlot.upsert({
+      where: { id: 'HUB' },
+      create: { id: 'HUB', reservedAt: new Date() },
+      update: { reservedAt: new Date() },
+    })
+    const blocked = await reviewMigration({ ...f.scope, coordinatorPrincipalId: principalId }, f.client)
+    expect(blocked.blocker).toContain('reconciled global provider slot')
+    expect(await ownership(f.scope, f.client)).toEqual(before)
+  })
+
   it('transfers both ways through fresh successors and replays lost replies after client reconstruction', async () => {
     const f = await fixture()
     await pauseCurrent(f.scope, f.client)

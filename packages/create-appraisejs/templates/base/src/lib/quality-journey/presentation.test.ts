@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 
 import {
   displayStageForQualityJourney,
-  codexHandoffGuidance,
   nextActionForQualityJourney,
   qualityJourneyStatusProjection,
   qualityJourneyDisplayStages,
@@ -74,7 +73,7 @@ describe('Quality Journey presentation', () => {
   it('keeps next actions understandable when revisions or reruns return to earlier stages', () => {
     expect(
       nextActionForQualityJourney({ stage: 'ANALYSIS', blockerCount: 0, unresolvedRequiredQuestionCount: 0 }),
-    ).toMatchObject({ title: 'Ready to start', destination: 'analysis' })
+    ).toMatchObject({ title: 'Awaiting the next Journey update', destination: 'analysis' })
     expect(
       nextActionForQualityJourney({
         stage: 'ANALYSIS',
@@ -82,96 +81,37 @@ describe('Quality Journey presentation', () => {
         unresolvedRequiredQuestionCount: 0,
         hasObservedWorkerProgress: true,
       }),
-    ).toMatchObject({ title: 'Test approach is in progress', destination: 'analysis' })
+    ).toMatchObject({ title: 'Awaiting the next Journey update', destination: 'analysis' })
     expect(
       nextActionForQualityJourney({ stage: 'SCENARIO_DESIGN', blockerCount: 0, unresolvedRequiredQuestionCount: 0 }),
-    ).toMatchObject({ title: 'Test scenarios is in progress', destination: 'scenarios' })
+    ).toMatchObject({ title: 'Awaiting the next Journey update', destination: 'scenarios' })
     expect(
       nextActionForQualityJourney({ stage: 'EXECUTION', blockerCount: 0, unresolvedRequiredQuestionCount: 0 }),
-    ).toMatchObject({ title: 'Run tests is in progress', destination: 'execution' })
+    ).toMatchObject({ title: 'Awaiting the next Journey update', destination: 'execution' })
   })
 
-  it('uses explicit persistent Codex guidance without inferring worker progress', () => {
-    expect(codexHandoffGuidance('PREPARED')).toMatchObject({ label: 'Ready to start' })
-    expect(codexHandoffGuidance('LAUNCHING')).toMatchObject({ label: 'Launch requested' })
-    expect(codexHandoffGuidance('LAUNCHED')).toMatchObject({ label: 'Launch requested' })
-    expect(codexHandoffGuidance('CONNECTED')).toMatchObject({ label: 'Connection observed' })
-    expect(codexHandoffGuidance('CONNECTED').description).toMatch(/current availability is unknown/i)
-  })
-
-  it.each([
-    {
-      name: 'not prepared',
-      handoffStatus: 'NOT_PREPARED',
-      summary: /analysis has not started/i,
-      nextActor: 'You',
-      lastObserved: /no codex handoff or connection/i,
-    },
-    {
-      name: 'prepared',
-      handoffStatus: 'PREPARED',
-      summary: /prompt is ready to send/i,
-      nextActor: 'You',
-      lastObserved: /prompt was prepared/i,
-    },
-    {
-      name: 'launching',
-      handoffStatus: 'LAUNCHING',
-      summary: /requesting a codex launch/i,
-      nextActor: 'Appraise',
-      lastObserved: /launch request was recorded/i,
-    },
-    {
-      name: 'launched without a connection',
-      handoffStatus: 'LAUNCHED',
-      summary: /has not observed a connection/i,
-      nextActor: 'You',
-      lastObserved: /launch was requested/i,
-    },
-    {
-      name: 'connected without submitted work',
-      handoffStatus: 'CONNECTED',
-      summary: /current availability is unknown/i,
-      nextActor: 'You',
-      lastObserved: /connection was observed/i,
-    },
-    {
-      name: 'failed',
-      handoffStatus: 'FAILED',
-      summary: /handoff failed/i,
-      nextActor: 'You',
-      lastObserved: /failed codex handoff/i,
-    },
-    {
-      name: 'expired',
-      handoffStatus: 'EXPIRED',
-      summary: /handoff expired/i,
-      nextActor: 'You',
-      lastObserved: /expired codex handoff/i,
-    },
-    {
-      name: 'unknown',
-      handoffStatus: 'UNRECOGNIZED',
-      summary: /connection status is unknown/i,
-      nextActor: 'You',
-      lastObserved: /connection status is unknown/i,
-    },
-  ])('derives a trustworthy status for $name handoffs', ({ handoffStatus, summary, nextActor, lastObserved }) => {
+  it('requires migration for legacy hosting without projecting desktop handoffs', () => {
     const projection = qualityJourneyStatusProjection({
       stage: 'ANALYSIS',
+      hostingMode: 'EXTERNAL_LEGACY',
       blockerCount: 0,
       unresolvedRequiredQuestionCount: 0,
-      handoffStatus,
-      handoffLaunchedAt: '2026-09-07T10:00:00.000Z',
-      handoffConnectedAt: '2026-09-07T10:01:00.000Z',
-      handoffFailedAt: '2026-09-07T10:02:00.000Z',
-      observedAt: '2026-09-07T10:03:00.000Z',
     })
+    expect(projection.summary).toMatch(/Migration required/)
+    expect(projection.action).toEqual({ label: 'Review hosting ownership', destination: 'hosting' })
+    expect(projection.lastObserved.summary).toBe('No submitted analysis work has been observed.')
+    expect(JSON.stringify(projection)).not.toMatch(/prompt|open Codex|paste|launch/i)
+  })
 
-    expect(projection.summary).toMatch(summary)
-    expect(projection.nextActor).toBe(nextActor)
-    expect(projection.lastObserved.summary).toMatch(lastObserved)
-    expect(projection.lastObserved.checkedAt).toBe('2026-09-07T10:03:00.000Z')
+  it('does not imply a managed dispatcher or running work from admission alone', () => {
+    const projection = qualityJourneyStatusProjection({
+      stage: 'ANALYSIS',
+      hostingMode: 'APP_SERVER_LOCAL_V1',
+      blockerCount: 0,
+      unresolvedRequiredQuestionCount: 0,
+    })
+    expect(projection.summary).toMatch(/Awaiting a worker result/)
+    expect(projection.summary).toMatch(/available actions/)
     expect(projection.action.destination).toBe('analysis')
   })
 
@@ -211,7 +151,6 @@ describe('Quality Journey presentation', () => {
       unresolvedRequiredQuestionCount: 0,
       pendingAnalysisDecision: true,
       hasObservedWorkerProgress: true,
-      handoffStatus: 'LAUNCHED',
       observedWorkAt: '2026-09-07T10:04:00.000Z',
     })
 
@@ -234,7 +173,6 @@ describe('Quality Journey presentation', () => {
       unresolvedRequiredQuestionCount: 2,
       pendingAnalysisDecision: true,
       hasObservedWorkerProgress: true,
-      handoffStatus: 'FAILED',
     })
 
     expect(projection).toMatchObject({
@@ -258,7 +196,7 @@ describe('Quality Journey presentation', () => {
     ).toMatchObject({
       summary: 'No proposed test approach has been submitted for review.',
       nextActor: 'You',
-      action: { label: 'Start test approach', destination: 'analysis' },
+      action: { label: 'View test approach', destination: 'analysis' },
     })
   })
 })

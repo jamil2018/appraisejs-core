@@ -92,7 +92,7 @@ it('keeps credential and MFA entry out of Appraise actions', async () => {
 
   expect(screen.queryByLabelText(/password|credential|mfa code/i)).not.toBeInTheDocument()
   await user.selectOptions(screen.getByLabelText('Access'), 'AUTHENTICATED_INTENT')
-  await user.click(screen.getByRole('button', { name: 'Open scoped browser' }))
+  await user.click(screen.getByRole('button', { name: 'Open target app' }))
 
   expect(mocks.start).toHaveBeenCalledWith({
     journeyId: 'journey-1',
@@ -127,7 +127,7 @@ it('keeps credential and MFA entry out of Appraise actions', async () => {
     journeyId: 'journey-1',
     discoveryRevisionId: 'discovery-1',
   })
-  expect(screen.getByRole('button', { name: 'Record Appraise browser receipt' })).toBeEnabled()
+  expect(screen.getByRole('button', { name: 'Save page inspection' })).toBeEnabled()
 })
 
 it('does not render outside an active discovery revision', () => {
@@ -151,7 +151,29 @@ it('lets a terminal session return to the fresh-session controls', async () => {
     },
   })
   render(<DiscoveryBrowserPanel discovery={discovery} journeyId="journey-1" />)
-  await user.click(screen.getByRole('button', { name: 'Open scoped browser' }))
+  await user.click(screen.getByRole('button', { name: 'Open target app' }))
   await user.click(screen.getByRole('button', { name: 'Start a fresh session' }))
-  expect(screen.getByRole('button', { name: 'Open scoped browser' })).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Open target app' })).toBeInTheDocument()
+})
+
+it.each(['READY', 'INSPECTING'] as const)(
+  'hides manual capture and recovery while automatic inspection is %s',
+  status => {
+    const { container } = render(
+      <DiscoveryBrowserPanel discovery={discovery} journeyId="journey-1" automaticStatus={status} />,
+    )
+    expect(container).toBeEmptyDOMElement()
+    expect(screen.queryByRole('button')).not.toBeInTheDocument()
+  },
+)
+it('shows an actionable cleanup explanation without offering a new capture while ownership is unresolved', () => {
+  render(<DiscoveryBrowserPanel discovery={discovery} journeyId="journey-1" automaticStatus="RECOVERY_REQUIRED" />)
+  expect(screen.getByRole('status')).toHaveTextContent('cleanup was confirmed')
+  expect(screen.queryByRole('button')).not.toBeInTheDocument()
+})
+it('omits manual browser controls once admissible evidence is available', () => {
+  const { container } = render(
+    <DiscoveryBrowserPanel discovery={discovery} journeyId="journey-1" automaticStatus="EVIDENCE_AVAILABLE" />,
+  )
+  expect(container).toBeEmptyDOMElement()
 })

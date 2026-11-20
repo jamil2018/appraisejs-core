@@ -54,7 +54,7 @@ import {
   claimExternalQualityJourneyWork,
   claimExternalQualityJourneyAnalyzer,
   completeQualityJourneyWork,
-  createQualityJourney,
+  createAppManagedJourney,
   dispatchQualityJourneyWork,
   getQualityJourney,
   inspectQualityJourneyFactoryEvidence,
@@ -617,7 +617,7 @@ async function postQualityOperation(request: Request, operation: string[], body:
       .parse(body)
     const target = await resolveTargetProject(value.target)
     return Response.json(
-      await createQualityJourney({
+      await createAppManagedJourney({
         targetProjectId: target.id,
         idempotencyKey: value.idempotencyKey,
         requirement: value.requirement,
@@ -961,7 +961,7 @@ async function dispatchPost(
   body: unknown,
   markExternalEffectStarted: (operationId: string) => void,
 ): Promise<Response> {
-  const handoffResponse = await postQualityJourneyHandoffRoute(operation, body)
+  const handoffResponse = await postQualityJourneyHandoffRoute(operation)
   if (handoffResponse) return handoffResponse
   const collaborationResponse = await postRepositoryCollaborationRoute(request, operation, body, {
     markExternalEffectStarted,

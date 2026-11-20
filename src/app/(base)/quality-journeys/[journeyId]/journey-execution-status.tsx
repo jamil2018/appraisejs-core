@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { getQualityJourneyExecution } from '@/services/coordinator/quality-journey-execution-service'
 import {
   JourneyExecutionCommand,
@@ -9,6 +9,17 @@ import {
 } from './journey-execution-controls'
 
 type Execution = Awaited<ReturnType<typeof getQualityJourneyExecution>>
+
+function readable(value: string) {
+  return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase().replaceAll('_', ' ')
+}
+
+function permissionTarget(checkpoint: string, environments: Array<{ id: string; name: string }>) {
+  const target = /^START_EXECUTION:(.+):(CHROMIUM|FIREFOX|WEBKIT)$/.exec(checkpoint)
+  if (!target) return checkpoint
+  const environment = environments.find(item => item.id === target[1])
+  return `${environment?.name ?? target[1]} · ${readable(target[2]!)}`
+}
 
 export function JourneyExecutionStatus({
   execution,
@@ -31,9 +42,6 @@ export function JourneyExecutionStatus({
     <Card>
       <CardHeader>
         <CardTitle className="text-base">Run tests</CardTitle>
-        <CardDescription>
-          Review the target, scope, permissions, progress, and rerun choices. Reruns preserve prior runs.
-        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
         {stage === 'AUTOMATION' ? (
@@ -44,38 +52,42 @@ export function JourneyExecutionStatus({
             environments={environments}
           />
         ) : null}
-        {!execution.cycles.length ? <p className="text-sm text-muted-foreground">No managed runs yet.</p> : null}
+
         {execution.consents
           .filter(consent => ['REQUESTED', 'GRANTED'].includes(consent.status))
           .map(consent => (
             <div key={consent.id} className="space-y-2 rounded-md border p-3">
               <h3 className="text-sm font-medium">
-                {consent.status === 'GRANTED' ? 'Execution consent granted' : 'Execution consent required'}
+                {consent.status === 'GRANTED' ? 'Permission granted' : 'Allow these tests to run?'}
               </h3>
               <p className="text-sm">{consent.reason}</p>
               <dl className="space-y-1 text-xs">
-                <dt className="font-medium">Execution scope</dt>
-                <dd className="break-all">{consent.scope.checkpoint}</dd>
+                <dt className="font-medium">Target</dt>
+                <dd className="break-all">{permissionTarget(consent.scope.checkpoint, environments)}</dd>
                 <dt className="font-medium">Prepared scenarios</dt>
-                <dd className="break-all">{consent.scope.preparedRuntimeCapsuleIds.join(', ')}</dd>
+                <dd>{consent.scope.preparedRuntimeCapsuleIds.length}</dd>
                 <dt className="font-medium">Effects</dt>
-                <dd>{consent.scope.actions.join(', ')}</dd>
+                <dd>{consent.scope.actions.map(readable).join(', ')}</dd>
               </dl>
-              <p className="break-all font-mono text-xs text-muted-foreground">Scope: {consent.scopeHash}</p>
+              <details>
+                <summary className="cursor-pointer text-xs">Permission details</summary>
+                <p className="break-all font-mono text-xs">{consent.scopeHash}</p>
+                <p className="break-all text-xs">{consent.scope.preparedRuntimeCapsuleIds.join(', ')}</p>
+              </details>
               <div className="flex flex-wrap gap-2">
                 {consent.status === 'REQUESTED' ? (
                   <JourneyExecutionCommand
                     action="consent"
                     input={{ journeyId, executionConsentId: consent.id, expectedScopeHash: consent.scopeHash }}
                   >
-                    Grant consent for this scope
+                    Allow these tests
                   </JourneyExecutionCommand>
                 ) : null}
                 <JourneyExecutionCommand
                   action="revokeConsent"
                   input={{ journeyId, executionConsentId: consent.id, expectedScopeHash: consent.scopeHash }}
                 >
-                  Revoke this consent
+                  {consent.status === 'GRANTED' ? 'Revoke this consent' : 'Decline'}
                 </JourneyExecutionCommand>
               </div>
             </div>
@@ -87,25 +99,23 @@ export function JourneyExecutionStatus({
             aria-label={`Execution cycle ${cycle.id}`}
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-sm font-medium">Test run cycle</h3>
-              <Badge variant="outline">{cycle.status}</Badge>
+              <h3 className="text-sm font-medium">Test run</h3>
+              <Badge variant="outline">{readable(cycle.status)}</Badge>
             </div>
             <p className="text-xs text-muted-foreground">
-              {environments.find(environment => environment.id === cycle.environmentId)?.name ?? cycle.environmentId} ·{' '}
-              {cycle.browserEngine}
+              {environments.find(environment => environment.id === cycle.environmentId)?.name ?? 'Selected environment'}{' '}
+              · {cycle.browserEngine}
             </p>
             <ul className="space-y-2">
-              {cycle.testRuns.map(run => (
+              {cycle.testRuns.map((run, index) => (
                 <li key={run.testRunId} className="flex flex-wrap items-center justify-between gap-2 text-sm">
                   <Link
                     className="break-all underline underline-offset-4"
                     href={`/test-runs/${encodeURIComponent(run.testRunId)}?project=${encodeURIComponent(targetProjectId)}`}
                   >
-                    {run.scenarioRevisionId ?? run.testRunId}: open live run and evidence
+                    View test run {cycle.testRuns.length > 1 ? index + 1 : ''} and evidence
                   </Link>
-                  <span>
-                    {run.status} · {run.result} · {run.bindingStatus}
-                  </span>
+                  <span>{readable(run.result && run.result !== 'PENDING' ? run.result : run.status)}</span>
                   {run.diagnostic ? (
                     <p role="alert" className="w-full text-destructive">
                       Appraise cannot verify ownership of this process. A duplicate launch is blocked; inspect the live
@@ -127,7 +137,7 @@ export function JourneyExecutionStatus({
             ) : null}
             <div className="flex flex-wrap gap-2">
               <JourneyExecutionCommand action="reconcile" input={{ journeyId, cycleId: cycle.id }}>
-                Refresh terminal evidence
+                Check for results
               </JourneyExecutionCommand>
               {['RESERVED', 'RUNNING', 'CANCELLING'].includes(cycle.status) ? (
                 <JourneyExecutionCommand
@@ -139,7 +149,7 @@ export function JourneyExecutionStatus({
                     reason: 'User requested cancellation from Journey overview.',
                   }}
                 >
-                  Cancel this cycle
+                  Cancel run
                 </JourneyExecutionCommand>
               ) : null}
             </div>
@@ -157,10 +167,12 @@ export function JourneyExecutionStatus({
           <div key={proposal.id} className="space-y-2 rounded-md border p-3">
             <h3 className="text-sm font-medium">Selective rerun · {proposal.status}</h3>
             <p className="text-sm">{proposal.reason}</p>
-            <p className="break-all text-xs">
-              Scenarios: {(proposal.selectedScenarioRevisionIds as string[]).join(', ')}
-            </p>
-            <p className="break-all font-mono text-xs text-muted-foreground">Scope: {proposal.proposalHash}</p>
+            <p className="text-xs">{(proposal.selectedScenarioRevisionIds as string[]).length} scenarios selected</p>
+            <details>
+              <summary className="cursor-pointer text-xs">Rerun details</summary>
+              <p className="break-all text-xs">{(proposal.selectedScenarioRevisionIds as string[]).join(', ')}</p>
+              <p className="break-all font-mono text-xs text-muted-foreground">Scope: {proposal.proposalHash}</p>
+            </details>
             {proposal.status === 'PROPOSED' ? (
               <JourneyExecutionCommand
                 action="approve"

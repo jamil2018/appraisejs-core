@@ -579,30 +579,33 @@ function ScenarioPortfolioReviewContent({
           </p>
         </details>
         <p className="text-sm text-muted-foreground">Coverage rationale: {portfolio.coverageRationale}</p>
-        <div
-          aria-describedby="scenario-linear-dependency-view"
-          aria-label="Visual scenario dependency graph. A keyboard-equivalent linear dependency view follows."
-          className="h-64 rounded-md border"
-          data-testid="scenario-readonly-flow"
-          role="region"
-          tabIndex={0}
-        >
-          <ReactFlow
-            edges={edges}
-            elementsSelectable={false}
-            fitView
-            nodes={nodes}
-            nodesConnectable={false}
-            nodesDraggable={false}
+        <details>
+          <summary className="cursor-pointer text-sm">Scenario dependencies and shared setup</summary>
+          <div
+            aria-describedby="scenario-linear-dependency-view"
+            aria-label="Visual scenario dependency graph. A keyboard-equivalent linear dependency view follows."
+            className="h-64 rounded-md border"
+            data-testid="scenario-readonly-flow"
+            role="region"
+            tabIndex={0}
           >
-            <Background />
-            <Controls showInteractive={false} />
-          </ReactFlow>
-        </div>
-        <div id="scenario-linear-dependency-view">
-          <ScenarioDependencyList dependencies={dependencies} scenarios={orderedScenarios} />
-        </div>
-        <SharedSetupList setup={sharedSetup} />
+            <ReactFlow
+              edges={edges}
+              elementsSelectable={false}
+              fitView
+              nodes={nodes}
+              nodesConnectable={false}
+              nodesDraggable={false}
+            >
+              <Background />
+              <Controls showInteractive={false} />
+            </ReactFlow>
+          </div>
+          <div id="scenario-linear-dependency-view">
+            <ScenarioDependencyList dependencies={dependencies} scenarios={orderedScenarios} />
+          </div>
+          <SharedSetupList setup={sharedSetup} />
+        </details>
         <div className="grid gap-3 md:grid-cols-2">
           {orderedScenarios.map(scenario => (
             <ScenarioReviewCard

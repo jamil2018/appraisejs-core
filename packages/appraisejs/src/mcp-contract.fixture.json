@@ -1945,6 +1945,16 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 8000
+                    },
+                    "suggestedAnswers": {
+                      "minItems": 1,
+                      "maxItems": 6,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 8000
+                      }
                     }
                   },
                   "required": [
@@ -3664,6 +3674,16 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 8000
+                    },
+                    "suggestedAnswers": {
+                      "minItems": 1,
+                      "maxItems": 6,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 8000
+                      }
                     }
                   },
                   "required": [
@@ -6989,7 +7009,7 @@
     {
       "kind": "tool",
       "name": "quality_journey_handoff_inspect",
-      "description": "Inspect the latest coordinator handoff metadata for an exact Journey and target without exposing its ticket or prompt.",
+      "description": "Inspect historical coordinator handoff metadata for an exact Journey and target without exposing its ticket or prompt. This read does not authorize legacy redemption or desktop continuation.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -7011,46 +7031,6 @@
       },
       "annotations": {
         "readOnlyHint": true,
-        "openWorldHint": false
-      }
-    },
-    {
-      "kind": "tool",
-      "name": "quality_journey_handoff_redeem",
-      "description": "Redeem one exact short-lived coordinator handoff ticket, then read authoritative Journey state. Redemption never approves takeover or claims work.",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "target": {
-            "type": "string",
-            "minLength": 1
-          },
-          "journeyId": {
-            "type": "string",
-            "minLength": 1
-          },
-          "ticket": {
-            "type": "string",
-            "pattern": "^qjh_[A-Za-z0-9_-]{32}$"
-          },
-          "coordinatorTaskId": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 500
-          }
-        },
-        "required": [
-          "target",
-          "journeyId",
-          "ticket"
-        ],
-        "additionalProperties": false
-      },
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": false,
-        "idempotentHint": true,
         "openWorldHint": false
       }
     },

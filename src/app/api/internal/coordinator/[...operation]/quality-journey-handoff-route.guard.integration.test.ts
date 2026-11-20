@@ -121,7 +121,7 @@ afterAll(async () => {
   await rm(directory, { recursive: true, force: true })
 })
 
-it('rejects invalid bearer and project credentials before redemption, then accepts the untouched ticket', async () => {
+it('rejects invalid bearer and project credentials before redemption, then refuses the retired operation without consuming the ticket', async () => {
   const invalidBearer = await POST(
     request({ authorization: 'Bearer wrong-token', project: projectFingerprint }),
     context,
@@ -165,8 +165,8 @@ it('rejects invalid bearer and project credentials before redemption, then accep
     request({ authorization: 'Bearer fixture-token', project: projectFingerprint }),
     context,
   )
-  expect(redemption.status).toBe(200)
-  await expect(redemption.json()).resolves.toMatchObject({ handoffId: 'handoff-route', providerId: 'codex' })
+  expect(redemption.status).toBe(410)
+  await expect(client.qualityJourneyCoordinatorHandoff.findUniqueOrThrow({ where: { id: 'handoff-route' } })).resolves.toMatchObject({ status: 'PREPARED', connectedAt: null })
 })
 
 it('rejects every stale coordinator-facing Journey mutation before it can mutate state', async () => {

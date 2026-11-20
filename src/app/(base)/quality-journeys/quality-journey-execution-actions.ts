@@ -4,6 +4,8 @@ import { revalidatePath } from 'next/cache'
 import { trustedHumanCoordinatorSession } from '@/services/coordinator/quality-journey-coordinator-session'
 import { z } from 'zod'
 import { requireActiveProjectForMutation } from '@/lib/active-project'
+import { scheduleAppManagedJourneyContinuation } from '@/services/coordinator/app-managed-progression-service'
+import { getQualityJourney } from '@/services/coordinator/quality-journey-service'
 import {
   qualityJourneyExecutionStartSchema,
   qualityJourneyExecutionCancelSchema,
@@ -56,6 +58,19 @@ export async function qualityJourneyExecutionAction(
     const project = await requireActiveProjectForMutation()
     const request = operation.schema.parse({ ...values, targetProjectId: project.id })
     const data = await operation.run(request, undefined, trustedHumanCoordinatorSession)
+    if (action === 'reconcile') {
+      try {
+        const current = await getQualityJourney({ journeyId: request.journeyId, targetProjectId: project.id })
+        scheduleAppManagedJourneyContinuation({
+          journeyId: request.journeyId,
+          targetProjectId: project.id,
+          expectedStateHash: current.journey.stateHash,
+        })
+      } catch {
+        // Preserve the canonical reconciliation outcome; reconnect can wake any remaining eligible work.
+        console.error('Managed Journey reconciliation continuation could not be scheduled')
+      }
+    }
     revalidatePath(`/quality-journeys/${request.journeyId}`)
     return { success: true, status: 200, data }
   } catch (error) {

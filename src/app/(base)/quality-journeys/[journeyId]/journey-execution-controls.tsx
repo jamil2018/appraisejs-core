@@ -101,7 +101,7 @@ export function JourneyExecutionStartForm({
             browserEngine: 'CHROMIUM',
           }}
         >
-          {proposalId ? 'Start approved rerun' : 'Start managed execution'}
+          {proposalId ? 'Start approved rerun' : 'Run tests'}
         </JourneyExecutionCommand>
       ) : (
         <p className="text-sm">Add a target environment before execution.</p>

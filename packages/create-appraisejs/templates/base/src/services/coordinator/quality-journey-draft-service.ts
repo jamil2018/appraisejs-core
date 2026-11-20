@@ -6,7 +6,7 @@ import {
   hashQualityJourneyDraft,
   hashQualityJourneyDraftReuseSeeds,
   hashQualityJourneyRequirement,
-  parseGuidedQualityJourneyRequirement,
+  parseQualityJourneyRequirement,
   parseQualityJourneyDraftRequirement,
   type QualityJourneyDraftRequirement,
 } from '@/lib/quality-journey'
@@ -287,12 +287,12 @@ function replayConfirmedDraft(draft: NonNullable<DraftRow>, confirmationKey: str
   return { replayed: true as const, journeyId: draft.confirmedJourneyId }
 }
 
-function guidedRequirementForConfirmation(draft: NonNullable<DraftRow>) {
+function requirementForConfirmation(draft: NonNullable<DraftRow>) {
   try {
-    return parseGuidedQualityJourneyRequirement(JSON.parse(draft.requirementJson))
+    return parseQualityJourneyRequirement(JSON.parse(draft.requirementJson))
   } catch (error) {
     throw new ServiceError(
-      error instanceof Error ? error.message : 'Complete the guided brief before confirming.',
+      error instanceof Error ? error.message : 'Add a requirement before starting this Journey.',
       'VALIDATION',
     )
   }
@@ -302,7 +302,7 @@ async function createAndSubmitDraftJourney(
   draft: NonNullable<DraftRow>,
   input: { draftId: string; targetProjectId: string; hostingMode?: 'EXTERNAL_LEGACY' | 'APP_SERVER_LOCAL_V1' },
   confirmationKey: string,
-  requirement: ReturnType<typeof parseGuidedQualityJourneyRequirement>,
+  requirement: ReturnType<typeof parseQualityJourneyRequirement>,
   requirementHash: string,
   tx: Prisma.TransactionClient,
 ) {
@@ -315,6 +315,7 @@ async function createAndSubmitDraftJourney(
       ...(draft.predecessorJourneyId ? { predecessorJourneyId: draft.predecessorJourneyId } : {}),
     },
     tx,
+    'APP_SERVER_LOCAL_V1',
   )
   const journey = created.journey
   const revision = await tx.qualityJourneyRevision.findFirst({
@@ -408,7 +409,7 @@ export async function confirmQualityJourneyDraft(
     })
     if (expectedDraftHash !== draft.draftHash)
       throw new ServiceError('The selected reuse seeds changed. Reload before confirming.', 'CONFLICT')
-    const requirement = guidedRequirementForConfirmation(draft)
+    const requirement = requirementForConfirmation(draft)
     const normalizedRequirementHash = hashQualityJourneyRequirement(requirement)
     if (normalizedRequirementHash !== input.requirementHash)
       throw new ServiceError('The saved brief changed. Reload the review before confirming.', 'CONFLICT')

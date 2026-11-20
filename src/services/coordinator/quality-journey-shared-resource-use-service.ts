@@ -43,6 +43,7 @@ import {
   type SharedResourceSourceKind,
 } from '@/lib/quality-journey/shared-resource-contract'
 import { ServiceError } from '@/services/shared/errors'
+import { assertOperatorAutomationLocatorAuthority } from './app-managed-automation-operator-authority'
 import {
   readJourneyBusinessEnrollmentKindInTransaction,
   withJourneySharedResourcePublicationInTransaction,
@@ -810,6 +811,10 @@ async function readMaterializationSource(
   }
   for (const step of reconstructed.proposal.steps) {
     for (const requirement of step.locatorRequirements) {
+      if (requirement.reviewedSelector) {
+        await assertOperatorAutomationLocatorAuthority({ journeyId: scope.journeyId, targetProjectId: scope.targetProjectId, workItemId: row.workItemId, attemptId: row.attemptId }, tx)
+        continue
+      }
       if (!requirement.locatorId) return refuse('MATERIALIZATION_RUNTIME_LOCATOR_UNRESOLVED')
       if (!frozenLocatorIds.has(requirement.locatorId)) return refuse('MATERIALIZATION_LOCATOR_NOT_FROZEN')
       keys.push({ kind: 'LOCATOR', resourceId: requirement.locatorId })

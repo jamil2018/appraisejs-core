@@ -31,7 +31,7 @@ const journey = {
   id: 'journey-1',
   stage: 'ANALYSIS_REVIEW',
   status: 'ACTIVE',
-  hostingMode: 'EXTERNAL_LEGACY',
+  hostingMode: 'APP_SERVER_LOCAL_V1',
   activeCycleId: 'cycle-1',
   activeRevisionIds: { journey: 'journey-revision-1' },
   unresolvedQuestionIds: [],
@@ -56,17 +56,38 @@ describe('QualityJourneysBrowser', () => {
     render(<QualityJourneysBrowser items={[journey]} projectId="project one" />)
 
     expect(screen.getByText('Checkout accepts cards')).toBeInTheDocument()
-    expect(screen.getByRole('status')).toHaveTextContent('Waiting for you')
-    expect(screen.getByText('Next actor · You')).toBeInTheDocument()
-    expect(screen.getByText(/ready for your exact-version review/i)).toBeInTheDocument()
-    expect(screen.getByText(/Updated/)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Open Quality Journey journey-1' })).toHaveAttribute(
+    expect(screen.getByText('Requirements · Ready for review')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Checkout accepts cards' })).toHaveAttribute(
       'href',
       '/quality-journeys/journey-1?project=project%20one',
     )
 
     await user.type(screen.getByRole('searchbox', { name: 'Search Quality Journeys' }), 'missing')
     expect(screen.getByRole('status')).toHaveTextContent('No Quality Journeys match')
+  })
+
+  it('shows migration for legacy hosting while retaining the brief and detail link', () => {
+    render(
+      <QualityJourneysBrowser
+        items={[{ ...journey, stage: 'ANALYSIS', analysisRevisionCount: 0, hostingMode: 'EXTERNAL_LEGACY' }]}
+        projectId="project-1"
+      />,
+    )
+    expect(screen.getByText(/Continue in Appraise/)).toBeInTheDocument()
+    expect(screen.queryByText(/prompt|paste|open Codex/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Copy brief' })).toBeInTheDocument()
+  })
+
+  it('shows managed unavailability without claiming work is in progress', () => {
+    render(
+      <QualityJourneysBrowser
+        items={[{ ...journey, stage: 'ANALYSIS', analysisRevisionCount: 0 }]}
+        projectId="project-1"
+      />,
+    )
+    expect(screen.getByText('Requirements')).toBeInTheDocument()
+    expect(screen.queryByText('In progress')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Codex/ })).not.toBeInTheDocument()
   })
 
   it('explains how to create the first Quality Journey', () => {

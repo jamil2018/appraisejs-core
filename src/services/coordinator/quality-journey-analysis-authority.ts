@@ -4,7 +4,10 @@ import { hashCanonical } from '@/lib/quality-journey/analysis-contracts'
 import type { selectAnalysisFollowupIssuance } from './quality-journey-analysis-followup'
 import { ServiceError } from '@/services/shared/errors'
 
-type Issued = ReturnType<typeof selectAnalysisFollowupIssuance>
+type Issued = Pick<
+  ReturnType<typeof selectAnalysisFollowupIssuance>,
+  'descriptor' | 'causeHash' | 'inputHash' | 'inputArtifacts'
+>
 const managedInputConflict = () =>
   new ServiceError('Managed Analysis follow-up canonical input identity is stale or invalid.', 'CONFLICT')
 const publicationConflict = () =>

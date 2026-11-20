@@ -4,7 +4,7 @@ import { MessageSquareMore } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 
@@ -34,7 +34,7 @@ type AnalysisQuestionItemProps = Omit<
 
 function QuestionStatus({ question, unresolved }: Pick<AnalysisQuestionItemProps, 'question' | 'unresolved'>) {
   const answered = question.answers.length > 0
-  const status = answered ? 'Answered' : question.required ? (unresolved ? 'Open' : 'Open') : 'Open—optional'
+  const status = answered ? 'Answered' : question.required ? 'Open' : 'Open—optional'
   return (
     <div className="flex flex-wrap items-start justify-between gap-2">
       <div>
@@ -55,10 +55,6 @@ function RecordedAnswer({ answer }: { answer: AnalysisQuestion['answers'][number
   return (
     <div className="mt-3 rounded-md border border-emerald-500/20 bg-emerald-500/[0.06] p-3 text-sm">
       <p>{answer.answer}</p>
-      <details className="mt-2 text-muted-foreground">
-        <summary className="cursor-pointer text-[11px]">Technical details</summary>
-        <p className="mt-1 break-all font-mono text-[11px]">Answer ID: {answer.answerId}</p>
-      </details>
     </div>
   )
 }
@@ -75,9 +71,29 @@ function AnswerForm({
   latest: AnalysisQuestion['answers'][number] | undefined
 }) {
   return (
-    <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
+    <div className="mt-4 space-y-3">
+      {question.suggestedAnswers?.length ? (
+        <div className="flex flex-wrap gap-2" role="group" aria-label={`Suggested answers for ${question.prompt}`}>
+          {question.suggestedAnswers.map((suggestion, index) => (
+            <Button
+              key={suggestion}
+              type="button"
+              variant={answer === suggestion ? 'secondary' : 'outline'}
+              disabled={isPending}
+              onClick={() => onAnswerChange(question.questionId, suggestion)}
+              aria-pressed={answer === suggestion}
+            >
+              {suggestion}
+              {index === 0 ? ' · Recommended' : ''}
+            </Button>
+          ))}
+        </div>
+      ) : null}
       <div className="space-y-2">
-        <Label htmlFor={`analysis-answer-${question.id}`}>{latest ? 'Correct answer' : 'Answer'}</Label>
+        <Label htmlFor={`analysis-answer-${question.id}`}>
+          {latest ? 'Correct answer' : 'Your answer'}
+          <span className="sr-only">: {question.prompt}</span>
+        </Label>
         <Textarea
           id={`analysis-answer-${question.id}`}
           onChange={event => onAnswerChange(question.questionId, event.target.value)}
@@ -85,7 +101,7 @@ function AnswerForm({
         />
       </div>
       <Button
-        disabled={isPending || !answer.trim()}
+        disabled={isPending || !answer.trim() || answer.trim() === latest?.answer.trim()}
         onClick={() => onRecordAnswer(question)}
         type="button"
         variant="outline"
@@ -115,11 +131,17 @@ function AnalysisQuestionItem({
         <summary className="cursor-pointer pr-3 text-sm font-medium">{question.prompt}</summary>
         <div className="mt-4">
           <QuestionStatus question={question} unresolved={unresolved} />
-          <details className="mt-3 text-muted-foreground">
-            <summary className="cursor-pointer text-[11px]">Technical details</summary>
-            <p className="mt-1 break-all font-mono text-[11px]">Question ID: {question.questionId}</p>
-          </details>
           <RecordedAnswer answer={latest} />
+          {question.answers.length > 1 ? (
+            <details className="mt-3 text-sm text-muted-foreground">
+              <summary className="cursor-pointer">Earlier answers ({question.answers.length - 1})</summary>
+              <ol className="mt-2 space-y-2">
+                {question.answers.slice(0, -1).map(answer => (
+                  <li key={answer.answerId}>{answer.answer}</li>
+                ))}
+              </ol>
+            </details>
+          ) : null}
           {canAnswer ? (
             <AnswerForm {...{ answer, isPending, latest, onAnswerChange, onRecordAnswer, question }} />
           ) : null}
@@ -130,7 +152,6 @@ function AnalysisQuestionItem({
 }
 
 export function AnalysisQuestionList({
-  analysisRevisionId,
   answers,
   canAnswer,
   isPending,
@@ -169,41 +190,43 @@ export function AnalysisQuestionList({
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <MessageSquareMore aria-hidden="true" className="size-4 text-primary" />
-          Questions about the proposed test approach
+          <h2>{requiredOpen[0]?.prompt ?? 'Your answers'}</h2>
         </CardTitle>
-        <CardDescription>
-          Answer the required questions first. Each answer is saved as a new record, so corrections remain visible.
-        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <details className="text-muted-foreground">
-          <summary className="cursor-pointer text-xs">Technical details</summary>
-          <p className="mt-1 break-all font-mono text-[11px]">Approach version: {analysisRevisionId}</p>
-        </details>
-        {questions.length === 0 ? (
+        {requiredOpen.length ? (
+          <section aria-label="Current essential question" className="space-y-3">
+            {requiredOpen[0]!.rationale ? (
+              <p className="text-sm text-muted-foreground">{requiredOpen[0]!.rationale}</p>
+            ) : null}
+            {canAnswer ? (
+              <AnswerForm
+                answer={answers[requiredOpen[0]!.questionId] ?? ''}
+                isPending={isPending}
+                latest={undefined}
+                onAnswerChange={onAnswerChange}
+                onRecordAnswer={onRecordAnswer}
+                question={requiredOpen[0]!}
+              />
+            ) : null}
+          </section>
+        ) : questions.length === 0 ? (
           <p className="text-sm text-muted-foreground">The Analyzer did not raise any questions for this revision.</p>
         ) : (
-          <>
-            {requiredOpen.length ? (
-              <section aria-label="Required questions">
-                <h3 className="mb-3 text-sm font-semibold">Required questions ({requiredOpen.length})</h3>
-                {questionList(requiredOpen, true)}
-              </section>
-            ) : null}
-            {optionalOpen.length ? (
-              <section aria-label="Optional questions">
-                <h3 className="mb-3 text-sm font-semibold">Optional questions ({optionalOpen.length})</h3>
-                {questionList(optionalOpen)}
-              </section>
-            ) : null}
-            {answered.length ? (
-              <section aria-label="Answered questions">
-                <h3 className="mb-3 text-sm font-semibold">Answered questions ({answered.length})</h3>
-                {questionList(answered)}
-              </section>
-            ) : null}
-          </>
+          <p className="text-sm text-muted-foreground">All essential questions have been answered.</p>
         )}
+        {optionalOpen.length ? (
+          <details>
+            <summary className="cursor-pointer text-sm">Optional questions ({optionalOpen.length})</summary>
+            <div className="mt-3">{questionList(optionalOpen)}</div>
+          </details>
+        ) : null}
+        {answered.length ? (
+          <details>
+            <summary className="cursor-pointer text-sm">Saved answers ({answered.length})</summary>
+            <div className="mt-3">{questionList(answered)}</div>
+          </details>
+        ) : null}
       </CardContent>
     </Card>
   )

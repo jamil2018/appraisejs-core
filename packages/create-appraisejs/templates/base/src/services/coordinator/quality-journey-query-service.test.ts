@@ -75,7 +75,6 @@ describe('listQualityJourneys', () => {
           activeRevisionIds: { journey: 'journey-revision-1' },
           unresolvedQuestionIds: ['question-1'],
           requirement: expect.objectContaining({ summary: 'Checkout accepts cards' }),
-          handoff: expect.objectContaining({ status: 'CONNECTED' }),
           blockerResponsibleActor: 'HUMAN',
         }),
         expect.objectContaining({
@@ -87,10 +86,10 @@ describe('listQualityJourneys', () => {
       ]),
     )
     expect(mocks.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { targetProjectId: 'project-1' } }))
-    expect(mocks.findMany.mock.calls[0][0].include.coordinatorHandoffs).toMatchObject({ take: 1 })
+    expect(mocks.findMany.mock.calls[0][0].include).not.toHaveProperty('coordinatorHandoffs')
   })
 
-  it('projects an overdue prepared handoff as expired', async () => {
+  it('does not project historical handoff state into operator summaries', async () => {
     mocks.findMany.mockResolvedValue([
       {
         id: 'journey-expired',
@@ -118,7 +117,8 @@ describe('listQualityJourneys', () => {
     ])
 
     const [journey] = await listQualityJourneys({ targetProjectId: 'project-1' })
-    expect(journey.handoff?.status).toBe('EXPIRED')
+    expect(journey).not.toHaveProperty('handoff')
+    expect(journey.hostingMode).toBe('EXTERNAL_LEGACY')
   })
 })
 
@@ -207,6 +207,48 @@ describe('getQualityJourneyStatusSnapshot', () => {
   }
 
   it.each([
+    [
+      'local native dispatch within its lease',
+      {
+        workItems: [
+          {
+            ...item,
+            attempts: [
+              {
+                attempt: 1,
+                status: 'IN_PROGRESS',
+                leaseExpiresAt: future,
+                dispatchAdapterId: 'APP_SERVER_LOCAL_V1_ANALYSIS',
+                dispatchStartedAt: expired,
+                failureJson: '{"state":"UNKNOWN","reason":"LOCAL_CODEX_DISPATCH_CONSUMED"}',
+              },
+            ],
+          },
+        ],
+      },
+      'RUNNING',
+    ],
+    [
+      'local consumed failure before lease expiry',
+      {
+        workItems: [
+          {
+            ...item,
+            attempts: [
+              {
+                attempt: 1,
+                status: 'IN_PROGRESS',
+                leaseExpiresAt: future,
+                dispatchAdapterId: 'APP_SERVER_LOCAL_V1_ANALYSIS',
+                dispatchStartedAt: expired,
+                failureJson: '{"state":"UNKNOWN","stage":"NATIVE_SEND"}',
+              },
+            ],
+          },
+        ],
+      },
+      'RECOVERY',
+    ],
     ['eligible work', { workItems: [{ ...item, status: 'ELIGIBLE' }] }, 'QUEUED'],
     ['acknowledgement pending within its window', { providerRuns: [{ ...run, status: 'UNKNOWN' }] }, 'QUEUED'],
     ['current acknowledged work', { providerRuns: [run] }, 'RUNNING'],
@@ -287,6 +329,32 @@ describe('getQualityJourneyStatusSnapshot', () => {
       },
       'RECOVERY',
     ],
+    [
+      'review after a reconciled and superseded Analysis failure',
+      {
+        stage: 'ANALYSIS_REVIEW',
+        activeWorkItemIdsJson: '[]',
+        workItems: [
+          {
+            ...item,
+            status: 'SUPERSEDED',
+            attempts: [
+              {
+                attempt: 1,
+                status: 'FAILED',
+                leaseExpiresAt: expired,
+                dispatchAdapterId: 'APP_SERVER_LOCAL_V1_ANALYSIS',
+                completedAt: expired,
+                dispatchReservedAt: null,
+                dispatchStartedAt: null,
+                failureJson: '{"stage":"CANONICAL_SUBMISSION"}',
+              },
+            ],
+          },
+        ],
+      },
+      'WAITING',
+    ],
     ['prior cycle work without active effects', { workItems: [{ ...item, cycleId: 'old-cycle' }] }, 'UNOBSERVED'],
     ['unresolved hosting ownership', { hostingMode: 'LEGACY_UNRESOLVED' }, 'RECOVERY'],
     ['external hosting', { hostingMode: 'EXTERNAL_LEGACY', providerRuns: [run] }, null],
@@ -319,5 +387,73 @@ describe('getQualityJourneyStatusSnapshot', () => {
       where: { targetProjectId: 'project-1' },
       select: { intents: { where: { sendBoundaryId: { not: null }, reconciledAt: null } } },
     })
+  })
+
+  it('exposes only current-generation active-cycle local activity, using the dispatch timestamp', async () => {
+    const attempt = {
+      id: 'local-attempt',
+      attempt: 1,
+      status: 'COMPLETED',
+      leaseExpiresAt: expired,
+      startedAt: expired,
+      dispatchStartedAt: null,
+      dispatchReservedAt: null,
+      completedAt: expired,
+      dispatchAdapterId: 'APP_SERVER_LOCAL_V1_ANALYSIS',
+      failureJson: null,
+      sessionBinding: { sessionId: 'session-1', coordinatorGeneration: 2 },
+    }
+    const record = {
+      id: 'journey-1',
+      targetProjectId: 'project-1',
+      hostingMode: 'APP_SERVER_LOCAL_V1',
+      currentCoordinatorSessionId: 'session-1',
+      currentCoordinatorSession: { generation: 2 },
+      stage: 'ANALYSIS_REVIEW',
+      status: 'ACTIVE',
+      version: 4,
+      stateHash: 'sha256:state',
+      activeCycleId: 'cycle-1',
+      activeWorkItemIdsJson: '["work-1"]',
+      activeRevisionIdsJson: '{}',
+      unresolvedQuestionIdsJson: '[]',
+      blockers: [],
+      providerRuns: [],
+      executionConsents: [],
+      workItems: [{ ...item, status: 'COMPLETED', attempts: [attempt] }],
+    }
+    mocks.findFirst.mockResolvedValue(record)
+    const snapshot = await getQualityJourneyStatusSnapshot({ journeyId: 'journey-1', targetProjectId: 'project-1' })
+    expect(snapshot.activity).toMatchObject({ id: 'local-attempt', running: false, needsRecovery: false })
+    expect(snapshot.runtimeStatus).toBe('WAITING')
+    expect(snapshot.attention.activeWork).toEqual([])
+    expect(JSON.stringify(snapshot)).not.toContain('failureJson')
+    const observed = { kind: 'INSPECTING', at: new Date().toISOString(), path: '/checkout' }
+    mocks.findFirst.mockResolvedValue({
+      ...record,
+      stage: 'ANALYSIS',
+      workItems: [
+        {
+          ...item,
+          attempts: [
+            {
+              ...attempt,
+              status: 'IN_PROGRESS',
+              leaseExpiresAt: future,
+              completedAt: null,
+              dispatchStartedAt: expired,
+              failureJson: JSON.stringify({ activity: observed }),
+            },
+          ],
+        },
+      ],
+    })
+    expect(
+      (await getQualityJourneyStatusSnapshot({ journeyId: 'journey-1', targetProjectId: 'project-1' })).activity,
+    ).toMatchObject({ running: true, phase: observed })
+    mocks.findFirst.mockResolvedValue({ ...record, currentCoordinatorSession: { generation: 3 } })
+    expect(
+      (await getQualityJourneyStatusSnapshot({ journeyId: 'journey-1', targetProjectId: 'project-1' })).activity,
+    ).toBeNull()
   })
 })

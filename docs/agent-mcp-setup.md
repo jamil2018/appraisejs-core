@@ -71,31 +71,11 @@ replay the durable outcome; changed payloads and stale, expired, cancelled, or r
 generic `appraisejs mcp-call` command is an MCP client and accepts the identical generated tool argument object; it is
 not a bypass or alternate mutation API.
 
-For an Appraise-prepared Codex handoff, Appraise opens a validated `codex://new` link whose encoded prompt contains
-only plugin guidance, Journey/target identifiers, and a one-time ticket. Local targets use their validated absolute
-workspace path. Remote targets use an explicit neutral host directory while the normalized HTTP(S) origin remains the
-MCP target; the neutral directory is never target authority. If launch is unavailable, copy the same bounded prompt
-and paste it into Codex manually. Call `quality_journey_handoff_redeem` with the exact Journey, target, and ticket,
-then immediately call `quality_journey_get` and the stage-specific read operation. Appraise reports only that launch
-was requested until authenticated redemption is authoritatively observed. URI prefill, user Send, redemption, and
-authoritative reads do not authorize Journey work, claim an assignment, or approve takeover. For every mutable stage,
-Appraise snapshots the Journey state/revisions, target, active work leases/generations, dispatch adapter/start/receipt,
-terminal effect, and pending-event count at preparation; a changed snapshot rejects launch or redemption without
-consuming the ticket. The Journey page alone offers a separate short-lived, request-identity-bound takeover approval.
-That action re-reads the same state and atomically fences predecessor attempts while reissuing bounded successor
-authorization for the same `REPLACEMENT_REQUESTED` logical work item, before fencing any connected predecessor and
-making the replacement coordinator session effective. Ambiguous dispatches and expired leases block takeover and are
-returned only through the handoff's read-only recovery projection. An effective session generation is required for
-every coordinator-facing Journey mutation after takeover, including specialized ingress. Specialized services recheck
-the binding inside their write transactions, so a takeover that commits after request admission still prevents the old
-generation from committing. Successor authorization retains only the remaining immutable attempt budget; a repeated
-takeover cannot reset it. A fenced task cannot create, dispatch, complete, cancel, revoke, or advance Journey work.
-Stock Codex has no trusted known-task
-reopen capability, so a recorded archived or missing task is recovered with a fresh scoped handoff rather than an
-unverified reopen claim. An expired, mismatched, replayed, fenced, or stale ticket must be replaced from the Journey
-UI. Requirements, approval receipts, and coordinator bearer credentials are never placed in the URI.
+For Journey hosting, use the in-app controls described in the [operator guide](quality-journey-operator-guide.md).
+The coordinator can inspect historical desktop metadata with `quality_journey_handoff_inspect`. Desktop ticket
+redemption has been retired. Collaboration retains its own independent handoff protocol.
 
-If a delegated task cannot receive native MCP capabilities, use the supported authenticated local bridge instead of creating an ad hoc protocol proxy:
+For coordinator setup diagnostics, use the authenticated project diagnostic on the intended hub.
 
 ```bash
 appraisejs mcp-call project_diagnostic --input-json '{"expectedTargetWorkspacePath":"/absolute/target"}'
@@ -115,17 +95,10 @@ When a Journey needs one missing locator, use `locator_ensure` with a registered
 
 For the current generated reference and release checks, use the scripts listed in the root `package.json`. Contract drift must be fixed in canonical source before regenerating setup output or scaffold templates.
 
-## Stock Codex handoff architecture
+## Managed Journey hosting
 
-The accepted [architecture decision](decisions/0004-stock-codex-journey-handoff.md) keeps Appraise as Journey authority
-and uses stock Codex with a skills-only plugin plus independently registered MCP. Plugin setup and host compatibility
-diagnostics are implemented above. Prepared deep-link prompt prefill and qualified remote-target neutral-host handoff
-are implemented for every mutable Journey stage. Later-stage reconnect is monotonic-generation- and
-snapshot-fenced, with short-lived local UI takeover approval and read-only external-effect recovery; it does not grant
-role execution or replace lifecycle gates.
-Opening Codex does not establish a connection or start work: the documented prefill flow requires the user to send,
-then authenticated handoff redemption and authoritative state reads. The plugin supplies workflow guidance while
-Appraise services enforce lifecycle transitions. No managed provider/fork or background-wake guarantee is introduced.
+The application owns new Journeys. MCP registration and compatibility diagnostics describe connectivity.
+They cannot start managed workers. The operator guide describes migration eligibility and runtime readiness.
 
 ## Disconnected external-worker gateway (M02-A)
 

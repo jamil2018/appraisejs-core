@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
+import { reconnectDiscoveryBrowser } from '@/services/coordinator/quality-journey-discovery-browser-reconnect'
 import { requireActiveProjectForMutation } from '@/lib/active-project'
 import {
   authorizeQualityJourneyDiscoveryBrowserExactReturn,
@@ -53,6 +54,17 @@ async function mutate<T>(
     const result = await operation({ ...value, targetProjectId: project.id })
     const journeyId = (value as { journeyId: string }).journeyId
     revalidatePath(`/quality-journeys/${journeyId}`)
+    return { status: 200, success: true, data: result }
+  } catch (error) {
+    return failure(error)
+  }
+}
+
+export async function reconnectQualityJourneyDiscoveryBrowserAction(input: unknown): Promise<ActionResponse> {
+  try {
+    const scope = binding.parse(input)
+    const project = await requireActiveProjectForMutation()
+    const result = await reconnectDiscoveryBrowser({ ...scope, targetProjectId: project.id })
     return { status: 200, success: true, data: result }
   } catch (error) {
     return failure(error)

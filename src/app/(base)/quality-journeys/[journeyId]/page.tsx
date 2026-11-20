@@ -1,50 +1,59 @@
+import { getAppManagedAnonymousDiscoveryCaptureStatus } from '@/services/coordinator/app-managed-discovery-capture'
 import { ClosurePanel } from './closure-panel'
-import { CoordinatorHandoffPanel } from './coordinator-handoff-panel'
+import { ManagedJourneyOwnershipControl } from './managed-journey-ownership-control'
+import { ManagedJourneyProgression } from './managed-journey-progression'
+import { ManagedTriageControl } from './managed-triage-control'
+import { ManualAutomationControl } from './manual-automation-control'
+import { OperatorTriageControl } from './operator-triage-control'
+import { getOperatorTriageAvailable } from '@/services/coordinator/app-managed-triage-service'
+import {
+  getAppManagedAutomatorManualRecovery,
+  observePendingManualAutomationRecovery,
+  getAppManagedManualAutomationDraftContext,
+} from '@/services/coordinator/app-managed-automation-manual-recovery'
+import { getAppManagedTriageRecovery } from '@/services/coordinator/app-managed-triage-recovery'
 import { getQualityJourneyClosure } from '@/services/coordinator/quality-journey-closure-service'
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ArrowLeft, CircleAlert, ClipboardCheck, GitBranch, ShieldCheck, UserRoundCheck } from 'lucide-react'
+import { ArrowLeft, CircleAlert, ShieldCheck } from 'lucide-react'
 import { notFound } from 'next/navigation'
 
-import HeaderSubtitle from '@/components/typography/page-header-subtitle'
-import PageHeader from '@/components/typography/page-header'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { requireActiveProject } from '@/lib/active-project'
-import {
-  displayStageForQualityJourney,
-  qualityJourneyRequirementSummary,
-  qualityJourneyStatusProjection,
-} from '@/lib/quality-journey/presentation'
+import { qualityJourneyRequirementSummary } from '@/lib/quality-journey/presentation'
 import { getQualityJourneyAnalysis } from '@/services/coordinator/quality-journey-analysis-service'
 import { getQualityJourneyDiscovery } from '@/services/coordinator/quality-journey-discovery-service'
+import { getQualityJourneyDiscoveryPrerequisites } from '@/services/coordinator/quality-journey-discovery-prerequisites'
+import {
+  getAppManagedPreparationRecovery,
+  getAppManagedScenarioDesignCorrection,
+} from '@/services/coordinator/app-managed-scenario-automation-recovery'
 import { getQualityJourney } from '@/services/coordinator/quality-journey-service'
 import { getQualityJourneyScenarioPortfolio } from '@/services/coordinator/quality-journey-scenario-service'
 import { getQualityJourneyAutomationContext } from '@/services/coordinator/quality-journey-automation-service'
 import { getQualityJourneyExecution } from '@/services/coordinator/quality-journey-execution-service'
-import { inspectQualityJourneyHandoff } from '@/services/coordinator/quality-journey-handoff-service'
 import { getQualityJourneyTriage } from '@/services/coordinator/quality-journey-triage-service'
 import prisma from '@/config/db-config'
+import { JourneyActivity, JourneyStages } from './journey-activity'
 import { JourneyExecutionStatus } from './journey-execution-status'
 import { JourneyRecoveryPanel } from './journey-recovery-panel'
 import { ServiceError } from '@/services/shared/errors'
 
 import { AnalysisReviewControls } from './analysis-review-controls'
 import { AutomationMaterializationStatus } from './automation-materialization-status'
-import { JourneyAnchorNavigation } from './journey-anchor-navigation'
-import { JourneyProgressNotice } from './journey-progress-notice'
-import { JourneyProgress } from './journey-progress'
-import { JourneyRuntimeStatus } from './journey-runtime-status'
+import { AnalysisRecoveryControl } from './analysis-recovery-control'
+import { getQualityJourneyStatusSnapshot } from '@/services/coordinator/quality-journey-query-service'
 import { JourneyStatusObservationProvider } from './journey-status-observation'
 import { ScenarioPortfolioReview } from './scenario-portfolio-review'
 import { DiscoveryBrowserPanel } from './discovery-browser-panel'
+import { DiscoverySetupPanel } from './discovery-setup-panel'
+import { ManagedDiscoveryControl } from './managed-discovery-control'
+import { ManagedScenarioAutomationControl } from './managed-scenario-automation-control'
 import { TriageReportPanel } from './triage-report-panel'
 import { qualityJourneyLabel, toAnalysisRevisionView } from './quality-journey-view-model'
 
 type PageProps = { params: Promise<{ journeyId: string }>; searchParams?: Promise<{ project?: string }> }
-type JourneyDetail = Awaited<ReturnType<typeof getQualityJourney>>
-type ActiveProject = Awaited<ReturnType<typeof requireActiveProject>>
 
 function LinkedFollowUpAction({
   visible,
@@ -84,22 +93,14 @@ async function loadJourneySupplementalArtifacts(journeyId: string, projectId: st
         throw error
       })
     : null
-  const automationContext = automationStages.includes(stage)
-    ? await getQualityJourneyAutomationContext({ journeyId, targetProjectId: projectId })
-    : null
+  const automationContext =
+    automationStages.includes(stage) &&
+    (stage !== 'AUTOMATION' || Boolean(scenarioPortfolio?.portfolio?.approvedIntentHash))
+      ? await getQualityJourneyAutomationContext({ journeyId, targetProjectId: projectId })
+      : null
   // These are immutable, reviewable lifecycle records. Keep them available once
   // they exist, even when the current Runner stage has moved past their gate.
   return { scenarios: scenarioPortfolio, automation: automationContext }
-}
-
-function showDesktopHandoff(journey: JourneyDetail['journey']) {
-  return journey.hostingMode === 'EXTERNAL_LEGACY' && journey.stage !== 'CLOSED'
-}
-
-async function loadDesktopHandoff(journey: JourneyDetail['journey'], projectId: string) {
-  if (!showDesktopHandoff(journey)) return null
-  const { handoff } = await inspectQualityJourneyHandoff({ journeyId: journey.journeyId, targetProjectId: projectId })
-  return handoff
 }
 
 async function loadJourneyDetail(journeyId: string, projectId: string) {
@@ -124,44 +125,101 @@ async function loadJourneyDetail(journeyId: string, projectId: string) {
   const answerable =
     journey.journey.stage === 'ANALYSIS_REVIEW' ||
     (journey.journey.stage === 'ANALYSIS' && Boolean(revision && !revision.publication))
-  const activeRunner = journey.runner.find(
-    node => node.stage === journey.journey.stage && ['RUNNABLE', 'IN_PROGRESS', 'BLOCKED'].includes(node.state),
-  )
-
-  const [{ scenarios, automation }, discovery, execution, triage, handoff, environments, attempts, requirement] =
-    await Promise.all([
-      loadJourneySupplementalArtifacts(journeyId, projectId, journey.journey.stage),
-      loadActiveDiscovery(journey.journey.stage, journeyId, projectId),
-      getQualityJourneyExecution({ journeyId, targetProjectId: projectId }),
-      getQualityJourneyTriage({ journeyId, targetProjectId: projectId }),
-      loadDesktopHandoff(journey.journey, projectId),
-      prisma.environment.findMany({
-        where: { targetProjectId: projectId, archivedAt: null },
-        select: { id: true, name: true },
-        orderBy: { name: 'asc' },
-      }),
-      prisma.qualityJourneyWorkAttempt.findMany({
-        where: { workItem: { journeyId, targetProjectId: projectId } },
-        select: { id: true, workItemId: true, attempt: true, status: true, startedAt: true, completedAt: true },
-        orderBy: [{ workItemId: 'asc' }, { attempt: 'asc' }],
-      }),
-      prisma.qualityJourneyRevision.findFirst({
-        where: { journeyId },
-        orderBy: { revision: 'asc' },
-        select: { contentJson: true },
-      }),
-    ])
+  const [
+    { scenarios, automation },
+    discovery,
+    execution,
+    triage,
+    environments,
+    attempts,
+    requirement,
+    discoverySetup,
+    preparationRecovery,
+    designCorrection,
+    triageRecovery,
+    discoveryCaptureStatus,
+    manualPreparation,
+    operatorTriageAvailable,
+  ] = await Promise.all([
+    loadJourneySupplementalArtifacts(journeyId, projectId, journey.journey.stage),
+    loadActiveDiscovery(journey.journey.stage, journeyId, projectId),
+    getQualityJourneyExecution({ journeyId, targetProjectId: projectId }),
+    getQualityJourneyTriage({ journeyId, targetProjectId: projectId }),
+    prisma.environment.findMany({
+      where: { targetProjectId: projectId, archivedAt: null },
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+    }),
+    prisma.qualityJourneyWorkAttempt.findMany({
+      where: { workItem: { journeyId, targetProjectId: projectId } },
+      select: {
+        id: true,
+        workItemId: true,
+        attempt: true,
+        status: true,
+        startedAt: true,
+        completedAt: true,
+        dispatchAdapterId: true,
+        failureJson: true,
+      },
+      orderBy: [{ workItemId: 'asc' }, { attempt: 'asc' }],
+    }),
+    prisma.qualityJourneyRevision.findFirst({
+      where: { journeyId },
+      orderBy: { revision: 'asc' },
+      select: { contentJson: true },
+    }),
+    ['ANALYSIS', 'ANALYSIS_REVIEW'].includes(journey.journey.stage)
+      ? getQualityJourneyDiscoveryPrerequisites(projectId)
+      : null,
+    ['SCENARIO_DESIGN', 'SCENARIO_REVIEW', 'AUTOMATION'].includes(journey.journey.stage)
+      ? getAppManagedPreparationRecovery({
+          journeyId,
+          targetProjectId: projectId,
+          role: journey.journey.stage === 'AUTOMATION' ? 'AUTOMATOR' : 'TEST_SCENARIO_DESIGNER',
+        })
+      : null,
+    journey.journey.stage === 'SCENARIO_DESIGN'
+      ? getAppManagedScenarioDesignCorrection({ journeyId, targetProjectId: projectId })
+      : null,
+    ['TRIAGE', 'REPORT_REVIEW'].includes(journey.journey.stage)
+      ? getAppManagedTriageRecovery({ journeyId, targetProjectId: projectId })
+      : null,
+    journey.journey.stage === 'DISCOVERY'
+      ? getAppManagedAnonymousDiscoveryCaptureStatus({
+          journeyId,
+          targetProjectId: projectId,
+          expectedStateHash: journey.journey.stateHash,
+        })
+      : null,
+    journey.journey.stage === 'AUTOMATION'
+      ? Promise.all([
+          getAppManagedAutomatorManualRecovery({ journeyId, targetProjectId: projectId }),
+          observePendingManualAutomationRecovery({ journeyId, targetProjectId: projectId }),
+          getAppManagedManualAutomationDraftContext({ journeyId, targetProjectId: projectId }),
+        ]).then(([recovery, issued, context]) => ({ recovery, issued, choices: context?.choices }))
+      : null,
+    journey.journey.stage === 'TRIAGE' ? getOperatorTriageAvailable({ journeyId, targetProjectId: projectId }) : false,
+  ])
   return {
     activeAnalysis,
-    activeRunner,
+    previousAnalyses: analysis.revisions
+      .filter(item => revision && item.revision < revision.revision)
+      .map(toAnalysisRevisionView),
     answerable,
     journey,
     discovery,
+    discoverySetup,
+    preparationRecovery,
+    designCorrection,
+    triageRecovery,
+    discoveryCaptureStatus,
+    manualPreparation,
+    operatorTriageAvailable,
     scenarios,
     automation,
     execution,
     triage,
-    handoff,
     environments,
     attempts,
     requirementSummary: requirement
@@ -223,543 +281,390 @@ function detailPresentation(
 ) {
   const portfolio = detail.scenarios ? detail.scenarios.portfolio : null
   const materializations = detail.automation ? detail.automation.materializations : []
+  const activeDiscovery = detail.discovery?.revisions.find(
+    revision => revision.id === detail.discovery?.activeDiscoveryRevisionId,
+  )
+  const readyScenarios = new Set(
+    materializations
+      .filter(item => item.status === 'MATERIALIZED' && item.preparedCapsule?.status === 'PREPARED')
+      .map(item => item.scenarioRevisionId),
+  )
+  const allPrepared = Boolean(
+    detail.automation?.scenarioRevisionIds.length &&
+    detail.automation.scenarioRevisionIds.every(id => readyScenarios.has(id)),
+  )
+  const discoveryFailure = (role: string) =>
+    detail.journey.workItems.some(
+      item =>
+        item.cycleId === detail.journey.journey.activeCycleId &&
+        item.status !== 'SUPERSEDED' &&
+        item.role === role &&
+        detail.attempts.some(
+          attempt =>
+            attempt.workItemId === item.id &&
+            attempt.attempt === item.currentAttempt &&
+            attempt.dispatchAdapterId &&
+            attempt.failureJson &&
+            attempt.failureJson.includes('"stage"'),
+        ),
+    )
   return {
     portfolio,
-    pendingAnalysisDecision: detail.journey.journey.stage === 'ANALYSIS_REVIEW' && !detail.activeAnalysis?.decision,
-    pendingReportDecision: detail.journey.journey.stage === 'REPORT_REVIEW',
-    pendingScenarioDecision:
-      detail.journey.journey.stage === 'SCENARIO_REVIEW' &&
-      Boolean(portfolio?.reviewHash) &&
-      Boolean(portfolio?.scenarios.some(scenario => !scenario.decisions.length)),
+    allPrepared,
+    scoutFailed: discoveryFailure('SCOUT'),
+    explorerFailed: discoveryFailure('RESOURCE_EXPLORER'),
+    triageFailed: discoveryFailure('TRIAGER'),
     requestedExecutionConsentCount: detail.execution.consents.filter(consent => consent.status === 'REQUESTED').length,
-    showCoordinatorHandoff: showDesktopHandoff(detail.journey.journey),
-    hasObservedWorkerProgress: Boolean(detail.activeAnalysis),
     hasClosureReceipt: Boolean(closure.receipt),
+    discoveryCorrectionReady: activeDiscovery?.status === 'INVALIDATED',
     capsuleIds: materializations.flatMap(item =>
       item.status === 'MATERIALIZED' && item.preparedCapsule ? [item.preparedCapsule.id] : [],
     ),
   }
 }
 
-export default async function QualityJourneyDetailPage({ params, searchParams }: PageProps) {
-  const [{ journeyId }, parameters] = await Promise.all([params, searchParams])
-  const project = await requireActiveProject(parameters ? parameters.project : undefined)
-  const [detail, closure] = await Promise.all([
-    loadJourneyDetail(journeyId, project.id),
-    getQualityJourneyClosure({ journeyId, targetProjectId: project.id }),
-  ])
+type Detail = Awaited<ReturnType<typeof loadJourneyDetail>>
+type CurrentWorkProps = {
+  detail: Detail
+  presentation: ReturnType<typeof detailPresentation>
+  projectId: string
+  closure: Awaited<ReturnType<typeof getQualityJourneyClosure>>
+}
+
+function JourneyHistory({ detail, projectId, closed }: { detail: Detail; projectId: string; closed: boolean }) {
+  const { journey, activeAnalysis, requirementSummary } = detail
+  const journeyId = journey.journey.journeyId
+  return (
+    <details className="border-t pt-4">
+      <summary className="cursor-pointer text-sm font-medium">History</summary>
+      <div className="mt-4 space-y-4">
+        <section>
+          <h2 className="font-semibold">Original brief</h2>
+          <p className="mt-2 whitespace-pre-wrap break-words text-sm">{requirementSummary}</p>
+        </section>
+        {[...detail.previousAnalyses, ...(activeAnalysis ? [activeAnalysis] : [])].map(item => (
+          <details key={item.analysisRevisionId}>
+            <summary className="cursor-pointer text-sm">Requirements review {item.revision}</summary>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
+              {item.requirements.map(row => (
+                <li key={row.requirementId}>{row.statement}</li>
+              ))}
+            </ul>
+            {item.questions.map(q => (
+              <div key={q.id} className="mt-2 text-sm">
+                <p>{q.prompt}</p>
+                {q.answers.map(a => (
+                  <p key={a.answerId} className="text-muted-foreground">
+                    {a.answer}
+                  </p>
+                ))}
+              </div>
+            ))}
+          </details>
+        ))}
+        <Timeline events={journey.events} />
+        <Link
+          className="text-sm underline"
+          href={`/quality-journeys/${journeyId}/artifacts?project=${encodeURIComponent(projectId)}`}
+        >
+          Browse files and evidence
+        </Link>
+        <LinkedFollowUpAction journeyId={journeyId} projectId={projectId} visible={closed} />
+      </div>
+    </details>
+  )
+}
+
+function JourneyCurrentWork({ detail, presentation, projectId, closure }: CurrentWorkProps) {
   const {
-    activeAnalysis,
-    activeRunner,
-    answerable,
     journey,
+    activeAnalysis,
+    answerable,
     discovery,
+    discoverySetup,
+    preparationRecovery,
+    designCorrection,
     automation,
     execution,
     triage,
-    handoff,
     environments,
-    attempts,
-    requirementSummary,
   } = detail
+  const { stage, journeyId, stateHash } = journey.journey
+  const run = (
+    <section id="execution" tabIndex={-1}>
+      <JourneyExecutionStatus
+        execution={execution}
+        journeyId={journeyId}
+        targetProjectId={projectId}
+        stateHash={stateHash}
+        stage={stage}
+        environments={environments}
+        capsuleIds={presentation.capsuleIds}
+      />
+    </section>
+  )
+  switch (stage) {
+    case 'ANALYSIS':
+    case 'ANALYSIS_REVIEW':
+      return activeAnalysis ? (
+        <section id="analysis" className="space-y-3">
+          <AnalysisReviewControls
+            discoveryReady={discoverySetup?.ready ?? true}
+            previousAnalyses={detail.previousAnalyses}
+            analysis={activeAnalysis}
+            answerable={answerable}
+            journeyId={journeyId}
+            stage={stage}
+            stateHash={stateHash}
+            analysisReviewHash={journey.journey.analysisReviewHash}
+            unresolvedQuestionIds={journey.journey.unresolvedQuestionIds}
+          />
+
+          {discoverySetup && !discoverySetup.ready && !journey.journey.unresolvedQuestionIds.length ? (
+            <DiscoverySetupPanel prerequisites={discoverySetup} projectId={projectId} />
+          ) : null}
+        </section>
+      ) : null
+    case 'DISCOVERY':
+      return (
+        <section id="discovery" tabIndex={-1}>
+          <DiscoveryBrowserPanel
+            journeyId={journeyId}
+            discovery={discoveryBrowserView(discovery, environments)}
+            automaticStatus={detail.discoveryCaptureStatus ?? undefined}
+          />
+          {presentation.scoutFailed || presentation.explorerFailed || presentation.discoveryCorrectionReady ? (
+            <ManagedDiscoveryControl
+              correctionReady={presentation.discoveryCorrectionReady}
+              scoutAccepted={!presentation.scoutFailed}
+              resourceAccepted={!presentation.explorerFailed}
+              journeyId={journeyId}
+              stateHash={stateHash}
+              enabled={process.env.APPRAISE_LOCAL_CODEX_DISCOVERY_ENABLED === 'true'}
+            />
+          ) : null}
+        </section>
+      )
+    case 'SCENARIO_DESIGN':
+    case 'SCENARIO_REVIEW':
+      return (
+        <section id="scenarios" tabIndex={-1}>
+          {designCorrection || preparationRecovery ? (
+            <ManagedScenarioAutomationControl
+              key={`designer:${designCorrection?.failureHash ?? preparationRecovery?.candidateHash ?? 'dispatch'}`}
+              correction={designCorrection}
+              recovery={preparationRecovery}
+              journeyId={journeyId}
+              stateHash={stateHash}
+              enabled={process.env.APPRAISE_LOCAL_CODEX_SCENARIO_AUTOMATION_ENABLED === 'true'}
+              role="TEST_SCENARIO_DESIGNER"
+            />
+          ) : null}
+          <ScenarioPortfolioReview
+            journeyId={journeyId}
+            portfolio={presentation.portfolio}
+            stage={stage}
+            stateHash={stateHash}
+          />
+        </section>
+      )
+    case 'AUTOMATION':
+      return (
+        <>
+          {
+            <section id="automation" tabIndex={-1}>
+              {detail.manualPreparation?.recovery || detail.manualPreparation?.issued ? (
+                <ManualAutomationControl
+                  journeyId={journeyId}
+                  stateHash={stateHash}
+                  recovery={detail.manualPreparation.recovery}
+                  issued={detail.manualPreparation.issued}
+                  choices={detail.manualPreparation.choices}
+                />
+              ) : null}
+              {preparationRecovery ? (
+                <ManagedScenarioAutomationControl
+                  key={`automator:${preparationRecovery?.candidateHash ?? 'dispatch'}`}
+                  recovery={preparationRecovery}
+                  journeyId={journeyId}
+                  stateHash={stateHash}
+                  enabled={process.env.APPRAISE_LOCAL_CODEX_SCENARIO_AUTOMATION_ENABLED === 'true'}
+                  role="AUTOMATOR"
+                />
+              ) : null}
+              <AutomationMaterializationStatus context={automation} />
+            </section>
+          }
+          {presentation.allPrepared ? run : null}
+        </>
+      )
+    case 'EXECUTION':
+      return run
+    case 'TRIAGE':
+    case 'REPORT_REVIEW':
+    case 'CLOSED':
+      return (
+        <>
+          {
+            <section id="triage" tabIndex={-1}>
+              {stage === 'TRIAGE' && detail.operatorTriageAvailable ? (
+                <OperatorTriageControl journeyId={journeyId} stateHash={stateHash} />
+              ) : null}
+              {detail.triageRecovery ? (
+                <ManagedTriageControl
+                  journeyId={journeyId}
+                  stateHash={stateHash}
+                  enabled={false}
+                  recovery={detail.triageRecovery}
+                />
+              ) : stage === 'TRIAGE' && presentation.triageFailed ? (
+                <p role="alert" className="text-sm">
+                  Appraise couldn’t save the report. Your test results are in History.
+                </p>
+              ) : null}
+              <TriageReportPanel
+                projectId={projectId}
+                journeyId={journeyId}
+                stage={stage}
+                stateHash={stateHash}
+                triage={triage}
+              />
+            </section>
+          }
+          {execution.proposals.some(p => ['PROPOSED', 'APPROVED'].includes(p.status)) ? run : null}
+          {stage === 'TRIAGE' ? null : (
+            <ClosurePanel
+              key={closure.reportHash ?? journeyId}
+              journeyId={journeyId}
+              stateHash={stateHash}
+              closure={closure}
+            />
+          )}
+        </>
+      )
+    default:
+      return null
+  }
+}
+
+export default async function QualityJourneyDetailPage({ params, searchParams }: PageProps) {
+  const [{ journeyId }, parameters] = await Promise.all([params, searchParams])
+  const project = await requireActiveProject(parameters ? parameters.project : undefined)
+  const [detail, closure, initialSnapshot] = await Promise.all([
+    loadJourneyDetail(journeyId, project.id),
+    getQualityJourneyClosure({ journeyId, targetProjectId: project.id }),
+    getQualityJourneyStatusSnapshot({ journeyId, targetProjectId: project.id }),
+  ])
+  const { activeAnalysis, answerable, journey, execution, requirementSummary } = detail
   const presentation = detailPresentation(detail, closure)
+  const managedActive = journey.journey.hostingMode === 'APP_SERVER_LOCAL_V1' && journey.journey.status === 'ACTIVE'
+
+  const stage = journey.journey.stage
+  const workerSetting: Partial<Record<string, string>> = {
+    ANALYSIS: 'APPRAISE_LOCAL_CODEX_ANALYSIS_ENABLED',
+    DISCOVERY: 'APPRAISE_LOCAL_CODEX_DISCOVERY_ENABLED',
+    SCENARIO_DESIGN: 'APPRAISE_LOCAL_CODEX_SCENARIO_AUTOMATION_ENABLED',
+    AUTOMATION: 'APPRAISE_LOCAL_CODEX_SCENARIO_AUTOMATION_ENABLED',
+    TRIAGE: 'APPRAISE_LOCAL_CODEX_TRIAGE_ENABLED',
+  }
+  const setting = workerSetting[stage]
+  const agentEnabled = Boolean(setting && process.env[setting] === 'true')
+  const activeRunStates = new Set(execution.cycles.map(cycle => cycle.status))
+  let executionActivity: string | undefined
+  if (stage === 'EXECUTION') {
+    if (activeRunStates.has('CANCELLING')) executionActivity = 'Stopping the test run'
+    else if (activeRunStates.has('RUNNING')) executionActivity = 'Running approved tests'
+    else if (activeRunStates.has('RESERVED')) executionActivity = 'Waiting for the test run to start'
+  }
+  const legacy = journey.journey.hostingMode === 'EXTERNAL_LEGACY'
+  const paused = journey.journey.status === 'PAUSED'
 
   return (
     <JourneyStatusObservationProvider
+      initialSnapshot={initialSnapshot}
       journeyId={journeyId}
       projectId={project.id}
       stage={journey.journey.stage}
       stateHash={journey.journey.stateHash}
       version={journey.journey.version}
     >
-      <main className="space-y-6 pb-10">
-        <JourneyHeader journey={journey} project={project} requirementSummary={requirementSummary} />
-        <JourneyRecoveryPanel
-          journeyId={journeyId}
-          status={journey.journey.status}
-          stateHash={journey.journey.stateHash}
-          version={journey.journey.version}
-        />
-        <section
-          className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(20rem,0.6fr)]"
-          aria-label="Current journey focus"
+      <main className="mx-auto w-full max-w-4xl space-y-6 pb-10">
+        <Link
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:underline"
+          href={`/quality-journeys?project=${encodeURIComponent(project.id)}`}
         >
-          <JourneyNextAction
-            blockerCount={journey.blockers.length}
-            blockerResponsibleActor={journey.blockers[0]?.responsibleActor}
-            hasObservedWorkerProgress={presentation.hasObservedWorkerProgress}
-            handoffStatus={handoff?.status}
-            allowDesktopHandoff={presentation.showCoordinatorHandoff}
+          <ArrowLeft aria-hidden="true" className="size-4" /> Quality Journeys
+        </Link>
+        <header className="flex items-start justify-between gap-4">
+          <h1 className="min-w-0 text-balance break-words text-2xl font-semibold tracking-tight">
+            {requirementSummary.split('\n')[0].slice(0, 100)}
+          </h1>
+          <JourneyRecoveryPanel
             journeyId={journeyId}
-            pendingAnalysisDecision={presentation.pendingAnalysisDecision}
-            pendingReportDecision={presentation.pendingReportDecision}
-            pendingScenarioDecision={presentation.pendingScenarioDecision}
-            projectId={project.id}
-            requestedExecutionConsentCount={presentation.requestedExecutionConsentCount}
-            stage={journey.journey.stage}
-            unresolvedRequiredQuestionCount={journey.journey.unresolvedQuestionIds.length}
+            status={journey.journey.status}
+            stateHash={journey.journey.stateHash}
+            version={journey.journey.version}
           />
-          <PendingUserDecisions
-            pendingAnalysisDecision={presentation.pendingAnalysisDecision}
-            pendingReportReview={presentation.pendingReportDecision}
-            pendingScenarioDecision={presentation.pendingScenarioDecision}
-            questionCount={journey.journey.unresolvedQuestionIds.length}
-            requestedExecutionConsentCount={presentation.requestedExecutionConsentCount}
-          />
-        </section>
-        <section id="overview" tabIndex={-1}>
-          <JourneyOverview activeRunner={activeRunner} journey={journey} />
-        </section>
-        <JourneyAnchorNavigation journeyId={journeyId} projectId={project.id} stage={journey.journey.stage} />
-        <JourneyProgressNotice
-          eventCount={journey.events.length}
-          stateHash={journey.journey.stateHash}
-          stage={journey.journey.stage}
-        />
-        <nav className="flex flex-wrap gap-3" aria-label="Journey artifact actions">
-          <Button asChild variant="outline">
-            <Link href={`/quality-journeys/${journeyId}/artifacts?project=${encodeURIComponent(project.id)}`}>
-              Artifact library and export
-            </Link>
-          </Button>
-          <LinkedFollowUpAction journeyId={journeyId} projectId={project.id} visible={presentation.hasClosureReceipt} />
-        </nav>
-        <section id="gates" tabIndex={-1}>
-          <ClosurePanel
-            key={closure.reportHash ?? journeyId}
+        </header>
+        <JourneyStages stage={stage} />
+        {managedActive ? (
+          <ManagedJourneyProgression
             journeyId={journeyId}
             stateHash={journey.journey.stateHash}
-            closure={closure}
+            discoveryCaptureStatus={detail.discoveryCaptureStatus}
           />
+        ) : null}
+        <section className="space-y-5" aria-label="Current journey focus">
+          <JourneyActivity
+            stage={stage}
+            status={journey.journey.status}
+            legacy={legacy}
+            revision={stage === 'ANALYSIS' && Boolean(activeAnalysis?.decision || detail.previousAnalyses.length)}
+            readyToRun={stage === 'AUTOMATION' && presentation.allPrepared}
+            analyzingEnabled={agentEnabled}
+            reviewing={Boolean(activeAnalysis)}
+            discoveryCaptureStatus={detail.discoveryCaptureStatus ?? undefined}
+            awaitingReportReview={detail.operatorTriageAvailable}
+            awaitingTestPlan={Boolean(detail.manualPreparation?.issued)}
+            executionActivity={executionActivity}
+            question={
+              answerable &&
+              (journey.journey.unresolvedQuestionIds.length > 0 ||
+                Boolean(activeAnalysis?.questions.some(q => q.required && !q.answers.length)))
+            }
+            blocked={journey.blockers.length > 0}
+            consent={presentation.requestedExecutionConsentCount > 0}
+            lastEvent={journey.events.at(-1)?.eventType}
+            lastEventAt={journey.events.at(-1)?.createdAt.toISOString()}
+          />
+          {managedActive && ['ANALYSIS', 'ANALYSIS_REVIEW'].includes(stage) ? (
+            <AnalysisRecoveryControl journeyId={journeyId} />
+          ) : null}
+          {managedActive && !agentEnabled && setting && !presentation.allPrepared ? (
+            <details className="text-sm">
+              <summary className="cursor-pointer">How to connect the agent</summary>
+              <p className="mt-2">
+                Ask your workspace owner to enable <code className="break-all">{setting}</code> on the Appraise server.
+                Your brief stays saved here.
+              </p>
+            </details>
+          ) : null}
+          {paused && execution.cycles.some(c => ['RUNNING', 'RESERVED', 'CANCELLING'].includes(c.status)) ? (
+            <p>A test run is still stopping.</p>
+          ) : null}
+          {legacy && !presentation.hasClosureReceipt ? (
+            <section id="hosting" aria-label="Managed hosting ownership">
+              <ManagedJourneyOwnershipControl journeyId={journeyId} projectId={project.id} />
+            </section>
+          ) : null}
+          {!paused && !legacy && journey.blockers.length > 0 ? <BlockerCard blockers={journey.blockers} /> : null}
+          {!paused && !legacy ? (
+            <JourneyCurrentWork detail={detail} presentation={presentation} projectId={project.id} closure={closure} />
+          ) : null}
         </section>
-
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(20rem,0.85fr)]">
-          <div className="space-y-6">
-            <section id="progress" tabIndex={-1}>
-              <JourneyProgress
-                attempts={attempts}
-                closure={closure}
-                execution={execution}
-                journey={journey}
-                triage={triage}
-              />
-            </section>
-            <section id="analysis" tabIndex={-1}>
-              {presentation.showCoordinatorHandoff ? (
-                <div className="mb-6">
-                  <CoordinatorHandoffPanel
-                    handoff={handoff}
-                    hasObservedWorkerProgress={presentation.hasObservedWorkerProgress}
-                    journeyId={journeyId}
-                    projectId={project.id}
-                    stage={journey.journey.stage}
-                  />
-                </div>
-              ) : null}
-              <AnalysisDocument analysis={activeAnalysis} />
-              <AnalysisReviewControls
-                analysis={activeAnalysis}
-                answerable={answerable}
-                journeyId={journey.journey.journeyId}
-                stage={journey.journey.stage}
-                stateHash={journey.journey.stateHash}
-                analysisReviewHash={journey.journey.analysisReviewHash}
-                unresolvedQuestionIds={journey.journey.unresolvedQuestionIds}
-              />
-            </section>
-            <section id="discovery" tabIndex={-1}>
-              <DiscoveryBrowserPanel journeyId={journeyId} discovery={discoveryBrowserView(discovery, environments)} />
-            </section>
-            <section id="scenarios" tabIndex={-1}>
-              <ScenarioPortfolioReview
-                journeyId={journey.journey.journeyId}
-                portfolio={presentation.portfolio}
-                stage={journey.journey.stage}
-                stateHash={journey.journey.stateHash}
-              />
-            </section>
-            <section id="automation" tabIndex={-1}>
-              <AutomationMaterializationStatus context={automation} />
-            </section>
-            <section id="execution" tabIndex={-1}>
-              <JourneyExecutionStatus
-                execution={execution}
-                journeyId={journeyId}
-                targetProjectId={project.id}
-                stateHash={journey.journey.stateHash}
-                stage={journey.journey.stage}
-                environments={environments}
-                capsuleIds={presentation.capsuleIds}
-              />
-            </section>
-            <section id="triage" tabIndex={-1}>
-              <TriageReportPanel
-                journeyId={journeyId}
-                stage={journey.journey.stage}
-                stateHash={journey.journey.stateHash}
-                triage={triage}
-              />
-            </section>
-          </div>
-          <div id="activity" tabIndex={-1}>
-            <JourneySidebar journey={journey} />
-          </div>
-        </section>
+        <JourneyHistory detail={detail} projectId={project.id} closed={presentation.hasClosureReceipt} />
       </main>
     </JourneyStatusObservationProvider>
-  )
-}
-
-function JourneyHeader({
-  journey,
-  project,
-  requirementSummary,
-}: {
-  journey: JourneyDetail
-  project: ActiveProject
-  requirementSummary: string
-}) {
-  return (
-    <header className="space-y-4">
-      <Button asChild size="sm" variant="ghost">
-        <Link href={`/quality-journeys?project=${encodeURIComponent(project.id)}`}>
-          <ArrowLeft aria-hidden="true" className="mr-2 size-4" />
-          Quality Journeys
-        </Link>
-      </Button>
-      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row">
-        <div className="space-y-2">
-          <PageHeader>
-            <span className="flex items-center gap-3">
-              <GitBranch aria-hidden="true" className="size-7 text-primary sm:size-8" />
-              Testing journey
-            </span>
-          </PageHeader>
-          <HeaderSubtitle>{requirementSummary}</HeaderSubtitle>
-        </div>
-        <Badge variant="outline">{displayStageForQualityJourney(journey.journey.stage).label}</Badge>
-      </div>
-      <p className="text-sm text-muted-foreground">Testing work for {project.displayName}.</p>
-      <details className="text-muted-foreground">
-        <summary className="cursor-pointer text-[11px]">Technical details</summary>
-        <p className="mt-1 break-all font-mono text-[11px]">Journey ID: {journey.journey.journeyId}</p>
-      </details>
-    </header>
-  )
-}
-
-function JourneyNextAction({
-  allowDesktopHandoff,
-  blockerCount,
-  blockerResponsibleActor,
-  hasObservedWorkerProgress,
-  handoffStatus,
-  journeyId,
-  pendingAnalysisDecision,
-  pendingReportDecision,
-  pendingScenarioDecision,
-  projectId,
-  requestedExecutionConsentCount,
-  stage,
-  unresolvedRequiredQuestionCount,
-}: {
-  allowDesktopHandoff: boolean
-  blockerCount: number
-  blockerResponsibleActor?: string
-  hasObservedWorkerProgress: boolean
-  handoffStatus?: string
-  journeyId: string
-  pendingAnalysisDecision: boolean
-  pendingReportDecision: boolean
-  pendingScenarioDecision: boolean
-  projectId: string
-  requestedExecutionConsentCount: number
-  stage: string
-  unresolvedRequiredQuestionCount: number
-}) {
-  const status = qualityJourneyStatusProjection({
-    allowDesktopHandoff,
-    stage,
-    blockerCount,
-    blockerResponsibleActor,
-    hasObservedWorkerProgress,
-    handoffStatus,
-    unresolvedRequiredQuestionCount,
-    pendingAnalysisDecision,
-    pendingScenarioDecision,
-    pendingReportDecision,
-    requestedExecutionConsentCount,
-  })
-  const href = `/quality-journeys/${encodeURIComponent(journeyId)}?project=${encodeURIComponent(projectId)}#${status.action.destination}`
-  return (
-    <Card className="border-primary/30 bg-primary/[0.05]">
-      <CardHeader>
-        <CardDescription>Next action</CardDescription>
-        <CardTitle className="text-lg">{status.summary}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <JourneyRuntimeStatus />
-        <p className="text-sm text-muted-foreground">Next actor: {status.nextActor}</p>
-        <Button asChild>
-          <Link href={href}>{status.action.label}</Link>
-        </Button>
-        {status.alsoNeedsAttention.length ? (
-          <div className="text-sm">
-            <p className="font-medium">Also needs attention</p>
-            <ul className="mt-1 list-disc pl-5 text-muted-foreground">
-              {status.alsoNeedsAttention.map(item => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-      </CardContent>
-    </Card>
-  )
-}
-
-function JourneyOverview({
-  activeRunner,
-  journey,
-}: {
-  activeRunner: JourneyDetail['runner'][number] | undefined
-  journey: JourneyDetail
-}) {
-  const questionCount = journey.journey.unresolvedQuestionIds.length
-  const blockerCount = journey.blockers.length
-
-  return (
-    <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4" aria-label="Journey overview">
-      <SummaryCard label="Stage" value={qualityJourneyLabel(journey.journey.stage)} />
-      <SummaryCard
-        label="Active role"
-        value={activeRunner ? qualityJourneyLabel(activeRunner.role) : 'Awaiting a role'}
-      />
-      <SummaryCard
-        label="Open required questions"
-        tone={questionCount ? 'warning' : 'default'}
-        value={String(questionCount)}
-      />
-      <SummaryCard label="Active blockers" tone={blockerCount ? 'warning' : 'default'} value={String(blockerCount)} />
-    </section>
-  )
-}
-
-function JourneySidebar({ journey }: { journey: JourneyDetail }) {
-  return (
-    <aside className="space-y-6">
-      <BlockerCard blockers={journey.blockers} />
-      <Timeline events={journey.events} />
-    </aside>
-  )
-}
-
-function PendingUserDecisions({
-  pendingAnalysisDecision,
-  pendingReportReview,
-  pendingScenarioDecision,
-  questionCount,
-  requestedExecutionConsentCount,
-}: {
-  pendingAnalysisDecision: boolean
-  pendingReportReview: boolean
-  pendingScenarioDecision: boolean
-  questionCount: number
-  requestedExecutionConsentCount: number
-}) {
-  const hasPendingDecision =
-    pendingAnalysisDecision || pendingScenarioDecision || pendingReportReview || requestedExecutionConsentCount > 0
-  return (
-    <Card className={hasPendingDecision || questionCount ? 'border-amber-400/30 bg-amber-400/[0.04]' : ''}>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <UserRoundCheck aria-hidden="true" className="size-4 text-primary" />
-          Pending user decisions
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3 text-sm">
-        {pendingAnalysisDecision ? (
-          <p>Review the current published analysis revision or request a revision with durable feedback.</p>
-        ) : null}
-        {pendingScenarioDecision ? (
-          <p>Review the pending Scenario Portfolio decisions; existing durable scenario decisions are preserved.</p>
-        ) : null}
-        {pendingReportReview ? <p>Review the current full report and record the canonical report decision.</p> : null}
-        {requestedExecutionConsentCount ? (
-          <p>
-            {requestedExecutionConsentCount} requested execution consent
-            {requestedExecutionConsentCount === 1 ? ' requires' : 's require'} a human decision.
-          </p>
-        ) : null}
-        {questionCount ? (
-          <p>
-            {questionCount} required question{questionCount === 1 ? '' : 's'} must be resolved before approval.
-          </p>
-        ) : null}
-        {!hasPendingDecision && questionCount === 0 ? (
-          <p className="text-muted-foreground">No user decision is currently pending.</p>
-        ) : null}
-      </CardContent>
-    </Card>
-  )
-}
-
-function SummaryCard({
-  label,
-  value,
-  tone = 'default',
-}: {
-  label: string
-  value: string
-  tone?: 'default' | 'warning'
-}) {
-  return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardDescription>{label}</CardDescription>
-        <CardTitle className={tone === 'warning' ? 'text-amber-200' : 'capitalize'}>{value}</CardTitle>
-      </CardHeader>
-    </Card>
-  )
-}
-
-function AnalysisDocument({ analysis }: { analysis: ReturnType<typeof toAnalysisRevisionView> | null }) {
-  if (!analysis) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <ClipboardCheck aria-hidden="true" className="size-4 text-primary" />
-            Proposed test approach
-          </CardTitle>
-          <CardDescription>
-            No proposed test approach has been submitted. Follow the next action above to start or recover analysis.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-    )
-  }
-  return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <ClipboardCheck aria-hidden="true" className="size-4 text-primary" />
-              Proposed test approach
-            </CardTitle>
-            <CardDescription>
-              Version {analysis.revision}. Scope, intended checks, assumptions, risks, and success signals for this
-              version.
-            </CardDescription>
-          </div>
-          <Badge variant="outline">
-            {analysis.decision
-              ? qualityJourneyLabel(analysis.decision.decision)
-              : analysis.publication
-                ? 'Published for review'
-                : 'Draft'}
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <details className="text-muted-foreground">
-          <summary className="cursor-pointer text-sm">Technical details</summary>
-          <div className="mt-2 space-y-1">
-            <HashRow label="Approach revision ID" value={analysis.analysisRevisionId} />
-            <HashRow label="Content hash" value={analysis.contentHash} />
-          </div>
-        </details>
-        <DocumentList heading="Objectives" items={analysis.objectives} />
-        <section className="grid gap-4 lg:grid-cols-2">
-          <DocumentList heading="In scope" items={analysis.scope.included} />
-          <DocumentList heading="Excluded" items={analysis.scope.excluded} empty="No explicit exclusions." />
-        </section>
-        <section>
-          <h2 className="text-sm font-semibold">Requirements</h2>
-          <ul className="mt-3 space-y-3">
-            {analysis.requirements.map(requirement => (
-              <li
-                className="rounded-md border border-white/[0.08] bg-white/[0.025] p-3"
-                key={requirement.requirementId}
-              >
-                <p className="mt-2 text-sm leading-6">{requirement.statement}</p>
-                {requirement.sourceRefs.length ? (
-                  <details className="mt-2 text-muted-foreground">
-                    <summary className="cursor-pointer text-xs">Technical details</summary>
-                    <p className="mt-1 break-all font-mono text-[11px]">
-                      Requirement {requirement.requirementId} · sources: {requirement.sourceRefs.join(', ')}
-                    </p>
-                  </details>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        </section>
-        <section>
-          <h2 className="text-sm font-semibold">Obligations and acceptance signals</h2>
-          <ul className="mt-3 space-y-3">
-            {analysis.obligations.map(obligation => (
-              <li className="rounded-md border border-white/[0.08] bg-white/[0.025] p-3" key={obligation.obligationId}>
-                <p className="mt-2 text-sm leading-6">{obligation.statement}</p>
-                <p className="mt-2 text-xs text-muted-foreground">Signals: {obligation.acceptanceSignals.join(', ')}</p>
-                <details className="mt-2 text-muted-foreground">
-                  <summary className="cursor-pointer text-xs">Technical details</summary>
-                  <p className="mt-1 break-all font-mono text-[11px]">
-                    {obligation.obligationId} → {obligation.requirementId}
-                  </p>
-                </details>
-              </li>
-            ))}
-          </ul>
-        </section>
-        <section className="grid gap-4 lg:grid-cols-3">
-          <DocumentList heading="Constraints" items={analysis.constraints} empty="No constraints recorded." />
-          <DocumentList heading="Assumptions" items={analysis.assumptions} empty="No assumptions recorded." />
-          <DocumentList heading="Risks" items={analysis.risks} empty="No risks recorded." />
-        </section>
-        <DocumentList
-          heading="How we will know it works"
-          items={analysis.acceptanceSignals}
-          empty="No additional success signals were recorded."
-        />
-      </CardContent>
-    </Card>
-  )
-}
-
-function HashRow({ label, value }: { label: string; value: string }) {
-  return (
-    <p className="break-all font-mono text-[11px] text-muted-foreground">
-      {label}: {value}
-    </p>
-  )
-}
-
-function DocumentList({
-  heading,
-  items,
-  empty = 'None recorded.',
-}: {
-  heading: string
-  items: string[]
-  empty?: string
-}) {
-  return (
-    <section>
-      <h2 className="text-sm font-semibold">{heading}</h2>
-      {items.length ? (
-        <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
-          {items.map(item => (
-            <li className="rounded-md border border-white/[0.08] bg-white/[0.025] p-2" key={item}>
-              {item}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="mt-2 text-sm text-muted-foreground">{empty}</p>
-      )}
-    </section>
   )
 }
 

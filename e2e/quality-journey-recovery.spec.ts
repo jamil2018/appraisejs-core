@@ -82,13 +82,8 @@ test('human pause and resume preserve lifecycle identity across a real hub resta
       }
     })
     await page.goto(`${localURL}/quality-journeys/${journeyId}?project=${targetProjectId}`)
-    // Card renders a div with an accessible label, so address the explicit control label.
-    const panel = page.locator('[aria-label="Journey operational recovery"]')
-    await expect(panel.getByRole('button', { name: 'Pause journey', exact: true })).toBeDisabled()
-    await panel.getByRole('textbox', { name: 'Pause reason' }).fill('Modeled external host unavailable.')
-    await panel.getByRole('button', { name: 'Pause journey', exact: true }).click()
-    await expect(panel.getByRole('button', { name: 'Resume journey', exact: true })).toBeVisible()
-    await expect(panel.getByRole('status')).toContainText('External Codex task status is unknown')
+    await page.getByRole('button', { name: 'Pause', exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Resume', exact: true })).toBeVisible()
     restarting = true
     const stopped = await stopOwnedProcessGroup(hub)
     expect(stopped.kind).toBe('group_exit_observed')
@@ -97,9 +92,9 @@ test('human pause and resume preserve lifecycle identity across a real hub resta
     await page.goto('about:blank')
     restarting = false
     await page.goto(`${localURL}/quality-journeys/${journeyId}?project=${targetProjectId}`)
-    await expect(panel.getByRole('button', { name: 'Resume journey', exact: true })).toBeVisible()
-    await panel.getByRole('button', { name: 'Resume journey', exact: true }).click()
-    await expect(panel.getByRole('button', { name: 'Pause journey', exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Resume', exact: true })).toBeVisible()
+    await page.getByRole('button', { name: 'Resume', exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Pause', exact: true })).toBeVisible()
     const final = await prisma.qualityJourney.findUniqueOrThrow({ where: { id: journeyId } })
     expect(final).toMatchObject({ status: 'ACTIVE', stateHash: initial.stateHash, stage: initial.stage })
     expect(final.version).toBe(initial.version + 2)

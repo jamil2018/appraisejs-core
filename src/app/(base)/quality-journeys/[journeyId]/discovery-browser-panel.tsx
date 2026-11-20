@@ -1,5 +1,6 @@
 'use client'
 
+import type { AnonymousDiscoveryCaptureStatus } from '@/services/coordinator/app-managed-discovery-capture'
 import { ExternalLink, LoaderCircle, ShieldCheck } from 'lucide-react'
 import { useState, useTransition } from 'react'
 
@@ -17,6 +18,7 @@ import {
   markQualityJourneyDiscoveryBrowserMissingAccessAction,
   replaceQualityJourneyDiscoveryBrowserContextAction,
   revokeQualityJourneyDiscoveryBrowserAction,
+  reconnectQualityJourneyDiscoveryBrowserAction,
   startQualityJourneyDiscoveryBrowserAction,
 } from '../quality-journey-discovery-browser-actions'
 
@@ -48,8 +50,10 @@ function sessionFrom(response: { success?: boolean; data?: unknown }): SessionVi
 export function DiscoveryBrowserPanel({
   journeyId,
   discovery,
+  automaticStatus,
 }: {
   journeyId: string
+  automaticStatus?: AnonymousDiscoveryCaptureStatus
   discovery: {
     id: string
     workItemId: string
@@ -68,7 +72,15 @@ export function DiscoveryBrowserPanel({
   const [authFlowId, setAuthFlowId] = useState(availableAuthFlows[0]?.flowId ?? '')
   const [pending, startTransition] = useTransition()
 
-  if (!discovery) return null
+  if (!discovery || automaticStatus === 'EVIDENCE_AVAILABLE' || automaticStatus === 'INACTIVE') return null
+  if (automaticStatus === 'READY' || automaticStatus === 'INSPECTING') return null
+  if (automaticStatus === 'RECOVERY_REQUIRED')
+    return (
+      <p role="status" className="text-sm text-muted-foreground">
+        Target inspection stopped before cleanup was confirmed. Use the Journey recovery controls to inspect the
+        recorded browser; a new capture is blocked.
+      </p>
+    )
   const binding = session ? { sessionId: session.id, journeyId, discoveryRevisionId: discovery.id } : null
   const terminal = session && ['MISSING_ACCESS', 'EXPIRED', 'LOGGED_OUT', 'REVOKED', 'CLOSED'].includes(session.state)
 
@@ -76,7 +88,10 @@ export function DiscoveryBrowserPanel({
     startTransition(async () => {
       const response = await effect()
       const nextSession = sessionFrom(response)
-      if (nextSession) setSession(nextSession)
+      if (nextSession) {
+        setSession(nextSession)
+        if (nextSession.accessMode === 'AUTHENTICATED_INTENT' && nextSession.currentUrl) setReturnCommitted(true)
+      }
       if (!response.success)
         toast({ title: 'Discovery browser action failed', description: response.error, variant: 'destructive' })
     })
@@ -107,36 +122,40 @@ export function DiscoveryBrowserPanel({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <ShieldCheck aria-hidden="true" className="size-5 text-primary" />
-          Scoped discovery browser
+          Inspect the target app
         </CardTitle>
         <CardDescription>
-          Appraise opens an ephemeral target-bound browser. Enter passwords, SSO challenges and MFA only in that
-          browser; Appraise actions never accept them.
+          Choose the page to inspect, or complete the authorized sign-in in the target browser. Appraise continues
+          automatically after the page is captured.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {!session ? (
           <div className="grid gap-3 md:grid-cols-3">
-            <div className="space-y-1">
-              <Label htmlFor="discovery-environment">Environment</Label>
-              <select
-                id="discovery-environment"
-                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                value={environmentId}
-                onChange={event => {
-                  setEnvironmentId(event.target.value)
-                  setAuthFlowId(
-                    discovery.authFlows?.find(flow => flow.environmentId === event.target.value)?.flowId ?? '',
-                  )
-                }}
-              >
-                {discovery.environments.map(environment => (
-                  <option key={environment.id} value={environment.id}>
-                    {environment.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {discovery.environments.length === 1 ? (
+              <p className="text-sm">{discovery.environments[0]?.name}</p>
+            ) : (
+              <div className="space-y-1">
+                <Label htmlFor="discovery-environment">Environment</Label>
+                <select
+                  id="discovery-environment"
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  value={environmentId}
+                  onChange={event => {
+                    setEnvironmentId(event.target.value)
+                    setAuthFlowId(
+                      discovery.authFlows?.find(flow => flow.environmentId === event.target.value)?.flowId ?? '',
+                    )
+                  }}
+                >
+                  {discovery.environments.map(environment => (
+                    <option key={environment.id} value={environment.id}>
+                      {environment.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             {accessMode === 'AUTHENTICATED_INTENT' ? (
               <div className="space-y-1 md:col-span-3">
                 <Label htmlFor="discovery-auth-flow">Authorized sign-in flow</Label>
@@ -154,21 +173,25 @@ export function DiscoveryBrowserPanel({
                 </select>
               </div>
             ) : null}
-            <div className="space-y-1">
-              <Label htmlFor="discovery-route">Frozen route</Label>
-              <select
-                id="discovery-route"
-                className="h-10 w-full rounded-md border border-input bg-background px-3 font-mono text-sm"
-                value={routeId}
-                onChange={event => setRouteId(event.target.value)}
-              >
-                {discovery.routes.map(route => (
-                  <option key={route} value={route}>
-                    {route}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {discovery.routes.length === 1 ? (
+              <p className="text-sm">{discovery.routes[0]}</p>
+            ) : (
+              <div className="space-y-1">
+                <Label htmlFor="discovery-route">Page</Label>
+                <select
+                  id="discovery-route"
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 font-mono text-sm"
+                  value={routeId}
+                  onChange={event => setRouteId(event.target.value)}
+                >
+                  {discovery.routes.map(route => (
+                    <option key={route} value={route}>
+                      {route}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="space-y-1">
               <Label htmlFor="discovery-access">Access</Label>
               <select
@@ -205,7 +228,18 @@ export function DiscoveryBrowserPanel({
               ) : (
                 <ExternalLink aria-hidden="true" className="mr-2 size-4" />
               )}
-              Open scoped browser
+              Open target app
+            </Button>
+            <Button
+              variant="outline"
+              disabled={pending}
+              onClick={() =>
+                run(() =>
+                  reconnectQualityJourneyDiscoveryBrowserAction({ journeyId, discoveryRevisionId: discovery.id }),
+                )
+              }
+            >
+              Reconnect to open browser
             </Button>
           </div>
         ) : (
@@ -279,7 +313,7 @@ export function DiscoveryBrowserPanel({
                     })
                   }
                 >
-                  Record Appraise browser receipt
+                  Save page inspection
                 </Button>
                 <div className="flex flex-wrap gap-2">
                   <Button
@@ -332,12 +366,11 @@ export function DiscoveryBrowserPanel({
         )}
         {receipt ? (
           <section className="rounded-md border border-emerald-500/30 bg-emerald-500/[0.05] p-3 text-sm" role="status">
-            <p className="font-medium">Appraise browser receipt recorded</p>
-            <p className="mt-1 text-muted-foreground">
-              Use this exact descriptor in the Scout observation bundle. A host screenshot or browser note cannot
-              replace it.
-            </p>
-            <pre className="mt-2 overflow-x-auto text-xs">{JSON.stringify(receipt, null, 2)}</pre>
+            <p className="font-medium">Page inspection saved</p>
+            <details>
+              <summary className="cursor-pointer text-xs">Inspection details</summary>
+              <pre className="mt-2 overflow-x-auto text-xs">{JSON.stringify(receipt, null, 2)}</pre>
+            </details>
           </section>
         ) : null}
       </CardContent>

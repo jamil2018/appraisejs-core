@@ -86,47 +86,6 @@ export function qualityJourneyRequirementSummary(contentJson: string) {
   }
 }
 
-export type CodexHandoffGuidance = {
-  label: 'Ready to start' | 'Launch requested' | 'Connection observed' | 'Needs recovery'
-  description: string
-}
-
-const codexHandoffGuidanceByStatus: Record<string, CodexHandoffGuidance> = {
-  NOT_PREPARED: {
-    label: 'Ready to start',
-    description: 'Open Codex, then paste and send the prepared prompt to begin analysis.',
-  },
-  PREPARED: {
-    label: 'Ready to start',
-    description: 'The prompt is ready. Open Codex, then paste and send it to begin analysis.',
-  },
-  LAUNCHING: {
-    label: 'Launch requested',
-    description: 'Appraise requested Codex. No connection or Journey work has been observed.',
-  },
-  LAUNCHED: {
-    label: 'Launch requested',
-    description: 'Appraise requested Codex. Paste and send the prepared prompt; no connection is inferred.',
-  },
-  CONNECTED: {
-    label: 'Connection observed',
-    description:
-      'Appraise recorded a Codex connection. Current availability is unknown, and progress appears only after submitted work is observed.',
-  },
-  FAILED: {
-    label: 'Needs recovery',
-    description: 'Open Codex manually, then copy, paste, and send the prepared prompt.',
-  },
-  EXPIRED: {
-    label: 'Needs recovery',
-    description: 'Prepare a fresh prompt, then open Codex manually and send it.',
-  },
-}
-
-export function codexHandoffGuidance(status: string): CodexHandoffGuidance {
-  return codexHandoffGuidanceByStatus[status] ?? codexHandoffGuidanceByStatus.NOT_PREPARED
-}
-
 export type QualityJourneyNextAction = {
   title: string
   description: string
@@ -144,8 +103,7 @@ export type QualityJourneyNextActionInput = {
   pendingReportDecision?: boolean
   requestedExecutionConsentCount?: number
   hasObservedWorkerProgress?: boolean
-  handoffStatus?: string
-  allowDesktopHandoff?: boolean
+  hostingMode?: string
 }
 
 type ObservationTimestamp = string | Date
@@ -154,9 +112,6 @@ export type QualityJourneyStatusProjectionInput = QualityJourneyNextActionInput 
   blockerResponsibleActor?: string
   observedAt?: ObservationTimestamp | null
   observedWorkAt?: ObservationTimestamp | null
-  handoffLaunchedAt?: ObservationTimestamp | null
-  handoffConnectedAt?: ObservationTimestamp | null
-  handoffFailedAt?: ObservationTimestamp | null
 }
 
 export type QualityJourneyStatusProjection = {
@@ -307,23 +262,9 @@ function observedProgressAction(
   attention: AttentionItem[],
 ): QualityJourneyNextAction {
   const displayStage = displayStageForQualityJourney(input.stage)
-  if (
-    input.allowDesktopHandoff !== false &&
-    ['ANALYSIS', 'ANALYSIS_REVIEW'].includes(input.stage) &&
-    !input.hasObservedWorkerProgress
-  ) {
-    const guidance = codexHandoffGuidance(input.handoffStatus ?? 'NOT_PREPARED')
-    return {
-      title: guidance.label,
-      description: guidance.description,
-      actionLabel: 'Start test approach',
-      destination: 'analysis',
-      alsoNeedsAttention: summaries(attention),
-    }
-  }
   return {
-    title: `${displayStage.label} is in progress`,
-    description: displayStage.description,
+    title: 'Awaiting the next Journey update',
+    description: 'Open the current stage to inspect its work and available actions.',
     actionLabel: `View ${displayStage.label.toLocaleLowerCase()}`,
     destination: displayStage.destination,
     alsoNeedsAttention: summaries(attention),
@@ -335,6 +276,15 @@ export function nextActionForQualityJourney(input: QualityJourneyNextActionInput
   const attention = attentionItems(input)
   return (
     closedAction(input, attention) ??
+    (input.hostingMode === 'EXTERNAL_LEGACY'
+      ? {
+          title: 'Migration required',
+          description: 'Transfer ownership to managed hosting before continuing.',
+          actionLabel: 'Review hosting ownership',
+          destination: 'hosting',
+          alsoNeedsAttention: summaries(attention),
+        }
+      : null) ??
     blockerAction(input, attention) ??
     requiredQuestionAction(input, attention) ??
     analysisDecisionAction(input, attention) ??
@@ -355,70 +305,14 @@ function observationTimestamp(value: ObservationTimestamp | null | undefined) {
   return value instanceof Date ? value.toISOString() : (value ?? undefined)
 }
 
-const handoffCandidates: Record<string, StatusCandidate> = {
-  PREPARED: {
-    summary: 'The Codex prompt is ready to send. Analysis has not started.',
-    nextActor: 'You',
-    secondarySummary: 'Send the prepared Codex prompt',
-  },
-  LAUNCHING: {
-    summary: 'Appraise is requesting a Codex launch. Analysis has not started.',
-    nextActor: 'Appraise',
-    secondarySummary: 'Codex launch is still being recorded',
-  },
-  LAUNCHED: {
-    summary: 'A Codex launch was requested, but Appraise has not observed a connection or submitted analysis work.',
-    nextActor: 'You',
-    secondarySummary: 'The launch request is not connection evidence',
-  },
-  CONNECTED: {
+function migrationCandidate(input: QualityJourneyStatusProjectionInput): StatusCandidate | null {
+  if (input.hostingMode !== 'EXTERNAL_LEGACY') return null
+  return {
     summary:
-      'Appraise observed a Codex connection, but current availability is unknown and no submitted analysis work has been received.',
+      'Migration required · This journey uses legacy external hosting. Transfer ownership before managed work can continue.',
     nextActor: 'You',
-    secondarySummary: 'Submitted analysis work has not been observed',
-  },
-  FAILED: {
-    summary: 'The Codex handoff failed. Open Codex manually, then copy, paste, and send the prepared prompt.',
-    nextActor: 'You',
-    secondarySummary: 'Codex handoff needs recovery',
-  },
-  EXPIRED: {
-    summary: 'The Codex handoff expired. Prepare a fresh prompt before reconnecting Codex.',
-    nextActor: 'You',
-    secondarySummary: 'Codex handoff needs recovery',
-  },
-  NOT_PREPARED: {
-    summary: 'Analysis has not started. Prepare a Codex prompt to begin.',
-    nextActor: 'You',
-    secondarySummary: 'A Codex prompt has not been prepared',
-  },
-}
-
-const noRecordedHandoffCandidate: StatusCandidate = {
-  summary: 'Analysis has not started. Appraise has no recorded Codex handoff or connection.',
-  nextActor: 'You',
-  secondarySummary: 'Codex connection has not been observed',
-}
-
-const unknownHandoffCandidate: StatusCandidate = {
-  summary: 'The Codex connection status is unknown. Analysis has not started.',
-  nextActor: 'You',
-  secondarySummary: 'Codex connection status is unknown',
-}
-
-function candidateForHandoffStatus(status: string | undefined) {
-  if (status === undefined) return noRecordedHandoffCandidate
-  return handoffCandidates[status] ?? unknownHandoffCandidate
-}
-
-function isRecoveryHandoff(status: string | undefined) {
-  return status === 'FAILED' || status === 'EXPIRED'
-}
-
-function handoffCandidate(input: QualityJourneyStatusProjectionInput): StatusCandidate | null {
-  if (input.allowDesktopHandoff === false || input.hasObservedWorkerProgress) return null
-  if (input.stage !== 'ANALYSIS' && !isRecoveryHandoff(input.handoffStatus)) return null
-  return candidateForHandoffStatus(input.handoffStatus)
+    secondarySummary: 'Migration to managed hosting is required',
+  }
 }
 
 function closedCandidate(input: QualityJourneyStatusProjectionInput): StatusCandidate | null {
@@ -467,15 +361,12 @@ function isStatusCandidate(candidate: StatusCandidate | null): candidate is Stat
 }
 
 function inProgressCandidate(input: QualityJourneyStatusProjectionInput): StatusCandidate {
-  const displayStage = displayStageForQualityJourney(input.stage)
   return {
     summary: input.hasObservedWorkerProgress
-      ? 'Appraise has observed submitted work for the current test approach.'
-      : input.allowDesktopHandoff === false
-        ? `Current task: ${displayStage.label}.`
-        : `${displayStage.label} is in progress.`,
+      ? 'Appraise has recorded submitted work. Open the Journey to review its latest evidence.'
+      : 'Awaiting a worker result. Open the Journey to inspect the available actions.',
     nextActor: 'Appraise',
-    secondarySummary: `${displayStage.label} is in progress`,
+    secondarySummary: 'Awaiting a worker result',
   }
 }
 
@@ -491,6 +382,7 @@ function missingAnalysisCandidate(input: QualityJourneyStatusProjectionInput): S
 function statusCandidates(input: QualityJourneyStatusProjectionInput): StatusCandidate[] {
   const attention = [
     closedCandidate(input),
+    migrationCandidate(input),
     blockerCandidate(input),
     questionCandidate(input),
     decisionCandidate(
@@ -509,7 +401,6 @@ function statusCandidates(input: QualityJourneyStatusProjectionInput): StatusCan
       'Results need review',
     ),
     permissionCandidate(input),
-    handoffCandidate(input),
     missingAnalysisCandidate(input),
   ].filter(isStatusCandidate)
   return attention.length ? attention : [inProgressCandidate(input)]
@@ -525,37 +416,7 @@ function lastObservation(input: QualityJourneyStatusProjectionInput): QualityJou
     }
   }
 
-  if (input.allowDesktopHandoff === false)
-    return { summary: 'No submitted analysis work has been observed.', checkedAt }
-
-  const evidenceByHandoffStatus: Record<string, { summary: string; at?: ObservationTimestamp | null }> = {
-    PREPARED: { summary: 'A Codex prompt was prepared; no connection has been observed.' },
-    LAUNCHING: {
-      summary: 'A Codex launch request was recorded; no connection has been observed.',
-      at: input.handoffLaunchedAt,
-    },
-    LAUNCHED: {
-      summary: 'A Codex launch was requested; no connection or submitted analysis work has been observed.',
-      at: input.handoffLaunchedAt,
-    },
-    CONNECTED: {
-      summary: 'A Codex connection was observed; submitted analysis work has not been observed.',
-      at: input.handoffConnectedAt,
-    },
-    FAILED: { summary: 'A failed Codex handoff was recorded.', at: input.handoffFailedAt },
-    EXPIRED: { summary: 'An expired Codex handoff was recorded.', at: input.handoffFailedAt },
-    NOT_PREPARED: { summary: 'No Codex handoff or connection has been observed.' },
-  }
-  const evidence = input.handoffStatus ? evidenceByHandoffStatus[input.handoffStatus] : undefined
-  return {
-    summary:
-      evidence?.summary ??
-      (input.handoffStatus === undefined
-        ? 'No Codex handoff or connection has been observed.'
-        : 'Codex connection status is unknown; no connection has been observed.'),
-    evidenceAt: observationTimestamp(evidence?.at),
-    checkedAt,
-  }
+  return { summary: 'No submitted analysis work has been observed.', checkedAt }
 }
 
 /**

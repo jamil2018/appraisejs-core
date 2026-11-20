@@ -3,4 +3,7 @@ export async function register() {
 
   const { startCollaborationScheduler } = await import('./services/repository-collaboration/scheduler-runtime')
   startCollaborationScheduler()
+  const { registerAppManagedJourneyRuntimeWake } =
+    await import('./services/coordinator/app-managed-progression-service')
+  registerAppManagedJourneyRuntimeWake()
 }

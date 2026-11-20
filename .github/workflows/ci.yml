@@ -43,6 +43,8 @@ jobs:
         run: Xvfb :99 -screen 0 1280x720x24 &
       - run: npm run validate:unit
       - run: npm run build
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
 
   appraisejs-package:
     name: appraisejs package

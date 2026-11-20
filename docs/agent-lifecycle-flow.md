@@ -29,22 +29,20 @@ Quality Journey is AppraiseJS's sole agent-enabled quality authority. A Journey 
 discovery, scenario approval, materialization, execution consent, sealed evidence, triage, report review, remediation,
 reruns, and closure. Only a Journey decision or closure is a quality outcome.
 
-Structured UI intake may create a mutable, project-scoped `QualityJourneyDraft`, but a draft is workspace content,
+The brief field creates a mutable, project-scoped `QualityJourneyDraft`, but a draft is workspace content,
 not lifecycle authority. Draft edits, archive/restore, and review preparation create no Journey work, events, or AI
 activity. Confirmation consumes the exact saved draft version and normalized requirement hash in one transaction:
 it creates the immutable requirement revision, submits the requirement through the canonical command boundary,
 issues the normal Analysis work item, and marks the draft confirmed. A failed or stale confirmation rolls back without
 leaving an intake Journey, and an exact retry returns the same Journey.
 
-The guided UI requires a complete brief before confirmation while the canonical requirement API and MCP contract
-remain objective-only compatible. Draft ownership is always resolved from the active project; drafts are workspace
+The UI and canonical requirement contract accept an objective alone. Starting consumes the saved version and schedules eligible managed analysis. Draft ownership is always resolved from the active project; drafts are workspace
 records rather than private per-user records. Confirmed drafts are immutable, and archive is recoverable rather than
 destructive.
 
-A Codex handoff connects a harness-native coordinator to that Journey; it does not transfer transition authority,
-create an alternate Analyzer, claim work, or bypass questions and human review gates. Appraise-prepared deep links
-prefill a minimal ticket/identity prompt in a validated local or neutral host context. Opening the URI and user Send
-remain distinct from authenticated redemption and authoritative state reads.
+New public Journeys use app-managed hosting. The local Journey page supports migration for eligible unowned legacy
+Journeys. Accepted artifacts and human decisions remain the lifecycle authority.
+See [the operator guide](quality-journey-operator-guide.md) for worker availability and recovery.
 
 ## Approved app-server host design (M00; not enabled)
 
@@ -298,28 +296,11 @@ After an answer, revision request, approval, lost reply, or stopped Codex task, 
 Analysis, and pending-event state before it claims or continues work. `quality_journey_resume` reconstructs Appraise
 work state; it does not prove that an external Codex process is alive or resumed.
 
-## Stock Codex handoff architecture
+## Historical desktop handoffs
 
-The external compatibility [architecture decision](decisions/0004-stock-codex-journey-handoff.md) (superseded as the future managed direction by [ADR-0005](decisions/0005-codex-app-server-journeys.md)) keeps Appraise as Journey authority
-and uses stock Codex with a skills-only plugin plus independently registered MCP. Package-shipped plugin setup and
-compatibility diagnostics carry no lifecycle authority. Prepared deep-link prompt prefill and qualified remote-target
-neutral-host handoff are available for every mutable Journey stage. Later-stage reconnect stores an exact Journey,
-revision, work/lease-generation, dispatch adapter/start/receipt, terminal effect, pending-event, and target snapshot;
-launch, redemption, and UI takeover fail closed when any snapshot is stale. Redemption only connects a coordinator
-session. Approval is short-lived and request-identity-bound. A separate local-UI approval atomically fences
-predecessor attempts, reissues their logical work items as `REPLACEMENT_REQUESTED` with bounded successor
-authorization, then fences connected predecessor sessions and makes a successor effective; ambiguous dispatches and
-expired leases block takeover with a read-only recovery projection. Every coordinator-facing Journey mutation then
-requires the effective handoff ID and monotonic generation, including specialized ingress. The same binding is
-rechecked inside each specialized mutation transaction, so a generation superseded after route admission cannot
-commit. Replacement authorization carries forward only its remaining immutable attempt budget across the full lineage;
-Journey-scoped locator authoring follows this same admission and transaction-local recheck, while non-Journey locator
-operations do not gain coordinator-session authority. Stale sessions make no mutation. A durable accepted replay remains readable after later fencing but truthfully reports that it is no longer
-current. The reconnect protocol never claims a work item or grants role execution authority. Stock Codex cannot safely reopen a known task, so Appraise truthfully prepares a fresh
-scoped handoff when that recovery is needed.
-Opening Codex does not establish a connection or start work: the documented prefill flow requires the user to send,
-then authenticated handoff redemption and authoritative state reads. The plugin supplies workflow guidance while
-Appraise services enforce lifecycle transitions. No managed provider/fork or background-wake guarantee is introduced.
+Existing handoff records remain available for historical inspection. Desktop issuance, launch, takeover, and
+redemption are retired from the operator workflow. New public Journeys are app-managed. Use the Journey page
+to pause and migrate an eligible unowned legacy Journey. The opt-in local Codex controls and required human gates are documented in the [operator guide](quality-journey-operator-guide.md).
 
 ## Operational pause and owned cleanup
 

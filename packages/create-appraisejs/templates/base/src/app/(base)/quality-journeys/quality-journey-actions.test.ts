@@ -3,21 +3,36 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   revalidatePath: vi.fn(),
+  scheduleContinuation: vi.fn(),
+  confirmDraft: vi.fn(),
   requireActiveProjectForMutation: vi.fn(),
-  createQualityJourney: vi.fn(),
+  createAppManagedJourney: vi.fn(),
   getQualityJourney: vi.fn(),
   submitDurableQualityJourneyCommand: vi.fn(),
   answerQualityJourneyAnalysisQuestion: vi.fn(),
   decideQualityJourneyAnalysis: vi.fn(),
   requestQualityJourneyAnalysisRevision: vi.fn(),
+  requestScenarioRevision: vi.fn(),
 }))
 
+vi.mock('@/services/coordinator/app-managed-progression-service', () => ({
+  scheduleAppManagedJourneyContinuation: mocks.scheduleContinuation,
+}))
+vi.mock('@/services/coordinator/quality-journey-draft-service', () => ({
+  confirmQualityJourneyDraft: mocks.confirmDraft,
+}))
 vi.mock('next/cache', () => ({ revalidatePath: mocks.revalidatePath }))
 vi.mock('@/lib/active-project', () => ({ requireActiveProjectForMutation: mocks.requireActiveProjectForMutation }))
 vi.mock('@/services/coordinator/quality-journey-service', () => ({
-  createQualityJourney: mocks.createQualityJourney,
+  createAppManagedJourney: mocks.createAppManagedJourney,
   getQualityJourney: mocks.getQualityJourney,
   submitDurableQualityJourneyCommand: mocks.submitDurableQualityJourneyCommand,
+}))
+vi.mock('@/services/coordinator/quality-journey-scenario-service', () => ({
+  requestQualityJourneyScenarioRevision: mocks.requestScenarioRevision,
+  commentQualityJourneyScenarioPortfolio: vi.fn(),
+  decideQualityJourneyScenarios: vi.fn(),
+  disposeQualityJourneyScenarioComment: vi.fn(),
 }))
 vi.mock('@/services/coordinator/quality-journey-analysis-service', () => ({
   answerQualityJourneyAnalysisQuestion: mocks.answerQualityJourneyAnalysisQuestion,
@@ -29,7 +44,9 @@ import {
   answerQualityJourneyAnalysisQuestionAction,
   approveQualityJourneyAnalysisAction,
   createQualityJourneyAction,
+  confirmQualityJourneyDraftAction,
   requestQualityJourneyAnalysisRevisionAction,
+  requestQualityJourneyScenarioRevisionAction,
 } from './quality-journey-actions'
 
 const digest = (character: string) => `sha256:${character.repeat(64)}`
@@ -37,7 +54,7 @@ const digest = (character: string) => `sha256:${character.repeat(64)}`
 beforeEach(() => {
   vi.clearAllMocks()
   mocks.requireActiveProjectForMutation.mockResolvedValue({ id: 'project-1' })
-  mocks.createQualityJourney.mockResolvedValue({
+  mocks.createAppManagedJourney.mockResolvedValue({
     journey: {
       journeyId: 'journey-1',
       stage: 'INTAKE',
@@ -46,10 +63,13 @@ beforeEach(() => {
     },
   })
   mocks.submitDurableQualityJourneyCommand.mockResolvedValue({ outcome: 'COMMITTED' })
-  mocks.getQualityJourney.mockResolvedValue({ journey: { journeyId: 'journey-1' } })
+  mocks.getQualityJourney.mockResolvedValue({ journey: { journeyId: 'journey-1', stateHash: digest('b') } })
+  mocks.confirmDraft.mockResolvedValue({ replayed: false, journeyId: 'journey-1' })
+  mocks.scheduleContinuation.mockReset()
   mocks.answerQualityJourneyAnalysisQuestion.mockResolvedValue({ replayed: false, answer: { answerId: 'answer-1' } })
   mocks.decideQualityJourneyAnalysis.mockResolvedValue({ outcome: 'COMMITTED' })
   mocks.requestQualityJourneyAnalysisRevision.mockResolvedValue({ outcome: 'COMMITTED' })
+  mocks.requestScenarioRevision.mockResolvedValue({ outcome: 'COMMITTED' })
 })
 
 describe('Quality Journey route actions', () => {
@@ -64,7 +84,7 @@ describe('Quality Journey route actions', () => {
       }),
     ).resolves.toMatchObject({ success: true, data: { journeyId: 'journey-1' } })
 
-    expect(mocks.createQualityJourney).toHaveBeenCalledWith({
+    expect(mocks.createAppManagedJourney).toHaveBeenCalledWith({
       targetProjectId: 'project-1',
       idempotencyKey: 'journey-create-1',
       requirement: { objective: 'A shopper can submit an order.', context: 'Card payments only.' },
@@ -80,6 +100,59 @@ describe('Quality Journey route actions', () => {
       undefined,
       trustedHumanCoordinatorSession,
     )
+  })
+
+  it('schedules Analysis after confirmation using the newly committed state', async () => {
+    await expect(
+      confirmQualityJourneyDraftAction({
+        draftId: 'draft-1',
+        expectedVersion: 1,
+        expectedDraftHash: digest('a'),
+        requirementHash: digest('c'),
+      }),
+    ).resolves.toMatchObject({ success: true, status: 201, data: { journeyId: 'journey-1' } })
+    expect(mocks.confirmDraft).toHaveBeenCalledWith(expect.objectContaining({ targetProjectId: 'project-1' }))
+    expect(mocks.scheduleContinuation).toHaveBeenCalledWith({
+      journeyId: 'journey-1',
+      targetProjectId: 'project-1',
+      expectedStateHash: digest('b'),
+    })
+    expect(mocks.confirmDraft.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.scheduleContinuation.mock.invocationCallOrder[0]!,
+    )
+  })
+
+  it('preserves successful creation when continuation registration fails', async () => {
+    mocks.scheduleContinuation.mockImplementation(() => {
+      throw new Error('Registration unavailable')
+    })
+    await expect(
+      confirmQualityJourneyDraftAction({
+        draftId: 'draft-1',
+        expectedVersion: 1,
+        expectedDraftHash: digest('a'),
+        requirementHash: digest('c'),
+      }),
+    ).resolves.toMatchObject({
+      success: true,
+      data: {
+        journeyId: 'journey-1',
+        continuationError: expect.stringMatching(/created/),
+      },
+    })
+  })
+
+  it('returns a confirmed replay without creating another Journey', async () => {
+    mocks.confirmDraft.mockResolvedValue({ replayed: true, journeyId: 'journey-1' })
+    await expect(
+      confirmQualityJourneyDraftAction({
+        draftId: 'draft-1',
+        expectedVersion: 1,
+        expectedDraftHash: digest('a'),
+        requirementHash: digest('c'),
+      }),
+    ).resolves.toMatchObject({ success: true, status: 200, data: { journeyId: 'journey-1', replayed: true } })
+    expect(mocks.createAppManagedJourney).not.toHaveBeenCalled()
   })
 
   it('answers an exact analysis question within the active project scope', async () => {
@@ -130,6 +203,40 @@ describe('Quality Journey route actions', () => {
       }),
       undefined,
       trustedHumanCoordinatorSession,
+    )
+  })
+
+  it('wakes the exact newly-issued Designer revision after its human review request commits', async () => {
+    await expect(
+      requestQualityJourneyScenarioRevisionAction({
+        journeyId: 'journey-1',
+        portfolioId: 'portfolio-1',
+        portfolioRevisionId: 'portfolio-r1',
+        portfolioHash: digest('a'),
+        expectedStateHash: digest('b'),
+        expectedReviewHash: digest('c'),
+        commandId: 'scenario-revision',
+        idempotencyKey: 'scenario-revision',
+        feedback: 'Clarify checkout alternatives.',
+      }),
+    ).resolves.toMatchObject({ success: true })
+    expect(mocks.requestScenarioRevision).toHaveBeenCalledWith(
+      expect.objectContaining({
+        command: expect.objectContaining({
+          command: 'REQUEST_SCENARIO_REVISION',
+          payload: expect.objectContaining({ feedback: 'Clarify checkout alternatives.' }),
+        }),
+      }),
+      undefined,
+      trustedHumanCoordinatorSession,
+    )
+    expect(mocks.scheduleContinuation).toHaveBeenCalledWith({
+      journeyId: 'journey-1',
+      targetProjectId: 'project-1',
+      expectedStateHash: digest('b'),
+    })
+    expect(mocks.requestScenarioRevision.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.scheduleContinuation.mock.invocationCallOrder[0]!,
     )
   })
 

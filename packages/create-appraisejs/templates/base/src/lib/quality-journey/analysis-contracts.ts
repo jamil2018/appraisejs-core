@@ -18,7 +18,13 @@ const uniqueIds =
   }
 
 const analysisQuestionPayloadSchema = z
-  .object({ questionId: id, prompt: text, required: z.boolean(), rationale: text })
+  .object({
+    questionId: id,
+    prompt: text,
+    required: z.boolean(),
+    rationale: text,
+    suggestedAnswers: z.array(text).min(1).max(6).optional(),
+  })
   .strict()
 
 const requirementSchema = z

@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { environmentSchema } from '@/constants/form-opts/environment-form-opts'
 import { hashQualityJourneyRequirement, qualityJourneyRequirementSchema } from '@/lib/quality-journey'
 import { requireActiveProjectForMutation } from '@/lib/active-project'
+import { scheduleAppManagedJourneyContinuation } from '@/services/coordinator/app-managed-progression-service'
 import {
   answerQualityJourneyAnalysisQuestion,
   decideQualityJourneyAnalysis,
@@ -19,7 +20,7 @@ import {
   requestQualityJourneyScenarioRevision,
 } from '@/services/coordinator/quality-journey-scenario-service'
 import {
-  createQualityJourney,
+  createAppManagedJourney,
   getQualityJourney,
   submitDurableQualityJourneyCommand,
 } from '@/services/coordinator/quality-journey-service'
@@ -166,12 +167,23 @@ async function mutateQualityJourneyDraft<T extends { draftId: string }>(
   }
 }
 
+async function scheduleStartedJourney(journeyId: string, targetProjectId: string) {
+  try {
+    const { journey } = await getQualityJourney({ journeyId, targetProjectId })
+    scheduleAppManagedJourneyContinuation({ journeyId, targetProjectId, expectedStateHash: journey.stateHash })
+    return undefined
+  } catch {
+    // Creation is already durable. Reopening the Journey offers its continuation/recovery state.
+    return 'Your Journey was created. Open it to check whether Analysis can continue.'
+  }
+}
+
 export async function createQualityJourneyAction(input: unknown): Promise<ActionResponse> {
   try {
     const value = createJourneySchema.parse(input)
     const project = await requireActiveProjectForMutation()
     const requirement = value.requirement
-    const created = await createQualityJourney({
+    const created = await createAppManagedJourney({
       targetProjectId: project.id,
       idempotencyKey: value.idempotencyKey,
       requirement,
@@ -206,9 +218,14 @@ export async function createQualityJourneyAction(input: unknown): Promise<Action
         )
     }
 
+    const continuationError = await scheduleStartedJourney(journey.journeyId, project.id)
     revalidatePath('/quality-journeys')
     revalidatePath(`/quality-journeys/${journey.journeyId}`)
-    return { status: 201, success: true, data: { journeyId: journey.journeyId } }
+    return {
+      status: 201,
+      success: true,
+      data: { journeyId: journey.journeyId, ...(continuationError ? { continuationError } : {}) },
+    }
   } catch (error) {
     return qualityJourneyActionError(error)
   }
@@ -253,10 +270,15 @@ export async function confirmQualityJourneyDraftAction(input: unknown): Promise<
     const value = confirmDraftSchema.parse(input)
     const project = await requireActiveProjectForMutation()
     const result = await confirmQualityJourneyDraft({ ...value, targetProjectId: project.id })
+    const continuationError = await scheduleStartedJourney(result.journeyId, project.id)
     revalidatePath('/quality-journeys')
     revalidatePath(`/quality-journeys/drafts/${value.draftId}`)
     revalidatePath(`/quality-journeys/${result.journeyId}`)
-    return { status: 201, success: true, data: result }
+    return {
+      status: result.replayed ? 200 : 201,
+      success: true,
+      data: { ...result, ...(continuationError ? { continuationError } : {}) },
+    }
   } catch (error) {
     return qualityJourneyActionError(error)
   }
@@ -316,6 +338,7 @@ export async function answerQualityJourneyAnalysisQuestionAction(input: unknown)
       undefined,
       trustedHumanCoordinatorSession,
     )
+    await scheduleStartedJourney(value.journeyId, project.id)
     revalidatePath(`/quality-journeys/${value.journeyId}`)
     return { status: 200, success: true, data: { answerId: result.answer.answerId, replayed: result.replayed } }
   } catch (error) {
@@ -357,6 +380,7 @@ export async function requestQualityJourneyAnalysisRevisionAction(input: unknown
       undefined,
       trustedHumanCoordinatorSession,
     )
+    await scheduleStartedJourney(value.journeyId, project.id)
     revalidatePath(`/quality-journeys/${value.journeyId}`)
     return { status: 200, success: true, data: result }
   } catch (error) {
@@ -391,6 +415,7 @@ export async function approveQualityJourneyAnalysisAction(input: unknown): Promi
       undefined,
       trustedHumanCoordinatorSession,
     )
+    await scheduleStartedJourney(value.journeyId, project.id)
     revalidatePath(`/quality-journeys/${value.journeyId}`)
     return { status: 200, success: true, data: result }
   } catch (error) {
@@ -439,6 +464,7 @@ export async function decideQualityJourneyScenariosAction(input: unknown): Promi
       undefined,
       trustedHumanCoordinatorSession,
     )
+    await scheduleStartedJourney(value.journeyId, project.id)
     revalidatePath(`/quality-journeys/${value.journeyId}`)
     return { status: 200, success: true, data: result }
   } catch (error) {
@@ -509,6 +535,7 @@ export async function requestQualityJourneyScenarioRevisionAction(input: unknown
       undefined,
       trustedHumanCoordinatorSession,
     )
+    await scheduleStartedJourney(value.journeyId, project.id)
     revalidatePath(`/quality-journeys/${value.journeyId}`)
     return { status: 200, success: true, data: result }
   } catch (error) {

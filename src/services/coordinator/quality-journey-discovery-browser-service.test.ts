@@ -5,6 +5,7 @@ import {
   authorizeQualityJourneyDiscoveryBrowserExactReturn,
   assertDiscoveryBrowserReceiptAdmission,
   captureQualityJourneyDiscoveryBrowserReceipt,
+  closeQualityJourneyDiscoveryBrowserSession,
   clearQualityJourneyDiscoveryBrowserSessionsForTest,
   confirmQualityJourneyDiscoveryBrowserAccess,
   markQualityJourneyDiscoveryBrowserMissingAccess,
@@ -3127,5 +3128,143 @@ describe('Quality Journey discovery browser service', () => {
     await expect(assertDiscoveryBrowserReceiptAdmission(bundle, revision, tx as never)).rejects.toMatchObject({
       code: 'CONFLICT',
     })
+  })
+})
+
+describe('scoped control-presence receipt facts', () => {
+  function runtimeWithPresence(
+    capture: () => Promise<{
+      documentIdentity: string
+      presence: { emailInput: boolean; passwordInput: boolean; submitControl: boolean; heading: boolean }
+    }>,
+    assertDocument: (identity: string, url: string) => Promise<void>,
+  ): DiscoveryBrowserRuntime {
+    const runtime = browserRuntime('private-title-canary')
+    return {
+      ...runtime,
+      async launch() {
+        const browser = await runtime.launch()
+        return {
+          ...browser,
+          async newContext(options) {
+            const context = await browser.newContext(options)
+            return {
+              ...context,
+              async newPage() {
+                const page = await context.newPage()
+                return { ...page, captureControlPresence: capture, assertCaptureDocument: assertDocument }
+              },
+            }
+          },
+        }
+      },
+    }
+  }
+  const presence = { emailInput: true, passwordInput: true, submitControl: true, heading: false }
+  it('refuses automatic evidence for a sign-in screen before persisting a receipt', async () => {
+    const db = client()
+    const runtime = runtimeWithPresence(async () => ({ documentIdentity: 'owned-document', presence }), async () => undefined)
+    const session = await startQualityJourneyDiscoveryBrowserSession({ ...scope, workItemId: 'work-1', environmentId: 'environment-1', routeId: '/checkout', accessMode: 'ANONYMOUS' }, db as never, runtime)
+    await expect(captureQualityJourneyDiscoveryBrowserReceipt({ ...scope, sessionId: session.id, snapshotId: 'auto-signin' }, db as never, { automaticAnonymous: true })).rejects.toMatchObject({ details: { reason: 'MANUAL_DISCOVERY_ACCESS_REQUIRED' } })
+    expect(db.artifacts.size).toBe(0)
+  })
+  it('never evaluates controls for unconfirmed authenticated transit', async () => {
+    const db = client()
+    const capture = vi.fn(async () => ({ documentIdentity: 'owned-document', presence }))
+    const runtime = runtimeWithPresence(capture, async () => undefined)
+    const session = await startQualityJourneyDiscoveryBrowserSession(
+      {
+        ...scope,
+        workItemId: 'work-1',
+        environmentId: 'environment-1',
+        routeId: '/checkout',
+        accessMode: 'AUTHENTICATED_INTENT',
+        authFlowId: 'test-login',
+      },
+      db as never,
+      runtime,
+    )
+    await expect(
+      captureQualityJourneyDiscoveryBrowserReceipt(
+        { ...scope, sessionId: session.id, snapshotId: 'unconfirmed-controls' },
+        db as never,
+      ),
+    ).rejects.toThrow('Human confirmation')
+    expect(capture).not.toHaveBeenCalled()
+    expect(db.artifacts.size).toBe(0)
+  })
+  it('persists only fixed observed categories and checks the same owned document around persistence', async () => {
+    const db = client()
+    const assertDocument = vi.fn(async () => undefined)
+    const runtime = runtimeWithPresence(async () => ({ documentIdentity: 'owned-document', presence }), assertDocument)
+    const session = await startQualityJourneyDiscoveryBrowserSession(
+      { ...scope, workItemId: 'work-1', environmentId: 'environment-1', routeId: '/checkout', accessMode: 'ANONYMOUS' },
+      db as never,
+      runtime,
+    )
+    const captured = await captureQualityJourneyDiscoveryBrowserReceipt(
+      { ...scope, sessionId: session.id, snapshotId: 'presence-snapshot' },
+      db as never,
+    )
+    expect(captured.receipt.observationFacts).toContain(
+      'Appraise observed a visible email input in the captured target document.',
+    )
+    expect(captured.receipt.observationFacts).toContain(
+      'Appraise observed a visible password input in the captured target document.',
+    )
+    expect(captured.receipt.observationFacts).toContain(
+      'Appraise observed a visible submit control in the captured target document.',
+    )
+    expect(captured.receipt.observationFacts.some(fact => fact.includes('heading'))).toBe(false)
+    expect(JSON.stringify(captured)).not.toContain('private-title-canary')
+    expect(JSON.stringify(captured)).not.toContain('owned-document')
+    expect(assertDocument.mock.calls).toEqual(
+      Array.from({ length: 3 }, () => ['owned-document', 'https://example.test/checkout']),
+    )
+    expect(captured.receipt.observationFactsHash).toBe(canonicalHash(captured.receipt.observationFacts))
+  })
+  it('refuses changed documents before receipt publication and rolls back a late same-URL replacement', async () => {
+    for (const failedCheck of [1, 2, 3]) {
+      const base = client()
+      const db = {
+        ...base,
+        $transaction: async (effect: (tx: typeof base) => Promise<unknown>) => {
+          const artifacts = new Map(base.artifacts)
+          try {
+            return await effect(base)
+          } catch (error) {
+            base.artifacts.clear()
+            for (const [key, value] of artifacts) base.artifacts.set(key, value)
+            throw error
+          }
+        },
+      }
+      let checks = 0
+      const runtime = runtimeWithPresence(
+        async () => ({ documentIdentity: 'owned-document', presence }),
+        async () => {
+          if (++checks === failedCheck) throw new Error('Discovery capture document changed.')
+        },
+      )
+      const session = await startQualityJourneyDiscoveryBrowserSession(
+        {
+          ...scope,
+          workItemId: 'work-1',
+          environmentId: 'environment-1',
+          routeId: '/checkout',
+          accessMode: 'ANONYMOUS',
+        },
+        db as never,
+        runtime,
+      )
+      await expect(
+        captureQualityJourneyDiscoveryBrowserReceipt(
+          { ...scope, sessionId: session.id, snapshotId: `race-${failedCheck}` },
+          db as never,
+        ),
+      ).rejects.toThrow('document changed')
+      expect(base.artifacts.size).toBe(0)
+      await closeQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: session.id })
+    }
   })
 })

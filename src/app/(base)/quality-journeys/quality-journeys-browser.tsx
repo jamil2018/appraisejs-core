@@ -2,24 +2,13 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import {
-  ArrowRight,
-  Bot,
-  Check,
-  CheckCircle2,
-  CircleDashed,
-  ClipboardCheck,
-  Search,
-  ShieldAlert,
-  UserRound,
-} from 'lucide-react'
+import { Check, ClipboardCheck, Search } from 'lucide-react'
 import { useMemo, useState, useTransition } from 'react'
 
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { displayStageForQualityJourney, qualityJourneyStatusProjection } from '@/lib/quality-journey/presentation'
+import { journeyStageName } from '@/lib/quality-journey/journey-stages'
 import { copyQualityJourneyBriefToDraftAction } from './quality-journey-actions'
 
 type QualityJourneyListItem = {
@@ -37,7 +26,6 @@ type QualityJourneyListItem = {
   activeBlockerCount: number
   blockerResponsibleActor: string | null
   requestedExecutionConsentCount: number
-  handoff: { status: string; launchedAt: Date | null; connectedAt: Date | null; expiresAt: Date } | null
 }
 
 export function QualityJourneysBrowser({ items, projectId }: { items: QualityJourneyListItem[]; projectId: string }) {
@@ -78,7 +66,7 @@ export function QualityJourneysBrowser({ items, projectId }: { items: QualityJou
             <ClipboardCheck aria-hidden="true" className="size-8 text-muted-foreground" />
             <h2 className="mt-4 text-base font-semibold">No Quality Journeys yet</h2>
             <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-              Start with a requirement to create an Appraise-owned analysis and review trail.
+              Choose New journey to start with a brief.
             </p>
           </CardContent>
         </Card>
@@ -101,119 +89,39 @@ export function QualityJourneysBrowser({ items, projectId }: { items: QualityJou
 }
 
 function JourneyListCard({ item, projectId }: { item: QualityJourneyListItem; projectId: string }) {
-  const displayStage = displayStageForQualityJourney(item.stage)
-  const status = qualityJourneyStatusProjection({
-    stage: item.stage,
-    blockerCount: item.activeBlockerCount,
-    blockerResponsibleActor: item.blockerResponsibleActor ?? undefined,
-    unresolvedRequiredQuestionCount: item.unresolvedQuestionIds.length,
-    pendingAnalysisDecision: item.stage === 'ANALYSIS_REVIEW' && item.analysisRevisionCount > 0,
-    pendingScenarioDecision: item.stage === 'SCENARIO_REVIEW',
-    pendingReportDecision: item.stage === 'REPORT_REVIEW',
-    requestedExecutionConsentCount: item.requestedExecutionConsentCount,
-    hasObservedWorkerProgress: item.analysisRevisionCount > 0,
-    allowDesktopHandoff: item.hostingMode === 'EXTERNAL_LEGACY',
-    handoffStatus: item.handoff?.status,
-    handoffLaunchedAt: item.handoff?.launchedAt,
-    handoffConnectedAt: item.handoff?.connectedAt,
-    observedAt: item.updatedAt,
-  })
-
+  const title = item.requirement?.summary || 'Untitled journey'
+  const attention =
+    item.status === 'PAUSED'
+      ? 'Paused by the user'
+      : item.stage === 'CLOSED'
+        ? 'Complete'
+        : item.hostingMode === 'EXTERNAL_LEGACY'
+          ? 'Continue in Appraise'
+          : item.activeBlockerCount
+            ? 'Action needed'
+            : item.unresolvedQuestionIds.length
+              ? 'Waiting for your answer'
+              : item.requestedExecutionConsentCount
+                ? 'Permission needed'
+                : item.stage.endsWith('_REVIEW')
+                  ? 'Ready for review'
+                  : null
   return (
-    <Card className="group relative overflow-hidden transition-[border-color,background-color,transform,box-shadow] hover:-translate-y-0.5 hover:border-white/[0.15] hover:bg-white/[0.035] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.09),inset_0_-18px_36px_rgba(0,0,0,0.12),0_24px_60px_-38px_rgba(0,0,0,0.9)]">
-      <Link
-        aria-label={`Open Quality Journey ${item.id}`}
-        className="absolute inset-0 z-10 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        href={`/quality-journeys/${item.id}?project=${encodeURIComponent(projectId)}`}
-      />
-      <CardHeader className="gap-3 pb-3">
-        <div className="flex min-w-0 items-center justify-between gap-3">
-          <JourneyState
-            state={{
-              closed: item.status === 'CLOSED',
-              blocked: item.activeBlockerCount > 0,
-              nextActor: status.nextActor,
-            }}
-          />
-          <Badge
-            className="shrink-0 rounded-full border-white/[0.1] bg-white/[0.025] px-2.5 py-1 text-[10px] font-medium capitalize text-muted-foreground"
-            variant="outline"
-          >
-            {item.status === 'CLOSED' ? 'Closed' : 'In progress'}
-          </Badge>
-        </div>
-        <div className="min-w-0">
-          <CardDescription className="text-primary/90 text-[11px] font-medium uppercase tracking-[0.08em]">
-            {displayStage.label}
-          </CardDescription>
-          <CardTitle className="mt-1.5 line-clamp-2 text-base font-semibold leading-6 text-foreground">
-            {item.requirement?.summary ?? 'Requirement snapshot unavailable'}
-          </CardTitle>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-3 pr-16 text-sm">
-        <div>
-          <p className="text-foreground/90 text-xs font-medium">Next actor · {status.nextActor}</p>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">{status.summary}</p>
-        </div>
-        <JourneyAttention item={item} />
-        <CopyBriefButton journeyId={item.id} projectId={projectId} />
-      </CardContent>
-      <span className="text-foreground/75 group-hover:border-primary/40 pointer-events-none absolute bottom-5 right-5 z-20 flex size-9 items-center justify-center rounded-full border border-white/[0.14] bg-[linear-gradient(180deg,rgba(255,255,255,0.1),rgba(255,255,255,0.022)),linear-gradient(135deg,hsl(var(--primary)/0.12),transparent)] shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_10px_24px_-18px_hsl(var(--primary)/0.6)] backdrop-blur-xl transition-[border-color,color,transform,box-shadow] group-hover:translate-x-0.5 group-hover:text-primary group-hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_10px_28px_-14px_hsl(var(--primary)/0.7)]">
-        <ArrowRight aria-hidden="true" className="size-4" />
-      </span>
-    </Card>
-  )
-}
-
-function JourneyState({ state }: { state: { closed: boolean; blocked: boolean; nextActor: string } }) {
-  const normalizedActor = state.nextActor.toLocaleLowerCase()
-  const presentation = state.closed
-    ? { label: 'Journey complete', Icon: CheckCircle2, iconClassName: 'text-emerald-300' }
-    : state.blocked
-      ? { label: 'Journey needs attention', Icon: ShieldAlert, iconClassName: 'animate-pulse text-amber-300' }
-      : normalizedActor.includes('you')
-        ? {
-            label: 'Waiting for you',
-            Icon: UserRound,
-            iconClassName: 'animate-[pulse_2.4s_ease-in-out_infinite] text-sky-300',
-          }
-        : normalizedActor.includes('appraise')
-          ? {
-              label: 'Appraise is working',
-              Icon: Bot,
-              iconClassName: 'animate-[pulse_2.8s_ease-in-out_infinite] text-primary',
-            }
-          : { label: 'Journey in progress', Icon: CircleDashed, iconClassName: 'animate-spin text-primary' }
-  const { Icon } = presentation
-
-  return (
-    <div className="flex min-w-0 items-center gap-2.5" role="status">
-      <span className="relative flex size-8 shrink-0 items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.035] shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]">
-        <span className="bg-primary/[0.07] absolute inset-1 rounded-full blur-sm" />
-        <Icon
-          aria-hidden="true"
-          className={`relative size-4 motion-reduce:animate-none ${presentation.iconClassName}`}
-        />
-      </span>
-      <span className="text-foreground/80 truncate text-xs font-medium">{presentation.label}</span>
-    </div>
-  )
-}
-
-function JourneyAttention({ item }: { item: QualityJourneyListItem }) {
-  return (
-    <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-      {item.unresolvedQuestionIds.length ? (
-        <span className="bg-background/60 rounded-md border px-2 py-1">
-          {item.unresolvedQuestionIds.length} required question{item.unresolvedQuestionIds.length === 1 ? '' : 's'}
-        </span>
-      ) : null}
-      {item.activeBlockerCount ? (
-        <span className="bg-background/60 rounded-md border px-2 py-1">{item.activeBlockerCount} needs attention</span>
-      ) : null}
-      <span className="self-center text-[11px]">Updated {item.updatedAt.toLocaleString()}</span>
-    </div>
+    <article className="flex min-w-0 items-center justify-between gap-3 rounded-lg border p-4">
+      <div className="min-w-0">
+        <Link
+          className="line-clamp-2 break-words font-semibold hover:underline"
+          href={`/quality-journeys/${item.id}?project=${encodeURIComponent(projectId)}`}
+        >
+          {title}
+        </Link>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {journeyStageName(item.stage)}
+          {attention ? ` · ${attention}` : ''}
+        </p>
+      </div>
+      <CopyBriefButton journeyId={item.id} projectId={projectId} />
+    </article>
   )
 }
 

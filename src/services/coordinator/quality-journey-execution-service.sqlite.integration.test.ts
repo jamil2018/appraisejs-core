@@ -340,7 +340,10 @@ async function fixture(
     schemaVersion: 'appraise.quality-journey/v1',
     testCaseId: 'case-execution',
     suiteId: 'suite-execution',
-    steps: [{ operation: { id: manifestOperationId, version: '1' } }],
+    steps: [{ operation: { id: manifestOperationId, version: '1' }, locatorRequirements: [] }],
+    // Materialized manifests have always frozen locator requirements, including
+    // legacy resource metadata; this operation needs no supplemental selectors.
+    locatorRequirements: [],
   }
   const manifestHash = hashQualityJourneyExecutionValue(manifest)
   const capsuleHash = realRuntime
