@@ -165,6 +165,19 @@ function deterministicRecoveryRejection(error: unknown) {
   return false
 }
 
+function recoveryFailureMarker(state: z.infer<typeof retained>, committed: boolean, error: unknown) {
+  const rejected = !committed && deterministicRecoveryRejection(error)
+  // A transient read/compile failure before the durable call has no submission
+  // effect to fence. Preserve the prior eligible marker for the next recovery.
+  if (!committed && !rejected && !state.canonicalRecoveryCall) return null
+  return {
+    ...state,
+    canonicalRecoveryUsed: true,
+    canonicalRecoveryOutcome: rejected ? 'REJECTED' : 'INTERRUPTED',
+    canonicalRecoveryCode: error instanceof ServiceError ? error.code : 'VALIDATION_OR_UNCERTAIN',
+  }
+}
+
 export async function getAppManagedScenarioDesignCorrection(input: Omit<Scope, 'role'>, client: PrismaClient = prisma) {
   const journey = await readScopedQualityJourney(input, client)
   if (
@@ -397,17 +410,11 @@ export async function recoverAppManagedScenarioAutomation(
     })
     return { accepted: true, nativeSend: false }
   } catch (error) {
-    if (mayRecordFailure)
+    const failure = recoveryFailureMarker(recoveryState, committed, error)
+    if (mayRecordFailure && failure)
       await client.qualityJourneyWorkAttempt.updateMany({
         where: { id: attempt.id, dispatchAdapterId: attempt.dispatchAdapterId, failureJson: ownedMarker },
-        data: {
-          failureJson: canonicalContractJson({
-            ...recoveryState,
-            canonicalRecoveryUsed: true,
-            canonicalRecoveryOutcome: !committed && deterministicRecoveryRejection(error) ? 'REJECTED' : 'INTERRUPTED',
-            canonicalRecoveryCode: error instanceof ServiceError ? error.code : 'VALIDATION_OR_UNCERTAIN',
-          }),
-        },
+        data: { failureJson: canonicalContractJson(failure) },
       })
     throw new ServiceError(
       'The retained proposal could not complete canonical recovery. Its original data is preserved; no new native send was performed.',

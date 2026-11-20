@@ -1300,6 +1300,45 @@ describe('app-managed Scenario Designer and Automator dispatch', () => {
     30_000,
   )
 
+  it('preserves recovery eligibility when a transient assignment read fails before canonical call capture', async () => {
+    const f = await localFixture()
+    localSender.run.mockImplementation(async (prompt: string) => scenarioOutput(prompt))
+    const submit = vi.spyOn(scenarioServices, 'submitExternalQualityJourneyScenarioPortfolio')
+    submit.mockRejectedValueOnce(new Error('transient original submission failure'))
+    try {
+      await expect(
+        startAppManagedScenarioAutomation(await f.input('TEST_SCENARIO_DESIGNER'), f.client),
+      ).rejects.toThrow('UNKNOWN')
+    } finally {
+      submit.mockRestore()
+    }
+    const scope = { ...f.scope, role: 'TEST_SCENARIO_DESIGNER' as const }
+    const recovery = await getAppManagedPreparationRecovery(scope, f.client)
+    expect(recovery).not.toBeNull()
+    const before = await f.client.qualityJourneyWorkAttempt.findUniqueOrThrow({ where: { id: recovery!.attemptId } })
+    const read = vi.spyOn(scenarioServices, 'readInternalScenarioDesignerAssignment')
+    read.mockRejectedValueOnce(new Error('temporary SQLite read interruption'))
+    try {
+      await expect(
+        recoverAppManagedScenarioAutomation({ ...(await f.input('TEST_SCENARIO_DESIGNER')), ...recovery! }, f.client),
+      ).rejects.toThrow('no new native send')
+    } finally {
+      read.mockRestore()
+    }
+    const fresh = f.connect()
+    expect((await fresh.qualityJourneyWorkAttempt.findUniqueOrThrow({ where: { id: before.id } })).failureJson).toBe(
+      before.failureJson,
+    )
+    expect(await getAppManagedPreparationRecovery(scope, fresh)).toEqual(recovery)
+    expect(await fresh.qualityJourneyExternalSubmissionAcceptance.count({ where: { attemptId: before.id } })).toBe(0)
+    await expect(
+      recoverAppManagedScenarioAutomation({ ...(await f.input('TEST_SCENARIO_DESIGNER')), ...recovery! }, fresh),
+    ).resolves.toEqual({ accepted: true, nativeSend: false })
+    expect(localSender.run).toHaveBeenCalledTimes(1)
+    expect(await fresh.qualityJourneyExternalSubmissionAcceptance.count({ where: { attemptId: before.id } })).toBe(1)
+    expect(await fresh.qualityJourneyScenarioPortfolioRevision.count()).toBe(1)
+  }, 30_000)
+
   it('resumes an exact persisted recovery call after a process exit before acceptance, only with a live lease', async () => {
     const f = await localFixture()
     localSender.run.mockImplementation(async (prompt: string) => scenarioOutput(prompt))

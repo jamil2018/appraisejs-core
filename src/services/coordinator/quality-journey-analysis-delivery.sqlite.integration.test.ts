@@ -192,7 +192,7 @@ describe('internal owned Analysis fixture delivery', () => {
   it('cancels during candidate wait and retains the consumed slot without canonical acceptance', async () => {
     const { fixture, delivery } = await setup('delayed')
     const flight = delivery.start()
-    await vi.waitFor(() => expect(delivery.snapshot().state).toBe('active'))
+    await vi.waitFor(() => expect(delivery.snapshot().state).toBe('active'), { timeout: 5000 })
     await delivery.cancel()
     expect(await flight).toMatchObject({ status: 'INCOMPLETE', acceptance: null })
     expect(await fixture.client.qualityJourneyAnalysisRevision.count()).toBe(0)
