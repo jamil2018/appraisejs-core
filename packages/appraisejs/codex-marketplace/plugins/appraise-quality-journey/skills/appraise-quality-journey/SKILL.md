@@ -14,17 +14,25 @@ registration, or visible tools do not mean a Journey is connected, admitted, act
    makes them available.
 2. Stop on blocking hub, identity, target, authentication, permission, transport, tool/resource, or contract checks.
    Do not silently substitute CLI operations for missing MCP lifecycle authority.
-3. For a prepared handoff, call `quality_journey_handoff_redeem` once with the exact Journey, target, and one-time
-   ticket. Treat `do_not_retry` as terminal. Redemption proves only that the connection was accepted.
+3. Create and manage Journeys in Appraise. Legacy external Journeys require an explicit managed ownership transfer
+   in Appraise before continuing. Desktop prompts, launch tickets, redemption, and external takeover are retired.
+   Managed admission is not proof of work: this version has no general production dispatcher. Report pending or
+   unavailable runtime truthfully. Read-only `quality_journey_handoff_inspect` is historical inspection only.
 4. Immediately read `quality_journey_get` and the stage-specific authoritative operation. Follow returned
    `appraise://` resources and recovery guidance; do not infer state from the prompt or plugin instructions.
 5. Read pending events before registration or resumed work. Stop on cancellation, pause, pending approval, or blocking
-   feedback. Never request takeover unless the user explicitly approved it.
+   feedback. A reconnect never transfers ownership or authorizes takeover.
 6. Use only the role/task operations admitted by current durable state. Re-read state after lost replies and reconcile
    idempotently before attempting another mutation.
 7. Never treat chat approval as an Appraise requirement, validation, evidence-review, consent, or completion gate.
 8. Report exactly which observations came from plugin recognition, MCP calls, Appraise UI/service state, or human
    operation. Keep these evidence classes distinct.
+
+## Retained assignment compatibility
+
+The following role protocols apply only when current Appraise state explicitly admits the caller. Their retained
+`EXTERNAL_V1` tools do not restore desktop onboarding or grant access to managed Journeys. Never claim an external
+assignment to work around a managed ownership refusal.
 
 ## Scoped discovery and human sign-in
 
@@ -70,14 +78,14 @@ For `ANALYSIS`, use the retained `EXTERNAL_V1` path; do not create another workf
    publish, or infer approval.
 6. Human answers and corrections are recorded through Appraise-owned UI or `quality_journey_analysis_answer` with
    `actor=USER` enforced by Appraise. Publication, revision requests, and approval are separate exact-version facts.
-7. After a human wait, rejection, requested revision, or stopped Codex task, reconnect as instructed by current
-   handoff state. Read pending events, then reread `quality_journey_get` and `quality_journey_analysis_get` before
+7. After a human wait, rejection, requested revision, or stopped Codex task, reread current
+   ownership and recovery state. Read pending events, then reread `quality_journey_get` and `quality_journey_analysis_get` before
    claiming or continuing work. Use `quality_journey_resume` only when the authoritative recovery projection permits
    it; it reconstructs Appraise work and never proves that the old Codex task resumed.
 8. A revision request requires a fresh Analyzer assignment whose immutable inputs include the predecessor charter,
    Q&A, and durable feedback. An approval is usable only when the reread Analysis decision binds the current revision,
    content hash, and review hash.
-9. Keep these statuses distinct in every report: handoff prepared, connection accepted, takeover effective,
+9. Keep these statuses distinct in every report: managed ownership recorded, runtime acknowledged,
    assignment claimed/admitted, specialized submission accepted, published for review, and approval recorded in
    Appraise. An Appraise `actor=USER` decision does not independently attest that the project credential belongs to a
    particular person. Appraise can fence its own authority; it cannot claim to have stopped arbitrary external Codex

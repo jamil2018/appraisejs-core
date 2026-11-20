@@ -73,9 +73,17 @@ See [compatibility and storage refusal](../../docs/quality-journey-compatibility
 `project_diagnostic`. That fallback does not make the plugin present, and neither setup path proves a Journey is
 connected or running.
 
-### Quality Journey managed execution
+### Quality Journey admission
 
-After exact scenario approval, a stock Codex Automator may prepare target-owned suites, cases, Step Invocations, and
+Create and manage Journeys in Appraise. Existing external Journeys require an explicit managed ownership transfer.
+Desktop launch prompts, one-time Journey ticket redemption, and external takeover are retired.
+`quality_journey_handoff_inspect` remains read-only historical inspection; unrelated collaboration handoff redemption
+remains supported. Managed admission does not prove that work started: there is no general production dispatcher.
+Agent setup configures compatibility tooling and does not admit or start a Journey.
+
+### Retained assignment execution compatibility
+
+For an explicitly admitted compatibility assignment after exact scenario approval, an Automator may prepare target-owned suites, cases, Step Invocations, and
 prepared capsule receipts through an admitted `EXTERNAL_V1` assignment and
 `quality_journey_external_automator_materialize_v1`. It uses canonical operations and ready Step Definitions. The
 prepared artifacts do not start execution; generated `automation/` output and autonomous target product-code repair
@@ -110,4 +118,4 @@ diagnostics and cannot become Journey evidence.
 
 ## Journey session compatibility
 
-Journey MCP mutation schemas accept optional `coordinatorSessionId` and `coordinatorGeneration` for explicitly selected internal managed hosting, while retaining legacy handoff credentials. The authenticated hub validates the current persisted owner and attempt binding; omitting credentials does not authorize managed work. Session registration/activation/transfer remain trusted in-process hub operations. This package change does not register production app-server dispatch. See [host-neutral sessions](../../docs/quality-journey-host-sessions.md).
+Journey MCP mutation schemas accept optional `coordinatorSessionId` and `coordinatorGeneration` for managed hosting; retained external assignment credentials do not restore Journey ticket redemption. The authenticated hub validates the current persisted owner and attempt binding; omitting credentials does not authorize managed work. Session registration/activation/transfer remain trusted in-process hub operations. This package change does not register production app-server dispatch. See [host-neutral sessions](../../docs/quality-journey-host-sessions.md).

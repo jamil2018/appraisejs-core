@@ -8,6 +8,7 @@ export type AnalysisQuestionView = {
   prompt: string
   rationale: string
   required: boolean
+  suggestedAnswers?: string[]
   answers: Array<{
     answerId: string
     answer: string
@@ -23,6 +24,7 @@ export type AnalysisRevisionView = {
   analysisRevisionId: string
   revision: number
   contentHash: string
+  criteriaFeedback?: Record<string, string>
   objectives: string[]
   scope: { included: string[]; excluded: string[] }
   requirements: Array<{ requirementId: string; statement: string; sourceRefs: string[] }>
@@ -69,6 +71,7 @@ export function toAnalysisRevisionView(revision: {
   revision: number
   contentHash: string
   artifact: { artifactJson: string }
+  criteriaFeedback?: Record<string, string>
   questions: Array<{
     id: string
     questionId: string
@@ -94,6 +97,7 @@ export function toAnalysisRevisionView(revision: {
     analysisRevisionId: revision.artifactRevisionId,
     revision: revision.revision,
     contentHash: revision.contentHash,
+    ...(revision.criteriaFeedback ? { criteriaFeedback: revision.criteriaFeedback } : {}),
     objectives: strings(charter.objectives),
     scope: { included: strings(scope.included), excluded: strings(scope.excluded) },
     requirements: rows(charter.requirements).map(requirement => ({
@@ -119,6 +123,7 @@ export function toAnalysisRevisionView(revision: {
         required: question.required,
         prompt: text(payload.prompt, 'Question payload unavailable.'),
         rationale: text(payload.rationale),
+        ...(Array.isArray(payload.suggestedAnswers) ? { suggestedAnswers: strings(payload.suggestedAnswers) } : {}),
         answers: orderAnswersWithCorrectionHeadLast(question.answers).map(answer => {
           const payload = charterPayload(answer.artifact.artifactJson)
           return {
@@ -138,10 +143,10 @@ export function toAnalysisRevisionView(revision: {
 
 export function orderAnswersWithCorrectionHeadLast<
   T extends { id: string; answerId: string; correctionOfAnswerId: string | null },
->(
-  answers: T[],
-) {
-  const corrected = new Set(answers.flatMap(answer => (answer.correctionOfAnswerId ? [answer.correctionOfAnswerId] : [])))
+>(answers: T[]) {
+  const corrected = new Set(
+    answers.flatMap(answer => (answer.correctionOfAnswerId ? [answer.correctionOfAnswerId] : [])),
+  )
   return [...answers].sort((left, right) => Number(corrected.has(right.id)) - Number(corrected.has(left.id)))
 }
 

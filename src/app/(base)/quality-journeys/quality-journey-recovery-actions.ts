@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
 import { requireActiveProjectForMutation } from '@/lib/active-project'
+import { scheduleAppManagedJourneyContinuation } from '@/services/coordinator/app-managed-progression-service'
 import {
   pauseQualityJourneyOperational,
   resumeQualityJourneyOperational,
@@ -38,6 +39,18 @@ export async function qualityJourneyRecoveryAction(
       selected === 'pause'
         ? await pauseQualityJourneyOperational({ ...scoped, reason: pauseSchema.parse(value).reason })
         : await resumeQualityJourneyOperational(scoped)
+    if (selected === 'resume' && data.operationalStatus === 'ACTIVE') {
+      try {
+        scheduleAppManagedJourneyContinuation({
+          journeyId: request.journeyId,
+          targetProjectId: project.id,
+          expectedStateHash: data.stateHash,
+        })
+      } catch {
+        // The canonical resume is committed even if this opportunistic wake cannot be registered.
+        console.error('Managed Journey resume continuation could not be scheduled')
+      }
+    }
     revalidatePath(`/quality-journeys/${request.journeyId}`)
     return { success: true, status: 200, data }
   } catch (error) {

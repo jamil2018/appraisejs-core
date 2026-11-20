@@ -4,8 +4,6 @@ import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Textarea } from '@/components/ui/textarea'
 import { qualityJourneyRecoveryAction } from '../quality-journey-recovery-actions'
 
 type Props = {
@@ -19,9 +17,10 @@ type PendingRequest = { operation: Operation; key: string; reason: string; state
 
 function cleanupSummary(data: unknown) {
   const cleanup = (data as { cleanup?: { browser: string; execution: string; managedTurn?: string } } | null)?.cleanup
-  return cleanup
-    ? `Owned browser cleanup: ${cleanup.browser.toLowerCase()}; execution cleanup: ${cleanup.execution.toLowerCase()}.${cleanup.managedTurn ? ` Owned agent cleanup: ${cleanup.managedTurn.toLowerCase()}.` : ''} External Codex task status is unknown.`
-    : 'Operational status updated.'
+  if (cleanup?.execution === 'UNKNOWN') return 'Appraise is checking whether the test run stopped.'
+  if (cleanup?.managedTurn === 'UNKNOWN' || cleanup?.browser === 'UNKNOWN')
+    return 'Appraise is checking whether the previous work stopped.'
+  return null
 }
 
 function useRecoverySubmission(props: Props, operation: Operation, reason: string) {
@@ -41,71 +40,50 @@ function useRecoverySubmission(props: Props, operation: Operation, reason: strin
     request.current = stable
     setError(null)
     startTransition(async () => {
-      const result = await qualityJourneyRecoveryAction(operation, {
-        journeyId: props.journeyId,
-        expectedStateHash: stable.stateHash,
-        expectedVersion: stable.version,
-        idempotencyKey: stable.key,
-        ...(operation === 'pause' ? { reason: stable.reason } : {}),
-      })
-      if (!result.success) {
-        setError(result.error ?? 'Unable to change journey operational status.')
-        return
+      try {
+        const result = await qualityJourneyRecoveryAction(operation, {
+          journeyId: props.journeyId,
+          expectedStateHash: stable.stateHash,
+          expectedVersion: stable.version,
+          idempotencyKey: stable.key,
+          ...(operation === 'pause' ? { reason: stable.reason } : {}),
+        })
+        if (!result.success) {
+          setError(result.error ?? 'Unable to change journey operational status.')
+          return
+        }
+        setObservation(cleanupSummary(result.data))
+        request.current = null
+        router.refresh()
+      } catch {
+        setError('Connection interrupted. Try again to check the same request.')
       }
-      setObservation(cleanupSummary(result.data))
-      request.current = null
-      router.refresh()
     })
   }
   return { error, observation, pending, submit }
 }
 
 export function JourneyRecoveryPanel(props: Props) {
-  const [reason, setReason] = useState('')
+  const reason = 'Paused by the user'
   const operation = props.status === 'PAUSED' ? 'resume' : 'pause'
   const { error, observation, pending, submit } = useRecoverySubmission(props, operation, reason)
   if (props.status === 'CLOSED') return null
 
   return (
-    <Card aria-label="Journey operational recovery">
-      <CardHeader>
-        <CardTitle>{props.status === 'PAUSED' ? 'Journey paused' : 'Operational control'}</CardTitle>
-        <CardDescription>
-          {props.status === 'PAUSED'
-            ? 'Resume after owned browser, agent and execution cleanup has been reconciled. Accepted decisions and artifacts remain available.'
-            : 'Pause new journey work and request cleanup of Appraise-owned browser, agent and execution processes. An external Codex task cannot be stopped here.'}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {operation === 'pause' ? (
-          <Textarea
-            aria-label="Pause reason"
-            disabled={pending}
-            maxLength={1000}
-            onChange={event => setReason(event.target.value)}
-            placeholder="Why are you pausing this journey?"
-            value={reason}
-          />
-        ) : null}
-        <Button
-          disabled={pending || (operation === 'pause' && !reason.trim())}
-          onClick={submit}
-          type="button"
-          variant="outline"
-        >
-          {pending ? 'Working…' : operation === 'pause' ? 'Pause journey' : 'Resume journey'}
-        </Button>
-        {observation ? (
-          <p className="text-sm text-muted-foreground" role="status">
-            {observation}
-          </p>
-        ) : null}
-        {error ? (
-          <p className="text-sm text-destructive" role="alert">
-            {error}
-          </p>
-        ) : null}
-      </CardContent>
-    </Card>
+    <div className="shrink-0 space-y-2">
+      <Button disabled={pending} onClick={submit} type="button" variant="outline" size="sm">
+        {pending ? (operation === 'pause' ? 'Pausing…' : 'Resuming…') : operation === 'pause' ? 'Pause' : 'Resume'}
+      </Button>
+      {observation && (
+        <p className="max-w-52 text-sm text-muted-foreground" role="status">
+          {observation}
+        </p>
+      )}
+      {error && (
+        <p className="max-w-52 text-sm text-destructive" role="alert">
+          {error}
+        </p>
+      )}
+    </div>
   )
 }

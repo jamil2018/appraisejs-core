@@ -1,4 +1,5 @@
 import { assertQualityJourneyRecoverable } from './quality-journey-terminal'
+import { notifyAppManagedRuntimeTerminal } from './app-managed-runtime-wake'
 import path from 'node:path'
 import type { Prisma, PrismaClient } from '@prisma/client'
 import prisma from '@/config/db-config'
@@ -435,8 +436,9 @@ export async function reconcileQualityJourneyExecutionRuntime(
   }
   const result = await collectEvidence(client, input.executionCycleId, appraiseRoot)
   if (!result) return
-  await client.$transaction(async tx => {
-    if (await tx.qualityJourneyExecutionEvidenceReceipt.count({ where: { executionCycleId: result.cycle.id } })) return
+  const continuation = await client.$transaction(async tx => {
+    if (await tx.qualityJourneyExecutionEvidenceReceipt.count({ where: { executionCycleId: result.cycle.id } }))
+      return null
     const state = await tx.qualityJourney.findUniqueOrThrow({ where: { id: result.cycle.journeyId } })
     assertQualityJourneyRecoverable(state)
     for (const receipt of result.receipts) await tx.qualityJourneyExecutionEvidenceReceipt.create({ data: receipt })
@@ -458,7 +460,19 @@ export async function reconcileQualityJourneyExecutionRuntime(
         where: { id: binding.id, status: { in: ['LAUNCHING', 'RUNNING'] } },
         data: { status: terminalBindingStatus(binding.testRun) },
       })
+    const current = await tx.qualityJourney.findUniqueOrThrow({ where: { id: result.cycle.journeyId } })
+    return current.status === 'ACTIVE' && current.stage === 'TRIAGE'
+      ? { journeyId: current.id, targetProjectId: current.targetProjectId, expectedStateHash: current.stateHash }
+      : null
   })
+  if (continuation) {
+    // Only the transaction that first seals evidence wakes work. Replays never repeat this callback.
+    try {
+      notifyAppManagedRuntimeTerminal(continuation, client)
+    } catch {
+      console.error('Managed Journey terminal wake could not be registered')
+    }
+  }
 }
 
 async function publishTerminalCycleResult(

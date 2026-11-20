@@ -127,22 +127,11 @@ task must reread current Journey, Analysis, and event state before claim or cont
 Appraise work state only and makes no liveness claim about an external Codex task.
 
 Creation accepts the shared `QualityJourneyRequirement/v1` payload. Objective-only requests remain valid; structured
-fields are canonicalized before hashing and persistence. Coordinator connections use
-`GET quality/journeys/:journeyId/handoff?target=...` for safe inspection and
-`POST quality/journeys/:journeyId/handoff/redeem` for one-time redemption. MCP exposes these as
-`quality_journey_handoff_inspect` and `quality_journey_handoff_redeem`. Preparation and launch remain UI-only server
-actions because the server validates the deep link and selects either the registered local workspace or a per-handoff
-neutral host workspace for a qualified remote target. A redemption may optionally record the current Codex task ID,
-but that identifier is observational recovery metadata, not a principal or authority. For mutable later stages,
-Appraise persists an exact Journey/revision/target/work-attempt/dispatch/terminal-effect/pending-event snapshot and
-rejects stale launch or redemption without consuming the ticket. There is deliberately no MCP takeover mutation: only
-the local Journey UI can submit a short-lived request-identity-bound approval. It re-reads the snapshot, blocks
-ambiguous dispatches and expired leases with a read-only recovery projection, atomically fences predecessor attempts,
-reissues valid bounded authorization for the same logical work item in `REPLACEMENT_REQUESTED`, then fences
-predecessor connected sessions before the successor is effective. After takeover, every coordinator-facing Journey
-mutation (generic, work, and specialized) accepts only the effective coordinator handoff ID and monotonic generation,
-and specialized services recheck that binding within their write transaction; old task sessions fail closed without
-mutation. Replacement authorization preserves only remaining immutable attempt budget across its supersession lineage.
+fields are canonicalized before hashing and persistence. New public requests select managed hosting. An exact retry
+of a previous creation request returns the original Journey. Historical desktop metadata remains accessible via
+`quality_journey_handoff_inspect`. The retired HTTP ticket redemption endpoint returns 410 after the normal
+authentication checks. Use the local Journey page for supported migration and ownership decisions.
+
 Journey-scoped `locator_ensure` is subject to the same route admission and transaction-local check; generic locator
 operations without a Journey remain outside the coordinator-session protocol. Execution and triage MCP mutation
 schemas (and triage sealed-evidence reads) carry that binding through to the coordinator rather than treating a stale

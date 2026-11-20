@@ -1,6 +1,39 @@
 import { describe, expect, it } from 'vitest'
 
-import { automationMaterializationRequestSchema, preparedRuntimeCapsuleSchema } from './automation-contracts'
+import {
+  automationMaterializationRequestSchema,
+  preparedRuntimeCapsuleSchema,
+  preservesOrderedScenarioSteps,
+  validateAutomationLocatorSemantics,
+} from './automation-contracts'
+
+describe('ordered scenario operation expansion', () => {
+  it('shares supplemental selector restrictions between pre-claim and canonical mapping', () => {
+    const requirements = [
+      {
+        requirementId: 'reviewed',
+        parameterName: 'target',
+        runtimeParameter: true,
+        reviewedSelector: { selector: 'css=main', reason: 'Observe the actual checkout area.' },
+      },
+    ]
+    for (const operation of ['browser.assertions.visible', 'browser.assertions.text'])
+      expect(() => validateAutomationLocatorSemantics(operation, requirements)).not.toThrow()
+    for (const operation of ['browser.mouse.click', 'browser.navigation.goto', 'browser.input.fill'])
+      expect(() => validateAutomationLocatorSemantics(operation, requirements)).toThrow('noninteractive observation')
+    expect(() =>
+      validateAutomationLocatorSemantics('browser.mouse.click', [
+        { requirementId: 'frozen', parameterName: 'target', locatorId: 'actual-frozen-id' },
+      ]),
+    ).not.toThrow()
+  })
+  it('covers all source actions once in contiguous groups and rejects omissions or replayed groups', () => {
+    expect(preservesOrderedScenarioSteps(['a', 'b'], ['a', 'a', 'b'])).toBe(true)
+    for (const steps of [[], ['a'], ['b', 'a'], ['a', 'b', 'a'], ['a', 'invented', 'b']])
+      expect(preservesOrderedScenarioSteps(['a', 'b'], steps)).toBe(false)
+    expect(preservesOrderedScenarioSteps(['a'], Array(129).fill('a'))).toBe(false)
+  })
+})
 
 const hash = `sha256:${'a'.repeat(64)}`
 

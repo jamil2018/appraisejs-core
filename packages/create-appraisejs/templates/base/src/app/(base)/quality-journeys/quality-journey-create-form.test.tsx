@@ -49,211 +49,106 @@ afterEach(() => {
 describe('QualityJourneyCreateForm', () => {
   const environments = [{ id: 'environment-1', name: 'Staging', baseUrl: 'https://staging.example.test' }]
 
-  async function completeMinimum(user: ReturnType<typeof userEvent.setup>) {
-    await user.type(screen.getByLabelText('Outcome or behavior to validate'), 'A shopper can submit an order.')
-    await user.click(screen.getByRole('button', { name: 'Continue' }))
-    await user.type(screen.getByLabelText('Included behavior'), 'Checkout submission')
-    await user.click(screen.getByRole('button', { name: 'Add included behavior' }))
-    await user.type(screen.getByLabelText('How will you know it worked?'), 'An order ID is shown')
-    await user.click(screen.getByRole('button', { name: 'Add success signal' }))
-    await user.click(screen.getByRole('button', { name: 'Continue' }))
-    await user.click(screen.getByRole('radio', { name: /standard/i }))
-    await user.click(screen.getByRole('button', { name: 'Continue' }))
-    await user.click(screen.getByText('Staging'))
-    await user.click(screen.getByRole('button', { name: 'Review Journey intake' }))
-    await screen.findByRole('button', { name: 'Confirm and create Journey' }, { timeout: 5_000 })
-  }
-
-  it('starts with no coverage depth selected and only offers end-to-end coverage choices', async () => {
+  it('offers one free-text brief and starts without mandatory configuration or a separate review', async () => {
+    mocks.confirmDraft.mockResolvedValue({ success: true, data: { journeyId: 'journey-1' } })
     const user = userEvent.setup()
-    render(<QualityJourneyCreateForm initialEnvironments={environments} projectId="project-1" />)
-
-    await user.type(screen.getByLabelText('Outcome or behavior to validate'), 'A shopper can submit an order.')
-    await user.click(screen.getByRole('button', { name: 'Continue' }))
-    await user.click(screen.getByRole('button', { name: '03Coverage' }))
-
-    expect(screen.getAllByRole('radio')).toHaveLength(3)
-    expect(screen.getByRole('radio', { name: /focused/i })).not.toBeChecked()
-    expect(screen.queryByText('Test dimensions')).not.toBeInTheDocument()
-    expect(screen.getByText(/currently validates complete user flows/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled()
-
-    await user.click(screen.getByRole('radio', { name: /focused/i }))
-    expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled()
-  })
-
-  it('marks completed intake steps in the timeline while preserving the current step', async () => {
-    const user = userEvent.setup()
-    render(<QualityJourneyCreateForm initialEnvironments={environments} projectId="project-1" />)
-
-    const goalStep = screen.getByRole('button', { name: '01Goal' })
-    expect(goalStep).toHaveAttribute('data-state', 'current')
-
-    await user.type(screen.getByLabelText('Outcome or behavior to validate'), 'A shopper can submit an order.')
-    expect(screen.getByRole('button', { name: '01Goal' })).toHaveAttribute('data-state', 'current')
-
-    await user.click(screen.getByRole('button', { name: 'Continue' }))
-    expect(screen.getByRole('button', { name: '01Goal' })).toHaveAttribute('data-state', 'complete')
-    expect(screen.getByRole('button', { name: '02Scope and success' })).toHaveAttribute('data-state', 'current')
-    expect(screen.getByRole('button', { name: '03Coverage' })).toHaveAttribute('data-state', 'upcoming')
-
-    await user.click(screen.getByRole('button', { name: '03Coverage' }))
-    await user.click(screen.getByRole('radio', { name: /standard/i }))
-    expect(screen.getByRole('button', { name: '03Coverage' })).toHaveAttribute('data-state', 'current')
-  })
-
-  it('adds, edits, and removes scope cards', async () => {
-    const user = userEvent.setup()
-    render(<QualityJourneyCreateForm initialEnvironments={environments} projectId="project-1" />)
-
-    await user.click(screen.getByRole('button', { name: '02Scope and success' }))
-    await user.type(screen.getByLabelText('Included behavior'), 'Checkout submission')
-    await user.click(screen.getByRole('button', { name: 'Add included behavior' }))
-    expect(screen.getByText('Checkout submission')).toBeInTheDocument()
-
-    await user.click(screen.getByRole('button', { name: 'Edit included behavior: Checkout submission' }))
-    await user.clear(screen.getByLabelText('Included behavior'))
-    await user.type(screen.getByLabelText('Included behavior'), 'Guest checkout submission')
-    await user.click(screen.getByRole('button', { name: 'Save included behavior' }))
-    expect(screen.getByText('Guest checkout submission')).toBeInTheDocument()
-
-    await user.click(screen.getByRole('button', { name: 'Remove included behavior: Guest checkout submission' }))
-    expect(screen.queryByText('Guest checkout submission')).not.toBeInTheDocument()
-  })
-
-  it('creates a draft from a meaningful partial edit before the objective is supplied', async () => {
-    const user = userEvent.setup()
-    render(<QualityJourneyCreateForm initialEnvironments={environments} projectId="project-1" />)
-
-    await user.type(screen.getByLabelText(/Context/), 'A launch depends on this behavior.')
-
-    await waitFor(() => expect(mocks.createDraft).toHaveBeenCalled(), { timeout: 1500 })
+    render(<QualityJourneyCreateForm initialEnvironments={environments} projectId="project one" />)
+    expect(screen.getAllByRole('textbox')).toHaveLength(1)
+    expect(screen.getByRole('button', { name: 'Start journey' })).toBeDisabled()
+    await user.type(screen.getByLabelText('What do you want to validate?'), 'A shopper can submit an order.')
+    await user.click(screen.getByRole('button', { name: 'Start journey' }))
+    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/quality-journeys/journey-1?project=project%20one'))
     expect(mocks.createDraft).toHaveBeenCalledWith(
       expect.objectContaining({
-        requirement: expect.objectContaining({ context: 'A launch depends on this behavior.' }),
+        requirement: { objective: 'A shopper can submit an order.' },
+      }),
+    )
+    expect(mocks.confirmDraft).toHaveBeenCalledWith(
+      expect.objectContaining({
+        draftId: 'draft-1',
+        requirementHash: expect.stringMatching(/^sha256:/),
       }),
     )
   })
 
-  it('does not create a draft when the user only visits intake sections', async () => {
+  it('autosaves the latest partial brief without starting a Journey', async () => {
     const user = userEvent.setup()
-    render(<QualityJourneyCreateForm initialEnvironments={environments} projectId="project-1" />)
+    render(<QualityJourneyCreateForm initialEnvironments={[]} projectId="project-1" />)
+    await user.type(screen.getByLabelText('What do you want to validate?'), 'First thought, refined before autosave.')
+    await waitFor(() => expect(mocks.createDraft).toHaveBeenCalledOnce(), { timeout: 1500 })
+    expect(mocks.createDraft).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requirement: { objective: 'First thought, refined before autosave.' },
+      }),
+    )
+    expect(mocks.confirmDraft).not.toHaveBeenCalled()
+  })
 
-    await user.click(screen.getByRole('button', { name: '02Scope and success' }))
-    await user.click(screen.getByRole('button', { name: '03Coverage' }))
-    await user.click(screen.getByRole('button', { name: '04Test location' }))
-    await new Promise(resolve => window.setTimeout(resolve, 850))
-
+  it('does not create a draft merely by visiting', () => {
+    render(<QualityJourneyCreateForm initialEnvironments={[]} projectId="project-1" />)
     expect(mocks.createDraft).not.toHaveBeenCalled()
     expect(screen.getByText(/saved to this workspace after your first edit/i)).toBeInTheDocument()
   })
 
-  it('keeps the latest rapid edit in the first autosave', async () => {
+  it('offers save recovery and prevents starting over a conflicting version', async () => {
+    mocks.createDraft.mockResolvedValueOnce({ success: false, error: 'A newer saved version exists.' })
     const user = userEvent.setup()
-    render(<QualityJourneyCreateForm initialEnvironments={environments} projectId="project-1" />)
+    render(<QualityJourneyCreateForm initialEnvironments={[]} projectId="project-1" />)
+    await user.type(screen.getByLabelText('What do you want to validate?'), 'Keep this edit.')
+    expect(await screen.findByRole('button', { name: 'Retry save' }, { timeout: 1500 })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Load saved version' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save my edits as a new draft' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Start journey' })).toBeDisabled()
+  })
 
-    await user.type(screen.getByLabelText(/Context/), 'First thought, refined before autosave.')
-
-    await waitFor(() => expect(mocks.createDraft).toHaveBeenCalledOnce(), { timeout: 1500 })
-    expect(mocks.createDraft).toHaveBeenCalledWith(
+  it('preserves all existing structured intent while editing the brief', async () => {
+    const user = userEvent.setup()
+    const requirement = {
+      objective: 'Existing goal',
+      context: 'Business context',
+      coverageRigor: 'COMPREHENSIVE' as const,
+      testDimensions: ['API' as const],
+      includedScope: ['Checkout'],
+      environmentIds: ['environment-1'],
+      desiredEvidenceSignals: ['Order ID'],
+      excludedScope: ['Refunds'],
+      risks: ['Double submission'],
+    }
+    render(
+      <QualityJourneyCreateForm
+        initialEnvironments={environments}
+        projectId="project-1"
+        draft={{ id: 'draft-1', version: 4, draftHash: `sha256:${'a'.repeat(64)}`, currentStep: 3, requirement }}
+      />,
+    )
+    await user.clear(screen.getByLabelText('What do you want to validate?'))
+    await user.type(screen.getByLabelText('What do you want to validate?'), 'Updated goal')
+    await waitFor(() => expect(mocks.saveDraft).toHaveBeenCalled(), { timeout: 1500 })
+    expect(mocks.saveDraft).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        requirement: expect.objectContaining({ context: 'First thought, refined before autosave.' }),
+        requirement: { ...requirement, objective: 'Updated goal' },
       }),
     )
   })
 
-  it('offers retry and conflict recovery after an autosave failure', async () => {
-    mocks.createDraft.mockResolvedValueOnce({ success: false, error: 'A newer saved version exists.' })
-    const user = userEvent.setup()
-    render(<QualityJourneyCreateForm initialEnvironments={environments} projectId="project-1" />)
-
-    await user.type(screen.getByLabelText(/Context/), 'Keep this edit.')
-
-    expect(await screen.findByRole('button', { name: 'Retry save' }, { timeout: 1500 })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Load saved version' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Save my edits as a new draft' })).toBeInTheDocument()
-  })
-
-  it('creates a requirement and navigates to its stable Quality Journey identifier', async () => {
-    mocks.confirmDraft.mockResolvedValue({ success: true, data: { journeyId: 'journey-1' } })
-    const user = userEvent.setup()
-    render(<QualityJourneyCreateForm initialEnvironments={environments} projectId="project one" />)
-
-    await completeMinimum(user)
-    expect(mocks.confirmDraft).not.toHaveBeenCalled()
-    await user.click(screen.getByRole('button', { name: 'Confirm and create Journey' }))
-
-    await waitFor(() =>
-      expect(mocks.confirmDraft).toHaveBeenCalledWith(
-        expect.objectContaining({
-          draftId: 'draft-1',
-          expectedVersion: expect.any(Number),
-          expectedDraftHash: expect.stringMatching(/^sha256:/),
-          requirementHash: expect.stringMatching(/^sha256:/),
-        }),
-      ),
-    )
-    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/quality-journeys/journey-1?project=project%20one'))
-  })
-
-  it('shows an actionable error when creation does not yield a stable journey identifier', async () => {
+  it('shows a creation error and preserves the brief for retry', async () => {
     mocks.confirmDraft.mockResolvedValue({ success: false, error: 'The active project no longer exists.' })
     const user = userEvent.setup()
-    render(<QualityJourneyCreateForm initialEnvironments={environments} projectId="project-1" />)
-
-    await completeMinimum(user)
-    await user.click(screen.getByRole('button', { name: 'Confirm and create Journey' }))
-
+    render(<QualityJourneyCreateForm initialEnvironments={[]} projectId="project-1" />)
+    await user.type(screen.getByLabelText('What do you want to validate?'), 'Checkout')
+    await user.click(screen.getByRole('button', { name: 'Start journey' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('The active project no longer exists.')
+    expect(screen.getByLabelText('What do you want to validate?')).toHaveValue('Checkout')
     expect(mocks.push).not.toHaveBeenCalled()
   })
 
-  it('returns from confirmation without persisting a Journey', async () => {
-    const user = userEvent.setup()
-    render(<QualityJourneyCreateForm initialEnvironments={environments} projectId="project-1" />)
-
-    await completeMinimum(user)
-    await user.click(screen.getByRole('button', { name: 'Edit intake' }))
-
-    expect(screen.getByRole('button', { name: 'Review Journey intake' })).toBeEnabled()
-    expect(mocks.confirmDraft).not.toHaveBeenCalled()
-  })
-
-  it('routes an incomplete review to its first missing input and focuses it', async () => {
-    const user = userEvent.setup()
-    render(<QualityJourneyCreateForm initialEnvironments={environments} projectId="project-1" />)
-
-    await user.click(screen.getByRole('button', { name: '04Test location' }))
-    await user.click(screen.getByRole('button', { name: 'Review Journey intake' }))
-
-    expect(screen.getByRole('alert')).toHaveTextContent('Add a requirement objective before reviewing this brief.')
-    await waitFor(() => expect(screen.getByLabelText('Outcome or behavior to validate')).toHaveFocus())
-  })
-
-  it('renders supplied multiline values as lists, omits empty optional rows, and edits one review section', async () => {
-    const user = userEvent.setup()
-    render(<QualityJourneyCreateForm initialEnvironments={environments} projectId="project-1" />)
-
-    await completeMinimum(user)
-    await user.click(screen.getByRole('button', { name: 'Edit intake' }))
-    await user.click(screen.getByRole('button', { name: '02Scope and success' }))
-    await user.type(screen.getByLabelText('Included behavior'), 'Order confirmation')
-    await user.click(screen.getByRole('button', { name: 'Add included behavior' }))
-    await user.click(screen.getByRole('button', { name: '04Test location' }))
-    await user.click(screen.getByRole('button', { name: 'Review Journey intake' }))
-
-    expect(screen.getByText('Order confirmation')).toBeInTheDocument()
-    expect(screen.queryByText('Not supplied')).not.toBeInTheDocument()
-    await user.click(screen.getAllByRole('button', { name: 'Edit' })[1]!)
-    expect(screen.getByRole('heading', { name: 'Scope and success' })).toBeInTheDocument()
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Scope and success' })).toHaveFocus())
-  })
-
-  it('offers archived drafts a restore path instead of editing them', async () => {
+  it('offers archived drafts a restore path', async () => {
     mocks.restoreDraft.mockResolvedValue({ success: true, data: { draft: { id: 'draft-1' } } })
     const user = userEvent.setup()
     render(
       <QualityJourneyCreateForm
+        initialEnvironments={environments}
+        projectId="project-1"
         draft={{
           id: 'draft-1',
           status: 'ARCHIVED',
@@ -262,11 +157,10 @@ describe('QualityJourneyCreateForm', () => {
           currentStep: 1,
           requirement: { objective: 'Archived brief' },
         }}
-        initialEnvironments={environments}
-        projectId="project-1"
       />,
     )
     await user.click(screen.getByRole('button', { name: 'Restore draft' }))
     expect(mocks.restoreDraft).toHaveBeenCalledWith({ draftId: 'draft-1', expectedVersion: 3 })
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
   })
 })

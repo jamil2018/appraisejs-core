@@ -1,11 +1,12 @@
 'use client'
 
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useRef, useState, useTransition } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from '@/hooks/use-toast'
 import type { QualityJourneyTriageReport } from '@/lib/quality-journey'
@@ -79,21 +80,29 @@ function AssignmentEvidence({ assignments }: { assignments: Triage['assignments'
   )
 }
 
-function FindingList({ report }: { report: QualityJourneyTriageReport }) {
+function FindingList({ report, projectId }: { report: QualityJourneyTriageReport; projectId?: string }) {
+  if (!report.findings.length) return null
   return (
     <section className="space-y-3" aria-label="Attributed findings">
-      <h3 className="text-sm font-semibold">Attributed findings</h3>
-      {report.findings.length ? (
-        <ul className="space-y-3">
-          {report.findings.map(finding => (
-            <li className="rounded-md border p-3 text-sm" key={finding.findingId}>
-              <div className="flex flex-wrap items-center gap-2">
+      <h3 className="text-sm font-semibold">Findings</h3>
+      <ul className="space-y-3">
+        {report.findings.map(finding => (
+          <li className="rounded-md border p-3 text-sm" key={finding.findingId}>
+            <p className="font-medium">{finding.rationale}</p>
+            <details>
+              <summary className="cursor-pointer text-sm">View evidence</summary>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
                 <Badge variant="outline">{finding.kind}</Badge>
                 <Badge variant="secondary">{finding.confidence}</Badge>
                 {finding.unresolved ? <Badge variant="destructive">Unresolved</Badge> : null}
                 <span className="font-mono text-xs">{finding.testRunId}</span>
               </div>
-              <p className="mt-2">{finding.rationale}</p>
+              <Link
+                className="text-sm underline"
+                href={`/test-runs/${encodeURIComponent(finding.testRunId)}${projectId ? `?project=${encodeURIComponent(projectId)}` : ''}`}
+              >
+                Open test run
+              </Link>
               <p className="mt-1 text-xs text-muted-foreground">
                 Evidence {finding.evidenceReceiptId} · scenario {finding.scenarioRevisionId} · requirements{' '}
                 {finding.requirementIds.join(', ') || 'none'}
@@ -108,17 +117,15 @@ function FindingList({ report }: { report: QualityJourneyTriageReport }) {
                 Competing hypotheses:{' '}
                 {finding.competingHypotheses.length ? finding.competingHypotheses.join('; ') : 'None recorded.'}
               </p>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-sm text-muted-foreground">No attributed findings were submitted for this report revision.</p>
-      )}
+            </details>
+          </li>
+        ))}
+      </ul>
     </section>
   )
 }
 
-function CoverageList({ report }: { report: QualityJourneyTriageReport }) {
+function CoverageList({ report, projectId }: { report: QualityJourneyTriageReport; projectId?: string }) {
   return (
     <section className="space-y-2" aria-label="Requirement coverage">
       <h3 className="text-sm font-semibold">Coverage</h3>
@@ -128,9 +135,15 @@ function CoverageList({ report }: { report: QualityJourneyTriageReport }) {
             <Badge variant="outline">{item.outcome}</Badge>{' '}
             <span className="font-mono text-xs">{item.requirementId}</span>
             <p className="mt-1 text-xs text-muted-foreground">{item.rationale}</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Scenarios: {item.scenarioRevisionIds.join(', ')} · runs: {item.testRunIds.join(', ')}
-            </p>
+            {item.testRunIds.map((testRunId, index) => (
+              <Link
+                key={testRunId}
+                className="mr-3 inline-block text-sm underline"
+                href={`/test-runs/${encodeURIComponent(testRunId)}${projectId ? `?project=${encodeURIComponent(projectId)}` : ''}`}
+              >
+                View test evidence{item.testRunIds.length > 1 ? ` ${index + 1}` : ''}
+              </Link>
+            ))}
           </li>
         ))}
       </ul>
@@ -150,6 +163,7 @@ function RemediationScope({ remediation }: { remediation: NonNullable<QualityJou
 }
 
 type ReportRevisionProps = {
+  projectId?: string
   item: Triage['reports'][number]
   active: boolean
   journeyId: string
@@ -225,7 +239,7 @@ function ReportReviewControls({
   )
 }
 
-function ReportRevision({ item, active, journeyId, stage, stateHash }: ReportRevisionProps) {
+function ReportRevision({ item, active, journeyId, stage, stateHash, projectId }: ReportRevisionProps) {
   const canReview = active && stage === 'REPORT_REVIEW' && !item.review
   return (
     <article className="space-y-5 rounded-lg border p-4" data-testid={`triage-report-${item.report.reportRevisionId}`}>
@@ -241,18 +255,26 @@ function ReportRevision({ item, active, journeyId, stage, stateHash }: ReportRev
         </div>
         <Badge variant={active ? 'default' : 'outline'}>{active ? 'Active revision' : 'Historical revision'}</Badge>
       </div>
+      <p className="text-sm font-semibold" aria-label="Requirement outcomes">
+        {item.report.coverage.filter(row => row.outcome === 'PASSED').length} passed ·{' '}
+        {item.report.coverage.filter(row => row.outcome === 'FAILED').length} failed ·{' '}
+        {item.report.coverage.filter(row => ['UNRESOLVED', 'NOT_EVALUATED'].includes(row.outcome)).length} unverified
+      </p>
       <p className="text-sm">{item.report.summary}</p>
-      <FindingList report={item.report} />
-      <CoverageList report={item.report} />
+      <FindingList report={item.report} projectId={projectId} />
+      <details>
+        <summary className="cursor-pointer text-sm">Coverage by requirement</summary>
+        <CoverageList report={item.report} projectId={projectId} />
+      </details>
       {item.report.remediation ? <RemediationScope remediation={item.report.remediation} /> : null}
       <section className="space-y-1 text-sm" aria-label="Residual risks and recommendations">
-        <h3 className="font-semibold">Residual risks</h3>
+        {item.report.residualRisks.length > 0 && <h3 className="font-semibold">Residual risks</h3>}
         <ul className="list-disc pl-5 text-muted-foreground">
           {item.report.residualRisks.map(value => (
             <li key={value}>{value}</li>
           ))}
         </ul>
-        <h3 className="pt-2 font-semibold">Recommendations</h3>
+        {item.report.recommendations.length > 0 && <h3 className="pt-2 font-semibold">Recommendations</h3>}
         <ul className="list-disc pl-5 text-muted-foreground">
           {item.report.recommendations.map(value => (
             <li key={value}>{value}</li>
@@ -271,6 +293,7 @@ function ReportRevision({ item, active, journeyId, stage, stateHash }: ReportRev
 }
 
 export function TriageReportPanel({
+  projectId,
   journeyId,
   stage,
   stateHash,
@@ -279,6 +302,7 @@ export function TriageReportPanel({
   journeyId: string
   stage: string
   stateHash: string
+  projectId?: string
   triage: Triage | null
 }) {
   if (!triage || (!triage.assignments.length && !triage.reports.length)) return null
@@ -286,23 +310,22 @@ export function TriageReportPanel({
     <Card aria-label="Triage report history">
       <CardHeader>
         <CardTitle>Results</CardTitle>
-        <CardDescription>
-          Findings, evidence, coverage that could not be tested, and what to do next. Product failures remain distinct
-          from tests that could not run.
-        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {triage.reports
+          .filter(item => item.report.reportRevisionId === triage.activeReportRevisionId)
+          .map(item => (
+            <ReportRevision
+              projectId={projectId}
+              active={item.report.reportRevisionId === triage.activeReportRevisionId}
+              item={item}
+              journeyId={journeyId}
+              key={item.id}
+              stage={stage}
+              stateHash={stateHash}
+            />
+          ))}
         <AssignmentEvidence assignments={triage.assignments} />
-        {triage.reports.map(item => (
-          <ReportRevision
-            active={item.report.reportRevisionId === triage.activeReportRevisionId}
-            item={item}
-            journeyId={journeyId}
-            key={item.id}
-            stage={stage}
-            stateHash={stateHash}
-          />
-        ))}
       </CardContent>
     </Card>
   )

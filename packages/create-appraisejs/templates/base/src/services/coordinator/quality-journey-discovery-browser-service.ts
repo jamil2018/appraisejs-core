@@ -28,6 +28,10 @@ import {
 import { ServiceError } from '@/services/shared/errors'
 import { createQualityJourneyDiscoveryBrowserRuntime } from './quality-journey-discovery-browser-runtime'
 import { assertQualityJourneyMutable } from './quality-journey-terminal'
+import {
+  discoveryControlPresenceFacts,
+  type DiscoveryControlPresenceSnapshot,
+} from './quality-journey-discovery-control-presence'
 
 type Db = PrismaClient | Prisma.TransactionClient
 
@@ -53,6 +57,8 @@ type BrowserPage = {
   url(): string
   mainFrame(): BrowserFrame
   title(): Promise<string>
+  captureControlPresence?(expectedUrl: string): Promise<DiscoveryControlPresenceSnapshot>
+  assertCaptureDocument?(documentIdentity: string, expectedUrl: string): Promise<void>
   on(
     event: 'framenavigated' | 'websocket' | 'download' | 'popup' | 'close' | 'crash',
     listener: (value: unknown) => void,
@@ -117,9 +123,19 @@ const sessionInputSchema = z
 const captureSchema = sessionInputSchema.extend({ snapshotId: id }).strict()
 const missingAccessSchema = sessionInputSchema
 
-const processInstanceId = `qjdb_process_${randomUUID().replaceAll('-', '')}`
-const sessions = new Map<string, Session>()
-const startupClosures = new Map<string, StartupClosure>()
+// Next can load separate copies of this module for a page, a server action or a hot reload.
+const browserOwner = globalThis as typeof globalThis & {
+  appraiseJourneyDiscoveryBrowserOwner?: {
+    processInstanceId: string
+    sessions: Map<string, Session>
+    startupClosures: Map<string, StartupClosure>
+  }
+}
+const { processInstanceId, sessions, startupClosures } = (browserOwner.appraiseJourneyDiscoveryBrowserOwner ??= {
+  processInstanceId: `qjdb_process_${randomUUID().replaceAll('-', '')}`,
+  sessions: new Map<string, Session>(),
+  startupClosures: new Map<string, StartupClosure>(),
+})
 const cleanupScopeSchema = z.object({ journeyId: id, targetProjectId: id }).strict()
 
 type CleanupState = 'NOT_REQUESTED' | 'REQUESTED' | 'PENDING' | 'RUNTIME_CLOSE_CONFIRMED' | 'UNKNOWN'
@@ -1549,10 +1565,13 @@ export async function startQualityJourneyDiscoveryBrowserSession(
   client: Db = prisma,
   runtime: DiscoveryBrowserRuntime = defaultRuntime,
   generation = 1,
+  /** Trusted internal reservation only; never accepted from browser or model input. */
+  reservedSessionId?: string,
 ) {
   const request = startSchema.parse(input)
   assertNoUnresolvedOwnedCleanup(request.journeyId, request.targetProjectId)
-  const sessionId = idFor('session', request.journeyId, request.discoveryRevisionId, request.workItemId, randomUUID())
+  const sessionId =
+    reservedSessionId ?? idFor('session', request.journeyId, request.discoveryRevisionId, request.workItemId, randomUUID())
   const { scope, ownership } = await registerBrowserOwnership(request, sessionId, client, generation)
   try {
     assertNoUnresolvedOwnedCleanup(request.journeyId, request.targetProjectId)
@@ -1935,12 +1954,14 @@ function buildDiscoveryBrowserReceipt(
   snapshotId: string,
   currentUrl: string,
   accessOutcome: 'ACTIVE' | 'ACCESS_CONFIRMED' | 'MISSING_ACCESS',
+  controlFacts: readonly string[] = [],
 ) {
   const artifactId = idFor('receipt', session.id, String(session.generation), snapshotId)
   const observationFacts = [
     `Appraise loaded ${session.routeId} at ${currentUrl}.`,
     'Appraise intentionally did not collect target-controlled page title content.',
     `Appraise observed access outcome ${accessOutcome}.`,
+    ...controlFacts,
   ]
   const receipt = discoveryBrowserReceiptSchema.parse({
     schemaVersion: 'appraise.discovery-browser-receipt/v1',
@@ -1990,15 +2011,18 @@ async function persistDiscoveryBrowserReceipt(
   currentUrl: string,
   operation: SessionOperation | undefined,
   client: Db,
+  controlSnapshot?: DiscoveryControlPresenceSnapshot,
 ) {
   return withTransaction(client, async tx => {
     await assertFrozenScopeStillMatchesSession(session, tx)
     assertCaptureOperationCurrent(session, operation)
+    if (controlSnapshot) await assertControlPresenceCaptureCurrent(session, controlSnapshot, currentUrl, operation)
     const captured = buildDiscoveryBrowserReceipt(
       session,
       request.snapshotId,
       currentUrl,
       captureAccessOutcome(session),
+      controlSnapshot ? discoveryControlPresenceFacts(controlSnapshot.presence) : [],
     )
     const identityKey = `discovery-browser-receipt:${session.id}:${session.generation}:${request.snapshotId}`
     const existing = await tx.qualityJourneyArtifact.findUnique({
@@ -2024,18 +2048,62 @@ async function persistDiscoveryBrowserReceipt(
       })
       assertCaptureOperationCurrent(session, operation)
     }
+    if (controlSnapshot) await assertControlPresenceCaptureCurrent(session, controlSnapshot, currentUrl, operation)
     return captured
   })
 }
 
-export async function captureQualityJourneyDiscoveryBrowserReceipt(input: unknown, client: Db = prisma) {
+async function assertControlPresenceCaptureCurrent(
+  session: Session,
+  snapshot: DiscoveryControlPresenceSnapshot,
+  expectedUrl: string,
+  operation?: SessionOperation,
+) {
+  assertCaptureAllowed(session)
+  assertCaptureOperationCurrent(session, operation)
+  if (
+    captureTargetUrl(session) !== expectedUrl ||
+    session.pendingMainFrameRequest ||
+    session.pendingMainFrameCommit ||
+    session.state === 'MISSING_ACCESS' ||
+    !session.page.assertCaptureDocument
+  )
+    throw new ServiceError('Discovery control observation requires the unchanged scoped target document.', 'CONFLICT')
+  await session.page.assertCaptureDocument(snapshot.documentIdentity, expectedUrl)
+  assertCaptureOperationCurrent(session, operation)
+  if (captureTargetUrl(session) !== expectedUrl || session.pendingMainFrameRequest || session.pendingMainFrameCommit)
+    throw new ServiceError('Discovery control observation target changed.', 'CONFLICT')
+}
+
+export async function captureQualityJourneyDiscoveryBrowserReceipt(
+  input: unknown,
+  client: Db = prisma,
+  internal?: { automaticAnonymous: true },
+) {
   const request = captureSchema.parse(input)
   const session = await getLiveSession(request)
   assertCaptureAllowed(session)
   const operation = isLiveSessionState(session.state) ? reserveSessionOperation(session, 'CAPTURE_RECEIPT') : undefined
   try {
     const currentUrl = captureTargetUrl(session)
-    return await persistDiscoveryBrowserReceipt(session, request, currentUrl, operation, client)
+    let controlSnapshot: DiscoveryControlPresenceSnapshot | undefined
+    if (operation && session.page.captureControlPresence) {
+      if (!session.page.assertCaptureDocument || session.pendingMainFrameRequest || session.pendingMainFrameCommit)
+        throw new ServiceError('Discovery control observation is unavailable during a document transition.', 'CONFLICT')
+      controlSnapshot = await session.page.captureControlPresence(currentUrl)
+      await assertControlPresenceCaptureCurrent(session, controlSnapshot, currentUrl, operation)
+    }
+    if (
+      internal?.automaticAnonymous &&
+      (session.accessMode !== 'ANONYMOUS' || !controlSnapshot || controlSnapshot.presence.passwordInput)
+    )
+      throw new ServiceError(
+        'This page needs human inspection or sign-in before Discovery can continue.',
+        'CONFLICT',
+        409,
+        { reason: 'MANUAL_DISCOVERY_ACCESS_REQUIRED' },
+      )
+    return await persistDiscoveryBrowserReceipt(session, request, currentUrl, operation, client, controlSnapshot)
   } finally {
     if (operation) releaseSessionOperation(session, operation)
   }

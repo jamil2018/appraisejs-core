@@ -479,6 +479,9 @@ export class RuntimeCapsuleMaterializer {
       const context = await this.selectedSourceContext(input, source, tx)
       const invocations = context.selected.flatMap(item => item.testCase.steps.map(step => step.invocation))
       const resolved = await resolveAuthoredDefinitions({ invocations, prisma: tx })
+      // Supplemental observation selectors belong only to this sealed prepared source;
+      // they never become authored locator rows or frozen Discovery resources.
+      for (const locator of source.supplementalLocators) resolved.locatorIds.delete(locator.id)
       for (const resource of source.resourceHashes)
         if (resource.id.startsWith('locator:')) resolved.locatorIds.add(resource.id.slice('locator:'.length))
       const readLocators = () =>
@@ -531,7 +534,12 @@ export class RuntimeCapsuleMaterializer {
         updatedAt,
         targetProjectId,
       }))
-      return { context, ...resolved, locators: compilerLocators, protection: source.sharedResourceProtection }
+      return {
+        context,
+        ...resolved,
+        locators: [...compilerLocators, ...source.supplementalLocators],
+        protection: source.sharedResourceProtection,
+      }
     })
     if (captured.protection === 'PROTECTED_E2')
       throw new ServiceError('E2 capsule publication requires its exact owning admission boundary.', 'CONFLICT', 409, {

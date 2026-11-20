@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   hash: vi.fn(),
+  create: vi.fn(),
   save: vi.fn(),
   confirm: vi.fn(),
   push: vi.fn(),
@@ -17,7 +18,7 @@ vi.mock('@/hooks/use-toast', () => ({ toast: mocks.toast }))
 vi.mock('./quality-journey-actions', () => ({
   archiveQualityJourneyDraftAction: vi.fn(),
   confirmQualityJourneyDraftAction: mocks.confirm,
-  createQualityJourneyDraftAction: vi.fn(),
+  createQualityJourneyDraftAction: mocks.create,
   ensureQualityJourneyIntakeEnvironmentAction: mocks.ensureEnvironment,
   restoreQualityJourneyDraftAction: vi.fn(),
   saveQualityJourneyDraftAction: mocks.save,
@@ -99,24 +100,6 @@ describe('Quality Journey intake asynchronous confirmation', () => {
     expect(result.current.requirement.objective).toBe('Changed checkout')
   })
 
-  it('rejects confirmation if an environment is registered while the digest is pending', async () => {
-    const digest = deferred<string>()
-    mocks.hash.mockReturnValue(digest.promise)
-    mocks.ensureEnvironment.mockResolvedValue({
-      success: true,
-      data: { environment: { id: 'environment-new', name: 'New staging', baseUrl: 'https://example.test' } },
-    })
-    const { result } = renderIntake()
-    await act(async () => result.current.actions.submit())
-    await act(async () => result.current.actions.registerEnvironment())
-    await act(async () => digest.resolve(hash))
-
-    expect(result.current.requirement.environmentIds).toEqual(['environment-new'])
-    expect(mocks.save).not.toHaveBeenCalled()
-    expect(mocks.confirm).not.toHaveBeenCalled()
-    expect(result.current.state.error).toMatch(/brief changed/i)
-  })
-
   it('keeps the latest-save guard when an edit arrives after hashing but before the save completes', async () => {
     const save = deferred<unknown>()
     mocks.hash.mockResolvedValue(hash)
@@ -140,5 +123,41 @@ describe('Quality Journey intake asynchronous confirmation', () => {
     expect(mocks.confirm).not.toHaveBeenCalled()
     expect(mocks.push).not.toHaveBeenCalled()
     expect(result.current.state.error).toMatch(/unable to verify/i)
+  })
+  it('replays the exact confirmation after a lost response without saving another draft version', async () => {
+    mocks.hash.mockResolvedValue(hash)
+    mocks.confirm.mockRejectedValueOnce(new Error('Connection lost')).mockResolvedValueOnce({
+      success: true,
+      data: { journeyId: 'journey-1', replayed: true },
+    })
+    const { result } = renderIntake()
+    await act(async () => result.current.actions.submit())
+    const original = mocks.confirm.mock.calls[0]![0]
+    expect(result.current.state.error).toMatch(/response was interrupted/i)
+    await act(async () => result.current.actions.submit())
+    expect(mocks.save).toHaveBeenCalledOnce()
+    expect(mocks.hash).toHaveBeenCalledOnce()
+    expect(mocks.confirm).toHaveBeenNthCalledWith(2, original)
+    expect(mocks.push).toHaveBeenCalledOnce()
+  })
+  it('recovers the first autosave with its original payload before saving later edits', async () => {
+    mocks.create.mockRejectedValueOnce(new Error('Lost draft response')).mockResolvedValueOnce({
+      success: true,
+      data: { draft: { ...draft, version: 1 } },
+    })
+    const { result } = renderHook(() => useQualityJourneyCreateIntake({ projectId: 'project-1', push: mocks.push }))
+    act(() => result.current.update({ objective: 'First brief' }))
+    await act(async () => {
+      await result.current.actions.enqueueSave()
+    })
+    expect(result.current.saveStatus).toBe('failed')
+    act(() => result.current.update({ objective: 'Refined brief' }))
+    await act(async () => {
+      await result.current.actions.enqueueSave()
+    })
+    expect(mocks.create.mock.calls[1]![0]).toEqual(mocks.create.mock.calls[0]![0])
+    expect(mocks.create.mock.calls[0]![0].requirement).toEqual({ objective: 'First brief' })
+    expect(mocks.save).toHaveBeenCalledWith(expect.objectContaining({ requirement: { objective: 'Refined brief' } }))
+    expect(result.current.saveStatus).toBe('saved')
   })
 })

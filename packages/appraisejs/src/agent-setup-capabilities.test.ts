@@ -25,7 +25,12 @@ describe('agent setup capabilities', () => {
     expect(expectedAgentCapabilities.resources).toEqual(
       expect.arrayContaining(['appraise://project', 'appraise://target-projects']),
     )
-    for (const retired of ['assessment_run', 'requirements_submit_source', 'methodology_list'])
+    for (const retired of [
+      'assessment_run',
+      'requirements_submit_source',
+      'methodology_list',
+      'quality_journey_handoff_redeem',
+    ])
       expect(expectedAgentCapabilities.tools).not.toContain(retired)
   })
 })

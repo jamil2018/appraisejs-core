@@ -6,49 +6,20 @@ import { toast } from '@/hooks/use-toast'
 import { hashQualityJourneyRequirementForBrowser } from '@/lib/quality-journey/requirement-browser'
 
 import {
-  archiveQualityJourneyDraftAction,
   confirmQualityJourneyDraftAction,
   createQualityJourneyDraftAction,
-  ensureQualityJourneyIntakeEnvironmentAction,
   restoreQualityJourneyDraftAction,
   saveQualityJourneyDraftAction,
 } from './quality-journey-actions'
 import {
   actionId,
-  buildRequirement,
+  buildBriefRequirement,
   focusIntakeField,
   initialIntakeState,
-  missingRequiredIntake,
   type DraftSnapshot,
   type EnvironmentOption,
   type IntakeState,
 } from './quality-journey-create-form-shared'
-
-type IntakeAction =
-  { type: 'patch'; patch: Partial<IntakeState> } | { type: 'environment-registered'; environment: EnvironmentOption }
-
-function intakeReducer(state: IntakeState, action: IntakeAction): IntakeState {
-  if (action.type === 'patch') return { ...state, ...action.patch }
-  const { environment } = action
-  return {
-    ...state,
-    environments: [...state.environments.filter(item => item.id !== environment.id), environment],
-    environmentIds: [...new Set([...state.environmentIds, environment.id])],
-    environmentName: '',
-    environmentUrl: '',
-    showEnvironmentForm: false,
-    error: null,
-  }
-}
-
-function environmentFrom(response: Awaited<ReturnType<typeof ensureQualityJourneyIntakeEnvironmentAction>>) {
-  if (!response.success || !isRecord(response.data) || !isRecord(response.data.environment)) return null
-  const { environment } = response.data
-  const id = stringProperty(environment, 'id')
-  const name = stringProperty(environment, 'name')
-  const baseUrl = stringProperty(environment, 'baseUrl')
-  return id && name && baseUrl ? { id, name, baseUrl } : null
-}
 
 function journeyIdFrom(response: Awaited<ReturnType<typeof confirmQualityJourneyDraftAction>>) {
   if (!response.success || !isRecord(response.data)) return null
@@ -72,88 +43,124 @@ function savedDraftFrom(response: Awaited<ReturnType<typeof createQualityJourney
     : null
 }
 
-function draftRequirementForSave(requirement: ReturnType<typeof buildRequirement>) {
+function draftRequirementForSave(requirement: ReturnType<typeof buildBriefRequirement>) {
   return Object.fromEntries(Object.entries(requirement).filter(([, value]) => value !== undefined && value !== ''))
 }
 
 export function useQualityJourneyCreateIntake({
   draft,
-  initialEnvironments,
   predecessorJourneyId,
   projectId,
   push,
 }: {
   draft?: DraftSnapshot
-  initialEnvironments: EnvironmentOption[]
+  initialEnvironments?: EnvironmentOption[]
   predecessorJourneyId?: string
   projectId: string
   push: (href: string) => void
 }) {
   const [state, dispatch] = useReducer(
-    intakeReducer,
-    { environments: initialEnvironments, draft },
-    ({ environments, draft: initialDraft }) => initialIntakeState(environments, initialDraft),
+    (current: IntakeState, patch: Partial<IntakeState>) => ({ ...current, ...patch }),
+    draft,
+    initialIntakeState,
   )
   const idempotencyKey = useRef(actionId('quality-journey-draft'))
   const draftRef = useRef<DraftSnapshot | undefined>(draft)
+  const pendingCreate = useRef<
+    | {
+        idempotencyKey: string
+        requirement: ReturnType<typeof draftRequirementForSave>
+        currentStep: number
+        predecessorJourneyId?: string
+      }
+    | undefined
+  >(undefined)
   const saveQueue = useRef(Promise.resolve())
   const saveTimer = useRef<number | undefined>(undefined)
   const editRevision = useRef(0)
+  const confirmationRef = useRef<
+    | {
+        revision: number
+        input: { draftId: string; expectedVersion: number; expectedDraftHash: string; requirementHash: string }
+      }
+    | undefined
+  >(undefined)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'dirty' | 'saving' | 'saved' | 'failed'>(
     draft ? 'saved' : 'idle',
   )
   const [saveConflict, setSaveConflict] = useState(false)
   const [isPending, startTransition] = useTransition()
-  const requirement = buildRequirement(state)
+  const requirement = buildBriefRequirement(state, draft?.requirement)
   const requirementRef = useRef(requirement)
   const currentStepRef = useRef(state.currentStep)
   requirementRef.current = requirement
   currentStepRef.current = state.currentStep
-  const missing = missingRequiredIntake(requirement)
 
   const update = (patch: Partial<IntakeState>) => {
     editRevision.current += 1
     setSaveStatus('dirty')
-    dispatch({ type: 'patch', patch })
+    dispatch(patch)
   }
 
   const updateView = (patch: Partial<IntakeState>) => {
-    dispatch({ type: 'patch', patch })
+    dispatch(patch)
   }
 
   const enqueueSave = useCallback(
     function enqueueSave(requirementToSave = requirementRef.current, stepToSave = currentStepRef.current) {
       const requestedRevision = editRevision.current
       const draftRequirement = draftRequirementForSave(requirementToSave)
-      const operation = saveQueue.current.then(async () => {
-        setSaveStatus('saving')
-        const activeDraft = draftRef.current
-        const response = activeDraft
-          ? await saveQualityJourneyDraftAction({
+      const operation = saveQueue.current
+        .then(async () => {
+          setSaveStatus('saving')
+          let activeDraft = draftRef.current
+          let response: Awaited<ReturnType<typeof createQualityJourneyDraftAction>>
+          if (!activeDraft) {
+            pendingCreate.current ??= {
+              idempotencyKey: idempotencyKey.current,
+              requirement: draftRequirement,
+              currentStep: stepToSave,
+              ...(predecessorJourneyId ? { predecessorJourneyId } : {}),
+            }
+            // Recover an interrupted first autosave with the original request identity and payload.
+            response = await createQualityJourneyDraftAction(pendingCreate.current)
+            const created = savedDraftFrom(response)
+            if (created) {
+              draftRef.current = created
+              const captured = pendingCreate.current
+              pendingCreate.current = undefined
+              if (
+                JSON.stringify(captured.requirement) !== JSON.stringify(draftRequirement) ||
+                captured.currentStep !== stepToSave
+              )
+                activeDraft = created
+            }
+          }
+          if (activeDraft) {
+            response = await saveQualityJourneyDraftAction({
               draftId: activeDraft.id,
               expectedVersion: activeDraft.version,
               requirement: draftRequirement,
               currentStep: stepToSave,
               ...(activeDraft.predecessorJourneyId ? { predecessorJourneyId: activeDraft.predecessorJourneyId } : {}),
             })
-          : await createQualityJourneyDraftAction({
-              idempotencyKey: idempotencyKey.current,
-              requirement: draftRequirement,
-              currentStep: stepToSave,
-              ...(predecessorJourneyId ? { predecessorJourneyId } : {}),
-            })
-        const saved = savedDraftFrom(response)
-        if (!saved) {
+          }
+          const saved = savedDraftFrom(response!)
+          if (!saved) {
+            setSaveStatus('failed')
+            setSaveConflict(Boolean(response!.error?.includes('newer saved version')))
+            return false
+          }
+          draftRef.current = saved
+          const isLatestEdit = editRevision.current === requestedRevision
+          setSaveStatus(isLatestEdit ? 'saved' : 'dirty')
+          if (isLatestEdit) setSaveConflict(false)
+          return isLatestEdit
+        })
+        .catch(() => {
           setSaveStatus('failed')
-          setSaveConflict(Boolean(response.error?.includes('newer saved version')))
           return false
-        }
-        draftRef.current = saved
-        const isLatestEdit = editRevision.current === requestedRevision
-        setSaveStatus(isLatestEdit ? 'saved' : 'dirty')
-        if (isLatestEdit) setSaveConflict(false)
-        return isLatestEdit
-      })
+        })
       saveQueue.current = operation.then(() => undefined)
       return operation
     },
@@ -180,51 +187,6 @@ export function useQualityJourneyCreateIntake({
     return () => window.removeEventListener('beforeunload', warnBeforeUnload)
   }, [hasMeaningfulEdit, saveStatus])
 
-  function registerEnvironment() {
-    startTransition(async () => {
-      const response = await ensureQualityJourneyIntakeEnvironmentAction({
-        allowCreate: true,
-        proposal: {
-          name: state.environmentName,
-          baseUrl: state.environmentUrl,
-          expectedPageTitle: '',
-          apiBaseUrl: '',
-          username: '',
-          passwordEnvironmentVariable: '',
-        },
-      })
-      const environment = environmentFrom(response)
-      if (!environment) {
-        update({ error: response.error ?? 'Unable to register this environment.' })
-        return
-      }
-      editRevision.current += 1
-      setSaveStatus('dirty')
-      dispatch({ type: 'environment-registered', environment })
-      toast({ title: 'Environment registered', description: `${environment.name} is included in this intake.` })
-    })
-  }
-
-  function review() {
-    const firstMissing = missing[0]
-    if (firstMissing) {
-      updateView({ currentStep: firstMissing.step, error: `Add ${firstMissing.label} before reviewing this brief.` })
-      focusIntakeField(firstMissing.focusId)
-      return
-    }
-    startTransition(async () => {
-      if (saveTimer.current) window.clearTimeout(saveTimer.current)
-      const savedLatest = await enqueueSave()
-      if (savedLatest && draftRef.current && !saveConflict) dispatch({ type: 'patch', patch: { reviewing: true } })
-      else dispatch({ type: 'patch', patch: { error: 'Couldn’t save—Retry before reviewing this brief.' } })
-    })
-  }
-
-  function editReviewSection(step: number) {
-    updateView({ currentStep: step, reviewing: false, error: null })
-    focusIntakeField(`intake-${['requirement', 'scope', 'profile', 'environment'][step]}-heading`)
-  }
-
   async function verifyCurrentRequirement() {
     const revision = editRevision.current
     const requirement = requirementRef.current
@@ -243,50 +205,53 @@ export function useQualityJourneyCreateIntake({
   }
 
   function submit() {
+    if (!requirement.objective) {
+      updateView({ error: 'Describe what you want to validate before starting.' })
+      focusIntakeField('quality-journey-objective')
+      return
+    }
     startTransition(async () => {
       if (saveTimer.current) window.clearTimeout(saveTimer.current)
-      const verified = await verifyCurrentRequirement()
-      if (!verified) return
-      const savedLatest = await enqueueSave(verified.requirement)
-      const activeDraft = draftRef.current
-      if (!activeDraft || !savedLatest || saveConflict || editRevision.current !== verified.revision) {
-        update({ error: 'Your brief has not been saved yet. Retry after it is saved.' })
-        return
+      try {
+        let confirmation = confirmationRef.current
+        if (!confirmation || confirmation.revision !== editRevision.current) {
+          const verified = await verifyCurrentRequirement()
+          if (!verified) return
+          const savedLatest = await enqueueSave(verified.requirement)
+          const activeDraft = draftRef.current
+          if (!activeDraft || !savedLatest || saveConflict || editRevision.current !== verified.revision) {
+            updateView({ error: 'Your brief has not been saved yet. Retry after it is saved.' })
+            return
+          }
+          confirmation = {
+            revision: verified.revision,
+            input: {
+              draftId: activeDraft.id,
+              expectedVersion: activeDraft.version,
+              expectedDraftHash: activeDraft.draftHash,
+              requirementHash: verified.hash,
+            },
+          }
+          // Retain the exact request if the response is lost after confirmation commits.
+          confirmationRef.current = confirmation
+        }
+        const response = await confirmQualityJourneyDraftAction(confirmation.input)
+        const journeyId = journeyIdFrom(response)
+        if (!journeyId) {
+          const message = response.error ?? 'Unable to start this Quality Journey.'
+          updateView({ error: message })
+          toast({ title: 'Journey could not start', description: message, variant: 'destructive' })
+          return
+        }
+        const continuationError = isRecord(response.data) ? stringProperty(response.data, 'continuationError') : null
+        toast({
+          title: 'Journey started',
+          description: continuationError ?? 'Appraise is preparing Analysis from your brief.',
+        })
+        push(`/quality-journeys/${journeyId}?project=${encodeURIComponent(projectId)}`)
+      } catch {
+        updateView({ error: 'The start response was interrupted. Retry to recover the same Journey.' })
       }
-      const response = await confirmQualityJourneyDraftAction({
-        draftId: activeDraft.id,
-        expectedVersion: activeDraft.version,
-        expectedDraftHash: activeDraft.draftHash,
-        requirementHash: verified.hash,
-      })
-      const journeyId = journeyIdFrom(response)
-      if (!journeyId) {
-        const message = response.error ?? 'Unable to create this Quality Journey.'
-        updateView({ error: message })
-        toast({ title: 'Journey creation failed', description: message, variant: 'destructive' })
-        return
-      }
-      toast({ title: 'Requirement submitted', description: 'Review the Journey, then start analysis with Codex.' })
-      push(`/quality-journeys/${journeyId}?project=${encodeURIComponent(projectId)}`)
-      idempotencyKey.current = actionId('quality-journey-draft')
-    })
-  }
-
-  function discard() {
-    startTransition(async () => {
-      if (saveTimer.current) window.clearTimeout(saveTimer.current)
-      await saveQueue.current
-      const activeDraft = draftRef.current
-      if (!activeDraft) return
-      const response = await archiveQualityJourneyDraftAction({
-        draftId: activeDraft.id,
-        expectedVersion: activeDraft.version,
-      })
-      if (!response.success) {
-        updateView({ error: response.error ?? 'Unable to archive this draft.' })
-        return
-      }
-      push(`/quality-journeys?project=${encodeURIComponent(projectId)}&view=archived`)
     })
   }
 
@@ -309,14 +274,14 @@ export function useQualityJourneyCreateIntake({
   function saveAsNewDraft() {
     draftRef.current = undefined
     idempotencyKey.current = actionId('quality-journey-draft')
+    pendingCreate.current = undefined
     setSaveConflict(false)
     void enqueueSave()
   }
 
   return {
-    actions: { discard, editReviewSection, enqueueSave, registerEnvironment, restore, review, saveAsNewDraft, submit },
+    actions: { enqueueSave, restore, saveAsNewDraft, submit },
     isPending,
-    missing,
     requirement,
     saveConflict,
     saveStatus,

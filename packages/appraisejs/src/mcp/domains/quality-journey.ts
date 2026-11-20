@@ -139,6 +139,7 @@ const analysisCharter = z
             prompt: z.string().trim().min(1).max(8_000),
             required: z.boolean(),
             rationale: z.string().trim().min(1).max(8_000),
+            suggestedAnswers: z.array(z.string().trim().min(1).max(8_000)).min(1).max(6).optional(),
           })
           .strict(),
       )
@@ -770,31 +771,11 @@ export function registerQualityJourneyOperations({ server, api }: McpRegistryCon
     'quality_journey_handoff_inspect',
     {
       description:
-        'Inspect the latest coordinator handoff metadata for an exact Journey and target without exposing its ticket or prompt.',
+        'Inspect historical coordinator handoff metadata for an exact Journey and target without exposing its ticket or prompt. This read does not authorize legacy redemption or desktop continuation.',
       inputSchema: { target, journeyId },
     },
     async ({ target: targetRef, journeyId: id }) =>
       text(await api.request(`quality/journeys/${id}/handoff?target=${encodeURIComponent(targetRef)}`)),
-  )
-  server.registerTool(
-    'quality_journey_handoff_redeem',
-    {
-      description:
-        'Redeem one exact short-lived coordinator handoff ticket, then read authoritative Journey state. Redemption never approves takeover or claims work.',
-      inputSchema: {
-        target,
-        journeyId,
-        ticket: z.string().regex(/^qjh_[A-Za-z0-9_-]{32}$/),
-        coordinatorTaskId: z.string().min(1).max(500).optional(),
-      },
-    },
-    async ({ target: targetRef, journeyId: id, ticket, coordinatorTaskId }) =>
-      text(
-        await api.request(`quality/journeys/${id}/handoff/redeem`, {
-          method: 'POST',
-          body: JSON.stringify({ target: targetRef, ticket, ...(coordinatorTaskId ? { coordinatorTaskId } : {}) }),
-        }),
-      ),
   )
   server.registerTool(
     'quality_journey_discovery_get',

@@ -76,9 +76,26 @@ const locatorRequirementSchema = z
     parameterName: z.string().min(1).max(200),
     locatorId: id.optional(),
     runtimeParameter: z.boolean().optional(),
+    reviewedSelector: z
+      .object({
+        selector: z
+          .string()
+          .min(5)
+          .max(2000)
+          .regex(/^css=/)
+          .refine(value => !value.includes('>>') && !/[\r\n]/.test(value)),
+        reason: z.string().min(1).max(2000),
+      })
+      .strict()
+      .optional(),
   })
   .strict()
   .superRefine((value, context) => {
+    if (value.reviewedSelector && (!value.runtimeParameter || value.locatorId))
+      context.addIssue({
+        code: 'custom',
+        message: 'A reviewed supplemental selector requires only a runtime locator binding.',
+      })
     if (!value.locatorId && !value.runtimeParameter)
       context.addIssue({
         code: 'custom',
@@ -98,6 +115,40 @@ const stepMaterializationSchema = z
 export const automationScenarioMaterializationSchema = z
   .object({ scenarioRevisionId: id, steps: z.array(stepMaterializationSchema).min(1).max(128) })
   .strict()
+
+/** An approved action may need several operations; every action remains covered in source order. */
+export function preservesOrderedScenarioSteps(sourceIds: string[], operationSourceIds: string[]) {
+  if (!sourceIds.length || operationSourceIds.length > 128) return false
+  const groups = operationSourceIds.filter((id, index) => index === 0 || id !== operationSourceIds[index - 1])
+  return groups.length === sourceIds.length && groups.every((id, index) => id === sourceIds[index])
+}
+
+export function operatorLocatorRequirementId(
+  scenarioRevisionId: string,
+  reviewedSelector: { selector: string; reason: string },
+) {
+  return `operator-locator:${hashAutomationMaterialization({ scenarioRevisionId, reviewedSelector }).slice(7)}`
+}
+
+/** Shared by draft compilation and canonical acceptance; supplemental selectors never drive interactions. */
+export function validateAutomationLocatorSemantics(
+  operationId: string,
+  requirements: Array<z.infer<typeof locatorRequirementSchema>>,
+) {
+  for (const requirement of requirements) {
+    if (
+      requirement.reviewedSelector &&
+      ![
+        'browser.assertions.visible',
+        'browser.assertions.text',
+        'browser.data.diagnostics.capture.page.screenshot',
+      ].includes(operationId)
+    )
+      throw new Error('Supplemental selectors are limited to noninteractive observation operations.')
+    if (!requirement.locatorId && !requirement.reviewedSelector)
+      throw new Error('Runtime locator requirements need an exact reviewed supplemental selector or frozen locator.')
+  }
+}
 
 export const automationMaterializationRequestSchema = z
   .object({

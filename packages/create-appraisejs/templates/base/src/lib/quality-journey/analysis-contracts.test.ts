@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { hashCanonical, hashAnalysisQuestion } from './analysis-contracts'
 import { analysisCharterSchema, hashAnalysisCharter, qualityJourneyRoleDefinitions } from './index'
 
 function charter() {
@@ -46,6 +47,25 @@ describe('Quality Journey analysis contracts', () => {
     const parsed = analysisCharterSchema.parse(charter())
     expect(hashAnalysisCharter(parsed)).toMatch(/^sha256:[a-f0-9]{64}$/)
     expect(parsed.obligations[0].requirementId).toBe('REQ-CHECKOUT-1')
+  })
+
+  it('adds optional suggested answers without changing older question or charter payloads and hashes', () => {
+    const original = charter()
+    expect(analysisCharterSchema.parse(original)).toEqual(original)
+    expect(hashAnalysisCharter(original)).toBe(hashCanonical(original))
+    expect(hashAnalysisQuestion(original.questions[0])).toBe(hashCanonical(original.questions[0]))
+    const suggested = {
+      ...original,
+      questions: [{ ...original.questions[0], suggestedAnswers: ['Cards only', 'Cards and wallets'] }],
+    }
+    expect(analysisCharterSchema.parse(suggested).questions[0].suggestedAnswers).toEqual([
+      'Cards only',
+      'Cards and wallets',
+    ])
+    expect(hashAnalysisCharter(suggested)).not.toBe(hashAnalysisCharter(original))
+    expect(() =>
+      analysisCharterSchema.parse({ ...original, questions: [{ ...original.questions[0], suggestedAnswers: [] }] }),
+    ).toThrow()
   })
 
   it('rejects duplicate requirement IDs and obligations without a requirement', () => {

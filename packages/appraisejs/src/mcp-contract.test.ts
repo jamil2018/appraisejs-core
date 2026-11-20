@@ -79,6 +79,17 @@ describe('canonical MCP contract registry', () => {
       expect(names).not.toContain(retired)
   })
 
+  it('retires Journey redemption while preserving historical reads and collaboration redemption', async () => {
+    const contract = await definitions()
+    const names = contract.map(definition => definition.name)
+    expect(names).not.toContain('quality_journey_handoff_redeem')
+    expect(canonicalMcpToolNames).not.toContain('quality_journey_handoff_redeem')
+    expect(names).toContain('collaboration_handoff_redeem')
+    expect(
+      contract.find(definition => definition.name === 'quality_journey_handoff_inspect')?.annotations,
+    ).toMatchObject({ readOnlyHint: true })
+  })
+
   it('exposes Journey-scoped locator inputs and no legacy qualityPlanId input', async () => {
     const contract = await definitions()
     for (const name of ['locator_search', 'locator_graph_query', 'locator_ensure']) {

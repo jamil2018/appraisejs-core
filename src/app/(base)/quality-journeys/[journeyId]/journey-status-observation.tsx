@@ -86,12 +86,22 @@ function nextState(current: ObservationState, snapshot: QualityJourneyStatusSnap
   }
 }
 
-type ObservationScope = { journeyId: string; projectId: string; stage: string; version: number }
+type ObservationScope = {
+  journeyId: string
+  projectId: string
+  stage: string
+  version: number
+  initialSnapshot?: QualityJourneyStatusSnapshot | null
+}
 
-function useJourneyStatusObservation({ journeyId, projectId, stage, version }: ObservationScope) {
+function useJourneyStatusObservation({ journeyId, projectId, stage, version, initialSnapshot }: ObservationScope) {
   const [state, setState] = useState(initialState)
   const control = useRef(initialControl())
-  const snapshot = state.snapshot && state.snapshot.lifecycle.version >= version ? state.snapshot : null
+  const latest =
+    initialSnapshot && (!state.snapshot || initialSnapshot.observedAt > state.snapshot.observedAt)
+      ? initialSnapshot
+      : state.snapshot
+  const snapshot = latest && latest.lifecycle.version >= version ? latest : null
   const stopped = stage === 'CLOSED' || Boolean(snapshot?.closed)
 
   const checkForUpdates = useCallback(
@@ -160,6 +170,25 @@ function ScopedJourneyStatusObservation({ stateHash, children, ...scope }: Provi
     (observation.snapshot.lifecycle.version > scope.version || observation.snapshot.lifecycle.stateHash !== stateHash),
   )
   const loadNewerVersion = useCallback(() => startTransition(() => router.refresh()), [router, startTransition])
+
+  const loaded = useRef<string | null>(null)
+  useEffect(() => {
+    const revision = observation.snapshot
+      ? JSON.stringify([observation.snapshot.lifecycle.version, observation.snapshot.lifecycle.stateHash])
+      : null
+    // A reviewer can still be comparing an exact revision or editing a response.
+    // Leave those screens in place until the user loads the change.
+    if (
+      !revision ||
+      !newerVersionAvailable ||
+      loaded.current === revision ||
+      ['ANALYSIS_REVIEW', 'SCENARIO_REVIEW', 'REPORT_REVIEW', 'DISCOVERY', 'EXECUTION'].includes(scope.stage) ||
+      document.querySelector('main textarea, main input:not([type="hidden"]), main [contenteditable="true"]')
+    )
+      return
+    loaded.current = revision
+    loadNewerVersion()
+  }, [observation.snapshot, newerVersionAvailable, scope.stage, loadNewerVersion])
 
   return (
     <JourneyStatusFreshnessContext.Provider value={{ newerVersionAvailable, loadingNewerVersion, loadNewerVersion }}>

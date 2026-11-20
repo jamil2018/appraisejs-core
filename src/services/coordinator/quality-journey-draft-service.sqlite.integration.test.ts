@@ -110,6 +110,9 @@ describe('Quality Journey drafts', () => {
         client,
       )
       expect(replay).toEqual({ replayed: true, journeyId: confirmed.journeyId })
+      await expect(
+        client.qualityJourney.findUniqueOrThrow({ where: { id: confirmed.journeyId } }),
+      ).resolves.toMatchObject({ hostingMode: 'APP_SERVER_LOCAL_V1' })
       expect(
         await getQualityJourneyDraft({ draftId: saved.id, targetProjectId: 'draft-project' }, client),
       ).toMatchObject({
@@ -117,6 +120,40 @@ describe('Quality Journey drafts', () => {
         confirmedJourneyId: confirmed.journeyId,
       })
       expect(await client.qualityJourney.count({ where: { targetProjectId: 'draft-project' } })).toBe(1)
+    } finally {
+      await client.$disconnect()
+    }
+  })
+
+  it('confirms an objective-only brief without inventing structured intent', async () => {
+    const client = await fixture()
+    try {
+      const requirement = { objective: 'Check checkout and payment failures.' }
+      const { draft } = await createQualityJourneyDraft(
+        {
+          targetProjectId: 'draft-project',
+          idempotencyKey: 'free-text-start',
+          requirement,
+        },
+        client,
+      )
+      const input = {
+        draftId: draft.id,
+        targetProjectId: 'draft-project',
+        expectedVersion: draft.version,
+        expectedDraftHash: draft.draftHash,
+        requirementHash: hashQualityJourneyRequirement(requirement),
+      }
+      const confirmed = await confirmQualityJourneyDraft(input, client)
+      const journey = await client.qualityJourney.findUniqueOrThrow({ where: { id: confirmed.journeyId } })
+      expect(journey).toMatchObject({ hostingMode: 'APP_SERVER_LOCAL_V1', stage: 'ANALYSIS' })
+      const revision = await client.qualityJourneyRevision.findFirstOrThrow({ where: { journeyId: journey.id } })
+      expect(JSON.parse(revision.contentJson)).toEqual(requirement)
+      expect(await confirmQualityJourneyDraft(input, client)).toEqual({ replayed: true, journeyId: journey.id })
+      await expect(
+        confirmQualityJourneyDraft({ ...input, requirementHash: `sha256:${'f'.repeat(64)}` }, client),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      expect(await client.qualityJourney.count()).toBe(1)
     } finally {
       await client.$disconnect()
     }

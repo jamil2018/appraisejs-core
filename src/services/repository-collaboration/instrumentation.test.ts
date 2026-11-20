@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-const scheduler = vi.hoisted(() => ({ start: vi.fn() }))
+const scheduler = vi.hoisted(() => ({ start: vi.fn(), wake: vi.fn() }))
+vi.mock('@/services/coordinator/app-managed-progression-service', () => ({
+  registerAppManagedJourneyRuntimeWake: scheduler.wake,
+}))
 
 vi.mock('@/services/repository-collaboration/scheduler-runtime', () => ({
   startCollaborationScheduler: scheduler.start,
@@ -11,6 +14,7 @@ import { register } from '@/instrumentation'
 afterEach(() => {
   vi.unstubAllEnvs()
   scheduler.start.mockReset()
+  scheduler.wake.mockReset()
 })
 
 describe('Next instrumentation', () => {
@@ -20,6 +24,7 @@ describe('Next instrumentation', () => {
     await register()
 
     expect(scheduler.start).not.toHaveBeenCalled()
+    expect(scheduler.wake).not.toHaveBeenCalled()
   })
 
   it('starts the process-local scheduler only in the Node runtime', async () => {
@@ -28,5 +33,6 @@ describe('Next instrumentation', () => {
     await register()
 
     expect(scheduler.start).toHaveBeenCalledTimes(1)
+    expect(scheduler.wake).toHaveBeenCalledTimes(1)
   })
 })

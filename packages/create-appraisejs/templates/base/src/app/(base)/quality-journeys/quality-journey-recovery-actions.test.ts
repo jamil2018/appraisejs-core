@@ -1,6 +1,15 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ project: vi.fn(), pause: vi.fn(), resume: vi.fn(), revalidate: vi.fn() }))
+const mocks = vi.hoisted(() => ({
+  project: vi.fn(),
+  pause: vi.fn(),
+  resume: vi.fn(),
+  revalidate: vi.fn(),
+  schedule: vi.fn(),
+}))
+vi.mock('@/services/coordinator/app-managed-progression-service', () => ({
+  scheduleAppManagedJourneyContinuation: mocks.schedule,
+}))
 vi.mock('@/lib/active-project', () => ({ requireActiveProjectForMutation: mocks.project }))
 vi.mock('@/services/coordinator/quality-journey-recovery-service', () => ({
   pauseQualityJourneyOperational: mocks.pause,
@@ -22,6 +31,17 @@ beforeEach(() => {
   vi.clearAllMocks()
   mocks.project.mockResolvedValue({ id: 'project-active' })
   mocks.pause.mockResolvedValue({ operationalStatus: 'PAUSED' })
+})
+
+it('wakes eligible work after a canonical resume without requiring an open tab', async () => {
+  mocks.resume.mockResolvedValue({ operationalStatus: 'ACTIVE', stateHash: request.expectedStateHash })
+  const { reason: _reason, ...resume } = request
+  expect(await qualityJourneyRecoveryAction('resume', resume)).toMatchObject({ success: true })
+  expect(mocks.schedule).toHaveBeenCalledWith({
+    journeyId: request.journeyId,
+    targetProjectId: 'project-active',
+    expectedStateHash: request.expectedStateHash,
+  })
 })
 
 it('uses local active project scope and never accepts a caller target', async () => {

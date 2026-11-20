@@ -62,7 +62,6 @@ export const canonicalMcpToolAnnotations = Object.freeze({
   quality_journey_create: localMutation,
   quality_journey_get: readOnly,
   quality_journey_handoff_inspect: readOnly,
-  quality_journey_handoff_redeem: localMutation,
   quality_journey_resume: localMutation,
   quality_journey_command_submit: localMutation,
   quality_journey_factory_evidence_inspect: readOnly,

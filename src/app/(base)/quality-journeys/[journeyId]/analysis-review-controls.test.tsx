@@ -34,7 +34,7 @@ const analysis = {
   contentHash: digest('a'),
   objectives: ['Checkout'],
   scope: { included: ['Checkout'], excluded: [] },
-  requirements: [],
+  requirements: [{ requirementId: 'REQ-PAYMENT', statement: 'Pay by card.', sourceRefs: [] }],
   obligations: [],
   constraints: [],
   assumptions: [],
@@ -56,6 +56,7 @@ const analysis = {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  sessionStorage.clear()
   mocks.answer.mockResolvedValue({ success: true })
   mocks.approve.mockResolvedValue({ success: true })
   mocks.requestRevision.mockResolvedValue({ success: true })
@@ -63,6 +64,27 @@ beforeEach(() => {
 })
 
 describe('AnalysisReviewControls', () => {
+  it('blocks approval for missing Discovery setup while allowing a revision request', async () => {
+    render(
+      <AnalysisReviewControls
+        analysis={{ ...analysis, questions: [] }}
+        analysisReviewHash={digest('b')}
+        answerable
+        discoveryReady={false}
+        journeyId="journey-1"
+        stage="ANALYSIS_REVIEW"
+        stateHash={digest('c')}
+        unresolvedQuestionIds={[]}
+      />,
+    )
+    expect(screen.getByRole('button', { name: 'Approve criteria' })).toBeDisabled()
+    expect(screen.getByText(/Complete the Discovery setup/)).toBeInTheDocument()
+    await userEvent.click(screen.getByText('Scope and context'))
+    await userEvent.click(screen.getByRole('button', { name: 'Request change: Pay by card.' }))
+    await userEvent.type(screen.getByLabelText('Your requested change'), 'Clarify the test scope.')
+    expect(screen.getByRole('button', { name: 'Send change' })).toBeEnabled()
+  })
+
   it('makes unresolved required questions visible and blocks approval', () => {
     render(
       <AnalysisReviewControls
@@ -76,20 +98,20 @@ describe('AnalysisReviewControls', () => {
       />,
     )
 
-    expect(screen.getByText('Required · Open')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Approve this version' })).toBeDisabled()
-    expect(screen.getByText(/Answer 1 required question/i)).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /publish/i })).not.toBeInTheDocument()
-    expect(screen.getByRole('status', { name: 'Analysis artifact status' })).toHaveTextContent('Recorded by Appraise')
-    expect(screen.getByRole('status', { name: 'Analysis artifact status' })).toHaveTextContent('Published for review')
-    expect(screen.getByRole('status', { name: 'Analysis artifact status' })).toHaveTextContent('Not approved')
-    expect(screen.getByText(/does not publish or approve it/i)).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Current essential question' })).toHaveTextContent('Which payment method')
+    expect(screen.queryByRole('button', { name: 'Approve criteria' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Requirements review' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('status', { name: 'Analysis artifact status' })).not.toBeInTheDocument()
   })
 
   it('reports human acceptance separately from recording and publication', () => {
     render(
       <AnalysisReviewControls
-        analysis={{ ...analysis, decision: { decision: 'APPROVED', reviewHash: digest('b'), createdAt: new Date() } }}
+        analysis={{
+          ...analysis,
+          questions: [],
+          decision: { decision: 'APPROVED', reviewHash: digest('b'), createdAt: new Date() },
+        }}
         analysisReviewHash={digest('b')}
         answerable={false}
         journeyId="journey-1"
@@ -99,10 +121,8 @@ describe('AnalysisReviewControls', () => {
       />,
     )
 
-    const status = screen.getByRole('status', { name: 'Analysis artifact status' })
-    expect(status).toHaveTextContent('Recorded by Appraise')
-    expect(status).toHaveTextContent('Published for review')
-    expect(status).toHaveTextContent('Approved in Appraise')
+    expect(screen.getByText('approved decision recorded')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Approve criteria' })).not.toBeInTheDocument()
   })
 
   it('records a correction against the latest answer and requests a revision with the current review hash', async () => {
@@ -136,7 +156,8 @@ describe('AnalysisReviewControls', () => {
       />,
     )
 
-    await user.type(screen.getByLabelText('Correct answer'), 'Wallet payment.')
+    await user.click(screen.getByText('Saved answers (1)'))
+    await user.type(screen.getByLabelText(/^Correct answer:/), 'Wallet payment.')
     await user.click(screen.getByRole('button', { name: 'Record correction' }))
 
     expect(mocks.answer).toHaveBeenCalledWith(
@@ -151,8 +172,10 @@ describe('AnalysisReviewControls', () => {
     )
     expect(mocks.refresh).toHaveBeenCalled()
 
-    await user.type(screen.getByLabelText('What should change?'), 'Clarify payment scope.')
-    await user.click(screen.getByRole('button', { name: 'Request changes' }))
+    await user.click(screen.getByText('Scope and context'))
+    await user.click(screen.getByRole('button', { name: 'Request change: Pay by card.' }))
+    await user.type(screen.getByLabelText('Your requested change'), 'Clarify payment scope.')
+    await user.click(screen.getByRole('button', { name: 'Send change' }))
 
     expect(mocks.requestRevision).toHaveBeenCalledWith(
       expect.objectContaining({ expectedReviewHash: digest('e'), contentHash: digest('a') }),
@@ -171,11 +194,11 @@ describe('AnalysisReviewControls', () => {
       unresolvedQuestionIds: ['payment-method'],
     }
     const { rerender } = render(<AnalysisReviewControls {...props} analysis={analysis} />)
-    await user.type(screen.getByLabelText('Answer'), 'Card payment.')
+    await user.type(screen.getByLabelText(/^Your answer:/), 'Card payment.')
     await user.click(screen.getByRole('button', { name: 'Record answer' }))
     const original = mocks.answer.mock.calls[0][0]
     const retry = await screen.findByRole('button', { name: 'Record answer' })
-    expect(screen.getByLabelText('Answer')).toHaveValue('Card payment.')
+    expect(screen.getByLabelText(/^Your answer:/)).toHaveValue('Card payment.')
     await user.click(retry)
     expect(mocks.answer.mock.calls[1][0]).toEqual(original)
     rerender(
@@ -200,8 +223,9 @@ describe('AnalysisReviewControls', () => {
         }}
       />,
     )
-    await user.clear(screen.getByLabelText('Correct answer'))
-    await user.type(screen.getByLabelText('Correct answer'), 'Debit card payment.')
+    await user.click(screen.getByText('Saved answers (1)'))
+    await user.clear(screen.getByLabelText(/^Correct answer:/))
+    await user.type(screen.getByLabelText(/^Correct answer:/), 'Debit card payment.')
     await user.click(screen.getByRole('button', { name: 'Record correction' }))
     const correction = mocks.answer.mock.calls[2][0]
     expect(correction.correctionOfAnswerId).toBe(original.answerId)
@@ -223,7 +247,7 @@ describe('AnalysisReviewControls', () => {
     )
 
     expect(screen.getByText('Which payment method is in scope?')).toBeInTheDocument()
-    expect(screen.queryByLabelText('Answer')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/^Your answer:/)).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Record answer' })).not.toBeInTheDocument()
   })
 
@@ -253,8 +277,8 @@ describe('AnalysisReviewControls', () => {
       />,
     )
 
-    expect(screen.getByRole('region', { name: 'Required questions' })).toHaveTextContent('payment method')
-    expect(screen.getByRole('region', { name: 'Optional questions' })).toHaveTextContent('preferred browser')
+    expect(screen.getByRole('heading', { name: 'Which payment method is in scope?' })).toBeInTheDocument()
+    expect(screen.getByText('Optional questions (1)')).toBeInTheDocument()
     expect(screen.getByText('Open—optional')).toBeInTheDocument()
   })
 
@@ -273,8 +297,177 @@ describe('AnalysisReviewControls', () => {
     )
 
     expect(screen.getByText(/Load it before recording answers or a review decision/i)).toBeInTheDocument()
-    expect(screen.queryByLabelText('Answer')).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Approve this version' })).toBeDisabled()
-    expect(screen.getByRole('button', { name: 'Request changes' })).toBeDisabled()
+    expect(screen.queryByLabelText(/^Your answer:/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Approve criteria' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Request changes' })).not.toBeInTheDocument()
+  })
+  it('sends targeted criteria feedback and retains drafts across a remount and revision change', async () => {
+    const user = userEvent.setup()
+    const props = {
+      analysisReviewHash: digest('b'),
+      answerable: true,
+      journeyId: 'journey-1',
+      stage: 'ANALYSIS_REVIEW',
+      stateHash: digest('c'),
+      unresolvedQuestionIds: [],
+    }
+    const current = {
+      ...analysis,
+      questions: analysis.questions.map(question => ({ ...question, required: false })),
+      requirements: [{ requirementId: 'REQ-PAYMENT', statement: 'Pay by card.', sourceRefs: [] }],
+      obligations: [
+        {
+          obligationId: 'OBL-PAYMENT',
+          requirementId: 'REQ-PAYMENT',
+          statement: 'Payment confirms the order.',
+          acceptanceSignals: ['Confirmation displayed.'],
+        },
+      ],
+    }
+    const mounted = render(<AnalysisReviewControls {...props} analysis={current} />)
+    expect(screen.queryByLabelText('Your requested change')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Request changes' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Done' })).not.toBeInTheDocument()
+    await user.click(screen.getByText('Scope and context'))
+    await user.click(screen.getByRole('button', { name: 'Request change: Pay by card.' }))
+    await user.type(screen.getByLabelText('Your requested change'), 'Keep this separate draft.')
+    await user.click(screen.getByRole('button', { name: 'Request change: Payment confirms the order.' }))
+    await user.type(screen.getByLabelText('Your requested change'), 'Show a receipt number.')
+    await user.click(screen.getByText('Optional questions (1)'))
+    await user.type(screen.getByLabelText(/^Your answer:/), 'USD only.')
+    await user.click(screen.getByRole('button', { name: 'Send change' }))
+    expect(mocks.requestRevision).toHaveBeenCalledWith(
+      expect.objectContaining({
+        feedback:
+          'Appraise item feedback v1:\n' +
+          JSON.stringify({
+            general: '',
+            items: [{ kind: 'obligation', id: 'OBL-PAYMENT', feedback: 'Show a receipt number.' }],
+          }),
+      }),
+    )
+    const originalIdentity = mocks.requestRevision.mock.calls[0][0]
+    await user.click(screen.getByRole('button', { name: 'Send change' }))
+    expect(mocks.requestRevision.mock.calls[1][0]).toEqual(originalIdentity)
+    await user.type(screen.getByLabelText('Your requested change'), ' Include tax.')
+    await user.click(screen.getByRole('button', { name: 'Send change' }))
+    expect(mocks.requestRevision.mock.calls[2][0].idempotencyKey).not.toBe(originalIdentity.idempotencyKey)
+    mounted.unmount()
+    const restored = render(<AnalysisReviewControls {...props} analysis={current} />)
+    expect(screen.getByLabelText(/^Your answer:/)).toHaveValue('USD only.')
+    expect(screen.getByText('Requested change: Show a receipt number. Include tax.')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Request change: Payment confirms the order.' }))
+    expect(screen.getByLabelText('Your requested change')).toHaveValue('Show a receipt number. Include tax.')
+    restored.rerender(
+      <AnalysisReviewControls
+        {...props}
+        analysis={{
+          ...current,
+          analysisRevisionId: 'analysis-revision-2',
+          revision: 2,
+          obligations: [{ ...current.obligations[0], acceptanceSignals: ['Receipt number displayed.'] }],
+        }}
+        previousAnalyses={[current]}
+      />,
+    )
+    expect(screen.getByText('Changed')).toBeInTheDocument()
+    expect(screen.getByLabelText('Your requested change')).toHaveValue('')
+    expect(screen.getByLabelText(/^Your answer:/)).toHaveValue('')
+    expect(screen.getByText('Previous versions and answers (1)')).toBeInTheDocument()
+  })
+  it('sends directly from the inline editor and preserves its draft after an interrupted response', async () => {
+    const user = userEvent.setup()
+    mocks.requestRevision.mockRejectedValueOnce(new Error('Connection lost'))
+    const props = {
+      analysis: { ...analysis, questions: [] },
+      journeyId: 'journey-error',
+      stage: 'ANALYSIS_REVIEW',
+      analysisReviewHash: digest('b'),
+      stateHash: digest('c'),
+      answerable: true,
+      unresolvedQuestionIds: [],
+    }
+    const mounted = render(<AnalysisReviewControls {...props} />)
+    await user.click(screen.getByText('Scope and context'))
+    await user.click(screen.getByRole('button', { name: 'Request change: Pay by card.' }))
+    expect(screen.getByRole('button', { name: 'Send change' })).toBeDisabled()
+    await user.type(screen.getByLabelText('Your requested change'), 'Include declined cards.')
+    expect(mocks.requestRevision).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('button', { name: 'Send change' }))
+    expect(mocks.requestRevision).toHaveBeenCalledOnce()
+    expect(screen.getByRole('alert')).toHaveTextContent('The change response was interrupted.')
+    expect(screen.getByLabelText('Your requested change')).toHaveValue('Include declined cards.')
+    const original = mocks.requestRevision.mock.calls[0][0]
+    await user.click(screen.getByRole('button', { name: 'Send change' }))
+    expect(mocks.requestRevision.mock.calls[1][0]).toEqual(original)
+    mounted.unmount()
+    render(<AnalysisReviewControls {...props} />)
+    await user.click(screen.getByText('Scope and context'))
+    await user.click(screen.getByRole('button', { name: 'Request change: Pay by card.' }))
+    expect(screen.getByLabelText('Your requested change')).toHaveValue('Include declined cards.')
+  })
+
+  it('shows one essential question with selectable suggestions and supports a different answer', async () => {
+    const user = userEvent.setup()
+    render(
+      <AnalysisReviewControls
+        journeyId="journey-1"
+        stateHash={digest('c')}
+        analysisReviewHash={digest('b')}
+        stage="ANALYSIS"
+        answerable
+        unresolvedQuestionIds={['payment-method', 'currency']}
+        analysis={{
+          ...analysis,
+          publication: null,
+          questions: [
+            { ...analysis.questions[0], suggestedAnswers: ['Cards only', 'Cards and wallets'] },
+            { ...analysis.questions[0], id: 'question-two', questionId: 'currency', prompt: 'Which currency?' },
+          ],
+        }}
+      />,
+    )
+    expect(screen.getByRole('heading', { name: 'Which payment method is in scope?' })).toBeVisible()
+    expect(screen.queryByText('Which currency?')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Cards only · Recommended' }))
+    expect(screen.getByLabelText('Your answer: Which payment method is in scope?')).toHaveValue('Cards only')
+    expect(mocks.answer).not.toHaveBeenCalled()
+    await user.clear(screen.getByLabelText(/^Your answer:/))
+    await user.type(screen.getByLabelText(/^Your answer:/), 'Bank transfers only.')
+    await user.click(screen.getByRole('button', { name: 'Record answer' }))
+    expect(mocks.answer).toHaveBeenCalledWith(expect.objectContaining({ answer: 'Bank transfers only.' }))
+  })
+  it('shows durable feedback beside revised wording in a fresh browser context', () => {
+    sessionStorage.clear()
+    const previous = {
+      ...analysis,
+      questions: [],
+      criteriaFeedback: { 'requirement:REQ-PAYMENT': 'Include a receipt number.' },
+    }
+    render(
+      <AnalysisReviewControls
+        journeyId="journey-fresh"
+        stateHash={digest('c')}
+        analysisReviewHash={digest('b')}
+        stage="ANALYSIS_REVIEW"
+        answerable
+        unresolvedQuestionIds={[]}
+        previousAnalyses={[previous]}
+        analysis={{
+          ...analysis,
+          questions: [],
+          revision: 2,
+          analysisRevisionId: 'analysis-revision-2',
+          requirements: [
+            { requirementId: 'REQ-PAYMENT', statement: 'Pay by card and show a receipt number.', sourceRefs: [] },
+          ],
+        }}
+      />,
+    )
+    expect(screen.getByText('Your previous feedback: Include a receipt number.')).toBeInTheDocument()
+    expect(screen.getByText('Pay by card and show a receipt number.')).toBeInTheDocument()
+    expect(screen.getByText('Changed')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Your requested change')).not.toBeInTheDocument()
+    expect(screen.queryByText('Unchanged')).not.toBeInTheDocument()
   })
 })

@@ -64,6 +64,7 @@ packages/locator-picker-companion/dist/*
 .fallow
 .appraisejs/
 .appraise/
+**/.appraisejs-local-analysis/
 
 # Graphify local-only cache and machine state
 /graphify-out/

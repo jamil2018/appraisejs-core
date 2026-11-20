@@ -9,7 +9,7 @@ const packageJson = require('../package.json') as { version: string }
 
 export const APPRAISE_PLUGIN_NAME = 'appraise-quality-journey'
 export const APPRAISE_MARKETPLACE_NAME = 'appraise-local'
-export const APPRAISE_PLUGIN_VERSION = `${packageJson.version}+codex.c12-20261003`
+export const APPRAISE_PLUGIN_VERSION = `${packageJson.version}+codex.c13-20261119`
 
 export type HostCommandResult = { status: number | null; stdout: string; stderr: string; error?: Error }
 export type HostCommand = (args: string[]) => HostCommandResult

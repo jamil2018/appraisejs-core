@@ -1,5 +1,9 @@
 import type { DiscoveryBrowserRuntime } from './quality-journey-discovery-browser-service'
 import {
+  discoveryControlPresenceExpression,
+  parseDiscoveryControlPresence,
+} from './quality-journey-discovery-control-presence'
+import {
   launchDiscoveryBrowserTransport,
   type DiscoveryBrowserProtocolEvent,
   type DiscoveryBrowserTransport,
@@ -192,6 +196,54 @@ class CdpPage {
   async title() {
     // Content extraction is intentionally absent from the discovery runtime.
     return ''
+  }
+  async captureControlPresence(expectedUrl: string) {
+    const before = await this.captureDocumentIdentity(expectedUrl)
+    const world = await this.owner.send<{ executionContextId?: number }>(
+      'Page.createIsolatedWorld',
+      { frameId: before.frameId, worldName: '__appraiseDiscoveryControlPresence', grantUniveralAccess: false },
+      this.sessionId,
+    )
+    if (!Number.isInteger(world.executionContextId)) throw new Error('Discovery capture isolated world is unavailable.')
+    const evaluated = await this.owner.send<{ result?: { value?: unknown }; exceptionDetails?: unknown }>(
+      'Runtime.evaluate',
+      {
+        expression: discoveryControlPresenceExpression,
+        contextId: world.executionContextId,
+        returnByValue: true,
+        silent: true,
+        timeout: 1000,
+      },
+      this.sessionId,
+    )
+    if (evaluated.exceptionDetails) throw new Error('Discovery control-presence observation failed.')
+    const presence = parseDiscoveryControlPresence(evaluated.result?.value)
+    await this.assertCaptureDocument(before.documentIdentity, expectedUrl)
+    return { documentIdentity: before.documentIdentity, presence }
+  }
+  async assertCaptureDocument(documentIdentity: string, expectedUrl: string) {
+    const current = await this.captureDocumentIdentity(expectedUrl)
+    if (current.documentIdentity !== documentIdentity) throw new Error('Discovery capture document changed.')
+  }
+  private async captureDocumentIdentity(expectedUrl: string) {
+    if (this.closed) throw new Error('Discovery capture page is unavailable.')
+    const tree = await this.owner.send<{ frameTree?: { frame?: { id?: unknown; loaderId?: unknown; url?: unknown } } }>(
+      'Page.getFrameTree',
+      {},
+      this.sessionId,
+    )
+    const frame = tree.frameTree?.frame
+    if (
+      !frame ||
+      frame.id !== this.mainFrameId ||
+      frame.url !== expectedUrl ||
+      typeof frame.loaderId !== 'string' ||
+      !frame.loaderId ||
+      frame.loaderId.length > 512 ||
+      this.url() !== expectedUrl
+    )
+      throw new Error('Discovery capture main document is unavailable or changed.')
+    return { frameId: this.mainFrameId, documentIdentity: `${this.targetId}:${this.mainFrameId}:${frame.loaderId}` }
   }
   on(event: string, listener: Listener) {
     const listeners = this.listeners.get(event) ?? new Set<Listener>()

@@ -43,7 +43,7 @@ it('shows execution errors instead of claiming a run started', async () => {
       environments={[{ id: 'env', name: 'Test' }]}
     />,
   )
-  fireEvent.click(screen.getByRole('button', { name: 'Start managed execution' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Run tests' }))
   await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Approved materialization changed.'))
   expect(mocks.action).toHaveBeenCalledWith('start', expect.objectContaining({ preparedRuntimeCapsuleIds: ['a', 'b'] }))
 })

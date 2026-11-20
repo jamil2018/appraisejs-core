@@ -1,5 +1,23 @@
 # Internal Triager and lifecycle (M10)
 
+The local Triager uses the sealed, cycle-bound input described below. The server owner enables the local worker with `APPRAISE_LOCAL_CODEX_TRIAGE_ENABLED=true`. See the [operator guide](quality-journey-operator-guide.md).
+
+Local submission retains the strictly validated native report proposal and its content hash after verified sender
+cleanup, before canonical submission. If that handoff fails, the Journey offers one canonical-only recovery bound to
+the exact retained candidate, original attempt and submission identity, current coordinator session, and current
+Journey state. Recovery never sends another native request or changes the proposed report. The original proposal and
+diagnostics remain on the attempt after recovery; an accepted recovery is distinguished from unresolved failure.
+An older consumed attempt without a retained proposal cannot be reconstructed or restarted.
+
+The runtime callback that first seals terminal execution evidence can wake eligible managed Triage after commit,
+even when the browser tab is closed. Reconciliation of already sealed evidence does not repeat that wake. These
+in-process callbacks are opportunistic; persisted work and consumed dispatch markers remain authoritative, and
+reconnect or an explicit resume can inspect eligible continuation without replaying a native attempt.
+The Next Node instrumentation hook registers this callback when the server boots; managed actions also register it.
+The process-global registration replaces an older callback during hot reload instead of accumulating listeners.
+Standalone runtime callers that do not initialize that application hook rely on explicit reconciliation or the
+Journey observer to request eligible continuation.
+
 Disposable `APP_SERVER_LOCAL_V1` Journeys can use the repository-only, attempt-scoped Triager MCP gateway after
 Appraise has sealed every run in the exact terminal execution cycle. This follows the M09 versioned admission
 composition. The current coordinator claims and admits one specialized assignment; Appraise binds its lease,
@@ -39,6 +57,8 @@ RuntimeCapsule outcomes and sealed evidence can support the next report. Closure
 revision and state and rechecks approved Analysis, execution, blockers and unresolved items in its transaction.
 
 The M08 browser-evidence and access-parking rules, staged E2 invalidation fence, M07 polling/project isolation/exact
-forms/external desktop handoff, and M09 approval/resource/consent boundaries remain applicable. Runtime and provider
-qualification, live protected access, production dispatch, public managed opt-in and M12+ remain open. [M11](../tasks/codex-app-server-journeys/M11-VERIFICATION.md) verifies deferred internal publication through pause and fresh-client resume; its synthetic terminal-state fixture does not qualify physical runtime execution. The M06 STOP
+forms, and M09 approval/resource/consent boundaries remain applicable. Runtime and provider
+qualification beyond the disposable guest checkout, live protected access and public managed opt-in remain open. The [operator guide](quality-journey-operator-guide.md) records the local checkout result and remaining human decision. [M11](../tasks/codex-app-server-journeys/M11-VERIFICATION.md) verifies deferred internal publication through pause and fresh-client resume; its synthetic terminal-state fixture does not qualify physical runtime execution. The M06 STOP
 and spent-attempt evidence retain their original meaning.
+
+A completed manual preparation successor also permits operator review inside Appraise. The operator previews the assigned cycle’s sealed Cucumber steps without claiming a worker lease. Appraise verifies the report bytes against the frozen receipt and checks current ownership after reading. Saving the operator’s findings acquires the scoped assignment, reads the sealed evidence through the worker gateway, and submits against the reviewed input hash. A target defect attribution requires complete evidence of a failed test. Appraise derives the run, scenario, and requirement links and publishes the report through canonical triage submission. An unresolved native worker remains fenced throughout review.

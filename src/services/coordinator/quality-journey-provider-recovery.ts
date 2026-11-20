@@ -87,7 +87,7 @@ function readHistoricalDispatchEvidence(attempt: HistoricalDispatch) {
   return { request, receipt }
 }
 
-function isProvenHistoricalNonstart(attempt: HistoricalDispatch) {
+export function isProvenHistoricalNonstart(attempt: HistoricalDispatch) {
   if (attempt.status !== 'REFUSED') return false
   try {
     const evidence = readHistoricalDispatchEvidence(attempt)

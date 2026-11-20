@@ -86,10 +86,155 @@ export type TransferQualityJourneyCoordinatorSessionInput = ApprovedSessionReque
   /** Explicit mode changes require a fresh paused-cleanup decision. Omission retains managed transfer behavior. */
   targetHostingMode?: HostingMode
 }
+/** Local-UI recovery for a legacy Journey that has never acquired coordinator ownership or work attempts. */
+export type AdoptUnownedLegacyQualityJourneyCoordinatorSessionInput = ApprovedSessionRequest & {
+  successorSessionId: string
+  expectedVersion: number
+  reconciliationReceiptId: string
+  expectedAdoptionSnapshotHash: string
+  approvedAt: string
+  approvalExpiresAt: string
+}
 
 type SessionTransitionInput =
-  ActivateQualityJourneyCoordinatorSessionInput | TransferQualityJourneyCoordinatorSessionInput
+  | ActivateQualityJourneyCoordinatorSessionInput
+  | TransferQualityJourneyCoordinatorSessionInput
+  | AdoptUnownedLegacyQualityJourneyCoordinatorSessionInput
 type SessionRow = QualityJourneyCoordinatorSession
+
+async function readAdoptionSnapshot(scope: Scope, tx: Prisma.TransactionClient) {
+  const journey = await readScopedQualityJourney(scope, tx)
+  const handoffs = await tx.qualityJourneyCoordinatorHandoff.findMany({
+    where: { journeyId: journey.id },
+    orderBy: { id: 'asc' },
+  })
+  const cleanup = await tx.qualityJourneyEvent.findFirst({
+    where: {
+      journeyId: scope.journeyId,
+      targetProjectId: scope.targetProjectId,
+      eventType: 'OPERATIONAL_PAUSE_CLEANUP',
+    },
+    orderBy: { sequence: 'desc' },
+  })
+  return {
+    journeyId: scope.journeyId,
+    targetProjectId: scope.targetProjectId,
+    expectedVersion: journey.version,
+    expectedStateHash: journey.stateHash,
+    expectedOwnershipVersion: journey.ownershipVersion,
+    reconciliationReceiptId: cleanup?.id ?? null,
+    adoptionSnapshotHash: digest(JSON.parse(JSON.stringify({ journey, handoffs, cleanup }))),
+    handoffs: handoffs.map(({ id, generation, status }) => ({ id, generation, status })),
+  }
+}
+
+/** Read-only review projection. Registration of a fresh, unowned successor does not alter this snapshot. */
+export function readUnownedLegacyQualityJourneyAdoptionSnapshot(scope: Scope, client: PrismaClient = prisma) {
+  return client.$transaction(tx => readAdoptionSnapshot(scope, tx))
+}
+
+/** Read-only UI review. It runs the same eligibility and cleanup guards as the eventual canonical transition. */
+export async function readLegacyQualityJourneyMigrationSnapshot(
+  input: Scope & { coordinatorPrincipalId: string },
+  client: PrismaClient = prisma,
+) {
+  return client.$transaction(async tx => {
+    const snapshot = await readAdoptionSnapshot(input, tx)
+    const journey = await readScopedQualityJourney(input, tx)
+    const predecessor = journey.currentCoordinatorSessionId
+      ? await tx.qualityJourneyCoordinatorSession.findUnique({ where: { id: journey.currentCoordinatorSessionId } })
+      : null
+    const mode = journey.currentCoordinatorSessionId ? ('TRANSFER' as const) : ('ADOPT' as const)
+    const base = {
+      ...snapshot,
+      mode,
+      predecessorSessionId: predecessor?.id ?? null,
+      predecessorGeneration: predecessor?.generation ?? null,
+    }
+    try {
+      if (journey.hostingMode !== 'EXTERNAL_LEGACY')
+        throw new ServiceError(
+          'This Journey is already managed by AppraiseJS or requires explicit hosting recovery.',
+          'CONFLICT',
+        )
+      if (!snapshot.reconciliationReceiptId)
+        throw new ServiceError(
+          'Pause the Journey and wait for Appraise to record its cleanup before reviewing migration.',
+          'CONFLICT',
+        )
+      if (mode === 'TRANSFER') {
+        if (!predecessor || predecessor.generation === null)
+          throw new ServiceError(
+            'The current coordinator generation is unavailable; reconcile its ownership before migration.',
+            'CONFLICT',
+          )
+        const transferInput: TransferQualityJourneyCoordinatorSessionInput = {
+          ...input,
+          authority: trustedHumanCoordinatorSession,
+          approvedBy: 'local-ui',
+          requestId: 'read-only-migration-review',
+          expectedOwnershipVersion: snapshot.expectedOwnershipVersion,
+          expectedStateHash: snapshot.expectedStateHash,
+          predecessorSessionId: predecessor.id,
+          predecessorGeneration: predecessor.generation,
+          successorSessionId: 'read-only-unregistered-successor',
+          reconciliationReceiptId: snapshot.reconciliationReceiptId,
+          targetHostingMode: 'APP_SERVER_LOCAL_V1',
+        }
+        await readTransitionPredecessor(transferInput, journey, { id: transferInput.successorSessionId }, tx)
+        await assertTransferReady(transferInput, journey, tx)
+        await assertQuiescent(input, tx, false)
+      } else {
+        await assertUnownedLegacyAdoption(journey, tx)
+        const adoptionInput: AdoptUnownedLegacyQualityJourneyCoordinatorSessionInput = {
+          ...input,
+          authority: trustedHumanCoordinatorSession,
+          approvedBy: 'local-ui',
+          requestId: 'read-only-migration-review',
+          expectedOwnershipVersion: snapshot.expectedOwnershipVersion,
+          expectedStateHash: snapshot.expectedStateHash,
+          expectedVersion: snapshot.expectedVersion,
+          expectedAdoptionSnapshotHash: snapshot.adoptionSnapshotHash,
+          approvedAt: new Date().toISOString(),
+          approvalExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+          successorSessionId: 'read-only-unregistered-successor',
+          reconciliationReceiptId: snapshot.reconciliationReceiptId,
+        }
+        await assertTransferReady(adoptionInput, journey, tx)
+        await assertQuiescent(input, tx, true)
+      }
+      return { ...base, blocker: null }
+    } catch (error) {
+      if (!(error instanceof ServiceError)) throw error
+      return { ...base, blocker: error.message }
+    }
+  })
+}
+
+async function assertAdoptionApproval(
+  input: AdoptUnownedLegacyQualityJourneyCoordinatorSessionInput,
+  tx: Prisma.TransactionClient,
+) {
+  const approvedAt = Date.parse(input.approvedAt)
+  const expiresAt = Date.parse(input.approvalExpiresAt)
+  const now = Date.now()
+  if (
+    !Number.isFinite(approvedAt) ||
+    !Number.isFinite(expiresAt) ||
+    approvedAt > now ||
+    expiresAt <= now ||
+    expiresAt <= approvedAt ||
+    expiresAt - approvedAt > 5 * 60_000
+  )
+    throw new ServiceError('Legacy adoption approval expired or has an invalid review window.', 'CONFLICT')
+  const snapshot = await readAdoptionSnapshot(input, tx)
+  if (
+    snapshot.expectedVersion !== input.expectedVersion ||
+    snapshot.adoptionSnapshotHash !== input.expectedAdoptionSnapshotHash ||
+    snapshot.reconciliationReceiptId !== input.reconciliationReceiptId
+  )
+    throw new ServiceError('Legacy adoption review snapshot changed; obtain a fresh explicit decision.', 'CONFLICT')
+}
 
 /** A transition cannot adopt an E2 row without the private allocation and retirement verifier. */
 function assertLegacyTransitionEnrollment(session: SessionRow, role: 'successor' | 'predecessor') {
@@ -222,16 +367,20 @@ function replaySessionTransition(
 }
 
 function assertTransitionSnapshot(input: SessionTransitionInput, journey: QualityJourney, successor: SessionRow) {
-  if (journey.ownershipVersion !== input.expectedOwnershipVersion || journey.stateHash !== input.expectedStateHash)
+  if (
+    journey.ownershipVersion !== input.expectedOwnershipVersion ||
+    journey.stateHash !== input.expectedStateHash ||
+    ('expectedVersion' in input && journey.version !== input.expectedVersion)
+  )
     throw new ServiceError('Coordinator approval snapshot changed; obtain a fresh explicit decision.', 'CONFLICT')
-  if (successor.status !== 'REGISTERED' || successor.generation !== null)
+  if (successor.status !== 'REGISTERED' || successor.generation !== null || successor.fencedAt)
     throw new ServiceError('Coordinator successor is not a fresh registered session.', 'CONFLICT')
 }
 
 async function readTransitionPredecessor(
-  input: SessionTransitionInput,
+  input: ActivateQualityJourneyCoordinatorSessionInput | TransferQualityJourneyCoordinatorSessionInput,
   journey: QualityJourney,
-  successor: SessionRow,
+  successor: Pick<SessionRow, 'id'>,
   tx: Prisma.TransactionClient,
 ) {
   if ('successorSessionId' in input) {
@@ -267,6 +416,68 @@ async function readTransitionPredecessor(
   return null
 }
 
+async function assertUnownedLegacyAdoption(journey: QualityJourney, tx: Prisma.TransactionClient) {
+  if (
+    journey.hostingMode !== 'EXTERNAL_LEGACY' ||
+    !['CREATED_COMPATIBILITY_V1', 'M03_SQL_V1:EMPTY_NO_SESSION', 'M03_SQL_V1:BOUNDED_NO_SESSION_LINEAGE'].includes(
+      journey.hostingProvenance,
+    ) ||
+    journey.currentCoordinatorSessionId !== null ||
+    journey.e2NativeStartsReserved !== 0 ||
+    journey.e2TurnStartsReserved !== 0
+  )
+    throw new ServiceError('Legacy adoption requires a Journey with no prior coordinator ownership.', 'CONFLICT')
+  const sessions = await tx.qualityJourneyCoordinatorSession.findMany({ where: { journeyId: journey.id } })
+  if (
+    sessions.some(
+      session =>
+        session.targetProjectId !== journey.targetProjectId ||
+        session.status !== 'REGISTERED' ||
+        session.generation !== null ||
+        [
+          session.activatedAt,
+          session.fencedAt,
+          session.fenceReason,
+          session.predecessorSessionId,
+          session.legacyHandoffId,
+          session.transitionRequestId,
+          session.transitionRequestHash,
+          session.transitionRequestJson,
+          session.transitionResultJson,
+          session.e2EnrollmentKind,
+          session.e2EnrollmentDigest,
+          session.e2EnrolledAt,
+        ].some(value => value !== null),
+    )
+  )
+    throw new ServiceError('Legacy adoption cannot replace historical coordinator ownership or enrollment.', 'CONFLICT')
+  const consumedWork = await tx.qualityJourneyWorkItem.count({
+    where: {
+      journeyId: journey.id,
+      OR: [{ currentAttempt: { not: 0 } }, { status: { in: ['WORKER_REQUESTED', 'IN_PROGRESS'] } }],
+    },
+  })
+  if (consumedWork)
+    throw new ServiceError('Legacy adoption cannot reinterpret consumed or active logical work.', 'CONFLICT')
+  const handoffs = await tx.qualityJourneyCoordinatorHandoff.findMany({ where: { journeyId: journey.id } })
+  if (
+    handoffs.some(
+      handoff =>
+        handoff.targetProjectId !== journey.targetProjectId ||
+        !['PREPARED', 'LAUNCHING', 'LAUNCHED', 'FAILED', 'EXPIRED', 'FENCED'].includes(handoff.status) ||
+        [
+          handoff.connectedAt,
+          handoff.coordinatorTaskId,
+          handoff.takeoverAt,
+          handoff.takeoverResultJson,
+          handoff.takeoverApprovedAt,
+          handoff.takeoverApprovedBy,
+        ].some(value => value !== null),
+    )
+  )
+    throw new ServiceError('Legacy adoption cannot replace connected, approved or ambiguous handoffs.', 'CONFLICT')
+}
+
 async function nextSessionGeneration(journeyId: string, tx: Prisma.TransactionClient) {
   const sessionMaximum = await tx.qualityJourneyCoordinatorSession.aggregate({
     where: { journeyId },
@@ -280,13 +491,18 @@ async function nextSessionGeneration(journeyId: string, tx: Prisma.TransactionCl
 }
 
 function hostingTransitionPatch(input: SessionTransitionInput) {
-  const targetHostingMode = 'targetHostingMode' in input ? input.targetHostingMode : undefined
+  const adoption = 'expectedVersion' in input
+  const targetHostingMode = adoption
+    ? 'APP_SERVER_LOCAL_V1'
+    : 'targetHostingMode' in input
+      ? input.targetHostingMode
+      : undefined
   if (!targetHostingMode) return { where: {}, data: {}, targetHostingMode }
   return {
     where: { status: 'PAUSED' },
     data: {
       hostingMode: targetHostingMode,
-      hostingProvenance: 'EXPLICIT_HOSTING_TRANSFER_V1',
+      hostingProvenance: adoption ? 'EXPLICIT_UNOWNED_LEGACY_ADOPTION_V1' : 'EXPLICIT_HOSTING_TRANSFER_V1',
       hostingContractVersion: 2,
     },
     targetHostingMode,
@@ -380,22 +596,24 @@ async function commitSessionTransition(
       transitionRequestJson: canonicalContractJson(request),
       transitionResultJson: canonicalContractJson(result),
       provenance:
-        'targetHostingMode' in input && input.targetHostingMode
-          ? 'EXPLICIT_HOSTING_TRANSFER_V1'
-          : 'successorSessionId' in input
-            ? 'EXPLICIT_RECONCILED_TRANSFER_V1'
-            : 'EXPLICIT_INITIAL_ACTIVATION_V1',
+        'expectedVersion' in input
+          ? 'EXPLICIT_UNOWNED_LEGACY_ADOPTION_V1'
+          : 'targetHostingMode' in input && input.targetHostingMode
+            ? 'EXPLICIT_HOSTING_TRANSFER_V1'
+            : 'successorSessionId' in input
+              ? 'EXPLICIT_RECONCILED_TRANSFER_V1'
+              : 'EXPLICIT_INITIAL_ACTIVATION_V1',
     },
   })
   return result
 }
 
 async function assertTransferReady(
-  input: TransferQualityJourneyCoordinatorSessionInput,
+  input: TransferQualityJourneyCoordinatorSessionInput | AdoptUnownedLegacyQualityJourneyCoordinatorSessionInput,
   journey: QualityJourney,
   tx: Prisma.TransactionClient,
 ) {
-  if (input.targetHostingMode && journey.status !== 'PAUSED')
+  if (('expectedVersion' in input || input.targetHostingMode) && journey.status !== 'PAUSED')
     throw new ServiceError('Hosting transfer requires a canonically PAUSED Journey.', 'CONFLICT')
   if (journey.status === 'PAUSED')
     await assertQualityJourneyHostingTransferCleanup(
@@ -425,7 +643,12 @@ async function assertTransferReady(
 function assertTransitionHosting(input: SessionTransitionInput, journey: QualityJourney, successor: SessionRow) {
   if (!['APP_SERVER_LOCAL_V1', 'EXTERNAL_LEGACY'].includes(journey.hostingMode))
     throw new ServiceError('Coordinator ownership requires explicit hosting recovery.', 'CONFLICT')
-  const targetMode = 'successorSessionId' in input ? input.targetHostingMode : undefined
+  const targetMode =
+    'expectedVersion' in input
+      ? 'APP_SERVER_LOCAL_V1'
+      : 'successorSessionId' in input
+        ? input.targetHostingMode
+        : undefined
   if (targetMode !== undefined && !['APP_SERVER_LOCAL_V1', 'EXTERNAL_LEGACY'].includes(targetMode))
     throw new ServiceError('Coordinator target hosting mode is invalid.', 'VALIDATION')
   if (
@@ -435,10 +658,7 @@ function assertTransitionHosting(input: SessionTransitionInput, journey: Quality
     throw new ServiceError('Coordinator successor requires an explicit matching hosting decision.', 'CONFLICT')
 }
 
-async function transitionSession(
-  input: ActivateQualityJourneyCoordinatorSessionInput | TransferQualityJourneyCoordinatorSessionInput,
-  client: PrismaClient,
-) {
+async function transitionSession(input: SessionTransitionInput, client: PrismaClient) {
   const { authority, ...request } = input
   if (
     authority !== trustedHumanCoordinatorSession ||
@@ -447,23 +667,28 @@ async function transitionSession(
     !input.requestId.trim()
   )
     throw new ServiceError('An authenticated trusted human session decision is required.', 'UNAUTHORIZED', 403)
-  const transfer = 'successorSessionId' in input
-  if (transfer && !input.reconciliationReceiptId.trim())
+  const adoption = 'expectedVersion' in input
+  const transfer = 'predecessorSessionId' in input
+  if (adoption && (!Number.isSafeInteger(input.expectedVersion) || input.expectedVersion < 0))
+    throw new ServiceError('Legacy adoption requires an exact operational version.', 'VALIDATION')
+  if ((transfer || adoption) && !input.reconciliationReceiptId.trim())
     throw new ServiceError('An explicit reconciled transfer decision is required.', 'VALIDATION')
   const requestHash = digest(request)
   return client
     .$transaction(async tx => {
       const journey = await readScopedQualityJourney(input, tx)
-      const successorId = transfer ? input.successorSessionId : input.coordinatorSessionId
+      const successorId = 'successorSessionId' in input ? input.successorSessionId : input.coordinatorSessionId
       const successor = await tx.qualityJourneyCoordinatorSession.findUnique({ where: { id: successorId } })
       assertTransitionSuccessor(successor, journey, input.coordinatorPrincipalId)
       assertLegacyTransitionEnrollment(successor, 'successor')
       const replay = replaySessionTransition(successor, journey, input.requestId, requestHash)
       if (replay) return replay
+      if (adoption) await assertAdoptionApproval(input, tx)
       assertTransitionHosting(input, journey, successor)
       assertTransitionSnapshot(input, journey, successor)
-      const predecessorId = await readTransitionPredecessor(input, journey, successor, tx)
-      if (transfer) await assertTransferReady(input, journey, tx)
+      const predecessorId = adoption ? null : await readTransitionPredecessor(input, journey, successor, tx)
+      if (adoption) await assertUnownedLegacyAdoption(journey, tx)
+      if (transfer || adoption) await assertTransferReady(input, journey, tx)
       await assertQuiescent(input, tx, !transfer)
       return commitSessionTransition(input, journey, successor, predecessorId, request, requestHash, tx)
     })
@@ -498,6 +723,13 @@ export function activateQualityJourneyCoordinatorSession(
 }
 export function transferQualityJourneyCoordinatorSession(
   input: TransferQualityJourneyCoordinatorSessionInput,
+  client: PrismaClient = prisma,
+) {
+  return transitionSession(input, client)
+}
+
+export function adoptUnownedLegacyQualityJourneyCoordinatorSession(
+  input: AdoptUnownedLegacyQualityJourneyCoordinatorSessionInput,
   client: PrismaClient = prisma,
 ) {
   return transitionSession(input, client)

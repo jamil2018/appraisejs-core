@@ -1,3 +1,4 @@
+import { appManagedAnalysisCorrectionIssuanceSchema } from './app-managed-analysis-correction-contract'
 import { recordSubmissionPayloadIdentity } from './quality-journey-submission-payload-observation'
 import { contendSharedResourceDomainsForJourneyCreation } from './quality-journey-shared-resource-guard-service'
 import {
@@ -238,65 +239,71 @@ export async function acceptExternalQualityJourneySubmissionInTransaction<T>(
   effect: (beforeWrite: BeforeJourneyBusinessWrite, queueAttemptTerminal: QueueAttemptTerminal) => Promise<T>,
 ) {
   return withJourneyBusinessWriteJoinInTransaction(tx, input, input, async (beforeWrite, queueAttemptTerminal) => {
-  const payloadHash = hash(input.payload)
-  recordSubmissionPayloadIdentity(input, payloadHash)
-  const existing = await tx.qualityJourneyExternalSubmissionAcceptance.findUnique({
-    where: {
-      journeyId_targetProjectId_principalId_operation_attemptId_idempotencyKey: {
+    const payloadHash = hash(input.payload)
+    recordSubmissionPayloadIdentity(input, payloadHash)
+    const existing = await tx.qualityJourneyExternalSubmissionAcceptance.findUnique({
+      where: {
+        journeyId_targetProjectId_principalId_operation_attemptId_idempotencyKey: {
+          journeyId: input.journeyId,
+          targetProjectId: input.targetProjectId,
+          principalId: input.principal.principalId,
+          operation: input.operation,
+          attemptId: input.attemptId,
+          idempotencyKey: input.idempotencyKey,
+        },
+      },
+    })
+    // Authenticate the exact assignment before returning any durable result,
+    // including one whose lease has since expired or been revoked.
+    await authenticateExternalQualityJourneySubmission(input, tx)
+    if (existing) {
+      if (existing.payloadHash !== payloadHash)
+        throw new ServiceError('External submission idempotency key was reused with different input.', 'CONFLICT')
+      if (existing.outcomeHash !== hash(JSON.parse(existing.outcomeJson)))
+        throw new ServiceError('External submission acceptance lineage is invalid.', 'UNAUTHORIZED')
+      return { replayed: true as const, outcome: JSON.parse(existing.outcomeJson) as T }
+    }
+    await assertCoordinatorMutationSession(input, input, tx)
+    await assertExternalSubmissionAuthority(input, tx)
+    let queuedTerminal: AttemptTerminalInput | undefined
+    const queueForAcceptance: QueueAttemptTerminal = async (actualTx, actualScope, terminal) => {
+      const snapshot = Object.freeze({ ...terminal })
+      await queueAttemptTerminal(actualTx, actualScope, snapshot)
+      queuedTerminal = snapshot
+    }
+    const outcome = await effect(beforeWrite, queueForAcceptance)
+    await beforeWrite(
+      tx,
+      input,
+      queuedTerminal
+        ? {
+            kind: 'EXTERNAL_ACCEPTANCE',
+            terminalAttemptId: queuedTerminal.attemptId,
+            terminalResultHash: queuedTerminal.resultHash,
+          }
+        : undefined,
+    )
+    await tx.qualityJourneyExternalSubmissionAcceptance.create({
+      data: {
+        id: `qjesa_${randomUUID()}`,
         journeyId: input.journeyId,
         targetProjectId: input.targetProjectId,
-        principalId: input.principal.principalId,
-        operation: input.operation,
+        workItemId: input.workItemId,
         attemptId: input.attemptId,
+        assignmentId: input.assignmentId,
+        assignmentGeneration: input.assignmentGeneration,
+        leaseId: input.leaseId,
+        role: input.role,
+        operation: input.operation,
+        principalId: input.principal.principalId,
+        principalAssurance: input.principal.assurance,
         idempotencyKey: input.idempotencyKey,
+        payloadHash,
+        outcomeJson: json(outcome),
+        outcomeHash: hash(outcome),
       },
-    },
-  })
-  // Authenticate the exact assignment before returning any durable result,
-  // including one whose lease has since expired or been revoked.
-  await authenticateExternalQualityJourneySubmission(input, tx)
-  if (existing) {
-    if (existing.payloadHash !== payloadHash)
-      throw new ServiceError('External submission idempotency key was reused with different input.', 'CONFLICT')
-    if (existing.outcomeHash !== hash(JSON.parse(existing.outcomeJson)))
-      throw new ServiceError('External submission acceptance lineage is invalid.', 'UNAUTHORIZED')
-    return { replayed: true as const, outcome: JSON.parse(existing.outcomeJson) as T }
-  }
-  await assertCoordinatorMutationSession(input, input, tx)
-  await assertExternalSubmissionAuthority(input, tx)
-  let queuedTerminal: AttemptTerminalInput | undefined
-  const queueForAcceptance: QueueAttemptTerminal = async (actualTx, actualScope, terminal) => {
-    const snapshot = Object.freeze({ ...terminal })
-    await queueAttemptTerminal(actualTx, actualScope, snapshot)
-    queuedTerminal = snapshot
-  }
-  const outcome = await effect(beforeWrite, queueForAcceptance)
-  await beforeWrite(tx, input, queuedTerminal ? {
-    kind: 'EXTERNAL_ACCEPTANCE',
-    terminalAttemptId: queuedTerminal.attemptId,
-    terminalResultHash: queuedTerminal.resultHash,
-  } : undefined)
-  await tx.qualityJourneyExternalSubmissionAcceptance.create({
-    data: {
-      id: `qjesa_${randomUUID()}`,
-      journeyId: input.journeyId,
-      targetProjectId: input.targetProjectId,
-      workItemId: input.workItemId,
-      attemptId: input.attemptId,
-      assignmentId: input.assignmentId,
-      assignmentGeneration: input.assignmentGeneration,
-      leaseId: input.leaseId,
-      role: input.role,
-      operation: input.operation,
-      principalId: input.principal.principalId,
-      principalAssurance: input.principal.assurance,
-      idempotencyKey: input.idempotencyKey,
-      payloadHash,
-      outcomeJson: json(outcome),
-      outcomeHash: hash(outcome),
-    },
-  })
-  return { replayed: false as const, outcome }
+    })
+    return { replayed: false as const, outcome }
   })
 }
 
@@ -643,12 +650,10 @@ async function readAnalysisPredecessorAuthorization(
   prior: AnalysisFollowupLeaf['submittedAttempt'],
   tx: Db,
 ) {
-  if (
-    prior.workItemId !== item.id ||
-    !prior.authorizationId ||
-    item.id !== qualityJourneyWorkItemId(journey.id, journey.activeCycleId, 'REQUIREMENT_ANALYZER')
-  )
+  if (prior.workItemId !== item.id || !prior.authorizationId)
     throw new ServiceError('Analysis follow-up predecessor completion lineage is invalid.', 'CONFLICT')
+  if (item.id !== qualityJourneyWorkItemId(journey.id, journey.activeCycleId, 'REQUIREMENT_ANALYZER'))
+    await assertAnalysisCorrectionWorkIdentity(item, tx)
   if (item.status === 'COMPLETED' && item.currentAttempt !== prior.attempt)
     throw new ServiceError(
       'Completed Analysis work has no matching accepted attempt; recovery is required.',
@@ -933,6 +938,19 @@ async function issueAnalysisFollowupSnapshot(
   tx: Db,
 ) {
   const { journey, item, descriptor, causeHash, inputHash } = snapshot
+  // Lifecycle commands reconstruct the canonical role ID. Retired predecessors cannot remain active beside an explicitly linked correction lineage.
+  const activeIds = parseArray(journey.activeWorkItemIdsJson)
+  const retired = await tx.qualityJourneyWorkItem.findMany({
+    where: {
+      id: { in: activeIds },
+      journeyId: journey.id,
+      cycleId: journey.activeCycleId,
+      role: 'REQUIREMENT_ANALYZER',
+      status: 'SUPERSEDED',
+    },
+    select: { id: true },
+  })
+  const retiredIds = new Set(retired.map(row => row.id))
   const state = createQualityJourneyKernelState({
     journeyId: journey.id,
     targetProjectId: journey.targetProjectId,
@@ -942,7 +960,7 @@ async function issueAnalysisFollowupSnapshot(
     analysisReviewHash: journey.analysisReviewHash ?? undefined,
     unresolvedQuestionIds: [],
     blockerIds: [],
-    activeWorkItemIds: [...new Set([...parseArray(journey.activeWorkItemIdsJson), item.id])].sort(),
+    activeWorkItemIds: [...new Set([...activeIds.filter(id => !retiredIds.has(id)), item.id])].sort(),
   })
   const changed = await tx.qualityJourney.updateMany({
     where: { id: journey.id, version: journey.version, stateHash: journey.stateHash, status: 'ACTIVE' },
@@ -1038,15 +1056,22 @@ export async function observeQualityJourneyAnalysisFollowupInTransaction(scope: 
   if (!authorization || authorization.revokedAt || authorization.cancelledAt)
     return { status: 'AUTHORITY_BLOCKED' as const, expected: null }
   if (item.status !== 'COMPLETED') return observeIssuedAnalysisFollowup(scope, snapshot, authorization, tx)
-  if (!snapshot.ready || parseArray(journey.unresolvedQuestionIdsJson).length ||
-    parseArray(journey.blockerIdsJson).length)
+  if (
+    !snapshot.ready ||
+    parseArray(journey.unresolvedQuestionIdsJson).length ||
+    parseArray(journey.blockerIdsJson).length
+  )
     return { status: 'WAITING_FOR_HUMAN' as const, expected: null }
-  return { status: 'AUTHORITY_BLOCKED' as const, expected: null,
-    reason: 'E2_FOLLOWUP_ISSUANCE_REQUIRES_SUCCESSOR' as const }
+  return {
+    status: 'AUTHORITY_BLOCKED' as const,
+    expected: null,
+    reason: 'E2_FOLLOWUP_ISSUANCE_REQUIRES_SUCCESSOR' as const,
+  }
 }
 
 export async function ensureQualityJourneyAnalysisFollowupInTransaction(
-  scope: FollowupScope, tx: Prisma.TransactionClient,
+  scope: FollowupScope,
+  tx: Prisma.TransactionClient,
 ) {
   return withJourneyBusinessWriteJoinInTransaction(tx, scope, undefined, beforeWrite =>
     ensureQualityJourneyAnalysisFollowupWithBusinessJoinInTransaction(scope, tx, beforeWrite),
@@ -1054,7 +1079,9 @@ export async function ensureQualityJourneyAnalysisFollowupInTransaction(
 }
 
 export async function ensureQualityJourneyAnalysisFollowupWithBusinessJoinInTransaction(
-  scope: FollowupScope, tx: Prisma.TransactionClient, beforeWrite: BeforeJourneyBusinessWrite,
+  scope: FollowupScope,
+  tx: Prisma.TransactionClient,
+  beforeWrite: BeforeJourneyBusinessWrite,
 ) {
   const snapshot = await readQualityJourneyAnalysisFollowupInTransaction(scope, tx)
   if (!snapshot) return { status: 'OBSERVED' as const, expected: null }
@@ -1085,7 +1112,14 @@ export async function ensureQualityJourneyAnalysisFollowupWithBusinessJoinInTran
     return { status: 'AUTHORITY_BLOCKED' as const, expected: null }
   const budget = await readAnalysisFollowupAttemptBudget(item, authorization, tx)
   try {
-    assertAnalysisFollowupAttemptBudget(budget)
+    if (await isNewHumanCauseAfterCompletedCorrection(snapshot, authorization, tx)) {
+      // Eligibility for a NEW cause-specific authorization: never reuse or extend the consumed one-send grant.
+      assertAnalysisFollowupAttemptBudget({
+        ...budget,
+        authorizationAttempts: 0,
+        authorizationMaxAttempts: providerIntentPolicy.maxAttempts,
+      })
+    } else assertAnalysisFollowupAttemptBudget(budget)
   } catch (error) {
     if (error instanceof ServiceError) return { status: 'AUTHORITY_BLOCKED' as const, expected: null }
     throw error
@@ -1093,10 +1127,16 @@ export async function ensureQualityJourneyAnalysisFollowupWithBusinessJoinInTran
   try {
     await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, scope)
   } catch (error) {
-    if (error instanceof ServiceError && error.details?.protocol === 'M06_E2_BUSINESS_GROUP_V1' &&
-      error.details.reason === 'UNSUPPORTED_E2_INVALIDATION')
-      return { status: 'AUTHORITY_BLOCKED' as const, expected: null,
-        reason: 'E2_FOLLOWUP_ISSUANCE_REQUIRES_SUCCESSOR' as const }
+    if (
+      error instanceof ServiceError &&
+      error.details?.protocol === 'M06_E2_BUSINESS_GROUP_V1' &&
+      error.details.reason === 'UNSUPPORTED_E2_INVALIDATION'
+    )
+      return {
+        status: 'AUTHORITY_BLOCKED' as const,
+        expected: null,
+        reason: 'E2_FOLLOWUP_ISSUANCE_REQUIRES_SUCCESSOR' as const,
+      }
     throw error
   }
   await beforeWrite(tx, scope)
@@ -1115,8 +1155,125 @@ export async function refreshQualityJourneyWorkAuthorizationInTransaction(
   const item = await tx.qualityJourneyWorkItem.findUniqueOrThrow({ where: { id: workItemId } })
   const predecessor = await currentWorkAuthorization(item.id, tx)
   if (!predecessor) throw new ServiceError('Specialized work issuance has no authorization to supersede.', 'CONFLICT')
-  await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, { journeyId, targetProjectId: journey.targetProjectId })
+  await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, {
+    journeyId,
+    targetProjectId: journey.targetProjectId,
+  })
   await createWorkAuthorization(journey, item, tx, 3, predecessor.id)
+}
+
+async function isNewHumanCauseAfterCompletedCorrection(
+  snapshot: AnalysisFollowupSnapshot,
+  authorization: QualityJourneyWorkAuthorization,
+  tx: Db,
+) {
+  if (
+    authorization.maxAttempts !== 1 ||
+    snapshot.item.status !== 'COMPLETED' ||
+    snapshot.predecessor.submittedAttempt.authorizationId !== authorization.id
+  )
+    return false
+  const canonicalId = qualityJourneyWorkItemId(
+    snapshot.journey.id,
+    snapshot.journey.activeCycleId,
+    'REQUIREMENT_ANALYZER',
+  )
+  if (snapshot.item.id === canonicalId) return false
+  await assertAnalysisCorrectionWorkIdentity(snapshot.item, tx)
+  const events = await tx.qualityJourneyEvent.findMany({
+    where: { journeyId: snapshot.journey.id, eventType: 'ANALYSIS_CORRECTION_ISSUED' },
+  })
+  const matches = events.filter(event => {
+    const grant = appManagedAnalysisCorrectionIssuanceSchema.parse(JSON.parse(event.payloadJson))
+    return grant.workItemId === snapshot.item.id && grant.authorizationId === authorization.id
+  })
+  return matches.length === 1 && snapshot.descriptor.cause.sequence > matches[0]!.sequence
+}
+
+/** Internal constructor for one user-requested correction grant; the original work's ceilings never change. */
+export async function createQualityJourneyAnalysisCorrectionWorkInTransaction(
+  input: {
+    journeyId: string
+    targetProjectId: string
+    predecessorWorkItemId: string
+    predecessorAttemptId: string
+    inputHash: string
+  },
+  tx: Prisma.TransactionClient,
+) {
+  const journey = await readJourney(input.journeyId, input.targetProjectId, tx)
+  const prior = await tx.qualityJourneyWorkItem.findUniqueOrThrow({ where: { id: input.predecessorWorkItemId } })
+  if (
+    prior.journeyId !== journey.id ||
+    prior.targetProjectId !== journey.targetProjectId ||
+    prior.cycleId !== journey.activeCycleId ||
+    prior.role !== 'REQUIREMENT_ANALYZER' ||
+    prior.status !== 'SUPERSEDED' ||
+    prior.inputHash !== input.inputHash
+  )
+    throw new ServiceError('Correction work does not bind the exact retired Analyzer inputs.', 'CONFLICT')
+  const work = await tx.qualityJourneyWorkItem.create({
+    data: {
+      id: `qjw_correction_${hash(input).slice(7, 31)}`,
+      journeyId: journey.id,
+      targetProjectId: journey.targetProjectId,
+      cycleId: prior.cycleId,
+      role: prior.role,
+      status: 'ELIGIBLE',
+      inputHash: prior.inputHash,
+      roleContractDigest: prior.roleContractDigest,
+      inputArtifactRefsJson: prior.inputArtifactRefsJson,
+      advisoryInputRefsJson: prior.advisoryInputRefsJson,
+      allowedOutputsJson: prior.allowedOutputsJson,
+      completionCriteriaJson: prior.completionCriteriaJson,
+      authorizationScopeJson: prior.authorizationScopeJson,
+    },
+  })
+  await createWorkAuthorization(journey, work, tx, 1)
+  const authorization = await currentWorkAuthorization(work.id, tx)
+  if (!authorization) throw new ServiceError('Correction work authorization was not issued.', 'CONFLICT')
+  return { work, authorization }
+}
+
+async function assertAnalysisCorrectionWorkIdentity(item: QualityJourneyWorkItem, tx: Db) {
+  const events = await tx.qualityJourneyEvent.findMany({
+    where: {
+      journeyId: item.journeyId,
+      targetProjectId: item.targetProjectId,
+      eventType: 'ANALYSIS_CORRECTION_ISSUED',
+    },
+  })
+  const matches = events
+    .map(event => appManagedAnalysisCorrectionIssuanceSchema.parse(JSON.parse(event.payloadJson)))
+    .filter(event => event.workItemId === item.id)
+  if (matches.length !== 1) throw new ServiceError('Analyzer successor work has no exact correction grant.', 'CONFLICT')
+  const grant = matches[0]!
+  const [prior, authorization] = await Promise.all([
+    tx.qualityJourneyWorkAttempt.findUnique({ where: { id: grant.predecessorAttemptId }, include: { workItem: true } }),
+    tx.qualityJourneyWorkAuthorization.findUnique({ where: { id: grant.authorizationId } }),
+  ])
+  if (
+    !prior ||
+    prior.workItemId !== grant.predecessorWorkItemId ||
+    prior.workItem.journeyId !== item.journeyId ||
+    prior.workItem.targetProjectId !== item.targetProjectId ||
+    prior.workItem.cycleId !== item.cycleId ||
+    prior.workItem.status !== 'SUPERSEDED' ||
+    prior.status !== 'FAILED' ||
+    prior.dispatchReservedAt ||
+    prior.dispatchStartedAt ||
+    prior.failureJson !== grant.failureJson ||
+    hash(JSON.parse(prior.failureJson!)) !== grant.failureHash ||
+    prior.assignmentHash !== grant.predecessorAssignmentHash ||
+    prior.authorizationId !== grant.predecessorAuthorizationId ||
+    !authorization ||
+    authorization.workItemId !== item.id ||
+    authorization.maxAttempts !== 1 ||
+    grant.cycleId !== item.cycleId ||
+    item.id !==
+      `qjw_correction_${hash({ journeyId: item.journeyId, targetProjectId: item.targetProjectId, predecessorWorkItemId: grant.predecessorWorkItemId, predecessorAttemptId: grant.predecessorAttemptId, inputHash: grant.inputHash }).slice(7, 31)}`
+  )
+    throw new ServiceError('Analyzer correction grant lineage is invalid.', 'CONFLICT')
 }
 
 /**
@@ -1145,7 +1302,10 @@ export async function replaceQualityJourneyWorkAuthorizationForTakeoverInTransac
   // A takeover reissues only the remaining immutable lineage budget; it never
   // turns an already-used authorization ceiling into a fresh allowance.
   const remainingAttempts = Math.max(0, predecessor.maxAttempts - consumedByPredecessor)
-  await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, { journeyId, targetProjectId: journey.targetProjectId })
+  await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, {
+    journeyId,
+    targetProjectId: journey.targetProjectId,
+  })
   await createWorkAuthorization(journey, item, tx, remainingAttempts, predecessor.id)
   const revoked = await tx.qualityJourneyWorkAuthorization.updateMany({
     where: { id: predecessor.id, revokedAt: null },
@@ -1383,7 +1543,10 @@ async function reissueCompletedAnalysisWorkItem(
   ])
   if (!authorization)
     throw new ServiceError('Analysis revision work has no predecessor Factory authorization to supersede.', 'CONFLICT')
-  await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(db, { journeyId: row.id, targetProjectId: row.targetProjectId })
+  await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(db, {
+    journeyId: row.id,
+    targetProjectId: row.targetProjectId,
+  })
   await beforeWrite(db, { journeyId: row.id, targetProjectId: row.targetProjectId })
   const reissued = await db.qualityJourneyWorkItem.update({
     where: { id: item.id },
@@ -1416,7 +1579,10 @@ async function reissueCompletedScenarioDesignerWorkItem(
   ])
   if (!authorization)
     throw new ServiceError('Scenario revision work has no predecessor Factory authorization to supersede.', 'CONFLICT')
-  await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(db, { journeyId: row.id, targetProjectId: row.targetProjectId })
+  await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(db, {
+    journeyId: row.id,
+    targetProjectId: row.targetProjectId,
+  })
   await beforeWrite(db, { journeyId: row.id, targetProjectId: row.targetProjectId })
   const reissued = await db.qualityJourneyWorkItem.update({
     where: { id: item.id },
@@ -1434,11 +1600,15 @@ async function reissueCompletedScenarioDesignerWorkItem(
 }
 
 async function ensureEligibleWorkItems(
-  row: QualityJourney, db: Prisma.TransactionClient, beforeWrite: BeforeJourneyBusinessWrite,
+  row: QualityJourney,
+  db: Prisma.TransactionClient,
+  beforeWrite: BeforeJourneyBusinessWrite,
 ) {
   if (row.hostingMode === 'APP_SERVER_LOCAL_V1')
     await ensureQualityJourneyAnalysisFollowupWithBusinessJoinInTransaction(
-      { journeyId: row.id, targetProjectId: row.targetProjectId }, db, beforeWrite,
+      { journeyId: row.id, targetProjectId: row.targetProjectId },
+      db,
+      beforeWrite,
     )
   if (row.status === 'PAUSED') return
   const roles = eligibleRolesForAutomaticIssuance(row.stage as QualityJourneyStage)
@@ -1450,7 +1620,14 @@ async function ensureEligibleWorkItems(
     let item = existingItem
     const roleContractDigest = qualityJourneyContractDigest(definition)
     item = await reissueCompletedAnalysisWorkItem(row, item, activeWorkItemIds, roleContractDigest, db, beforeWrite)
-    item = await reissueCompletedScenarioDesignerWorkItem(row, item, activeWorkItemIds, roleContractDigest, db, beforeWrite)
+    item = await reissueCompletedScenarioDesignerWorkItem(
+      row,
+      item,
+      activeWorkItemIds,
+      roleContractDigest,
+      db,
+      beforeWrite,
+    )
     if (!item) {
       const requirementRevision =
         role === 'REQUIREMENT_ANALYZER'
@@ -1580,7 +1757,10 @@ export async function issueQualityJourneyDiscoveryWorkItemsWithBusinessJoinInTra
 ) {
   for (const spec of specs)
     await issueQualityJourneySpecializedWorkItemWithBusinessJoinInTransaction(
-      row, { ...spec, conflictLabel: 'Discovery' }, tx, beforeWrite,
+      row,
+      { ...spec, conflictLabel: 'Discovery' },
+      tx,
+      beforeWrite,
     )
 }
 
@@ -1647,8 +1827,11 @@ export async function setQualityJourneyActiveWorkItems(
 ) {
   const row = await tx.qualityJourney.findUniqueOrThrow({ where: { id: journeyId } })
   return withJourneyBusinessWriteJoinInTransaction(
-    tx, { journeyId: row.id, targetProjectId: row.targetProjectId }, undefined,
-    beforeWrite => setQualityJourneyActiveWorkItemsWithBusinessJoinInTransaction(journeyId, workItemIds, tx, beforeWrite),
+    tx,
+    { journeyId: row.id, targetProjectId: row.targetProjectId },
+    undefined,
+    beforeWrite =>
+      setQualityJourneyActiveWorkItemsWithBusinessJoinInTransaction(journeyId, workItemIds, tx, beforeWrite),
   )
 }
 
@@ -1702,7 +1885,7 @@ function normalizedJourneyCreation(input: CreateQualityJourneyInput) {
     requirement,
     ...(hostingMode === 'APP_SERVER_LOCAL_V1' ? { hostingMode } : {}),
   })
-  return { requirement, hostingMode, requestHash }
+  return { requirement, requestHash }
 }
 
 function assertJourneyCreationReplay(
@@ -1718,8 +1901,11 @@ function assertJourneyCreationReplay(
 export async function createQualityJourneyInTransaction(
   input: CreateQualityJourneyInput,
   tx: Prisma.TransactionClient,
+  defaultHostingMode: 'EXTERNAL_LEGACY' | 'APP_SERVER_LOCAL_V1' = 'EXTERNAL_LEGACY',
 ) {
-  const { requirement, hostingMode, requestHash } = normalizedJourneyCreation(input)
+  const { requirement, requestHash } = normalizedJourneyCreation(input)
+  // Exact retries retain the original caller intent across server default changes.
+  const hostingMode = input.hostingMode ?? defaultHostingMode
   const existing = await tx.qualityJourney.findUnique({
     where: {
       targetProjectId_rootIdempotencyKey: {
@@ -1820,6 +2006,13 @@ export async function createQualityJourneyInTransaction(
 
 export async function createQualityJourney(input: CreateQualityJourneyInput, client: PrismaClient = prisma) {
   return client.$transaction(tx => createQualityJourneyInTransaction(input, tx))
+}
+
+export async function createAppManagedJourney(
+  input: Omit<CreateQualityJourneyInput, 'hostingMode'>,
+  client: PrismaClient = prisma,
+) {
+  return client.$transaction(tx => createQualityJourneyInTransaction(input, tx, 'APP_SERVER_LOCAL_V1'))
 }
 
 export async function getQualityJourney(
@@ -2090,7 +2283,12 @@ export async function submitDurableQualityJourneyCommandInTransaction(
   const command = journeyCommandSchema.parse(value)
   return withJourneyBusinessWriteJoinInTransaction(tx, command, coordinatorSession, beforeWrite =>
     submitDurableQualityJourneyCommandWithBusinessJoinInTransaction(
-      command, tx, beforeWrite, allowSpecializedCommand, issueEligibleWorkItems, coordinatorSession,
+      command,
+      tx,
+      beforeWrite,
+      allowSpecializedCommand,
+      issueEligibleWorkItems,
+      coordinatorSession,
     ),
   )
 }
@@ -2504,6 +2702,139 @@ async function resumeRefusedFactoryWork(row: QualityJourney, now: Date, tx: Pris
   return resumedAttemptIds
 }
 
+/** Reconcile only a completed local Designer turn rejected before any canonical submission.
+ * The original dispatch stays consumed. Existing claim logic issues a distinct replacement assignment under
+ * the same remaining hard attempt budget; neither a lease nor an authorization is reset here. */
+export async function requestQualityJourneyRejectedDesignerReplacement(
+  input: CoordinatorSessionBinding & { attemptId: string; expectedStateHash: string; expectedFailureHash: string },
+  client: PrismaClient = prisma,
+) {
+  return client.$transaction(tx =>
+    withJourneyBusinessWriteJoinInTransaction(tx, input, input, async beforeWrite => {
+      await assertCoordinatorRecoverySession(input, input, tx)
+      const journey = await readJourney(input.journeyId, input.targetProjectId, tx)
+      if (
+        journey.hostingMode !== 'APP_SERVER_LOCAL_V1' ||
+        journey.status !== 'ACTIVE' ||
+        journey.stage !== 'SCENARIO_DESIGN' ||
+        journey.stateHash !== input.expectedStateHash ||
+        input.coordinatorPrincipalId !== `appraise-local:${input.targetProjectId}`
+      )
+        throw new ServiceError('Designer correction requires the current local Journey and exact state.', 'CONFLICT')
+      const attempt = await tx.qualityJourneyWorkAttempt.findFirst({
+        where: {
+          id: input.attemptId,
+          dispatchAdapterId: 'APP_SERVER_LOCAL_V1_PREPARATION_TEST_SCENARIO_DESIGNER',
+          workItem: {
+            journeyId: journey.id,
+            targetProjectId: journey.targetProjectId,
+            cycleId: journey.activeCycleId,
+            role: 'TEST_SCENARIO_DESIGNER',
+          },
+        },
+        include: { workItem: true },
+      })
+      if (
+        !attempt?.failureJson ||
+        attempt.status !== 'IN_PROGRESS' ||
+        attempt.executionMode !== 'EXTERNAL_V1' ||
+        attempt.externalPrincipalId !== input.coordinatorPrincipalId ||
+        attempt.externalPrincipalAssurance !== 'PROJECT_CREDENTIAL_ONLY' ||
+        attempt.workItem.status !== 'IN_PROGRESS' ||
+        attempt.workItem.currentAttempt !== attempt.attempt ||
+        !parseArray(journey.activeWorkItemIdsJson).includes(attempt.workItemId)
+      )
+        throw new ServiceError('The exact rejected Designer assignment is not eligible for correction.', 'CONFLICT')
+      await assertCoordinatorAttemptSession({ ...input, attemptId: attempt.id }, tx)
+      const failure = JSON.parse(attempt.failureJson)
+      if (
+        hash(failure) !== input.expectedFailureHash ||
+        failure.senderCleanupVerified !== true ||
+        failure.stage !== 'OUTPUT_VALIDATION' ||
+        failure.canonicalSubmissionStarted !== false ||
+        !Array.isArray(failure.rejection?.issues) ||
+        failure.rejection.kind !== 'SCHEMA' ||
+        !failure.rejection.issues.length
+      )
+        throw new ServiceError(
+          'A distinct Designer assignment requires proven sender cleanup and pre-submission schema rejection.',
+          'CONFLICT',
+        )
+      const [acceptances, portfolios, providerRuns] = await Promise.all([
+        tx.qualityJourneyExternalSubmissionAcceptance.count({ where: { attemptId: attempt.id } }),
+        tx.qualityJourneyScenarioPortfolioRevision.count({ where: { submittedAttemptId: attempt.id } }),
+        tx.qualityJourneyProviderRun.count({ where: { attemptId: attempt.id } }),
+      ])
+      if (
+        acceptances ||
+        portfolios ||
+        providerRuns ||
+        attempt.resultJson ||
+        attempt.resultHash ||
+        attempt.spawnRequestJson ||
+        attempt.dispatchKey ||
+        attempt.spawnReceiptJson ||
+        !attempt.dispatchReservedAt ||
+        !attempt.dispatchStartedAt
+      )
+        throw new ServiceError('The original Designer may have canonical or unresolved provider effects.', 'CONFLICT')
+      const authorization = await readIssuedClaimAuthorization(attempt.workItem, tx)
+      await assertClaimBudgetAvailable(authorization, tx)
+      const readiness = getInternalScenarioAutomationReadiness('TEST_SCENARIO_DESIGNER')
+      if (!readiness) throw new ServiceError('Designer readiness is unavailable.', 'CONFLICT')
+      await readiness(journey, attempt.workItem, tx)
+      await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, input)
+      await beforeWrite(tx, input)
+      // Archive the exact original failure and dispatch timestamps before clearing only the reconciled hub occupancy.
+      const sequence = (await tx.qualityJourneyEvent.count({ where: { journeyId: journey.id } })) + 1
+      const eventId = `qje_designer_replacement_${hash({ attemptId: attempt.id, failureHash: input.expectedFailureHash }).slice(7, 31)}`
+      await tx.qualityJourneyEvent.create({
+        data: {
+          id: eventId,
+          journeyId: journey.id,
+          targetProjectId: journey.targetProjectId,
+          sequence,
+          eventType: 'DESIGNER_REJECTED_OUTPUT_REPLACEMENT_REQUESTED',
+          predecessorStateHash: journey.stateHash,
+          successorStateHash: journey.stateHash,
+          payloadJson: json({
+            schemaVersion: 'appraise.designer-rejected-output-replacement/v1',
+            attemptId: attempt.id,
+            assignmentId: attempt.assignmentId,
+            workItemId: attempt.workItemId,
+            cycleId: journey.activeCycleId,
+            authorizationId: authorization.id,
+            successorAttempt: attempt.attempt + 1,
+            failureJson: attempt.failureJson,
+            failureHash: input.expectedFailureHash,
+            dispatchReservedAt: attempt.dispatchReservedAt.toISOString(),
+            dispatchStartedAt: attempt.dispatchStartedAt.toISOString(),
+            senderCleanupVerified: true,
+            canonicalSubmissionStarted: false,
+            acceptedSubmissionCount: 0,
+          }),
+        },
+      })
+      const changed = await tx.qualityJourneyWorkAttempt.updateMany({
+        where: { id: attempt.id, status: 'IN_PROGRESS', failureJson: attempt.failureJson },
+        data: { status: 'FAILED', completedAt: new Date(), dispatchReservedAt: null, dispatchStartedAt: null },
+      })
+      if (changed.count !== 1) throw new ServiceError('The rejected Designer changed concurrently.', 'CONFLICT')
+      await tx.qualityJourneyWorkItem.update({
+        where: { id: attempt.workItemId },
+        data: { status: 'REPLACEMENT_REQUESTED', version: { increment: 1 } },
+      })
+      return {
+        eventId,
+        predecessorAttemptId: attempt.id,
+        successorAttempt: attempt.attempt + 1,
+        workItemId: attempt.workItemId,
+        nativeSend: false,
+      }
+    }),
+  )
+}
+
 export async function resumeQualityJourney(
   input: CoordinatorSessionBinding & { journeyId: string; targetProjectId: string; now?: Date },
   client: PrismaClient = prisma,
@@ -2511,82 +2842,82 @@ export async function resumeQualityJourney(
   const now = input.now ?? new Date()
   return client.$transaction(async tx => {
     return withJourneyBusinessWriteJoinInTransaction(tx, input, input, async beforeWrite => {
-    await assertCoordinatorRecoverySession(input, input, tx)
-    const row = await readJourney(input.journeyId, input.targetProjectId, tx)
-    assertQualityJourneyRecoverable(row)
-    await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, input)
-    await beforeWrite(tx, input)
-    const recoveredWorkItemIds = row.status === 'PAUSED' ? [] : await recoverLegacyFactoryAuthorizations(row, tx)
-    const expired = await tx.qualityJourneyWorkAttempt.findMany({
-      where: {
-        workItem: { journeyId: row.id },
-        status: { in: ['CLAIMED', 'WORKER_REQUESTED', 'IN_PROGRESS'] },
-        leaseExpiresAt: { lte: now },
-      },
-    })
-    for (const attempt of expired) {
-      const providerUncertain = await hasUnreconciledProviderEffects(
-        { journeyId: row.id, targetProjectId: row.targetProjectId, attemptId: attempt.id },
-        tx,
-      )
-      if (providerUncertain || (attempt.dispatchReservedAt && !attempt.spawnReceiptHash)) {
-        await blockExpiredQualityJourneyWork(tx, attempt, 'DISPATCH_UNRESOLVED', now)
-        await tx.qualityJourneyBlocker.upsert({
-          where: { id: `qjb_ambiguous_dispatch_${attempt.id}` },
-          update: {},
-          create: {
-            id: `qjb_ambiguous_dispatch_${attempt.id}`,
-            journeyId: row.id,
-            targetProjectId: row.targetProjectId,
-            reasonCode: 'AMBIGUOUS_PROVIDER_DISPATCH',
-            summary:
-              'A provider dispatch may have created a worker, but no durable receipt was returned before the lease expired.',
-            evidenceJson: json({
-              attemptId: attempt.id,
-              dispatchKey: attempt.dispatchKey,
-              adapterId: attempt.dispatchAdapterId,
-            }),
-            responsibleActor: 'COORDINATOR',
-            affectedNodeIdsJson: json([attempt.workItemId]),
-            requiredResolution:
-              'Reconcile the persisted adapter dispatch key with the provider before any new worker is issued.',
-            safeResumeCommand: 'adapter_reconciliation_required',
-          },
+      await assertCoordinatorRecoverySession(input, input, tx)
+      const row = await readJourney(input.journeyId, input.targetProjectId, tx)
+      assertQualityJourneyRecoverable(row)
+      await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, input)
+      await beforeWrite(tx, input)
+      const recoveredWorkItemIds = row.status === 'PAUSED' ? [] : await recoverLegacyFactoryAuthorizations(row, tx)
+      const expired = await tx.qualityJourneyWorkAttempt.findMany({
+        where: {
+          workItem: { journeyId: row.id },
+          status: { in: ['CLAIMED', 'WORKER_REQUESTED', 'IN_PROGRESS'] },
+          leaseExpiresAt: { lte: now },
+        },
+      })
+      for (const attempt of expired) {
+        const providerUncertain = await hasUnreconciledProviderEffects(
+          { journeyId: row.id, targetProjectId: row.targetProjectId, attemptId: attempt.id },
+          tx,
+        )
+        if (providerUncertain || (attempt.dispatchReservedAt && !attempt.spawnReceiptHash)) {
+          await blockExpiredQualityJourneyWork(tx, attempt, 'DISPATCH_UNRESOLVED', now)
+          await tx.qualityJourneyBlocker.upsert({
+            where: { id: `qjb_ambiguous_dispatch_${attempt.id}` },
+            update: {},
+            create: {
+              id: `qjb_ambiguous_dispatch_${attempt.id}`,
+              journeyId: row.id,
+              targetProjectId: row.targetProjectId,
+              reasonCode: 'AMBIGUOUS_PROVIDER_DISPATCH',
+              summary:
+                'A provider dispatch may have created a worker, but no durable receipt was returned before the lease expired.',
+              evidenceJson: json({
+                attemptId: attempt.id,
+                dispatchKey: attempt.dispatchKey,
+                adapterId: attempt.dispatchAdapterId,
+              }),
+              responsibleActor: 'COORDINATOR',
+              affectedNodeIdsJson: json([attempt.workItemId]),
+              requiredResolution:
+                'Reconcile the persisted adapter dispatch key with the provider before any new worker is issued.',
+              safeResumeCommand: 'adapter_reconciliation_required',
+            },
+          })
+          continue
+        }
+        await invalidateUnsentProviderIntents(
+          { journeyId: row.id, targetProjectId: row.targetProjectId, attemptId: attempt.id },
+          tx,
+        )
+        const authorization = attempt.authorizationId
+          ? await tx.qualityJourneyWorkAuthorization.findUnique({ where: { id: attempt.authorizationId } })
+          : null
+        const authorizationAttempts = authorization
+          ? await tx.qualityJourneyWorkAttempt.count({ where: { authorizationId: authorization.id } })
+          : 0
+        if (authorization && authorizationAttempts >= authorization.maxAttempts) {
+          await blockExpiredQualityJourneyWork(tx, attempt, 'LEASE_EXPIRED', now)
+          await createAttemptBudgetBlocker(tx, row, attempt)
+          continue
+        }
+        await tx.qualityJourneyWorkAttempt.update({
+          where: { id: attempt.id },
+          data: { status: 'LEASE_EXPIRED', completedAt: now },
         })
-        continue
+        await tx.qualityJourneyWorkItem.updateMany({
+          where: { id: attempt.workItemId, status: { in: ['WORKER_REQUESTED', 'IN_PROGRESS'] } },
+          data: { status: 'REPLACEMENT_REQUESTED', version: { increment: 1 } },
+        })
       }
-      await invalidateUnsentProviderIntents(
-        { journeyId: row.id, targetProjectId: row.targetProjectId, attemptId: attempt.id },
-        tx,
-      )
-      const authorization = attempt.authorizationId
-        ? await tx.qualityJourneyWorkAuthorization.findUnique({ where: { id: attempt.authorizationId } })
-        : null
-      const authorizationAttempts = authorization
-        ? await tx.qualityJourneyWorkAttempt.count({ where: { authorizationId: authorization.id } })
-        : 0
-      if (authorization && authorizationAttempts >= authorization.maxAttempts) {
-        await blockExpiredQualityJourneyWork(tx, attempt, 'LEASE_EXPIRED', now)
-        await createAttemptBudgetBlocker(tx, row, attempt)
-        continue
+      const resumedRefusedAttemptIds = await resumeRefusedFactoryWork(row, now, tx)
+      await ensureEligibleWorkItems(row, tx, beforeWrite)
+      return {
+        recoveredWorkItemIds,
+        expiredAttemptIds: expired.map(item => item.id),
+        resumedRefusedAttemptIds,
+        journey: projection(row),
       }
-      await tx.qualityJourneyWorkAttempt.update({
-        where: { id: attempt.id },
-        data: { status: 'LEASE_EXPIRED', completedAt: now },
-      })
-      await tx.qualityJourneyWorkItem.updateMany({
-        where: { id: attempt.workItemId, status: { in: ['WORKER_REQUESTED', 'IN_PROGRESS'] } },
-        data: { status: 'REPLACEMENT_REQUESTED', version: { increment: 1 } },
-      })
-    }
-    const resumedRefusedAttemptIds = await resumeRefusedFactoryWork(row, now, tx)
-    await ensureEligibleWorkItems(row, tx, beforeWrite)
-    return {
-      recoveredWorkItemIds,
-      expiredAttemptIds: expired.map(item => item.id),
-      resumedRefusedAttemptIds,
-      journey: projection(row),
-    }
     })
   })
 }
@@ -2779,10 +3110,15 @@ async function retireLegacyDiscoveryAuthority(journeyId: string, tx: Prisma.Tran
 }
 
 async function upgradeLegacyDiscoveryOnClaim(
-  journey: QualityJourney, tx: Prisma.TransactionClient, beforeWrite: BeforeJourneyBusinessWrite,
+  journey: QualityJourney,
+  tx: Prisma.TransactionClient,
+  beforeWrite: BeforeJourneyBusinessWrite,
 ) {
   if (journey.stage !== 'DISCOVERY' || journey.activeDiscoveryRevisionId) return journey
-  await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, { journeyId: journey.id, targetProjectId: journey.targetProjectId })
+  await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, {
+    journeyId: journey.id,
+    targetProjectId: journey.targetProjectId,
+  })
   await beforeWrite(tx, { journeyId: journey.id, targetProjectId: journey.targetProjectId })
   await retireLegacyDiscoveryAuthority(journey.id, tx)
   const bootstrap = getQualityJourneyDiscoveryBootstrap()
@@ -2845,70 +3181,76 @@ export async function claimQualityJourneyWork(input: WorkClaimInput, client: Pri
   const leaseSeconds = Math.min(Math.max(input.leaseSeconds ?? 120, 30), 900)
   return client.$transaction(async tx => {
     return withJourneyBusinessWriteJoinInTransaction(tx, input, input, async beforeWrite => {
-    await assertCoordinatorMutationSession(input, input, tx)
-    const journey = await readClaimableJourney(input, tx, beforeWrite)
-    const item = await findClaimableWorkItem(journey, input, tx)
-    if (!item) throw new ServiceError('No eligible Quality Journey work item is available.', 'CONFLICT')
-    if (isInternalDiscoveryRole(journey, item.role))
-      throw new ServiceError('Internal Discovery work requires versioned admission.', 'UNAUTHORIZED')
-    if (journey.hostingMode === 'APP_SERVER_LOCAL_V1' && ['TEST_SCENARIO_DESIGNER', 'AUTOMATOR', 'TRIAGER'].includes(item.role))
-      throw new ServiceError('Internal Scenario, Automation and Triager work requires versioned admission.', 'UNAUTHORIZED')
-    await assertSpecializedTriagerClaim(item, journey, tx)
-    const authorization = await readIssuedClaimAuthorization(item, tx)
-    const { authorizationPayload, inputArtifacts, inputHash, projectionHash, attempt } =
-      await prepareAuthorizedWorkClaim(item, authorization, journey, tx)
-    const ownerToken = randomUUID()
-    const leaseId = `qjl_${randomUUID()}`
-    const leaseExpiresAt = new Date(Date.now() + leaseSeconds * 1000)
-    const attemptId = `qja_${randomUUID()}`
-    const prior = await priorWorkAttempt(item, tx)
-    const replacement = predecessorDiagnostics(prior, projectionHash)
-    const heartbeatSeconds = Math.max(10, Math.floor(leaseSeconds / 3))
-    const claimedItem = { ...item, inputHash }
-    const manifest = manifestForClaim(
-      authorizationPayload,
-      claimedItem,
-      { id: attemptId, leaseId, leaseExpiresAt, heartbeatSeconds },
-      inputArtifacts,
-      replacement ?? undefined,
-    )
-    const spawnRequest = createWorkerSpawnRequest({
-      requestId: `qjsr_${randomUUID()}`,
-      attemptId,
-      manifest,
-    })
-    await beforeWrite(tx, input)
-    const workAttempt = await tx.qualityJourneyWorkAttempt.create({
-      data: {
-        id: attemptId,
-        workItemId: item.id,
-        attempt,
-        status: 'WORKER_REQUESTED',
-        leaseId,
-        ownerTokenHash: tokenHash(ownerToken),
-        leaseExpiresAt,
-        heartbeatSeconds,
-        authorizationId: authorization.id,
-        assignmentId: manifest.assignmentId,
-        assignmentJson: json(manifest),
-        assignmentHash: hash(manifest),
-        spawnRequestId: spawnRequest.requestId,
-        spawnRequestJson: json(spawnRequest),
-        spawnRequestHash: hash(spawnRequest),
-        dispatchKey: `qjd_${createHash('sha256').update(attemptId).digest('hex').slice(0, 24)}`,
-        replacesAttemptId: prior?.id,
-        replacementProjectionHash: replacement?.projectionHash,
-        predecessorDiagnosticsJson: replacement ? json(replacement.diagnostics) : null,
-      },
-    })
-    await bindCoordinatorAttemptSession({ ...input, attemptId: workAttempt.id }, tx)
-    return {
-      workItem: { ...claimedItem, status: 'WORKER_REQUESTED' as const, currentAttempt: attempt },
-      attempt: workAttempt,
-      assignment: manifest,
-      spawnRequest,
-      ownerToken,
-    }
+      await assertCoordinatorMutationSession(input, input, tx)
+      const journey = await readClaimableJourney(input, tx, beforeWrite)
+      const item = await findClaimableWorkItem(journey, input, tx)
+      if (!item) throw new ServiceError('No eligible Quality Journey work item is available.', 'CONFLICT')
+      if (isInternalDiscoveryRole(journey, item.role))
+        throw new ServiceError('Internal Discovery work requires versioned admission.', 'UNAUTHORIZED')
+      if (
+        journey.hostingMode === 'APP_SERVER_LOCAL_V1' &&
+        ['TEST_SCENARIO_DESIGNER', 'AUTOMATOR', 'TRIAGER'].includes(item.role)
+      )
+        throw new ServiceError(
+          'Internal Scenario, Automation and Triager work requires versioned admission.',
+          'UNAUTHORIZED',
+        )
+      await assertSpecializedTriagerClaim(item, journey, tx)
+      const authorization = await readIssuedClaimAuthorization(item, tx)
+      const { authorizationPayload, inputArtifacts, inputHash, projectionHash, attempt } =
+        await prepareAuthorizedWorkClaim(item, authorization, journey, tx)
+      const ownerToken = randomUUID()
+      const leaseId = `qjl_${randomUUID()}`
+      const leaseExpiresAt = new Date(Date.now() + leaseSeconds * 1000)
+      const attemptId = `qja_${randomUUID()}`
+      const prior = await priorWorkAttempt(item, tx)
+      const replacement = predecessorDiagnostics(prior, projectionHash)
+      const heartbeatSeconds = Math.max(10, Math.floor(leaseSeconds / 3))
+      const claimedItem = { ...item, inputHash }
+      const manifest = manifestForClaim(
+        authorizationPayload,
+        claimedItem,
+        { id: attemptId, leaseId, leaseExpiresAt, heartbeatSeconds },
+        inputArtifacts,
+        replacement ?? undefined,
+      )
+      const spawnRequest = createWorkerSpawnRequest({
+        requestId: `qjsr_${randomUUID()}`,
+        attemptId,
+        manifest,
+      })
+      await beforeWrite(tx, input)
+      const workAttempt = await tx.qualityJourneyWorkAttempt.create({
+        data: {
+          id: attemptId,
+          workItemId: item.id,
+          attempt,
+          status: 'WORKER_REQUESTED',
+          leaseId,
+          ownerTokenHash: tokenHash(ownerToken),
+          leaseExpiresAt,
+          heartbeatSeconds,
+          authorizationId: authorization.id,
+          assignmentId: manifest.assignmentId,
+          assignmentJson: json(manifest),
+          assignmentHash: hash(manifest),
+          spawnRequestId: spawnRequest.requestId,
+          spawnRequestJson: json(spawnRequest),
+          spawnRequestHash: hash(spawnRequest),
+          dispatchKey: `qjd_${createHash('sha256').update(attemptId).digest('hex').slice(0, 24)}`,
+          replacesAttemptId: prior?.id,
+          replacementProjectionHash: replacement?.projectionHash,
+          predecessorDiagnosticsJson: replacement ? json(replacement.diagnostics) : null,
+        },
+      })
+      await bindCoordinatorAttemptSession({ ...input, attemptId: workAttempt.id }, tx)
+      return {
+        workItem: { ...claimedItem, status: 'WORKER_REQUESTED' as const, currentAttempt: attempt },
+        attempt: workAttempt,
+        assignment: manifest,
+        spawnRequest,
+        ownerToken,
+      }
     })
   })
 }
@@ -3148,164 +3490,165 @@ async function claimExternalWork(
   }
   return client.$transaction(async tx => {
     return withJourneyBusinessWriteJoinInTransaction(tx, input, input, async beforeWrite => {
-    const existing = await tx.qualityJourneyExternalWorkClaimReceipt.findUnique({
-      where: {
-        journeyId_targetProjectId_principalId_protocol_idempotencyKey: {
-          journeyId: input.journeyId,
-          targetProjectId: input.targetProjectId,
-          principalId: input.principal.principalId,
-          protocol: externalAnalyzerAdmissionProtocol,
-          idempotencyKey: input.idempotencyKey,
-        },
-      },
-    })
-    if (existing) {
-      const attempt = await tx.qualityJourneyWorkAttempt.findUnique({ where: { id: existing.attemptId } })
-      if (!attempt) throw new ServiceError('External work claim attempt lineage is unavailable.', 'UNAUTHORIZED')
-      // Authenticate before comparing or disclosing a durable prior outcome.
-      assertExternalAnalyzerAttemptPrincipal(attempt, input.principal, input.assignmentSecret)
-      const { request } = verifiedExternalClaimReceipt(existing)
-      if (hash(request.input) !== hash(requestInput))
-        throw new ServiceError('External work claim idempotency key was reused with different input.', 'CONFLICT')
-      return externalClaimOutcome(existing, attempt, true)
-    }
-    await assertCoordinatorMutationSession(input, input, tx)
-    assertExternalCoordinatorPrincipal(input)
-    const { journey, item } = await readExternalClaimWork(input, expected, tx, beforeWrite)
-    await assertSpecializedTriagerClaim(item, journey, tx)
-    const authorization = await readIssuedClaimAuthorization(item, tx)
-    if (expected) await assertCurrentAnalysisFollowupClaim(input, expected, item, authorization, tx)
-    if (
-      authorization.externalAdmissionProtocol &&
-      (authorization.externalAdmissionProtocol !== externalAnalyzerAdmissionProtocol ||
-        authorization.externalPrincipalId !== input.principal.principalId ||
-        authorization.externalPrincipalAssurance !== input.principal.assurance)
-    )
-      throw new ServiceError('External Analyzer authorization is bound to another principal.', 'UNAUTHORIZED')
-    await beforeWrite(tx, input)
-    const optedIn = await tx.qualityJourneyWorkAuthorization.updateMany({
-      where: {
-        id: authorization.id,
-        OR: [
-          { externalAdmissionProtocol: null },
-          {
-            externalAdmissionProtocol: externalAnalyzerAdmissionProtocol,
-            externalPrincipalId: input.principal.principalId,
-            externalPrincipalAssurance: input.principal.assurance,
+      const existing = await tx.qualityJourneyExternalWorkClaimReceipt.findUnique({
+        where: {
+          journeyId_targetProjectId_principalId_protocol_idempotencyKey: {
+            journeyId: input.journeyId,
+            targetProjectId: input.targetProjectId,
+            principalId: input.principal.principalId,
+            protocol: externalAnalyzerAdmissionProtocol,
+            idempotencyKey: input.idempotencyKey,
           },
-        ],
-      },
-      data: {
-        externalAdmissionProtocol: externalAnalyzerAdmissionProtocol,
-        externalPrincipalId: input.principal.principalId,
-        externalPrincipalAssurance: input.principal.assurance,
-        externalOptInRequestHash: hash({ protocol: externalAnalyzerAdmissionProtocol, principal: input.principal }),
-        externalOptedInAt: new Date(),
-      },
-    })
-    if (optedIn.count !== 1) throw new ServiceError('External Analyzer authorization changed concurrently.', 'CONFLICT')
-    const { authorizationPayload, inputArtifacts, inputHash, projectionHash, attempt } =
-      await prepareAuthorizedWorkClaim(item, authorization, journey, tx)
-    const leaseId = `qjl_${randomUUID()}`
-    const leaseExpiresAt = new Date(Date.now() + leaseSeconds * 1000)
-    const attemptId = `qja_${randomUUID()}`
-    const prior = await priorWorkAttempt(item, tx)
-    const replacement = predecessorDiagnostics(prior, projectionHash)
-    const heartbeatSeconds = Math.max(10, Math.floor(leaseSeconds / 3))
-    const claimedItem = { ...item, inputHash }
-    const manifest = manifestForClaim(
-      authorizationPayload,
-      claimedItem,
-      { id: attemptId, leaseId, leaseExpiresAt, heartbeatSeconds },
-      inputArtifacts,
-      replacement ?? undefined,
-    )
-    const workAttempt = await tx.qualityJourneyWorkAttempt.create({
-      data: {
-        id: attemptId,
-        workItemId: item.id,
-        attempt,
-        status: 'WORKER_REQUESTED',
-        leaseId,
-        ownerTokenHash: externalAssignmentSecretHash(input.assignmentSecret),
-        executionMode: externalAnalyzerAdmissionProtocol,
-        externalPrincipalId: input.principal.principalId,
-        externalPrincipalAssurance: input.principal.assurance,
-        assignmentGeneration: 1,
-        leaseExpiresAt,
-        heartbeatSeconds,
-        authorizationId: authorization.id,
-        assignmentId: manifest.assignmentId,
-        assignmentJson: json(manifest),
-        assignmentHash: hash(manifest),
-        replacesAttemptId: prior?.id,
-        replacementProjectionHash: replacement?.projectionHash,
-        predecessorDiagnosticsJson: replacement ? json(replacement.diagnostics) : null,
-      },
-    })
-    await bindCoordinatorAttemptSession({ ...input, attemptId: workAttempt.id }, tx)
-    const receipt = {
-      schemaVersion: 'appraise.quality-journey-external-claim-receipt/v1' as const,
-      claimId: `qjec_${randomUUID()}`,
-      protocol: externalAnalyzerAdmissionProtocol,
-      journeyId: journey.id,
-      targetProjectId: journey.targetProjectId,
-      role: item.role,
-      workItem: { ...claimedItem, status: 'WORKER_REQUESTED' as const, currentAttempt: attempt },
-      attemptId: workAttempt.id,
-      authorizationId: authorization.id,
-      authorizationHash: authorization.authorizationHash,
-      assignmentId: manifest.assignmentId,
-      assignmentGeneration: workAttempt.assignmentGeneration,
-      assignmentHash: hash(manifest),
-      inputHash,
-      leaseId,
-      leaseExpiresAt: leaseExpiresAt.toISOString(),
-      leaseRequestSeconds: leaseSeconds,
-      principal: input.principal,
-      hostIsolation: 'NOT_ATTESTED' as const,
-    }
-    const request = {
-      schemaVersion: 'appraise.quality-journey-external-claim/v1' as const,
-      input: requestInput,
-      binding: {
+        },
+      })
+      if (existing) {
+        const attempt = await tx.qualityJourneyWorkAttempt.findUnique({ where: { id: existing.attemptId } })
+        if (!attempt) throw new ServiceError('External work claim attempt lineage is unavailable.', 'UNAUTHORIZED')
+        // Authenticate before comparing or disclosing a durable prior outcome.
+        assertExternalAnalyzerAttemptPrincipal(attempt, input.principal, input.assignmentSecret)
+        const { request } = verifiedExternalClaimReceipt(existing)
+        if (hash(request.input) !== hash(requestInput))
+          throw new ServiceError('External work claim idempotency key was reused with different input.', 'CONFLICT')
+        return externalClaimOutcome(existing, attempt, true)
+      }
+      await assertCoordinatorMutationSession(input, input, tx)
+      assertExternalCoordinatorPrincipal(input)
+      const { journey, item } = await readExternalClaimWork(input, expected, tx, beforeWrite)
+      await assertSpecializedTriagerClaim(item, journey, tx)
+      const authorization = await readIssuedClaimAuthorization(item, tx)
+      if (expected) await assertCurrentAnalysisFollowupClaim(input, expected, item, authorization, tx)
+      if (
+        authorization.externalAdmissionProtocol &&
+        (authorization.externalAdmissionProtocol !== externalAnalyzerAdmissionProtocol ||
+          authorization.externalPrincipalId !== input.principal.principalId ||
+          authorization.externalPrincipalAssurance !== input.principal.assurance)
+      )
+        throw new ServiceError('External Analyzer authorization is bound to another principal.', 'UNAUTHORIZED')
+      await beforeWrite(tx, input)
+      const optedIn = await tx.qualityJourneyWorkAuthorization.updateMany({
+        where: {
+          id: authorization.id,
+          OR: [
+            { externalAdmissionProtocol: null },
+            {
+              externalAdmissionProtocol: externalAnalyzerAdmissionProtocol,
+              externalPrincipalId: input.principal.principalId,
+              externalPrincipalAssurance: input.principal.assurance,
+            },
+          ],
+        },
+        data: {
+          externalAdmissionProtocol: externalAnalyzerAdmissionProtocol,
+          externalPrincipalId: input.principal.principalId,
+          externalPrincipalAssurance: input.principal.assurance,
+          externalOptInRequestHash: hash({ protocol: externalAnalyzerAdmissionProtocol, principal: input.principal }),
+          externalOptedInAt: new Date(),
+        },
+      })
+      if (optedIn.count !== 1)
+        throw new ServiceError('External Analyzer authorization changed concurrently.', 'CONFLICT')
+      const { authorizationPayload, inputArtifacts, inputHash, projectionHash, attempt } =
+        await prepareAuthorizedWorkClaim(item, authorization, journey, tx)
+      const leaseId = `qjl_${randomUUID()}`
+      const leaseExpiresAt = new Date(Date.now() + leaseSeconds * 1000)
+      const attemptId = `qja_${randomUUID()}`
+      const prior = await priorWorkAttempt(item, tx)
+      const replacement = predecessorDiagnostics(prior, projectionHash)
+      const heartbeatSeconds = Math.max(10, Math.floor(leaseSeconds / 3))
+      const claimedItem = { ...item, inputHash }
+      const manifest = manifestForClaim(
+        authorizationPayload,
+        claimedItem,
+        { id: attemptId, leaseId, leaseExpiresAt, heartbeatSeconds },
+        inputArtifacts,
+        replacement ?? undefined,
+      )
+      const workAttempt = await tx.qualityJourneyWorkAttempt.create({
+        data: {
+          id: attemptId,
+          workItemId: item.id,
+          attempt,
+          status: 'WORKER_REQUESTED',
+          leaseId,
+          ownerTokenHash: externalAssignmentSecretHash(input.assignmentSecret),
+          executionMode: externalAnalyzerAdmissionProtocol,
+          externalPrincipalId: input.principal.principalId,
+          externalPrincipalAssurance: input.principal.assurance,
+          assignmentGeneration: 1,
+          leaseExpiresAt,
+          heartbeatSeconds,
+          authorizationId: authorization.id,
+          assignmentId: manifest.assignmentId,
+          assignmentJson: json(manifest),
+          assignmentHash: hash(manifest),
+          replacesAttemptId: prior?.id,
+          replacementProjectionHash: replacement?.projectionHash,
+          predecessorDiagnosticsJson: replacement ? json(replacement.diagnostics) : null,
+        },
+      })
+      await bindCoordinatorAttemptSession({ ...input, attemptId: workAttempt.id }, tx)
+      const receipt = {
+        schemaVersion: 'appraise.quality-journey-external-claim-receipt/v1' as const,
+        claimId: `qjec_${randomUUID()}`,
+        protocol: externalAnalyzerAdmissionProtocol,
         journeyId: journey.id,
         targetProjectId: journey.targetProjectId,
-        workItemId: item.id,
         role: item.role,
+        workItem: { ...claimedItem, status: 'WORKER_REQUESTED' as const, currentAttempt: attempt },
+        attemptId: workAttempt.id,
         authorizationId: authorization.id,
         authorizationHash: authorization.authorizationHash,
         assignmentId: manifest.assignmentId,
         assignmentGeneration: workAttempt.assignmentGeneration,
+        assignmentHash: hash(manifest),
+        inputHash,
         leaseId,
         leaseExpiresAt: leaseExpiresAt.toISOString(),
-        inputHash,
-      },
-    }
-    const claim = await tx.qualityJourneyExternalWorkClaimReceipt.create({
-      data: {
-        id: receipt.claimId,
-        journeyId: journey.id,
-        targetProjectId: journey.targetProjectId,
-        workItemId: item.id,
-        attemptId: workAttempt.id,
-        authorizationId: authorization.id,
-        protocol: externalAnalyzerAdmissionProtocol,
-        role: item.role,
-        principalId: input.principal.principalId,
-        principalAssurance: input.principal.assurance,
-        assignmentSecretVerifier: externalAssignmentSecretHash(input.assignmentSecret),
-        assignmentGeneration: workAttempt.assignmentGeneration,
-        leaseId,
         leaseRequestSeconds: leaseSeconds,
-        idempotencyKey: input.idempotencyKey,
-        requestJson: json(request),
-        requestHash: hash(request),
-        receiptJson: json(receipt),
-        receiptHash: hash(receipt),
-      },
-    })
-    return externalClaimOutcome(claim, workAttempt, false)
+        principal: input.principal,
+        hostIsolation: 'NOT_ATTESTED' as const,
+      }
+      const request = {
+        schemaVersion: 'appraise.quality-journey-external-claim/v1' as const,
+        input: requestInput,
+        binding: {
+          journeyId: journey.id,
+          targetProjectId: journey.targetProjectId,
+          workItemId: item.id,
+          role: item.role,
+          authorizationId: authorization.id,
+          authorizationHash: authorization.authorizationHash,
+          assignmentId: manifest.assignmentId,
+          assignmentGeneration: workAttempt.assignmentGeneration,
+          leaseId,
+          leaseExpiresAt: leaseExpiresAt.toISOString(),
+          inputHash,
+        },
+      }
+      const claim = await tx.qualityJourneyExternalWorkClaimReceipt.create({
+        data: {
+          id: receipt.claimId,
+          journeyId: journey.id,
+          targetProjectId: journey.targetProjectId,
+          workItemId: item.id,
+          attemptId: workAttempt.id,
+          authorizationId: authorization.id,
+          protocol: externalAnalyzerAdmissionProtocol,
+          role: item.role,
+          principalId: input.principal.principalId,
+          principalAssurance: input.principal.assurance,
+          assignmentSecretVerifier: externalAssignmentSecretHash(input.assignmentSecret),
+          assignmentGeneration: workAttempt.assignmentGeneration,
+          leaseId,
+          leaseRequestSeconds: leaseSeconds,
+          idempotencyKey: input.idempotencyKey,
+          requestJson: json(request),
+          requestHash: hash(request),
+          receiptJson: json(receipt),
+          receiptHash: hash(receipt),
+        },
+      })
+      return externalClaimOutcome(claim, workAttempt, false)
     })
   })
 }
@@ -3409,70 +3752,70 @@ export async function admitExternalQualityJourneyWork(
   const requestHash = hash(request)
   return client.$transaction(async tx => {
     return withJourneyBusinessWriteJoinInTransaction(tx, input, input, async beforeWrite => {
-    const item = await readScopedWorkItem(input, tx)
-    if (item.role !== input.role)
-      throw new ServiceError('External work admission role does not match its assignment.', 'CONFLICT')
-    const attempt = await tx.qualityJourneyWorkAttempt.findUnique({ where: { id: input.attemptId } })
-    if (!attempt || attempt.workItemId !== item.id || attempt.leaseId !== input.leaseId)
-      throw new ServiceError('External Analyzer admission does not bind a current work attempt.', 'UNAUTHORIZED')
-    assertExternalAnalyzerAttemptPrincipal(attempt, input.principal, input.assignmentSecret)
-    if (attempt.assignmentId !== input.assignmentId || attempt.assignmentGeneration !== input.assignmentGeneration)
-      throw new ServiceError('External Analyzer admission generation is stale.', 'CONFLICT')
-    const replay = replayExternalAdmission(attempt, requestHash)
-    if (replay) return replay
-    await assertCoordinatorMutationSession(input, input, tx)
-    await assertCoordinatorAttemptSession({ ...input, attemptId: attempt.id }, tx)
-    assertExternalCoordinatorPrincipal(input)
-    const journey = await readJourney(input.journeyId, input.targetProjectId, tx)
-    assertQualityJourneyMutable(journey)
-    await assertInternalAssignmentReady(journey, item, tx)
-    const authorization = await readAttemptAuthorization(attempt, tx)
-    assertFactoryAuthorityCurrent(item, authorization)
-    assertExternalAuthorizationPrincipal(
-      authorization,
-      input.principal,
-      'External Analyzer authorization is not current for this principal.',
-    )
-    assertExternalAdmissionCurrent(item, attempt)
-    const receipt = {
-      schemaVersion: 'appraise.quality-journey-external-admission/v1' as const,
-      admissionId: `qjea_${randomUUID()}`,
-      protocol: externalAnalyzerAdmissionProtocol,
-      assignmentId: input.assignmentId,
-      assignmentGeneration: input.assignmentGeneration,
-      attemptId: attempt.id,
-      workItemId: item.id,
-      journeyId: input.journeyId,
-      targetProjectId: input.targetProjectId,
-      role: item.role,
-      principal: input.principal,
-      authorizationId: authorization.id,
-      authorizationHash: authorization.authorizationHash,
-      inputHash: item.inputHash,
-      leaseId: attempt.leaseId,
-      hostIsolation: 'NOT_ATTESTED' as const,
-      admittedAt: new Date().toISOString(),
-    }
-    await beforeWrite(tx, input)
-    const admitted = await tx.qualityJourneyWorkAttempt.updateMany({
-      where: { id: attempt.id, status: 'WORKER_REQUESTED', externalAdmissionId: null },
-      data: {
-        status: 'IN_PROGRESS',
-        externalAdmissionId: receipt.admissionId,
-        externalAdmissionJson: json(receipt),
-        externalAdmissionHash: hash(receipt),
-        externalAdmissionRequestJson: json(request),
-        externalAdmissionRequestHash: requestHash,
-        externalAdmittedAt: new Date(),
-      },
-    })
-    if (admitted.count !== 1) throw new ServiceError('External Analyzer admission changed concurrently.', 'CONFLICT')
-    const started = await tx.qualityJourneyWorkItem.updateMany({
-      where: { id: item.id, version: item.version, currentAttempt: attempt.attempt, status: 'WORKER_REQUESTED' },
-      data: { status: 'IN_PROGRESS', version: { increment: 1 } },
-    })
-    if (started.count !== 1) throw new ServiceError('External Analyzer admission changed concurrently.', 'CONFLICT')
-    return { replayed: false, receipt }
+      const item = await readScopedWorkItem(input, tx)
+      if (item.role !== input.role)
+        throw new ServiceError('External work admission role does not match its assignment.', 'CONFLICT')
+      const attempt = await tx.qualityJourneyWorkAttempt.findUnique({ where: { id: input.attemptId } })
+      if (!attempt || attempt.workItemId !== item.id || attempt.leaseId !== input.leaseId)
+        throw new ServiceError('External Analyzer admission does not bind a current work attempt.', 'UNAUTHORIZED')
+      assertExternalAnalyzerAttemptPrincipal(attempt, input.principal, input.assignmentSecret)
+      if (attempt.assignmentId !== input.assignmentId || attempt.assignmentGeneration !== input.assignmentGeneration)
+        throw new ServiceError('External Analyzer admission generation is stale.', 'CONFLICT')
+      const replay = replayExternalAdmission(attempt, requestHash)
+      if (replay) return replay
+      await assertCoordinatorMutationSession(input, input, tx)
+      await assertCoordinatorAttemptSession({ ...input, attemptId: attempt.id }, tx)
+      assertExternalCoordinatorPrincipal(input)
+      const journey = await readJourney(input.journeyId, input.targetProjectId, tx)
+      assertQualityJourneyMutable(journey)
+      await assertInternalAssignmentReady(journey, item, tx)
+      const authorization = await readAttemptAuthorization(attempt, tx)
+      assertFactoryAuthorityCurrent(item, authorization)
+      assertExternalAuthorizationPrincipal(
+        authorization,
+        input.principal,
+        'External Analyzer authorization is not current for this principal.',
+      )
+      assertExternalAdmissionCurrent(item, attempt)
+      const receipt = {
+        schemaVersion: 'appraise.quality-journey-external-admission/v1' as const,
+        admissionId: `qjea_${randomUUID()}`,
+        protocol: externalAnalyzerAdmissionProtocol,
+        assignmentId: input.assignmentId,
+        assignmentGeneration: input.assignmentGeneration,
+        attemptId: attempt.id,
+        workItemId: item.id,
+        journeyId: input.journeyId,
+        targetProjectId: input.targetProjectId,
+        role: item.role,
+        principal: input.principal,
+        authorizationId: authorization.id,
+        authorizationHash: authorization.authorizationHash,
+        inputHash: item.inputHash,
+        leaseId: attempt.leaseId,
+        hostIsolation: 'NOT_ATTESTED' as const,
+        admittedAt: new Date().toISOString(),
+      }
+      await beforeWrite(tx, input)
+      const admitted = await tx.qualityJourneyWorkAttempt.updateMany({
+        where: { id: attempt.id, status: 'WORKER_REQUESTED', externalAdmissionId: null },
+        data: {
+          status: 'IN_PROGRESS',
+          externalAdmissionId: receipt.admissionId,
+          externalAdmissionJson: json(receipt),
+          externalAdmissionHash: hash(receipt),
+          externalAdmissionRequestJson: json(request),
+          externalAdmissionRequestHash: requestHash,
+          externalAdmittedAt: new Date(),
+        },
+      })
+      if (admitted.count !== 1) throw new ServiceError('External Analyzer admission changed concurrently.', 'CONFLICT')
+      const started = await tx.qualityJourneyWorkItem.updateMany({
+        where: { id: item.id, version: item.version, currentAttempt: attempt.attempt, status: 'WORKER_REQUESTED' },
+        data: { status: 'IN_PROGRESS', version: { increment: 1 } },
+      })
+      if (started.count !== 1) throw new ServiceError('External Analyzer admission changed concurrently.', 'CONFLICT')
+      return { replayed: false, receipt }
     })
   })
 }
@@ -4001,7 +4344,9 @@ async function advanceAfterWorkCompletion(
   const current = projection(journey)
   const successorStateHash = hashQualityJourneyState({ ...current, activeWorkItemIds })
   await beforeWrite(tx, input, {
-    kind: 'WORK_COMPLETION_PROJECTION', terminalAttemptId: attempt.id, terminalResultHash: hash(result),
+    kind: 'WORK_COMPLETION_PROJECTION',
+    terminalAttemptId: attempt.id,
+    terminalResultHash: hash(result),
   })
   const advanced = await tx.qualityJourney.updateMany({
     where: { id: journey.id, version: journey.version, stateHash: predecessorStateHash },
@@ -4010,7 +4355,9 @@ async function advanceAfterWorkCompletion(
   if (advanced.count !== 1) throw new ServiceError('Quality Journey changed during work completion.', 'CONFLICT')
   const sequence = (await tx.qualityJourneyEvent.count({ where: { journeyId: journey.id } })) + 1
   await beforeWrite(tx, input, {
-    kind: 'WORK_COMPLETION_PROJECTION', terminalAttemptId: attempt.id, terminalResultHash: hash(result),
+    kind: 'WORK_COMPLETION_PROJECTION',
+    terminalAttemptId: attempt.id,
+    terminalResultHash: hash(result),
   })
   await tx.qualityJourneyEvent.create({
     data: {
@@ -4322,20 +4669,36 @@ export async function assertDiscoverySubmissionModeLineageInTransaction(
     tx.qualityJourneyWorkAttempt.findUnique({ where: { id: input.attemptId } }),
     tx.qualityJourneyWorkAuthorization.findUnique({ where: { id: input.authorizationId } }),
   ])
-  if (!item || !attempt || !authorization ||
+  if (
+    !item ||
+    !attempt ||
+    !authorization ||
     !['SCOUT', 'RESOURCE_EXPLORER'].includes(input.expectedRole) ||
-    item.journeyId !== journey.id || item.targetProjectId !== journey.targetProjectId ||
-    item.role !== input.expectedRole || item.inputHash !== input.inputHash ||
-    item.currentAttempt !== attempt.attempt || item.status !== 'IN_PROGRESS' ||
-    attempt.workItemId !== item.id || attempt.authorizationId !== authorization.id ||
-    attempt.leaseId !== input.leaseId || attempt.status !== 'IN_PROGRESS' ||
-    attempt.leaseExpiresAt <= new Date() || authorization.workItemId !== item.id ||
-    authorization.journeyId !== journey.id || authorization.targetProjectId !== journey.targetProjectId ||
-    authorization.role !== input.expectedRole || authorization.roleContractDigest !== item.roleContractDigest)
+    item.journeyId !== journey.id ||
+    item.targetProjectId !== journey.targetProjectId ||
+    item.role !== input.expectedRole ||
+    item.inputHash !== input.inputHash ||
+    item.currentAttempt !== attempt.attempt ||
+    item.status !== 'IN_PROGRESS' ||
+    attempt.workItemId !== item.id ||
+    attempt.authorizationId !== authorization.id ||
+    attempt.leaseId !== input.leaseId ||
+    attempt.status !== 'IN_PROGRESS' ||
+    attempt.leaseExpiresAt <= new Date() ||
+    authorization.workItemId !== item.id ||
+    authorization.journeyId !== journey.id ||
+    authorization.targetProjectId !== journey.targetProjectId ||
+    authorization.role !== input.expectedRole ||
+    authorization.roleContractDigest !== item.roleContractDigest
+  )
     throw new ServiceError('Discovery mode lineage does not bind the specialized assignment.', 'UNAUTHORIZED')
   assertFactoryAuthorityCurrent(item, authorization)
-  if (!coordinatorSession || typeof coordinatorSession !== 'object' ||
-    coordinatorSession.journeyId !== scope.journeyId || coordinatorSession.targetProjectId !== scope.targetProjectId)
+  if (
+    !coordinatorSession ||
+    typeof coordinatorSession !== 'object' ||
+    coordinatorSession.journeyId !== scope.journeyId ||
+    coordinatorSession.targetProjectId !== scope.targetProjectId
+  )
     throw new ServiceError('Discovery E2 publication requires its original coordinator binding.', 'UNAUTHORIZED')
   await assertCoordinatorAttemptSession({ ...coordinatorSession, ...scope, attemptId: attempt.id }, tx)
   if (attempt.executionMode === 'MANAGED') {
@@ -4367,14 +4730,20 @@ export async function assertDiscoverySubmissionModeLineageInTransaction(
   if (attempt.executionMode !== externalAnalyzerAdmissionProtocol || !externalBinding)
     throw new ServiceError('Discovery publication has no supported original mode context.', 'UNAUTHORIZED')
   const authenticated = await authenticateExternalQualityJourneySubmission(externalBinding, tx)
-  if (authenticated.item.id !== item.id || authenticated.attempt.id !== attempt.id ||
-    externalBinding.journeyId !== scope.journeyId || externalBinding.targetProjectId !== scope.targetProjectId ||
-    externalBinding.role !== input.expectedRole || externalBinding.workItemId !== item.id ||
-    externalBinding.attemptId !== attempt.id || externalBinding.leaseId !== input.leaseId ||
+  if (
+    authenticated.item.id !== item.id ||
+    authenticated.attempt.id !== attempt.id ||
+    externalBinding.journeyId !== scope.journeyId ||
+    externalBinding.targetProjectId !== scope.targetProjectId ||
+    externalBinding.role !== input.expectedRole ||
+    externalBinding.workItemId !== item.id ||
+    externalBinding.attemptId !== attempt.id ||
+    externalBinding.leaseId !== input.leaseId ||
     externalBinding.coordinatorSessionId !== coordinatorSession.coordinatorSessionId ||
     externalBinding.coordinatorHandoffId !== coordinatorSession.coordinatorHandoffId ||
     externalBinding.coordinatorGeneration !== coordinatorSession.coordinatorGeneration ||
-    externalBinding.coordinatorPrincipalId !== coordinatorSession.coordinatorPrincipalId)
+    externalBinding.coordinatorPrincipalId !== coordinatorSession.coordinatorPrincipalId
+  )
     throw new ServiceError('Discovery external context does not bind its original owner.', 'UNAUTHORIZED')
   const lineage = await validateDurableExternalWorkLineage(item, attempt, tx)
   assertDiscoveryExternalReceipt(input, externalBinding, item, attempt, lineage)
@@ -4440,19 +4809,26 @@ async function completeQualityJourneyWorkWithAuthorityInTransaction(
   if (!attempt.authorizationId)
     throw new ServiceError('Quality Journey completion authorization is unavailable.', 'UNAUTHORIZED')
   const terminal: AttemptTerminalInput = {
-    attemptId: attempt.id, workItemId: item.id, authorizationId: attempt.authorizationId,
-    resultHash: hash(result), terminalStatus: 'COMPLETED',
+    attemptId: attempt.id,
+    workItemId: item.id,
+    authorizationId: attempt.authorizationId,
+    resultHash: hash(result),
+    terminalStatus: 'COMPLETED',
   }
   await queueAttemptTerminal(tx, input, terminal)
   await beforeWrite(tx, input, {
-    kind: 'ATTEMPT_TERMINAL_ROW', terminalAttemptId: terminal.attemptId, terminalResultHash: terminal.resultHash,
+    kind: 'ATTEMPT_TERMINAL_ROW',
+    terminalAttemptId: terminal.attemptId,
+    terminalResultHash: terminal.resultHash,
   })
   await tx.qualityJourneyWorkAttempt.update({
     where: { id: attempt.id },
     data: { status: 'COMPLETED', completedAt: new Date(), resultJson: json(result), resultHash: hash(result) },
   })
   await beforeWrite(tx, input, {
-    kind: 'WORK_ITEM_TERMINAL_ROW', terminalAttemptId: terminal.attemptId, terminalResultHash: terminal.resultHash,
+    kind: 'WORK_ITEM_TERMINAL_ROW',
+    terminalAttemptId: terminal.attemptId,
+    terminalResultHash: terminal.resultHash,
   })
   await tx.qualityJourneyWorkItem.update({
     where: { id: item.id },
@@ -4479,37 +4855,92 @@ function completeQualityJourneyWorkInTransaction(input: WorkCompletionInput, tx:
 }
 
 export function completeQualityJourneyWorkWithBusinessJoinInTransaction(
-  input: WorkCompletionInput, tx: Prisma.TransactionClient, beforeWrite: BeforeJourneyBusinessWrite,
+  input: WorkCompletionInput,
+  tx: Prisma.TransactionClient,
+  beforeWrite: BeforeJourneyBusinessWrite,
   queueAttemptTerminal: QueueAttemptTerminal,
 ) {
-  return completeQualityJourneyWorkWithAuthorityInTransaction(input, tx, beforeWrite, queueAttemptTerminal, false, false, false, false)
+  return completeQualityJourneyWorkWithAuthorityInTransaction(
+    input,
+    tx,
+    beforeWrite,
+    queueAttemptTerminal,
+    false,
+    false,
+    false,
+    false,
+  )
 }
 
 function completeExternalQualityJourneyWorkWithBusinessJoinInTransaction(
-  input: WorkCompletionInput, tx: Prisma.TransactionClient, beforeWrite: BeforeJourneyBusinessWrite,
+  input: WorkCompletionInput,
+  tx: Prisma.TransactionClient,
+  beforeWrite: BeforeJourneyBusinessWrite,
   queueAttemptTerminal: QueueAttemptTerminal,
 ) {
-  return completeQualityJourneyWorkWithAuthorityInTransaction(input, tx, beforeWrite, queueAttemptTerminal, false, false, false, true)
+  return completeQualityJourneyWorkWithAuthorityInTransaction(
+    input,
+    tx,
+    beforeWrite,
+    queueAttemptTerminal,
+    false,
+    false,
+    false,
+    true,
+  )
 }
 export const completeExternalAnalyzerWorkWithBusinessJoinInTransaction =
   completeExternalQualityJourneyWorkWithBusinessJoinInTransaction
 export function completeScenarioDesignerWorkWithBusinessJoinInTransaction(
-  input: WorkCompletionInput, tx: Prisma.TransactionClient, beforeWrite: BeforeJourneyBusinessWrite,
+  input: WorkCompletionInput,
+  tx: Prisma.TransactionClient,
+  beforeWrite: BeforeJourneyBusinessWrite,
   queueAttemptTerminal: QueueAttemptTerminal,
 ) {
-  return completeQualityJourneyWorkWithAuthorityInTransaction(input, tx, beforeWrite, queueAttemptTerminal, true, false, false, true)
+  return completeQualityJourneyWorkWithAuthorityInTransaction(
+    input,
+    tx,
+    beforeWrite,
+    queueAttemptTerminal,
+    true,
+    false,
+    false,
+    true,
+  )
 }
 export function completeAutomatorWorkWithBusinessJoinInTransaction(
-  input: WorkCompletionInput, tx: Prisma.TransactionClient, beforeWrite: BeforeJourneyBusinessWrite,
+  input: WorkCompletionInput,
+  tx: Prisma.TransactionClient,
+  beforeWrite: BeforeJourneyBusinessWrite,
   queueAttemptTerminal: QueueAttemptTerminal,
 ) {
-  return completeQualityJourneyWorkWithAuthorityInTransaction(input, tx, beforeWrite, queueAttemptTerminal, false, true, false, true)
+  return completeQualityJourneyWorkWithAuthorityInTransaction(
+    input,
+    tx,
+    beforeWrite,
+    queueAttemptTerminal,
+    false,
+    true,
+    false,
+    true,
+  )
 }
 export function completeTriagerWorkWithBusinessJoinInTransaction(
-  input: WorkCompletionInput, tx: Prisma.TransactionClient, beforeWrite: BeforeJourneyBusinessWrite,
+  input: WorkCompletionInput,
+  tx: Prisma.TransactionClient,
+  beforeWrite: BeforeJourneyBusinessWrite,
   queueAttemptTerminal: QueueAttemptTerminal,
 ) {
-  return completeQualityJourneyWorkWithAuthorityInTransaction(input, tx, beforeWrite, queueAttemptTerminal, false, false, true, true)
+  return completeQualityJourneyWorkWithAuthorityInTransaction(
+    input,
+    tx,
+    beforeWrite,
+    queueAttemptTerminal,
+    false,
+    false,
+    true,
+    true,
+  )
 }
 
 export async function completeQualityJourneyWork(input: WorkCompletionInput, client: PrismaClient = prisma) {

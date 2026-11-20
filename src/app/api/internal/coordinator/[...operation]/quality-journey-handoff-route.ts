@@ -1,9 +1,6 @@
 import { z } from 'zod'
 
-import {
-  inspectQualityJourneyHandoff,
-  redeemQualityJourneyHandoff,
-} from '@/services/coordinator/quality-journey-handoff-service'
+import { inspectQualityJourneyHandoff } from '@/services/coordinator/quality-journey-handoff-service'
 import { resolveTargetProject } from '@/services/target-project/target-project-service'
 
 export async function getQualityJourneyHandoffRoute(operation: string[], parameters: URLSearchParams) {
@@ -12,23 +9,7 @@ export async function getQualityJourneyHandoffRoute(operation: string[], paramet
   return Response.json(await inspectQualityJourneyHandoff({ journeyId: operation[2]!, targetProjectId: target.id }))
 }
 
-export async function postQualityJourneyHandoffRoute(operation: string[], body: unknown) {
+export async function postQualityJourneyHandoffRoute(operation: string[]) {
   if (operation.join('/') !== `quality/journeys/${operation[2]}/handoff/redeem`) return null
-  const value = z
-    .object({
-      target: z.string().min(1),
-      ticket: z.string().regex(/^qjh_[A-Za-z0-9_-]{32}$/),
-      coordinatorTaskId: z.string().trim().min(1).max(500).optional(),
-    })
-    .strict()
-    .parse(body)
-  const target = await resolveTargetProject(value.target)
-  return Response.json(
-    await redeemQualityJourneyHandoff({
-      journeyId: operation[2]!,
-      targetProjectId: target.id,
-      ticket: value.ticket,
-      coordinatorTaskId: value.coordinatorTaskId,
-    }),
-  )
+  return Response.json({ error: 'Desktop handoff has been retired. Open this Journey in AppraiseJS.' }, { status: 410 })
 }

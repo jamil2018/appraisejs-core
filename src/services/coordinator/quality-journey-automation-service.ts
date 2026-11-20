@@ -40,6 +40,8 @@ import {
   type WorkerResultEnvelope,
 } from '@/lib/quality-journey'
 import { ServiceError } from '@/services/shared/errors'
+import { preservesOrderedScenarioSteps, operatorLocatorRequirementId, validateAutomationLocatorSemantics } from '@/lib/quality-journey/automation-contracts'
+import { assertOperatorAutomationLocatorAuthority } from './app-managed-automation-operator-authority'
 import {
   assertCoordinatorMutationSession,
   type CoordinatorSessionCredentials,
@@ -329,6 +331,44 @@ async function automationResourceAuthority(value: ApprovedInput, db: Db): Promis
     .sort((left, right) => left.id.localeCompare(right.id))
   if (frozenResourceHashes.length !== allowedResourceIds.length)
     throw new ServiceError('Automator materialization has incomplete frozen Resource Explorer authority.', 'CONFLICT')
+  const operationReferences = new Set(bundle.reusable.filter(resource => resource.resourceKind === 'OPERATION').map(resource => resource.resourceId))
+  // A manual successor may consume the exact canonical operation already pinned by
+  // an approved READY definition, only with its original frozen Discovery hash.
+  const manual = value.journey.hostingMode === 'APP_SERVER_LOCAL_V1' ? await db.qualityJourneyWorkAttempt.findFirst({
+    where: { workItemId: { in: JSON.parse(value.journey.activeWorkItemIdsJson) as string[] }, replacesAttemptId: { not: null }, externalAdmittedAt: { not: null } },
+    orderBy: { attempt: 'desc' },
+  }) : null
+  let manualObservation = Boolean(manual)
+  if (manual) await assertOperatorAutomationLocatorAuthority({ journeyId: value.journey.id, targetProjectId: value.journey.targetProjectId, workItemId: manual.workItemId, attemptId: manual.id }, db)
+  else if (value.journey.hostingMode === 'APP_SERVER_LOCAL_V1') {
+    // Read-only recovery observation never claims/admits work or grants
+    // submission authority. Its leaf module has no mutation-service dependency.
+    const recovery = await import('./app-managed-automation-manual-recovery-observation')
+    const observedScope = { journeyId: value.journey.id, targetProjectId: value.journey.targetProjectId }
+    manualObservation = Boolean(await recovery.getAppManagedAutomatorManualRecovery(observedScope, db) ?? await recovery.observePendingManualAutomationRecovery(observedScope, db))
+  }
+  if (manualObservation) {
+    const definitions = await db.stepDefinition.findMany({ where: { status: 'ready', OR: bundle.reusable.filter(row => row.resourceKind === 'STEP_DEFINITION').map(row => {
+      const [, id, version] = row.resourceId.split(':'); return { id, version }
+    }) }, include: { executionBinding: true } })
+    const ready = readyDefinitionIndex(definitions)
+    for (const { definition } of ready.values()) {
+      const ref = `step:${definition.identity.id}:${definition.identity.version}`
+      if (frozenResourceHashes.find(resource => resource.id === ref)?.contentHash !== computeStepDefinitionHashes(definition).definitionHash)
+        throw new ServiceError('Manual preparation requires the exact approved READY definition bytes.', 'CONFLICT')
+      if (definition.execution.kind !== 'operation') continue
+      const execution = definition.execution
+      const operation = defaultOperationDefinitions.find(row => row.id === definition.identity.id && row.version === definition.identity.version && row.handler.id === execution.handlerId && row.handler.version === execution.handlerVersion)
+      if (!operation) continue
+      const operationRef = `operation:${operation.id}:${operation.version}`
+      const frozen = frozenScopeContents.resources.find(row => row.id === operationRef)
+      if (!frozen || frozen.contentHash !== hash(operation))
+        throw new ServiceError('Manual preparation requires the exact frozen canonical operation bytes.', 'CONFLICT')
+      operationReferences.add(operationRef)
+      if (!frozenResourceHashes.some(row => row.id === operationRef)) frozenResourceHashes.push({ id: operationRef, contentHash: frozen.contentHash })
+    }
+    frozenResourceHashes.sort((a, b) => a.id.localeCompare(b.id))
+  }
   return {
     discoveryRevisionId: value.portfolio.discoveryRevisionId,
     resourceResolutionHash: discovery.resourceResolutionHash,
@@ -342,9 +382,7 @@ async function automationResourceAuthority(value: ApprovedInput, db: Db): Promis
     locatorIds: new Set(
       bundle.reusable.filter(resource => resource.resourceKind === 'LOCATOR').map(resource => resource.resourceId),
     ),
-    operationReferences: new Set(
-      bundle.reusable.filter(resource => resource.resourceKind === 'OPERATION').map(resource => resource.resourceId),
-    ),
+    operationReferences,
     frozenResourceHashes,
   }
 }
@@ -551,8 +589,7 @@ function parseAndValidateScenarioIntent(scenario: ApprovedScenario, proposal: Au
   const intent = JSON.parse(scenario.behavioralIntentJson) as ScenarioIntent
   if (
     proposal.scenarioRevisionId !== scenario.scenarioRevisionId ||
-    proposal.steps.length !== intent.steps.length ||
-    proposal.steps.some((step, index) => step.sourceScenarioStepId !== intent.steps[index]?.stepId)
+    !preservesOrderedScenarioSteps(intent.steps.map(step => step.stepId), proposal.steps.map(step => step.sourceScenarioStepId))
   )
     throw new ServiceError('Automator proposal does not preserve exact source scenario step IDs and order.', 'CONFLICT')
   return intent
@@ -661,6 +698,11 @@ function addLocatorInputs(
   knownLocators: Set<string>,
   supplied: Set<string>,
 ) {
+  try {
+    validateAutomationLocatorSemantics(operation.id, mapping.locatorRequirements)
+  } catch (error) {
+    throw new ServiceError(error instanceof Error ? error.message : 'Automation locator semantics are invalid.', 'CONFLICT')
+  }
   for (const requirement of mapping.locatorRequirements) {
     if (requirement.locatorId && !knownLocators.has(requirement.locatorId))
       throw new ServiceError('Automator locator requirement is missing or belongs to another target.', 'CONFLICT')
@@ -718,8 +760,8 @@ function materializeSteps(
   knownLocators: Set<string>,
   operationReferences: ReadonlySet<string>,
 ) {
-  return proposal.steps.map((mapping, index) =>
-    materializeStep(intent.steps[index]!, mapping, definitions, knownLocators, operationReferences),
+  return proposal.steps.map(mapping =>
+    materializeStep(intent.steps.find(step => step.stepId === mapping.sourceScenarioStepId)!, mapping, definitions, knownLocators, operationReferences),
   )
 }
 
@@ -796,7 +838,12 @@ type TargetCase = {
 function expectedTargetSteps(mappedSteps: MappedStep[]) {
   return mappedSteps.map((mapped, order) => ({
     order,
-    gherkinStep: executableScenarioAction(mapped.source.action, mapped.invocation.presentation?.keyword),
+    gherkinStep: executableScenarioAction(
+      mappedSteps.filter(step => step.source.stepId === mapped.source.stepId).length > 1
+        ? `${mapped.source.action} [operation ${order + 1}: ${mapped.definition.intent.title}]`
+        : mapped.source.action,
+      mapped.invocation.presentation?.keyword,
+    ),
     label: mapped.source.expected,
     icon: 'VALIDATION' as const,
     invocationJson: canonicalStepDefinitionJson(mapped.invocation),
@@ -1548,6 +1595,13 @@ async function authorizeMaterializationRequest(
   })
   const attempt = await tx.qualityJourneyWorkAttempt.findUnique({ where: { id: request.attemptId } })
   const authorizedAttempt = assertAuthorizedAutomatorAttempt(item, attempt)
+  if (request.scenarios.some(scenario => scenario.steps.some(step => step.locatorRequirements.some(locator => locator.reviewedSelector)))) {
+    await assertOperatorAutomationLocatorAuthority(request, tx)
+    for (const scenario of request.scenarios) for (const step of scenario.steps) for (const locator of step.locatorRequirements) {
+      if (locator.reviewedSelector && locator.requirementId !== operatorLocatorRequirementId(scenario.scenarioRevisionId, locator.reviewedSelector))
+        throw new ServiceError('Supplemental selector identity does not bind its exact scenario and reviewed content.', 'CONFLICT')
+    }
+  }
   const approvedRows = assertCompleteApprovedScenarioCoverage(request, approved)
   const replay = await findTerminalAutomatorReplay(request, authorizedAttempt, approvedRows, tx)
   if (replay) return { approved, compiled, approvedRows, replay }

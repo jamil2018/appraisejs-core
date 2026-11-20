@@ -1,7 +1,12 @@
 import type { Prisma, PrismaClient } from '@prisma/client'
 import { z } from 'zod'
 import { validateRetainedExecutionUseForTestRunInTransaction } from '@/services/coordinator/quality-journey-shared-resource-use-service'
-import { automationTargetBindingSchema, preparedRuntimeCapsuleSchema } from '@/lib/quality-journey/automation-contracts'
+import {
+  automationTargetBindingSchema,
+  preparedRuntimeCapsuleSchema,
+  automationScenarioMaterializationSchema,
+  operatorLocatorRequirementId,
+} from '@/lib/quality-journey/automation-contracts'
 import { defaultOperationDefinitions } from '@/lib/operation-catalog'
 import { hashRuntimeCapsuleValue } from './contracts'
 import type { SealedRuntimeStepDefinition } from './step-definition-closure'
@@ -173,6 +178,30 @@ export async function loadJourneyCapsuleSourceInTransaction(client: Prisma.Trans
     throw new Error('Journey source identity or protection changed during capture.')
   return {
     sharedResourceProtection,
+    supplementalLocators: (() => {
+      const manifest = JSON.parse(source.manifestJson)
+      const requirements = z
+        .array(automationScenarioMaterializationSchema.shape.steps.element.shape.locatorRequirements.element)
+        .parse(manifest.locatorRequirements)
+      const locators = new Map<
+        string,
+        { id: string; name: string; value: string; locatorGroupId: string; updatedAt: Date; targetProjectId: string }
+      >()
+      for (const requirement of requirements)
+        if (requirement.reviewedSelector) {
+          const id = operatorLocatorRequirementId(source.scenarioRevisionId, requirement.reviewedSelector)
+          if (requirement.requirementId !== id) throw new Error('Journey supplemental locator identity changed.')
+          locators.set(id, {
+            id,
+            name: requirement.reviewedSelector.reason,
+            value: requirement.reviewedSelector.selector,
+            locatorGroupId: `prepared:${source.preparedCapsuleId}`,
+            updatedAt: new Date(0),
+            targetProjectId: cycle.targetProjectId,
+          })
+        }
+      return [...locators.values()]
+    })(),
     identity: {
       targetFingerprint: cycle.targetFingerprint,
       journeyId: cycle.journeyId,

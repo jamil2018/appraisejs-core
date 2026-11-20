@@ -5,7 +5,9 @@ const mocks = vi.hoisted(() => ({
   start: vi.fn(),
   cancel: vi.fn(),
   publish: vi.fn(),
+  wake: vi.fn(),
 }))
+vi.mock('./app-managed-runtime-wake', () => ({ notifyAppManagedRuntimeTerminal: mocks.wake }))
 vi.mock('@/lib/test-run/process-manager', () => ({ processManager: { get: mocks.process } }))
 vi.mock('@/services/test-run/test-run-artifact-access-service', () => ({
   TestRunArtifactAccessService: class {
@@ -111,6 +113,47 @@ beforeEach(() => {
 })
 
 describe('Journey managed runtime evidence and ownership', () => {
+  it('wakes eligible role work only after the first terminal evidence transaction commits', async () => {
+    const { client, binding, cycle } = fixture()
+    const state = await client.qualityJourney.findUniqueOrThrow()
+    client.qualityJourney.findUniqueOrThrow
+      .mockResolvedValueOnce(state)
+      .mockResolvedValue({ ...state, stage: 'TRIAGE', stateHash: 'committed-state' })
+    await reconcileQualityJourneyExecutionRuntime({ executionCycleId: cycle.id }, client as never)
+    expect(mocks.wake).toHaveBeenCalledOnce()
+    expect(mocks.wake).toHaveBeenCalledWith(
+      { journeyId: 'journey-1', targetProjectId: 'target-1', expectedStateHash: 'committed-state' },
+      client,
+    )
+    expect(client.qualityJourneyExecutionEvidenceReceipt.create.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.wake.mock.invocationCallOrder[0],
+    )
+    cycle.status = 'COMPLETED'
+    Object.assign(cycle, { evidenceReceipts: [{ id: 'sealed', testRunId: binding.testRunId }] })
+    client.qualityJourneyExecutionEvidenceReceipt.count.mockResolvedValue(1)
+    await reconcileQualityJourneyExecutionRuntime({ executionCycleId: cycle.id }, client as never)
+    expect(mocks.wake).toHaveBeenCalledOnce()
+  })
+  it('does not reinterpret a committed terminal outcome as failed when wake registration fails', async () => {
+    const { client } = fixture()
+    const state = await client.qualityJourney.findUniqueOrThrow()
+    client.qualityJourney.findUniqueOrThrow
+      .mockResolvedValueOnce(state)
+      .mockResolvedValue({ ...state, stage: 'TRIAGE' })
+    mocks.wake.mockImplementationOnce(() => {
+      throw new Error('Wake unavailable')
+    })
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    try {
+      await expect(
+        reconcileQualityJourneyExecutionRuntime({ executionCycleId: 'execution-1' }, client as never),
+      ).resolves.toBeUndefined()
+      expect(client.qualityJourneyExecutionEvidenceReceipt.create).toHaveBeenCalledOnce()
+      expect(log).toHaveBeenCalledWith('Managed Journey terminal wake could not be registered')
+    } finally {
+      log.mockRestore()
+    }
+  })
   it('seals actual verified bytes with exact run/capsule/cycle lineage', async () => {
     const { client } = fixture()
     await reconcileQualityJourneyExecutionRuntime({ executionCycleId: 'execution-1' }, client as never)
