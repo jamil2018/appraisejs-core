@@ -288,6 +288,8 @@ describe('Journey reuse service', () => {
         {
           draftId: copied.draft.id,
           targetProjectId: 'reuse-project',
+          // This fixture exercises owner-token leases retained by legacy journeys.
+          hostingMode: 'EXTERNAL_LEGACY',
           expectedVersion: seeded.version,
           expectedDraftHash: seeded.draftHash,
           requirementHash: hashQualityJourneyRequirement(requirement),

@@ -164,6 +164,7 @@ function fixture(requiredAnswered = true) {
       })),
     },
     qualityJourneyWorkItem: {
+      findMany: vi.fn(async () => []),
       findUnique: vi.fn(async () => item),
       findUniqueOrThrow: vi.fn(async () => item),
       updateMany: vi.fn(async ({ data }) => {

@@ -1141,6 +1141,329 @@ describe('app-managed Scenario Designer and Automator dispatch', () => {
       publication.mockRestore()
     }
   }, 30_000)
+  it.each([false, true])(
+    'recovers a persisted pre-submit crash marker (legacy=%s) without native replay',
+    async legacy => {
+      const f = await localFixture()
+      localSender.run.mockImplementation(async (prompt: string) => scenarioOutput(prompt))
+      let crashed = false
+      const interrupted = new Proxy(f.client, {
+        get(target, property) {
+          if (property !== 'qualityJourneyWorkAttempt') return Reflect.get(target, property)
+          return new Proxy(target.qualityJourneyWorkAttempt, {
+            get(delegate, method) {
+              if (method !== 'updateMany') return Reflect.get(delegate, method)
+              return async (args: Parameters<typeof delegate.updateMany>[0]) => {
+                if (crashed) throw new Error('Simulated process exit prevents catch persistence')
+                const failure = args?.data.failureJson
+                if (typeof failure === 'string') {
+                  const state = JSON.parse(failure)
+                  if (state.stage === 'CANONICAL_SUBMISSION' && !state.reason) {
+                    expect(state.recoveryEligible).toBe(true)
+                    const result = await delegate.updateMany(args)
+                    expect(result.count).toBe(1)
+                    crashed = true
+                    throw new Error('Simulated process exit after durable pre-submit marker')
+                  }
+                }
+                return delegate.updateMany(args)
+              }
+            },
+          })
+        },
+      })
+      await expect(
+        startAppManagedScenarioAutomation(await f.input('TEST_SCENARIO_DESIGNER'), interrupted),
+      ).rejects.toThrow('Simulated process exit')
+      const fresh = f.connect()
+      const attempt = await fresh.qualityJourneyWorkAttempt.findFirstOrThrow({
+        where: { dispatchAdapterId: 'APP_SERVER_LOCAL_V1_PREPARATION_TEST_SCENARIO_DESIGNER' },
+      })
+      const marker = JSON.parse(attempt.failureJson!)
+      expect(marker).toMatchObject({
+        senderCleanupVerified: true,
+        canonicalSubmissionStarted: true,
+        recoveryEligible: true,
+      })
+      if (legacy) {
+        delete marker.recoveryEligible
+        const original = canonicalContractJson(marker)
+        for (const invalid of [
+          { ...marker, senderCleanupVerified: false },
+          { ...marker, canonicalSubmissionStarted: false },
+          { ...marker, stage: 'SEMANTIC_VALIDATION' },
+          { ...marker, candidateHash: digest('0') },
+          { ...marker, compiledCallHash: digest('0') },
+          { ...marker, submissionIdempotencyKey: 'different:submit' },
+          { ...marker, recoveryEligible: false },
+        ]) {
+          await fresh.qualityJourneyWorkAttempt.update({
+            where: { id: attempt.id },
+            data: { failureJson: canonicalContractJson(invalid) },
+          })
+          expect(
+            await getAppManagedPreparationRecovery({ ...f.scope, role: 'TEST_SCENARIO_DESIGNER' }, fresh),
+          ).toBeNull()
+        }
+        await fresh.qualityJourneyWorkAttempt.update({
+          where: { id: attempt.id },
+          data: { failureJson: original, assignmentGeneration: attempt.assignmentGeneration + 1 },
+        })
+        expect(await getAppManagedPreparationRecovery({ ...f.scope, role: 'TEST_SCENARIO_DESIGNER' }, fresh)).toBeNull()
+        await fresh.qualityJourneyWorkAttempt.update({
+          where: { id: attempt.id },
+          data: { assignmentGeneration: attempt.assignmentGeneration },
+        })
+      }
+      expect(await fresh.qualityJourneyScenarioPortfolioRevision.count()).toBe(0)
+      await expect(startAppManagedScenarioAutomation(await f.input('TEST_SCENARIO_DESIGNER'), fresh)).rejects.toThrow()
+      const recovery = await getAppManagedPreparationRecovery({ ...f.scope, role: 'TEST_SCENARIO_DESIGNER' }, fresh)
+      expect(recovery).not.toBeNull()
+      await expect(
+        recoverAppManagedScenarioAutomation({ ...(await f.input('TEST_SCENARIO_DESIGNER')), ...recovery! }, fresh),
+      ).resolves.toEqual({ accepted: true, nativeSend: false })
+      expect(localSender.run).toHaveBeenCalledTimes(1)
+      expect(await fresh.qualityJourneyScenarioPortfolioRevision.count()).toBe(1)
+      expect((await getQualityJourney(f.scope, fresh)).journey.stage).toBe('SCENARIO_REVIEW')
+      expect(await fresh.qualityJourneyWorkAttempt.findUniqueOrThrow({ where: { id: attempt.id } })).toMatchObject({
+        failureJson: null,
+        dispatchReservedAt: null,
+        dispatchStartedAt: null,
+      })
+    },
+    30_000,
+  )
+
+  it.each([false, true])(
+    'retains accepted Designer recovery across publication crash (committed=%s)',
+    async committed => {
+      const f = await localFixture()
+      localSender.run.mockImplementation(async (prompt: string) => scenarioOutput(prompt))
+      const originalPublication = scenarioServices.publishQualityJourneyScenarioPortfolio
+      const publication = vi.spyOn(scenarioServices, 'publishQualityJourneyScenarioPortfolio')
+      publication.mockImplementationOnce(async (...args) => {
+        if (committed) await originalPublication(...args)
+        throw new Error('Simulated publication process exit')
+      })
+      const interrupted = new Proxy(f.client, {
+        get(target, property) {
+          if (property !== 'qualityJourneyWorkAttempt') return Reflect.get(target, property)
+          return new Proxy(target.qualityJourneyWorkAttempt, {
+            get(delegate, method) {
+              if (method !== 'updateMany') return Reflect.get(delegate, method)
+              return async (args: Parameters<typeof delegate.updateMany>[0]) => {
+                const failure = args?.data.failureJson
+                if (typeof failure === 'string' && JSON.parse(failure).reason === 'REVIEW_PUBLICATION_DID_NOT_COMPLETE')
+                  throw new Error('Simulated process exit prevents catch persistence')
+                return delegate.updateMany(args)
+              }
+            },
+          })
+        },
+      })
+      try {
+        await expect(
+          startAppManagedScenarioAutomation(await f.input('TEST_SCENARIO_DESIGNER'), interrupted),
+        ).rejects.toThrow('Simulated process exit')
+        const fresh = f.connect()
+        const attempt = await fresh.qualityJourneyWorkAttempt.findFirstOrThrow({
+          where: { dispatchAdapterId: 'APP_SERVER_LOCAL_V1_PREPARATION_TEST_SCENARIO_DESIGNER' },
+        })
+        expect(JSON.parse(attempt.failureJson!)).toMatchObject({
+          stage: 'CANONICAL_SUBMISSION',
+          recoveryEligible: true,
+        })
+        expect(attempt.dispatchStartedAt).not.toBeNull()
+        expect(await fresh.qualityJourneyExternalSubmissionAcceptance.count({ where: { attemptId: attempt.id } })).toBe(
+          1,
+        )
+        const recovery = await getAppManagedPreparationRecovery({ ...f.scope, role: 'TEST_SCENARIO_DESIGNER' }, fresh)
+        expect(recovery).not.toBeNull()
+        await expect(
+          recoverAppManagedScenarioAutomation({ ...(await f.input('TEST_SCENARIO_DESIGNER')), ...recovery! }, fresh),
+        ).resolves.toEqual({ accepted: true, nativeSend: false })
+        expect(localSender.run).toHaveBeenCalledTimes(1)
+        expect(await fresh.qualityJourneyExternalSubmissionAcceptance.count({ where: { attemptId: attempt.id } })).toBe(
+          1,
+        )
+        expect(await fresh.qualityJourneyScenarioPortfolioRevision.count()).toBe(1)
+        expect((await getQualityJourney(f.scope, fresh)).journey.stage).toBe('SCENARIO_REVIEW')
+        expect(await fresh.qualityJourneyWorkAttempt.findUniqueOrThrow({ where: { id: attempt.id } })).toMatchObject({
+          failureJson: null,
+          dispatchReservedAt: null,
+          dispatchStartedAt: null,
+        })
+      } finally {
+        publication.mockRestore()
+      }
+    },
+    30_000,
+  )
+
+  it('resumes an exact persisted recovery call after a process exit before acceptance, only with a live lease', async () => {
+    const f = await localFixture()
+    localSender.run.mockImplementation(async (prompt: string) => scenarioOutput(prompt))
+    const submit = vi.spyOn(scenarioServices, 'submitExternalQualityJourneyScenarioPortfolio')
+    submit.mockRejectedValueOnce(new Error('transient original submission failure'))
+    try {
+      await expect(
+        startAppManagedScenarioAutomation(await f.input('TEST_SCENARIO_DESIGNER'), f.client),
+      ).rejects.toThrow('UNKNOWN')
+    } finally {
+      submit.mockRestore()
+    }
+    const scope = { ...f.scope, role: 'TEST_SCENARIO_DESIGNER' as const }
+    const recovery = await getAppManagedPreparationRecovery(scope, f.client)
+    expect(recovery).not.toBeNull()
+    let crashed = false
+    const interrupted = new Proxy(f.client, {
+      get(target, property) {
+        if (property !== 'qualityJourneyWorkAttempt') return Reflect.get(target, property)
+        return new Proxy(target.qualityJourneyWorkAttempt, {
+          get(delegate, method) {
+            if (method !== 'updateMany') return Reflect.get(delegate, method)
+            return async (args: Parameters<typeof delegate.updateMany>[0]) => {
+              if (crashed) throw new Error('Simulated recovery process exit')
+              const failure = args?.data.failureJson
+              if (typeof failure === 'string' && JSON.parse(failure).canonicalRecoveryCall) {
+                const result = await delegate.updateMany(args)
+                expect(result.count).toBe(1)
+                crashed = true
+                throw new Error('Simulated recovery process exit')
+              }
+              return delegate.updateMany(args)
+            }
+          },
+        })
+      },
+    })
+    await expect(
+      recoverAppManagedScenarioAutomation({ ...(await f.input('TEST_SCENARIO_DESIGNER')), ...recovery! }, interrupted),
+    ).rejects.toThrow('Simulated recovery process exit')
+    const fresh = f.connect()
+    const attempt = await fresh.qualityJourneyWorkAttempt.findUniqueOrThrow({ where: { id: recovery!.attemptId } })
+    const state = JSON.parse(attempt.failureJson!)
+    expect(state).toMatchObject({ canonicalRecoveryUsed: true })
+    expect(state.canonicalRecoveryCallHash).toBe(hashCanonical(state.canonicalRecoveryCall))
+    expect(await fresh.qualityJourneyScenarioPortfolioRevision.count()).toBe(0)
+    expect(await getAppManagedPreparationRecovery(scope, fresh)).not.toBeNull()
+    await fresh.qualityJourneyWorkAttempt.update({ where: { id: attempt.id }, data: { leaseExpiresAt: new Date(0) } })
+    expect(await getAppManagedPreparationRecovery(scope, fresh)).toBeNull()
+    await expect(
+      recoverAppManagedScenarioAutomation({ ...(await f.input('TEST_SCENARIO_DESIGNER')), ...recovery! }, fresh),
+    ).rejects.toThrow('current active proposal')
+    await fresh.qualityJourneyWorkAttempt.update({
+      where: { id: attempt.id },
+      data: {
+        leaseExpiresAt: attempt.leaseExpiresAt,
+        failureJson: canonicalContractJson({ ...state, canonicalRecoveryCallHash: digest('0') }),
+      },
+    })
+    expect(await getAppManagedPreparationRecovery(scope, fresh)).toBeNull()
+    await fresh.qualityJourneyWorkAttempt.update({
+      where: { id: attempt.id },
+      data: { failureJson: attempt.failureJson },
+    })
+    const winner = canonicalContractJson({ ...state, winningRecovery: true })
+    const raced = new Proxy(fresh, {
+      get(target, property) {
+        if (property !== 'qualityJourneyWorkAttempt') return Reflect.get(target, property)
+        return new Proxy(target.qualityJourneyWorkAttempt, {
+          get(delegate, method) {
+            if (method !== 'updateMany') return Reflect.get(delegate, method)
+            return async () => {
+              await delegate.update({ where: { id: attempt.id }, data: { failureJson: winner } })
+              return { count: 0 }
+            }
+          },
+        })
+      },
+    })
+    await expect(
+      recoverAppManagedScenarioAutomation({ ...(await f.input('TEST_SCENARIO_DESIGNER')), ...recovery! }, raced),
+    ).rejects.toThrow('no new native send')
+    expect((await fresh.qualityJourneyWorkAttempt.findUniqueOrThrow({ where: { id: attempt.id } })).failureJson).toBe(
+      winner,
+    )
+    expect(await fresh.qualityJourneyScenarioPortfolioRevision.count()).toBe(0)
+    await fresh.qualityJourneyWorkAttempt.update({
+      where: { id: attempt.id },
+      data: { failureJson: attempt.failureJson },
+    })
+    await expect(
+      recoverAppManagedScenarioAutomation({ ...(await f.input('TEST_SCENARIO_DESIGNER')), ...recovery! }, fresh),
+    ).resolves.toEqual({ accepted: true, nativeSend: false })
+    expect(localSender.run).toHaveBeenCalledTimes(1)
+    expect(await fresh.qualityJourneyScenarioPortfolioRevision.count()).toBe(1)
+    expect(await fresh.qualityJourneyExternalSubmissionAcceptance.count({ where: { attemptId: attempt.id } })).toBe(1)
+    expect(await getAppManagedPreparationRecovery(scope, fresh)).toBeNull()
+  }, 30_000)
+
+  it.each([false, true])(
+    'reconciles repeated recovery publication interruption after lease expiry (lost acknowledgement=%s)',
+    async lostAck => {
+      const f = await localFixture()
+      localSender.run.mockImplementation(async (prompt: string) => scenarioOutput(prompt))
+      const originalPublication = scenarioServices.publishQualityJourneyScenarioPortfolio
+      const publication = vi.spyOn(scenarioServices, 'publishQualityJourneyScenarioPortfolio')
+      publication.mockRejectedValueOnce(new Error('initial publication interruption'))
+      try {
+        await expect(
+          startAppManagedScenarioAutomation(await f.input('TEST_SCENARIO_DESIGNER'), f.client),
+        ).rejects.toThrow('UNKNOWN')
+        const scope = { ...f.scope, role: 'TEST_SCENARIO_DESIGNER' as const }
+        const recovery = await getAppManagedPreparationRecovery(scope, f.client)
+        publication.mockImplementationOnce(async (...args) => {
+          if (lostAck) await originalPublication(...args)
+          throw new Error('recovery publication interruption')
+        })
+        await expect(
+          recoverAppManagedScenarioAutomation({ ...(await f.input('TEST_SCENARIO_DESIGNER')), ...recovery! }, f.client),
+        ).rejects.toThrow('no new native send')
+        const fresh = f.connect()
+        await fresh.qualityJourneyWorkAttempt.update({
+          where: { id: recovery!.attemptId },
+          data: { leaseExpiresAt: new Date(0) },
+        })
+        expect(
+          JSON.parse(
+            (await fresh.qualityJourneyWorkAttempt.findUniqueOrThrow({ where: { id: recovery!.attemptId } }))
+              .failureJson!,
+          ),
+        ).toMatchObject({ canonicalRecoveryUsed: true, canonicalRecoveryOutcome: 'INTERRUPTED' })
+        for (let round = 0; round < 2; round++) {
+          expect(await getAppManagedPreparationRecovery(scope, fresh)).not.toBeNull()
+          publication.mockRejectedValueOnce(new Error('another transient publication interruption'))
+          if (!lostAck)
+            await expect(
+              recoverAppManagedScenarioAutomation(
+                { ...(await f.input('TEST_SCENARIO_DESIGNER')), ...recovery! },
+                fresh,
+              ),
+            ).rejects.toThrow('no new native send')
+          else publication.mockReset()
+        }
+        publication.mockImplementation(originalPublication)
+        await expect(
+          recoverAppManagedScenarioAutomation({ ...(await f.input('TEST_SCENARIO_DESIGNER')), ...recovery! }, fresh),
+        ).resolves.toEqual({ accepted: true, nativeSend: false })
+        expect(localSender.run).toHaveBeenCalledTimes(1)
+        expect(await fresh.qualityJourneyScenarioPortfolioRevision.count()).toBe(1)
+        expect(
+          await fresh.qualityJourneyExternalSubmissionAcceptance.count({ where: { attemptId: recovery!.attemptId } }),
+        ).toBe(1)
+        expect((await getQualityJourney(f.scope, fresh)).journey.stage).toBe('SCENARIO_REVIEW')
+        expect(await getAppManagedPreparationRecovery(scope, fresh)).toBeNull()
+        await expect(
+          recoverAppManagedScenarioAutomation({ ...(await f.input('TEST_SCENARIO_DESIGNER')), ...recovery! }, fresh),
+        ).rejects.toThrow('current active proposal')
+      } finally {
+        publication.mockRestore()
+      }
+    },
+    30_000,
+  )
+
   it('automatically dispatches an exact human-requested Designer revision once with carried feedback', async () => {
     const f = await localFixture()
     localSender.run.mockImplementation(async (prompt: string) => scenarioOutput(prompt))

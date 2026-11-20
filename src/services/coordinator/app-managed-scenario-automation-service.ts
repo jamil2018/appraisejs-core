@@ -172,13 +172,14 @@ export async function startAppManagedScenarioAutomation(input: Input, client: Pr
     if (call.toolName !== task.submitToolName || call.arguments.idempotencyKey !== task.submissionIdempotencyKey)
       throw new Error('Preparation output changed the original role or submission identity.')
     // Persist only strict content after sender cleanup, before canonical effects. A crash never requires another send.
-    await client.qualityJourneyWorkAttempt.updateMany({
+    const retained = await client.qualityJourneyWorkAttempt.updateMany({
       where: { id: task.binding.attemptId, dispatchAdapterId: marker },
       data: {
         failureJson: canonicalContractJson({
           state: 'UNKNOWN',
           stage: 'CANONICAL_SUBMISSION',
           senderCleanupVerified: true,
+          recoveryEligible: true,
           submissionIdempotencyKey: task.submissionIdempotencyKey,
           canonicalSubmissionStarted: true,
           candidate,
@@ -188,16 +189,20 @@ export async function startAppManagedScenarioAutomation(input: Input, client: Pr
         }),
       },
     })
+    if (retained.count !== 1) conflict('The exact preparation proposal could not be retained before submission.')
     stage = 'CANONICAL_SUBMISSION'
     const accepted = await task.delivery.invoke({ ...compiled, callId: task.submissionIdempotencyKey })
     if (!accepted.receipt.accepted) throw new Error('Preparation has no canonical acceptance.')
-    await client.qualityJourneyWorkAttempt.updateMany({
-      where: { id: task.binding.attemptId, dispatchAdapterId: marker },
-      data: { dispatchReservedAt: null, dispatchStartedAt: null, failureJson: null },
-    })
     stage = 'REVIEW_PUBLICATION'
     if (input.role === 'TEST_SCENARIO_DESIGNER')
       await publishAppManagedScenarios(input, owner, task.binding.attemptId, client)
+    // Retain the canonical-only recovery proposal until both acceptance and
+    // Designer publication are durable, including an uncertain publication response.
+    const cleared = await client.qualityJourneyWorkAttempt.updateMany({
+      where: { id: task.binding.attemptId, dispatchAdapterId: marker },
+      data: { dispatchReservedAt: null, dispatchStartedAt: null, failureJson: null },
+    })
+    if (cleared.count !== 1) conflict('Accepted preparation needs recovery-marker reconciliation.')
     return { role: input.role, accepted: true }
   } catch (error) {
     await client.qualityJourneyWorkAttempt.updateMany({

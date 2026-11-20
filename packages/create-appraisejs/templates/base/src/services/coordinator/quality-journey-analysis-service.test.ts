@@ -12,6 +12,7 @@ describe('getQualityJourneyAnalysis', () => {
     const client = {
       qualityJourney: { findFirst: vi.fn().mockResolvedValue({ id: 'journey-1' }) },
       qualityJourneyAnalysisRevision: { findMany },
+      qualityJourneyArtifact: { findMany: vi.fn().mockResolvedValue([]) },
     } as unknown as PrismaClient
 
     await getQualityJourneyAnalysis({ journeyId: 'journey-1', targetProjectId: 'project-1' }, client)

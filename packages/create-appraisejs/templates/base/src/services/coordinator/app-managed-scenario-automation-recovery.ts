@@ -1,4 +1,4 @@
-import type { PrismaClient } from '@prisma/client'
+import type { PrismaClient, QualityJourneyWorkAttempt } from '@prisma/client'
 import prisma from '@/config/db-config'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { hashCanonical } from '@/lib/quality-journey/analysis-contracts'
@@ -29,10 +29,16 @@ function deny(message: string): never {
   throw new ServiceError(message, 'CONFLICT')
 }
 const digest = z.string().regex(/^sha256:[a-f0-9]{64}$/)
+const canonicalCall = z
+  .object({
+    toolName: z.string(),
+    arguments: z.object({ idempotencyKey: z.string() }).passthrough(),
+  })
+  .passthrough()
 const retained = z
   .object({
     senderCleanupVerified: z.literal(true),
-    recoveryEligible: z.literal(true),
+    recoveryEligible: z.literal(true).optional(),
     candidate: appManagedScenarioAutomationOutputSchema,
     candidateHash: digest,
     submissionIdempotencyKey: z
@@ -41,10 +47,123 @@ const retained = z
       .max(200)
       .regex(/^[A-Za-z0-9._:-]+$/),
     canonicalRecoveryUsed: z.boolean().optional(),
+    canonicalRecoveryCall: canonicalCall.optional(),
+    canonicalRecoveryCallHash: digest.optional(),
+    canonicalRecoveryOutcome: z.string().optional(),
     rejection: z.object({ kind: z.string(), message: z.string().optional() }).passthrough().optional(),
   })
   .passthrough()
 type Scope = { journeyId: string; targetProjectId: string; role: AppManagedScenarioAutomationRole }
+
+// Older pre-submit markers omitted recoveryEligible. Accept only that exact
+// durable shape, bound to the original claim and compiled submission identity.
+const legacyPreSubmission = z.object({
+  state: z.literal('UNKNOWN'),
+  stage: z.literal('CANONICAL_SUBMISSION'),
+  canonicalSubmissionStarted: z.literal(true),
+  compiledCall: z
+    .object({
+      toolName: z.string(),
+      arguments: z.object({ idempotencyKey: z.string() }).passthrough(),
+    })
+    .passthrough(),
+  compiledCallHash: digest,
+})
+function matchesFields(actual: object, expected: object) {
+  const values = actual as Record<string, unknown>
+  return Object.entries(expected).every(([key, value]) => values[key] === value)
+}
+function legacySubmissionMatches(state: z.infer<typeof retained>, role: AppManagedScenarioAutomationRole) {
+  const legacy = legacyPreSubmission.safeParse(state)
+  if (!legacy.success) return false
+  const expected = { toolName: appManagedScenarioAutomationTools[role].submit }
+  return (
+    matchesFields(state.candidate, expected) &&
+    matchesFields(legacy.data.compiledCall, expected) &&
+    state.candidate.arguments.idempotencyKey === state.submissionIdempotencyKey &&
+    legacy.data.compiledCall.arguments.idempotencyKey === state.submissionIdempotencyKey &&
+    hashCanonical(legacy.data.compiledCall) === legacy.data.compiledCallHash
+  )
+}
+async function originalClaimMatches(
+  attempt: QualityJourneyWorkAttempt,
+  input: Scope,
+  key: string,
+  client: PrismaClient,
+) {
+  const claim = await client.qualityJourneyExternalWorkClaimReceipt.findUnique({ where: { attemptId: attempt.id } })
+  if (!claim || !claim.idempotencyKey.endsWith(':claim')) return false
+  const receipt = JSON.parse(claim.receiptJson)
+  return (
+    matchesFields(claim, {
+      journeyId: input.journeyId,
+      targetProjectId: input.targetProjectId,
+      role: input.role,
+      workItemId: attempt.workItemId,
+      authorizationId: attempt.authorizationId,
+      protocol: 'EXTERNAL_V1',
+      principalId: `appraise-local:${input.targetProjectId}`,
+      principalAssurance: 'PROJECT_CREDENTIAL_ONLY',
+      assignmentGeneration: attempt.assignmentGeneration,
+      leaseId: attempt.leaseId,
+    }) &&
+    matchesFields(attempt, {
+      executionMode: 'EXTERNAL_V1',
+      externalPrincipalId: claim.principalId,
+      externalPrincipalAssurance: claim.principalAssurance,
+      assignmentId: receipt.assignmentId,
+    }) &&
+    hashCanonical(receipt) === claim.receiptHash &&
+    key === `${claim.idempotencyKey.slice(0, -6)}:submit`
+  )
+}
+async function readRetainedPreparation(attempt: QualityJourneyWorkAttempt, input: Scope, client: PrismaClient) {
+  if (!attempt.failureJson) return null
+  const parsed = retained.safeParse(JSON.parse(attempt.failureJson))
+  if (!parsed.success || hashCanonical(parsed.data.candidate) !== parsed.data.candidateHash) return null
+  const state = parsed.data
+  if (state.recoveryEligible === true) return state
+  if (![attempt.assignmentId, attempt.dispatchReservedAt, attempt.dispatchStartedAt].every(Boolean)) return null
+  if (!legacySubmissionMatches(state, input.role)) return null
+  return (await originalClaimMatches(attempt, input, state.submissionIdempotencyKey, client)) ? state : null
+}
+function retryCallMatches(state: z.infer<typeof retained>, role: AppManagedScenarioAutomationRole) {
+  if (!state.canonicalRecoveryCall || !state.canonicalRecoveryCallHash) return false
+  return (
+    state.canonicalRecoveryOutcome !== 'REJECTED' &&
+    state.canonicalRecoveryCall.toolName === appManagedScenarioAutomationTools[role].submit &&
+    state.canonicalRecoveryCall.arguments.idempotencyKey === state.submissionIdempotencyKey &&
+    hashCanonical(state.canonicalRecoveryCall) === state.canonicalRecoveryCallHash
+  )
+}
+async function hasExactAcceptance(attempt: QualityJourneyWorkAttempt, input: Scope, key: string, client: PrismaClient) {
+  const receipt = await client.qualityJourneyExternalSubmissionAcceptance.findFirst({
+    where: {
+      journeyId: input.journeyId,
+      targetProjectId: input.targetProjectId,
+      role: input.role,
+      operation: input.role === 'TEST_SCENARIO_DESIGNER' ? 'SCENARIO_PORTFOLIO_SUBMIT' : 'AUTOMATION_MATERIALIZE',
+      attemptId: attempt.id,
+      workItemId: attempt.workItemId,
+      assignmentId: attempt.assignmentId!,
+      assignmentGeneration: attempt.assignmentGeneration,
+      leaseId: attempt.leaseId,
+      principalId: `appraise-local:${input.targetProjectId}`,
+      principalAssurance: 'PROJECT_CREDENTIAL_ONLY',
+      idempotencyKey: key,
+    },
+  })
+  return Boolean(receipt && hashCanonical(JSON.parse(receipt.outcomeJson)) === receipt.outcomeHash)
+}
+function deterministicRecoveryRejection(error: unknown) {
+  let current = error
+  for (let depth = 0; depth < 6 && current instanceof Error; depth++) {
+    if (current instanceof z.ZodError) return true
+    if (current instanceof ServiceError && current.code !== 'INTERNAL') return true
+    current = current.cause
+  }
+  return false
+}
 
 export async function getAppManagedScenarioDesignCorrection(input: Omit<Scope, 'role'>, client: PrismaClient = prisma) {
   const journey = await readScopedQualityJourney(input, client)
@@ -146,19 +265,20 @@ export async function getAppManagedPreparationRecovery(input: Scope, client: Pri
     orderBy: { startedAt: 'desc' },
   })
   if (!attempt?.failureJson || attempt.workItem.currentAttempt !== attempt.attempt) return null
-  const state = retained.safeParse(JSON.parse(attempt.failureJson))
+  const state = await readRetainedPreparation(attempt, input, client)
+  if (!state) return null
   if (
-    !state.success ||
-    state.data.canonicalRecoveryUsed ||
-    hashCanonical(state.data.candidate) !== state.data.candidateHash
-  )
-    return null
+    state.canonicalRecoveryUsed &&
+    !(await hasExactAcceptance(attempt, input, state.submissionIdempotencyKey, client))
+  ) {
+    if (attempt.leaseExpiresAt <= new Date() || !retryCallMatches(state, input.role)) return null
+  }
   return {
     attemptId: attempt.id,
-    candidateHash: state.data.candidateHash,
+    candidateHash: state.candidateHash,
     detail:
-      state.data.rejection?.kind === 'CANONICAL'
-        ? (state.data.rejection.message ?? 'Canonical submission requires recovery.')
+      state.rejection?.kind === 'CANONICAL'
+        ? (state.rejection.message ?? 'Canonical submission requires recovery.')
         : 'The retained proposal needs validation.',
   }
 }
@@ -200,12 +320,8 @@ export async function recoverAppManagedScenarioAutomation(
     },
   })
   if (!attempt?.failureJson || !attempt.assignmentId) deny('The original rejected proposal is unavailable.')
-  const state = retained.parse(JSON.parse(attempt.failureJson))
-  if (
-    state.canonicalRecoveryUsed ||
-    state.candidateHash !== input.candidateHash ||
-    hashCanonical(state.candidate) !== input.candidateHash
-  )
+  const state = await readRetainedPreparation(attempt, input, client)
+  if (!state || state.candidateHash !== input.candidateHash || hashCanonical(state.candidate) !== input.candidateHash)
     deny('The original proposal changed or its canonical recovery was already consumed.')
   const binding: ExternalQualityJourneySubmissionBinding = {
     ...owner,
@@ -219,15 +335,13 @@ export async function recoverAppManagedScenarioAutomation(
     leaseId: attempt.leaseId,
   }
   await assertCoordinatorAttemptSession(binding, client)
-  const updated = await client.qualityJourneyWorkAttempt.updateMany({
-    where: { id: attempt.id, failureJson: attempt.failureJson },
-    data: { failureJson: canonicalContractJson({ ...state, canonicalRecoveryUsed: true }) },
-  })
-  if (updated.count !== 1) deny('Canonical proposal recovery was already consumed.')
   const operation = input.role === 'TEST_SCENARIO_DESIGNER' ? 'SCENARIO_PORTFOLIO_SUBMIT' : 'AUTOMATION_MATERIALIZE'
   let delivery: Awaited<ReturnType<typeof createManagedQualityJourneyRoleDelivery>> | undefined
+  let recoveryState = { ...state, canonicalRecoveryUsed: true }
+  let committed = false
+  let ownedMarker = attempt.failureJson
+  let mayRecordFailure = true
   try {
-    let committed = false
     try {
       await readExternalQualityJourneySubmissionOutcome(
         { ...binding, operation, idempotencyKey: state.submissionIdempotencyKey },
@@ -238,39 +352,63 @@ export async function recoverAppManagedScenarioAutomation(
       if (!(error instanceof ServiceError) || error.code !== 'NOT_FOUND') throw error
     }
     if (!committed) {
+      if (attempt.leaseExpiresAt <= new Date()) deny('Unaccepted canonical recovery requires its original live lease.')
+      if (state.canonicalRecoveryUsed && !retryCallMatches(state, input.role))
+        deny('The original proposal has no exact retryable canonical call.')
       delivery = await createManagedQualityJourneyRoleDelivery({
         binding,
         canonicalDefinitions: appManagedScenarioAutomationDefinitions,
         client,
       })
-      const tools = appManagedScenarioAutomationTools[input.role]
-      const context = await delivery.invoke({ toolName: tools.read, arguments: {}, callId: 'canonical-recovery-read' })
-      const call = appManagedPreparationProjection(input.role, context.result).compile(
-        state.candidate,
-        state.submissionIdempotencyKey,
-      )
+      let call = state.canonicalRecoveryCall
+      if (!state.canonicalRecoveryUsed) {
+        const tools = appManagedScenarioAutomationTools[input.role]
+        const context = await delivery.invoke({
+          toolName: tools.read,
+          arguments: {},
+          callId: 'canonical-recovery-read',
+        })
+        call = appManagedPreparationProjection(input.role, context.result).compile(
+          state.candidate,
+          state.submissionIdempotencyKey,
+        )
+      }
+      if (!call) deny('The exact canonical recovery call is unavailable.')
+      recoveryState = { ...recoveryState, canonicalRecoveryCall: call, canonicalRecoveryCallHash: hashCanonical(call) }
+      const nextMarker = canonicalContractJson(recoveryState)
+      const captured = await client.qualityJourneyWorkAttempt.updateMany({
+        where: { id: attempt.id, failureJson: attempt.failureJson },
+        data: { failureJson: nextMarker },
+      })
+      if (captured.count !== 1) {
+        mayRecordFailure = false
+        deny('The exact canonical recovery call changed concurrently.')
+      }
+      ownedMarker = nextMarker
       const accepted = await delivery.invoke({ ...call, callId: state.submissionIdempotencyKey })
       if (!accepted.receipt.accepted) deny('The retained proposal has no canonical acceptance.')
+      committed = true
     }
     if (input.role === 'TEST_SCENARIO_DESIGNER' && journey.stage === 'SCENARIO_DESIGN')
       await publishAppManagedScenarios(input, owner, attempt.id, client)
     await client.qualityJourneyWorkAttempt.updateMany({
-      where: { id: attempt.id, dispatchAdapterId: attempt.dispatchAdapterId },
+      where: { id: attempt.id, dispatchAdapterId: attempt.dispatchAdapterId, failureJson: ownedMarker },
       data: { dispatchReservedAt: null, dispatchStartedAt: null, failureJson: null },
     })
     return { accepted: true, nativeSend: false }
   } catch (error) {
-    await client.qualityJourneyWorkAttempt.updateMany({
-      where: { id: attempt.id, dispatchAdapterId: attempt.dispatchAdapterId },
-      data: {
-        failureJson: canonicalContractJson({
-          ...state,
-          canonicalRecoveryUsed: true,
-          canonicalRecoveryOutcome: 'REJECTED_OR_UNKNOWN',
-          canonicalRecoveryCode: error instanceof ServiceError ? error.code : 'VALIDATION_OR_UNCERTAIN',
-        }),
-      },
-    })
+    if (mayRecordFailure)
+      await client.qualityJourneyWorkAttempt.updateMany({
+        where: { id: attempt.id, dispatchAdapterId: attempt.dispatchAdapterId, failureJson: ownedMarker },
+        data: {
+          failureJson: canonicalContractJson({
+            ...recoveryState,
+            canonicalRecoveryUsed: true,
+            canonicalRecoveryOutcome: !committed && deterministicRecoveryRejection(error) ? 'REJECTED' : 'INTERRUPTED',
+            canonicalRecoveryCode: error instanceof ServiceError ? error.code : 'VALIDATION_OR_UNCERTAIN',
+          }),
+        },
+      })
     throw new ServiceError(
       'The retained proposal could not complete canonical recovery. Its original data is preserved; no new native send was performed.',
       'CONFLICT',
