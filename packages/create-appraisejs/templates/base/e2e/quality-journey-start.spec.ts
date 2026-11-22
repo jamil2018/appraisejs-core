@@ -83,6 +83,7 @@ test('Journey stage map remains readable for incomplete lifecycle snapshots @smo
   await context.addCookies([{ name: 'appraise-active-project', value: targetProjectId, url: baseURL! }])
   const errors: string[] = []
   page.on('pageerror', error => errors.push(error.message))
+  // These partial records exercise display at each stage without running the lifecycle transitions.
   for (const [stage, label] of [
     ['INTAKE', 'Requirements'],
     ['ANALYSIS', 'Requirements'],
@@ -205,33 +206,44 @@ test('Journey suggested answers support keyboard selection and survive refresh a
   context,
   baseURL,
 }) => {
-  const prompt = 'Which payment method should checkout cover?'
-  const { targetProjectId, journey } = await analysisFixture([
-    {
-      questionId: 'PAYMENT-METHOD',
-      prompt,
-      rationale: 'Payment method changes the required coverage.',
-      required: true,
-      suggestedAnswers: ['Cards only', 'Cards and wallets'],
-    },
-  ])
+  const payment = {
+    questionId: 'PAYMENT-METHOD',
+    prompt: 'Which payment method should checkout cover?',
+    rationale: 'Payment method changes the required coverage.',
+    required: true,
+    suggestedAnswers: ['Cards only', 'Cards and wallets'],
+  }
+  const environment = {
+    questionId: 'CHECKOUT-ENVIRONMENT',
+    prompt: 'Which checkout environment should be used?',
+    rationale: 'Choose an environment before running checkout tests.',
+    required: true,
+    suggestedAnswers: ['Staging checkout', 'Test sandbox'],
+  }
+  const { targetProjectId, journey } = await analysisFixture([payment, environment])
   await context.addCookies([{ name: 'appraise-active-project', value: targetProjectId, url: baseURL! }])
   const errors: string[] = []
   page.on('pageerror', error => errors.push(error.message))
   await page.setViewportSize({ width: 320, height: 900 })
   await page.goto(`/quality-journeys/${journey.journeyId}?project=${targetProjectId}`)
-  await expect(page.getByRole('heading', { name: prompt })).toBeVisible()
-  const recommendation = page.getByRole('button', { name: 'Cards only · Recommended', exact: true })
+  const currentQuestion = page.getByRole('region', { name: 'Current essential question' })
+  await expect(currentQuestion).toBeVisible()
+  // Both questions can share a creation timestamp. Follow the order rendered by the Journey.
+  const paymentFirst = await page.getByRole('heading', { name: payment.prompt }).isVisible()
+  const [first, second] = paymentFirst ? [payment, environment] : [environment, payment]
+  const firstAnswer = first.suggestedAnswers[0]
+  const secondAnswer = second.suggestedAnswers[0]
+  await expect(page.getByRole('heading', { name: first.prompt })).toBeVisible()
+  await expect(page.getByText('How to connect the agent', { exact: true })).toHaveCount(0)
+  const recommendation = page.getByRole('button', { name: `${firstAnswer} · Recommended`, exact: true })
   await recommendation.focus()
   await page.keyboard.press('Space')
   await expect(recommendation).toHaveAttribute('aria-pressed', 'true')
-  const answer = page
-    .getByRole('region', { name: 'Current essential question' })
-    .getByRole('textbox', { name: /^Your answer\s*:/ })
-  await expect(answer).toHaveValue('Cards only')
+  const answer = currentQuestion.getByRole('textbox', { name: /^Your answer\s*:/ })
+  await expect(answer).toHaveValue(firstAnswer)
   expect(await prisma.qualityJourneyAnalysisAnswer.count({ where: { journeyId: journey.journeyId } })).toBe(0)
   await page.reload()
-  await expect(answer).toHaveValue('Cards only')
+  await expect(answer).toHaveValue(firstAnswer)
   await page.getByRole('button', { name: 'Record answer', exact: true }).focus()
   await page.keyboard.press('Enter')
   await expect
@@ -241,14 +253,18 @@ test('Journey suggested answers support keyboard selection and survive refresh a
     where: { journeyId: journey.journeyId },
     include: { artifact: true, question: true },
   })
-  expect(recorded.question.questionId).toBe('PAYMENT-METHOD')
-  expect(JSON.parse(recorded.artifact.artifactJson).answer).toBe('Cards only')
+  expect(recorded.question.questionId).toBe(first.questionId)
+  expect(JSON.parse(recorded.artifact.artifactJson).answer).toBe(firstAnswer)
+  await expect(page.getByRole('heading', { name: second.prompt })).toBeFocused()
+  await answer.fill(secondAnswer)
+  await page.getByRole('button', { name: 'Record answer', exact: true }).press('Enter')
+  await expect(page.getByRole('heading', { name: 'Acceptance criteria', exact: true })).toBeFocused()
   await page.reload()
-  await page.getByText('Saved answers (1)', { exact: true }).click()
+  await page.getByText('Saved answers (2)', { exact: true }).click()
   const focus = page.getByRole('region', { name: 'Current journey focus' })
-  await focus.getByText(prompt, { exact: true }).click()
-  await expect(focus.getByRole('paragraph').filter({ hasText: /^Cards only$/ })).toBeVisible()
-  expect(await prisma.qualityJourneyAnalysisAnswer.count({ where: { journeyId: journey.journeyId } })).toBe(1)
+  await focus.getByText(first.prompt, { exact: true }).click()
+  await expect(focus.getByRole('paragraph').filter({ hasText: firstAnswer })).toHaveText(firstAnswer)
+  expect(await prisma.qualityJourneyAnalysisAnswer.count({ where: { journeyId: journey.journeyId } })).toBe(2)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   expect(errors).toEqual([])
 })

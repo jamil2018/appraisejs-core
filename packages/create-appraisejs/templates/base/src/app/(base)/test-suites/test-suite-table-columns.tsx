@@ -4,34 +4,14 @@ import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { TestSuite, Tag, TestCase, Module } from '@prisma/client'
 import { ColumnDef } from '@tanstack/react-table'
 
-import { Checkbox } from '@/components/ui/checkbox'
+import { createDataTableSelectionColumn } from '@/components/ui/data-table-selection-column'
 import TableActions from '@/components/table/table-actions'
 import { deleteTestSuiteAction } from '@/actions/test-suite/test-suite-actions'
 import { formatDateTime } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { getFilterTags } from '@/lib/tag-filters'
 export const testSuiteTableCols: ColumnDef<TestSuite & { tags?: Tag[]; module: Module; testCases: TestCase[] }>[] = [
-  {
-    id: 'select',
-    header: ({ table }) => (
-      <Checkbox
-        checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate')}
-        onCheckedChange={value => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-        className="mr-2"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={value => row.toggleSelected(!!value)}
-        aria-label="Select row"
-        className="mr-2"
-      />
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
+  createDataTableSelectionColumn<TestSuite & { tags?: Tag[]; module: Module; testCases: TestCase[] }>(row => row.name),
   {
     accessorKey: 'name',
     header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
@@ -89,6 +69,7 @@ export const testSuiteTableCols: ColumnDef<TestSuite & { tags?: Tag[]; module: M
       const testSuite = row.original
       return (
         <TableActions
+          rowName={testSuite.name}
           modifyLink={`/test-suites/modify/${testSuite.id}`}
           deleteHandler={() => deleteTestSuiteAction([testSuite.id])}
         />

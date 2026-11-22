@@ -17,7 +17,6 @@ import {
   focusIntakeField,
   initialIntakeState,
   type DraftSnapshot,
-  type EnvironmentOption,
   type IntakeState,
 } from './quality-journey-create-form-shared'
 
@@ -54,7 +53,6 @@ export function useQualityJourneyCreateIntake({
   push,
 }: {
   draft?: DraftSnapshot
-  initialEnvironments?: EnvironmentOption[]
   predecessorJourneyId?: string
   projectId: string
   push: (href: string) => void

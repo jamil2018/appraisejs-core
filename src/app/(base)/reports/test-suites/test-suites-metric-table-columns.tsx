@@ -5,33 +5,15 @@ import { ColumnDef } from '@tanstack/react-table'
 import TableActions from '@/components/table/table-actions'
 import { Tag, TestCase, TestSuite, TestSuiteMetrics } from '@prisma/client'
 import { formatDateTime } from '@/lib/utils'
-import { Checkbox } from '@/components/ui/checkbox'
+import { createDataTableSelectionColumn } from '@/components/ui/data-table-selection-column'
 import { deleteTestSuiteAction } from '@/actions/test-suite/test-suite-actions'
 
 export const testSuitesMetricTableCols: ColumnDef<
   TestSuiteMetrics & { testSuite: TestSuite & { tags: Tag[]; testCases: TestCase[] } }
 >[] = [
-  {
-    id: 'select',
-    header: ({ table }) => (
-      <Checkbox
-        checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate')}
-        onCheckedChange={value => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-        className="mr-2"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={value => row.toggleSelected(!!value)}
-        aria-label="Select row"
-        className="mr-2"
-      />
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
+  createDataTableSelectionColumn<TestSuiteMetrics & { testSuite: TestSuite & { tags: Tag[]; testCases: TestCase[] } }>(
+    row => row.testSuite.name,
+  ),
   {
     id: 'testSuite.name',
     accessorKey: 'testSuite.name',
@@ -71,6 +53,7 @@ export const testSuitesMetricTableCols: ColumnDef<
       const testSuite = row.original.testSuite
       return (
         <TableActions
+          rowName={testSuite.name}
           modifyLink={`/test-suites/modify/${testSuite.id}`}
           deleteHandler={() => deleteTestSuiteAction([testSuite.id])}
         />

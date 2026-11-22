@@ -50,6 +50,7 @@ export type DataTableProps<TData, TValue> = {
   data: TData[]
   filterColumn: string
   filterPlaceholder: string
+  tableLabel: string
   createLink?: string
   modifyLink?: string
   deleteAction?: (id: string[]) => Promise<ActionResponse>
@@ -98,6 +99,7 @@ export function DataTable<TData, TValue>({
   data,
   filterColumn,
   filterPlaceholder,
+  tableLabel,
   createLink,
   multiOptionCreateButton,
   createButtonOptions,
@@ -268,7 +270,7 @@ export function DataTable<TData, TValue>({
         <DataTableViewOptions table={table} />
       </div>
       <div className="mb-4 overflow-hidden rounded-lg border border-border bg-background shadow-none">
-        <Table>
+        <Table scrollLabel={tableLabel}>
           <TableHeader className="bg-secondary">
             {table.getHeaderGroups().map(headerGroup => (
               <TableRow key={headerGroup.id}>

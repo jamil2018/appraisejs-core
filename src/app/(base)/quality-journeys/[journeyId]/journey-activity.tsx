@@ -1,21 +1,31 @@
 'use client'
 
-import { CircleAlert, LoaderCircle } from 'lucide-react'
+import { Check, CircleAlert, LoaderCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { journeyStageName, journeyStages } from '@/lib/quality-journey/journey-stages'
+import { cn } from '@/lib/utils'
 import { useJourneyStatusFreshness, useJourneyStatusObservationContext } from './journey-status-observation'
 
 export function JourneyStages({ stage }: { stage: string }) {
   const { snapshot } = useJourneyStatusObservationContext()
   const current = journeyStages.indexOf(journeyStageName(snapshot?.lifecycle.stage ?? stage))
   return (
-    <ol aria-label="Journey stages" className="grid grid-cols-4 gap-1">
+    <ol aria-label="Journey stages" className="grid grid-cols-4 gap-1 sm:gap-2">
       {journeyStages.map((label, index) => (
         <li
           aria-current={index === current ? 'step' : undefined}
+          aria-label={index < current ? `${label}, complete` : undefined}
           key={label}
-          className={`border-t-4 py-2 text-xs sm:text-sm ${index === current ? 'border-primary font-semibold' : index < current ? 'border-primary/50' : 'border-muted text-muted-foreground'}`}
+          className={cn(
+            'flex min-w-0 items-center gap-2 border-t-2 px-0.5 py-2 text-xs leading-4 sm:px-1 sm:text-sm',
+            index === current
+              ? 'border-primary font-semibold text-foreground'
+              : index < current
+                ? 'border-muted-foreground/55 text-secondary-foreground'
+                : 'border-border text-muted-foreground',
+          )}
         >
+          {index < current ? <Check aria-hidden="true" className="hidden size-3.5 shrink-0 sm:block" /> : null}
           {label}
         </li>
       ))}

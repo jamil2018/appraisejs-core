@@ -19,6 +19,7 @@ import { toast } from '@/hooks/use-toast'
 import DeletePrompt from '../user-prompt/delete-prompt'
 
 const TableActions = ({
+  rowName,
   modifyLink,
   resolveConflictsHandler,
   deleteHandler,
@@ -36,6 +37,7 @@ const TableActions = ({
   viewActionIcon = <Eye className="size-4" />,
   cancelActionIcon = <XCircle className="size-4" />,
 }: {
+  rowName: string
   modifyLink?: string
   deleteHandler: () => Promise<ActionResponse>
   resolveConflictsHandler?: () => Promise<ActionResponse>
@@ -86,8 +88,8 @@ const TableActions = ({
       />
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger render={<Button variant="ghost" className="size-8 p-0" />}>
-          <span className="sr-only">Open menu</span>
-          <MoreHorizontal className="size-4" />
+          <span className="sr-only">Actions for {rowName}</span>
+          <MoreHorizontal className="size-4" aria-hidden="true" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuGroup>

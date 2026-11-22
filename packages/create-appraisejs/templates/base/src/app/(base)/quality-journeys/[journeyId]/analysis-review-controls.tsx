@@ -135,6 +135,17 @@ export function AnalysisReviewControls({
   })
   const revisionIds = useRef<Record<string, { commandId: string; idempotencyKey: string }>>({})
   const freshness = useJourneyStatusFreshness()
+  const reviewRef = useRef<HTMLElement>(null)
+  const submittedQuestion = useRef<string | null>(null)
+  const currentQuestion = analysis?.questions.find(question => question.required && !question.answers.length)
+
+  useEffect(() => {
+    if (!submittedQuestion.current || submittedQuestion.current === currentQuestion?.id) return
+    submittedQuestion.current = null
+    if (document.activeElement === document.body || reviewRef.current?.contains(document.activeElement)) {
+      reviewRef.current?.querySelector('h2')?.focus()
+    }
+  }, [currentQuestion?.id])
 
   if (!analysis) {
     return (
@@ -168,6 +179,7 @@ export function AnalysisReviewControls({
       JSON.stringify([analysisRevisionId, question.questionId, latest?.answerId, answer]),
     )
     setError(null)
+    if (question.id === currentQuestion?.id) submittedQuestion.current = question.id
     startTransition(async () => {
       const response = await answerQualityJourneyAnalysisQuestionAction({
         journeyId,
@@ -179,6 +191,7 @@ export function AnalysisReviewControls({
         ...(latest ? { correctionOfAnswerId: latest.answerId } : {}),
       })
       if (!response.success) {
+        submittedQuestion.current = null
         const message = response.error ?? 'Unable to record this answer.'
         setError(message)
         toast({ title: 'Answer failed', description: message, variant: 'destructive' })
@@ -256,9 +269,9 @@ export function AnalysisReviewControls({
     })
   }
 
-  if (analysis.questions.some(question => question.required && !question.answers.length)) {
+  if (currentQuestion) {
     return (
-      <section className="space-y-4" aria-label="Analysis questions and review controls">
+      <section ref={reviewRef} className="space-y-4" aria-label="Analysis questions and review controls">
         <FreshnessNotice newerVersionAvailable={freshness.newerVersionAvailable} />
         <AnalysisQuestionList
           analysisRevisionId={analysisRevisionId}
@@ -287,7 +300,7 @@ export function AnalysisReviewControls({
   }
 
   return (
-    <section className="space-y-5" aria-label="Analysis questions and review controls">
+    <section ref={reviewRef} className="space-y-5" aria-label="Analysis questions and review controls">
       <FreshnessNotice newerVersionAvailable={freshness.newerVersionAvailable} />
       <AnalysisCriteriaReview
         analysis={analysis}

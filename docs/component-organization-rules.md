@@ -59,7 +59,10 @@ labeled status and chart data.
   in the first viewport; Sheet/Dialog controls must retain native focus trapping, Escape dismissal, and trigger focus
   restoration.
 - For data tables, preserve table semantics and use a contained, keyboard-focusable horizontal scroll surface with a
-  stable minimum width. Toolbars and pagination may wrap; the page itself must not gain horizontal overflow.
+  stable minimum width. Name scroll regions for the content they contain and row action menus for the record they
+  operate on. Toolbars and pagination may wrap; the page itself must not gain horizontal overflow.
+- Keep picker search and footer actions reachable in short viewports. Let the results area scroll within the overlay
+  so users can reach pagination while keeping the commit and cancel controls in view.
 - Compose forms as responsive content-and-guidance grids. Use full-width primary cards with a deliberate max-width or
   grid track, and keep optional guidance secondary or below the primary task on narrow screens. Do not use
   `overflow-x-hidden` to conceal a form layout problem.

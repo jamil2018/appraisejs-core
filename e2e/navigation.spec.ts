@@ -92,6 +92,30 @@ test.describe('Navigation @navigation', () => {
     }
   })
 
+  test('test case picker keeps its actions visible when the list scrolls on a short screen', async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 480 })
+    await page.goto('/test-suites/create')
+    const browse = page.getByRole('button', { name: /Select test case\(s\) Browse/i })
+    await browse.click()
+
+    const picker = page.getByRole('dialog', { name: 'Select Test Cases' })
+    await expect(picker.getByRole('region', { name: 'Available test cases' })).toBeVisible()
+    const loginCase = picker.getByRole('checkbox', { name: 'Select E2E seeded login works', exact: true })
+    await loginCase.press('Space')
+    await expect(loginCase).toBeChecked()
+    await expect(picker.getByRole('checkbox', { name: 'Select E2E secondary case', exact: true })).not.toBeChecked()
+    await expect(picker.getByRole('button', { name: 'Save' })).toBeInViewport()
+    const pageSize = picker.getByRole('combobox', { name: 'Rows per page' })
+    await pageSize.scrollIntoViewIfNeeded()
+    await expect(pageSize).toBeInViewport()
+    await expect(picker.getByRole('button', { name: 'Cancel' })).toBeInViewport()
+    await expect(picker.getByRole('button', { name: 'Save' })).toBeInViewport()
+
+    await page.keyboard.press('Escape')
+    await expect(picker).toBeHidden()
+    await expect(browse).toBeFocused()
+  })
+
   test('modify and detail routes render for seeded records', async ({ page }) => {
     const detailRoutes: RouteExpectation[] = [
       { path: buildModifyPath('/modules', seededIds.module), heading: 'Name' },

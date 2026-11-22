@@ -79,7 +79,7 @@ export function AnalysisCriteriaReview({
           </details>
         ) : null}
         {previousFeedback[key] ? (
-          <p className="border-primary/30 border-l-2 pl-3 text-sm text-muted-foreground">
+          <p className="border-l-2 border-primary/30 pl-3 text-sm text-muted-foreground">
             Your previous feedback: {previousFeedback[key]}
           </p>
         ) : null}
@@ -132,8 +132,10 @@ export function AnalysisCriteriaReview({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">
-          <h2>Acceptance criteria</h2>
+        <CardTitle className="text-lg">
+          <h2 className="app-focus w-fit rounded-md" tabIndex={-1}>
+            Acceptance criteria
+          </h2>
         </CardTitle>
         <CardDescription>
           {previous

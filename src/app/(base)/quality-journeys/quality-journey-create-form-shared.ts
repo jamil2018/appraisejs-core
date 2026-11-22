@@ -1,7 +1,5 @@
 import type { QualityJourneyRequirement } from '@/lib/quality-journey/requirement-values'
 
-export type EnvironmentOption = { id: string; name: string; baseUrl: string }
-
 export type IntakeState = {
   objective: string
   currentStep: number

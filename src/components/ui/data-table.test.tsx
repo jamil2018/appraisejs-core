@@ -66,12 +66,14 @@ describe('DataTable', () => {
         ]}
         filterColumn="name"
         filterPlaceholder="Search names"
+        tableLabel="Tags"
         modifyLink="/tags/modify"
         viewLink="/tags/view"
         deleteAction={deleteAction}
       />,
     )
 
+    expect(screen.getByRole('region', { name: 'Tags' })).toHaveAttribute('tabindex', '0')
     expect(screen.getByRole('button', { name: 'Edit selected item' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'View selected item' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Delete selected item(s)' })).toBeDisabled()
@@ -98,6 +100,7 @@ describe('DataTable', () => {
 
     render(
       <DataTable
+        tableLabel="Test cases"
         columns={columns}
         data={[
           { id: 'row-1', name: 'Smoke' },
@@ -116,6 +119,7 @@ describe('DataTable', () => {
   it('contains wide table content in a keyboard-focusable scroll region', () => {
     render(
       <DataTable
+        tableLabel="Test cases"
         columns={columns}
         data={[]}
         filterColumn="name"
@@ -124,6 +128,6 @@ describe('DataTable', () => {
       />,
     )
 
-    expect(screen.getByRole('region', { name: 'Scrollable data table' })).toHaveAttribute('tabindex', '0')
+    expect(screen.getByRole('region', { name: 'Test cases' })).toHaveAttribute('tabindex', '0')
   })
 })

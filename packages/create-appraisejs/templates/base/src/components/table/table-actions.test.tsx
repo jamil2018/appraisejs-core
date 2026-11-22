@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
@@ -24,6 +24,46 @@ vi.mock('@/hooks/use-toast', () => ({
 }))
 
 describe('TableActions', () => {
+  it('names each row menu and preserves keyboard navigation', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <table>
+        <tbody>
+          {['Checkout flow', 'Login flow'].map(name => (
+            <tr key={name}>
+              <td>{name}</td>
+              <td>
+                <TableActions rowName={name} modifyLink={`/test-cases/${name}`} deleteHandler={vi.fn()} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>,
+    )
+
+    const checkoutMenu = within(screen.getByRole('row', { name: /Checkout flow/ })).getByRole('button', {
+      name: 'Actions for Checkout flow',
+      exact: true,
+    })
+    const loginMenu = within(screen.getByRole('row', { name: /Login flow/ })).getByRole('button', {
+      name: 'Actions for Login flow',
+      exact: true,
+    })
+
+    await user.tab()
+    expect(checkoutMenu).toHaveFocus()
+    await user.tab()
+    expect(loginMenu).toHaveFocus()
+    await user.keyboard('{Enter}')
+    expect(await screen.findByRole('menuitem', { name: 'Edit', exact: true })).toHaveFocus()
+    await user.keyboard('{ArrowDown}')
+    expect(screen.getByRole('menuitem', { name: 'Delete', exact: true })).toHaveFocus()
+    await user.keyboard('{Escape}')
+    await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument())
+    expect(loginMenu).toHaveFocus()
+  })
+
   it('restores interactivity after deleting from the row actions menu', async () => {
     const user = userEvent.setup()
     const deleteHandler = vi.fn().mockResolvedValue({
@@ -31,9 +71,9 @@ describe('TableActions', () => {
       message: 'Deleted',
     })
 
-    render(<TableActions deleteHandler={deleteHandler} />)
+    render(<TableActions rowName="Checkout flow" deleteHandler={deleteHandler} />)
 
-    await user.click(screen.getByRole('button', { name: 'Open menu' }))
+    await user.click(screen.getByRole('button', { name: 'Actions for Checkout flow', exact: true }))
     await user.click(await screen.findByRole('menuitem', { name: 'Delete' }))
     await user.click(screen.getByRole('button', { name: /^delete$/i }))
 
@@ -47,7 +87,7 @@ describe('TableActions', () => {
 
     expect(document.body.style.pointerEvents).not.toBe('none')
 
-    await user.click(screen.getByRole('button', { name: 'Open menu' }))
+    await user.click(screen.getByRole('button', { name: 'Actions for Checkout flow', exact: true }))
     expect(await screen.findByText('Actions')).toBeInTheDocument()
   })
 })

@@ -2,7 +2,7 @@
 
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { ColumnDef } from '@tanstack/react-table'
-import { Checkbox } from '@/components/ui/checkbox'
+import { createDataTableSelectionColumn } from '@/components/ui/data-table-selection-column'
 import TableActions from '@/components/table/table-actions'
 import { BrowserEngine, Environment, Tag, TagType, TestRun, TestRunStatus, TestRunTestCase } from '@prisma/client'
 import { cancelTestRunAction, deleteTestRunAction } from '@/actions/test-run/test-run-actions'
@@ -40,27 +40,9 @@ const BrowserEngineIcon = {
 export const testRunTableCols: ColumnDef<
   TestRun & { testCases: TestRunTestCase[]; tags: Tag[]; environment: Environment }
 >[] = [
-  {
-    id: 'select',
-    header: ({ table }) => (
-      <Checkbox
-        checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate')}
-        onCheckedChange={value => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-        className="mr-2"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={value => row.toggleSelected(!!value)}
-        aria-label="Select row"
-        className="mr-2"
-      />
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
+  createDataTableSelectionColumn<TestRun & { testCases: TestRunTestCase[]; tags: Tag[]; environment: Environment }>(
+    row => row.name,
+  ),
   {
     accessorKey: 'name',
     header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
@@ -156,6 +138,7 @@ export const testRunTableCols: ColumnDef<
       return (
         <div>
           <TableActions
+            rowName={testRunData.name}
             viewLink={`/test-runs/${testRunData.id}`}
             deleteHandler={() => deleteTestRunAction([testRunData.id])}
             cancelHandler={() => cancelTestRunAction(testRunData.runId)}

@@ -6,6 +6,10 @@ export async function saveForm(page: Page): Promise<void> {
 
 export async function expectPageHeading(page: Page, name: string | RegExp): Promise<void> {
   await expect(page.getByText(name, { exact: typeof name === 'string' }).first()).toBeVisible()
+  const unavailable = page.getByRole('alert').filter({ hasText: 'Form unavailable' })
+  if (await unavailable.isVisible()) {
+    throw new Error((await unavailable.textContent()) ?? 'The form is unavailable.')
+  }
 }
 
 export async function completeNamedCreate(

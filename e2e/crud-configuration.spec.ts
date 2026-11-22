@@ -11,7 +11,7 @@ import {
 } from './helpers/test-data'
 import { createLocator, createLocatorGroup, createTemplateTestCase, editEnvironment, editTag } from './helpers/forms'
 import { createEnvironment, createModule, createTag, saveForm } from './helpers/ui'
-import { confirmDeleteDialog, deleteRowByName, expectRowHidden, openRowMenu } from './helpers/table'
+import { confirmDeleteDialog, deleteRowByName, expectRowHidden } from './helpers/table'
 
 test.describe('Configuration CRUD @crud', () => {
   test.beforeEach(async () => {
@@ -69,7 +69,11 @@ test.describe('Configuration CRUD @crud', () => {
 
     await page.goto('/environments')
     await page.getByRole('searchbox', { name: 'Search environments' }).fill(editedEnvironmentName)
-    await openRowMenu(page)
+    await page
+      .getByRole('article')
+      .filter({ has: page.getByRole('heading', { name: editedEnvironmentName, exact: true }) })
+      .getByRole('button', { name: `Actions for ${editedEnvironmentName}`, exact: true })
+      .click()
     await confirmDeleteDialog(page)
     await page.reload()
     await page.getByRole('searchbox', { name: 'Search environments' }).fill(editedEnvironmentName)

@@ -2,7 +2,7 @@
 
 import TableActions from '@/components/table/table-actions'
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
-import { Checkbox } from '@/components/ui/checkbox'
+import { createDataTableSelectionColumn } from '@/components/ui/data-table-selection-column'
 import { deleteModuleAction } from '@/actions/modules/module-actions'
 import { buildModulePath } from '@/lib/path-helpers/module-path'
 import { formatDateTime } from '@/lib/utils'
@@ -11,27 +11,7 @@ import { ColumnDef } from '@tanstack/react-table'
 import { type ModuleTableRow } from './module-helpers'
 
 export const moduleTableCols: ColumnDef<ModuleTableRow>[] = [
-  {
-    id: 'select',
-    header: ({ table }) => (
-      <Checkbox
-        checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate')}
-        onCheckedChange={value => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-        className="mr-2"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={value => row.toggleSelected(!!value)}
-        aria-label="Select row"
-        className="mr-2"
-      />
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
+  createDataTableSelectionColumn<ModuleTableRow>(row => row.name),
   {
     accessorKey: 'name',
     header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
@@ -72,6 +52,7 @@ export const moduleTableCols: ColumnDef<ModuleTableRow>[] = [
       const moduleData = row.original
       return (
         <TableActions
+          rowName={moduleData.name}
           modifyLink={`/modules/modify/${moduleData.id}`}
           deleteHandler={() => deleteModuleAction([moduleData.id])}
         />

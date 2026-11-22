@@ -98,14 +98,17 @@ function AnswerForm({
         <Textarea
           id={`analysis-answer-${question.id}`}
           onChange={event => onAnswerChange(question.questionId, event.target.value)}
+          placeholder="Write your answer"
+          rows={3}
           value={answer}
         />
       </div>
       <Button
+        className="w-full sm:w-auto"
         disabled={isPending || !answer.trim() || answer.trim() === latest?.answer.trim()}
         onClick={() => onRecordAnswer(question)}
         type="button"
-        variant="outline"
+        variant={latest ? 'outline' : 'default'}
       >
         {isPending ? 'Recording…' : latest ? 'Record correction' : 'Record answer'}
       </Button>
@@ -187,11 +190,13 @@ export function AnalysisQuestionList({
   }
 
   return (
-    <Card className="border-primary/25 bg-primary/[0.04]">
+    <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <MessageSquareMore aria-hidden="true" className="size-4 text-primary" />
-          <h2>{requiredOpen[0]?.prompt ?? 'Your answers'}</h2>
+        <CardTitle className="flex items-start gap-2.5 text-lg leading-snug">
+          <MessageSquareMore aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
+          <h2 className="app-focus min-w-0 rounded-md" tabIndex={-1}>
+            {requiredOpen[0]?.prompt ?? 'Your answers'}
+          </h2>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">

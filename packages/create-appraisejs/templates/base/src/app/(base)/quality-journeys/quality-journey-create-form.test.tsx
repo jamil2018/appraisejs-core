@@ -47,12 +47,11 @@ afterEach(() => {
 })
 
 describe('QualityJourneyCreateForm', () => {
-  const environments = [{ id: 'environment-1', name: 'Staging', baseUrl: 'https://staging.example.test' }]
-
   it('offers one free-text brief and starts without mandatory configuration or a separate review', async () => {
     mocks.confirmDraft.mockResolvedValue({ success: true, data: { journeyId: 'journey-1' } })
     const user = userEvent.setup()
-    render(<QualityJourneyCreateForm initialEnvironments={environments} projectId="project one" />)
+    render(<QualityJourneyCreateForm projectId="project one" />)
+    expect(screen.getByRole('heading', { level: 1, name: 'Start a Quality Journey' })).toBeVisible()
     expect(screen.getAllByRole('textbox')).toHaveLength(1)
     expect(screen.getByRole('button', { name: 'Start journey' })).toBeDisabled()
     await user.type(screen.getByLabelText('What do you want to validate?'), 'A shopper can submit an order.')
@@ -73,7 +72,7 @@ describe('QualityJourneyCreateForm', () => {
 
   it('autosaves the latest partial brief without starting a Journey', async () => {
     const user = userEvent.setup()
-    render(<QualityJourneyCreateForm initialEnvironments={[]} projectId="project-1" />)
+    render(<QualityJourneyCreateForm projectId="project-1" />)
     await user.type(screen.getByLabelText('What do you want to validate?'), 'First thought, refined before autosave.')
     await waitFor(() => expect(mocks.createDraft).toHaveBeenCalledOnce(), { timeout: 1500 })
     expect(mocks.createDraft).toHaveBeenCalledWith(
@@ -85,18 +84,18 @@ describe('QualityJourneyCreateForm', () => {
   })
 
   it('does not create a draft merely by visiting', () => {
-    render(<QualityJourneyCreateForm initialEnvironments={[]} projectId="project-1" />)
+    render(<QualityJourneyCreateForm projectId="project-1" />)
     expect(mocks.createDraft).not.toHaveBeenCalled()
-    expect(screen.getByText(/saved to this workspace after your first edit/i)).toBeInTheDocument()
+    expect(screen.getByText(/autosaves after your first edit/i)).toBeInTheDocument()
   })
 
   it('offers save recovery and prevents starting over a conflicting version', async () => {
     mocks.createDraft.mockResolvedValueOnce({ success: false, error: 'A newer saved version exists.' })
     const user = userEvent.setup()
-    render(<QualityJourneyCreateForm initialEnvironments={[]} projectId="project-1" />)
+    render(<QualityJourneyCreateForm projectId="project-1" />)
     await user.type(screen.getByLabelText('What do you want to validate?'), 'Keep this edit.')
-    expect(await screen.findByRole('button', { name: 'Retry save' }, { timeout: 1500 })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Load saved version' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Load saved version' }, { timeout: 1500 })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Retry save' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Save my edits as a new draft' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Start journey' })).toBeDisabled()
   })
@@ -116,7 +115,6 @@ describe('QualityJourneyCreateForm', () => {
     }
     render(
       <QualityJourneyCreateForm
-        initialEnvironments={environments}
         projectId="project-1"
         draft={{ id: 'draft-1', version: 4, draftHash: `sha256:${'a'.repeat(64)}`, currentStep: 3, requirement }}
       />,
@@ -134,7 +132,7 @@ describe('QualityJourneyCreateForm', () => {
   it('shows a creation error and preserves the brief for retry', async () => {
     mocks.confirmDraft.mockResolvedValue({ success: false, error: 'The active project no longer exists.' })
     const user = userEvent.setup()
-    render(<QualityJourneyCreateForm initialEnvironments={[]} projectId="project-1" />)
+    render(<QualityJourneyCreateForm projectId="project-1" />)
     await user.type(screen.getByLabelText('What do you want to validate?'), 'Checkout')
     await user.click(screen.getByRole('button', { name: 'Start journey' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('The active project no longer exists.')
@@ -147,7 +145,6 @@ describe('QualityJourneyCreateForm', () => {
     const user = userEvent.setup()
     render(
       <QualityJourneyCreateForm
-        initialEnvironments={environments}
         projectId="project-1"
         draft={{
           id: 'draft-1',

@@ -14,6 +14,7 @@ const TestCasesMetricTable = async ({ filter }: { filter: 'repeatedlyFailing' | 
   return (
     <>
       <DataTable
+        tableLabel="Test case metrics"
         columns={testCasesMetricTableCols}
         data={testCaseMetrics as (TestCaseMetrics & { testCase: TestCase & { tags: Tag[] } })[]}
         filterColumn="testCase.title"

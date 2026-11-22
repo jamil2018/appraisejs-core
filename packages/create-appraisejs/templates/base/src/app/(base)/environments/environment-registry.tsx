@@ -180,6 +180,7 @@ export default function EnvironmentRegistry({ environments }: EnvironmentRegistr
                     aria-label={`Select ${environment.name}`}
                   />
                   <TableActions
+                    rowName={environment.name}
                     modifyLink={`/environments/modify/${environment.id}`}
                     deleteHandler={() => deleteEnvironmentAction([environment.id])}
                     editActionText="Edit environment"

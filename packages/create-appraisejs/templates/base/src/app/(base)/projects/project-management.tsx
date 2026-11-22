@@ -127,7 +127,7 @@ export default function ProjectManagement({
             No projects match “{query}”.
           </div>
         ) : (
-          <Table>
+          <Table scrollLabel="Projects">
             <TableHeader>
               <TableRow>
                 <TableHead>Project</TableHead>

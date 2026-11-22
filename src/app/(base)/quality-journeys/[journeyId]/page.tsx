@@ -196,13 +196,7 @@ async function loadJourneyDetail(journeyId: string, projectId: string) {
           expectedStateHash: journey.journey.stateHash,
         })
       : null,
-    journey.journey.stage === 'AUTOMATION'
-      ? Promise.all([
-          getAppManagedAutomatorManualRecovery({ journeyId, targetProjectId: projectId }),
-          observePendingManualAutomationRecovery({ journeyId, targetProjectId: projectId }),
-          getAppManagedManualAutomationDraftContext({ journeyId, targetProjectId: projectId }),
-        ]).then(([recovery, issued, context]) => ({ recovery, issued, choices: context?.choices }))
-      : null,
+    journey.journey.stage === 'AUTOMATION' ? loadManualPreparation(journeyId, projectId) : null,
     journey.journey.stage === 'TRIAGE' ? getOperatorTriageAvailable({ journeyId, targetProjectId: projectId }) : false,
   ])
   return {
@@ -230,6 +224,17 @@ async function loadJourneyDetail(journeyId: string, projectId: string) {
       ? qualityJourneyRequirementSummary(requirement.contentJson)
       : 'Requirement snapshot unavailable',
   }
+}
+
+async function loadManualPreparation(journeyId: string, targetProjectId: string) {
+  const scope = { journeyId, targetProjectId }
+  const [recovery, issued] = await Promise.all([
+    getAppManagedAutomatorManualRecovery(scope),
+    observePendingManualAutomationRecovery(scope),
+  ])
+  if (!recovery && !issued) return null
+  const context = await getAppManagedManualAutomationDraftContext(scope)
+  return { recovery, issued, choices: context?.choices }
 }
 
 async function loadActiveDiscovery(stage: string, journeyId: string, projectId: string) {
@@ -582,6 +587,22 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
   }
   const legacy = journey.journey.hostingMode === 'EXTERNAL_LEGACY'
   const paused = journey.journey.status === 'PAUSED'
+  const hasQuestion =
+    answerable &&
+    (journey.journey.unresolvedQuestionIds.length > 0 ||
+      Boolean(activeAnalysis?.questions.some(question => question.required && !question.answers.length)))
+  const showAgentSetup =
+    managedActive &&
+    setting &&
+    !agentEnabled &&
+    !hasQuestion &&
+    !journey.blockers.length &&
+    !presentation.allPrepared &&
+    !presentation.requestedExecutionConsentCount &&
+    !detail.operatorTriageAvailable &&
+    !detail.manualPreparation &&
+    !['MANUAL_REQUIRED', 'RECOVERY_REQUIRED', 'INSPECTING'].includes(detail.discoveryCaptureStatus ?? '') &&
+    initialSnapshot?.runtimeStatus !== 'RECOVERY'
 
   return (
     <JourneyStatusObservationProvider
@@ -594,13 +615,13 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
     >
       <main className="mx-auto w-full max-w-4xl space-y-6 pb-10">
         <Link
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:underline"
+          className="app-focus inline-flex min-h-8 items-center gap-2 rounded-md text-sm text-muted-foreground hover:text-foreground"
           href={`/quality-journeys?project=${encodeURIComponent(project.id)}`}
         >
           <ArrowLeft aria-hidden="true" className="size-4" /> Quality Journeys
         </Link>
-        <header className="flex items-start justify-between gap-4">
-          <h1 className="min-w-0 text-balance break-words text-2xl font-semibold tracking-tight">
+        <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+          <h1 className="min-w-0 flex-[1_1_16rem] break-words text-2xl font-semibold tracking-tight sm:text-3xl">
             {requirementSummary.split('\n')[0].slice(0, 100)}
           </h1>
           <JourneyRecoveryPanel
@@ -618,40 +639,40 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
             discoveryCaptureStatus={detail.discoveryCaptureStatus}
           />
         ) : null}
-        <section className="space-y-5" aria-label="Current journey focus">
-          <JourneyActivity
-            stage={stage}
-            status={journey.journey.status}
-            legacy={legacy}
-            revision={stage === 'ANALYSIS' && Boolean(activeAnalysis?.decision || detail.previousAnalyses.length)}
-            readyToRun={stage === 'AUTOMATION' && presentation.allPrepared}
-            analyzingEnabled={agentEnabled}
-            reviewing={Boolean(activeAnalysis)}
-            discoveryCaptureStatus={detail.discoveryCaptureStatus ?? undefined}
-            awaitingReportReview={detail.operatorTriageAvailable}
-            awaitingTestPlan={Boolean(detail.manualPreparation?.issued)}
-            executionActivity={executionActivity}
-            question={
-              answerable &&
-              (journey.journey.unresolvedQuestionIds.length > 0 ||
-                Boolean(activeAnalysis?.questions.some(q => q.required && !q.answers.length)))
-            }
-            blocked={journey.blockers.length > 0}
-            consent={presentation.requestedExecutionConsentCount > 0}
-            lastEvent={journey.events.at(-1)?.eventType}
-            lastEventAt={journey.events.at(-1)?.createdAt.toISOString()}
-          />
+        <section className="space-y-4" aria-label="Current journey focus">
+          <div className={showAgentSetup ? 'space-y-3 rounded-xl border border-border bg-card p-4 sm:p-6' : undefined}>
+            <JourneyActivity
+              stage={stage}
+              status={journey.journey.status}
+              legacy={legacy}
+              revision={stage === 'ANALYSIS' && Boolean(activeAnalysis?.decision || detail.previousAnalyses.length)}
+              readyToRun={stage === 'AUTOMATION' && presentation.allPrepared}
+              analyzingEnabled={agentEnabled}
+              reviewing={Boolean(activeAnalysis)}
+              discoveryCaptureStatus={detail.discoveryCaptureStatus ?? undefined}
+              awaitingReportReview={detail.operatorTriageAvailable}
+              awaitingTestPlan={Boolean(detail.manualPreparation?.issued)}
+              executionActivity={executionActivity}
+              question={hasQuestion}
+              blocked={journey.blockers.length > 0}
+              consent={presentation.requestedExecutionConsentCount > 0}
+              lastEvent={journey.events.at(-1)?.eventType}
+              lastEventAt={journey.events.at(-1)?.createdAt.toISOString()}
+            />
+            {showAgentSetup ? (
+              <details className="text-sm">
+                <summary className="app-focus w-fit cursor-pointer rounded-sm font-medium text-foreground">
+                  How to connect the agent
+                </summary>
+                <p className="mt-2 max-w-prose leading-6 text-muted-foreground">
+                  Ask your workspace owner to enable <code className="break-all text-foreground">{setting}</code> on the
+                  Appraise server. Your brief stays saved here.
+                </p>
+              </details>
+            ) : null}
+          </div>
           {managedActive && ['ANALYSIS', 'ANALYSIS_REVIEW'].includes(stage) ? (
             <AnalysisRecoveryControl journeyId={journeyId} />
-          ) : null}
-          {managedActive && !agentEnabled && setting && !presentation.allPrepared ? (
-            <details className="text-sm">
-              <summary className="cursor-pointer">How to connect the agent</summary>
-              <p className="mt-2">
-                Ask your workspace owner to enable <code className="break-all">{setting}</code> on the Appraise server.
-                Your brief stays saved here.
-              </p>
-            </details>
           ) : null}
           {paused && execution.cycles.some(c => ['RUNNING', 'RESERVED', 'CANCELLING'].includes(c.status)) ? (
             <p>A test run is still stopping.</p>

@@ -118,6 +118,7 @@ const TestRunTable = ({ initialData, filter = 'all' }: TestRunTableProps) => {
   return (
     <>
       <DataTable
+        tableLabel="Test runs"
         columns={testRunTableCols}
         data={testRuns}
         filterColumn="name"
