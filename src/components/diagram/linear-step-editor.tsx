@@ -104,6 +104,7 @@ function LinearStepRow({
         size="icon"
         variant="ghost"
         aria-label={`Remove ${node.label}`}
+        className="text-danger hover:bg-danger-surface hover:text-danger"
         onClick={() => onRemove(nodeId)}
       >
         <Trash2 className="size-4" aria-hidden />

@@ -3,6 +3,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 import { qualityJourneyLabel } from './quality-journey-view-model'
 
+function progressTone(status: string) {
+  if (status === 'COMPLETED' || status === 'OUTPUT_VALIDATED') return 'success'
+  if (
+    ['BLOCKED', 'ESCALATED', 'QUESTION_RAISED', 'WAITING_FOR_INPUT', 'LEASE_EXPIRED', 'REVISION_REQUIRED'].includes(
+      status,
+    )
+  )
+    return 'warning'
+  if (['RUNNABLE', 'IN_PROGRESS', 'WORKER_REQUESTED', 'WORKER_STARTED', 'OUTPUT_SUBMITTED'].includes(status))
+    return 'info'
+  return 'neutral'
+}
+
 type RunnerNode = { role: string; stage: string; state: string; workItemId: string | null }
 type WorkItem = { id: string; role: string; status: string; currentAttempt: number }
 type Attempt = {
@@ -72,7 +85,11 @@ export function JourneyProgress({
                   <li className="min-w-0 rounded-lg border p-3" key={node.role}>
                     <p className="text-sm font-medium capitalize">{qualityJourneyLabel(node.role)}</p>
                     <p className="mt-1 text-xs text-muted-foreground">Stage: {qualityJourneyLabel(node.stage)}</p>
-                    <StatusBadge className="mt-2" label={qualityJourneyLabel(node.state)} />
+                    <StatusBadge
+                      className="mt-2"
+                      label={qualityJourneyLabel(node.state)}
+                      tone={progressTone(node.state)}
+                    />
                     <p className="mt-2 break-all font-mono text-[11px] text-muted-foreground">
                       Work item: {node.workItemId ?? 'Not issued'}
                     </p>
@@ -91,7 +108,7 @@ export function JourneyProgress({
                       <li className="min-w-0 rounded-lg border p-3" key={item.id}>
                         <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
                           <p className="min-w-0 text-sm font-medium capitalize">{qualityJourneyLabel(item.role)}</p>
-                          <StatusBadge label={qualityJourneyLabel(item.status)} />
+                          <StatusBadge label={qualityJourneyLabel(item.status)} tone={progressTone(item.status)} />
                         </div>
                         <p className="mt-1 break-all font-mono text-[11px] text-muted-foreground">
                           Work item: {item.id}
@@ -102,7 +119,10 @@ export function JourneyProgress({
                             {itemAttempts.map(attempt => (
                               <li className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1" key={attempt.id}>
                                 <span>Attempt {attempt.attempt}</span>
-                                <StatusBadge label={qualityJourneyLabel(attempt.status)} />
+                                <StatusBadge
+                                  label={qualityJourneyLabel(attempt.status)}
+                                  tone={progressTone(attempt.status)}
+                                />
                                 <span className="min-w-0 break-words text-muted-foreground">
                                   Started {attempt.startedAt.toLocaleString()}
                                   {attempt.completedAt ? ` · completed ${attempt.completedAt.toLocaleString()}` : ''}
@@ -127,13 +147,17 @@ export function JourneyProgress({
         <section aria-label="Human lifecycle gates">
           <h2 className="text-sm font-semibold">Human lifecycle gates</h2>
           <ul className="mt-3 space-y-2 text-sm">
-            <li className="rounded-md border p-3">
+            <li
+              className={`rounded-md border p-3 ${requestedConsents ? 'border-warning-border bg-warning-surface' : 'border-border'}`}
+            >
               Execution consent:{' '}
               {requestedConsents
                 ? `${requestedConsents} exact consent request${requestedConsents === 1 ? ' is' : 's are'} awaiting a human decision.`
                 : 'No requested execution consent is recorded.'}
             </li>
-            <li className="rounded-md border p-3">
+            <li
+              className={`rounded-md border p-3 ${reportGateActive ? 'border-info-border bg-info-surface' : 'border-border'}`}
+            >
               Report review:{' '}
               {reportGateActive
                 ? 'The active report is at the human report-review gate.'

@@ -18,6 +18,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { cn, formatDateTime } from '@/lib/utils'
 import { TraceViewerIdleLabel, TraceViewerOpeningLabel, TraceViewerRunningLabel } from './trace-viewer-button-label'
 
@@ -32,6 +33,7 @@ import {
   type TestRunDetailsData,
 } from './test-run-details-helpers'
 import { useTestRunDetails } from './use-test-run-details'
+import { testRunResultPresentation } from './test-run-report-badges'
 
 type TestRunDetailsProps = {
   testRun: TestRunDetailsData
@@ -60,12 +62,12 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
               </div>
             ) : testRun.status === TestRunStatus.COMPLETED ? (
               <div className="flex items-center gap-2 duration-300 animate-in fade-in-0">
-                <CheckCircle className="size-6 text-success" />
+                <CheckCircle className="size-6 text-muted-foreground" />
                 <span>Finished</span>
               </div>
             ) : testRun.status === TestRunStatus.CANCELLED ? (
               <div className="flex items-center gap-2 duration-300 animate-in fade-in-0">
-                <XCircle className="size-6 text-danger duration-300 animate-in fade-in-0" />
+                <XCircle className="size-6 text-muted-foreground duration-300 animate-in fade-in-0" />
                 <span>Interrupted</span>
               </div>
             ) : null}
@@ -122,9 +124,11 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
             </div>
             <div className="grid grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)] items-start gap-3">
               <span className="text-sm font-medium">Result</span>
-              <Badge variant="outline" className="justify-self-end">
-                {getTestRunResultText(testRun.result)}
-              </Badge>
+              <StatusBadge
+                {...testRunResultPresentation[testRun.result]}
+                label={getTestRunResultText(testRun.result)}
+                className="justify-self-end"
+              />
             </div>
             <div className="grid grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)] items-start gap-3">
               <span className="text-sm font-medium">Evidence</span>
@@ -235,7 +239,7 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
                               : testCase.result === TestRunTestCaseResult.FAILED
                                 ? 'text-danger'
                                 : testCase.result === TestRunTestCaseResult.UNTESTED
-                                  ? 'text-info'
+                                  ? 'text-muted-foreground'
                                   : 'text-muted-foreground',
                           )}
                         />
@@ -257,9 +261,10 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
                             <TestCaseStatusIcon
                               className={cn(
                                 'size-4',
+                                testCaseStatusMeta.iconClassName,
                                 testCase.status === 'PENDING' || testCase.status === 'RUNNING'
                                   ? 'animate-spin'
-                                  : testCaseStatusMeta.iconClassName,
+                                  : undefined,
                               )}
                             />
                             <span>{testCaseStatusMeta.label}</span>

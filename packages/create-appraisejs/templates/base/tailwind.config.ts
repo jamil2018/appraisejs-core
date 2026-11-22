@@ -46,6 +46,7 @@ export default {
         warning: statusColors('warning'),
         danger: statusColors('danger'),
         info: statusColors('info'),
+        selection: statusColors('selection'),
         chart: {
           '1': 'var(--chart-1)',
           '2': 'var(--chart-2)',

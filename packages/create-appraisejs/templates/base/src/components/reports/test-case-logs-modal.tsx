@@ -49,7 +49,7 @@ const stepStatusToBadge = (status: StepStatus) => {
     case StepStatus.FAILED:
       return <StatusBadge label="Failed" tone="danger" icon={<XCircle />} />
     case StepStatus.SKIPPED:
-      return <StatusBadge label="Skipped" tone="warning" icon={<Clock />} />
+      return <StatusBadge label="Skipped" tone="neutral" icon={<Clock />} />
     default:
       return <StatusBadge label={status} tone="neutral" />
   }

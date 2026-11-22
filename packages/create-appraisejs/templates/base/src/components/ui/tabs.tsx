@@ -31,7 +31,7 @@ function TabsList({
   )
 }
 const tabsTriggerVariants = cva(
-  'app-focus inline-flex items-center justify-center whitespace-nowrap rounded-lg transition-colors disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-background data-[active]:text-foreground',
+  'app-focus inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-transparent transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-50 data-[active]:border-selection-border data-[active]:bg-selection-surface data-[active]:text-selection',
   {
     variants: { size: { default: 'h-8 px-3 text-sm font-medium', compact: 'h-8 px-3 text-xs font-medium' } },
     defaultVariants: { size: 'default' },

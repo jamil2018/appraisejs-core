@@ -33,7 +33,7 @@ export const overViewPieChartConfig = {
     color: reportColorMap.failed,
   },
   cancelled: {
-    label: 'Cancelled',
+    label: 'Untested',
     color: reportColorMap.cancelled,
   },
   unknown: {

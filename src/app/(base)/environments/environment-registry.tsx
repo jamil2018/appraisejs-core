@@ -39,7 +39,7 @@ function ExpectedPageTitle({ value }: { value: string | null }) {
     <div className="min-w-0 rounded-lg border border-border bg-secondary p-3">
       <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">Expected page title</p>
       <p
-        className={`mt-2 truncate text-xs ${configured ? 'text-foreground/75' : 'text-muted-foreground/70'}`}
+        className={`mt-2 truncate text-xs ${configured ? 'text-foreground' : 'text-muted-foreground'}`}
         title={value || undefined}
       >
         {value || 'Automatic target identity'}

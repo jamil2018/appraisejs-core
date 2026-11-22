@@ -37,7 +37,7 @@ function MobileNavigationItem({
     <Link
       href={projectScopedHref(item.href, projectId)}
       aria-current={active ? 'page' : undefined}
-      className="app-focus flex min-h-11 items-center gap-2 rounded-lg px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground data-[active=true]:bg-accent data-[active=true]:font-medium data-[active=true]:text-foreground"
+      className="app-nav-item app-focus flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
       data-active={active}
       onClick={onNavigate}
     >

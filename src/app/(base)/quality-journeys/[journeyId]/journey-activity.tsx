@@ -19,13 +19,15 @@ export function JourneyStages({ stage }: { stage: string }) {
           className={cn(
             'flex min-w-0 items-center gap-2 border-t-2 px-0.5 py-2 text-xs leading-4 sm:px-1 sm:text-sm',
             index === current
-              ? 'border-primary font-semibold text-foreground'
+              ? 'border-info font-semibold text-info'
               : index < current
-                ? 'border-muted-foreground/55 text-secondary-foreground'
+                ? 'border-success-border text-secondary-foreground'
                 : 'border-border text-muted-foreground',
           )}
         >
-          {index < current ? <Check aria-hidden="true" className="hidden size-3.5 shrink-0 sm:block" /> : null}
+          {index < current ? (
+            <Check aria-hidden="true" className="hidden size-3.5 shrink-0 text-success sm:block" />
+          ) : null}
           {label}
         </li>
       ))}
@@ -51,6 +53,8 @@ type Activity = {
   lastEvent?: string
   lastEventAt?: string
 }
+
+const agentSetupLabel = 'Agent setup needed'
 
 function activityLabel(state: Activity, runtime?: string | null, role?: string, inspecting?: string) {
   if (state.status === 'CLOSED' || state.stage === 'CLOSED') return 'Journey complete'
@@ -83,7 +87,7 @@ function activityLabel(state: Activity, runtime?: string | null, role?: string, 
     !state.analyzingEnabled &&
     ['ANALYSIS', 'DISCOVERY', 'SCENARIO_DESIGN', 'AUTOMATION', 'TRIAGE'].includes(state.stage)
   )
-    return 'Agent setup needed'
+    return agentSetupLabel
   if (runtime === 'RUNNING') {
     if (state.stage === 'ANALYSIS' && inspecting) return inspecting
     const work: Record<string, string> = {
@@ -150,30 +154,49 @@ export function JourneyActivity(props: Activity) {
     !currentState.awaitingReportReview &&
     !currentState.awaitingTestPlan &&
     activity?.running
+  const complete = currentState.status === 'CLOSED' || currentState.stage === 'CLOSED'
+  const message =
+    isOutdated && effectiveStatus !== 'PAUSED'
+      ? 'Connection interrupted. Current agent activity is unknown.'
+      : stalled && activity?.criteriaSubmissionInterrupted
+        ? 'Agent stalled while submitting acceptance criteria'
+        : activityLabel(
+            currentState,
+            snapshot?.runtimeStatus === 'RECOVERY'
+              ? 'RECOVERY'
+              : activity?.running
+                ? 'RUNNING'
+                : snapshot?.runtimeStatus,
+            activity?.role,
+            inspecting,
+          )
+  const needsAttention =
+    isOutdated ||
+    message === agentSetupLabel ||
+    (!complete &&
+      (stalled ||
+        currentState.status === 'PAUSED' ||
+        currentState.blocked ||
+        currentState.question ||
+        currentState.consent ||
+        ['MANUAL_REQUIRED', 'RECOVERY_REQUIRED'].includes(currentState.discoveryCaptureStatus ?? '')))
+
   return (
     <div className="space-y-2">
-      <div role="status" className="flex items-center gap-2 text-base font-medium">
-        {stalled || isOutdated ? (
+      <div
+        role="status"
+        className={cn('flex items-center gap-2 text-base font-medium', needsAttention && 'text-warning')}
+      >
+        {needsAttention ? (
           <CircleAlert aria-hidden="true" className="size-5 shrink-0 text-warning" />
+        ) : complete ? (
+          <Check aria-hidden="true" className="size-5 shrink-0 text-success" />
         ) : working ? (
-          <LoaderCircle aria-hidden="true" className="size-5 shrink-0 text-primary motion-safe:animate-spin" />
+          <LoaderCircle aria-hidden="true" className="size-5 shrink-0 text-info motion-safe:animate-spin" />
         ) : (
-          <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-current" />
+          <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-info" />
         )}
-        {isOutdated && effectiveStatus !== 'PAUSED'
-          ? 'Connection interrupted. Current agent activity is unknown.'
-          : stalled && activity?.criteriaSubmissionInterrupted
-            ? 'Agent stalled while submitting acceptance criteria'
-            : activityLabel(
-                currentState,
-                snapshot?.runtimeStatus === 'RECOVERY'
-                  ? 'RECOVERY'
-                  : activity?.running
-                    ? 'RUNNING'
-                    : snapshot?.runtimeStatus,
-                activity?.role,
-                inspecting,
-              )}
+        {message}
       </div>
       {stalled && activity?.criteriaSubmissionInterrupted ? (
         <p className="text-sm">
@@ -190,7 +213,13 @@ export function JourneyActivity(props: Activity) {
         </p>
       ) : null}
       {newerVersionAvailable ? (
-        <Button variant="outline" size="sm" disabled={loadingNewerVersion} onClick={loadNewerVersion}>
+        <Button
+          variant="outline"
+          className="border-info-border text-info"
+          size="sm"
+          disabled={loadingNewerVersion}
+          onClick={loadNewerVersion}
+        >
           View update
         </Button>
       ) : null}

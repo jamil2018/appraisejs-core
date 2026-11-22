@@ -10,9 +10,9 @@ const metricStyles: Record<
   }
 > = {
   'Total Tests': {
-    card: 'border-l-primary/60',
-    dot: 'bg-primary',
-    value: 'text-primary',
+    card: 'border-l-border',
+    dot: 'bg-muted-foreground',
+    value: 'text-foreground',
   },
   Passed: {
     card: 'border-l-success-border',
@@ -33,8 +33,8 @@ const metricStyles: Record<
 
 const ReportMetricCard = ({ title, value }: { title: string; value: string }) => {
   const styles = metricStyles[title] ?? {
-    card: 'border-l-primary/60',
-    dot: 'bg-primary',
+    card: 'border-l-border',
+    dot: 'bg-muted-foreground',
     value: 'text-foreground',
   }
 

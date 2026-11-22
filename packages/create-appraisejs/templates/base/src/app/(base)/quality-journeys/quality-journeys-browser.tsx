@@ -107,24 +107,30 @@ function JourneyListCard({ item, projectId }: { item: QualityJourneyListItem; pr
                 : item.stage.endsWith('_REVIEW')
                   ? 'Ready for review'
                   : null
+  const attentionClass =
+    item.status === 'PAUSED' || (item.stage !== 'CLOSED' && Boolean(item.activeBlockerCount))
+      ? 'text-warning'
+      : item.stage === 'CLOSED'
+        ? 'text-success'
+        : 'text-info'
   return (
     <article className="app-surface flex min-w-0 items-center justify-between gap-4 rounded-xl p-4 transition-colors hover:border-input hover:bg-accent">
       <div className="min-w-0">
         <Link
-          className="line-clamp-2 break-words font-semibold hover:underline"
+          className="app-focus line-clamp-2 break-words rounded-sm font-semibold hover:underline"
           href={`/quality-journeys/${item.id}?project=${encodeURIComponent(projectId)}`}
         >
           {title}
         </Link>
         <p className="mt-1 text-sm text-muted-foreground">
           {journeyStageName(item.stage)}
-          {attention ? ` · ${attention}` : ''}
+          {attention ? <span className={attentionClass}> · {attention}</span> : null}
         </p>
       </div>
       <div className="flex shrink-0 flex-col items-end gap-2">
         <StatusBadge
           label={item.status === 'PAUSED' ? 'Paused' : item.stage === 'CLOSED' ? 'Complete' : 'Active'}
-          tone={item.status === 'PAUSED' ? 'warning' : item.stage === 'CLOSED' ? 'success' : 'neutral'}
+          tone={item.status === 'PAUSED' ? 'warning' : item.stage === 'CLOSED' ? 'success' : 'info'}
         />
         <CopyBriefButton journeyId={item.id} projectId={projectId} />
       </div>

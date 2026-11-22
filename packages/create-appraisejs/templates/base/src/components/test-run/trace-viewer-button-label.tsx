@@ -41,7 +41,7 @@ export function TraceViewerOpeningLabel() {
 export function TraceViewerRunningLabel() {
   return (
     <TraceViewerButtonLabel labelKey="running">
-      <LoaderCircle className="text-foreground-500 size-3 animate-spin" />
+      <LoaderCircle className="size-3 animate-spin text-info" />
       Running
     </TraceViewerButtonLabel>
   )

@@ -642,7 +642,11 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
           />
         ) : null}
         <section className="space-y-3" aria-label="Current journey focus">
-          <div className={showAgentSetup ? 'space-y-2 rounded-xl border border-border bg-card p-4' : undefined}>
+          <div
+            className={
+              showAgentSetup ? 'space-y-2 rounded-xl border border-warning-border bg-warning-surface p-4' : undefined
+            }
+          >
             <JourneyActivity
               stage={stage}
               status={journey.journey.status}
@@ -663,7 +667,7 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
             />
             {showAgentSetup ? (
               <details className="text-sm">
-                <summary className="app-focus w-fit cursor-pointer rounded-sm font-medium text-foreground">
+                <summary className="app-focus w-fit cursor-pointer rounded-sm font-medium text-warning underline-offset-4 hover:underline">
                   How to connect the agent
                 </summary>
                 <p className="mt-2 max-w-prose leading-6 text-muted-foreground">
@@ -677,7 +681,9 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
             <AnalysisRecoveryControl journeyId={journeyId} />
           ) : null}
           {paused && execution.cycles.some(c => ['RUNNING', 'RESERVED', 'CANCELLING'].includes(c.status)) ? (
-            <p>A test run is still stopping.</p>
+            <p className="rounded-lg border border-warning-border bg-warning-surface p-3 text-sm text-warning">
+              A test run is still stopping.
+            </p>
           ) : null}
           {legacy && !presentation.hasClosureReceipt ? (
             <section id="hosting" aria-label="Managed hosting ownership">
@@ -711,7 +717,7 @@ function BlockerCard({
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
-          <CircleAlert aria-hidden="true" className="size-4 text-primary" />
+          <CircleAlert aria-hidden="true" className="size-4 text-warning" />
           What needs attention
         </CardTitle>
       </CardHeader>
@@ -722,7 +728,7 @@ function BlockerCard({
           <ul className="space-y-3">
             {blockers.map(blocker => (
               <li className="rounded-lg border border-warning-border bg-warning-surface p-3" key={blocker.id}>
-                <p className="text-sm">{blocker.summary}</p>
+                <p className="text-sm font-medium">{blocker.summary}</p>
                 <p className="mt-2 text-xs text-muted-foreground">How to resolve it: {blocker.requiredResolution}</p>
                 <details className="mt-2 text-muted-foreground">
                   <summary className="cursor-pointer text-xs">Technical details</summary>

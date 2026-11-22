@@ -10,7 +10,7 @@ const toneClasses: Record<StatusTone, string> = {
   danger: 'border-danger-border bg-danger-surface text-danger',
   warning: 'border-warning-border bg-warning-surface text-warning',
   info: 'border-info-border bg-info-surface text-info',
-  neutral: 'border-border bg-secondary text-muted-foreground',
+  neutral: 'border-border bg-secondary text-secondary-foreground',
 }
 
 type StatusBadgeProps = {

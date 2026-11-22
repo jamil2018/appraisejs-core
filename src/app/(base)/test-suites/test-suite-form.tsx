@@ -253,7 +253,7 @@ export const TestSuiteForm = ({
           <CardContent className="flex flex-col gap-4 p-4 pt-0">
             {testSuiteQuickTips.map((tip, index) => (
               <div key={tip.title} className="flex items-start gap-3">
-                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-success/10 text-success">
+                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-info-surface text-info">
                   {index + 1}
                 </span>
                 <div className="flex min-w-0 flex-col gap-1">

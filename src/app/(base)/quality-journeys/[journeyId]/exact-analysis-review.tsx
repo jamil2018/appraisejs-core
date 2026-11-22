@@ -20,7 +20,7 @@ function RecordedDecision({ decision }: { decision: AnalysisRevisionView['decisi
 
   return (
     <div className="rounded-lg border border-success-border bg-success-surface p-3 text-sm">
-      <p className="font-medium">{decision.decision.toLocaleLowerCase()} decision recorded</p>
+      <p className="font-medium text-success">{decision.decision.toLocaleLowerCase()} decision recorded</p>
     </div>
   )
 }
@@ -66,7 +66,7 @@ export function ExactAnalysisReview({
   unresolvedQuestionIds,
 }: ExactAnalysisReviewProps) {
   return (
-    <Card className="border-primary/25 bg-primary/[0.04]">
+    <Card className="border-info-border">
       <CardContent className="space-y-4 pt-6">
         {analysis.decision ? <RecordedDecision decision={analysis.decision} /> : null}
         {analysis.decision ? null : (

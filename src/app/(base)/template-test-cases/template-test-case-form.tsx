@@ -180,7 +180,7 @@ function FlowAuthoringViewToggle({
         variant="ghost"
         className={`h-7 rounded-full border px-3 text-xs transition-[color,background-color,border-color,box-shadow] ${
           view === 'graph'
-            ? 'border-border bg-accent text-foreground shadow-none hover:bg-accent'
+            ? 'border-selection-border bg-selection-surface text-selection shadow-none hover:bg-selection-surface'
             : 'border-transparent text-muted-foreground hover:bg-accent hover:text-foreground'
         }`}
         aria-pressed={view === 'graph'}
@@ -194,7 +194,7 @@ function FlowAuthoringViewToggle({
         variant="ghost"
         className={`h-7 rounded-full border px-3 text-xs transition-[color,background-color,border-color,box-shadow] ${
           view === 'linear'
-            ? 'border-border bg-accent text-foreground shadow-none hover:bg-accent'
+            ? 'border-selection-border bg-selection-surface text-selection shadow-none hover:bg-selection-surface'
             : 'border-transparent text-muted-foreground hover:bg-accent hover:text-foreground'
         }`}
         aria-pressed={view === 'linear'}

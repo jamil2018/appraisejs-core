@@ -31,16 +31,14 @@ export function getTestRunStatusMeta(status: TestRunStatus, result: TestRunResul
     case 'COMPLETED':
       return {
         label: result === 'BLOCKED' ? 'Blocked' : 'Completed',
-        icon: result === 'PASSED' ? CheckCircle : result === 'BLOCKED' ? AlertTriangle : XCircle,
+        icon: result === 'BLOCKED' ? AlertTriangle : CheckCircle,
         badgeClassName:
-          result === 'PASSED'
-            ? 'border-success-border bg-success-surface text-success'
-            : result === 'BLOCKED'
-              ? 'border-warning-border bg-warning-surface text-warning'
-              : 'border-danger-border bg-danger-surface text-danger',
+          result === 'BLOCKED'
+            ? 'border-warning-border bg-warning-surface text-warning'
+            : 'border-border bg-secondary text-muted-foreground',
       }
     case 'CANCELLED':
-      return { label: 'Cancelled', icon: XCircle, badgeClassName: 'border-danger-border bg-danger-surface text-danger' }
+      return { label: 'Cancelled', icon: XCircle, badgeClassName: 'border-border bg-secondary text-muted-foreground' }
     default:
       return { label: 'Unknown', icon: Clock, badgeClassName: 'border-border bg-secondary text-muted-foreground' }
   }
@@ -127,9 +125,9 @@ export function getTestCaseStatusMeta(status: TestRunTestCaseStatus): StatusMeta
     case 'PENDING':
       return { label: 'Pending', icon: LoaderCircle }
     case 'RUNNING':
-      return { label: 'Running', icon: LoaderCircle }
+      return { label: 'Running', icon: LoaderCircle, iconClassName: 'text-info' }
     case 'COMPLETED':
-      return { label: 'Completed', icon: CheckCircle, iconClassName: 'text-success' }
+      return { label: 'Completed', icon: CheckCircle, iconClassName: 'text-muted-foreground' }
     case 'CANCELLED':
       return { label: 'Cancelled', icon: XCircle }
     default:

@@ -55,7 +55,7 @@ export function StepDefinitionPicker({
               className="h-9 w-full justify-between px-3 py-2 text-left font-normal"
             >
               <span className="min-w-0 truncate">{value ? value.title : 'Select a ready Step Definition'}</span>
-              <ChevronsUpDown data-icon="inline-end" className="opacity-50" aria-hidden />
+              <ChevronsUpDown data-icon="inline-end" className="text-muted-foreground" aria-hidden />
             </Button>
           }
         />
@@ -79,14 +79,17 @@ export function StepDefinitionPicker({
                     <CommandItem
                       key={keyOf(definition)}
                       value={keyOf(definition)}
-                      className="mx-1 items-start rounded-lg border border-transparent py-3 data-[selected=true]:border-border"
+                      className="mx-1 items-start rounded-lg border border-transparent py-3 data-[selected=true]:border-selection-border data-[selected=true]:bg-selection-surface data-[selected=true]:text-selection"
                       onSelect={() => {
                         onChange(definition)
                         setOpen(false)
                         setQuery('')
                       }}
                     >
-                      <Check className={cn('mt-0.5', selected ? 'opacity-100' : 'opacity-0')} aria-hidden />
+                      <Check
+                        className={cn('mt-0.5 text-selection', selected ? 'opacity-100' : 'opacity-0')}
+                        aria-hidden
+                      />
                       <span className="flex min-w-0 flex-1 flex-col gap-1">
                         <span className="font-medium">{definition.title}</span>
                         <span className="break-words text-xs text-muted-foreground">{definition.signature}</span>
@@ -104,7 +107,9 @@ export function StepDefinitionPicker({
         </PopoverContent>
       </Popover>
       {definitions.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No ready Step Definitions are available.</p>
+        <p className="rounded-lg border border-warning-border bg-warning-surface p-3 text-sm text-warning">
+          No ready Step Definitions are available.
+        </p>
       ) : null}
     </div>
   )

@@ -14,7 +14,7 @@ import {
   type NodeProps,
   type ReactFlowInstance,
 } from '@xyflow/react'
-import { Boxes, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Boxes, Check, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useRef, type MutableRefObject, type ReactNode, type RefObject } from 'react'
 
 import { Badge } from '@/components/ui/badge'
@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Separator } from '@/components/ui/separator'
+import { cn } from '@/lib/utils'
 import type { FlowBlock } from '@/types/diagram/diagram'
 import type { StepDefinitionOption } from '@/types/step-definition-option'
 
@@ -43,7 +44,7 @@ export type DiagramNodeData = {
   blockName?: string
 }
 
-function FlowStepNode({ id, data }: NodeProps<Node<DiagramNodeData>>) {
+function FlowStepNode({ id, data, selected }: NodeProps<Node<DiagramNodeData>>) {
   return (
     <div className="relative w-[31rem]">
       {data.hasIncomingConnector ? (
@@ -51,16 +52,26 @@ function FlowStepNode({ id, data }: NodeProps<Node<DiagramNodeData>>) {
           type="target"
           position={Position.Left}
           id="target"
-          className="z-20 !size-3 !border-2 !border-primary !bg-background"
+          className="z-20 !size-3 !border-2 !border-selection !bg-background"
           aria-label={`Connect before ${data.label}`}
         />
       ) : null}
-      <Card className="relative w-[28rem] overflow-hidden border-border/80 bg-card/95 p-0 shadow-xl ring-1 ring-primary/10">
+      <Card
+        className={cn(
+          'relative w-[28rem] overflow-hidden bg-card p-0 shadow-xl ring-1',
+          selected ? 'border-selection ring-selection' : 'border-border ring-border',
+        )}
+      >
         <CardHeader className="flex-row items-start justify-between gap-4 p-4">
           <div className="min-w-0">
             <CardTitle>{data.label}</CardTitle>
+            {selected ? (
+              <span className="mt-2 flex items-center gap-1 text-xs font-medium text-selection">
+                <Check className="size-3" aria-hidden /> Selected
+              </span>
+            ) : null}
             {data.blockName ? (
-              <Badge variant="outline" className="mt-2 border-primary/30 bg-primary/5 text-primary">
+              <Badge variant="outline" className="mt-2 border-selection-border bg-selection-surface text-selection">
                 Block: {data.blockName}
               </Badge>
             ) : null}
@@ -81,6 +92,7 @@ function FlowStepNode({ id, data }: NodeProps<Node<DiagramNodeData>>) {
               size="icon"
               variant="outline"
               aria-label={`Remove ${data.label}`}
+              className="text-danger hover:border-danger-border hover:bg-danger-surface hover:text-danger"
               onClick={() => data.onRemove(id)}
             >
               <Trash2 aria-hidden />
@@ -90,7 +102,7 @@ function FlowStepNode({ id, data }: NodeProps<Node<DiagramNodeData>>) {
         <Separator />
         <CardContent className="flex flex-col gap-3 p-4">
           {data.gherkinStep ? (
-            <p className="rounded-lg bg-muted/35 px-3 py-2 text-sm leading-relaxed text-muted-foreground">
+            <p className="rounded-lg bg-secondary px-3 py-2 text-sm leading-relaxed text-foreground">
               {data.gherkinStep}
             </p>
           ) : null}
@@ -99,10 +111,7 @@ function FlowStepNode({ id, data }: NodeProps<Node<DiagramNodeData>>) {
             {data.parameters.length > 0 ? (
               <dl className="grid grid-cols-2 gap-2">
                 {data.parameters.map(parameter => (
-                  <div
-                    key={parameter.name}
-                    className="min-w-0 rounded-lg border border-border/70 bg-background/35 px-3 py-2"
-                  >
+                  <div key={parameter.name} className="min-w-0 rounded-lg border border-border bg-background px-3 py-2">
                     <dt className="truncate text-xs text-muted-foreground">{parameter.name}</dt>
                     <dd className="mt-1 truncate font-mono text-xs font-medium text-foreground" title={parameter.value}>
                       {parameter.value}
@@ -122,19 +131,19 @@ function FlowStepNode({ id, data }: NodeProps<Node<DiagramNodeData>>) {
             type="source"
             position={Position.Right}
             id="source"
-            className="!left-[28rem] !right-auto z-20 !size-3 !-translate-x-1/2 !-translate-y-1/2 !border-2 !border-primary !bg-background"
+            className="!left-[28rem] !right-auto z-20 !size-3 !-translate-x-1/2 !-translate-y-1/2 !border-2 !border-selection !bg-background"
             aria-label={`Connect after ${data.label}`}
           />
           <div
             className="nodrag nopan absolute left-[28rem] top-1/2 z-10 flex -translate-y-1/2 items-center"
             data-edge-insert
           >
-            <span className="h-0.5 w-7 bg-primary" aria-hidden />
+            <span className="h-0.5 w-7 bg-info" aria-hidden />
             <Button
               type="button"
               size="icon"
               variant="outline"
-              className="relative z-10 size-7 rounded-full border-primary/60 bg-background shadow-md hover:bg-primary hover:text-primary-foreground"
+              className="relative z-10 size-7 rounded-full border-selection-border bg-selection-surface text-selection shadow-md hover:border-selection hover:bg-selection-surface hover:text-selection"
               aria-label={`Add connected step after ${data.label}`}
               data-invocation-insert={id}
               onClick={() => data.onInsert(id)}
@@ -271,7 +280,7 @@ function FlowBlocksPanel({
           key={block.id}
           role="group"
           aria-label={`${block.name} flow block`}
-          className="rounded-lg border border-success/30 bg-background/90 p-2 shadow-sm"
+          className="rounded-lg border border-selection-border bg-background p-2 shadow-sm"
         >
           <label className="sr-only" htmlFor={`flow-block-${block.id}`}>
             Rename {block.name} block
@@ -292,6 +301,7 @@ function FlowBlocksPanel({
               size="sm"
               variant="ghost"
               aria-label={`Delete ${block.name} block`}
+              className="text-danger hover:bg-danger-surface hover:text-danger"
               onClick={() => onDelete(block.id)}
             >
               Delete
@@ -303,9 +313,16 @@ function FlowBlocksPanel({
               const checked = block.nodeIds.includes(node.id)
               const assignedElsewhere = node.data.blockId && node.data.blockId !== block.id
               return (
-                <label key={node.id} className="flex items-center gap-1 text-xs">
+                <label
+                  key={node.id}
+                  className={cn(
+                    'flex items-center gap-1 text-xs',
+                    assignedElsewhere ? 'text-muted-foreground' : 'text-foreground',
+                  )}
+                >
                   <input
                     type="checkbox"
+                    className="accent-selection disabled:cursor-not-allowed"
                     checked={checked}
                     disabled={Boolean(assignedElsewhere)}
                     onChange={() =>
@@ -337,7 +354,6 @@ type FlowGraphCanvasProps = {
   onNodesChange: (changes: NodeChange<Node<DiagramNodeData>>[]) => void
   onNodeDragStop: (event: unknown, node: Node<DiagramNodeData>) => void
   isValidConnection: (connection: Connection | Edge) => boolean
-  onSelectionChange: ({ nodes }: { nodes: Node[] }) => void
   onRenameBlock: (blockId: string, name: string) => void
   onDeleteBlock: (blockId: string) => void
   onUpdateBlockMembership: (blockId: string, nodeIds: string[]) => void
@@ -352,11 +368,11 @@ function EmptyFlowCanvas({ canAddFirst, onAddFirst }: Pick<FlowGraphCanvasProps,
         type="button"
         data-invocation-insert="first"
         aria-label="Add first step"
-        className="group flex min-h-32 w-72 flex-col items-center justify-center rounded-xl border border-border bg-card p-5 text-center shadow-none transition-[border-color,background-color,transform,box-shadow] hover:-translate-y-0.5 hover:border-primary/35 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+        className="group flex min-h-32 w-72 flex-col items-center justify-center rounded-xl border border-border bg-card p-5 text-center shadow-none transition-[border-color,background-color,transform,box-shadow] hover:-translate-y-0.5 hover:border-selection-border hover:bg-selection-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
         disabled={!canAddFirst}
         onClick={onAddFirst}
       >
-        <span className="flex size-10 items-center justify-center rounded-full border border-primary/25 bg-primary/[0.07] text-primary shadow-none">
+        <span className="flex size-10 items-center justify-center rounded-full border border-selection-border bg-selection-surface text-selection shadow-none">
           <Plus aria-hidden />
         </span>
         <span className="mt-3 text-sm font-medium text-foreground">Add first step</span>
@@ -379,7 +395,6 @@ function PopulatedFlowCanvas({
   onNodesChange,
   onNodeDragStop,
   isValidConnection,
-  onSelectionChange,
   onRenameBlock,
   onDeleteBlock,
   onUpdateBlockMembership,
@@ -393,6 +408,7 @@ function PopulatedFlowCanvas({
       nodes={nodes}
       edges={edges}
       nodeTypes={nodeTypes}
+      className="[--xy-connectionline-stroke-width:2] [--xy-connectionline-stroke:rgb(var(--selection-rgb))] [--xy-edge-stroke-selected:rgb(var(--selection-rgb))] [--xy-edge-stroke-width:2] [--xy-edge-stroke:rgb(var(--info-rgb))]"
       fitView
       colorMode="dark"
       onConnect={onConnect}
@@ -400,7 +416,6 @@ function PopulatedFlowCanvas({
       onNodesChange={onNodesChange}
       onNodeDragStop={onNodeDragStop}
       isValidConnection={isValidConnection}
-      onSelectionChange={onSelectionChange}
       onInit={instance => {
         flowInstanceRef.current = instance
       }}

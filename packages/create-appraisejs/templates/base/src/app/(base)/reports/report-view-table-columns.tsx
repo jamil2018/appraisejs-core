@@ -54,7 +54,7 @@ const testRunTestCaseResultToBadge = (result: TestRunTestCaseResult) => {
     case TestRunTestCaseResult.FAILED:
       return <StatusBadge label="Failed" tone="danger" icon={<XCircle />} />
     case TestRunTestCaseResult.UNTESTED:
-      return <StatusBadge label="Untested" tone="warning" icon={<Clock />} />
+      return <StatusBadge label="Untested" tone="neutral" icon={<Clock />} />
     default:
       return <StatusBadge label="Unknown" icon={<Clock />} />
   }

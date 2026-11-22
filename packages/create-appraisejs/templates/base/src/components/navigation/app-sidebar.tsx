@@ -35,7 +35,7 @@ function SidebarNavItem({
     <Link
       href={projectScopedHref(item.href, projectId)}
       data-active={active}
-      className="app-focus group flex min-h-8 items-center gap-2 rounded-lg px-2 py-1 text-sm leading-5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground data-[active=true]:bg-accent data-[active=true]:font-medium data-[active=true]:text-foreground"
+      className="app-nav-item app-focus flex min-h-8 items-center gap-2 rounded-lg px-3 py-1 text-sm leading-5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
       aria-current={ariaCurrent(active)}
     >
       <Icon className="size-4 shrink-0" strokeWidth={1.8} aria-hidden="true" />
@@ -81,7 +81,7 @@ export default function AppSidebar({
       </div>
 
       <nav
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-4 [scrollbar-color:var(--border)_transparent] [scrollbar-width:thin]"
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-4 [scrollbar-color:var(--input)_transparent] [scrollbar-width:thin]"
         aria-label="Primary navigation"
       >
         <NavigationSections

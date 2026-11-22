@@ -54,9 +54,12 @@ export function DashboardStartPanel({
         <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground" aria-label="Workspace readiness">
           <li className="flex items-center gap-2">
             {agentReady ? (
-              <CheckCircle2 aria-hidden="true" className="size-4 shrink-0 text-primary" />
+              <CheckCircle2 aria-hidden="true" className="size-4 shrink-0 text-success" />
             ) : (
-              <CircleDashed aria-hidden="true" className="size-4 shrink-0" />
+              <CircleDashed
+                aria-hidden="true"
+                className={agentReady === false ? 'size-4 shrink-0 text-warning' : 'size-4 shrink-0'}
+              />
             )}
             {agentReady === true
               ? 'Latest Codex diagnostic was ready'
@@ -68,7 +71,7 @@ export function DashboardStartPanel({
             {state === 'empty' ? (
               <CircleDashed aria-hidden="true" className="size-4 shrink-0" />
             ) : (
-              <CheckCircle2 aria-hidden="true" className="size-4 shrink-0 text-primary" />
+              <CheckCircle2 aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
             )}
             {state === 'empty' ? 'No Journey or authored tests yet' : 'Workspace has prepared quality work'}
           </li>

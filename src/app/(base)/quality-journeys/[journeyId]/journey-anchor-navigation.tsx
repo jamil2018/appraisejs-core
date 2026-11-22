@@ -1,6 +1,7 @@
 import Link from 'next/link'
 
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { displayStageForQualityJourney, qualityJourneyDisplayStages } from '@/lib/quality-journey/presentation'
 
 export function JourneyAnchorNavigation({
@@ -21,6 +22,8 @@ export function JourneyAnchorNavigation({
       {qualityJourneyDisplayStages.map((displayStage, index) => (
         <div className="flex items-center gap-1" key={displayStage.id}>
           <Button
+            aria-current={index === currentStageIndex ? 'step' : undefined}
+            className={cn(index === currentStageIndex && 'border-info-border bg-info-surface text-info')}
             size="sm"
             variant="outline"
             nativeButton={false}
@@ -29,7 +32,7 @@ export function JourneyAnchorNavigation({
             {displayStage.label}
           </Button>
           {index <= currentStageIndex ? (
-            <span className="text-xs text-muted-foreground">
+            <span className={cn('text-xs', index === currentStageIndex ? 'text-info' : 'text-success')}>
               {index === currentStageIndex ? 'Current' : 'Completed'}
             </span>
           ) : null}

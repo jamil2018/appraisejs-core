@@ -43,11 +43,14 @@ These rules are the working baseline for Appraise UI refactors.
 
 AppraiseJS uses a dark graphite palette. The Journey brief, a populated Test Cases table, and a Run Report are the
 reference screens for form, table, and report density. Use shared semantic tokens for solid canvas, panels, fields,
-borders, text, focus, and interaction states. Use the light primary fill for the main action. Reserve muted color for
-labeled status and chart data.
+borders, text, focus, and interaction states. Use the light primary fill for the main action. Use blue to orient users in navigation,
+keyboard focus, selection, and active or informational states. Reserve green for confirmed success, amber for
+attention or decisions, and red for failures and destructive actions. Use distinct chart colors with readable data
+labels or summaries.
 
 - Use `app-glass` for the navigation shell and raised overlays. It owns the translucent fill, edge highlight, and
-  backdrop blur, with an opaque fallback for reduced transparency, forced colors, and browsers without blur.
+  backdrop blur, with an opaque fallback for increased contrast, reduced transparency, forced colors, and browsers without
+  blur.
   Give each overlay one material surface. Use solid fills within content.
 - Use system sans for product text and the shared monospace stack for code, IDs, and logs. Use the 4px spacing grid,
   32px compact and 36px standard controls, 44px mobile navigation targets, 8px control corners, and 12px panel corners.
@@ -77,7 +80,12 @@ labeled status and chart data.
   placeholders, visible focus outlines, and the shared overlay material. Selected values must wrap safely
   without forcing unexpected page overflow.
 - Status labels must remain readable without color alone. Use the shared semantic status treatment for equivalent
-  success, failure, warning, informational, and neutral states; keep domain-specific mapping close to the feature.
+  success, failure, warning, informational, and neutral states. Keep domain-specific mapping close to the feature,
+  with text, icons, or visible markers that identify the same meaning without hue.
+- Keep normal text at least 4.5:1 against its rendered surface. Keep any essential focus, selection, or control
+  boundary at least 3:1 against adjacent areas. Use the input border token for fields and controls that need a
+  boundary. Use the quieter structural border token for dividers and panel edges. Preserve contrast in open,
+  selected, and focused states.
 - Graph hosts should use the same solid graphite canvas, compact empty prompt, responsive minimum height, and
   labelled icon controls. Route-specific graph sizing is acceptable only when the workflow requires it.
 - Shared primitives should be changed only with representative route checks. For visual changes, capture the

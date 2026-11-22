@@ -111,7 +111,7 @@ export function MultiSelect({
               {option.label}
               <button
                 type="button"
-                className="ml-1 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                className="app-focus ml-1 rounded-full"
                 onMouseDown={e => {
                   e.preventDefault()
                   e.stopPropagation()
@@ -128,7 +128,9 @@ export function MultiSelect({
             </Badge>
           ))}
         </div>
-        <ChevronDown className={cn('size-4 shrink-0 opacity-50 transition-transform', open && 'rotate-180')} />
+        <ChevronDown
+          className={cn('size-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')}
+        />
       </PopoverTrigger>
       <PopoverContent className="w-[var(--anchor-width)] p-0" align="start">
         <Command label={accessibleSearchLabel}>
@@ -146,12 +148,12 @@ export function MultiSelect({
                     role="option"
                     aria-selected={isSelected}
                     onSelect={() => handleSelect(option.value)}
-                    className={cn('flex items-center gap-2', isSelected ? 'bg-accent' : '')}
+                    className={cn('flex items-center gap-2', isSelected ? 'bg-selection-surface' : '')}
                   >
                     <div
                       className={cn(
-                        'mr-2 flex size-4 items-center justify-center rounded-sm border border-primary',
-                        isSelected ? 'bg-primary text-primary-foreground' : 'opacity-50 [&_svg]:invisible',
+                        'mr-2 flex size-4 items-center justify-center rounded-sm border border-input',
+                        isSelected ? 'border-selection bg-selection text-primary-foreground' : '[&_svg]:invisible',
                       )}
                     >
                       <svg

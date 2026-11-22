@@ -44,7 +44,7 @@ function configureTypeScript(monaco: typeof Monaco) {
     colors: {
       'editor.background': '#1d1d20',
       'editorGutter.background': '#1d1d20',
-      'editorLineNumber.foreground': '#77777f',
+      'editorLineNumber.foreground': '#a6a6b0',
       'editorLineNumber.activeForeground': '#d5d5d9',
     },
   })

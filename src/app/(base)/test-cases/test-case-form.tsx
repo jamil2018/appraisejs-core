@@ -24,7 +24,19 @@ import {
   type TestSuite,
   type Tag,
 } from '@prisma/client'
-import { ArrowLeft, ArrowRight, GitBranch, Info, List, Maximize2, Minimize2, Plus, Save, Workflow } from 'lucide-react'
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  GitBranch,
+  Info,
+  List,
+  Maximize2,
+  Minimize2,
+  Plus,
+  Save,
+  Workflow,
+} from 'lucide-react'
 import { LayoutGroup, LazyMotion, domAnimation, useReducedMotion } from 'motion/react'
 import * as motion from 'motion/react-m'
 import { useRouter } from 'next/navigation'
@@ -227,7 +239,7 @@ function WizardProgress({ steps, currentStep, onStepClick }: WizardProgressProps
             top: 'calc(100% - 0.375rem)',
           }}
         >
-          <div className="h-full bg-primary transition-all duration-200" style={{ width: stepProgressWidth }} />
+          <div className="h-full bg-success transition-all duration-200" style={{ width: stepProgressWidth }} />
         </div>
         <div
           className="grid gap-3"
@@ -238,7 +250,6 @@ function WizardProgress({ steps, currentStep, onStepClick }: WizardProgressProps
           {steps.map((step, index) => {
             const isActive = currentStep === index
             const isComplete = currentStep > index
-            const isFilled = isComplete || (index === 0 && isActive)
 
             return (
               <button
@@ -250,20 +261,23 @@ function WizardProgress({ steps, currentStep, onStepClick }: WizardProgressProps
               >
                 <span
                   className={`text-xs font-medium transition-colors sm:text-sm ${
-                    isActive || isComplete ? 'text-primary' : 'text-muted-foreground'
+                    isActive ? 'text-selection' : isComplete ? 'text-success' : 'text-muted-foreground'
                   }`}
                 >
                   {step}
                 </span>
                 <span
-                  className={`relative z-10 size-3 rounded-full border transition-colors ${
-                    isFilled
-                      ? 'border-primary bg-primary'
+                  className={`relative z-10 flex size-3 items-center justify-center rounded-full border transition-colors ${
+                    isComplete
+                      ? 'border-success bg-success-surface text-success'
                       : isActive
-                        ? 'border-primary bg-background'
+                        ? 'border-selection bg-selection-surface ring-2 ring-selection/30'
                         : 'border-border bg-background'
                   }`}
-                />
+                  aria-hidden
+                >
+                  {isComplete ? <Check className="size-2" /> : null}
+                </span>
               </button>
             )
           })}
@@ -316,7 +330,7 @@ function FlowPanel({
         <CardHeader className="shrink-0 p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-start gap-3">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border bg-primary/10 text-primary">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-info-border bg-info-surface text-info">
                 <Workflow className="size-4" aria-hidden />
               </span>
               <div className="min-w-0 space-y-1">
@@ -789,7 +803,7 @@ function QuickTipsPanel() {
           <ol className="flex list-none flex-col gap-3">
             {testCaseQuickTips.map((tip, index) => (
               <li key={tip.title} className="grid grid-cols-[1.5rem_minmax(0,1fr)] gap-3">
-                <span className="flex size-6 items-center justify-center rounded-full bg-success/10 text-success">
+                <span className="flex size-6 items-center justify-center rounded-full bg-info-surface text-info">
                   {index + 1}
                 </span>
                 <span className="flex flex-col gap-1">

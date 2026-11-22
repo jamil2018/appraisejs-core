@@ -28,7 +28,7 @@ export type NavCommandProps = {
 
 function CommandShortcut({ isMac }: { isMac: boolean }) {
   return (
-    <span className="inline-flex shrink-0 items-center gap-0.5 font-mono text-[10px] leading-none text-muted-foreground/80">
+    <span className="inline-flex shrink-0 items-center gap-0.5 font-mono text-[10px] leading-none text-muted-foreground">
       {isMac ? (
         <>
           <Command className="size-2.5" aria-hidden="true" />
@@ -88,7 +88,7 @@ export default function NavCommand({
       >
         {isSidebar ? (
           <>
-            <Search className="size-3.5 shrink-0 opacity-60" aria-hidden="true" />
+            <Search className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
             <span className="min-w-0 flex-1 truncate text-left">{label}</span>
             <CommandShortcut isMac={isMac} />
           </>

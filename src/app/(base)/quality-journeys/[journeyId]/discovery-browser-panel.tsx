@@ -121,7 +121,7 @@ export function DiscoveryBrowserPanel({
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <ShieldCheck aria-hidden="true" className="size-5 text-primary" />
+          <ShieldCheck aria-hidden="true" className="size-5 text-info" />
           Inspect the target app
         </CardTitle>
         <CardDescription>
@@ -245,7 +245,18 @@ export function DiscoveryBrowserPanel({
         ) : (
           <section className="space-y-4" aria-label="Discovery browser session status">
             <div className="flex flex-wrap items-center gap-2">
-              <StatusBadge label={session.state.replaceAll('_', ' ')} />
+              <StatusBadge
+                label={session.state.replaceAll('_', ' ')}
+                tone={
+                  session.state === 'ACCESS_CONFIRMED'
+                    ? 'success'
+                    : ['MISSING_ACCESS', 'EXPIRED', 'LOGGED_OUT', 'CONTEXT_REPLACED'].includes(session.state)
+                      ? 'warning'
+                      : session.state === 'ACTIVE'
+                        ? 'info'
+                        : 'neutral'
+                }
+              />
               {session.currentUrl && <span className="text-xs text-muted-foreground">{session.currentUrl}</span>}
             </div>
             {session.accessMode === 'AUTHENTICATED_INTENT' && session.state === 'ACTIVE' ? (
@@ -366,7 +377,7 @@ export function DiscoveryBrowserPanel({
         )}
         {receipt ? (
           <section className="rounded-lg border border-success-border bg-success-surface p-3 text-sm" role="status">
-            <p className="font-medium">Page inspection saved</p>
+            <p className="font-medium text-success">Page inspection saved</p>
             <details>
               <summary className="cursor-pointer text-xs">Inspection details</summary>
               <pre className="mt-2 overflow-x-auto text-xs">{JSON.stringify(receipt, null, 2)}</pre>

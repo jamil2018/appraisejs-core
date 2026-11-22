@@ -56,7 +56,7 @@ describe('QualityJourneysBrowser', () => {
     render(<QualityJourneysBrowser items={[journey]} projectId="project one" />)
 
     expect(screen.getByText('Checkout accepts cards')).toBeInTheDocument()
-    expect(screen.getByText('Requirements · Ready for review')).toBeInTheDocument()
+    expect(screen.getByText('Requirements')).toHaveTextContent('Requirements · Ready for review')
     expect(screen.getByRole('link', { name: 'Checkout accepts cards' })).toHaveAttribute(
       'href',
       '/quality-journeys/journey-1?project=project%20one',

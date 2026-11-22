@@ -1,7 +1,7 @@
 'use client'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -109,14 +109,20 @@ export default function CreateLocatorWorkspace({
               onValueChange={value => setSourceType(getLocatorSourceType(value))}
               className="grid gap-3"
             >
-              <label htmlFor="source-environment" className="flex items-center gap-3 rounded-lg border p-3">
+              <label
+                htmlFor="source-environment"
+                className="flex items-center gap-3 rounded-lg border p-3 has-[[data-checked]]:border-selection-border has-[[data-checked]]:bg-selection-surface"
+              >
                 <RadioGroupItem value="environment" id="source-environment" disabled={environments.length === 0} />
                 <div>
                   <div className="font-medium">Saved environment</div>
                   <div className="text-sm text-muted-foreground">Launch from an existing base URL.</div>
                 </div>
               </label>
-              <label htmlFor="source-url" className="flex items-center gap-3 rounded-lg border p-3">
+              <label
+                htmlFor="source-url"
+                className="flex items-center gap-3 rounded-lg border p-3 has-[[data-checked]]:border-selection-border has-[[data-checked]]:bg-selection-surface"
+              >
                 <RadioGroupItem value="url" id="source-url" />
                 <div>
                   <div className="font-medium">Direct URL</div>
@@ -184,7 +190,7 @@ export default function CreateLocatorWorkspace({
                         <div className="text-[11px] text-muted-foreground">PID {session.companionPid}</div>
                       ) : null}
                     </div>
-                    <Badge variant={statusTone(session.status)}>{formatStatus(session.status)}</Badge>
+                    <StatusBadge tone={statusTone(session.status)} label={formatStatus(session.status)} />
                   </div>
 
                   <div className="space-y-2 text-sm">
@@ -248,14 +254,20 @@ export default function CreateLocatorWorkspace({
                   onValueChange={value => setResolutionMode(getLocatorWorkspaceResolutionMode(value))}
                   className="grid gap-3"
                 >
-                  <label htmlFor="group-existing" className="flex items-center gap-3 rounded-lg border p-3">
+                  <label
+                    htmlFor="group-existing"
+                    className="flex items-center gap-3 rounded-lg border p-3 has-[[data-checked]]:border-selection-border has-[[data-checked]]:bg-selection-surface"
+                  >
                     <RadioGroupItem value="existing" id="group-existing" />
                     <div>
                       <div className="font-medium">Use existing group</div>
                       <div className="text-sm text-muted-foreground">Attach the locator to a saved route group.</div>
                     </div>
                   </label>
-                  <label htmlFor="group-create" className="flex items-center gap-3 rounded-lg border p-3">
+                  <label
+                    htmlFor="group-create"
+                    className="flex items-center gap-3 rounded-lg border p-3 has-[[data-checked]]:border-selection-border has-[[data-checked]]:bg-selection-surface"
+                  >
                     <RadioGroupItem value="create" id="group-create" />
                     <div>
                       <div className="font-medium">Create new group</div>

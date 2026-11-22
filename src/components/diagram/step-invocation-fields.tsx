@@ -181,7 +181,7 @@ type InlineLocatorCreationProps = Pick<FieldControlProps, 'value' | 'onChange' |
 
 function CreatedLocatorStatus({ name }: { name?: string }) {
   if (!name) return null
-  return <p className="text-sm text-muted-foreground">Using created locator: {name}</p>
+  return <p className="text-sm text-success">Using created locator: {name}</p>
 }
 
 type LocatorCreationDialogProps = {

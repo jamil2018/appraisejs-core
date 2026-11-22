@@ -63,6 +63,8 @@ describe('create-locator-workspace helpers', () => {
 
   it('formats picker status labels and variants', () => {
     expect(formatStatus('picked')).toBe('Picked')
-    expect(statusTone('error')).toBe('destructive')
+    expect(statusTone('error')).toBe('danger')
+    expect(statusTone('picked')).toBe('success')
+    expect(statusTone('starting')).toBe('info')
   })
 })

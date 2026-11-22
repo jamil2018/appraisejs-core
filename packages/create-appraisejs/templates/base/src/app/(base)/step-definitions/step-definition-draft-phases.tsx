@@ -159,16 +159,15 @@ function StageButton({
   stage: number
   unlocked: boolean
 }) {
-  const statusClass =
-    index < stage
-      ? 'border-primary/25 bg-primary/[0.08] text-primary'
-      : stage === index
-        ? 'border-border bg-accent text-foreground'
-        : 'border-border text-muted-foreground'
+  const statusClass = ready
+    ? 'border-success-border bg-success-surface text-success'
+    : stage === index
+      ? 'border-selection-border bg-selection-surface text-selection'
+      : 'border-border text-muted-foreground'
   const buttonClass =
     stage === index
-      ? 'border-primary/20 bg-primary/[0.06] text-foreground'
-      : 'border-transparent text-muted-foreground hover:border-border hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:text-muted-foreground disabled:hover:border-transparent disabled:hover:bg-transparent'
+      ? 'border-selection-border bg-selection-surface text-selection'
+      : 'border-transparent text-foreground hover:border-selection-border hover:bg-selection-surface hover:text-selection disabled:cursor-not-allowed disabled:text-muted-foreground disabled:hover:border-transparent disabled:hover:bg-transparent disabled:hover:text-muted-foreground'
   return (
     <li>
       <button
@@ -436,9 +435,9 @@ export function ConnectPhase({
           onChange={setHandlerSource}
         />
         {diagnostics.length ? (
-          <div role="alert" className="space-y-1 rounded-lg border border-destructive/30 bg-destructive/10 p-3">
-            <p className="text-xs font-medium text-destructive">Appraise compilation diagnostics</p>
-            <ul className="list-disc space-y-1 pl-4 text-xs text-muted-foreground">
+          <div role="alert" className="space-y-1 rounded-lg border border-danger-border bg-danger-surface p-3">
+            <p className="text-xs font-medium text-danger">Appraise compilation diagnostics</p>
+            <ul className="list-disc space-y-1 pl-4 text-xs text-danger">
               {diagnostics.map(diagnostic => (
                 <li key={diagnostic}>{diagnostic}</li>
               ))}
@@ -933,8 +932,17 @@ export function VerifyPhase({
         <Code2 className="size-4" />
         {busy ? 'Compiling and running…' : 'Compile and run conformance'}
       </Button>
-      <Alert variant={conformancePassed ? 'default' : 'destructive'}>
-        <AlertCircle />
+      <Alert
+        variant={!conformancePassed && diagnostics.length ? 'destructive' : 'default'}
+        className={
+          conformancePassed
+            ? 'border-success-border bg-success-surface text-success [&>svg]:text-success'
+            : diagnostics.length
+              ? undefined
+              : 'border-warning-border bg-warning-surface text-warning [&>svg]:text-warning'
+        }
+      >
+        {conformancePassed ? <CheckCircle2 /> : <AlertCircle />}
         <AlertTitle>{conformancePassed ? 'Execution checks passed' : 'Not executable yet'}</AlertTitle>
         <AlertDescription>{readinessDescription(diagnostics, conformancePassed)}</AlertDescription>
       </Alert>
@@ -1116,7 +1124,7 @@ export function PublishPhase({
       {preview ? (
         <>
           <CodePanel label="Exact publication preview" value={JSON.stringify(preview, null, 2)} />
-          <Alert>
+          <Alert className="border-info-border bg-info-surface text-info [&>svg]:text-info">
             <AlertCircle />
             <AlertTitle>Ready for final confirmation</AlertTitle>
             <AlertDescription>
@@ -1145,10 +1153,10 @@ export function PublishedStepSuccess({
   heading?: 'h1' | 'h2'
 }) {
   return (
-    <Card className="border-primary/20 bg-card shadow-none">
+    <Card className="border-success-border bg-card shadow-none">
       <CardContent className="space-y-4 p-4">
         <div className="flex items-start gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-primary/25 bg-primary/10 text-primary">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-success-border bg-success-surface text-success">
             <CheckCircle2 className="size-5" />
           </span>
           <div>

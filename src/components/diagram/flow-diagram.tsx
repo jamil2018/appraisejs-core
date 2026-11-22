@@ -180,7 +180,6 @@ export default function FlowDiagram(props: FlowDiagramWithControllerProps) {
           onNodesChange={graph.onNodesChange}
           onNodeDragStop={graph.onNodeDragStop}
           isValidConnection={graph.isValidConnection}
-          onSelectionChange={graph.onSelectionChange}
           onRenameBlock={blocks.renameBlock}
           onDeleteBlock={blocks.deleteBlock}
           onUpdateBlockMembership={blocks.updateMembership}

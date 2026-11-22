@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { DownloadLogsButton } from './download-logs-button'
@@ -55,13 +56,13 @@ export function LogViewer({ testRunId, targetProjectId, status, className }: Log
     connectionStatus === 'connecting' || connectionStatus === 'loading' ? (
       <LoaderCircle className="size-4 animate-spin" />
     ) : connectionStatus === 'connected' ? (
-      <Wifi className="size-4 text-success" />
+      <Wifi className="size-4" />
     ) : connectionStatus === 'disconnected' ? (
-      <WifiOff className="size-4 text-muted-foreground" />
+      <WifiOff className="size-4" />
     ) : connectionStatus === 'error' ? (
-      <XCircle className="size-4 text-danger" />
+      <XCircle className="size-4" />
     ) : (
-      <CheckCircle className="size-4 text-info" />
+      <CheckCircle className="size-4" />
     )
 
   return (
@@ -80,10 +81,19 @@ export function LogViewer({ testRunId, targetProjectId, status, className }: Log
       <CardContent className="p-4 pt-0">
         <div className={cn('flex min-w-0 flex-col gap-3', className)}>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <Badge variant="outline" className="flex items-center gap-2">
-              {statusIcon}
-              <span>{getConnectionStatusText(connectionStatus)}</span>
-            </Badge>
+            <StatusBadge
+              label={getConnectionStatusText(connectionStatus)}
+              icon={statusIcon}
+              tone={
+                connectionStatus === 'error'
+                  ? 'danger'
+                  : connectionStatus === 'connected'
+                    ? 'success'
+                    : connectionStatus === 'connecting' || connectionStatus === 'loading'
+                      ? 'info'
+                      : 'neutral'
+              }
+            />
             {logs.length > 0 ? (
               <Badge variant="outline" className="font-mono text-xs">
                 {logs.length} log{logs.length !== 1 ? 's' : ''}

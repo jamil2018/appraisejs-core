@@ -83,7 +83,7 @@ function DraftCard({
             aria-label={`Delete draft ${draft.title}`}
             size="icon"
             variant="ghost"
-            className="size-8 text-muted-foreground hover:text-destructive"
+            className="size-8 text-danger hover:bg-danger-surface hover:text-danger"
             onClick={onDelete}
           >
             <Trash2 aria-hidden="true" />
@@ -105,7 +105,11 @@ function DefinitionManagement({
 }) {
   return (
     <div className="flex items-center gap-2">
-      {definition.sourceOwned ? <Badge variant="outline">Source managed</Badge> : null}
+      {definition.sourceOwned ? (
+        <Badge variant="outline" className="border-info-border bg-info-surface text-info">
+          Source managed
+        </Badge>
+      ) : null}
       <Badge variant="secondary">{definition.groupId}</Badge>
       <DropdownMenu>
         <DropdownMenuTrigger
@@ -377,7 +381,7 @@ export function StepDefinitionRegistry({
               variant="ghost"
               className={
                 view === 'cards'
-                  ? 'h-7 border border-border bg-accent px-3 text-xs text-foreground shadow-none hover:bg-accent'
+                  ? 'h-7 border border-selection-border bg-selection-surface px-3 text-xs text-selection shadow-none hover:bg-selection-surface'
                   : 'h-7 border border-transparent px-3 text-xs text-muted-foreground shadow-none hover:bg-accent hover:text-foreground'
               }
               aria-pressed={view === 'cards'}
@@ -390,7 +394,7 @@ export function StepDefinitionRegistry({
               variant="ghost"
               className={
                 view === 'compact'
-                  ? 'h-7 border border-border bg-accent px-3 text-xs text-foreground shadow-none hover:bg-accent'
+                  ? 'h-7 border border-selection-border bg-selection-surface px-3 text-xs text-selection shadow-none hover:bg-selection-surface'
                   : 'h-7 border border-transparent px-3 text-xs text-muted-foreground shadow-none hover:bg-accent hover:text-foreground'
               }
               aria-pressed={view === 'compact'}

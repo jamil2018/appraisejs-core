@@ -102,7 +102,7 @@ export function EntitySearchCommand<T extends { id: string }>({
   if (state.status === 'error') {
     return (
       <CommandGroup heading="Error">
-        <CommandItem disabled className="text-destructive">
+        <CommandItem disabled className="text-danger data-[disabled=true]:opacity-100">
           {state.message}
         </CommandItem>
       </CommandGroup>

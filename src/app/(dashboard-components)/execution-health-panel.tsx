@@ -5,10 +5,10 @@ import type { TestSuiteExecutionData } from '@/services/dashboard/dashboard-serv
 import { CheckCircle2, AlertCircle, PlayCircle } from 'lucide-react'
 
 const colorMap = {
-  passed: 'oklch(59.6% 0.145 163.225)',
-  failed: 'oklch(59.2% 0.249 0.584)',
-  cancelled: 'oklch(55.4% 0.046 257.417)',
-  unknown: 'oklch(79.5% 0.184 86.047)',
+  passed: 'rgb(var(--success-rgb))',
+  failed: 'rgb(var(--danger-rgb))',
+  cancelled: 'rgb(var(--muted-foreground-rgb))',
+  unknown: 'rgb(var(--warning-rgb))',
 }
 
 const resultByTestSuiteBarChartConfig = {
@@ -68,9 +68,7 @@ export const ExecutionHealthPanel = ({ featureData }: ExecutionHealthPanelProps)
             <div className="rounded-lg border border-border bg-muted p-3">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                    Average Success Rate
-                  </span>
+                  <span className="text-xs font-medium text-muted-foreground">Average Success Rate</span>
                   <div className="flex items-baseline gap-1.5">
                     <span className="text-3xl font-bold text-foreground">{successRate}%</span>
                     <span className="text-xs font-medium text-muted-foreground">overall</span>
@@ -79,7 +77,7 @@ export const ExecutionHealthPanel = ({ featureData }: ExecutionHealthPanelProps)
 
                 <div className="relative flex items-center justify-center">
                   <svg aria-hidden="true" className="size-14 -rotate-90">
-                    <circle cx="28" cy="28" r="22" className="stroke-white/[0.04]" strokeWidth="4" fill="transparent" />
+                    <circle cx="28" cy="28" r="22" className="stroke-border" strokeWidth="4" fill="transparent" />
                     <circle
                       cx="28"
                       cy="28"
@@ -96,16 +94,17 @@ export const ExecutionHealthPanel = ({ featureData }: ExecutionHealthPanelProps)
               </div>
 
               <div className="mt-4 space-y-2">
-                <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                <div aria-hidden="true" className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
                   <div className="bg-success" style={{ width: `${(totals.passed / totals.total) * 100}%` }} />
                   <div className="bg-danger" style={{ width: `${(totals.failed / totals.total) * 100}%` }} />
                   <div
-                    className="bg-secondary-foreground"
-                    style={{ width: `${((totals.cancelled + totals.unknown) / totals.total) * 100}%` }}
+                    className="bg-muted-foreground"
+                    style={{ width: `${(totals.cancelled / totals.total) * 100}%` }}
                   />
+                  <div className="bg-warning" style={{ width: `${(totals.unknown / totals.total) * 100}%` }} />
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 pt-1 text-[11px] text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-1 text-xs text-foreground">
                   <div className="flex items-center gap-1">
                     <CheckCircle2 className="size-3 text-success" />
                     <span>{totals.passed} Passed</span>
@@ -116,9 +115,13 @@ export const ExecutionHealthPanel = ({ featureData }: ExecutionHealthPanelProps)
                   </div>
                   <div className="flex items-center gap-1">
                     <PlayCircle className="size-3 text-muted-foreground" />
-                    <span>{totals.cancelled + totals.unknown} Other</span>
+                    <span>{totals.cancelled} Cancelled</span>
                   </div>
-                  <span className="ml-auto text-[10px] text-muted-foreground">{totals.total} scenarios total</span>
+                  <div className="flex items-center gap-1">
+                    <AlertCircle className="size-3 text-warning" />
+                    <span>{totals.unknown} Unknown</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{totals.total} scenarios total</span>
                 </div>
               </div>
             </div>

@@ -34,11 +34,11 @@ export const metadata: Metadata = {
 const browserEngineToBadge = (browserEngine: BrowserEngine) => {
   switch (browserEngine) {
     case BrowserEngine.CHROMIUM:
-      return <StatusBadge label="Chromium" tone="info" icon={browserIcons[BrowserEngine.CHROMIUM]} />
+      return <StatusBadge label="Chromium" tone="neutral" icon={browserIcons[BrowserEngine.CHROMIUM]} />
     case BrowserEngine.FIREFOX:
-      return <StatusBadge label="Firefox" tone="danger" icon={browserIcons[BrowserEngine.FIREFOX]} />
+      return <StatusBadge label="Firefox" tone="neutral" icon={browserIcons[BrowserEngine.FIREFOX]} />
     case BrowserEngine.WEBKIT:
-      return <StatusBadge label="WebKit" tone="info" icon={browserIcons[BrowserEngine.WEBKIT]} />
+      return <StatusBadge label="WebKit" tone="neutral" icon={browserIcons[BrowserEngine.WEBKIT]} />
     default:
       return <StatusBadge label="Unknown browser" tone="neutral" />
   }

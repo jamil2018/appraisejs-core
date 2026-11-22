@@ -56,7 +56,7 @@ export function OptionsHeaderGherkinStep({
                 render={
                   <Badge
                     variant="outline"
-                    className="mx-0.5 inline-flex cursor-help border-primary/30 bg-primary/10 px-1.5 py-0 align-baseline text-[11px] font-medium text-primary"
+                    className="mx-0.5 inline-flex cursor-help border-info-border bg-info-surface px-1.5 py-0 align-baseline text-[11px] font-medium text-info"
                   >
                     {matchingParameter.value}
                   </Badge>

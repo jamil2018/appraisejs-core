@@ -41,7 +41,7 @@ function DropdownMenuContent({
   )
 }
 const itemClassName =
-  'relative flex min-h-8 cursor-default select-none items-center gap-2 rounded-lg px-2 py-1 text-sm outline-none transition-colors data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&>svg]:size-4 [&>svg]:shrink-0'
+  'relative flex min-h-8 cursor-default select-none items-center gap-2 rounded-lg px-2 py-1 text-sm outline-none transition-colors data-[highlighted]:bg-selection-surface data-[highlighted]:ring-1 data-[highlighted]:ring-inset data-[highlighted]:ring-selection-border forced-colors:data-[highlighted]:outline forced-colors:data-[highlighted]:outline-1 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&>svg]:size-4 [&>svg]:shrink-0'
 type DropdownMenuItemProps = Omit<React.ComponentProps<typeof Primitive.Item>, 'className'> & {
   className?: string
   inset?: boolean
@@ -56,7 +56,7 @@ function DropdownMenuCheckboxItem({
 }: Omit<React.ComponentProps<typeof Primitive.CheckboxItem>, 'className'> & { className?: string }) {
   return (
     <Primitive.CheckboxItem className={cn(itemClassName, 'pl-8', className)} {...props}>
-      <span className="absolute left-2 flex size-4 items-center justify-center">
+      <span className="absolute left-2 flex size-4 items-center justify-center text-selection">
         <Primitive.CheckboxItemIndicator>
           <Check className="size-4" aria-hidden />
         </Primitive.CheckboxItemIndicator>

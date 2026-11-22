@@ -1,3 +1,4 @@
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { getAllEnvironmentsAction } from '@/actions/environments/environment-actions'
 import EmptyState from '@/components/data-state/empty-state'
 import PageHeader from '@/components/typography/page-header'
@@ -60,10 +61,10 @@ const Environments = async () => {
       </dl>
 
       {environmentsError ? (
-        <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/[0.07] p-4">
-          <h2 className="text-sm font-semibold text-foreground">Unable to load environments</h2>
-          <p className="mt-1 text-sm text-muted-foreground">{environmentsError}</p>
-        </div>
+        <Alert variant="destructive">
+          <AlertTitle>Unable to load environments</AlertTitle>
+          <AlertDescription>{environmentsError}</AlertDescription>
+        </Alert>
       ) : environmentsData.length === 0 ? (
         <EmptyState
           icon={<Server className="size-5" />}

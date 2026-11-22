@@ -46,7 +46,7 @@ function DraftCards({ drafts, projectId }: { drafts: DraftSummary[]; projectId: 
           href={`/quality-journeys/drafts/${draft.id}?project=${encodeURIComponent(projectId)}`}
           key={draft.id}
         >
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary/[0.07] text-primary">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-info-border bg-info-surface text-info">
             <FilePenLine aria-hidden="true" className="size-4" />
           </span>
           <span className="min-w-0">
@@ -58,7 +58,7 @@ function DraftCards({ drafts, projectId }: { drafts: DraftSummary[]; projectId: 
               {draft.updatedAt.toLocaleString()}
             </span>
           </span>
-          <span className="pointer-events-none absolute right-4 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-lg border border-border bg-card text-foreground/70 transition-[border-color,color,transform] group-hover:translate-x-0.5 group-hover:border-primary/35 group-hover:text-primary">
+          <span className="pointer-events-none absolute right-4 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-[border-color,color,transform] group-hover:translate-x-0.5 group-hover:border-info-border group-hover:text-info">
             <ArrowRight aria-hidden="true" className="size-4" />
           </span>
         </Link>

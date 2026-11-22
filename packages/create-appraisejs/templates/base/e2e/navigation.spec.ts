@@ -100,7 +100,11 @@ test.describe('Navigation @navigation', () => {
     const commandInput = command.getByRole('combobox')
     const desktopSearch = page.getByRole('button', { name: 'Open Command Palette' })
 
-    await desktopSearch.focus()
+    await page.getByRole('combobox', { name: 'Active project' }).focus()
+    await page.keyboard.press('Tab')
+    await expect(desktopSearch).toBeFocused()
+    await expect(desktopSearch).toHaveCSS('outline-style', 'solid')
+    await expect(desktopSearch).toHaveCSS('outline-width', '2px')
     await desktopSearch.press('ControlOrMeta+k')
     await expect(commandInput).toBeFocused()
     await page.keyboard.press('Escape')

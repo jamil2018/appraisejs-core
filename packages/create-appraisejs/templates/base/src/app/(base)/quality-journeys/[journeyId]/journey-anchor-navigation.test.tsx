@@ -14,6 +14,7 @@ describe('JourneyAnchorNavigation', () => {
       'href',
       '/quality-journeys/journey%2Fa?project=project%2Fa#automation',
     )
+    expect(screen.getByRole('link', { name: 'Test preparation' })).toHaveAttribute('aria-current', 'step')
     expect(screen.getByText('Current')).toBeInTheDocument()
     expect(screen.getAllByText('Completed')).toHaveLength(3)
   })

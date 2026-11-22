@@ -14,27 +14,30 @@
     --secondary-rgb: 51 51 51;
     --secondary-foreground-rgb: 196 196 196;
     --muted-rgb: 44 44 44;
-    --muted-foreground-rgb: 168 168 168;
+    --muted-foreground-rgb: 180 180 180;
     --accent-rgb: 58 58 58;
     --accent-foreground-rgb: 242 242 242;
-    --destructive-rgb: 225 167 168;
+    --destructive-rgb: 255 170 173;
     --destructive-foreground-rgb: 36 23 23;
     --border-rgb: 61 61 61;
-    --input-rgb: 116 116 116;
+    --input-rgb: 130 130 130;
     --field-rgb: 34 34 34;
-    --ring-rgb: 196 196 196;
-    --success-rgb: 169 200 174;
-    --success-surface-rgb: 39 51 41;
-    --success-border-rgb: 84 111 89;
-    --warning-rgb: 224 196 151;
-    --warning-surface-rgb: 54 46 33;
-    --warning-border-rgb: 126 105 70;
-    --danger-rgb: 225 167 168;
-    --danger-surface-rgb: 58 39 40;
-    --danger-border-rgb: 129 84 85;
-    --info-rgb: 169 194 218;
-    --info-surface-rgb: 38 48 58;
-    --info-border-rgb: 77 103 128;
+    --ring-rgb: 156 197 255;
+    --success-rgb: 149 219 174;
+    --success-surface-rgb: 32 60 45;
+    --success-border-rgb: 101 170 126;
+    --warning-rgb: 242 203 128;
+    --warning-surface-rgb: 64 49 29;
+    --warning-border-rgb: 189 150 85;
+    --danger-rgb: 255 170 173;
+    --danger-surface-rgb: 72 40 45;
+    --danger-border-rgb: 201 121 128;
+    --info-rgb: 169 210 255;
+    --info-surface-rgb: 34 51 68;
+    --info-border-rgb: 120 164 212;
+    --selection-rgb: 186 216 255;
+    --selection-surface-rgb: 38 58 81;
+    --selection-border-rgb: 120 159 204;
     --chart-1: #aac4b1;
     --chart-2: #a8bfd9;
     --chart-3: #d9be95;
@@ -52,6 +55,19 @@
     --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
     --font-mono: ui-monospace, 'SFMono-Regular', Consolas, monospace;
     --radius: 0.5rem;
+  }
+
+  @media (prefers-contrast: more) {
+    :root {
+      --muted-foreground-rgb: 215 215 215;
+      --secondary-foreground-rgb: 229 229 229;
+      --input-rgb: 166 166 166;
+      --border-rgb: 120 120 120;
+    }
+  }
+
+  ::selection {
+    @apply bg-selection text-primary-foreground;
   }
 
   * {
@@ -79,6 +95,23 @@
     @apply rounded-lg border border-input bg-field text-foreground placeholder:text-muted-foreground;
   }
 
+  .app-field[aria-invalid='true'] {
+    @apply border-danger;
+  }
+
+  .app-nav-item[aria-current='page'] {
+    @apply relative bg-selection-surface font-medium text-foreground;
+  }
+
+  .app-nav-item[aria-current='page']::before {
+    content: '';
+    @apply absolute inset-y-2 left-0 rounded-full border-l-2 border-selection;
+  }
+
+  .app-nav-item[aria-current='page'] > svg {
+    @apply text-selection;
+  }
+
   .app-divider {
     @apply border-border;
   }
@@ -104,7 +137,7 @@
     }
   }
 
-  @media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  @media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) {
     .app-glass {
       @apply bg-popover;
       -webkit-backdrop-filter: none;
@@ -116,6 +149,11 @@
   @media (forced-colors: active) {
     .app-focus:focus-visible {
       outline-color: Highlight;
+    }
+
+    .app-nav-item[aria-current='page']::before {
+      border-color: Highlight;
+      forced-color-adjust: none;
     }
   }
 }

@@ -68,7 +68,7 @@ function MultiSelectWithPreviewImpl({
           }
         >
           {selectedValues.length > 0 ? `${selectedValues.length} ${selectedLabel.toLowerCase()}` : placeholder}
-          <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+          <ChevronsUpDown className="ml-2 size-4 shrink-0 text-muted-foreground" />
         </PopoverTrigger>
         <PopoverContent className={cn('w-full max-w-[600px] p-0', className)} align="start">
           <Command label={searchPlaceholder ?? 'Search options'} className={cn('w-full', className)}>

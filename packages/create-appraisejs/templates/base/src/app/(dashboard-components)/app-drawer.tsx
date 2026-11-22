@@ -5,6 +5,7 @@ import { StatusBadge } from '@/components/ui/status-badge'
 import { AlertCircle, AlertTriangle, Clock, XCircle, CheckCircle2, ArrowRight } from 'lucide-react'
 import { DashboardMetrics } from '@prisma/client'
 import { useRouter } from 'next/navigation'
+import { cn } from '@/lib/utils'
 
 type AppDrawerItemConfig = {
   title: string
@@ -12,6 +13,7 @@ type AppDrawerItemConfig = {
   healthyDescription: string
   icon: React.ReactNode
   count: number
+  tone: 'danger' | 'warning'
   onClick: () => void
 }
 
@@ -24,6 +26,7 @@ const AppDrawerItem = ({
 }) => {
   const isHealthy = item.count === 0
   const emptyEvidence = isHealthy && !hasExecutionEvidence
+  const attentionClass = item.tone === 'danger' ? 'text-danger' : 'text-warning'
 
   return (
     <button
@@ -36,10 +39,16 @@ const AppDrawerItem = ({
     >
       <span className="flex items-center justify-between gap-2 text-xs font-medium text-muted-foreground">
         {item.title}
-        {isHealthy && !emptyEvidence ? <CheckCircle2 className="size-4 shrink-0" aria-hidden /> : item.icon}
+        {isHealthy && !emptyEvidence ? (
+          <CheckCircle2 className="size-4 shrink-0" aria-hidden />
+        ) : (
+          <span className={cn('flex shrink-0', !isHealthy && attentionClass)}>{item.icon}</span>
+        )}
       </span>
       <span className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-        <span className="text-2xl font-semibold tabular-nums text-foreground">{item.count}</span>
+        <span className={cn('text-2xl font-semibold tabular-nums', isHealthy ? 'text-foreground' : attentionClass)}>
+          {item.count}
+        </span>
         {isHealthy ? (
           <StatusBadge label={emptyEvidence ? 'No evidence' : 'Clear'} tone="neutral" />
         ) : (
@@ -68,6 +77,7 @@ export default function AppDrawer({
       healthyDescription: 'No recent failures',
       icon: <XCircle aria-hidden className="size-4 shrink-0" />,
       count: metrics?.failedRecentRunsCount ?? 0,
+      tone: 'danger',
       onClick: () => {
         push('/test-runs?filter=recentFailed')
       },
@@ -78,6 +88,7 @@ export default function AppDrawer({
       healthyDescription: 'No failing tests',
       icon: <AlertCircle aria-hidden className="size-4 shrink-0" />,
       count: metrics?.repeatedlyFailingTestsCount ?? 0,
+      tone: 'danger',
       onClick: () => {
         push('/reports/test-cases?filter=repeatedlyFailing')
       },
@@ -88,6 +99,7 @@ export default function AppDrawer({
       healthyDescription: 'No flaky tests',
       icon: <AlertTriangle aria-hidden className="size-4 shrink-0" />,
       count: metrics?.flakyTestsCount ?? 0,
+      tone: 'warning',
       onClick: () => {
         push('/reports/test-cases?filter=flaky')
       },
@@ -98,6 +110,7 @@ export default function AppDrawer({
       healthyDescription: 'All suites current',
       icon: <Clock aria-hidden className="size-4 shrink-0" />,
       count: metrics?.suitesNotExecutedRecentlyCount ?? 0,
+      tone: 'warning',
       onClick: () => {
         push('/reports/test-suites?filter=notExecutedRecently')
       },
