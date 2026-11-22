@@ -5,17 +5,14 @@ import { cn } from '@/lib/utils'
 function Card({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
-      className={cn(
-        'rounded-xl border border-white/[0.09] bg-[linear-gradient(145deg,rgba(255,255,255,0.05)_0%,rgba(255,255,255,0.026)_46%,rgba(255,255,255,0.014)_100%)] text-card-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-18px_36px_rgba(0,0,0,0.12),0_18px_50px_-38px_rgba(0,0,0,0.8)] backdrop-blur-xl supports-[not(backdrop-filter:blur(1px))]:bg-card',
-        className,
-      )}
+      className={cn('app-surface rounded-xl border border-border bg-card text-card-foreground', className)}
       {...props}
     />
   )
 }
 
 function CardHeader({ className, ...props }: React.ComponentProps<'div'>) {
-  return <div className={cn('flex flex-col space-y-1.5 p-6', className)} {...props} />
+  return <div className={cn('flex flex-col gap-2 p-6', className)} {...props} />
 }
 
 function CardTitle({ className, ...props }: React.ComponentProps<'div'>) {

@@ -71,14 +71,17 @@ export default function DeletePrompt({
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       {!isControlled && (
-        <DialogTrigger asChild disabled={isDisabled}>
-          <Button variant="outline" size="icon" aria-label={triggerLabel}>
-            <Trash className="size-4" aria-hidden="true" />
-            <span className="sr-only">{triggerLabel}</span>
-          </Button>
-        </DialogTrigger>
+        <DialogTrigger
+          disabled={isDisabled}
+          render={
+            <Button variant="outline" size="icon" aria-label={triggerLabel}>
+              <Trash className="size-4" aria-hidden="true" />
+              <span className="sr-only">{triggerLabel}</span>
+            </Button>
+          }
+        />
       )}
-      <DialogContent className="border-none">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle className="flex items-end gap-2">
             <AlertCircle className="size-5" aria-hidden="true" />
@@ -92,11 +95,11 @@ export default function DeletePrompt({
         <DialogFooter>
           <Button
             variant="destructive"
-            className="bg-red-500 hover:bg-red-600"
+
             onClick={handleDelete}
             disabled={isDeleting}
           >
-            <span className="flex items-center gap-2 text-white">
+            <span className="text-danger-foreground flex items-center gap-2">
               <Trash className="size-4" aria-hidden="true" />
               {isDeleting ? 'Deleting...' : confirmLabel}
             </span>
@@ -104,7 +107,7 @@ export default function DeletePrompt({
           <Button
             type="button"
             variant="secondary"
-            className="bg-zinc-700 text-white hover:bg-zinc-800"
+
             onClick={() => handleOpenChange(false)}
             disabled={isDeleting}
           >

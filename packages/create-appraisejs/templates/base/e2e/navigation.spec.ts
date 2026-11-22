@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-import { disconnectPrisma, resetE2eData, seedCoreData, seededIds } from './helpers/test-data'
+import { disconnectPrisma, resetE2eData, seedCoreData, seedEmptyProject, seededIds } from './helpers/test-data'
 import { buildModifyPath, visitRoutes, type RouteExpectation } from './helpers/navigation'
 import { expectPageHeading } from './helpers/ui'
 
@@ -52,6 +52,83 @@ test.describe('Navigation @navigation', () => {
     await visitRoutes(page, [...listRoutes, ...createRoutes])
   })
 
+  test('workspace screens fill wide displays and contain overflow on narrow screens', async ({ page }) => {
+    const screens = [
+      { path: '/', heading: 'Dashboard' },
+      { path: '/test-cases', heading: 'Test Cases' },
+      { path: '/test-suites/create', heading: 'Create Test Suite' },
+      { path: '/environments/create', heading: 'Create Environment' },
+      { path: `/reports/${seededIds.report}`, heading: /Test Run Report:/ },
+      { path: '/projects', heading: 'Projects' },
+      { path: '/settings', heading: 'Settings' },
+      { path: '/help', heading: 'Help' },
+    ]
+    await page.setViewportSize({ width: 1920, height: 1000 })
+    for (const { path, heading } of screens) {
+      await page.goto(path)
+      await expect(page.getByRole('heading', { name: heading, exact: typeof heading === 'string' })).toBeVisible()
+      const space = await page
+        .locator('#main-content > div')
+        .first()
+        .evaluate(element => {
+          const shell = element.parentElement!
+          const style = getComputedStyle(shell)
+          return {
+            available: shell.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight),
+            used: element.getBoundingClientRect().width,
+          }
+        })
+      expect(space.used, path).toBeCloseTo(space.available, 0)
+      await page.setViewportSize({ width: 320, height: 740 })
+      await expect
+        .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), { message: path })
+        .toBe(true)
+      if (path === '/test-cases') {
+        const columns = page.getByRole('button', { name: 'Columns', exact: true })
+        await columns.click()
+        await expect(page.getByRole('menuitemcheckbox', { name: 'title', exact: true })).toBeVisible()
+        await page.keyboard.press('Escape')
+        await expect(columns).toBeFocused()
+      }
+      await page.setViewportSize({ width: 1920, height: 1000 })
+    }
+  })
+
+  test('command palette dismisses back to its trigger in desktop and mobile navigation', async ({ page }) => {
+    await page.goto('/')
+    const command = page.getByRole('dialog', { name: 'Command Palette' })
+    const commandInput = command.getByRole('combobox')
+    const desktopSearch = page.getByRole('button', { name: 'Open Command Palette' })
+
+    await page.getByRole('combobox', { name: 'Active project' }).focus()
+    await page.keyboard.press('Tab')
+    await expect(desktopSearch).toBeFocused()
+    await expect(desktopSearch).toHaveCSS('outline-style', 'solid')
+    await expect(desktopSearch).toHaveCSS('outline-width', '2px')
+    await desktopSearch.press('ControlOrMeta+k')
+    await expect(commandInput).toBeFocused()
+    await page.keyboard.press('Escape')
+    await expect(command).toBeHidden()
+    await expect(desktopSearch).toBeFocused()
+
+    await page.setViewportSize({ width: 390, height: 844 })
+    const navigationButton = page.getByRole('button', { name: 'Open navigation menu' })
+    const navigation = page.getByRole('dialog', { name: 'Navigation menu' })
+    await navigationButton.click()
+    const mobileSearch = navigation.getByRole('button', { name: 'Open Command Palette' })
+    await mobileSearch.focus()
+    await mobileSearch.press('ControlOrMeta+k')
+    await expect(command).toHaveCount(1)
+    await expect(commandInput).toBeFocused()
+    await page.keyboard.press('Escape')
+    await expect(command).toBeHidden()
+    await expect(navigation).toBeVisible()
+    await expect(mobileSearch).toBeFocused()
+    await page.keyboard.press('Escape')
+    await expect(navigation).toBeHidden()
+    await expect(navigationButton).toBeFocused()
+  })
+
   test('removed Quality Plan, Assessment, and compatibility routes return ordinary not-found pages', async ({
     page,
   }) => {
@@ -59,6 +136,30 @@ test.describe('Navigation @navigation', () => {
       const response = await page.goto(path)
       expect(response?.status()).toBe(404)
     }
+  })
+
+  test('test case picker keeps its actions visible when the list scrolls on a short screen', async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 480 })
+    await page.goto('/test-suites/create')
+    const browse = page.getByRole('button', { name: /Select test case\(s\) Browse/i })
+    await browse.click()
+
+    const picker = page.getByRole('dialog', { name: 'Select Test Cases' })
+    await expect(picker.getByRole('region', { name: 'Available test cases' })).toBeVisible()
+    const loginCase = picker.getByRole('checkbox', { name: 'Select E2E seeded login works', exact: true })
+    await loginCase.press('Space')
+    await expect(loginCase).toBeChecked()
+    await expect(picker.getByRole('checkbox', { name: 'Select E2E secondary case', exact: true })).not.toBeChecked()
+    await expect(picker.getByRole('button', { name: 'Save' })).toBeInViewport()
+    const pageSize = picker.getByRole('combobox', { name: 'Rows per page' })
+    await pageSize.scrollIntoViewIfNeeded()
+    await expect(pageSize).toBeInViewport()
+    await expect(picker.getByRole('button', { name: 'Cancel' })).toBeInViewport()
+    await expect(picker.getByRole('button', { name: 'Save' })).toBeInViewport()
+
+    await page.keyboard.press('Escape')
+    await expect(picker).toBeHidden()
+    await expect(browse).toBeFocused()
   })
 
   test('modify and detail routes render for seeded records', async ({ page }) => {
@@ -148,4 +249,21 @@ test.describe('Navigation @navigation', () => {
     await expect(transition).toHaveCSS('opacity', '1')
     await expect(transition).toHaveCSS('transform', 'none')
   })
+})
+
+test('empty libraries keep their heading and next action together on a narrow screen', async ({ page }) => {
+  await resetE2eData()
+  await seedEmptyProject()
+  await page.setViewportSize({ width: 320, height: 740 })
+
+  for (const [path, title, action] of [
+    ['/test-cases', 'Test Cases', 'Create Test Case'],
+    ['/test-runs', 'Test Runs', 'Create Test Run'],
+    ['/reports', 'Reports', 'Start a Quality Journey'],
+  ]) {
+    await page.goto(path)
+    await expect(page.getByRole('heading', { name: title, level: 1, exact: true })).toBeInViewport()
+    await expect(page.getByRole('link', { name: action, exact: true })).toBeInViewport()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  }
 })

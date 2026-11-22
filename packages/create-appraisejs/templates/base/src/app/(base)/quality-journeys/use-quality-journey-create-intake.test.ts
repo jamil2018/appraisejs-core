@@ -46,9 +46,7 @@ function deferred<T>() {
 }
 
 function renderIntake() {
-  return renderHook(() =>
-    useQualityJourneyCreateIntake({ draft, initialEnvironments: [], projectId: 'project-1', push: mocks.push }),
-  )
+  return renderHook(() => useQualityJourneyCreateIntake({ draft, projectId: 'project-1', push: mocks.push }))
 }
 
 beforeEach(() => {

@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import type { Node, NodeChange } from '@xyflow/react'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
@@ -11,13 +12,12 @@ vi.mock('@xyflow/react', () => ({
   Controls: () => null,
   Panel: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   ViewportPortal: ({ children }: { children: ReactNode }) => <>{children}</>,
-  applyNodeChanges: (
-    changes: Array<{ id: string; type: 'position'; position: { x: number; y: number } }>,
-    nodes: Array<{ id: string; position: { x: number; y: number } }>,
-  ) =>
+  applyNodeChanges: (changes: NodeChange<Node>[], nodes: Node[]) =>
     nodes.map(node => {
-      const change = changes.find(candidate => candidate.id === node.id && candidate.type === 'position')
-      return change ? { ...node, position: change.position } : node
+      const change = changes.find(candidate => 'id' in candidate && candidate.id === node.id)
+      if (change?.type === 'position' && change.position) return { ...node, position: change.position }
+      if (change?.type === 'select') return { ...node, selected: change.selected }
+      return node
     }),
   ReactFlow: ({
     children,
@@ -30,15 +30,15 @@ vi.mock('@xyflow/react', () => ({
     onNodeDragStop,
   }: {
     children: ReactNode
-    nodes: Array<{ id: string; type: string; data: unknown; position: { x: number; y: number } }>
+    nodes: Array<Node & { type: string }>
     edges: Array<{ id: string; source: string; target: string }>
-    nodeTypes: Record<string, React.ComponentType<{ id: string; data: unknown }>>
+    nodeTypes: Record<string, React.ComponentType<{ id: string; data: unknown; selected?: boolean }>>
     onConnect: (connection: { source: string; target: string }) => void
     onReconnect: (
       edge: { id: string; source: string; target: string },
       connection: { source: string; target: string },
     ) => void
-    onNodesChange: (changes: Array<{ id: string; type: 'position'; position: { x: number; y: number } }>) => void
+    onNodesChange: (changes: NodeChange<Node>[]) => void
     onNodeDragStop: (
       event: unknown,
       node: { id: string; type: string; data: unknown; position: { x: number; y: number } },
@@ -51,7 +51,7 @@ vi.mock('@xyflow/react', () => ({
     >
       {nodes.map(node => {
         const NodeComponent = nodeTypes[node.type]!
-        return <NodeComponent key={node.id} id={node.id} data={node.data} />
+        return <NodeComponent key={node.id} id={node.id} data={node.data} selected={node.selected} />
       })}
       {edges.map(edge => (
         <div key={edge.id} data-testid={`edge-${edge.source}-${edge.target}`} />
@@ -73,6 +73,12 @@ vi.mock('@xyflow/react', () => ({
         onClick={() => onNodesChange([{ id: nodes.at(-1)!.id, type: 'position', position: { x: 999, y: 80 } }])}
       >
         Offset last node
+      </button>
+      <button
+        type="button"
+        onClick={() => onNodesChange([{ id: nodes[0]!.id, type: 'select', selected: !nodes[0]!.selected }])}
+      >
+        Toggle first node selection
       </button>
       {children}
     </div>
@@ -357,7 +363,14 @@ describe('typed Step Invocation input authoring', () => {
     expect(screen.getAllByText('enabled')).toHaveLength(3)
     expect(screen.getAllByTitle('false')).toHaveLength(3)
 
+    const toggleSelection = screen.getByRole('button', { name: 'Toggle first node selection' })
+    fireEvent.click(toggleSelection)
+    expect(screen.getByText('Selected', { exact: true })).toBeVisible()
+
     fireEvent.click(screen.getByRole('button', { name: 'Offset last node' }))
+    expect(screen.getByText('Selected', { exact: true })).toBeVisible()
+    fireEvent.click(toggleSelection)
+    expect(screen.queryByText('Selected', { exact: true })).not.toBeInTheDocument()
     expect(screen.getByTestId('react-flow')).toHaveAttribute(
       'data-node-positions',
       JSON.stringify([
@@ -432,7 +445,7 @@ describe('typed Step Invocation input authoring', () => {
     expect(screen.getByTestId('react-flow')).toHaveAttribute('data-edge-count', '3')
   })
 
-  it('keeps graph search shortcuts out of editable fields and exposes renameable flow-block overlays', () => {
+  it('keeps graph search shortcuts out of editable fields and exposes renameable flow-block overlays', async () => {
     const onFlowBlocksChange = vi.fn()
     const node = createAuthoredFlowNode(definition, 'node-1')
     const secondNode = { ...createAuthoredFlowNode(definition, 'node-2'), order: 2 }
@@ -452,8 +465,8 @@ describe('typed Step Invocation input authoring', () => {
     )
 
     fireEvent.keyDown(window, { key: 's', ctrlKey: true, shiftKey: true })
-    expect(screen.getByLabelText('Search flow nodes')).toBeVisible()
-    expect(screen.getByLabelText('Search flow nodes')).toHaveFocus()
+    await waitFor(() => expect(screen.getByLabelText('Search flow nodes')).toBeVisible())
+    await waitFor(() => expect(screen.getByLabelText('Search flow nodes')).toHaveFocus())
     fireEvent.keyDown(screen.getByLabelText('Search flow nodes'), { key: 'c', ctrlKey: true, shiftKey: true })
     expect(screen.queryByRole('dialog', { name: 'Configure step parameters' })).not.toBeInTheDocument()
 

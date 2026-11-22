@@ -82,6 +82,8 @@ export default function FlowDiagram(props: FlowDiagramWithControllerProps) {
   const { stepDefinitions, locators, locatorGroups, environments, modules, onInlineLocatorSave, layoutRefreshKey } =
     props
   const flowInstanceRef = useRef<ReactFlowInstance<Node<DiagramNodeData>, Edge> | null>(null)
+  const detailsFallbackRef = useRef<HTMLButtonElement>(null)
+  const detailsCloseRef = useRef<HTMLButtonElement>(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const revealDetails = useCallback(() => setIsDetailsOpen(true), [])
   const { flow, editor, graph, blocks } = useFlowDiagramModel(props, revealDetails)
@@ -121,6 +123,7 @@ export default function FlowDiagram(props: FlowDiagramWithControllerProps) {
               type="button"
               size="icon"
               variant="outline"
+              ref={detailsFallbackRef}
               aria-label="Open step details"
               onClick={revealNewStepDetails}
             >
@@ -135,17 +138,19 @@ export default function FlowDiagram(props: FlowDiagramWithControllerProps) {
               onCreate={blocks.createBlock}
             />
             <Popover open={search.isOpen} onOpenChange={search.setIsOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="outline"
-                  aria-label="Search nodes"
-                  disabled={graph.nodes.length === 0}
-                >
-                  <Search aria-hidden />
-                </Button>
-              </PopoverTrigger>
+              <PopoverTrigger
+                render={
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    aria-label="Search nodes"
+                    disabled={graph.nodes.length === 0}
+                  >
+                    <Search aria-hidden />
+                  </Button>
+                }
+              />
               <PopoverContent align="start" className="w-96 p-2">
                 <FlowNodeSearch
                   isOpen
@@ -175,7 +180,6 @@ export default function FlowDiagram(props: FlowDiagramWithControllerProps) {
           onNodesChange={graph.onNodesChange}
           onNodeDragStop={graph.onNodeDragStop}
           isValidConnection={graph.isValidConnection}
-          onSelectionChange={graph.onSelectionChange}
           onRenameBlock={blocks.renameBlock}
           onDeleteBlock={blocks.deleteBlock}
           onUpdateBlockMembership={blocks.updateMembership}
@@ -188,24 +192,28 @@ export default function FlowDiagram(props: FlowDiagramWithControllerProps) {
       </div>
       <Drawer direction="right" open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
         <DrawerContent
-          overlayClassName="bg-transparent"
+          initialFocus={detailsCloseRef}
+          finalFocus={() => detailsFallbackRef.current}
           onOverlayClick={() => setIsDetailsOpen(false)}
-          className="inset-y-0 left-auto right-0 mt-0 h-full w-[min(24rem,calc(100vw-1rem))] rounded-l-md rounded-tr-none [&>div:first-child]:hidden"
+          className="inset-y-0 left-auto right-0 mt-0 h-full w-[min(24rem,calc(100vw-1rem))] rounded-l-xl rounded-tr-none"
         >
           <DrawerHeader className="relative border-b pr-14 text-left">
             <DrawerTitle>Step details</DrawerTitle>
             <DrawerDescription>Choose a ready definition, then configure its inputs.</DrawerDescription>
-            <DrawerClose asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="absolute right-3 top-3"
-                aria-label="Close step details"
-              >
-                <X aria-hidden />
-              </Button>
-            </DrawerClose>
+            <DrawerClose
+              render={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-3 top-3"
+                  ref={detailsCloseRef}
+                  aria-label="Close step details"
+                >
+                  <X aria-hidden />
+                </Button>
+              }
+            />
           </DrawerHeader>
           <FlowAuthoringSidebar
             definitions={stepDefinitions}

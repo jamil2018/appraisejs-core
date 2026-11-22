@@ -62,15 +62,15 @@ export function PickerBrowseDialogFrame({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-6xl gap-0 overflow-hidden p-0">
-        <DialogHeader className="border-b px-6 py-4">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-6xl grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden p-0">
+        <DialogHeader className="border-b py-4 pl-4 pr-14 sm:pl-6">
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-4 px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="relative flex-1">
+        <div className="min-h-0 space-y-4 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative min-w-0 flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 aria-label={searchPlaceholder}
@@ -86,7 +86,7 @@ export function PickerBrowseDialogFrame({
           {children}
         </div>
 
-        <DialogFooter className="border-t px-6 py-4">
+        <DialogFooter className="flex-row justify-end border-t px-4 py-4 sm:px-6">
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
           </Button>

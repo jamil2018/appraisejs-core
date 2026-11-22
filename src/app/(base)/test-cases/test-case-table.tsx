@@ -12,6 +12,7 @@ export default async function TestCaseTable() {
   return (
     <>
       <DataTable
+        tableLabel="Test cases"
         columns={testCaseTableCols}
         data={testCaseRows}
         filterColumn="title"

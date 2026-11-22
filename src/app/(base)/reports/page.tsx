@@ -25,36 +25,32 @@ const Reports = async () => {
     return <div>Error: Invalid report data format</div>
   }
 
-  if (!reports || reports.length === 0) {
-    return (
-      <div className="flex min-h-[calc(100vh-20rem)] items-center justify-center">
-        <div className="space-y-4 text-center">
-          <EmptyState
-            icon={<FileCheck className="size-8" />}
-            title="No completed-run reports yet"
-            description="Reports appear after a run completes. Start with a guided Quality Journey, or prepare an independent manual run if tests already exist."
-            createRoute="/quality-journeys/new"
-            createText="Start a Quality Journey"
-          />
-          <Button asChild variant="outline">
-            <Link href="/test-runs/create">Prepare an independent run</Link>
-          </Button>
-        </div>
-      </div>
-    )
-  }
   return (
     <>
-      <div className="mb-8">
+      <div className="mb-4">
         <PageHeader>
           <span className="flex items-center">
-            <FileCheck className="mr-2 size-8" />
+            <FileCheck className="mr-2 size-8 shrink-0" />
             Reports
           </span>
         </PageHeader>
         <HeaderSubtitle>Review test execution details, identify patterns, and optimize performance</HeaderSubtitle>
       </div>
-      <ReportTable reports={reports} />
+      {reports.length === 0 ? (
+        <EmptyState
+          icon={<FileCheck className="size-5" />}
+          title="No completed-run reports yet"
+          description="Reports appear after a run completes. Start with a guided Quality Journey, or prepare an independent manual run if tests already exist."
+          createRoute="/quality-journeys/new"
+          createText="Start a Quality Journey"
+        >
+          <Button variant="outline" render={<Link href="/test-runs/create" />} nativeButton={false}>
+            Prepare an independent run
+          </Button>
+        </EmptyState>
+      ) : (
+        <ReportTable reports={reports} />
+      )}
     </>
   )
 }

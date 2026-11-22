@@ -11,6 +11,6 @@ describe('StatusBadge', () => {
     render(<StatusBadge label="Passed" tone="success" icon={<CheckCircle />} />)
 
     expect(screen.getByText('Passed')).toBeInTheDocument()
-    expect(screen.getByText('Passed').parentElement).toHaveClass('border-emerald-400/25')
+    expect(screen.getByText('Passed').parentElement).toHaveClass('border-success-border')
   })
 })

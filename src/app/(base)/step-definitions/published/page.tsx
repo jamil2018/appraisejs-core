@@ -27,5 +27,5 @@ export default async function PublishedReceiptPage({ searchParams }: PublishedRe
     }
   })()
   if (!published) notFound()
-  return <PublishedStepSuccess published={published} />
+  return <PublishedStepSuccess published={published} heading="h1" />
 }

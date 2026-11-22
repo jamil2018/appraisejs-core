@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { DownloadLogsButton } from './download-logs-button'
@@ -31,7 +32,7 @@ export function LogViewer({ testRunId, targetProjectId, status, className }: Log
       return
     }
 
-    const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]')
+    const scrollContainer = scrollAreaRef.current.querySelector('[data-slot="scroll-area-viewport"]')
     if (scrollContainer) {
       scrollContainer.scrollTop = scrollContainer.scrollHeight
     }
@@ -42,7 +43,7 @@ export function LogViewer({ testRunId, targetProjectId, status, className }: Log
       return
     }
 
-    const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]')
+    const scrollContainer = scrollAreaRef.current.querySelector('[data-slot="scroll-area-viewport"]')
     if (!scrollContainer) {
       return
     }
@@ -55,19 +56,19 @@ export function LogViewer({ testRunId, targetProjectId, status, className }: Log
     connectionStatus === 'connecting' || connectionStatus === 'loading' ? (
       <LoaderCircle className="size-4 animate-spin" />
     ) : connectionStatus === 'connected' ? (
-      <Wifi className="size-4 text-green-500" />
+      <Wifi className="size-4" />
     ) : connectionStatus === 'disconnected' ? (
-      <WifiOff className="size-4 text-zinc-500" />
+      <WifiOff className="size-4" />
     ) : connectionStatus === 'error' ? (
-      <XCircle className="size-4 text-red-500" />
+      <XCircle className="size-4" />
     ) : (
-      <CheckCircle className="size-4 text-blue-500" />
+      <CheckCircle className="size-4" />
     )
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
+    <Card className="min-w-0">
+      <CardHeader className="p-4">
+        <CardTitle className="flex flex-wrap items-center justify-between gap-3">
           <span className="flex items-center gap-2">
             <Logs className="size-6" />
             Live Logs
@@ -77,13 +78,22 @@ export function LogViewer({ testRunId, targetProjectId, status, className }: Log
           ) : null}
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className={cn('flex flex-col gap-2', className)}>
-          <div className="flex items-center justify-between">
-            <Badge variant="outline" className="flex items-center gap-2">
-              {statusIcon}
-              <span>{getConnectionStatusText(connectionStatus)}</span>
-            </Badge>
+      <CardContent className="p-4 pt-0">
+        <div className={cn('flex min-w-0 flex-col gap-3', className)}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <StatusBadge
+              label={getConnectionStatusText(connectionStatus)}
+              icon={statusIcon}
+              tone={
+                connectionStatus === 'error'
+                  ? 'danger'
+                  : connectionStatus === 'connected'
+                    ? 'success'
+                    : connectionStatus === 'connecting' || connectionStatus === 'loading'
+                      ? 'info'
+                      : 'neutral'
+              }
+            />
             {logs.length > 0 ? (
               <Badge variant="outline" className="font-mono text-xs">
                 {logs.length} log{logs.length !== 1 ? 's' : ''}
@@ -99,7 +109,7 @@ export function LogViewer({ testRunId, targetProjectId, status, className }: Log
 
           <ScrollArea
             ref={scrollAreaRef}
-            className="bg-muted/50 h-[600px] w-full rounded-md border p-4 font-mono text-sm"
+            className="h-[clamp(16rem,60vh,37.5rem)] w-full min-w-0 rounded-md border bg-muted/50 p-4 font-mono text-sm"
             onScroll={handleScroll}
           >
             {logs.length === 0 && (connectionStatus === 'connecting' || connectionStatus === 'loading') ? (
@@ -115,15 +125,15 @@ export function LogViewer({ testRunId, targetProjectId, status, className }: Log
               <div
                 key={`${log.timestamp.toISOString()}-${log.type}-${log.message}-${index}`}
                 className={cn(
-                  'mb-1 flex items-start gap-2 whitespace-pre-wrap break-words',
-                  log.type === 'stderr' && 'text-red-400',
+                  'mb-1 grid min-w-0 grid-cols-[auto_1fr] items-start gap-x-2 gap-y-1 whitespace-pre-wrap break-words sm:flex sm:gap-2',
+                  log.type === 'stderr' && 'text-danger',
                   log.type === 'stdout' && 'text-foreground',
-                  log.type === 'status' && 'font-semibold text-blue-400',
+                  log.type === 'status' && 'font-semibold text-info',
                 )}
               >
                 <span className="shrink-0 text-xs text-muted-foreground">{log.timestamp.toLocaleTimeString()}</span>
                 <span className="w-16 shrink-0 text-xs text-muted-foreground">[{log.type.toUpperCase()}]</span>
-                <span className="flex-1">{log.message}</span>
+                <span className="col-span-2 min-w-0 flex-1 [overflow-wrap:anywhere]">{log.message}</span>
               </div>
             ))}
           </ScrollArea>

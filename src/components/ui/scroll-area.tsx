@@ -1,29 +1,31 @@
 'use client'
 
 import * as React from 'react'
-import * as ScrollAreaPrimitive from '@radix-ui/react-scroll-area'
+import { ScrollArea as ScrollAreaPrimitive } from '@base-ui/react/scroll-area'
 
 import { cn } from '@/lib/utils'
 
 function ScrollArea({ className, children, ...props }: React.ComponentProps<typeof ScrollAreaPrimitive.Root>) {
   return (
     <ScrollAreaPrimitive.Root className={cn('relative overflow-hidden', className)} {...props}>
-      <ScrollAreaPrimitive.Viewport className="size-full rounded-[inherit]">{children}</ScrollAreaPrimitive.Viewport>
+      <ScrollAreaPrimitive.Viewport data-slot="scroll-area-viewport" className="app-focus size-full rounded-[inherit]">
+        {children}
+      </ScrollAreaPrimitive.Viewport>
       <ScrollBar />
       <ScrollAreaPrimitive.Corner />
     </ScrollAreaPrimitive.Root>
   )
 }
 
-ScrollArea.displayName = ScrollAreaPrimitive.Root.displayName
+ScrollArea.displayName = 'ScrollArea'
 
 function ScrollBar({
   className,
   orientation = 'vertical',
   ...props
-}: React.ComponentProps<typeof ScrollAreaPrimitive.ScrollAreaScrollbar>) {
+}: React.ComponentProps<typeof ScrollAreaPrimitive.Scrollbar>) {
   return (
-    <ScrollAreaPrimitive.ScrollAreaScrollbar
+    <ScrollAreaPrimitive.Scrollbar
       orientation={orientation}
       className={cn(
         'flex touch-none select-none transition-colors',
@@ -33,11 +35,11 @@ function ScrollBar({
       )}
       {...props}
     >
-      <ScrollAreaPrimitive.ScrollAreaThumb className="relative flex-1 rounded-full border border-white/[0.08] bg-white/[0.16] shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_6px_16px_-10px_rgba(0,0,0,0.9)] transition-colors hover:bg-white/[0.24]" />
-    </ScrollAreaPrimitive.ScrollAreaScrollbar>
+      <ScrollAreaPrimitive.Thumb className="relative flex-1 rounded-full bg-border transition-colors hover:bg-muted-foreground/50" />
+    </ScrollAreaPrimitive.Scrollbar>
   )
 }
 
-ScrollBar.displayName = ScrollAreaPrimitive.ScrollAreaScrollbar.displayName
+ScrollBar.displayName = 'ScrollBar'
 
 export { ScrollArea }

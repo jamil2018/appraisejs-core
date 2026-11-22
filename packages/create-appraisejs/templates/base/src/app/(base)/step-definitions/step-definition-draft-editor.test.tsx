@@ -190,7 +190,7 @@ describe('StepDefinitionDraftEditor', () => {
     completeHandler()
     await user.click(screen.getByText('Advanced execution settings'))
     await user.click(screen.getByRole('combobox', { name: 'Runs in' }))
-    await user.click(screen.getByRole('option', { name: 'Browser automation' }))
+    await user.click(await screen.findByRole('option', { name: 'Browser automation' }))
     await user.click(screen.getByRole('button', { name: 'Save draft' }))
 
     expect(mocks.revise).toHaveBeenCalled()
@@ -354,7 +354,7 @@ describe('StepDefinitionDraftEditor', () => {
     await user.type(screen.getByLabelText('Description'), 'The JSON payload to send.')
     expect(screen.getByRole('combobox', { name: 'Type for payload' })).toHaveAccessibleName('Type for payload')
     await user.click(screen.getByRole('combobox', { name: 'Type for payload' }))
-    await user.click(screen.getByRole('option', { name: 'json' }))
+    await user.click(await screen.findByRole('option', { name: 'json' }))
     await user.click(screen.getByRole('button', { name: 'Save and continue' }))
     completeHandler()
     await user.click(screen.getByRole('button', { name: 'Save and continue' }))

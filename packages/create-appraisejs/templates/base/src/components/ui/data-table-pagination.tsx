@@ -11,7 +11,7 @@ interface DataTablePaginationProps<TData> {
 
 export function DataTablePagination<TData>({ table, showSelectedRows }: DataTablePaginationProps<TData>) {
   return (
-    <div className="flex flex-col gap-3 border-t border-white/[0.06] pt-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3 sm:justify-between">
       {showSelectedRows && (
         <div className="flex-1 text-sm text-muted-foreground">
           {table.getFilteredSelectedRowModel().rows.length} of {table.getFilteredRowModel().rows.length} row(s)
@@ -19,17 +19,18 @@ export function DataTablePagination<TData>({ table, showSelectedRows }: DataTabl
         </div>
       )}
       <div
-        className={`flex flex-wrap items-center gap-x-4 gap-y-2 sm:justify-end ${!showSelectedRows && 'sm:w-full sm:justify-center'}`}
+        className={`flex flex-wrap items-center gap-x-3 gap-y-2 sm:justify-end ${!showSelectedRows && 'sm:w-full sm:justify-center'}`}
       >
         <div className="flex items-center gap-x-2">
           <p className="whitespace-nowrap text-sm font-medium">Rows per page</p>
           <Select
+            items={[10, 20, 30, 40, 50].map(value => ({ value: String(value), label: String(value) }))}
             value={`${table.getState().pagination.pageSize}`}
             onValueChange={value => {
               table.setPageSize(Number(value))
             }}
           >
-            <SelectTrigger className="h-8 w-[70px]">
+            <SelectTrigger aria-label="Rows per page" className="h-8 w-16">
               <SelectValue placeholder={table.getState().pagination.pageSize} />
             </SelectTrigger>
             <SelectContent side="top">
@@ -45,7 +46,7 @@ export function DataTablePagination<TData>({ table, showSelectedRows }: DataTabl
           Page {table.getState().pagination.pageIndex + 1} of{' '}
           {table.getRowCount() === 0 ? table.getPageCount() + 1 : table.getPageCount()}
         </div>
-        <div className="flex items-center gap-x-1.5">
+        <div className="flex items-center gap-x-2">
           <Button
             variant="outline"
             className="hidden size-8 p-0 lg:flex"

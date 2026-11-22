@@ -46,13 +46,14 @@ export default function ProjectSelector({
   const activeProjectId = validUrlProject
     ? urlProjectId!
     : urlProjectId
-      ? ''
+      ? null
       : validCookieProject
         ? cookieProjectId!
-        : ''
+        : null
   return (
     <Select
       value={activeProjectId}
+      items={projects.map(project => ({ value: project.id, label: project.displayName }))}
       disabled={isPending || projects.length === 0}
       onValueChange={targetProjectId =>
         startTransition(async () => {

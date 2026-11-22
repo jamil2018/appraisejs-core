@@ -1,3 +1,4 @@
+import PageHeader from '@/components/typography/page-header'
 import { notFound } from 'next/navigation'
 
 import {
@@ -32,12 +33,15 @@ export default async function ResumeStepDefinitionDraftPage({
   if (!draftResponse.success) notFound()
   const draft = draftResponse.data as StepDefinitionEditorDraft
   return (
-    <StepDefinitionDraftEditor
-      initialStage={initialStage}
-      initialDraft={{
-        ...draft,
-        artifact: artifactResponse.success ? (artifactResponse.data as StepDefinitionEditorDraft['artifact']) : null,
-      }}
-    />
+    <div className="space-y-4">
+      <PageHeader>Resume reusable step</PageHeader>
+      <StepDefinitionDraftEditor
+        initialStage={initialStage}
+        initialDraft={{
+          ...draft,
+          artifact: artifactResponse.success ? (artifactResponse.data as StepDefinitionEditorDraft['artifact']) : null,
+        }}
+      />
+    </div>
   )
 }

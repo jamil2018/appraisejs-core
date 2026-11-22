@@ -30,6 +30,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuGroup,
   DropdownMenuTrigger,
 } from './dropdown-menu'
 
@@ -49,6 +50,7 @@ export type DataTableProps<TData, TValue> = {
   data: TData[]
   filterColumn: string
   filterPlaceholder: string
+  tableLabel: string
   createLink?: string
   modifyLink?: string
   deleteAction?: (id: string[]) => Promise<ActionResponse>
@@ -97,6 +99,7 @@ export function DataTable<TData, TValue>({
   data,
   filterColumn,
   filterPlaceholder,
+  tableLabel,
   createLink,
   multiOptionCreateButton,
   createButtonOptions,
@@ -171,45 +174,65 @@ export function DataTable<TData, TValue>({
   }
 
   return (
-    <div className="mb-10 rounded-xl border border-white/[0.06] bg-[rgba(18,37,64,0.1)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl">
-      <div className="flex justify-end">
-        <div className="mb-4 flex flex-wrap justify-end gap-2">
+    <div className="min-w-0 space-y-3 rounded-xl border border-border bg-card p-3 sm:p-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-0 flex-[1_1_14rem] sm:max-w-md">
+          <Search
+            aria-hidden="true"
+            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+          />
+          <Input
+            aria-label={filterPlaceholder}
+            placeholder={filterPlaceholder}
+            value={(table.getColumn(filterColumn)?.getFilterValue() as string) ?? ''}
+            onChange={event => table.getColumn(filterColumn)?.setFilterValue(event.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+          <DataTableViewOptions table={table} />
           {createLink && (
-            <Button variant="default" size="icon" aria-label="Create item" asChild>
-              <Link href={createLink}>
-                <PlusCircle className="size-4" aria-hidden="true" />
-                <span className="sr-only">Create item</span>
-              </Link>
+            <Button
+              variant="default"
+              size="sm"
+              aria-label="Create item"
+              render={<Link href={createLink} />}
+              nativeButton={false}
+            >
+              <PlusCircle className="size-4" aria-hidden="true" />
+              Create
             </Button>
           )}
           {multiOptionCreateButton && (
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="default" size="icon" aria-label={createMenuLabel}>
-                  <PlusCircle className="size-4" aria-hidden="true" />
-                  <span className="sr-only">{createMenuLabel}</span>
-                </Button>
+              <DropdownMenuTrigger render={<Button variant="default" size="sm" aria-label={createMenuLabel} />}>
+                <PlusCircle className="size-4" aria-hidden="true" />
+                Create
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuLabel>{createMenuLabel}</DropdownMenuLabel>
-                {createButtonOptions?.map(option => (
-                  <DropdownMenuItem key={option.label} asChild>
-                    <Link href={option.link}>
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel>{createMenuLabel}</DropdownMenuLabel>
+                  {createButtonOptions?.map(option => (
+                    <DropdownMenuItem key={option.label} render={<Link href={option.link} />} nativeButton={false}>
                       {option.icon}
                       {option.label}
-                    </Link>
-                  </DropdownMenuItem>
-                ))}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>
           )}
           {modifyLink &&
             (singleSelectedId ? (
-              <Button variant="outline" size="icon" aria-label="Edit selected item" asChild>
-                <Link href={`${modifyLink}/${singleSelectedId}`}>
-                  <Pencil className="size-4" aria-hidden="true" />
-                  <span className="sr-only">Edit selected item</span>
-                </Link>
+              <Button
+                variant="outline"
+                size="icon"
+                aria-label="Edit selected item"
+                render={<Link href={`${modifyLink}/${singleSelectedId}`} />}
+                nativeButton={false}
+              >
+                <Pencil className="size-4" aria-hidden="true" />
+                <span className="sr-only">Edit selected item</span>
               </Button>
             ) : (
               <Button variant="outline" size="icon" aria-label="Edit selected item" disabled>
@@ -219,11 +242,15 @@ export function DataTable<TData, TValue>({
             ))}
           {viewLink &&
             (singleSelectedId ? (
-              <Button variant="outline" size="icon" aria-label="View selected item" asChild>
-                <Link href={`${viewLink}/${singleSelectedId}`}>
-                  <Eye className="size-4" aria-hidden="true" />
-                  <span className="sr-only">View selected item</span>
-                </Link>
+              <Button
+                variant="outline"
+                size="icon"
+                aria-label="View selected item"
+                render={<Link href={`${viewLink}/${singleSelectedId}`} />}
+                nativeButton={false}
+              >
+                <Eye className="size-4" aria-hidden="true" />
+                <span className="sr-only">View selected item</span>
               </Button>
             ) : (
               <Button variant="outline" size="icon" aria-label="View selected item" disabled>
@@ -243,26 +270,14 @@ export function DataTable<TData, TValue>({
           )}
         </div>
       </div>
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 items-center">
-          <Search className="mr-2 size-4 shrink-0 text-muted-foreground" />
-          <Input
-            placeholder={filterPlaceholder}
-            value={(table.getColumn(filterColumn)?.getFilterValue() as string) ?? ''}
-            onChange={event => table.getColumn(filterColumn)?.setFilterValue(event.target.value)}
-            className="max-w-sm"
-          />
-        </div>
-        <DataTableViewOptions table={table} />
-      </div>
-      <div className="mb-4 overflow-hidden rounded-lg border border-white/[0.07] bg-black/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
-        <Table>
-          <TableHeader className="bg-white/[0.025] backdrop-blur-sm">
+      <div className="overflow-hidden rounded-lg border border-border bg-background">
+        <Table scrollLabel={tableLabel}>
+          <TableHeader className="bg-secondary">
             {table.getHeaderGroups().map(headerGroup => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map(header => {
                   return (
-                    <TableHead key={header.id} className="font-bold dark:text-white">
+                    <TableHead key={header.id} className="font-medium text-foreground">
                       {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                     </TableHead>
                   )
@@ -287,7 +302,7 @@ export function DataTable<TData, TValue>({
               })
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
+                <TableCell colSpan={table.getVisibleLeafColumns().length} className="h-16 text-center">
                   No results.
                 </TableCell>
               </TableRow>

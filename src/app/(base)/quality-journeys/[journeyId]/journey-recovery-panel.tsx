@@ -75,7 +75,7 @@ export function JourneyRecoveryPanel(props: Props) {
         {pending ? (operation === 'pause' ? 'Pausing…' : 'Resuming…') : operation === 'pause' ? 'Pause' : 'Resume'}
       </Button>
       {observation && (
-        <p className="max-w-52 text-sm text-muted-foreground" role="status">
+        <p className="max-w-52 text-sm text-warning" role="status">
           {observation}
         </p>
       )}

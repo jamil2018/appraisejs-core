@@ -24,7 +24,19 @@ import {
   type TestSuite,
   type Tag,
 } from '@prisma/client'
-import { ArrowLeft, ArrowRight, GitBranch, Info, List, Maximize2, Minimize2, Plus, Save, Workflow } from 'lucide-react'
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  GitBranch,
+  Info,
+  List,
+  Maximize2,
+  Minimize2,
+  Plus,
+  Save,
+  Workflow,
+} from 'lucide-react'
 import { LayoutGroup, LazyMotion, domAnimation, useReducedMotion } from 'motion/react'
 import * as motion from 'motion/react-m'
 import { useRouter } from 'next/navigation'
@@ -227,7 +239,7 @@ function WizardProgress({ steps, currentStep, onStepClick }: WizardProgressProps
             top: 'calc(100% - 0.375rem)',
           }}
         >
-          <div className="h-full bg-primary transition-all duration-200" style={{ width: stepProgressWidth }} />
+          <div className="h-full bg-success transition-all duration-200" style={{ width: stepProgressWidth }} />
         </div>
         <div
           className="grid gap-3"
@@ -238,7 +250,6 @@ function WizardProgress({ steps, currentStep, onStepClick }: WizardProgressProps
           {steps.map((step, index) => {
             const isActive = currentStep === index
             const isComplete = currentStep > index
-            const isFilled = isComplete || (index === 0 && isActive)
 
             return (
               <button
@@ -250,20 +261,23 @@ function WizardProgress({ steps, currentStep, onStepClick }: WizardProgressProps
               >
                 <span
                   className={`text-xs font-medium transition-colors sm:text-sm ${
-                    isActive || isComplete ? 'text-primary' : 'text-muted-foreground'
+                    isActive ? 'text-selection' : isComplete ? 'text-success' : 'text-muted-foreground'
                   }`}
                 >
                   {step}
                 </span>
                 <span
-                  className={`relative z-10 size-3 rounded-full border transition-colors ${
-                    isFilled
-                      ? 'border-primary bg-primary'
+                  className={`relative z-10 flex size-3 items-center justify-center rounded-full border transition-colors ${
+                    isComplete
+                      ? 'border-success bg-success-surface text-success'
                       : isActive
-                        ? 'border-primary bg-background'
+                        ? 'border-selection bg-selection-surface ring-2 ring-selection/30'
                         : 'border-border bg-background'
                   }`}
-                />
+                  aria-hidden
+                >
+                  {isComplete ? <Check className="size-2" /> : null}
+                </span>
               </button>
             )
           })}
@@ -308,19 +322,19 @@ function FlowPanel({
         layout
         layoutId="test-case-flow-panel"
         className={cn(
-          'flex min-h-0 w-full flex-col overflow-hidden rounded-md border border-white/[0.1] bg-[rgba(18,37,64,0.28)] text-card-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] will-change-transform',
+          'flex min-h-0 w-full flex-col overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-none will-change-transform',
           className,
         )}
         transition={{ layout: { duration: 0.3, ease: 'easeInOut' } }}
       >
-        <CardHeader className="shrink-0">
+        <CardHeader className="shrink-0 p-4">
           <div className="flex items-start justify-between gap-3">
-            <div className="flex items-start gap-3">
-              <span className="bg-primary/10 flex size-9 shrink-0 items-center justify-center rounded-md border text-primary">
+            <div className="flex min-w-0 items-start gap-3">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-info-border bg-info-surface text-info">
                 <Workflow className="size-4" aria-hidden />
               </span>
-              <div className="space-y-1">
-                <CardTitle className="text-xl font-bold text-primary">Test Case Flow</CardTitle>
+              <div className="min-w-0 space-y-1">
+                <CardTitle className="text-base text-primary">Test Case Flow</CardTitle>
                 <CardDescription>Build your test scenario step by step visually</CardDescription>
               </div>
             </div>
@@ -353,7 +367,7 @@ function FlowPanel({
             </TabsList>
           </Tabs>
         </CardHeader>
-        <CardContent className="flex min-h-0 flex-1 flex-col">
+        <CardContent className="flex min-h-0 flex-1 flex-col p-4 pt-0">
           <div className="flex min-h-0 flex-1 flex-col gap-2">
             <div className="min-h-0 flex-1">
               <TestCaseFlow
@@ -398,17 +412,17 @@ function TemplateSelectionStep({
 }: TemplateSelectionStepProps) {
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-4 xl:flex-row">
-        <div className="xl:w-1/2">
-          <Card className="h-full dark:border-zinc-700 dark:bg-zinc-500/10">
-            <CardHeader className="mb-4">
-              <CardTitle className="text-xl font-bold text-primary">Template Selection</CardTitle>
+      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,24rem)]">
+        <div className="min-w-0">
+          <Card className="border-border bg-secondary">
+            <CardHeader className="p-4">
+              <CardTitle className="text-base text-primary">Template Selection</CardTitle>
               <CardDescription>Choose the template that should seed the new test case</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 pt-0">
               <div className="flex flex-col gap-2">
                 <Label htmlFor="templateTestCaseId">Case Template</Label>
-                <Select onValueChange={onTemplateChange} value={selectedTemplateId}>
+                <Select items={templateOptions} onValueChange={onTemplateChange} value={selectedTemplateId || null}>
                   <SelectTrigger
                     id="templateTestCaseId"
                     aria-label="Case Template"
@@ -433,13 +447,13 @@ function TemplateSelectionStep({
             </CardContent>
           </Card>
         </div>
-        <div className="xl:w-1/2">
-          <Card className="h-full border-zinc-700 bg-zinc-500/10">
-            <CardHeader className="mb-2">
-              <CardTitle className="text-xl font-bold text-primary">Selected Template</CardTitle>
+        <div className="min-w-0">
+          <Card className="border-border bg-secondary">
+            <CardHeader className="p-4">
+              <CardTitle className="text-base text-primary">Selected Template</CardTitle>
               <CardDescription>Review what will be prefilled before moving into the form</CardDescription>
             </CardHeader>
-            <CardContent className="flex h-full flex-col gap-3">
+            <CardContent className="flex flex-col gap-3 p-4 pt-0">
               <SelectedTemplateSummary
                 selectedTemplateTestCase={selectedTemplateTestCase}
                 selectedReusableStepCount={selectedReusableStepCount}
@@ -450,7 +464,7 @@ function TemplateSelectionStep({
         </div>
       </div>
       <div className="mb-4 flex flex-col gap-2">
-        <Button onClick={onContinue} className="w-fit px-6 hover:bg-emerald-500">
+        <Button onClick={onContinue} className="w-fit px-6 hover:bg-primary/90">
           <span className="font-bold">Continue</span>
           <ArrowRight className="size-4" />
         </Button>
@@ -552,7 +566,7 @@ function TemplatePreviewSteps({
 
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-foreground/80 text-xs font-medium uppercase tracking-wide">Flow Preview</span>
+      <span className="text-xs font-medium uppercase tracking-wide text-foreground/80">Flow Preview</span>
       <div className="flex flex-wrap gap-2">
         {selectedTemplatePreviewSteps.map(stepLabel => (
           <span key={stepLabel} className="rounded-full bg-muted px-3 py-1 text-xs text-foreground">
@@ -616,15 +630,15 @@ function DetailsStep({
 }: DetailsStepProps) {
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-4 xl:flex-row" id="meta">
-        <div className="xl:w-1/2">
-          <Card className="h-full border-white/[0.1] bg-[rgba(18,37,64,0.28)] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
-            <CardHeader className="mb-4">
-              <CardTitle className="text-xl font-bold text-primary">Test Case Details</CardTitle>
+      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,24rem)]" id="meta">
+        <div className="min-w-0">
+          <Card className="border-border bg-card shadow-none">
+            <CardHeader className="p-4">
+              <CardTitle className="text-base text-primary">Test Case Details</CardTitle>
               <CardDescription>Enter the core details of your test scenario</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="mb-6 flex flex-col gap-2">
+            <CardContent className="p-4 pt-0">
+              <div className="mb-4 flex flex-col gap-2">
                 <Label htmlFor="title">Title</Label>
                 <Input
                   id="title"
@@ -637,7 +651,7 @@ function DetailsStep({
                 />
                 <TestCaseFormFieldError id="title-error" message={errors.title} />
               </div>
-              <div className="mb-6 flex flex-col gap-2">
+              <div className="mb-4 flex flex-col gap-2">
                 <Label htmlFor="description">Description</Label>
                 <Textarea
                   id="description"
@@ -675,7 +689,7 @@ function DetailsStep({
             <span className="font-bold">Back</span>
           </Button>
         ) : null}
-        <Button onClick={onContinue} className="w-fit px-6 hover:bg-emerald-500">
+        <Button onClick={onContinue} className="w-fit px-6 hover:bg-primary/90">
           <span className="font-bold">Continue</span>
           <ArrowRight className="size-4" />
         </Button>
@@ -700,10 +714,10 @@ function TestSuiteSelectionField({
   onCreateClick,
 }: TestSuiteSelectionFieldProps) {
   return (
-    <div className="mb-6 flex flex-col gap-2">
+    <div className="mb-4 flex flex-col gap-2">
       <Label htmlFor="test-suites">Test Suites</Label>
       <div className="flex items-end gap-2">
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <MultiSelect
             id="test-suites"
             label="Test Suites"
@@ -747,7 +761,7 @@ function TagSelectionField({ availableTags, selectedTags, onChange, onCreateClic
     <div className="flex flex-col gap-2">
       <Label htmlFor="tags">Filter Tags</Label>
       <div className="flex items-end gap-2">
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <MultiSelect
             id="tags"
             label="Filter Tags"
@@ -777,23 +791,23 @@ function TagSelectionField({ availableTags, selectedTags, onChange, onCreateClic
 
 function QuickTipsPanel() {
   return (
-    <div className="xl:w-1/2">
-      <Card className="h-full border-white/[0.1] bg-[rgba(18,37,64,0.28)] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
-        <CardHeader className="mb-2">
-          <CardTitle className="flex items-center gap-2 text-xl text-primary">
-            <Info className="size-5" />
-            <span className="font-bold">Quick Tips</span>
+    <div className="min-w-0">
+      <Card className="border-border bg-card shadow-none">
+        <CardHeader className="p-4">
+          <CardTitle className="flex items-center gap-2 text-base text-primary">
+            <Info className="size-4" />
+            <span>Quick Tips</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-3">
+        <CardContent className="flex flex-col gap-3 p-4 pt-0">
           <ol className="flex list-none flex-col gap-3">
             {testCaseQuickTips.map((tip, index) => (
-              <li key={tip.title} className="grid grid-cols-[1.5rem_1fr] gap-4">
-                <span className="flex size-6 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
+              <li key={tip.title} className="grid grid-cols-[1.5rem_minmax(0,1fr)] gap-3">
+                <span className="flex size-6 items-center justify-center rounded-full bg-info-surface text-info">
                   {index + 1}
                 </span>
                 <span className="flex flex-col gap-1">
-                  <span className="text-base font-bold">{tip.title}</span>
+                  <span className="text-sm font-semibold">{tip.title}</span>
                   <span className="text-sm text-muted-foreground">{tip.description}</span>
                 </span>
               </li>
@@ -828,7 +842,7 @@ function FlowStep({
     <div className="flex flex-col gap-4">
       <LazyMotion features={domAnimation} strict>
         <LayoutGroup id="test-case-flow-panel-layout">
-          <div className="w-full min-w-0 overflow-x-hidden">
+          <div className="w-full min-w-0">
             {isFlowImmersive ? (
               <div className="fixed inset-0 z-40 bg-background p-3 sm:p-4">{immersiveFlowPanel}</div>
             ) : (
@@ -853,7 +867,7 @@ function FlowStep({
             <Button
               type="button"
               onClick={onSubmit}
-              className="w-fit px-6 hover:bg-emerald-500"
+              className="w-fit px-6 hover:bg-primary/90"
               aria-label="Save test case"
             >
               <Save className="size-4" aria-hidden />
@@ -1467,8 +1481,8 @@ const TestCaseForm = ({
         <motion.div
           key={currentStep}
           data-wizard-step-transition
-          initial={shouldReduceMotion ? false : { x: stepDirection * 32 }}
-          animate={{ x: 0 }}
+          initial={shouldReduceMotion ? false : { y: stepDirection * 12 }}
+          animate={{ y: 0 }}
           transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
           style={shouldReduceMotion ? undefined : { willChange: 'transform' }}
         >

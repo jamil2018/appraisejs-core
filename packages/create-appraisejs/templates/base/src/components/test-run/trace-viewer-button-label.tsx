@@ -32,7 +32,7 @@ function TraceViewerButtonLabel({ labelKey, children }: TraceViewerButtonLabelPr
 export function TraceViewerOpeningLabel() {
   return (
     <TraceViewerButtonLabel labelKey="opening">
-      <ExternalLink className="size-3 animate-pulse text-zinc-500" />
+      <ExternalLink className="size-3 animate-pulse text-muted-foreground" />
       Opening
     </TraceViewerButtonLabel>
   )
@@ -41,7 +41,7 @@ export function TraceViewerOpeningLabel() {
 export function TraceViewerRunningLabel() {
   return (
     <TraceViewerButtonLabel labelKey="running">
-      <LoaderCircle className="text-white-500 size-3 animate-spin" />
+      <LoaderCircle className="size-3 animate-spin text-info" />
       Running
     </TraceViewerButtonLabel>
   )
@@ -50,7 +50,7 @@ export function TraceViewerRunningLabel() {
 export function TraceViewerIdleLabel() {
   return (
     <TraceViewerButtonLabel labelKey="idle">
-      <Binoculars className="size-3 text-blue-500" />
+      <Binoculars className="size-3 text-info" />
       View Trace
     </TraceViewerButtonLabel>
   )

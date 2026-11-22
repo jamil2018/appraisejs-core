@@ -85,8 +85,8 @@ export default function ProjectManagement({
 
   return (
     <Card>
-      <CardHeader className="flex-row items-start justify-between gap-4">
-        <div className="flex flex-col gap-1.5">
+      <CardHeader className="flex-row flex-wrap items-start justify-between gap-3 p-4 pb-3">
+        <div className="flex min-w-0 flex-col gap-1.5">
           <CardTitle>Registered projects</CardTitle>
           <CardDescription>
             Search, select, rename, or permanently remove registered local and remote targets.
@@ -94,7 +94,7 @@ export default function ProjectManagement({
         </div>
         <RegisterProjectDialog />
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+      <CardContent className="flex min-w-0 flex-col gap-3 p-4 pt-0">
         {agentSetup === 'codex' ? (
           <AgentSetupGuidance
             project={projects.find(project => project.id === highlightedProjectId)}
@@ -117,17 +117,17 @@ export default function ProjectManagement({
         </div>
 
         {projects.length === 0 ? (
-          <div className="flex min-h-48 flex-col items-center justify-center gap-2 text-center">
+          <div className="flex min-h-24 flex-col items-center justify-center gap-2 text-center">
             <FolderGit2 aria-hidden="true" className="size-8 text-muted-foreground" />
             <p className="font-medium">No projects registered</p>
             <p className="text-sm text-muted-foreground">Register a local workspace or remote target to begin.</p>
           </div>
         ) : filteredProjects.length === 0 ? (
-          <div className="flex min-h-32 items-center justify-center text-sm text-muted-foreground" role="status">
+          <div className="flex min-h-16 items-center justify-center text-sm text-muted-foreground" role="status">
             No projects match “{query}”.
           </div>
         ) : (
-          <Table>
+          <Table scrollLabel="Projects">
             <TableHeader>
               <TableRow>
                 <TableHead>Project</TableHead>
@@ -164,7 +164,7 @@ function safeReturnPath(returnTo?: string, projectId?: string) {
 function AgentSetupGuidance({ project, returnTo }: { project?: Project; returnTo?: string }) {
   const readiness = project?.preflight
   return (
-    <section className="border-primary/25 bg-primary/[0.04] rounded-lg border p-4" aria-labelledby="agent-setup-title">
+    <section className="rounded-lg border border-primary/25 bg-primary/[0.04] p-4" aria-labelledby="agent-setup-title">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="max-w-3xl space-y-2">
           <h2 className="font-semibold" id="agent-setup-title">
@@ -183,11 +183,9 @@ function AgentSetupGuidance({ project, returnTo }: { project?: Project; returnTo
               : 'No diagnostic receipt has been observed for this project. Complete setup in Codex and run project_diagnostic before returning.'}
           </p>
         </div>
-        <Button asChild variant="outline">
-          <Link href={safeReturnPath(returnTo, project?.id)}>
-            <ArrowLeft aria-hidden="true" className="mr-2 size-4" />
-            Return to journey
-          </Link>
+        <Button variant="outline" render={<Link href={safeReturnPath(returnTo, project?.id)} />} nativeButton={false}>
+          <ArrowLeft aria-hidden="true" className="mr-2 size-4" />
+          Return to journey
         </Button>
       </div>
     </section>
@@ -258,13 +256,13 @@ type AgentPreflightLayerStatus = PreflightLayerStatus<
 function PreflightStatus({ status }: { status: AgentPreflightLayerStatus }) {
   if (status === 'ready')
     return (
-      <Badge className="gap-1 border-emerald-500/35 bg-emerald-500/10 text-emerald-200" variant="outline">
+      <Badge className="gap-1 border-success-border bg-success-surface text-success" variant="outline">
         <CircleCheck aria-hidden="true" className="size-3.5" /> Ready
       </Badge>
     )
   if (status === 'blocked')
     return (
-      <Badge className="gap-1 border-red-500/35 bg-red-500/10 text-red-200" variant="outline">
+      <Badge className="gap-1 border-danger-border bg-danger-surface text-danger" variant="outline">
         <CircleX aria-hidden="true" className="size-3.5" /> Blocked
       </Badge>
     )
@@ -309,7 +307,7 @@ function AgentPreflightDialog({
         <div className="grid gap-3">
           {Object.entries(receipt.preflight.layers).map(([key, layer]) => (
             <div
-              className="flex items-start justify-between gap-4 rounded-lg border border-white/10 bg-white/[0.03] p-3"
+              className="flex items-start justify-between gap-4 rounded-lg border border-border bg-secondary p-3"
               key={key}
             >
               <div className="min-w-0">
@@ -323,8 +321,8 @@ function AgentPreflightDialog({
           ))}
         </div>
         {capabilityLayer.tools.missing.length || capabilityLayer.resources.missing.length ? (
-          <div className="rounded-lg border border-red-500/25 bg-red-500/5 p-3 text-xs">
-            <p className="font-medium text-red-200">Missing from the current task snapshot</p>
+          <div className="rounded-lg border border-danger-border bg-danger-surface p-3 text-xs">
+            <p className="font-medium text-danger">Missing from the current task snapshot</p>
             {capabilityLayer.tools.missing.length ? (
               <p className="mt-2 break-words text-muted-foreground">
                 Tools: {capabilityLayer.tools.missing.join(', ')}

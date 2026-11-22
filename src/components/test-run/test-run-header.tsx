@@ -14,14 +14,12 @@ export function TestRunHeader({ initialTestRun }: TestRunHeaderProps) {
   const { testRun } = useTestRunHeader({ initialTestRun })
 
   return (
-    <div className="mb-8">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1">
-          <PageHeader>Test Run Details</PageHeader>
-          <HeaderSubtitle>View test run execution details and live logs</HeaderSubtitle>
-        </div>
-        <ViewReportButton testRunStatus={testRun.status} reports={testRun.reports} className="mt-2" />
+    <div className="mb-4 flex flex-col items-start justify-between gap-4 sm:flex-row">
+      <div className="min-w-0 flex-1">
+        <PageHeader>Test Run Details</PageHeader>
+        <HeaderSubtitle>View test run execution details and live logs</HeaderSubtitle>
       </div>
+      <ViewReportButton testRunStatus={testRun.status} reports={testRun.reports} className="sm:mt-2" />
     </div>
   )
 }

@@ -1,5 +1,4 @@
 import PageHeader from '@/components/typography/page-header'
-import { Separator } from '@/components/ui/separator'
 import { BrowserEngine } from '@prisma/client'
 import { Calendar, ChartLine, Clock, Info } from 'lucide-react'
 import { Metadata } from 'next'
@@ -35,11 +34,11 @@ export const metadata: Metadata = {
 const browserEngineToBadge = (browserEngine: BrowserEngine) => {
   switch (browserEngine) {
     case BrowserEngine.CHROMIUM:
-      return <StatusBadge label="Chromium" tone="info" icon={browserIcons[BrowserEngine.CHROMIUM]} />
+      return <StatusBadge label="Chromium" tone="neutral" icon={browserIcons[BrowserEngine.CHROMIUM]} />
     case BrowserEngine.FIREFOX:
-      return <StatusBadge label="Firefox" tone="danger" icon={browserIcons[BrowserEngine.FIREFOX]} />
+      return <StatusBadge label="Firefox" tone="neutral" icon={browserIcons[BrowserEngine.FIREFOX]} />
     case BrowserEngine.WEBKIT:
-      return <StatusBadge label="WebKit" tone="info" icon={browserIcons[BrowserEngine.WEBKIT]} />
+      return <StatusBadge label="WebKit" tone="neutral" icon={browserIcons[BrowserEngine.WEBKIT]} />
     default:
       return <StatusBadge label="Unknown browser" tone="neutral" />
   }
@@ -67,12 +66,12 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
   const durationData = getDurationData(report)
 
   return (
-    <>
-      <div>
+    <div className="flex min-w-0 flex-col gap-4">
+      <div className="min-w-0">
         <div className="mb-2 w-fit">
           <TestRunResultBadge result={testRun.result} className="text-sm" />
         </div>
-        <PageHeader className="mb-2 text-4xl">
+        <PageHeader className="mb-2 break-words">
           <div>
             <span>Test Run Report: </span>
             <span>{report.testRun.name}</span>
@@ -80,36 +79,35 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
         </PageHeader>
         <div className="flex flex-wrap gap-x-3 gap-y-1">
           {testRun.completedAt && (
-            <div className="flex items-center gap-1 text-sm text-zinc-400">
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
               <Calendar className="size-4" />
               {formatDateTime(testRun.completedAt)}
             </div>
           )}
           {testRun.completedAt && testRun.startedAt && (
-            <div className="flex items-center gap-1 text-sm text-zinc-400">
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
               <Clock className="size-4" />
               {formatDuration(testRun.startedAt, testRun.completedAt)}
             </div>
           )}
         </div>
       </div>
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <ReportMetricCard title="Total Tests" value={totalTests.toString()} />
         <ReportMetricCard title="Passed" value={passedTests.toString()} />
         <ReportMetricCard title="Failed" value={failedTests.toString()} />
         <ReportMetricCard title="Untested" value={untestedTests.toString()} />
       </div>
-      <Separator className="my-4 bg-muted" />
-      <div className="grid gap-5 xl:grid-cols-2">
-        <Card className="min-w-0 border-white/[0.1] bg-[rgba(18,37,64,0.28)] shadow-none">
-          <CardHeader className="flex-shrink-0">
+      <div className="grid gap-4 xl:grid-cols-2">
+        <Card className="min-w-0 border-border bg-card shadow-none">
+          <CardHeader className="shrink-0 p-4">
             <div className="flex items-center gap-2">
               <Info className="size-6" />
               <CardTitle className="text-lg font-semibold">Configuration</CardTitle>
             </div>
           </CardHeader>
-          <CardContent>
-            <dl className="space-y-3 text-sm text-muted-foreground">
+          <CardContent className="p-4 pt-0">
+            <dl className="flex flex-col gap-3 text-sm text-muted-foreground">
               {[
                 ['Environment Name', testRun.environment.name],
                 ['Environment Base URL', testRun.environment.baseUrl],
@@ -118,13 +116,13 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
               ].map(([label, value]) => (
                 <div
                   key={label}
-                  className="grid gap-1 border-b border-white/[0.06] pb-3 sm:grid-cols-[minmax(9rem,0.8fr)_minmax(0,1.2fr)] sm:gap-3"
+                  className="grid gap-1 border-b border-border pb-3 sm:grid-cols-[minmax(9rem,0.8fr)_minmax(0,1.2fr)] sm:gap-3"
                 >
                   <dt>{label}</dt>
                   <dd className="min-w-0 break-words font-medium text-foreground">{value}</dd>
                 </div>
               ))}
-              <div className="grid gap-1 border-b border-white/[0.06] pb-3 sm:grid-cols-[minmax(9rem,0.8fr)_minmax(0,1.2fr)] sm:gap-3">
+              <div className="grid gap-1 border-b border-border pb-3 sm:grid-cols-[minmax(9rem,0.8fr)_minmax(0,1.2fr)] sm:gap-3">
                 <dt>Browser Engine</dt>
                 <dd>{browserEngineToBadge(testRun.browserEngine)}</dd>
               </div>
@@ -137,16 +135,16 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
             </dl>
           </CardContent>
         </Card>
-        <Card className="flex min-w-0 flex-col border-white/[0.1] bg-[rgba(18,37,64,0.28)] shadow-none">
-          <CardHeader className="flex-shrink-0">
+        <Card className="flex min-w-0 flex-col border-border bg-card shadow-none">
+          <CardHeader className="shrink-0 p-4">
             <div className="flex items-center gap-2">
               <ChartLine className="size-6" />
               <CardTitle className="text-lg font-semibold">Visualizations</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="flex min-h-[20rem] flex-1 flex-col overflow-hidden">
+          <CardContent className="flex min-h-[20rem] flex-1 flex-col overflow-hidden p-4 pt-0">
             <Tabs defaultValue="overview" className="flex min-w-0 flex-1 flex-col overflow-hidden">
-              <TabsList className="grid w-full grid-cols-3 bg-white/[0.055] p-1">
+              <TabsList className="grid w-full grid-cols-3 bg-secondary p-1">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="feature">Feature</TabsTrigger>
                 <TabsTrigger value="duration">Duration</TabsTrigger>
@@ -164,9 +162,8 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
           </CardContent>
         </Card>
       </div>
-      <Separator className="my-4 bg-muted" />
       <ReportViewTable report={report} />
-    </>
+    </div>
   )
 }
 

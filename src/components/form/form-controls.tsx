@@ -34,7 +34,7 @@ export function TextFormField({
   placeholder,
   description,
   autoComplete,
-  className = 'mb-4 flex flex-col gap-2 lg:w-1/3',
+  className = 'mb-4 flex w-full flex-col gap-2',
 }: {
   field: TextFormFieldState
   label: string
@@ -64,7 +64,7 @@ export function FormSubmitButton({ canSubmit, isSubmitting }: { canSubmit: boole
   return (
     <Button type="submit" disabled={!canSubmit}>
       <Save className="size-4" aria-hidden />
-      <span className="font-bold">{isSubmitting ? '...' : 'Save'}</span>
+      <span className="font-medium">{isSubmitting ? 'Saving…' : 'Save'}</span>
     </Button>
   )
 }

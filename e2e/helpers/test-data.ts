@@ -100,14 +100,7 @@ export async function resetE2eData(): Promise<void> {
   ])
 }
 
-export async function seedCoreData(): Promise<void> {
-  const now = new Date('2026-01-01T00:00:00.000Z')
-  const completedAt = new Date('2026-01-01T00:00:04.000Z')
-  const stepRegistry = new StepDefinitionRegistryService(prisma)
-  for (const definition of builtInStepDefinitions)
-    await stepRegistry.registerBuiltIn(definition, 'e2e-source-conformance')
-  const navigationInvocationJson = JSON.stringify(seededNavigationInvocation())
-
+export async function seedEmptyProject(): Promise<void> {
   await prisma.targetProject.create({
     data: {
       id: seededIds.targetProject,
@@ -118,6 +111,17 @@ export async function seedCoreData(): Promise<void> {
       fingerprint: 'e2e-appraisejs-fixture',
     },
   })
+}
+
+export async function seedCoreData(): Promise<void> {
+  const now = new Date('2026-01-01T00:00:00.000Z')
+  const completedAt = new Date('2026-01-01T00:00:04.000Z')
+  const stepRegistry = new StepDefinitionRegistryService(prisma)
+  for (const definition of builtInStepDefinitions)
+    await stepRegistry.registerBuiltIn(definition, 'e2e-source-conformance')
+  const navigationInvocationJson = JSON.stringify(seededNavigationInvocation())
+
+  await seedEmptyProject()
 
   await prisma.module.create({
     data: {

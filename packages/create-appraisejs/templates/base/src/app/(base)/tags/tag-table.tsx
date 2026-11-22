@@ -14,6 +14,7 @@ const TagTable = async () => {
   return (
     <>
       <DataTable
+        tableLabel="Tags"
         columns={tagTableCols}
         data={tags as Tag[]}
         filterColumn="name"

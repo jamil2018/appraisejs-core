@@ -50,11 +50,14 @@ function flowNodes(
   blockNames: ReadonlyMap<string, string>,
   positions: Record<string, { x: number; y: number }>,
   measurements: Record<string, Node<DiagramNodeData>['measured']>,
+  selectedNodeIds: readonly string[],
 ): Node<DiagramNodeData>[] {
+  const selected = new Set(selectedNodeIds)
   return flow.map((item, index) => ({
     id: item.nodeId,
     type: 'flowStep',
     focusable: true,
+    selected: selected.has(item.nodeId),
     ariaLabel: `${item.node.label} flow step`,
     position: positions[item.nodeId] ?? { x: index * 520, y: 80 },
     measured: measurements[item.nodeId],
@@ -95,10 +98,14 @@ function useFlowNodeChanges(
   nodes: Node<DiagramNodeData>[],
   setNodePositions: Dispatch<SetStateAction<Record<string, { x: number; y: number }>>>,
   setNodeMeasurements: Dispatch<SetStateAction<Record<string, Node<DiagramNodeData>['measured']>>>,
+  setSelectedNodeIds: Dispatch<SetStateAction<string[]>>,
 ) {
   const onNodesChange = useCallback(
     (changes: NodeChange<Node<DiagramNodeData>>[]) => {
       const changedNodes = applyNodeChanges(changes, nodes)
+      if (changes.some(change => change.type === 'select')) {
+        setSelectedNodeIds(changedNodes.filter(node => node.selected).map(node => node.id))
+      }
       setNodePositions(() =>
         Object.fromEntries(changedNodes.map(node => [node.id, { x: node.position.x, y: node.position.y }])),
       )
@@ -107,7 +114,7 @@ function useFlowNodeChanges(
         ...Object.fromEntries(changedNodes.flatMap(node => (node.measured ? [[node.id, node.measured]] : []))),
       }))
     },
-    [nodes, setNodeMeasurements, setNodePositions],
+    [nodes, setNodeMeasurements, setNodePositions, setSelectedNodeIds],
   )
   return onNodesChange
 }
@@ -180,17 +187,33 @@ export function useFlowGraph({ flow, controller, onEdit, onInsert }: FlowGraphOp
   )
   const nodes = useMemo(
     () =>
-      flowNodes(flow, onEdit, onInsert, controller.removeNode, membership, blockNames, nodePositions, nodeMeasurements),
-    [blockNames, controller.removeNode, flow, membership, nodeMeasurements, nodePositions, onEdit, onInsert],
+      flowNodes(
+        flow,
+        onEdit,
+        onInsert,
+        controller.removeNode,
+        membership,
+        blockNames,
+        nodePositions,
+        nodeMeasurements,
+        selectedNodeIds,
+      ),
+    [
+      blockNames,
+      controller.removeNode,
+      flow,
+      membership,
+      nodeMeasurements,
+      nodePositions,
+      onEdit,
+      onInsert,
+      selectedNodeIds,
+    ],
   )
-  const onNodesChange = useFlowNodeChanges(nodes, setNodePositions, setNodeMeasurements)
+  const onNodesChange = useFlowNodeChanges(nodes, setNodePositions, setNodeMeasurements, setSelectedNodeIds)
   const edges = useMemo(() => flowEdges(flow), [flow])
   const { isValidConnection, onConnect, onReconnect } = useFlowConnections(membership, moveNode, resetNodePositions)
   const onNodeDragStop = useFlowDragOrdering(flow, nodePositions, controller.reorderNodes)
-  const onSelectionChange = useCallback(({ nodes: selected }: { nodes: Node[] }) => {
-    const nextIds = selected.map(node => node.id)
-    setSelectedNodeIds(current => (current.join('|') === nextIds.join('|') ? current : nextIds))
-  }, [])
   const clearSelection = useCallback(() => setSelectedNodeIds([]), [])
 
   return {
@@ -198,14 +221,13 @@ export function useFlowGraph({ flow, controller, onEdit, onInsert }: FlowGraphOp
     edges,
     flowBlocks: controller.flowBlocks,
     membership,
-    selectedNodeIds,
+    selectedNodeIds: nodes.filter(node => node.selected).map(node => node.id),
     isValidConnection,
     onConnect,
     onReconnect,
     onNodesChange,
     onNodeDragStop,
     moveNode,
-    onSelectionChange,
     clearSelection,
   }
 }

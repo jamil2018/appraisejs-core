@@ -39,7 +39,7 @@ describe('ModuleForm', () => {
 
     await user.type(screen.getByLabelText('Name'), 'Checkout')
     await user.click(screen.getByRole('combobox', { name: 'Parent' }))
-    await user.click(screen.getByRole('option', { name: 'Shared UI' }))
+    await user.click(await screen.findByRole('option', { name: 'Shared UI' }))
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => {

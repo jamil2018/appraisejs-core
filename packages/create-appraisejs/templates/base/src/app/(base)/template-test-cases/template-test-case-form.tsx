@@ -134,14 +134,14 @@ function TemplateTestCaseMetadata({
 }) {
   const scenarioPreview = buildScenarioPreview(title, description, nodesOrder)
   return (
-    <div className="flex items-start justify-between gap-6" id="meta">
-      <div className="min-w-0 flex-1 lg:max-w-2xl">
-        <div className="mb-4 flex flex-col gap-2">
+    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-4" id="meta">
+      <div className="min-w-0 space-y-4">
+        <div className="flex flex-col gap-2">
           <Label htmlFor="title">Title</Label>
           <Input id="title" name="title" value={title} onChange={event => onTitleChange(event.target.value)} />
           <TemplateTestCaseFormFieldError message={errors.title} />
         </div>
-        <div className="mb-4 flex flex-col gap-2">
+        <div className="flex flex-col gap-2">
           <Label htmlFor="description">Description</Label>
           <Textarea
             id="description"
@@ -170,7 +170,7 @@ function FlowAuthoringViewToggle({
 }) {
   return (
     <div
-      className="flex h-9 w-fit items-center rounded-full border border-white/[0.09] bg-white/[0.025] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] backdrop-blur-xl"
+      className="flex h-9 w-fit items-center rounded-full border border-border bg-accent p-1 shadow-none"
       role="group"
       aria-label="Flow authoring view"
     >
@@ -180,8 +180,8 @@ function FlowAuthoringViewToggle({
         variant="ghost"
         className={`h-7 rounded-full border px-3 text-xs transition-[color,background-color,border-color,box-shadow] ${
           view === 'graph'
-            ? 'border-white/[0.12] bg-white/[0.075] text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_8px_20px_-14px_rgba(0,0,0,0.9)] hover:bg-white/[0.075]'
-            : 'border-transparent text-muted-foreground hover:bg-white/[0.035] hover:text-foreground'
+            ? 'border-selection-border bg-selection-surface text-selection shadow-none hover:bg-selection-surface'
+            : 'border-transparent text-muted-foreground hover:bg-accent hover:text-foreground'
         }`}
         aria-pressed={view === 'graph'}
         onClick={() => onChange('graph')}
@@ -194,8 +194,8 @@ function FlowAuthoringViewToggle({
         variant="ghost"
         className={`h-7 rounded-full border px-3 text-xs transition-[color,background-color,border-color,box-shadow] ${
           view === 'linear'
-            ? 'border-white/[0.12] bg-white/[0.075] text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_8px_20px_-14px_rgba(0,0,0,0.9)] hover:bg-white/[0.075]'
-            : 'border-transparent text-muted-foreground hover:bg-white/[0.035] hover:text-foreground'
+            ? 'border-selection-border bg-selection-surface text-selection shadow-none hover:bg-selection-surface'
+            : 'border-transparent text-muted-foreground hover:bg-accent hover:text-foreground'
         }`}
         aria-pressed={view === 'linear'}
         onClick={() => onChange('linear')}
@@ -259,7 +259,7 @@ const TemplateTestCaseForm = ({
         onDescriptionChange={form.setDescription}
         nodesOrder={form.nodesOrder}
       />
-      <div className="mb-4 flex h-[500px] flex-col gap-2">
+      <div className="flex h-[clamp(22rem,60dvh,48rem)] min-w-0 flex-col gap-2">
         <FlowAuthoringViewToggle view={form.authoringView} onChange={form.setAuthoringView} />
         <TemplateTestCaseFlow
           initialNodesOrder={form.nodesOrder}

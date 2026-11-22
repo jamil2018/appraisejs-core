@@ -17,6 +17,7 @@ const TestSuiteTable = async () => {
   return (
     <>
       <DataTable
+        tableLabel="Test suites"
         columns={testSuiteTableCols}
         data={rows}
         filterColumn="name"

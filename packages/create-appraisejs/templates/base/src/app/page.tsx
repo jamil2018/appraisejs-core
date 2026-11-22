@@ -49,29 +49,25 @@ const Dashboard = async () => {
     testSuiteExecutionResponse.status === 200 ? (testSuiteExecutionResponse.data as TestSuiteExecutionData) : []
 
   return (
-    <div className="space-y-5">
-      <div className="space-y-2">
+    <div className="space-y-4">
+      <div className="space-y-1">
         <PageHeader>
           <span className="flex items-center gap-3">
-            <LayoutDashboard className="size-7 text-primary sm:size-8" strokeWidth={2.2} />
+            <LayoutDashboard aria-hidden="true" className="size-7 text-primary" strokeWidth={2.2} />
             Dashboard
           </span>
         </PageHeader>
-        <HeaderSubtitle>Check metrics, entity states, execution health, and more</HeaderSubtitle>
+        <HeaderSubtitle>Review recent execution and manage quality work for this project.</HeaderSubtitle>
       </div>
 
       <DashboardStartPanel entityMetrics={entityMetrics} projectId={activeProject.id} agentReady={agentReady} />
 
-      <div
-        className="grid items-start gap-4 2xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.72fr)] 2xl:items-stretch"
-        id="dashboard-content"
-      >
+      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.8fr)_minmax(18rem,1fr)]" id="dashboard-content">
         <div className="grid min-w-0 gap-4">
-          <div className="grid min-w-0 items-start gap-4 xl:grid-cols-2">
+          <div className="grid min-w-0 items-start gap-4 [grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr))]">
             <AppDrawer
               metrics={metrics}
               title="Attention Needed"
-              description="Issues that require immediate action"
               hasExecutionEvidence={entityMetrics.completedTestRunsCount > 0}
             />
             <DataCardGrid>
@@ -83,9 +79,7 @@ const Dashboard = async () => {
           </div>
           <QuickActionsDrawer />
         </div>
-        <div className="min-w-0 2xl:flex">
-          <ExecutionHealthPanel featureData={testSuiteExecutionData} />
-        </div>
+        <ExecutionHealthPanel featureData={testSuiteExecutionData} />
       </div>
     </div>
   )

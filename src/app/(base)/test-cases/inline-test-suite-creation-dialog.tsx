@@ -28,12 +28,12 @@ export function InlineTestSuiteCreationDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-6xl gap-0 overflow-hidden p-0">
-        <DialogHeader className="border-b px-6 py-4">
+        <DialogHeader className="border-b p-4">
           <DialogTitle>Create Test Suite</DialogTitle>
           <DialogDescription>Create a new test suite without leaving the current test case.</DialogDescription>
         </DialogHeader>
 
-        <div className="overflow-y-auto px-6 py-4">
+        <div className="overflow-y-auto p-4">
           <TestSuiteForm
             successTitle="Suite created"
             successMessage="Test suite created successfully"

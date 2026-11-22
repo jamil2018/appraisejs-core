@@ -1,10 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import type { SearchCommandMode } from './nav-command-helpers'
 
 export function useNavCommand() {
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const returnFocusRef = useRef<HTMLElement | null>(null)
   const [open, setOpen] = useState(false)
   const [commandMode, setCommandMode] = useState<SearchCommandMode | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -17,14 +19,21 @@ export function useNavCommand() {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'k' && (event.metaKey || event.ctrlKey)) {
+        const visibleTrigger = Array.from(document.querySelectorAll('[data-nav-command-trigger]')).find(
+          trigger => trigger.getClientRects().length > 0,
+        )
+        if (visibleTrigger && visibleTrigger !== triggerRef.current) return
         event.preventDefault()
-        setOpen(currentOpen => !currentOpen)
+        if (!open && document.activeElement instanceof HTMLElement) {
+          returnFocusRef.current = document.activeElement
+        }
+        setOpen(!open)
       }
     }
 
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [])
+  }, [open])
 
   useEffect(() => {
     if (!open) {
@@ -46,6 +55,8 @@ export function useNavCommand() {
   }
 
   return {
+    triggerRef,
+    returnFocusRef,
     open,
     setOpen,
     commandMode,

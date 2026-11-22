@@ -24,37 +24,33 @@ const LocatorGroups = async () => {
 
   const locatorGroupsData = locatorGroups as LocatorGroup[]
 
-  if (!locatorGroupsData || locatorGroupsData.length === 0) {
-    return (
-      <div className="flex min-h-[calc(100vh-20rem)] items-center justify-center">
-        <EmptyState
-          icon={<Group className="size-8" />}
-          title="No locator groups found"
-          description="Get started by creating a locator group to organize your locators"
-          createRoute="/locator-groups/create"
-          createText="Create Locator Group"
-        />
-      </div>
-    )
-  }
-
   return (
-    <>
-      <div className="mb-8">
+    <div className="min-w-0 space-y-4">
+      <div className="min-w-0">
         <div>
           <PageHeader>
-            <span className="flex items-center">
-              <Group className="mr-2 size-8" />
+            <span className="flex items-center gap-2">
+              <Group className="size-7 shrink-0 sm:size-8" />
               Locator Groups
             </span>
           </PageHeader>
           <HeaderSubtitle>Organize locators for better maintainability and reusability</HeaderSubtitle>
         </div>
       </div>
-      <Suspense fallback={<DataTableSkeleton />}>
-        <LocatorGroupTable />
-      </Suspense>
-    </>
+      {!locatorGroupsData || locatorGroupsData.length === 0 ? (
+        <EmptyState
+          icon={<Group className="size-5" />}
+          title="No locator groups found"
+          description="Get started by creating a locator group to organize your locators"
+          createRoute="/locator-groups/create"
+          createText="Create Locator Group"
+        />
+      ) : (
+        <Suspense fallback={<DataTableSkeleton />}>
+          <LocatorGroupTable />
+        </Suspense>
+      )}
+    </div>
   )
 }
 

@@ -6,9 +6,9 @@ export function BaseNode({ className, selected, ...props }: HTMLAttributes<HTMLD
   return (
     <div
       className={cn(
-        'relative rounded-md border bg-card p-5 text-card-foreground',
+        'app-focus relative rounded-lg border border-border bg-card p-4 text-card-foreground',
         className,
-        selected ? 'border-muted-foreground shadow-lg' : '',
+        selected ? 'border-primary ring-1 ring-primary' : '',
         'hover:ring-1',
       )}
       tabIndex={0}

@@ -22,6 +22,7 @@ const ReportViewTable = ({ report }: ReportViewTableProps) => {
   return (
     <>
       <DataTable
+        tableLabel="Test outcomes in this run"
         columns={reportViewTableCols}
         data={report.testCases}
         filterColumn="testCaseTitle"

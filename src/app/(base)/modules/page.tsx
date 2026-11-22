@@ -24,35 +24,31 @@ const Modules = async () => {
 
   const modulesData = getModuleTableRows(modules)
 
-  if (!modulesData || modulesData.length === 0) {
-    return (
-      <div className="flex min-h-[calc(100vh-20rem)] items-center justify-center">
-        <EmptyState
-          icon={<Code className="size-8" />}
-          title="No modules found"
-          description="Get started by creating a module to organize your application components"
-          createRoute="/modules/create"
-          createText="Create Module"
-        />
-      </div>
-    )
-  }
-
   return (
-    <>
-      <div className="mb-8">
+    <div className="min-w-0 space-y-4">
+      <div className="min-w-0">
         <PageHeader>
-          <span className="flex items-center">
-            <Code className="mr-2 size-8" />
+          <span className="flex items-center gap-2">
+            <Code className="size-7 shrink-0 sm:size-8" />
             Modules
           </span>
         </PageHeader>
         <HeaderSubtitle>Modules are the components that are used to build the application</HeaderSubtitle>
       </div>
-      <Suspense fallback={<DataTableSkeleton />}>
-        <ModuleTable />
-      </Suspense>
-    </>
+      {!modulesData || modulesData.length === 0 ? (
+        <EmptyState
+          icon={<Code className="size-5" />}
+          title="No modules found"
+          description="Get started by creating a module to organize your application components"
+          createRoute="/modules/create"
+          createText="Create Module"
+        />
+      ) : (
+        <Suspense fallback={<DataTableSkeleton />}>
+          <ModuleTable />
+        </Suspense>
+      )}
+    </div>
   )
 }
 

@@ -23,37 +23,33 @@ const Locators = async () => {
 
   const locatorsData = getLocatorTableRows(locators)
 
-  if (!locatorsData || locatorsData.length === 0) {
-    return (
-      <div className="flex min-h-[calc(100vh-20rem)] items-center justify-center">
-        <EmptyState
-          icon={<Code className="size-8" />}
-          title="No locators found"
-          description="Get started by creating a locator to identify elements on your pages"
-          createRoute="/locators/create"
-          createText="Create Locator"
-        />
-      </div>
-    )
-  }
-
   return (
-    <>
-      <div className="mb-8">
+    <div className="min-w-0 space-y-4">
+      <div className="min-w-0">
         <div>
           <PageHeader>
-            <span className="flex items-center">
-              <Code className="mr-2 size-8" />
+            <span className="flex items-center gap-2">
+              <Code className="size-7 shrink-0 sm:size-8" />
               Locators
             </span>
           </PageHeader>
           <HeaderSubtitle>Locators are the elements that are used to identify the elements on the page</HeaderSubtitle>
         </div>
       </div>
-      <Suspense fallback={<DataTableSkeleton />}>
-        <LocatorTable />
-      </Suspense>
-    </>
+      {!locatorsData || locatorsData.length === 0 ? (
+        <EmptyState
+          icon={<Code className="size-5" />}
+          title="No locators found"
+          description="Get started by creating a locator to identify elements on your pages"
+          createRoute="/locators/create"
+          createText="Create Locator"
+        />
+      ) : (
+        <Suspense fallback={<DataTableSkeleton />}>
+          <LocatorTable />
+        </Suspense>
+      )}
+    </div>
   )
 }
 

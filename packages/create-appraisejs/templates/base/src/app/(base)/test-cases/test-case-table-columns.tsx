@@ -16,6 +16,7 @@ export const testCaseTableCols: ColumnDef<TestCasePickerRow>[] = [
 
       return (
         <TableActions
+          rowName={testCase.title}
           modifyLink={`/test-cases/modify/${testCase.id}`}
           deleteHandler={() => deleteTestCaseAction([testCase.id])}
         />

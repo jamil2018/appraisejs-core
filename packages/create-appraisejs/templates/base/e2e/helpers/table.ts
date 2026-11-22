@@ -4,14 +4,15 @@ export async function filterTableByName(page: Page, value: string, placeholder =
   await page.getByPlaceholder(placeholder).first().fill(value)
 }
 
-export async function openRowMenu(page: Page, rowIndex = 0): Promise<void> {
-  await page.getByRole('button', { name: 'Open menu' }).nth(rowIndex).click()
+export async function openRowMenu(page: Page, name: string): Promise<void> {
+  const row = page.getByRole('row').filter({ has: page.getByText(name, { exact: true }) })
+  await row.getByRole('button', { name: `Actions for ${name}`, exact: true }).click()
 }
 
 export async function editRowByName(page: Page, name: string): Promise<void> {
   await filterTableByName(page, name)
-  await openRowMenu(page)
-  await page.getByRole('menuitem', { name: /Edit/ }).getByRole('link').click()
+  await openRowMenu(page, name)
+  await page.getByRole('menuitem', { name: /Edit/ }).click()
   await expect(page).toHaveURL(/\/modify\//)
 }
 
@@ -27,7 +28,7 @@ export async function deleteRowByName(
   filterPlaceholder = 'Filter by name...',
 ): Promise<void> {
   await filterTableByName(page, name, filterPlaceholder)
-  await openRowMenu(page)
+  await openRowMenu(page, name)
   await confirmDeleteDialog(page)
 }
 

@@ -2,7 +2,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 
 import { Checkbox } from '@/components/ui/checkbox'
 
-export function createDataTableSelectionColumn<TData>(): ColumnDef<TData> {
+export function createDataTableSelectionColumn<TData>(getRowName: (row: TData) => string): ColumnDef<TData> {
   return {
     id: 'select',
     header: ({ table }) => {
@@ -12,7 +12,7 @@ export function createDataTableSelectionColumn<TData>(): ColumnDef<TData> {
         <Checkbox
           checked={checked}
           onCheckedChange={value => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Select all"
+          aria-label="Select all on this page"
           className="mr-2"
         />
       )
@@ -21,7 +21,7 @@ export function createDataTableSelectionColumn<TData>(): ColumnDef<TData> {
       <Checkbox
         checked={row.getIsSelected()}
         onCheckedChange={value => row.toggleSelected(!!value)}
-        aria-label="Select row"
+        aria-label={`Select ${getRowName(row.original)}`}
         className="mr-2"
       />
     ),

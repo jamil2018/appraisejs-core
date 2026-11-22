@@ -15,18 +15,13 @@ import { locatorSourceTypes, locatorWorkspaceResolutionModes } from './create-lo
 export function statusTone(status: LocatorPickerSession['status']) {
   switch (status) {
     case 'picked':
-      return 'default'
-    case 'saving':
-      return 'secondary'
+      return 'success'
     case 'closed':
-      return 'outline'
+      return 'neutral'
     case 'error':
-      return 'destructive'
-    case 'ready':
-      return 'secondary'
-    case 'starting':
+      return 'danger'
     default:
-      return 'secondary'
+      return 'info'
   }
 }
 

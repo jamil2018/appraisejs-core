@@ -1,3 +1,4 @@
+import AuthoringLoadError from '@/components/data-state/authoring-load-error'
 import { getTestCaseByIdAction, updateTestCaseAction } from '@/actions/test-case/test-case-actions'
 import React from 'react'
 import TestCaseForm from '../../test-case-form'
@@ -31,11 +32,25 @@ const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) =
     loadTestCaseFormResourceResponses(),
   ])
   if (testCaseResponse.error) {
-    return <div>Error: {testCaseResponse.error}</div>
+    return (
+      <AuthoringLoadError
+        title="Modify Test Case"
+        listHref="/test-cases"
+        listLabel="Back to test cases"
+        message={testCaseResponse.error}
+      />
+    )
   }
   const testCase = getEditableTestCase(testCaseResponse.data)
   if (!testCase) {
-    return <div>Error: Invalid test case</div>
+    return (
+      <AuthoringLoadError
+        title="Modify Test Case"
+        listHref="/test-cases"
+        listLabel="Back to test cases"
+        message={'Invalid test case'}
+      />
+    )
   }
 
   const defaultNodesOrder = buildNodeOrderFromTestCaseSteps(testCase.steps)
@@ -49,14 +64,21 @@ const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) =
   ])
 
   if (loadError) {
-    return <div>Error: {loadError}</div>
+    return (
+      <AuthoringLoadError
+        title="Modify Test Case"
+        listHref="/test-cases"
+        listLabel="Back to test cases"
+        message={loadError}
+      />
+    )
   }
 
   const resources = getTestCaseFormRouteResources({ ...resourceResponses, editorDefinitionsResponse })
 
   return (
     <>
-      <div className="mb-8">
+      <div className="mb-4">
         <PageHeader>Modify Test Case</PageHeader>
         <HeaderSubtitle>Modify a test case</HeaderSubtitle>
       </div>

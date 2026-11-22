@@ -15,8 +15,8 @@ const CreateModule = async () => {
   const parentOptions = getModuleParentOptions(getModuleTableRows(modules))
 
   return (
-    <>
-      <div className="mb-8">
+    <div className="min-w-0 space-y-4">
+      <div className="min-w-0">
         <PageHeader>Create Module</PageHeader>
         <HeaderSubtitle>Create a new module to be used in your test cases.</HeaderSubtitle>
       </div>
@@ -26,7 +26,7 @@ const CreateModule = async () => {
         successMessage="Module created successfully"
         onSubmitAction={createModuleAction}
       />
-    </>
+    </div>
   )
 }
 

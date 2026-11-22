@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter, Inter_Tight } from 'next/font/google'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import './globals.css'
@@ -13,23 +12,13 @@ import { listTargetProjects } from '@/services/target-project/target-project-ser
 import ProjectRequiredEmptyState from '@/components/data-state/project-required-empty-state'
 import { APPRAISE_REQUEST_TARGET_HEADER, isProjectScopedPath, staleProjectScopeReturnTo } from '@/lib/project-scope'
 
-const inter = Inter({
-  variable: '--font-inter',
-  subsets: ['latin'],
-})
-
-const interTight = Inter_Tight({
-  variable: '--font-inter-tight',
-  subsets: ['latin'],
-})
-
 const appTitle = 'AppraiseJS'
 const appDescription =
   'AppraiseJS helps teams organize automated tests, execute suites, and review results from one dashboard.'
 
 export const viewport: Viewport = {
   colorScheme: 'dark',
-  themeColor: '#09090b',
+  themeColor: '#181818',
 }
 
 export const metadata: Metadata = {
@@ -62,7 +51,7 @@ export const metadata: Metadata = {
       { url: '/favicon.ico', sizes: 'any' },
     ],
     shortcut: ['/favicon.svg'],
-    other: [{ rel: 'mask-icon', url: '/favicon.svg', color: '#22d3a6' }],
+    other: [{ rel: 'mask-icon', url: '/favicon.svg', color: '#f2f2f2' }],
   },
 }
 
@@ -113,12 +102,12 @@ export default async function RootLayout({
 
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
-      <body className={`${inter.variable} ${interTight.variable} min-h-screen antialiased`}>
+      <body className="min-h-screen antialiased">
         <ThemeProvider>
-          <div className="min-h-screen bg-[linear-gradient(180deg,rgba(38,83,121,0.34)_0%,rgba(18,37,64,0.27)_34%,rgba(13,20,34,0.46)_100%),#0b0f17] lg:flex lg:pr-2">
+          <div className="isolate min-h-screen bg-background lg:flex">
             <a
               href="#main-content"
-              className="sr-only z-50 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
+              className="app-focus sr-only z-50 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
             >
               Skip to main content
             </a>
@@ -137,17 +126,9 @@ export default async function RootLayout({
             <main
               id="main-content"
               tabIndex={-1}
-              className="relative min-w-0 flex-1 scroll-mt-4 overflow-hidden bg-[#0b0f17] px-4 pb-5 pt-16 focus:outline-none sm:px-6 sm:pt-16 lg:my-2 lg:min-h-[calc(100dvh-1rem)] lg:rounded-xl lg:border lg:border-white/[0.08] lg:bg-[rgba(13,20,34,0.76)] lg:px-8 lg:py-5 lg:shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_24px_60px_-42px_rgba(0,0,0,0.95)] lg:backdrop-blur-xl supports-[not(backdrop-filter:blur(1px))]:lg:bg-[#0d1522]"
+              className="min-w-0 flex-1 scroll-mt-4 bg-background px-4 pb-6 pt-16 focus:outline-none sm:px-6 lg:min-h-dvh lg:py-5"
             >
-              <div
-                className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_5%,rgba(38,83,121,0.1),transparent_28rem),linear-gradient(145deg,rgba(18,37,64,0.14),rgba(11,15,23,0.68)_46%,rgba(8,11,17,0.82))]"
-                aria-hidden="true"
-              />
-              <div
-                className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.09] to-transparent"
-                aria-hidden="true"
-              />
-              <div className="relative mx-auto max-w-screen-2xl">
+              <div className="relative min-w-0">
                 <ProjectScopedContent hasProjects={projects.length > 0} requiresProject={requiresProject}>
                   {children}
                 </ProjectScopedContent>

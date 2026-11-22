@@ -30,11 +30,11 @@ const CreateLocatorPage = async () => {
   const moduleRows = getModuleRows(modules)
 
   return (
-    <>
-      <div className="mb-8">
+    <div className="min-w-0 space-y-4">
+      <div className="min-w-0">
         <PageHeader>
-          <span className="flex items-center">
-            <Crosshair className="mr-2 size-8" />
+          <span className="flex items-center gap-2">
+            <Crosshair className="size-7 shrink-0 sm:size-8" />
             Create Locator
           </span>
         </PageHeader>
@@ -44,7 +44,7 @@ const CreateLocatorPage = async () => {
         </HeaderSubtitle>
       </div>
       <CreateLocatorWorkspace environments={environmentRows} locatorGroups={locatorGroupRows} modules={moduleRows} />
-    </>
+    </div>
   )
 }
 

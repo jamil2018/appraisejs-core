@@ -18,6 +18,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { cn, formatDateTime } from '@/lib/utils'
 import { TraceViewerIdleLabel, TraceViewerOpeningLabel, TraceViewerRunningLabel } from './trace-viewer-button-label'
 
@@ -32,6 +33,7 @@ import {
   type TestRunDetailsData,
 } from './test-run-details-helpers'
 import { useTestRunDetails } from './use-test-run-details'
+import { testRunResultPresentation } from './test-run-report-badges'
 
 type TestRunDetailsProps = {
   testRun: TestRunDetailsData
@@ -49,37 +51,32 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
   const EvidenceIcon = evidenceHealthMeta.icon
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
+    <div className="flex min-w-0 flex-col gap-4">
+      <Card className="min-w-0">
+        <CardHeader className="p-4">
+          <CardTitle className="flex flex-wrap items-center justify-between gap-3">
             {testRun.status === TestRunStatus.RUNNING ? (
               <div className="flex items-center gap-2">
-                <LoaderCircle className="size-6 animate-spin text-blue-500" />
+                <LoaderCircle className="size-6 animate-spin text-info" />
                 <span>Executing</span>
               </div>
             ) : testRun.status === TestRunStatus.COMPLETED ? (
               <div className="flex items-center gap-2 duration-300 animate-in fade-in-0">
-                <CheckCircle className="size-6 text-green-500" />
+                <CheckCircle className="size-6 text-muted-foreground" />
                 <span>Finished</span>
               </div>
             ) : testRun.status === TestRunStatus.CANCELLED ? (
               <div className="flex items-center gap-2 duration-300 animate-in fade-in-0">
-                <XCircle className="size-6 text-red-500 duration-300 animate-in fade-in-0" />
+                <XCircle className="size-6 text-muted-foreground duration-300 animate-in fade-in-0" />
                 <span>Interrupted</span>
               </div>
             ) : null}
             {testRun.status === TestRunStatus.RUNNING ? (
-              <Button
-                onClick={handleCancelRun}
-                disabled={isCancelling}
-                className="bg-red-500 font-bold text-white hover:bg-red-600"
-                size="sm"
-              >
+              <Button onClick={handleCancelRun} disabled={isCancelling} variant="destructive" size="sm">
                 {isCancelling ? (
                   <>
                     <LoaderCircle className="size-4 animate-spin" />
-                    Cancelling...
+                    Cancelling…
                   </>
                 ) : (
                   <>
@@ -91,9 +88,9 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
             ) : null}
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
+        <CardContent className="p-4 pt-0">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+            <div className="w-full min-w-0 flex-1">
               <Progress value={progress.percentage} />
             </div>
             <div className="whitespace-nowrap text-sm font-medium">
@@ -104,98 +101,105 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
       </Card>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
+        <Card className="min-w-0">
+          <CardHeader className="p-4">
             <CardTitle className="flex items-center">
-              <Info className="mr-2 size-6" />
+              <Info className="mr-2 size-6 shrink-0" />
               <h3 className="text-lg font-semibold">Test Run Information</h3>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
+          <CardContent className="flex flex-col gap-4 p-4 pt-0">
+            <div className="grid grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)] items-start gap-3">
               <span className="text-sm font-medium">Name</span>
-              <span className="text-sm">{testRun.name}</span>
+              <span className="min-w-0 break-words text-right text-sm">{testRun.name}</span>
             </div>
-            <div className="flex items-center justify-between">
+            <div className="grid grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)] items-start gap-3">
               <span className="text-sm font-medium">Status</span>
-              <Badge variant="outline" className={cn(statusMeta.badgeClassName, 'py-1')}>
-                <span className="mr-1 text-white">
+              <Badge variant="outline" className={cn(statusMeta.badgeClassName, 'max-w-full justify-self-end py-1')}>
+                <span className="mr-1">
                   <StatusIcon className={cn('size-4', testRun.status === TestRunStatus.RUNNING && 'animate-spin')} />
                 </span>
-                <span className="text-white">{statusMeta.label}</span>
+                <span>{statusMeta.label}</span>
               </Badge>
             </div>
-            <div className="flex items-center justify-between">
+            <div className="grid grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)] items-start gap-3">
               <span className="text-sm font-medium">Result</span>
-              <Badge variant="outline">{getTestRunResultText(testRun.result)}</Badge>
+              <StatusBadge
+                {...testRunResultPresentation[testRun.result]}
+                label={getTestRunResultText(testRun.result)}
+                className="justify-self-end"
+              />
             </div>
-            <div className="flex items-center justify-between gap-4">
+            <div className="grid grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)] items-start gap-3">
               <span className="text-sm font-medium">Evidence</span>
-              <Badge variant="outline" className={cn(evidenceHealthMeta.badgeClassName, 'py-1')}>
+              <Badge
+                variant="outline"
+                className={cn(evidenceHealthMeta.badgeClassName, 'max-w-full justify-self-end py-1')}
+              >
                 <EvidenceIcon className="mr-1 size-4" />
                 <span>{evidenceHealthMeta.label}</span>
               </Badge>
             </div>
-            <div className="flex items-center justify-between">
+            <div className="grid grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)] items-start gap-3">
               <span className="text-sm font-medium">Run ID</span>
-              <span className="font-mono text-sm">{testRun.runId}</span>
+              <span className="min-w-0 break-all text-right font-mono text-sm">{testRun.runId}</span>
             </div>
-            <div className="flex items-center justify-between">
+            <div className="grid grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)] items-start gap-3">
               <span className="text-sm font-medium">Environment</span>
-              <span className="text-sm">{testRun.environment.name}</span>
+              <span className="min-w-0 break-words text-right text-sm">{testRun.environment.name}</span>
             </div>
-            <div className="flex items-center justify-between">
+            <div className="grid grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)] items-start gap-3">
               <span className="text-sm font-medium">Browser</span>
-              <span className="text-sm">{testRun.browserEngine}</span>
+              <span className="min-w-0 break-words text-right text-sm">{testRun.browserEngine}</span>
             </div>
-            <div className="flex items-center justify-between">
+            <div className="grid grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)] items-start gap-3">
               <span className="text-sm font-medium">Workers</span>
-              <span className="text-sm">{testRun.testWorkersCount || 1}</span>
+              <span className="min-w-0 break-words text-right text-sm">{testRun.testWorkersCount || 1}</span>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
+        <Card className="min-w-0">
+          <CardHeader className="p-4">
             <CardTitle className="flex items-center">
-              <Timer className="mr-2 size-6" />
+              <Timer className="mr-2 size-6 shrink-0" />
               <h3 className="text-lg font-semibold">Timing</h3>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
+          <CardContent className="flex flex-col gap-4 p-4 pt-0">
+            <div className="grid grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)] items-start gap-3">
               <span className="text-sm font-medium">Started At</span>
-              <span className="text-sm">{formatDateTime(testRun.startedAt)}</span>
+              <span className="min-w-0 break-words text-right text-sm">{formatDateTime(testRun.startedAt)}</span>
             </div>
             {testRun.completedAt ? (
-              <div className="flex items-center justify-between">
+              <div className="grid grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)] items-start gap-3">
                 <span className="text-sm font-medium">Completed At</span>
-                <span className="text-sm">{formatDateTime(testRun.completedAt)}</span>
+                <span className="min-w-0 break-words text-right text-sm">{formatDateTime(testRun.completedAt)}</span>
               </div>
             ) : null}
             {durationSeconds !== null ? (
-              <div className="flex items-center justify-between">
+              <div className="grid grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)] items-start gap-3">
                 <span className="text-sm font-medium">Duration</span>
-                <span className="text-sm">{durationSeconds}s</span>
+                <span className="min-w-0 break-words text-right text-sm">{durationSeconds}s</span>
               </div>
             ) : null}
           </CardContent>
         </Card>
 
-        <Card className="md:col-span-2">
-          <CardHeader>
+        <Card className="min-w-0 md:col-span-2">
+          <CardHeader className="p-4">
             <CardTitle className="flex items-center">
-              <Tags className="mr-2 size-6" />
+              <Tags className="mr-2 size-6 shrink-0" />
               <h3 className="text-lg font-semibold">Tags</h3>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 pt-0">
             {testRun.tags.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {testRun.tags.map(tag => (
-                  <Badge key={tag.id} variant="outline" className="bg-zinc-700 text-white">
-                    <TagIcon className="mr-2 size-4 text-white" />
-                    <span className="text-sm">{tag.name}</span>
+                  <Badge key={tag.id} variant="outline" className="max-w-full bg-secondary text-foreground">
+                    <TagIcon className="mr-2 size-4 shrink-0 text-foreground" />
+                    <span className="min-w-0 text-sm [overflow-wrap:anywhere]">{tag.name}</span>
                   </Badge>
                 ))}
               </div>
@@ -205,16 +209,16 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
           </CardContent>
         </Card>
 
-        <Card className="md:col-span-2">
-          <CardHeader>
+        <Card className="min-w-0 md:col-span-2">
+          <CardHeader className="p-4">
             <CardTitle className="flex items-center">
-              <TestTubes className="mr-2 size-6" />
+              <TestTubes className="mr-2 size-6 shrink-0" />
               <h3 className="text-lg font-semibold">Test Cases ({testRun.testCases.length})</h3>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 pt-0">
             {testRun.testCases.length > 0 ? (
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 {testRun.testCases.map(testCase => {
                   const testCaseStatusMeta = getTestCaseStatusMeta(testCase.status)
                   const testCaseResultMeta = getTestCaseResultMeta(testCase.result)
@@ -224,49 +228,50 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
                   return (
                     <div
                       key={testCase.id}
-                      className="flex items-center justify-between rounded-md bg-muted p-2 shadow-md"
+                      className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-secondary p-3 lg:flex-row lg:items-center lg:justify-between"
                     >
-                      <div className="flex items-center gap-2">
+                      <div className="flex min-w-0 items-start gap-2">
                         <TestTubeDiagonal
                           className={cn(
-                            'mr-2 size-6 text-white',
+                            'size-6 shrink-0 text-foreground',
                             testCase.result === TestRunTestCaseResult.PASSED
-                              ? 'text-green-500'
+                              ? 'text-success'
                               : testCase.result === TestRunTestCaseResult.FAILED
-                                ? 'text-red-500'
+                                ? 'text-danger'
                                 : testCase.result === TestRunTestCaseResult.UNTESTED
-                                  ? 'text-blue-500'
-                                  : 'text-zinc-500',
+                                  ? 'text-muted-foreground'
+                                  : 'text-muted-foreground',
                           )}
                         />
-                        <div className="flex flex-col gap-1">
+                        <div className="flex min-w-0 flex-col gap-1 break-words">
                           <span className="text-sm font-semibold">{testCase.testCase.title}</span>
                           <span className="text-xs text-muted-foreground">{testCase.testCase.description}</span>
                           {testCase.testSuite ? (
                             <div className="pt-1">
-                              <Badge variant="outline" className="w-fit text-[11px]">
+                              <Badge variant="outline" className="max-w-full text-wrap text-[11px]">
                                 Suite: {testCase.testSuite.name}
                               </Badge>
                             </div>
                           ) : null}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="bg-zinc-700 text-xs text-white">
-                          <div className="flex min-w-20 items-center gap-2 p-1.5">
+                      <div className="flex flex-wrap items-center gap-2 lg:shrink-0">
+                        <Badge variant="outline" className="bg-secondary text-xs text-foreground">
+                          <div className="flex items-center gap-1.5 py-1">
                             <TestCaseStatusIcon
                               className={cn(
                                 'size-4',
+                                testCaseStatusMeta.iconClassName,
                                 testCase.status === 'PENDING' || testCase.status === 'RUNNING'
                                   ? 'animate-spin'
-                                  : testCaseStatusMeta.iconClassName,
+                                  : undefined,
                               )}
                             />
                             <span>{testCaseStatusMeta.label}</span>
                           </div>
                         </Badge>
-                        <Badge variant="outline" className="bg-zinc-700 text-xs text-white">
-                          <div className="flex min-w-20 items-center gap-2 p-1.5">
+                        <Badge variant="outline" className="bg-secondary text-xs text-foreground">
+                          <div className="flex items-center gap-1.5 py-1">
                             <TestCaseResultIcon className={cn('size-4', testCaseResultMeta.iconClassName)} />
                             <span>{testCaseResultMeta.label}</span>
                           </div>

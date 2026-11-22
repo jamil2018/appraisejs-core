@@ -66,12 +66,16 @@ function LinkedFollowUpAction({
 }) {
   if (!visible) return null
   return (
-    <Button asChild variant="outline">
-      <Link
-        href={`/quality-journeys/new?project=${encodeURIComponent(projectId)}&predecessor=${encodeURIComponent(journeyId)}`}
-      >
-        Start linked follow-up journey
-      </Link>
+    <Button
+      variant="outline"
+      nativeButton={false}
+      render={
+        <Link
+          href={`/quality-journeys/new?project=${encodeURIComponent(projectId)}&predecessor=${encodeURIComponent(journeyId)}`}
+        />
+      }
+    >
+      Start linked follow-up journey
     </Button>
   )
 }
@@ -192,13 +196,7 @@ async function loadJourneyDetail(journeyId: string, projectId: string) {
           expectedStateHash: journey.journey.stateHash,
         })
       : null,
-    journey.journey.stage === 'AUTOMATION'
-      ? Promise.all([
-          getAppManagedAutomatorManualRecovery({ journeyId, targetProjectId: projectId }),
-          observePendingManualAutomationRecovery({ journeyId, targetProjectId: projectId }),
-          getAppManagedManualAutomationDraftContext({ journeyId, targetProjectId: projectId }),
-        ]).then(([recovery, issued, context]) => ({ recovery, issued, choices: context?.choices }))
-      : null,
+    journey.journey.stage === 'AUTOMATION' ? loadManualPreparation(journeyId, projectId) : null,
     journey.journey.stage === 'TRIAGE' ? getOperatorTriageAvailable({ journeyId, targetProjectId: projectId }) : false,
   ])
   return {
@@ -226,6 +224,17 @@ async function loadJourneyDetail(journeyId: string, projectId: string) {
       ? qualityJourneyRequirementSummary(requirement.contentJson)
       : 'Requirement snapshot unavailable',
   }
+}
+
+async function loadManualPreparation(journeyId: string, targetProjectId: string) {
+  const scope = { journeyId, targetProjectId }
+  const [recovery, issued] = await Promise.all([
+    getAppManagedAutomatorManualRecovery(scope),
+    observePendingManualAutomationRecovery(scope),
+  ])
+  if (!recovery && !issued) return null
+  const context = await getAppManagedManualAutomationDraftContext(scope)
+  return { recovery, issued, choices: context?.choices }
 }
 
 async function loadActiveDiscovery(stage: string, journeyId: string, projectId: string) {
@@ -335,7 +344,7 @@ function JourneyHistory({ detail, projectId, closed }: { detail: Detail; project
   const { journey, activeAnalysis, requirementSummary } = detail
   const journeyId = journey.journey.journeyId
   return (
-    <details className="border-t pt-4">
+    <details className="border-t pt-3">
       <summary className="cursor-pointer text-sm font-medium">History</summary>
       <div className="mt-4 space-y-4">
         <section>
@@ -578,6 +587,22 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
   }
   const legacy = journey.journey.hostingMode === 'EXTERNAL_LEGACY'
   const paused = journey.journey.status === 'PAUSED'
+  const hasQuestion =
+    answerable &&
+    (journey.journey.unresolvedQuestionIds.length > 0 ||
+      Boolean(activeAnalysis?.questions.some(question => question.required && !question.answers.length)))
+  const showAgentSetup =
+    managedActive &&
+    setting &&
+    !agentEnabled &&
+    !hasQuestion &&
+    !journey.blockers.length &&
+    !presentation.allPrepared &&
+    !presentation.requestedExecutionConsentCount &&
+    !detail.operatorTriageAvailable &&
+    !detail.manualPreparation &&
+    !['MANUAL_REQUIRED', 'RECOVERY_REQUIRED', 'INSPECTING'].includes(detail.discoveryCaptureStatus ?? '') &&
+    initialSnapshot?.runtimeStatus !== 'RECOVERY'
 
   return (
     <JourneyStatusObservationProvider
@@ -588,23 +613,25 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
       stateHash={journey.journey.stateHash}
       version={journey.journey.version}
     >
-      <main className="mx-auto w-full max-w-4xl space-y-6 pb-10">
-        <Link
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:underline"
-          href={`/quality-journeys?project=${encodeURIComponent(project.id)}`}
-        >
-          <ArrowLeft aria-hidden="true" className="size-4" /> Quality Journeys
-        </Link>
-        <header className="flex items-start justify-between gap-4">
-          <h1 className="min-w-0 text-balance break-words text-2xl font-semibold tracking-tight">
-            {requirementSummary.split('\n')[0].slice(0, 100)}
-          </h1>
-          <JourneyRecoveryPanel
-            journeyId={journeyId}
-            status={journey.journey.status}
-            stateHash={journey.journey.stateHash}
-            version={journey.journey.version}
-          />
+      <div className="space-y-4">
+        <header className="space-y-2">
+          <Link
+            className="app-focus inline-flex min-h-8 items-center gap-2 rounded-md text-sm text-muted-foreground hover:text-foreground"
+            href={`/quality-journeys?project=${encodeURIComponent(project.id)}`}
+          >
+            <ArrowLeft aria-hidden="true" className="size-4" /> Quality Journeys
+          </Link>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <h1 className="min-w-0 flex-[1_1_12rem] break-words text-2xl font-semibold tracking-tight sm:text-3xl">
+              {requirementSummary.split('\n')[0].slice(0, 100)}
+            </h1>
+            <JourneyRecoveryPanel
+              journeyId={journeyId}
+              status={journey.journey.status}
+              stateHash={journey.journey.stateHash}
+              version={journey.journey.version}
+            />
+          </div>
         </header>
         <JourneyStages stage={stage} />
         {managedActive ? (
@@ -614,43 +641,49 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
             discoveryCaptureStatus={detail.discoveryCaptureStatus}
           />
         ) : null}
-        <section className="space-y-5" aria-label="Current journey focus">
-          <JourneyActivity
-            stage={stage}
-            status={journey.journey.status}
-            legacy={legacy}
-            revision={stage === 'ANALYSIS' && Boolean(activeAnalysis?.decision || detail.previousAnalyses.length)}
-            readyToRun={stage === 'AUTOMATION' && presentation.allPrepared}
-            analyzingEnabled={agentEnabled}
-            reviewing={Boolean(activeAnalysis)}
-            discoveryCaptureStatus={detail.discoveryCaptureStatus ?? undefined}
-            awaitingReportReview={detail.operatorTriageAvailable}
-            awaitingTestPlan={Boolean(detail.manualPreparation?.issued)}
-            executionActivity={executionActivity}
-            question={
-              answerable &&
-              (journey.journey.unresolvedQuestionIds.length > 0 ||
-                Boolean(activeAnalysis?.questions.some(q => q.required && !q.answers.length)))
+        <section className="space-y-3" aria-label="Current journey focus">
+          <div
+            className={
+              showAgentSetup ? 'space-y-2 rounded-xl border border-warning-border bg-warning-surface p-4' : undefined
             }
-            blocked={journey.blockers.length > 0}
-            consent={presentation.requestedExecutionConsentCount > 0}
-            lastEvent={journey.events.at(-1)?.eventType}
-            lastEventAt={journey.events.at(-1)?.createdAt.toISOString()}
-          />
+          >
+            <JourneyActivity
+              stage={stage}
+              status={journey.journey.status}
+              legacy={legacy}
+              revision={stage === 'ANALYSIS' && Boolean(activeAnalysis?.decision || detail.previousAnalyses.length)}
+              readyToRun={stage === 'AUTOMATION' && presentation.allPrepared}
+              analyzingEnabled={agentEnabled}
+              reviewing={Boolean(activeAnalysis)}
+              discoveryCaptureStatus={detail.discoveryCaptureStatus ?? undefined}
+              awaitingReportReview={detail.operatorTriageAvailable}
+              awaitingTestPlan={Boolean(detail.manualPreparation?.issued)}
+              executionActivity={executionActivity}
+              question={hasQuestion}
+              blocked={journey.blockers.length > 0}
+              consent={presentation.requestedExecutionConsentCount > 0}
+              lastEvent={journey.events.at(-1)?.eventType}
+              lastEventAt={journey.events.at(-1)?.createdAt.toISOString()}
+            />
+            {showAgentSetup ? (
+              <details className="text-sm">
+                <summary className="app-focus w-fit cursor-pointer rounded-sm font-medium text-warning underline-offset-4 hover:underline">
+                  How to connect the agent
+                </summary>
+                <p className="mt-2 max-w-prose leading-6 text-muted-foreground">
+                  Ask your workspace owner to enable <code className="break-all text-foreground">{setting}</code> on the
+                  Appraise server. Your brief stays saved here.
+                </p>
+              </details>
+            ) : null}
+          </div>
           {managedActive && ['ANALYSIS', 'ANALYSIS_REVIEW'].includes(stage) ? (
             <AnalysisRecoveryControl journeyId={journeyId} />
           ) : null}
-          {managedActive && !agentEnabled && setting && !presentation.allPrepared ? (
-            <details className="text-sm">
-              <summary className="cursor-pointer">How to connect the agent</summary>
-              <p className="mt-2">
-                Ask your workspace owner to enable <code className="break-all">{setting}</code> on the Appraise server.
-                Your brief stays saved here.
-              </p>
-            </details>
-          ) : null}
           {paused && execution.cycles.some(c => ['RUNNING', 'RESERVED', 'CANCELLING'].includes(c.status)) ? (
-            <p>A test run is still stopping.</p>
+            <p className="rounded-lg border border-warning-border bg-warning-surface p-3 text-sm text-warning">
+              A test run is still stopping.
+            </p>
           ) : null}
           {legacy && !presentation.hasClosureReceipt ? (
             <section id="hosting" aria-label="Managed hosting ownership">
@@ -663,7 +696,7 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
           ) : null}
         </section>
         <JourneyHistory detail={detail} projectId={project.id} closed={presentation.hasClosureReceipt} />
-      </main>
+      </div>
     </JourneyStatusObservationProvider>
   )
 }
@@ -684,7 +717,7 @@ function BlockerCard({
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
-          <CircleAlert aria-hidden="true" className="size-4 text-primary" />
+          <CircleAlert aria-hidden="true" className="size-4 text-warning" />
           What needs attention
         </CardTitle>
       </CardHeader>
@@ -694,12 +727,12 @@ function BlockerCard({
         ) : (
           <ul className="space-y-3">
             {blockers.map(blocker => (
-              <li className="rounded-md border border-amber-500/20 bg-amber-500/[0.06] p-3" key={blocker.id}>
-                <p className="text-sm">{blocker.summary}</p>
+              <li className="rounded-lg border border-warning-border bg-warning-surface p-3" key={blocker.id}>
+                <p className="text-sm font-medium">{blocker.summary}</p>
                 <p className="mt-2 text-xs text-muted-foreground">How to resolve it: {blocker.requiredResolution}</p>
                 <details className="mt-2 text-muted-foreground">
                   <summary className="cursor-pointer text-xs">Technical details</summary>
-                  <p className="mt-1 font-mono text-[11px] text-amber-200">{blocker.reasonCode}</p>
+                  <p className="mt-1 font-mono text-[11px] text-warning">{blocker.reasonCode}</p>
                   <p className="mt-1 text-xs">Responsible actor: {blocker.responsibleActor}</p>
                   <p className="mt-1 break-all font-mono text-[11px]">
                     Canonical resumption: {blocker.safeResumeCommand}
@@ -730,7 +763,7 @@ function Timeline({ events }: { events: Array<{ id: string; sequence: number; ev
         ) : (
           <ol className="space-y-3">
             {events.map(event => (
-              <li className="border-l border-white/[0.14] pl-3" key={event.id}>
+              <li className="border-l border-border pl-3" key={event.id}>
                 <p className="text-sm font-medium">{qualityJourneyLabel(event.eventType)}</p>
                 <p className="mt-1 text-xs text-muted-foreground">{event.createdAt.toLocaleString()}</p>
                 <details className="mt-1 text-muted-foreground">

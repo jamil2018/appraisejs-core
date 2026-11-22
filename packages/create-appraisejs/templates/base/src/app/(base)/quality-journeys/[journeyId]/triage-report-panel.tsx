@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useRef, useState, useTransition } from 'react'
 
 import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
@@ -52,7 +53,7 @@ function AssignmentEvidence({ assignments }: { assignments: Triage['assignments'
       <summary className="cursor-pointer text-sm font-semibold">Technical details and sealed evidence</summary>
       <div className="mt-3 space-y-3">
         {assignments.map(assignment => (
-          <article className="rounded-md border p-3 text-sm" key={assignment.id}>
+          <article className="rounded-lg border p-3 text-sm" key={assignment.id}>
             <p className="font-mono text-xs text-muted-foreground">
               Assignment {assignment.workItemId} · cycle {assignment.executionCycleId}
             </p>
@@ -92,9 +93,11 @@ function FindingList({ report, projectId }: { report: QualityJourneyTriageReport
             <details>
               <summary className="cursor-pointer text-sm">View evidence</summary>
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                <Badge variant="outline">{finding.kind}</Badge>
+                <Badge className="max-w-full break-all" variant="outline">
+                  {finding.kind}
+                </Badge>
                 <Badge variant="secondary">{finding.confidence}</Badge>
-                {finding.unresolved ? <Badge variant="destructive">Unresolved</Badge> : null}
+                {finding.unresolved ? <StatusBadge label="Unresolved" tone="warning" /> : null}
                 <span className="font-mono text-xs">{finding.testRunId}</span>
               </div>
               <Link
@@ -131,8 +134,11 @@ function CoverageList({ report, projectId }: { report: QualityJourneyTriageRepor
       <h3 className="text-sm font-semibold">Coverage</h3>
       <ul className="space-y-2 text-sm">
         {report.coverage.map(item => (
-          <li className="rounded-md border p-3" key={item.requirementId}>
-            <Badge variant="outline">{item.outcome}</Badge>{' '}
+          <li className="rounded-lg border p-3" key={item.requirementId}>
+            <StatusBadge
+              label={item.outcome}
+              tone={item.outcome === 'PASSED' ? 'success' : item.outcome === 'FAILED' ? 'danger' : 'warning'}
+            />{' '}
             <span className="font-mono text-xs">{item.requirementId}</span>
             <p className="mt-1 text-xs text-muted-foreground">{item.rationale}</p>
             {item.testRunIds.map((testRunId, index) => (
@@ -153,7 +159,7 @@ function CoverageList({ report, projectId }: { report: QualityJourneyTriageRepor
 
 function RemediationScope({ remediation }: { remediation: NonNullable<QualityJourneyTriageReport['remediation']> }) {
   return (
-    <section className="space-y-2 rounded-md border p-3 text-sm" aria-label="Proposed remediation scope">
+    <section className="space-y-2 rounded-lg border p-3 text-sm" aria-label="Proposed remediation scope">
       <h3 className="font-semibold">Proposed remediation scope</h3>
       <p>{remediation.scope}</p>
       <p className="text-xs text-muted-foreground">Findings: {remediation.findingIds.join(', ')}</p>
@@ -211,7 +217,7 @@ function ReportReviewControls({
   }
 
   return (
-    <section className="space-y-3 rounded-md border p-3" aria-label="Full report review controls">
+    <section className="space-y-3 rounded-lg border p-3" aria-label="Full report review controls">
       <label className="text-sm font-medium" htmlFor={`report-feedback-${item.report.reportRevisionId}`}>
         Full report feedback
       </label>
@@ -253,7 +259,7 @@ function ReportRevision({ item, active, journeyId, stage, stateHash, projectId }
             </p>
           </details>
         </div>
-        <Badge variant={active ? 'default' : 'outline'}>{active ? 'Active revision' : 'Historical revision'}</Badge>
+        <StatusBadge label={active ? 'Active revision' : 'Historical revision'} tone={active ? 'info' : 'neutral'} />
       </div>
       <p className="text-sm font-semibold" aria-label="Requirement outcomes">
         {item.report.coverage.filter(row => row.outcome === 'PASSED').length} passed ·{' '}
@@ -282,7 +288,7 @@ function ReportRevision({ item, active, journeyId, stage, stateHash, projectId }
         </ul>
       </section>
       {item.review ? (
-        <p className="rounded-md bg-muted p-3 text-sm">
+        <p className="rounded-lg bg-muted p-3 text-sm">
           {item.review.kind}: {item.review.feedback}
           {item.review.successorCycleId ? ` Successor cycle: ${item.review.successorCycleId}.` : ''}
         </p>

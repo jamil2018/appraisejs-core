@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { useJourneyStatusFreshness, useJourneyStatusObservationContext } from './journey-status-observation'
 
 function observedStatusMessage({
@@ -86,9 +87,16 @@ export function JourneyProgressNotice({
   return (
     <section
       aria-label="Observed journey progress"
-      className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-md border p-3"
+      className={cn(
+        'flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-lg border p-3',
+        observation.isOutdated
+          ? 'border-warning-border bg-warning-surface'
+          : freshness.newerVersionAvailable
+            ? 'border-info-border bg-info-surface'
+            : 'border-border',
+      )}
     >
-      <p aria-live="polite" className="min-w-0 flex-1 text-sm text-muted-foreground" role="status">
+      <p aria-live="polite" className="min-w-0 flex-1 text-sm text-secondary-foreground" role="status">
         {observedStatusMessage({
           currentStage,
           eventCount,

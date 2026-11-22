@@ -39,12 +39,8 @@ export default function ProjectSelectionDialog({
   }
 
   return (
-    <Dialog open>
-      <DialogContent
-        className="max-w-xl [&>button]:hidden"
-        onEscapeKeyDown={event => event.preventDefault()}
-        onPointerDownOutside={event => event.preventDefault()}
-      >
+    <Dialog open disablePointerDismissal onOpenChange={(_open, event) => event.cancel()}>
+      <DialogContent className="max-w-xl [&>button]:hidden">
         <DialogHeader>
           <DialogTitle>Select a project</DialogTitle>
           <DialogDescription>
@@ -75,10 +71,10 @@ export default function ProjectSelectionDialog({
             ))}
           </div>
         ) : (
-          <div className="space-y-4 rounded-md border border-white/[0.08] bg-white/[0.025] p-4">
+          <div className="space-y-4 rounded-md border border-border bg-secondary p-4">
             <p className="text-sm text-muted-foreground">No projects are registered yet.</p>
-            <Button asChild>
-              <Link href="/projects">Register a project</Link>
+            <Button render={<Link href="/projects" />} nativeButton={false}>
+              Register a project
             </Button>
           </div>
         )}

@@ -15,6 +15,7 @@ import { ColumnDef } from '@tanstack/react-table'
 import { Badge } from '@/components/ui/badge'
 import { ViewLogsButton } from './view-logs-button'
 import { CheckCircle, XCircle, Clock } from 'lucide-react'
+import { StatusBadge } from '@/components/ui/status-badge'
 
 type ReportTestCaseWithRelations = ReportTestCase & {
   testRunTestCase: TestRunTestCase & {
@@ -49,34 +50,22 @@ type ReportTestCaseWithRelations = ReportTestCase & {
 const testRunTestCaseResultToBadge = (result: TestRunTestCaseResult) => {
   switch (result) {
     case TestRunTestCaseResult.PASSED:
-      return (
-        <Badge className="bg-primary">
-          <CheckCircle className="mr-1 size-4" />
-          Passed
-        </Badge>
-      )
+      return <StatusBadge label="Passed" tone="success" icon={<CheckCircle />} />
     case TestRunTestCaseResult.FAILED:
-      return (
-        <Badge className="bg-pink-500 text-white">
-          <XCircle className="mr-1 size-4" />
-          Failed
-        </Badge>
-      )
+      return <StatusBadge label="Failed" tone="danger" icon={<XCircle />} />
     case TestRunTestCaseResult.UNTESTED:
-      return (
-        <Badge className="bg-yellow-500 text-white">
-          <Clock className="mr-1 size-4" />
-          Untested
-        </Badge>
-      )
+      return <StatusBadge label="Untested" tone="neutral" icon={<Clock />} />
     default:
-      return (
-        <Badge className="bg-zinc-500 text-white">
-          <Clock className="mr-1 size-4" />
-          Unknown
-        </Badge>
-      )
+      return <StatusBadge label="Unknown" icon={<Clock />} />
   }
+}
+
+function parseDurationMs(duration: string) {
+  const match = duration.trim().match(/^(\d+(?:\.\d+)?)(ms)?$/)
+  if (!match) return undefined
+  const value = Number(match[1])
+  if (!Number.isFinite(value)) return undefined
+  return match[2] ? value : value / 1_000_000
 }
 
 export const reportViewTableCols: ColumnDef<ReportTestCaseWithRelations>[] = [
@@ -107,13 +96,13 @@ export const reportViewTableCols: ColumnDef<ReportTestCaseWithRelations>[] = [
   },
   {
     id: 'duration',
-    accessorFn: row => (row.duration ? Number(row.duration) : 0),
+    accessorFn: row => parseDurationMs(row.duration),
     header: ({ column }) => <DataTableColumnHeader column={column} title="Duration" />,
-    cell: ({ row }) => {
-      if (!row.original.duration) return <div>-</div>
-      const durationMs = Math.round(Number(row.original.duration) / 1000000)
-      const durationSeconds = (durationMs / 1000).toFixed(2)
-      return <div>{durationSeconds}s</div>
+    cell: ({ getValue }) => {
+      const durationMs = getValue<number | undefined>()
+      if (durationMs === undefined) return <span className="text-muted-foreground">Unavailable</span>
+      const duration = durationMs < 1000 ? `${Number(durationMs.toFixed(2))} ms` : `${(durationMs / 1000).toFixed(2)} s`
+      return <span className="tabular-nums">{duration}</span>
     },
   },
   {

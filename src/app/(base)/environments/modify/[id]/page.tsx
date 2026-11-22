@@ -28,8 +28,8 @@ const ModifyEnvironment = async ({ params }: { params: Promise<{ id: string }> }
   }
 
   return (
-    <>
-      <div className="mb-8">
+    <div className="min-w-0 space-y-4">
+      <div className="min-w-0">
         <PageHeader>Modify Environment</PageHeader>
         <HeaderSubtitle>Update the environment configuration.</HeaderSubtitle>
       </div>
@@ -47,7 +47,7 @@ const ModifyEnvironment = async ({ params }: { params: Promise<{ id: string }> }
         successMessage="Environment updated successfully"
         onSubmitAction={updateEnvironmentAction}
       />
-    </>
+    </div>
   )
 }
 

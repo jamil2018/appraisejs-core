@@ -34,7 +34,7 @@ const draftTabs = [
 function DraftCards({ drafts, projectId }: { drafts: DraftSummary[]; projectId: string }) {
   if (!drafts.length)
     return (
-      <p className="rounded-xl border border-dashed border-white/[0.1] bg-white/[0.018] p-4 text-sm text-muted-foreground">
+      <p className="rounded-xl border border-dashed border-border bg-secondary p-4 text-sm text-muted-foreground">
         No drafts yet.
       </p>
     )
@@ -42,11 +42,11 @@ function DraftCards({ drafts, projectId }: { drafts: DraftSummary[]; projectId: 
     <div className="grid gap-3 sm:grid-cols-2">
       {drafts.map(draft => (
         <Link
-          className="focus-visible:ring-primary/60 group relative flex min-h-28 items-start gap-3 overflow-hidden rounded-xl border border-white/[0.09] bg-[linear-gradient(145deg,rgba(255,255,255,0.05),rgba(255,255,255,0.014))] p-4 pr-14 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-16px_32px_rgba(0,0,0,0.1),0_18px_50px_-38px_rgba(0,0,0,0.8)] backdrop-blur-xl transition-[border-color,background-color,transform] hover:-translate-y-0.5 hover:border-white/[0.16] hover:bg-white/[0.045] focus-visible:outline-none focus-visible:ring-2"
+          className="app-surface group relative flex min-h-28 items-start gap-3 overflow-hidden rounded-xl p-4 pr-14 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
           href={`/quality-journeys/drafts/${draft.id}?project=${encodeURIComponent(projectId)}`}
           key={draft.id}
         >
-          <span className="border-primary/20 bg-primary/[0.07] flex size-9 shrink-0 items-center justify-center rounded-full border text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-info-border bg-info-surface text-info">
             <FilePenLine aria-hidden="true" className="size-4" />
           </span>
           <span className="min-w-0">
@@ -58,7 +58,7 @@ function DraftCards({ drafts, projectId }: { drafts: DraftSummary[]; projectId: 
               {draft.updatedAt.toLocaleString()}
             </span>
           </span>
-          <span className="text-foreground/70 group-hover:border-primary/35 pointer-events-none absolute right-4 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full border border-white/[0.12] bg-[linear-gradient(180deg,rgba(255,255,255,0.09),rgba(255,255,255,0.02))] shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] backdrop-blur-xl transition-[border-color,color,transform] group-hover:translate-x-0.5 group-hover:text-primary">
+          <span className="pointer-events-none absolute right-4 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-[border-color,color,transform] group-hover:translate-x-0.5 group-hover:border-info-border group-hover:text-info">
             <ArrowRight aria-hidden="true" className="size-4" />
           </span>
         </Link>
@@ -82,11 +82,14 @@ export default async function QualityJourneysPage({
   ])
 
   return (
-    <main className="space-y-6 pb-10">
-      <header className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-start">
+    <div className="space-y-4">
+      <header className="flex flex-col items-start justify-between gap-3 sm:flex-row">
         <PageHeader>Quality Journeys</PageHeader>
-        <Button asChild>
-          <Link href={`/quality-journeys/new?project=${encodeURIComponent(project.id)}`}>New journey</Link>
+        <Button
+          nativeButton={false}
+          render={<Link href={`/quality-journeys/new?project=${encodeURIComponent(project.id)}`} />}
+        >
+          New journey
         </Button>
       </header>
       <QualityJourneysBrowser items={journeys} projectId={project.id} />
@@ -102,17 +105,17 @@ export default async function QualityJourneysPage({
             </div>
             <nav
               aria-label="Draft status"
-              className="flex h-9 items-center rounded-full border border-white/[0.09] bg-white/[0.025] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] backdrop-blur-xl"
+              className="flex h-10 items-center rounded-xl border border-border bg-secondary p-1"
             >
               {draftTabs.map(tab => {
                 const isActive = activeDraftView === tab.value
                 return (
                   <Link
                     aria-current={isActive ? 'page' : undefined}
-                    className={`focus-visible:ring-primary/50 flex h-7 items-center rounded-full px-3 text-xs font-medium transition-[color,background-color,border-color,box-shadow] focus-visible:outline-none focus-visible:ring-2 ${
+                    className={`app-focus flex h-8 items-center rounded-lg px-3 text-xs font-medium transition-[color,background-color,border-color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
                       isActive
-                        ? 'border border-white/[0.12] bg-white/[0.075] text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_8px_20px_-14px_rgba(0,0,0,0.9)]'
-                        : 'border border-transparent text-muted-foreground hover:bg-white/[0.035] hover:text-foreground'
+                        ? 'border border-border bg-card text-foreground shadow-sm'
+                        : 'border border-transparent text-muted-foreground hover:bg-accent hover:text-foreground'
                     }`}
                     href={`/quality-journeys?project=${encodeURIComponent(project.id)}&view=${tab.value}`}
                     key={tab.value}
@@ -126,6 +129,6 @@ export default async function QualityJourneysPage({
           <DraftCards drafts={drafts} projectId={project.id} />
         </section>
       </details>
-    </main>
+    </div>
   )
 }

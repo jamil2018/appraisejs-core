@@ -27,7 +27,7 @@ export function FlowDiagramBlockOverlays({
         <div
           key={block.id}
           data-flow-block-overlay={block.id}
-          className="pointer-events-none absolute rounded-lg border border-emerald-400/70 bg-emerald-400/10"
+          className="pointer-events-none absolute rounded-lg border-2 border-dashed border-selection-border bg-selection-surface/40"
           style={{
             left: block.x,
             top: block.y,
@@ -36,7 +36,7 @@ export function FlowDiagramBlockOverlays({
             zIndex: -1,
           }}
         >
-          <div className="bg-background/95 shadow-background/40 pointer-events-auto absolute -top-9 left-2 flex items-center gap-1 rounded-md border border-emerald-300/80 px-2.5 py-1.5 text-sm font-semibold text-foreground shadow-md">
+          <div className="pointer-events-auto absolute -top-9 left-2 flex items-center gap-1 rounded-lg border border-selection-border bg-background px-2.5 py-1.5 text-sm font-semibold text-foreground shadow-md shadow-background/40">
             <span>{block.name}</span>
             <Button
               type="button"
@@ -52,7 +52,7 @@ export function FlowDiagramBlockOverlays({
               type="button"
               variant="ghost"
               size="icon"
-              className="size-5"
+              className="size-5 text-danger hover:bg-danger-surface hover:text-danger"
               onClick={() => onDeleteBlock(block.id)}
               aria-label={`Delete ${block.name}`}
             >

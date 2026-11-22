@@ -14,7 +14,7 @@ export const testRunStatusPresentation = {
   [TestRunStatus.QUEUED]: { label: 'Queued', tone: 'neutral', icon: <Clock /> },
   [TestRunStatus.RUNNING]: { label: 'Running', tone: 'info', icon: <Clock /> },
   [TestRunStatus.CANCELLING]: { label: 'Cancelling', tone: 'warning', icon: <Clock /> },
-  [TestRunStatus.COMPLETED]: { label: 'Completed', tone: 'success', icon: <CheckCircle /> },
+  [TestRunStatus.COMPLETED]: { label: 'Completed', tone: 'neutral', icon: <CheckCircle /> },
   [TestRunStatus.CANCELLED]: { label: 'Cancelled', tone: 'neutral', icon: <XCircle /> },
 } as const
 

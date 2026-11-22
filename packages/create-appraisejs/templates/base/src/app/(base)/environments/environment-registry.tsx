@@ -36,10 +36,10 @@ function includesQuery(environment: EnvironmentTableRow, query: string) {
 function ExpectedPageTitle({ value }: { value: string | null }) {
   const configured = Boolean(value)
   return (
-    <div className="min-w-0 rounded-lg border border-white/[0.05] bg-white/[0.006] px-3.5 py-3">
+    <div className="min-w-0 rounded-lg border border-border bg-secondary p-3">
       <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">Expected page title</p>
       <p
-        className={`mt-2 truncate text-xs ${configured ? 'text-foreground/75' : 'text-muted-foreground/70'}`}
+        className={`mt-2 truncate text-xs ${configured ? 'text-foreground' : 'text-muted-foreground'}`}
         title={value || undefined}
       >
         {value || 'Automatic target identity'}
@@ -89,9 +89,9 @@ export default function EnvironmentRegistry({ environments }: EnvironmentRegistr
   return (
     <section
       aria-labelledby="environment-registry-title"
-      className="overflow-hidden rounded-xl border border-white/[0.06] bg-[rgba(18,37,64,0.1)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl"
+      className="min-w-0 overflow-hidden rounded-xl border border-border bg-card"
     >
-      <div className="flex flex-col gap-4 border-b border-white/[0.05] px-4 py-4 sm:px-5 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-4 border-b border-border p-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h2 id="environment-registry-title" className="text-base font-semibold text-foreground">
             Runtime registry
@@ -100,21 +100,16 @@ export default function EnvironmentRegistry({ environments }: EnvironmentRegistr
             Endpoints and access profiles available to test execution.
           </p>
         </div>
-        <Button
-          asChild
-          className="w-full rounded-full border border-white/[0.18] bg-[linear-gradient(180deg,hsl(var(--primary)/0.88),hsl(var(--primary)/0.66))] shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_12px_28px_-16px_hsl(var(--primary)/0.7)] sm:w-auto"
-        >
-          <Link href="/environments/create">
-            <Plus className="size-4" aria-hidden="true" />
-            New environment
-          </Link>
+        <Button className="w-full sm:w-auto" render={<Link href="/environments/create" />} nativeButton={false}>
+          <Plus className="size-4" aria-hidden="true" />
+          New environment
         </Button>
       </div>
 
-      <div className="flex flex-col gap-3 border-b border-white/[0.05] px-4 py-3 sm:px-5 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-3 border-b border-border p-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="relative w-full lg:max-w-sm">
           <Search
-            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-500"
+            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
             aria-hidden="true"
           />
           <label htmlFor="environment-search" className="sr-only">
@@ -126,20 +121,24 @@ export default function EnvironmentRegistry({ environments }: EnvironmentRegistr
             value={query}
             onChange={event => setQuery(event.target.value)}
             placeholder="Search name, endpoint, or username"
-            className="h-9 rounded-full border-white/[0.08] bg-white/[0.006] pl-9 backdrop-blur-md"
+            className="h-9 pl-9"
           />
         </div>
 
         <div className="flex min-h-9 flex-wrap items-center gap-3">
-          <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-zinc-400">
+          <label
+            htmlFor="environment-select-visible"
+            className="flex cursor-pointer items-center gap-2 text-xs font-medium text-muted-foreground"
+          >
             <Checkbox
+              id="environment-select-visible"
               checked={allFilteredSelected}
               onCheckedChange={value => toggleAllFiltered(Boolean(value))}
               aria-label="Select all visible environments"
             />
             Select visible
           </label>
-          <span className="text-xs tabular-nums text-zinc-500">
+          <span className="text-xs tabular-nums text-muted-foreground">
             {filteredEnvironments.length} of {environments.length}
           </span>
           <DeletePrompt
@@ -154,32 +153,34 @@ export default function EnvironmentRegistry({ environments }: EnvironmentRegistr
       </div>
 
       {filteredEnvironments.length > 0 ? (
-        <div className="grid grid-cols-1 gap-4 p-4 sm:p-5 xl:grid-cols-2">
+        <div className="grid min-w-0 grid-cols-1 gap-4 p-4 xl:grid-cols-2">
           {filteredEnvironments.map(environment => (
             <article
               key={environment.id}
-              className="hover:border-primary/25 group relative min-w-0 overflow-hidden rounded-xl border border-white/[0.05] bg-white/[0.006] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] backdrop-blur-xl transition-[border-color,background-color,transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:bg-white/[0.025] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] motion-reduce:transform-none sm:p-5"
+              className="relative min-w-0 overflow-hidden rounded-xl border border-border bg-card p-4 transition-colors hover:border-input"
             >
-              <div className="from-primary/60 via-primary/15 absolute inset-x-0 top-0 h-px bg-gradient-to-r to-transparent" />
               <div className="flex items-start justify-between gap-4">
-                <div className="flex min-w-0 items-center gap-3.5">
-                  <div className="border-primary/25 bg-primary/[0.07] flex size-11 shrink-0 items-center justify-center rounded-full border text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] backdrop-blur-xl">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border bg-secondary text-muted-foreground">
                     <Server className="size-5" strokeWidth={1.8} aria-hidden="true" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-zinc-500">Environment</p>
-                    <h3 className="mt-1 truncate text-lg font-semibold tracking-tight text-zinc-100">
+                    <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                      Environment
+                    </p>
+                    <h3 className="mt-1 truncate text-lg font-semibold tracking-tight text-foreground">
                       {environment.name}
                     </h3>
                   </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-1.5">
+                <div className="flex shrink-0 items-center gap-2">
                   <Checkbox
                     checked={selectedIds.includes(environment.id)}
                     onCheckedChange={value => toggleEnvironment(environment.id, Boolean(value))}
                     aria-label={`Select ${environment.name}`}
                   />
                   <TableActions
+                    rowName={environment.name}
                     modifyLink={`/environments/modify/${environment.id}`}
                     deleteHandler={() => deleteEnvironmentAction([environment.id])}
                     editActionText="Edit environment"
@@ -189,56 +190,56 @@ export default function EnvironmentRegistry({ environments }: EnvironmentRegistr
                 </div>
               </div>
 
-              <div className="mt-6">
-                <div className="relative overflow-hidden rounded-lg border border-white/[0.05] bg-white/[0.006] px-4 py-3.5">
+              <div className="mt-4">
+                <div className="relative overflow-hidden rounded-lg border border-border bg-secondary px-4 py-3">
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-zinc-500">
+                    <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
                       Primary address
                     </span>
                     <a
                       href={environment.baseUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="rounded-sm text-zinc-500 outline-none transition-colors hover:text-primary focus-visible:ring-1 focus-visible:ring-primary"
+                      className="rounded-sm text-muted-foreground outline-none transition-colors hover:text-primary focus-visible:ring-1 focus-visible:ring-primary"
                       aria-label={`Open ${environment.name} base URL`}
                     >
                       <ExternalLink className="size-3.5" aria-hidden="true" />
                     </a>
                   </div>
-                  <p className="mt-2 truncate font-mono text-sm text-zinc-100" title={environment.baseUrl}>
+                  <p className="mt-2 truncate font-mono text-sm text-foreground" title={environment.baseUrl}>
                     {environment.baseUrl}
                   </p>
                 </div>
 
                 <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <ExpectedPageTitle value={environment.expectedPageTitle} />
-                  <div className="min-w-0 rounded-lg border border-white/[0.05] bg-white/[0.006] px-3.5 py-3">
-                    <div className="flex items-center gap-2 text-zinc-500">
+                  <div className="min-w-0 rounded-lg border border-border bg-secondary p-3">
+                    <div className="flex items-center gap-2 text-muted-foreground">
                       <Braces className="size-3.5" aria-hidden="true" />
                       <span className="text-[10px] font-medium uppercase tracking-[0.1em]">API endpoint</span>
                     </div>
                     <p
-                      className={`mt-2 truncate text-xs ${environment.apiBaseUrl ? 'font-mono text-zinc-300' : 'text-zinc-500'}`}
+                      className={`mt-2 truncate text-xs ${environment.apiBaseUrl ? 'font-mono text-foreground' : 'text-muted-foreground'}`}
                       title={environment.apiBaseUrl || undefined}
                     >
                       {environment.apiBaseUrl || 'Not configured'}
                     </p>
                   </div>
-                  <div className="min-w-0 rounded-lg border border-white/[0.05] bg-white/[0.006] px-3.5 py-3 sm:col-span-2">
-                    <div className="flex items-center gap-2 text-zinc-500">
+                  <div className="min-w-0 rounded-lg border border-border bg-secondary p-3 sm:col-span-2">
+                    <div className="flex items-center gap-2 text-muted-foreground">
                       <ShieldCheck className="size-3.5" aria-hidden="true" />
                       <span className="text-[10px] font-medium uppercase tracking-[0.1em]">
                         Discovery sign-in origins
                       </span>
                     </div>
-                    <p className="mt-2 truncate font-mono text-xs text-zinc-300">
+                    <p className="mt-2 truncate font-mono text-xs text-foreground">
                       {identityProviderOriginsFromDiscoveryAuthTransitPolicy(
                         environment.discoveryAuthTransitPolicyJson,
                       ).join(', ') || 'None authorized'}
                     </p>
                   </div>
-                  <div className="min-w-0 rounded-lg border border-white/[0.05] bg-white/[0.006] px-3.5 py-3">
-                    <div className="flex items-center gap-2 text-zinc-500">
+                  <div className="min-w-0 rounded-lg border border-border bg-secondary p-3">
+                    <div className="flex items-center gap-2 text-muted-foreground">
                       {environment.username ? (
                         <UserRound className="size-3.5" aria-hidden="true" />
                       ) : (
@@ -246,14 +247,16 @@ export default function EnvironmentRegistry({ environments }: EnvironmentRegistr
                       )}
                       <span className="text-[10px] font-medium uppercase tracking-[0.1em]">Access profile</span>
                     </div>
-                    <p className={`mt-2 truncate text-xs ${environment.username ? 'text-zinc-300' : 'text-zinc-500'}`}>
+                    <p
+                      className={`mt-2 truncate text-xs ${environment.username ? 'text-foreground' : 'text-muted-foreground'}`}
+                    >
                       {environment.username || 'No username'}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.06] pt-3.5 text-[11px] text-zinc-500">
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3 text-[11px] text-muted-foreground">
                 <span>Created {formatDateTime(environment.createdAt)}</span>
                 <span>Updated {formatDateTime(environment.updatedAt)}</span>
               </div>
@@ -261,10 +264,10 @@ export default function EnvironmentRegistry({ environments }: EnvironmentRegistr
           ))}
         </div>
       ) : (
-        <div className="flex min-h-52 flex-col items-center justify-center px-6 py-10 text-center">
-          <Search className="size-6 text-zinc-600" aria-hidden="true" />
-          <h3 className="mt-3 text-sm font-semibold text-zinc-200">No matching environments</h3>
-          <p className="mt-1 max-w-sm text-sm text-zinc-500">Try a different name, endpoint, or username.</p>
+        <div className="flex min-h-52 flex-col items-center justify-center p-4 text-center">
+          <Search className="size-6 text-muted-foreground" aria-hidden="true" />
+          <h3 className="mt-3 text-sm font-semibold text-foreground">No matching environments</h3>
+          <p className="mt-1 max-w-sm text-sm text-muted-foreground">Try a different name, endpoint, or username.</p>
         </div>
       )}
     </section>

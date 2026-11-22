@@ -1,26 +1,33 @@
 'use client'
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { AlertCircle, AlertTriangle, Clock, XCircle, CheckCircle2, ArrowRight } from 'lucide-react'
 import { DashboardMetrics } from '@prisma/client'
 import { useRouter } from 'next/navigation'
+import { cn } from '@/lib/utils'
 
 type AppDrawerItemConfig = {
   title: string
   description: string
   healthyDescription: string
   icon: React.ReactNode
-  color: {
-    border: string
-    hoverBorder: string
-    bg: string
-    hoverBg: string
-    text: string
-    iconColor: string
-    pulse: string
-  }
   count: number
+  tone: 'danger' | 'warning'
   onClick: () => void
+}
+
+const attentionTone = {
+  danger: {
+    text: 'text-danger',
+    surface:
+      'data-[state=actionable]:border-danger-border data-[state=actionable]:bg-danger-surface enabled:hover:border-danger',
+  },
+  warning: {
+    text: 'text-warning',
+    surface:
+      'data-[state=actionable]:border-warning-border data-[state=actionable]:bg-warning-surface enabled:hover:border-warning',
+  },
 }
 
 const AppDrawerItem = ({
@@ -32,6 +39,7 @@ const AppDrawerItem = ({
 }) => {
   const isHealthy = item.count === 0
   const emptyEvidence = isHealthy && !hasExecutionEvidence
+  const tone = attentionTone[item.tone]
 
   return (
     <button
@@ -39,70 +47,30 @@ const AppDrawerItem = ({
       disabled={isHealthy}
       data-state={isHealthy ? 'disabled' : 'actionable'}
       aria-label={`${item.title}: ${item.count}. ${emptyEvidence ? 'No completed-run evidence yet' : isHealthy ? item.healthyDescription : item.description}`}
-      className={`group relative flex min-h-[116px] w-full flex-col justify-between overflow-hidden rounded-lg border p-3 text-left outline-none transition-colors duration-200 focus-visible:ring-1 focus-visible:ring-primary ${
-        isHealthy
-          ? 'cursor-not-allowed border-white/[0.06] bg-white/[0.018] opacity-60'
-          : `${item.color.border} ${item.color.bg} ${item.color.hoverBorder} ${item.color.hoverBg}`
-      }`}
+      type="button"
+      className={cn(
+        'app-focus group flex min-h-20 w-full min-w-0 flex-col justify-between gap-2 rounded-lg border bg-field p-2.5 text-left transition-colors disabled:cursor-not-allowed',
+        tone.surface,
+      )}
     >
-      <div className="flex w-full items-center justify-between">
-        <div
-          className={`flex size-8 items-center justify-center rounded-md border transition-colors duration-200 ${
-            isHealthy
-              ? 'border-white/[0.08] bg-white/[0.025] text-zinc-500'
-              : `border-white/[0.08] bg-white/[0.04] ${item.color.iconColor}`
-          }`}
-        >
-          {isHealthy ? <CheckCircle2 className="size-5" /> : item.icon}
-        </div>
-
-        <div
-          className={`flex items-center gap-1.5 rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${
-            isHealthy ? 'bg-white/[0.025]' : 'bg-black/15'
-          }`}
-        >
-          {isHealthy ? (
-            <>
-              <span className="size-1.5 rounded-full bg-zinc-600" />
-              <span className="text-zinc-500">{emptyEvidence ? 'No evidence' : 'Clear'}</span>
-            </>
-          ) : (
-            <>
-              <span className="relative flex size-1.5">
-                <span
-                  className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 ${item.color.pulse}`}
-                />
-                <span className={`relative inline-flex size-1.5 rounded-full ${item.color.pulse}`} />
-              </span>
-              <span className={`${item.color.text}`}>Action</span>
-            </>
-          )}
-        </div>
-      </div>
-
-      <div className="flex w-full items-end justify-between gap-3">
-        <div className="min-w-0">
-          <span
-            className={`block text-2xl font-bold leading-7 transition-colors duration-200 ${
-              isHealthy ? 'text-zinc-500' : `${item.color.text}`
-            }`}
-          >
-            {item.count}
-          </span>
-          <h4
-            className={`mt-1.5 truncate text-xs font-semibold leading-4 text-zinc-100 transition-colors duration-200 ${
-              isHealthy ? 'text-zinc-400' : 'group-hover:text-white'
-            }`}
-          >
-            {item.title}
-          </h4>
-        </div>
-        {!isHealthy && (
-          <div className="mb-0.5 shrink-0 text-zinc-500 transition-colors duration-200 group-hover:text-zinc-300">
-            <ArrowRight className="size-4" />
-          </div>
+      <span className="flex items-center justify-between gap-2 text-xs font-medium text-muted-foreground group-data-[state=actionable]:text-foreground">
+        {item.title}
+        {isHealthy && !emptyEvidence ? (
+          <CheckCircle2 className="size-4 shrink-0" aria-hidden />
+        ) : (
+          <span className={cn('flex shrink-0', !isHealthy && tone.text)}>{item.icon}</span>
         )}
-      </div>
+      </span>
+      <span className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+        <span className={cn('text-2xl font-semibold tabular-nums', isHealthy ? 'text-foreground' : tone.text)}>
+          {item.count}
+        </span>
+        {isHealthy ? (
+          <StatusBadge label={emptyEvidence ? 'No evidence' : 'Clear'} tone="neutral" />
+        ) : (
+          <ArrowRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+        )}
+      </span>
     </button>
   )
 }
@@ -110,12 +78,10 @@ const AppDrawerItem = ({
 export default function AppDrawer({
   metrics,
   title,
-  description,
   hasExecutionEvidence,
 }: {
   metrics: DashboardMetrics | null
   title: string
-  description: string
   hasExecutionEvidence: boolean
 }) {
   const { push } = useRouter()
@@ -125,17 +91,9 @@ export default function AppDrawer({
       title: 'Failed Runs',
       description: 'Recent failures',
       healthyDescription: 'No recent failures',
-      icon: <XCircle className="size-5" />,
-      color: {
-        border: 'border-rose-500/25',
-        hoverBorder: 'hover:border-rose-500/45',
-        bg: 'bg-gradient-to-br from-rose-500/[0.06] to-rose-500/[0.02]',
-        hoverBg: 'hover:from-rose-500/[0.12] hover:to-rose-500/[0.04]',
-        text: 'text-rose-400',
-        iconColor: 'text-rose-400',
-        pulse: 'bg-rose-500',
-      },
+      icon: <XCircle aria-hidden className="size-4 shrink-0" />,
       count: metrics?.failedRecentRunsCount ?? 0,
+      tone: 'danger',
       onClick: () => {
         push('/test-runs?filter=recentFailed')
       },
@@ -144,17 +102,9 @@ export default function AppDrawer({
       title: 'Failing Tests',
       description: 'Repeated failures',
       healthyDescription: 'No failing tests',
-      icon: <AlertCircle className="size-5" />,
-      color: {
-        border: 'border-red-500/25',
-        hoverBorder: 'hover:border-red-500/45',
-        bg: 'bg-gradient-to-br from-red-500/[0.06] to-red-500/[0.02]',
-        hoverBg: 'hover:from-red-500/[0.12] hover:to-red-500/[0.04]',
-        text: 'text-red-400',
-        iconColor: 'text-red-400',
-        pulse: 'bg-red-500',
-      },
+      icon: <AlertCircle aria-hidden className="size-4 shrink-0" />,
       count: metrics?.repeatedlyFailingTestsCount ?? 0,
+      tone: 'danger',
       onClick: () => {
         push('/reports/test-cases?filter=repeatedlyFailing')
       },
@@ -163,17 +113,9 @@ export default function AppDrawer({
       title: 'Flaky Tests',
       description: 'Inconsistent outcomes',
       healthyDescription: 'No flaky tests',
-      icon: <AlertTriangle className="size-5" />,
-      color: {
-        border: 'border-amber-500/25',
-        hoverBorder: 'hover:border-amber-500/45',
-        bg: 'bg-gradient-to-br from-amber-500/[0.06] to-amber-500/[0.02]',
-        hoverBg: 'hover:from-amber-500/[0.12] hover:to-amber-500/[0.04]',
-        text: 'text-amber-400',
-        iconColor: 'text-amber-400',
-        pulse: 'bg-amber-400',
-      },
+      icon: <AlertTriangle aria-hidden className="size-4 shrink-0" />,
       count: metrics?.flakyTestsCount ?? 0,
+      tone: 'warning',
       onClick: () => {
         push('/reports/test-cases?filter=flaky')
       },
@@ -182,17 +124,9 @@ export default function AppDrawer({
       title: 'Unexecuted Suites',
       description: 'Needs execution',
       healthyDescription: 'All suites current',
-      icon: <Clock className="size-5" />,
-      color: {
-        border: 'border-sky-500/25',
-        hoverBorder: 'hover:border-sky-500/45',
-        bg: 'bg-gradient-to-br from-sky-500/[0.06] to-sky-500/[0.02]',
-        hoverBg: 'hover:from-sky-500/[0.12] hover:to-sky-500/[0.04]',
-        text: 'text-sky-400',
-        iconColor: 'text-sky-400',
-        pulse: 'bg-sky-400',
-      },
+      icon: <Clock aria-hidden className="size-4 shrink-0" />,
       count: metrics?.suitesNotExecutedRecentlyCount ?? 0,
+      tone: 'warning',
       onClick: () => {
         push('/reports/test-suites?filter=notExecutedRecently')
       },
@@ -200,16 +134,12 @@ export default function AppDrawer({
   ]
 
   return (
-    <Card
-      id="container"
-      className="relative overflow-hidden border-white/[0.06] bg-[rgba(18,37,64,0.1)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl"
-    >
-      <CardHeader id="header" className="relative px-4 pb-3 pt-4">
-        <CardTitle className="text-base font-semibold text-white">{title}</CardTitle>
-        <CardDescription className="text-xs leading-5 text-zinc-400">{description}</CardDescription>
+    <Card>
+      <CardHeader className="px-4 pb-3 pt-4">
+        <CardTitle className="text-base font-semibold text-foreground">{title}</CardTitle>
       </CardHeader>
-      <CardContent id="content" className="relative px-4 pb-4 pt-0">
-        <div className="grid grid-cols-1 gap-3 sm:auto-rows-[116px] sm:grid-cols-2">
+      <CardContent className="px-4 pb-4 pt-0">
+        <div className="grid grid-cols-2 items-stretch gap-2">
           {items.map(item => (
             <AppDrawerItem key={item.title} item={item} hasExecutionEvidence={hasExecutionEvidence} />
           ))}

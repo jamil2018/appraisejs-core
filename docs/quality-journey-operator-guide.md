@@ -5,6 +5,10 @@ blockers, review decisions, and operational controls as the source of truth. A s
 Test Run does not advance a Journey. See [lifecycle flow](agent-lifecycle-flow.md) and
 [hosting/session contracts](quality-journey-host-sessions.md).
 
+Start from one brief. The form shows its save status next to **Start journey**. On the Journey page, answer the
+current required question or review the criteria when they are ready. **How to connect the agent** appears when
+progress needs a workspace owner to enable the agent. **History** holds the original brief and prior work.
+
 ## Start a local server with managed workers
 
 For an installed, migrated project on a supported Mac, use the existing Codex CLI login on the machine hosting AppraiseJS. From the AppraiseJS project directory, the following starts the managed workflow on loopback using the project’s configured database.
@@ -57,7 +61,6 @@ protected capture. An anonymous sign-in screen does not satisfy the automatic pr
 
 Automatic browser attempts are not repeated after failure or uncertain cleanup. The panel shows when recovery is
 required; preserve the original browser records and use Journey recovery rather than opening another uncertain effect.
-
 
 ## Pause, cancellation, and manual recovery
 

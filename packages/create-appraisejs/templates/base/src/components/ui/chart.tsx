@@ -51,7 +51,7 @@ function ChartContainer({
       <div
         data-chart={chartId}
         className={cn(
-          "[&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/50 flex aspect-video justify-center text-xs [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-none [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_[stroke='#ccc']]:stroke-border [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-sector]:outline-none [&_.recharts-surface]:outline-none",
+          "flex aspect-video justify-center text-xs [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-none [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_[stroke='#ccc']]:stroke-border [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-sector]:outline-none [&_.recharts-surface]:outline-none",
           className,
         )}
         {...props}
@@ -177,10 +177,7 @@ function ChartTooltipContentActive({
   return (
     <div
       ref={ref}
-      className={cn(
-        'border-border/50 grid min-w-[8rem] items-start gap-1.5 rounded-lg border bg-background px-2.5 py-1.5 text-xs shadow-xl',
-        className,
-      )}
+      className={cn('app-glass grid min-w-32 items-start gap-2 rounded-xl border px-3 py-2 text-xs', className)}
     >
       {!nestLabel ? (
         <ChartTooltipTitle
@@ -193,7 +190,7 @@ function ChartTooltipContentActive({
           labelKey={labelKey}
         />
       ) : null}
-      <div className="grid gap-1.5">
+      <div className="grid gap-2">
         {resolvedPayload.reduce<React.ReactNode[]>((items, item, index) => {
           if (item.type === 'none') {
             return items
@@ -238,7 +235,7 @@ function ChartTooltipContentActive({
                   <div
                     className={cn('flex flex-1 justify-between leading-none', nestLabel ? 'items-end' : 'items-center')}
                   >
-                    <div className="grid gap-1.5">
+                    <div className="grid gap-2">
                       {nestLabel ? (
                         <ChartTooltipTitle
                           config={config}
@@ -252,7 +249,7 @@ function ChartTooltipContentActive({
                       ) : null}
                       <span className="text-muted-foreground">{itemConfig?.label || item.name}</span>
                     </div>
-                    {item.value && (
+                    {item.value != null && (
                       <span className="font-mono font-medium tabular-nums text-foreground">
                         {item.value.toLocaleString()}
                       </span>

@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-  <rect width="128" height="128" rx="26" fill="#0e1b2e"/>
+  <rect width="128" height="128" rx="26" fill="#181818"/>
   <circle class="ring" cx="64" cy="64" r="43" fill="none" stroke-width="11"/>
   <polyline class="check" points="41,65 56,80 88,45" fill="none" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
   <style>
-    .ring{stroke:#dbe7f3}
-    .check{stroke:#22d3a6}
+    .ring{stroke:#f2f2f2}
+    .check{stroke:#c4c4c4}
   </style>
 </svg>

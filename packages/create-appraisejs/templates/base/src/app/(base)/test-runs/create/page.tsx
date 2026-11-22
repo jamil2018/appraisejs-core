@@ -1,3 +1,4 @@
+import AuthoringLoadError from '@/components/data-state/authoring-load-error'
 import { createTestRunAction } from '@/actions/test-run/test-run-actions'
 import PageHeader from '@/components/typography/page-header'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
@@ -16,12 +17,19 @@ const CreateTestRun = async () => {
   const pageData = await loadCreateTestRunPageData()
 
   if (pageData.status === 'error') {
-    return <div>Error: {pageData.message}</div>
+    return (
+      <AuthoringLoadError
+        title="Create Test Run"
+        listHref="/test-runs"
+        listLabel="Back to test runs"
+        message={pageData.message}
+      />
+    )
   }
 
   return (
     <>
-      <div className="mb-8">
+      <div className="mb-4">
         <PageHeader>Create Test Run</PageHeader>
         <HeaderSubtitle>Create a new test run to execute selected suites or tagged tests</HeaderSubtitle>
       </div>

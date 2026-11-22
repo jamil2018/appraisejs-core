@@ -3,7 +3,6 @@ import { TestRunDetails } from '@/components/test-run/test-run-details'
 import { TestRunHeader } from '@/components/test-run/test-run-header'
 import { getTestRunDetailsData } from '@/components/test-run/test-run-details-helpers'
 import { LogViewer } from '@/components/test-run/log-viewer'
-import { Separator } from '@/components/ui/separator'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -50,10 +49,8 @@ export default async function TestRunDetailPage({ params, searchParams }: TestRu
     <>
       <TestRunHeader initialTestRun={testRun} />
 
-      <div className="space-y-6">
+      <div className="flex min-w-0 flex-col gap-4">
         <TestRunDetails testRun={testRun} />
-
-        <Separator />
 
         <LogViewer testRunId={testRun.runId} targetProjectId={project} status={testRun.status} />
       </div>

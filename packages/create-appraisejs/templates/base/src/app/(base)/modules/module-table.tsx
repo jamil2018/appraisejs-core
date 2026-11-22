@@ -10,6 +10,7 @@ const ModuleTable = async () => {
   return (
     <>
       <DataTable
+        tableLabel="Modules"
         columns={moduleTableCols}
         data={moduleRows}
         filterColumn="name"

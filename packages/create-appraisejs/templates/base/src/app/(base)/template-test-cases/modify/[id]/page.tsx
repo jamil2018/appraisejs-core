@@ -118,7 +118,7 @@ const ModifyTemplateTestCase = async ({ params }: { params: Promise<{ id: string
   }
   return (
     <>
-      <div className="mb-8">
+      <div className="mb-4">
         <PageHeader>Modify {presentationVocabulary.caseTemplate.singular}</PageHeader>
         <HeaderSubtitle>Modify a template test case</HeaderSubtitle>
       </div>

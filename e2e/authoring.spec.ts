@@ -126,8 +126,8 @@ test.describe('Test authoring @authoring', () => {
 
     await saveTestCase(page)
     const row = page.getByRole('row', { name: new RegExp(title) })
-    await row.getByRole('button', { name: 'Open menu' }).click()
-    await page.getByRole('link', { name: 'Edit' }).click()
+    await row.getByRole('button', { name: `Actions for ${title}`, exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Edit' }).click()
     await expectPageHeading(page, 'Modify Test Case')
     await page.getByRole('button', { name: /Continue/ }).click()
     await page.getByRole('tab', { name: 'Linear' }).click()
@@ -268,8 +268,8 @@ test.describe('Test authoring @authoring', () => {
     await expect(page).toHaveURL(/\/template-test-cases$/)
 
     const row = page.getByRole('row', { name: /E2E Template Dual View Case/ })
-    await row.getByRole('button', { name: 'Open menu' }).click()
-    await page.getByRole('link', { name: 'Edit' }).click()
+    await row.getByRole('button', { name: 'Actions for E2E Template Dual View Case', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Edit' }).click()
     await expectPageHeading(page, 'Modify Case Template')
     await switchAuthoringView(page, 'Linear')
     await expect(page.getByText('When the user navigates to the /template-linear url')).toBeVisible()

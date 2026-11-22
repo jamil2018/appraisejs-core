@@ -42,10 +42,10 @@ function configureTypeScript(monaco: typeof Monaco) {
     inherit: true,
     rules: [],
     colors: {
-      'editor.background': '#0b1626',
-      'editorGutter.background': '#0b1626',
-      'editorLineNumber.foreground': '#52657d',
-      'editorLineNumber.activeForeground': '#aab9ca',
+      'editor.background': '#1d1d20',
+      'editorGutter.background': '#1d1d20',
+      'editorLineNumber.foreground': '#a6a6b0',
+      'editorLineNumber.activeForeground': '#d5d5d9',
     },
   })
 }
@@ -107,7 +107,7 @@ export function StepDefinitionCodeEditor({
   }, [diagnostics])
 
   return (
-    <div className="overflow-hidden rounded-md border border-white/[0.1] bg-[#0b1626]">
+    <div className="overflow-hidden rounded-lg border border-border bg-card">
       <MonacoEditor
         beforeMount={beforeMount}
         height="24rem"

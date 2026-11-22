@@ -24,23 +24,9 @@ const TestCases = async () => {
 
   const testCasesData = getTestCaseRows(testCases)
 
-  if (!testCasesData || testCasesData.length === 0) {
-    return (
-      <div className="flex min-h-[calc(100vh-20rem)] items-center justify-center">
-        <EmptyState
-          icon={<TestTubeDiagonal className="size-8" />}
-          title="No test cases found"
-          description="Get started by creating a test case to test your application functionality"
-          createRoute="/test-cases/create"
-          createText="Create Test Case"
-        />
-      </div>
-    )
-  }
-
   return (
     <>
-      <div className="mb-8">
+      <div className="mb-4">
         <PageHeader>
           <span className="flex items-center">
             <TestTubeDiagonal className="mr-2 size-8" />
@@ -51,9 +37,19 @@ const TestCases = async () => {
           Test cases are individual tests that are used to test a specific feature or functionality
         </HeaderSubtitle>
       </div>
-      <Suspense fallback={<DataTableSkeleton />}>
-        <TestCaseTable />
-      </Suspense>
+      {!testCasesData || testCasesData.length === 0 ? (
+        <EmptyState
+          icon={<TestTubeDiagonal className="size-5" />}
+          title="No test cases found"
+          description="Get started by creating a test case to test your application functionality"
+          createRoute="/test-cases/create"
+          createText="Create Test Case"
+        />
+      ) : (
+        <Suspense fallback={<DataTableSkeleton />}>
+          <TestCaseTable />
+        </Suspense>
+      )}
     </>
   )
 }

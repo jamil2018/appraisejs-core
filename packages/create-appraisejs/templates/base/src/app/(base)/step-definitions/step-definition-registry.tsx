@@ -62,14 +62,14 @@ function DraftCard({
   onResume: () => void
 }) {
   return (
-    <Card className="border-white/[0.06] bg-[rgba(18,37,64,0.1)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+    <Card className="border-border bg-card shadow-none">
       <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-zinc-100">{draft.title}</p>
+          <p className="truncate text-sm font-medium text-foreground">{draft.title}</p>
           <p className="mt-1 break-all font-mono text-xs text-muted-foreground">
             {draft.proposedStepId}@{draft.proposedVersion} · revision {draft.revision}
           </p>
-          <p className="mt-2 flex items-center gap-1.5 text-xs text-zinc-500">
+          <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
             <Clock3 aria-hidden="true" className="size-3.5" />
             Updated <time dateTime={draft.updatedAt}>{draft.updatedAt.replace('T', ' ').replace('.000Z', ' UTC')}</time>
           </p>
@@ -83,7 +83,7 @@ function DraftCard({
             aria-label={`Delete draft ${draft.title}`}
             size="icon"
             variant="ghost"
-            className="size-8 text-muted-foreground hover:text-destructive"
+            className="size-8 text-danger hover:bg-danger-surface hover:text-danger"
             onClick={onDelete}
           >
             <Trash2 aria-hidden="true" />
@@ -105,20 +105,26 @@ function DefinitionManagement({
 }) {
   return (
     <div className="flex items-center gap-2">
-      {definition.sourceOwned ? <Badge variant="outline">Source managed</Badge> : null}
+      {definition.sourceOwned ? (
+        <Badge variant="outline" className="border-info-border bg-info-surface text-info">
+          Source managed
+        </Badge>
+      ) : null}
       <Badge variant="secondary">{definition.groupId}</Badge>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button aria-label={`Manage ${definition.title}`} size="icon" variant="ghost" className="size-8">
-            <MoreHorizontal aria-hidden="true" />
-          </Button>
-        </DropdownMenuTrigger>
+        <DropdownMenuTrigger
+          render={
+            <Button aria-label={`Manage ${definition.title}`} size="icon" variant="ghost" className="size-8">
+              <MoreHorizontal aria-hidden="true" />
+            </Button>
+          }
+        />
         <DropdownMenuContent align="end">
-          <DropdownMenuItem disabled={definition.sourceOwned} onSelect={onVersion}>
+          <DropdownMenuItem disabled={definition.sourceOwned} onClick={onVersion}>
             Create new version
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={onDeprecate}>
+          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={onDeprecate}>
             Deprecate version
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -137,8 +143,8 @@ function ReadyDefinitionCard({
   onVersion: () => void
 }) {
   return (
-    <Card className="border-white/[0.06] bg-[rgba(18,37,64,0.1)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-      <CardHeader className="space-y-3">
+    <Card className="border-border bg-card shadow-none">
+      <CardHeader className="space-y-3 p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <CardTitle className="text-base">{definition.title}</CardTitle>
@@ -150,8 +156,8 @@ function ReadyDefinitionCard({
         </div>
         <p className="text-sm leading-6 text-muted-foreground">{definition.description}</p>
       </CardHeader>
-      <CardContent className="space-y-3">
-        <code className="block overflow-x-auto rounded-md border border-white/[0.07] bg-black/20 px-3 py-2 text-xs">
+      <CardContent className="space-y-3 p-4 pt-0">
+        <code className="block overflow-x-auto rounded-lg border border-border bg-secondary px-3 py-2 text-xs">
           {definition.signature}
         </code>
         <div className="flex flex-wrap gap-2">
@@ -179,14 +185,14 @@ function ReadyDefinitionRow({
   onVersion: () => void
 }) {
   return (
-    <div className="rounded-lg border border-white/[0.06] bg-[rgba(18,37,64,0.1)] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl">
+    <div className="rounded-lg border border-border bg-card px-4 py-3 shadow-none">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
-          <p className="font-medium text-zinc-100">{definition.title}</p>
+          <p className="font-medium text-foreground">{definition.title}</p>
           <p className="break-all font-mono text-xs text-muted-foreground">
             {definition.reference.id}@{definition.reference.version}
           </p>
-          <code className="block overflow-x-auto text-xs text-zinc-400">{definition.signature}</code>
+          <code className="block overflow-x-auto text-xs text-muted-foreground">{definition.signature}</code>
         </div>
         <DefinitionManagement definition={definition} onDeprecate={onDeprecate} onVersion={onVersion} />
       </div>
@@ -300,11 +306,11 @@ export function StepDefinitionRegistry({
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       {drafts.length ? (
         <section aria-labelledby="step-definition-drafts-heading" className="space-y-3">
           <div>
-            <h2 id="step-definition-drafts-heading" className="text-sm font-semibold text-zinc-100">
+            <h2 id="step-definition-drafts-heading" className="text-sm font-semibold text-foreground">
               Your drafts
             </h2>
             <p className="mt-1 text-xs text-muted-foreground">
@@ -324,9 +330,9 @@ export function StepDefinitionRegistry({
         </section>
       ) : null}
 
-      <section aria-labelledby="ready-step-definitions-heading" className="space-y-5">
+      <section aria-labelledby="ready-step-definitions-heading" className="space-y-4">
         <div>
-          <h2 id="ready-step-definitions-heading" className="text-sm font-semibold text-zinc-100">
+          <h2 id="ready-step-definitions-heading" className="text-sm font-semibold text-foreground">
             Published library
           </h2>
           <p className="mt-1 text-xs text-muted-foreground">
@@ -334,7 +340,7 @@ export function StepDefinitionRegistry({
           </p>
         </div>
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div className="grid gap-3 sm:grid-cols-[minmax(16rem,1fr)_12rem] lg:max-w-3xl lg:flex-1">
+          <div className="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_12rem] lg:flex-1">
             <Input
               type="search"
               value={query}
@@ -346,7 +352,11 @@ export function StepDefinitionRegistry({
               <Label className="sr-only" htmlFor="step-definition-category">
                 Category
               </Label>
-              <Select value={group} onValueChange={setGroup}>
+              <Select
+                items={{ all: 'All categories', ...Object.fromEntries(groups.map(group => [group, group])) }}
+                value={group}
+                onValueChange={setGroup}
+              >
                 <SelectTrigger id="step-definition-category" aria-label="Filter by category">
                   <SelectValue placeholder="All categories" />
                 </SelectTrigger>
@@ -362,7 +372,7 @@ export function StepDefinitionRegistry({
             </div>
           </div>
           <div
-            className="flex h-9 items-center rounded-full border border-white/[0.09] bg-white/[0.025] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] backdrop-blur-xl"
+            className="flex h-9 items-center rounded-full border border-border bg-accent p-1 shadow-none"
             role="group"
             aria-label="Definition view"
           >
@@ -371,8 +381,8 @@ export function StepDefinitionRegistry({
               variant="ghost"
               className={
                 view === 'cards'
-                  ? 'h-7 border border-white/[0.12] bg-white/[0.075] px-3 text-xs text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_8px_20px_-14px_rgba(0,0,0,0.9)] hover:bg-white/[0.075]'
-                  : 'h-7 border border-transparent px-3 text-xs text-muted-foreground shadow-none hover:bg-white/[0.035] hover:text-foreground'
+                  ? 'h-7 border border-selection-border bg-selection-surface px-3 text-xs text-selection shadow-none hover:bg-selection-surface'
+                  : 'h-7 border border-transparent px-3 text-xs text-muted-foreground shadow-none hover:bg-accent hover:text-foreground'
               }
               aria-pressed={view === 'cards'}
               onClick={() => setView('cards')}
@@ -384,8 +394,8 @@ export function StepDefinitionRegistry({
               variant="ghost"
               className={
                 view === 'compact'
-                  ? 'h-7 border border-white/[0.12] bg-white/[0.075] px-3 text-xs text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_8px_20px_-14px_rgba(0,0,0,0.9)] hover:bg-white/[0.075]'
-                  : 'h-7 border border-transparent px-3 text-xs text-muted-foreground shadow-none hover:bg-white/[0.035] hover:text-foreground'
+                  ? 'h-7 border border-selection-border bg-selection-surface px-3 text-xs text-selection shadow-none hover:bg-selection-surface'
+                  : 'h-7 border border-transparent px-3 text-xs text-muted-foreground shadow-none hover:bg-accent hover:text-foreground'
               }
               aria-pressed={view === 'compact'}
               onClick={() => setView('compact')}
@@ -398,7 +408,7 @@ export function StepDefinitionRegistry({
           Showing {filteredDefinitions.length} of {definitions.length} ready Step Definitions
         </p>
         {filteredDefinitions.length === 0 ? (
-          <Card className="bg-muted/20 border-dashed shadow-none">
+          <Card className="border-dashed bg-muted/20 shadow-none">
             <CardContent className="py-10 text-center">
               <p className="font-medium">No Step Definitions match the current filters.</p>
               <p className="mt-1 text-sm text-muted-foreground">Try a broader search or another category.</p>

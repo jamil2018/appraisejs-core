@@ -1,3 +1,4 @@
+import AuthoringLoadError from '@/components/data-state/authoring-load-error'
 import PageHeader from '@/components/typography/page-header'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import React from 'react'
@@ -24,18 +25,25 @@ const CreateTestCase = async () => {
   const loadError = getTestCaseRouteLoadError(Object.values(resourceResponses))
 
   if (loadError) {
-    return <div>Error: {loadError}</div>
+    return (
+      <AuthoringLoadError
+        title="Create New Test Case"
+        listHref="/test-cases"
+        listLabel="Back to test cases"
+        message={loadError}
+      />
+    )
   }
 
   const resources = getTestCaseFormRouteResources(resourceResponses)
 
   return (
     <div>
-      <div className="mb-8 flex items-start gap-3">
-        <span className="bg-primary/10 mt-1 flex size-10 shrink-0 items-center justify-center rounded-md border text-primary">
+      <div className="mb-4 flex items-start gap-3">
+        <span className="mt-1 flex size-10 shrink-0 items-center justify-center rounded-md border bg-primary/10 text-primary">
           <FilePlus2 className="size-5" aria-hidden />
         </span>
-        <div>
+        <div className="min-w-0">
           <PageHeader>Create New Test Case</PageHeader>
           <HeaderSubtitle>Create a new test from scratch to execute against your application</HeaderSubtitle>
         </div>

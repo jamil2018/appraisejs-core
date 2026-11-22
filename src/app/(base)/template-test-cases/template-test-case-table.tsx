@@ -17,6 +17,7 @@ const TemplateTestCaseTable = async () => {
   return (
     <>
       <DataTable
+        tableLabel="Case templates"
         columns={templateTestCaseTableCols}
         data={templateTestCases as TemplateTestCaseWithSteps[]}
         filterColumn="name"

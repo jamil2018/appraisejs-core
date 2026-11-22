@@ -15,6 +15,7 @@ const LocatorTable = async () => {
   return (
     <>
       <DataTable
+        tableLabel="Locators"
         columns={locatorTableCols}
         data={locatorRows}
         filterColumn="name"

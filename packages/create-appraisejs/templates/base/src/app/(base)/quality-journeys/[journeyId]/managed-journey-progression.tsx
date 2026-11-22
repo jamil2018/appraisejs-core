@@ -54,7 +54,7 @@ export function ManagedJourneyProgression({
     }
   }, [journeyId, stateHash, refresh])
   return error ? (
-    <p role="status" className="text-sm text-muted-foreground">
+    <p role="status" className="rounded-lg border border-warning-border bg-warning-surface p-3 text-sm text-warning">
       {error}
     </p>
   ) : null

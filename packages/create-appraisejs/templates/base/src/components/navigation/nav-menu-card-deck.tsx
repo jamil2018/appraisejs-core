@@ -85,8 +85,7 @@ const NavMenuCardDeck = ({
                       <Card
                         className={cn(
                           'h-24 w-full border-none outline-none transition-colors hover:bg-accent dark:hover:bg-primary-foreground dark:hover:text-accent-foreground',
-                          checkIfItemActive(item.href) &&
-                            'bg-green-400/25 text-accent-foreground dark:bg-primary-foreground',
+                          checkIfItemActive(item.href) && 'bg-accent text-accent-foreground',
                           'hover:cursor-pointer',
                         )}
                       >

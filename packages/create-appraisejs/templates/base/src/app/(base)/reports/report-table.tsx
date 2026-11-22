@@ -10,6 +10,7 @@ const ReportTable = ({ reports }: ReportTableProps) => {
   return (
     <>
       <DataTable
+        tableLabel="Run reports"
         columns={reportTableCols}
         data={reports}
         filterColumn="testRunName"

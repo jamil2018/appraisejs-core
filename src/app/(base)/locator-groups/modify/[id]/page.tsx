@@ -1,3 +1,5 @@
+import PageHeader from '@/components/typography/page-header'
+import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import { getLocatorGroupByIdAction } from '@/actions/locator-groups/locator-group-actions'
 import { LocatorGroup, Module } from '@prisma/client'
 import React from 'react'
@@ -28,18 +30,24 @@ const ModifyLocator = async ({ params }: { params: Promise<{ id: string }> }) =>
   }
 
   return (
-    <LocatorGroupForm
-      defaultValues={{
-        name: locatorGroup.name ?? '',
-        moduleId: locatorGroup.moduleId ?? '',
-        route: locatorGroup.route ?? '',
-      }}
-      successTitle="Locator Group updated"
-      successMessage="Locator Group updated successfully"
-      onSubmitAction={updateLocatorGroupAction}
-      id={id}
-      moduleList={moduleList as Module[]}
-    />
+    <div className="min-w-0 space-y-4">
+      <div>
+        <PageHeader>Modify Locator Group</PageHeader>
+        <HeaderSubtitle>Update the locator group configuration.</HeaderSubtitle>
+      </div>
+      <LocatorGroupForm
+        defaultValues={{
+          name: locatorGroup.name ?? '',
+          moduleId: locatorGroup.moduleId ?? '',
+          route: locatorGroup.route ?? '',
+        }}
+        successTitle="Locator Group updated"
+        successMessage="Locator Group updated successfully"
+        onSubmitAction={updateLocatorGroupAction}
+        id={id}
+        moduleList={moduleList as Module[]}
+      />
+    </div>
   )
 }
 

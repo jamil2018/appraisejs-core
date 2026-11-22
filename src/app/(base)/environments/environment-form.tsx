@@ -43,14 +43,17 @@ const EnvironmentForm = ({ defaultValues, successTitle, successMessage, id, onSu
     </form.Subscribe>
   )
   return (
-    <TanStackForm onSubmit={() => form.handleSubmit()}>
+    <TanStackForm
+      className="app-surface grid w-full min-w-0 gap-4 rounded-xl border border-border bg-card p-4 lg:grid-cols-2"
+      onSubmit={() => form.handleSubmit()}
+    >
       <form.Field
         name="name"
         validators={{
           onChange: environmentFieldValidators.name,
         }}
       >
-        {field => <TextFormField field={field} label="Name" />}
+        {field => <TextFormField field={field} label="Name" className="flex min-w-0 flex-col gap-2" />}
       </form.Field>
       <form.Field
         name="baseUrl"
@@ -58,7 +61,14 @@ const EnvironmentForm = ({ defaultValues, successTitle, successMessage, id, onSu
           onChange: environmentFieldValidators.baseUrl,
         }}
       >
-        {field => <TextFormField field={field} label="Base URL" placeholder="https://example.com" />}
+        {field => (
+          <TextFormField
+            field={field}
+            label="Base URL"
+            placeholder="https://example.com"
+            className="flex min-w-0 flex-col gap-2"
+          />
+        )}
       </form.Field>
       <form.Field
         name="apiBaseUrl"
@@ -66,7 +76,14 @@ const EnvironmentForm = ({ defaultValues, successTitle, successMessage, id, onSu
           onChange: environmentFieldValidators.apiBaseUrl,
         }}
       >
-        {field => <TextFormField field={field} label="API Base URL (Optional)" placeholder="https://api.example.com" />}
+        {field => (
+          <TextFormField
+            field={field}
+            label="API Base URL (Optional)"
+            placeholder="https://api.example.com"
+            className="flex min-w-0 flex-col gap-2"
+          />
+        )}
       </form.Field>
       <form.Field
         name="expectedPageTitle"
@@ -78,6 +95,7 @@ const EnvironmentForm = ({ defaultValues, successTitle, successMessage, id, onSu
           <TextFormField
             field={field}
             label="Expected page title (Optional)"
+            className="flex min-w-0 flex-col gap-2"
             placeholder="HomeChores"
             description="Before baseline execution, Appraise verifies that this title is served at the base URL."
           />
@@ -89,7 +107,14 @@ const EnvironmentForm = ({ defaultValues, successTitle, successMessage, id, onSu
           onChange: environmentFieldValidators.username,
         }}
       >
-        {field => <TextFormField field={field} label="Username (Optional)" placeholder="Enter username" />}
+        {field => (
+          <TextFormField
+            field={field}
+            label="Username (Optional)"
+            placeholder="Enter username"
+            className="flex min-w-0 flex-col gap-2"
+          />
+        )}
       </form.Field>
       <form.Field
         name="passwordEnvironmentVariable"
@@ -101,6 +126,7 @@ const EnvironmentForm = ({ defaultValues, successTitle, successMessage, id, onSu
           <TextFormField
             field={field}
             label="Password environment variable (Optional)"
+            className="flex min-w-0 flex-col gap-2"
             placeholder="APPRAISE_STAGING_PASSWORD"
             autoComplete="off"
             description="Store the secret in the named process environment variable. Appraise stores only this reference."
@@ -112,7 +138,7 @@ const EnvironmentForm = ({ defaultValues, successTitle, successMessage, id, onSu
         validators={{ onChange: environmentFieldValidators.discoveryAuthTransitPolicyJson }}
       >
         {field => (
-          <div className="mb-4 flex flex-col gap-2 lg:w-1/3">
+          <div className="flex min-w-0 flex-col gap-2 lg:col-span-2">
             <label htmlFor="discoveryAuthTransitPolicyJson">Discovery sign-in transit policy (Optional)</label>
             <Textarea
               id="discoveryAuthTransitPolicyJson"
@@ -121,14 +147,14 @@ const EnvironmentForm = ({ defaultValues, successTitle, successMessage, id, onSu
               onChange={event => field.handleChange(event.target.value)}
               placeholder='{"schemaVersion":"appraise.discovery-auth-transit/v1","flows":[]}'
             />
-            <p className="text-sm text-muted-foreground">
+            <p className="max-w-prose text-sm text-muted-foreground">
               Versioned exact redirect rules for a human-operated IdP flow. No credential, cookie, or target content is
               stored.
             </p>
           </div>
         )}
       </form.Field>
-      {submitButton}
+      <div className="flex border-t border-border pt-4 lg:col-span-2">{submitButton}</div>
     </TanStackForm>
   )
 }

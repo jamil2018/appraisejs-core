@@ -13,6 +13,7 @@ const LocatorGroupTable = async () => {
   return (
     <>
       <DataTable
+        tableLabel="Locator groups"
         columns={locatorGroupTableCols}
         data={locatorGroups as (LocatorGroup & { module: Module })[]}
         filterColumn="name"

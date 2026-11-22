@@ -19,6 +19,35 @@ export const metadata: Metadata = {
   description: 'Browse ready reusable Step Definitions and their exact invocation contracts.',
 }
 
+function StepDefinitionsHeader({ showCreate }: { showCreate: boolean }) {
+  return (
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="min-w-0">
+        <PageHeader>
+          <span className="flex items-center gap-2">
+            <BookOpenCheck aria-hidden="true" className="size-8" />
+            Step Definitions
+          </span>
+        </PageHeader>
+        <HeaderSubtitle>
+          Browse the ready, versioned contracts used by human-authored tests and managed validation.
+        </HeaderSubtitle>
+      </div>
+      {showCreate && (
+        <Button
+          nativeButton={false}
+          render={
+            <Link href="/step-definitions/create">
+              <Plus aria-hidden="true" className="size-4" />
+              Create Step Definition
+            </Link>
+          }
+        />
+      )}
+    </div>
+  )
+}
+
 export default async function StepDefinitionsPage() {
   const [response, draftResponse] = await Promise.all([
     listReadyStepDefinitionOptionsAction(),
@@ -27,7 +56,7 @@ export default async function StepDefinitionsPage() {
 
   if (response.status !== 200 || draftResponse.status !== 200) {
     return (
-      <div role="alert" className="border-destructive/30 bg-destructive/10 rounded-md border p-4 text-sm">
+      <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm">
         Unable to load Step Definitions: {response.error ?? draftResponse.error ?? 'Unknown registry error.'}
       </div>
     )
@@ -35,42 +64,23 @@ export default async function StepDefinitionsPage() {
 
   const definitions = (response.data ?? []) as StepDefinitionOption[]
   const drafts = (draftResponse.data ?? []) as StepDefinitionDraftSummary[]
-  if (definitions.length === 0 && drafts.length === 0) {
-    return (
-      <div className="flex min-h-[calc(100vh-20rem)] items-center justify-center">
+
+  const empty = definitions.length === 0 && drafts.length === 0
+
+  return (
+    <div className="space-y-4">
+      <StepDefinitionsHeader showCreate={!empty} />
+      {empty ? (
         <EmptyState
-          icon={<BookOpenCheck className="size-8" />}
+          icon={<BookOpenCheck className="size-5" />}
           title="No ready Step Definitions found"
           description="Create and publish a reusable Step Definition to make it available for authored tests."
           createRoute="/step-definitions/create"
           createText="Create Step Definition"
         />
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <PageHeader>
-            <span className="flex items-center gap-2">
-              <BookOpenCheck aria-hidden="true" className="size-8" />
-              Step Definitions
-            </span>
-          </PageHeader>
-          <HeaderSubtitle>
-            Browse the ready, versioned contracts used by human-authored tests and managed validation.
-          </HeaderSubtitle>
-        </div>
-        <Button asChild>
-          <Link href="/step-definitions/create">
-            <Plus aria-hidden="true" className="size-4" />
-            Create Step Definition
-          </Link>
-        </Button>
-      </div>
-      <StepDefinitionRegistry definitions={definitions} drafts={drafts} />
+      ) : (
+        <StepDefinitionRegistry definitions={definitions} drafts={drafts} />
+      )}
     </div>
   )
 }

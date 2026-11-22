@@ -180,8 +180,8 @@ function TestCasePicker({
         onCancel={() => dispatch({ type: 'setOpen', open: false })}
         onSave={saveDraftSelection}
       >
-        <ScrollArea className="h-[420px] rounded-md border">
-          <Table>
+        <ScrollArea className="h-[min(420px,40dvh)] rounded-md border">
+          <Table scrollLabel="Available test cases">
             <TableHeader className="sticky top-0 z-10 bg-background">
               {table.getHeaderGroups().map(headerGroup => (
                 <TableRow key={headerGroup.id}>
@@ -217,7 +217,7 @@ function TestCasePicker({
       </PickerBrowseDialogFrame>
 
       {savedTestCases.length > 0 && (
-        <div className="bg-muted/20 rounded-md border">
+        <div className="rounded-md border bg-muted/20">
           <div className="border-b px-4 py-3 text-sm font-medium">{selectedLabel}</div>
           <ScrollArea className={cn(shouldConstrainSavedListHeight && 'h-56')}>
             <div className="space-y-3 p-4">

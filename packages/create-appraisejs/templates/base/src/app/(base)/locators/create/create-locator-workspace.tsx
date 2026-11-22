@@ -1,7 +1,7 @@
 'use client'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -24,12 +24,12 @@ import { useLocatorWorkspace } from './use-locator-workspace'
 
 function PickedLocatorObservation({ pickedLocator }: { pickedLocator: PickedLocatorPayload }) {
   return (
-    <div className="bg-muted/30 rounded-lg border p-4">
+    <div className="rounded-lg border bg-muted/30 p-4">
       <div className="mb-2 flex items-center gap-2 text-sm font-medium">
         <ExternalLink className="size-4" />
         Picked from page
       </div>
-      <div className="space-y-2 text-sm text-muted-foreground">
+      <div className="min-w-0 space-y-2 break-words text-sm text-muted-foreground">
         <div className="break-all">{pickedLocator.selector}</div>
         <div>
           {pickedLocator.tagName}
@@ -92,10 +92,10 @@ export default function CreateLocatorWorkspace({
   })
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,24rem)_minmax(0,1fr)]">
-        <Card>
-          <CardHeader>
+    <div className="min-w-0 space-y-4">
+      <div className="grid min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
+        <Card className="min-w-0">
+          <CardHeader className="p-4">
             <CardTitle>Launch Chromium Picker</CardTitle>
             <CardDescription>
               Start a Chromium window from an environment or direct URL. The companion injects its own floating picker
@@ -103,20 +103,26 @@ export default function CreateLocatorWorkspace({
               capture a new one from scratch.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-5">
+          <CardContent className="min-w-0 space-y-4 p-4 pt-0">
             <RadioGroup
               value={state.sourceType}
               onValueChange={value => setSourceType(getLocatorSourceType(value))}
               className="grid gap-3"
             >
-              <label htmlFor="source-environment" className="flex items-center gap-3 rounded-lg border p-3">
+              <label
+                htmlFor="source-environment"
+                className="flex items-center gap-3 rounded-lg border p-3 has-[[data-checked]]:border-selection-border has-[[data-checked]]:bg-selection-surface"
+              >
                 <RadioGroupItem value="environment" id="source-environment" disabled={environments.length === 0} />
                 <div>
                   <div className="font-medium">Saved environment</div>
                   <div className="text-sm text-muted-foreground">Launch from an existing base URL.</div>
                 </div>
               </label>
-              <label htmlFor="source-url" className="flex items-center gap-3 rounded-lg border p-3">
+              <label
+                htmlFor="source-url"
+                className="flex items-center gap-3 rounded-lg border p-3 has-[[data-checked]]:border-selection-border has-[[data-checked]]:bg-selection-surface"
+              >
                 <RadioGroupItem value="url" id="source-url" />
                 <div>
                   <div className="font-medium">Direct URL</div>
@@ -126,9 +132,13 @@ export default function CreateLocatorWorkspace({
             </RadioGroup>
 
             {state.sourceType === 'environment' ? (
-              <div className="space-y-2">
+              <div className="min-w-0 space-y-2">
                 <Label htmlFor="picker-environment">Environment</Label>
-                <Select value={state.environmentId} onValueChange={setEnvironmentId}>
+                <Select
+                  items={environments.map(item => ({ value: item.id, label: item.name }))}
+                  value={state.environmentId || null}
+                  onValueChange={setEnvironmentId}
+                >
                   <SelectTrigger id="picker-environment">
                     <SelectValue placeholder="Select an environment" />
                   </SelectTrigger>
@@ -142,7 +152,7 @@ export default function CreateLocatorWorkspace({
                 </Select>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="min-w-0 space-y-2">
                 <Label htmlFor="picker-url">URL</Label>
                 <Input
                   id="picker-url"
@@ -170,17 +180,17 @@ export default function CreateLocatorWorkspace({
               <>
                 <Separator />
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="min-w-0">
                       <div className="text-sm font-medium">Session</div>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="min-w-0 break-all text-xs text-muted-foreground">
                         {session.launchSource.environmentName ?? session.launchSource.url}
                       </div>
                       {session.companionPid ? (
                         <div className="text-[11px] text-muted-foreground">PID {session.companionPid}</div>
                       ) : null}
                     </div>
-                    <Badge variant={statusTone(session.status)}>{formatStatus(session.status)}</Badge>
+                    <StatusBadge tone={statusTone(session.status)} label={formatStatus(session.status)} />
                   </div>
 
                   <div className="space-y-2 text-sm">
@@ -188,7 +198,9 @@ export default function CreateLocatorWorkspace({
                     <div className="break-all text-muted-foreground">
                       {session.currentUrl || session.launchSource.url}
                     </div>
-                    <div className="text-muted-foreground">{session.pageTitle || 'Waiting for page metadata'}</div>
+                    <div className="break-words text-muted-foreground">
+                      {session.pageTitle || 'Waiting for page metadata'}
+                    </div>
                   </div>
 
                   {session.error ? (
@@ -203,15 +215,15 @@ export default function CreateLocatorWorkspace({
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
+        <Card className="min-w-0">
+          <CardHeader className="p-4">
             <CardTitle>{isModifyMode ? 'Update Locator' : 'Finalize Locator'}</CardTitle>
             <CardDescription>
               Manual selector entry still works. When a picker result arrives, Appraise fills in the selector and route
               defaults for you.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-5">
+          <CardContent className="min-w-0 space-y-4 p-4 pt-0">
             {session?.pickedLocator ? (
               <PickedLocatorObservation pickedLocator={session.pickedLocator} />
             ) : (
@@ -224,8 +236,8 @@ export default function CreateLocatorWorkspace({
               </Alert>
             )}
 
-            <div className="grid gap-5 lg:grid-cols-2">
-              <div className="space-y-2">
+            <div className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))] gap-4">
+              <div className="min-w-0 space-y-2">
                 <Label htmlFor="locator-name">Locator Name</Label>
                 <Input
                   id="locator-name"
@@ -235,21 +247,27 @@ export default function CreateLocatorWorkspace({
                 />
               </div>
 
-              <div className="space-y-2">
+              <div className="min-w-0 space-y-2">
                 <div className="text-sm font-medium">Group Resolution</div>
                 <RadioGroup
                   value={state.resolutionMode}
                   onValueChange={value => setResolutionMode(getLocatorWorkspaceResolutionMode(value))}
                   className="grid gap-3"
                 >
-                  <label htmlFor="group-existing" className="flex items-center gap-3 rounded-lg border p-3">
+                  <label
+                    htmlFor="group-existing"
+                    className="flex items-center gap-3 rounded-lg border p-3 has-[[data-checked]]:border-selection-border has-[[data-checked]]:bg-selection-surface"
+                  >
                     <RadioGroupItem value="existing" id="group-existing" />
                     <div>
                       <div className="font-medium">Use existing group</div>
                       <div className="text-sm text-muted-foreground">Attach the locator to a saved route group.</div>
                     </div>
                   </label>
-                  <label htmlFor="group-create" className="flex items-center gap-3 rounded-lg border p-3">
+                  <label
+                    htmlFor="group-create"
+                    className="flex items-center gap-3 rounded-lg border p-3 has-[[data-checked]]:border-selection-border has-[[data-checked]]:bg-selection-surface"
+                  >
                     <RadioGroupItem value="create" id="group-create" />
                     <div>
                       <div className="font-medium">Create new group</div>
@@ -260,7 +278,7 @@ export default function CreateLocatorWorkspace({
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="min-w-0 space-y-2">
               <Label htmlFor="locator-selector">Selector</Label>
               <Textarea
                 id="locator-selector"
@@ -272,9 +290,13 @@ export default function CreateLocatorWorkspace({
             </div>
 
             {state.resolutionMode === 'existing' ? (
-              <div className="space-y-2">
+              <div className="min-w-0 space-y-2">
                 <Label htmlFor="existing-locator-group">Locator Group</Label>
-                <Select value={state.existingLocatorGroupId} onValueChange={setExistingLocatorGroupId}>
+                <Select
+                  items={locatorGroups.map(item => ({ value: item.id, label: item.name }))}
+                  value={state.existingLocatorGroupId || null}
+                  onValueChange={setExistingLocatorGroupId}
+                >
                   <SelectTrigger id="existing-locator-group">
                     <SelectValue placeholder="Select a locator group" />
                   </SelectTrigger>
@@ -288,8 +310,8 @@ export default function CreateLocatorWorkspace({
                 </Select>
               </div>
             ) : (
-              <div className="grid gap-5 lg:grid-cols-3">
-                <div className="space-y-2">
+              <div className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,16rem),1fr))] gap-4">
+                <div className="min-w-0 space-y-2">
                   <Label htmlFor="new-group-name">Locator Group Name</Label>
                   <Input
                     id="new-group-name"
@@ -299,7 +321,7 @@ export default function CreateLocatorWorkspace({
                   />
                 </div>
 
-                <div className="space-y-2">
+                <div className="min-w-0 space-y-2">
                   <Label htmlFor="new-group-route">Route</Label>
                   <Input
                     id="new-group-route"
@@ -309,9 +331,13 @@ export default function CreateLocatorWorkspace({
                   />
                 </div>
 
-                <div className="space-y-2">
+                <div className="min-w-0 space-y-2">
                   <Label htmlFor="new-group-module">Module</Label>
-                  <Select value={state.moduleId} onValueChange={setModuleId}>
+                  <Select
+                    items={modules.map(item => ({ value: item.id, label: item.name }))}
+                    value={state.moduleId || null}
+                    onValueChange={setModuleId}
+                  >
                     <SelectTrigger id="new-group-module">
                       <SelectValue placeholder="Select a module" />
                     </SelectTrigger>
@@ -327,7 +353,7 @@ export default function CreateLocatorWorkspace({
               </div>
             )}
 
-            <div className="flex justify-end">
+            <div className="flex justify-end border-t border-border pt-4">
               <Button type="button" onClick={handleSave} disabled={!canSave || isSaving}>
                 {isSaving ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Save className="mr-2 size-4" />}
                 {isModifyMode ? 'Update Locator' : 'Save Locator'}

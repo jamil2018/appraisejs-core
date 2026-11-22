@@ -14,6 +14,7 @@ const TestSuitesMetricTable = async ({ filter }: { filter: 'notExecutedRecently'
   return (
     <>
       <DataTable
+        tableLabel="Test suite metrics"
         columns={testSuitesMetricTableCols}
         data={
           testSuiteMetrics as (TestSuiteMetrics & { testSuite: TestSuite & { tags: Tag[]; testCases: TestCase[] } })[]

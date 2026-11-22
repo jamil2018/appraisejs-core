@@ -49,7 +49,7 @@ const stepStatusToBadge = (status: StepStatus) => {
     case StepStatus.FAILED:
       return <StatusBadge label="Failed" tone="danger" icon={<XCircle />} />
     case StepStatus.SKIPPED:
-      return <StatusBadge label="Skipped" tone="warning" icon={<Clock />} />
+      return <StatusBadge label="Skipped" tone="neutral" icon={<Clock />} />
     default:
       return <StatusBadge label={status} tone="neutral" />
   }
@@ -138,31 +138,31 @@ export function TestCaseLogsModal({ open, onOpenChange, reportScenario }: TestCa
                           {step.status === StepStatus.FAILED && (
                             <div className="mt-2 space-y-2">
                               {step.errorMessage && (
-                                <div className="rounded border border-red-800/50 bg-red-950/20 p-2">
+                                <div className="rounded border border-danger-border bg-danger-surface p-2">
                                   <div className="mb-1 flex items-center gap-2">
-                                    <AlertCircle className="size-4 text-red-500" />
-                                    <span className="text-sm font-medium text-red-400">Error Message</span>
+                                    <AlertCircle className="size-4 text-danger" />
+                                    <span className="text-sm font-medium text-danger">Error Message</span>
                                   </div>
-                                  <pre className="whitespace-pre-wrap break-words text-xs text-red-300">
+                                  <pre className="whitespace-pre-wrap break-words text-xs text-danger">
                                     {step.errorMessage}
                                   </pre>
                                 </div>
                               )}
                               {step.errorTrace && (
-                                <div className="rounded border border-red-800/50 bg-red-950/20 p-2">
+                                <div className="rounded border border-danger-border bg-danger-surface p-2">
                                   <div className="mb-1 flex items-center gap-2">
-                                    <AlertCircle className="size-4 text-red-500" />
-                                    <span className="text-sm font-medium text-red-400">Error Trace</span>
+                                    <AlertCircle className="size-4 text-danger" />
+                                    <span className="text-sm font-medium text-danger">Error Trace</span>
                                   </div>
-                                  <pre className="whitespace-pre-wrap break-words font-mono text-xs text-red-300">
+                                  <pre className="whitespace-pre-wrap break-words font-mono text-xs text-danger">
                                     {step.errorTrace}
                                   </pre>
                                 </div>
                               )}
                               {step.screenshotPath && (
-                                <div className="rounded border border-red-800/50 bg-red-950/20 p-2">
+                                <div className="rounded border border-danger-border bg-danger-surface p-2">
                                   <div className="mb-2 flex items-center justify-between gap-2">
-                                    <span className="text-sm font-medium text-red-400">Failure Screenshot</span>
+                                    <span className="text-sm font-medium text-danger">Failure Screenshot</span>
                                     <Button
                                       type="button"
                                       size="sm"
@@ -174,7 +174,7 @@ export function TestCaseLogsModal({ open, onOpenChange, reportScenario }: TestCa
                                   </div>
                                   <button
                                     type="button"
-                                    className="block w-full overflow-hidden rounded-md border border-red-900/60"
+                                    className="block w-full overflow-hidden rounded-md border border-danger-border"
                                     onClick={() => setExpandedScreenshot({ stepId: step.id, stepName: step.name })}
                                   >
                                     <Image
@@ -223,23 +223,23 @@ export function TestCaseLogsModal({ open, onOpenChange, reportScenario }: TestCa
                           {hook.status === StepStatus.FAILED && (
                             <div className="mt-2 space-y-2">
                               {hook.errorMessage && (
-                                <div className="rounded border border-red-800/50 bg-red-950/20 p-2">
+                                <div className="rounded border border-danger-border bg-danger-surface p-2">
                                   <div className="mb-1 flex items-center gap-2">
-                                    <AlertCircle className="size-4 text-red-500" />
-                                    <span className="text-sm font-medium text-red-400">Error Message</span>
+                                    <AlertCircle className="size-4 text-danger" />
+                                    <span className="text-sm font-medium text-danger">Error Message</span>
                                   </div>
-                                  <pre className="whitespace-pre-wrap break-words text-xs text-red-300">
+                                  <pre className="whitespace-pre-wrap break-words text-xs text-danger">
                                     {hook.errorMessage}
                                   </pre>
                                 </div>
                               )}
                               {hook.errorTrace && (
-                                <div className="rounded border border-red-800/50 bg-red-950/20 p-2">
+                                <div className="rounded border border-danger-border bg-danger-surface p-2">
                                   <div className="mb-1 flex items-center gap-2">
-                                    <AlertCircle className="size-4 text-red-500" />
-                                    <span className="text-sm font-medium text-red-400">Error Trace</span>
+                                    <AlertCircle className="size-4 text-danger" />
+                                    <span className="text-sm font-medium text-danger">Error Trace</span>
                                   </div>
-                                  <pre className="whitespace-pre-wrap break-words font-mono text-xs text-red-300">
+                                  <pre className="whitespace-pre-wrap break-words font-mono text-xs text-danger">
                                     {hook.errorTrace}
                                   </pre>
                                 </div>

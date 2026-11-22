@@ -111,13 +111,13 @@ export function WizardSidebar({
 }) {
   return (
     <Card className="h-fit overflow-hidden">
-      <CardHeader className="border-b border-white/[0.06] px-4 pb-4 pt-4">
+      <CardHeader className="border-b border-border px-4 pb-4 pt-4">
         <div className="flex items-center gap-3">
-          <div className="border-primary/20 bg-primary/[0.06] flex size-9 items-center justify-center rounded-full border text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]">
+          <div className="flex size-9 items-center justify-center rounded-full border border-primary/20 bg-primary/[0.06] text-primary shadow-none">
             <Layers3 className="size-4" />
           </div>
           <div>
-            <CardTitle className="text-sm text-zinc-100">Creation progress</CardTitle>
+            <CardTitle className="text-sm text-foreground">Creation progress</CardTitle>
             <CardDescription className="mt-1 text-xs">
               {draft ? `Draft revision ${draft.revision}` : 'Changes are not saved yet'}
             </CardDescription>
@@ -159,23 +159,22 @@ function StageButton({
   stage: number
   unlocked: boolean
 }) {
-  const statusClass =
-    index < stage
-      ? 'border-primary/25 bg-primary/[0.08] text-primary'
-      : stage === index
-        ? 'border-white/[0.12] bg-white/[0.05] text-zinc-100'
-        : 'border-white/[0.06] text-zinc-500'
+  const statusClass = ready
+    ? 'border-success-border bg-success-surface text-success'
+    : stage === index
+      ? 'border-selection-border bg-selection-surface text-selection'
+      : 'border-border text-muted-foreground'
   const buttonClass =
     stage === index
-      ? 'border-primary/20 bg-primary/[0.06] text-zinc-100'
-      : 'border-transparent text-zinc-400 hover:border-white/[0.06] hover:bg-white/[0.025] hover:text-zinc-200 disabled:cursor-not-allowed disabled:text-zinc-600 disabled:hover:border-transparent disabled:hover:bg-transparent'
+      ? 'border-selection-border bg-selection-surface text-selection'
+      : 'border-transparent text-foreground hover:border-selection-border hover:bg-selection-surface hover:text-selection disabled:cursor-not-allowed disabled:text-muted-foreground disabled:hover:border-transparent disabled:hover:bg-transparent disabled:hover:text-muted-foreground'
   return (
     <li>
       <button
         type="button"
         disabled={!unlocked}
         className={cn(
-          'flex min-h-10 w-full items-center gap-3 rounded-md border px-2.5 text-left text-xs outline-none transition-colors focus-visible:ring-1 focus-visible:ring-primary',
+          'flex min-h-10 w-full items-center gap-3 rounded-lg border px-2.5 text-left text-xs outline-none transition-colors focus-visible:ring-1 focus-visible:ring-primary',
           buttonClass,
         )}
         aria-current={stage === index ? 'step' : undefined}
@@ -183,7 +182,7 @@ function StageButton({
       >
         <span
           className={cn(
-            'flex size-6 shrink-0 items-center justify-center rounded-md border text-[11px] font-semibold',
+            'flex size-6 shrink-0 items-center justify-center rounded-lg border text-[11px] font-semibold',
             statusClass,
           )}
         >
@@ -198,11 +197,11 @@ function StageButton({
 export function WizardPanel(props: WizardProps) {
   return (
     <Card className="min-w-0 overflow-hidden">
-      <CardHeader className="border-b border-white/[0.06] px-5 pb-4 pt-5">
-        <CardTitle className="text-base text-zinc-100">{stages[props.stage]}</CardTitle>
+      <CardHeader className="border-b border-border p-4">
+        <CardTitle className="text-base text-foreground">{stages[props.stage]}</CardTitle>
         <CardDescription className="mt-1 max-w-2xl text-xs leading-5">{stageDescriptions[props.stage]}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-5 px-5 pb-5 pt-5">
+      <CardContent className="space-y-4 p-4">
         <WizardPhase {...props} />
         <WizardFooter {...props} />
       </CardContent>
@@ -279,7 +278,7 @@ function WizardFooter({
   }
   const pending = busy || continuing
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.06] pt-4">
+    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4">
       <Button type="button" variant="outline" disabled={stage === 0} onClick={() => setStage(current => current - 1)}>
         <ChevronLeft className="size-4" />
         Back
@@ -330,7 +329,7 @@ export function DefinePhase({
             onChange={event => patchIntent({ description: event.target.value })}
           />
         </Field>
-        <p className="text-xs leading-5 text-zinc-500 sm:col-span-2">
+        <p className="text-xs leading-5 text-muted-foreground sm:col-span-2">
           AppraiseJS manages the technical ID, initial version, and discovery metadata when this draft is saved.
         </p>
       </div>
@@ -347,16 +346,17 @@ export function DefinePhase({
       </Field>
       <div className="space-y-4">
         <div>
-          <h3 className="text-sm font-medium text-zinc-200">Sentence inputs</h3>
-          <p className="mt-1 text-xs text-zinc-500">Add a plain-language description for each named input.</p>
+          <h3 className="text-sm font-medium text-foreground">Sentence inputs</h3>
+          <p className="mt-1 text-xs text-muted-foreground">Add a plain-language description for each named input.</p>
         </div>
         {definition.inputs.map((input, index) => (
-          <div key={input.name} className="grid gap-3 rounded-md border border-white/10 p-3 sm:grid-cols-3">
+          <div key={input.name} className="grid gap-3 rounded-lg border border-border p-3 sm:grid-cols-3">
             <Field label="Input">
               <Input value={input.name} readOnly />
             </Field>
             <Field label="Type">
               <Select
+                items={inputTypes.map(type => ({ value: type, label: type }))}
                 value={input.type}
                 onValueChange={value =>
                   setDefinition(current => updateStepInputType(current, input.name, value as typeof input.type))
@@ -419,11 +419,11 @@ export function ConnectPhase({
   return (
     <>
       <ExecutionSettings definition={definition} patchDefinition={patchDefinition} setDefinition={setDefinition} />
-      <details className="rounded-md border border-white/[0.08] bg-black/10">
-        <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-zinc-300 outline-none focus-visible:ring-1 focus-visible:ring-primary">
+      <details className="rounded-lg border border-border bg-secondary">
+        <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-muted-foreground outline-none focus-visible:ring-1 focus-visible:ring-primary">
           View generated TypeScript contract
         </summary>
-        <div className="border-t border-white/[0.06] p-4">
+        <div className="border-t border-border p-4">
           <CodePanel label="Generated contract" value={generatedContract} />
         </div>
       </details>
@@ -435,9 +435,9 @@ export function ConnectPhase({
           onChange={setHandlerSource}
         />
         {diagnostics.length ? (
-          <div role="alert" className="border-destructive/30 bg-destructive/10 space-y-1 rounded-md border p-3">
-            <p className="text-xs font-medium text-destructive">Appraise compilation diagnostics</p>
-            <ul className="list-disc space-y-1 pl-4 text-xs text-muted-foreground">
+          <div role="alert" className="space-y-1 rounded-lg border border-danger-border bg-danger-surface p-3">
+            <p className="text-xs font-medium text-danger">Appraise compilation diagnostics</p>
+            <ul className="list-disc space-y-1 pl-4 text-xs text-danger">
               {diagnostics.map(diagnostic => (
                 <li key={diagnostic}>{diagnostic}</li>
               ))}
@@ -464,26 +464,26 @@ function ExecutionSettings({
 }) {
   const runtime = executionRuntime(definition)
   return (
-    <details className="group rounded-md border border-white/[0.08] bg-white/[0.015]">
+    <details className="group rounded-lg border border-border bg-accent">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 outline-none focus-visible:ring-1 focus-visible:ring-primary [&::-webkit-details-marker]:hidden">
         <span className="flex min-w-0 items-center gap-3">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-md border border-white/[0.08] bg-white/[0.025] text-zinc-400">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border bg-accent text-muted-foreground">
             <Settings2 className="size-4" />
           </span>
           <span className="min-w-0">
-            <span className="block text-sm font-medium text-zinc-200">Advanced execution settings</span>
-            <span className="block truncate text-xs text-zinc-500">
+            <span className="block text-sm font-medium text-foreground">Advanced execution settings</span>
+            <span className="block truncate text-xs text-muted-foreground">
               {executionLabels[definition.execution.kind]} · {runtimeLabels[runtime]}
             </span>
           </span>
         </span>
-        <ChevronRight className="size-4 shrink-0 text-zinc-500 transition-transform group-open:rotate-90" />
+        <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-90" />
       </summary>
-      <div className="grid gap-4 border-t border-white/[0.06] px-4 py-4 sm:grid-cols-2">
+      <div className="grid gap-4 border-t border-border px-4 py-4 sm:grid-cols-2">
         <ExecutionSource definition={definition} patchDefinition={patchDefinition} />
         <ExecutionFields definition={definition} setDefinition={setDefinition} />
         <RuntimePicker definition={definition} patchDefinition={patchDefinition} runtime={runtime} />
-        <p className="text-xs leading-5 text-zinc-500 sm:col-span-2">
+        <p className="text-xs leading-5 text-muted-foreground sm:col-span-2">
           AppraiseJS records the selected run environment as registry metadata. It does not grant code access or require
           a separate capability list.
         </p>
@@ -502,6 +502,12 @@ function ExecutionSource({
   return (
     <Field label="Implementation source">
       <Select
+        items={{
+          'reviewed-extension': 'Write custom code',
+          operation: 'Reuse an AppraiseJS handler',
+          composition: 'Combine published steps',
+          unbound: 'Decide later',
+        }}
         value={definition.execution.kind}
         onValueChange={kind => patchDefinition({ execution: executionForKind(kind, definition) })}
       >
@@ -515,7 +521,7 @@ function ExecutionSource({
           <SelectItem value="unbound">Decide later</SelectItem>
         </SelectContent>
       </Select>
-      <p className="text-xs leading-5 text-zinc-500">
+      <p className="text-xs leading-5 text-muted-foreground">
         Custom code is the normal choice. Reuse and composition are for advanced library workflows.
       </p>
     </Field>
@@ -726,16 +732,16 @@ function CompositionFields({
           </p>
         )}
         {!!visibleMatches.length && (
-          <div className="mt-2 divide-y rounded-md border border-white/10">
+          <div className="mt-2 divide-y rounded-lg border border-border">
             {visibleMatches.map(match => (
               <button
                 key={`${match.step.id}@${match.step.version}`}
                 type="button"
-                className="block w-full px-3 py-2 text-left text-sm hover:bg-white/5"
+                className="block w-full px-3 py-2 text-left text-sm hover:bg-accent"
                 onClick={() => addChild(match)}
               >
-                <span className="font-medium text-zinc-200">{match.title}</span>
-                <span className="ml-2 text-xs text-zinc-500">
+                <span className="font-medium text-foreground">{match.title}</span>
+                <span className="ml-2 text-xs text-muted-foreground">
                   {match.step.id}@{match.step.version}
                 </span>
               </button>
@@ -754,10 +760,10 @@ function CompositionFields({
         return (
           <div
             key={`${child.step.id}@${child.step.version}:${index}`}
-            className="space-y-3 rounded-md border border-white/10 p-3"
+            className="space-y-3 rounded-lg border border-border p-3"
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="text-sm text-zinc-200">
+              <span className="text-sm text-foreground">
                 {index + 1}. {contract?.title ?? child.step.id}
               </span>
               <div className="flex gap-1">
@@ -786,14 +792,27 @@ function CompositionFields({
                 </Button>
               </div>
             </div>
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-muted-foreground">
               Exact reference: {child.step.id}@{child.step.version} · {child.step.definitionHash}
             </p>
             {contract?.inputs.map(input => {
               const mapping = selectedCompositionMapping(child.inputs[input.name])
               return (
                 <Field key={input.name} label={`Map ${input.name}`}>
-                  <Select value={mapping} onValueChange={value => updateMapping(index, input.name, value)}>
+                  <Select
+                    items={[
+                      ...definition.inputs.map(parent => ({
+                        value: parent.name,
+                        label: `Parent input: ${parent.name}`,
+                      })),
+                      ...previousOutputs.map(output => ({
+                        value: `output:${output.name}`,
+                        label: `Earlier output: ${output.name}`,
+                      })),
+                    ]}
+                    value={mapping || null}
+                    onValueChange={value => updateMapping(index, input.name, value)}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Choose a parent input or earlier output" />
                     </SelectTrigger>
@@ -841,7 +860,7 @@ function RuntimePicker({
   }
   return (
     <Field label="Runs in">
-      <Select value={runtime} onValueChange={setRuntime}>
+      <Select items={runtimeLabels} value={runtime} onValueChange={setRuntime}>
         <SelectTrigger aria-label="Runs in">
           <SelectValue />
         </SelectTrigger>
@@ -853,7 +872,7 @@ function RuntimePicker({
           ))}
         </SelectContent>
       </Select>
-      <p className="text-xs leading-5 text-zinc-500">
+      <p className="text-xs leading-5 text-muted-foreground">
         Node.js is recommended. Change this only when the handler needs a specialized execution environment.
       </p>
     </Field>
@@ -913,8 +932,17 @@ export function VerifyPhase({
         <Code2 className="size-4" />
         {busy ? 'Compiling and running…' : 'Compile and run conformance'}
       </Button>
-      <Alert variant={conformancePassed ? 'default' : 'destructive'}>
-        <AlertCircle />
+      <Alert
+        variant={!conformancePassed && diagnostics.length ? 'destructive' : 'default'}
+        className={
+          conformancePassed
+            ? 'border-success-border bg-success-surface text-success [&>svg]:text-success'
+            : diagnostics.length
+              ? undefined
+              : 'border-warning-border bg-warning-surface text-warning [&>svg]:text-warning'
+        }
+      >
+        {conformancePassed ? <CheckCircle2 /> : <AlertCircle />}
         <AlertTitle>{conformancePassed ? 'Execution checks passed' : 'Not executable yet'}</AlertTitle>
         <AlertDescription>{readinessDescription(diagnostics, conformancePassed)}</AlertDescription>
       </Alert>
@@ -991,7 +1019,11 @@ function BooleanExampleInput({
 }) {
   return (
     <Field label={label}>
-      <Select value={String(value)} onValueChange={next => onChange(next === 'true')}>
+      <Select
+        items={{ true: 'true', false: 'false' }}
+        value={String(value)}
+        onValueChange={next => onChange(next === 'true')}
+      >
         <SelectTrigger>
           <SelectValue />
         </SelectTrigger>
@@ -1092,7 +1124,7 @@ export function PublishPhase({
       {preview ? (
         <>
           <CodePanel label="Exact publication preview" value={JSON.stringify(preview, null, 2)} />
-          <Alert>
+          <Alert className="border-info-border bg-info-surface text-info [&>svg]:text-info">
             <AlertCircle />
             <AlertTitle>Ready for final confirmation</AlertTitle>
             <AlertDescription>
@@ -1113,43 +1145,51 @@ export function PublishPhase({
   )
 }
 
-export function PublishedStepSuccess({ published }: { published: { id: string; version: string; signature: string } }) {
+export function PublishedStepSuccess({
+  published,
+  heading: Heading = 'h2',
+}: {
+  published: { id: string; version: string; signature: string }
+  heading?: 'h1' | 'h2'
+}) {
   return (
-    <Card className="border-primary/20 bg-[rgba(18,37,64,0.42)] shadow-none">
-      <CardContent className="space-y-5 p-6">
+    <Card className="border-success-border bg-card shadow-none">
+      <CardContent className="space-y-4 p-4">
         <div className="flex items-start gap-3">
-          <span className="border-primary/25 bg-primary/10 flex size-10 shrink-0 items-center justify-center rounded-full border text-primary">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-success-border bg-success-surface text-success">
             <CheckCircle2 className="size-5" />
           </span>
           <div>
-            <h2 className="text-lg font-semibold text-zinc-100">Reusable step published</h2>
-            <p className="mt-1 text-sm text-zinc-400">
+            <Heading className="text-lg font-semibold text-foreground">Reusable step published</Heading>
+            <p className="mt-1 text-sm text-muted-foreground">
               The immutable version is ready for human-authored tests and managed validation.
             </p>
           </div>
         </div>
-        <dl className="grid gap-3 rounded-md border border-white/10 bg-black/10 p-4 text-sm sm:grid-cols-2">
+        <dl className="grid gap-3 rounded-lg border border-border bg-secondary p-4 text-sm sm:grid-cols-2">
           <div>
-            <dt className="text-xs text-zinc-500">Step Definition</dt>
-            <dd className="mt-1 font-mono text-zinc-200">
+            <dt className="text-xs text-muted-foreground">Step Definition</dt>
+            <dd className="mt-1 break-all font-mono text-foreground">
               {published.id}@{published.version}
             </dd>
           </div>
           <div>
-            <dt className="text-xs text-zinc-500">Human sentence</dt>
-            <dd className="mt-1 text-zinc-200">{published.signature}</dd>
+            <dt className="text-xs text-muted-foreground">Human sentence</dt>
+            <dd className="mt-1 break-words text-foreground">{published.signature}</dd>
           </div>
         </dl>
         <div className="flex flex-wrap gap-2">
-          <Button asChild>
-            <Link href="/step-definitions">View in library</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href="/step-definitions/create">Create another reusable step</Link>
-          </Button>
-          <Button asChild variant="secondary">
-            <Link href="/test-cases">Use in a test case</Link>
-          </Button>
+          <Button nativeButton={false} render={<Link href="/step-definitions">View in library</Link>} />
+          <Button
+            variant="outline"
+            nativeButton={false}
+            render={<Link href="/step-definitions/create">Create another reusable step</Link>}
+          />
+          <Button
+            variant="secondary"
+            nativeButton={false}
+            render={<Link href="/test-cases">Use in a test case</Link>}
+          />
         </div>
       </CardContent>
     </Card>
@@ -1174,7 +1214,7 @@ function CodePanel({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0 space-y-2">
       <p className="text-sm font-medium">{label}</p>
-      <pre className="max-h-80 overflow-auto whitespace-pre-wrap rounded-md border border-white/10 bg-black/20 p-3 text-xs">
+      <pre className="max-h-80 overflow-auto whitespace-pre-wrap rounded-lg border border-border bg-secondary p-3 text-xs">
         {value}
       </pre>
     </div>

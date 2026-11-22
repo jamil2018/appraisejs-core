@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, expect, it, vi } from 'vitest'
 
@@ -127,7 +127,7 @@ it('keeps credential and MFA entry out of Appraise actions', async () => {
     journeyId: 'journey-1',
     discoveryRevisionId: 'discovery-1',
   })
-  expect(screen.getByRole('button', { name: 'Save page inspection' })).toBeEnabled()
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Save page inspection' })).toBeEnabled())
 })
 
 it('does not render outside an active discovery revision', () => {

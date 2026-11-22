@@ -28,7 +28,7 @@ export type NavCommandProps = {
 
 function CommandShortcut({ isMac }: { isMac: boolean }) {
   return (
-    <span className="text-muted-foreground/80 inline-flex shrink-0 items-center gap-0.5 font-mono text-[10px] leading-none">
+    <span className="inline-flex shrink-0 items-center gap-0.5 font-mono text-[10px] leading-none text-muted-foreground">
       {isMac ? (
         <>
           <Command className="size-2.5" aria-hidden="true" />
@@ -48,8 +48,18 @@ export default function NavCommand({
   variant = 'default',
 }: NavCommandProps) {
   const { push } = useRouter()
-  const { open, setOpen, commandMode, searchQuery, setSearchQuery, isMac, clearSearchMode, selectSearchMode } =
-    useNavCommand()
+  const {
+    open,
+    setOpen,
+    triggerRef,
+    returnFocusRef,
+    commandMode,
+    searchQuery,
+    setSearchQuery,
+    isMac,
+    clearSearchMode,
+    selectSearchMode,
+  } = useNavCommand()
   const navigationCommandGroups = getNavigationCommandGroups({ providerRunsEnabled })
 
   const handleNavigate = (href: string) => {
@@ -65,15 +75,20 @@ export default function NavCommand({
         variant="outline"
         aria-label="Open Command Palette"
         className={cn(
-          'hover:bg-accent-foreground/10 min-w-0 hover:text-primary',
+          'min-w-0 hover:text-foreground',
           isSidebar ? 'flex items-center gap-2' : 'flex w-1/5 justify-between px-4',
           className,
         )}
-        onClick={() => setOpen(true)}
+        ref={triggerRef}
+        data-nav-command-trigger=""
+        onClick={() => {
+          returnFocusRef.current = triggerRef.current
+          setOpen(true)
+        }}
       >
         {isSidebar ? (
           <>
-            <Search className="size-3.5 shrink-0 opacity-60" aria-hidden="true" />
+            <Search className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
             <span className="min-w-0 flex-1 truncate text-left">{label}</span>
             <CommandShortcut isMac={isMac} />
           </>
@@ -81,16 +96,21 @@ export default function NavCommand({
           <>
             <span>{label}</span>
             <div className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
-              <kbd className="rounded-md bg-muted px-1 text-xs text-zinc-400">
-                {isMac ? <Command className="size-2 text-zinc-400" /> : 'Ctrl'}
+              <kbd className="rounded-md bg-muted px-1 text-xs text-muted-foreground">
+                {isMac ? <Command className="size-2 text-muted-foreground" /> : 'Ctrl'}
               </kbd>
-              <Plus className="size-2 text-zinc-400" />
-              <kbd className="rounded-md bg-muted px-1 text-xs text-zinc-400">K</kbd>
+              <Plus className="size-2 text-muted-foreground" />
+              <kbd className="rounded-md bg-muted px-1 text-xs text-muted-foreground">K</kbd>
             </div>
           </>
         )}
       </Button>
-      <CommandDialog open={open} onOpenChange={setOpen} shouldFilter={!commandMode}>
+      <CommandDialog
+        open={open}
+        onOpenChange={setOpen}
+        shouldFilter={!commandMode}
+        finalFocus={() => returnFocusRef.current ?? triggerRef.current}
+      >
         <DialogTitle className="sr-only">Command Palette</DialogTitle>
         <DialogDescription className="sr-only">Search for a command or navigate to a page</DialogDescription>
         <CommandChainInput

@@ -19,7 +19,20 @@ if (typeof window !== 'undefined') {
   }
 
   if (typeof globalThis.PointerEvent === 'undefined') {
-    globalThis.PointerEvent = MouseEvent as typeof PointerEvent
+    class PointerEventMock extends MouseEvent {
+      readonly pointerType: string
+      readonly pointerId: number
+      readonly isPrimary: boolean
+
+      constructor(type: string, init: PointerEventInit = {}) {
+        super(type, init)
+        this.pointerType = init.pointerType ?? 'mouse'
+        this.pointerId = init.pointerId ?? 1
+        this.isPrimary = init.isPrimary ?? true
+      }
+    }
+
+    globalThis.PointerEvent = PointerEventMock as typeof PointerEvent
   }
 
   if (typeof window.matchMedia === 'undefined') {
@@ -36,6 +49,10 @@ if (typeof window !== 'undefined') {
         dispatchEvent: vi.fn(),
       })),
     })
+  }
+
+  if (typeof Element !== 'undefined' && !Element.prototype.getAnimations) {
+    Element.prototype.getAnimations = () => []
   }
 
   if (typeof HTMLElement !== 'undefined' && !HTMLElement.prototype.scrollIntoView) {

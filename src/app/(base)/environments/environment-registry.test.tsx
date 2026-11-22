@@ -60,8 +60,8 @@ describe('EnvironmentRegistry', () => {
     expect(screen.getByText('Not configured')).toBeVisible()
     expect(screen.getByText('No username')).toBeVisible()
 
-    expect(screen.getByRole('region', { name: 'Runtime registry' })).toHaveClass('bg-[rgba(18,37,64,0.1)]')
-    expect(screen.getByRole('heading', { name: 'Local' }).closest('article')).toHaveClass('bg-white/[0.006]')
+    expect(screen.getByRole('region', { name: 'Runtime registry' })).toHaveClass('bg-card')
+    expect(screen.getByRole('heading', { name: 'Local' }).closest('article')).toHaveClass('bg-card')
   })
 
   it('filters environments by endpoint and reports an empty search state', async () => {

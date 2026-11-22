@@ -44,7 +44,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams?: Pr
   }))
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="space-y-4">
       <div>
         <PageHeader>
           <span className="flex items-center gap-2">

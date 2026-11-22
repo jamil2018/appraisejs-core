@@ -1,3 +1,5 @@
+import PageHeader from '@/components/typography/page-header'
+import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import { getAllModulesAction, getModuleByIdAction, updateModuleAction } from '@/actions/modules/module-actions'
 import ModuleForm from '../../module-form'
 import { Metadata } from 'next'
@@ -32,17 +34,23 @@ const ModifyModule = async ({ params }: { params: Promise<{ id: string }> }) => 
   const parentOptions = getModuleParentOptions(getModuleTableRows(modulesData), moduleData.id)
 
   return (
-    <ModuleForm
-      id={id}
-      defaultValues={{
-        name: moduleData.name,
-        parentId: getModuleFormParentId(moduleData.parentId),
-      }}
-      successTitle="Module updated"
-      successMessage="Module updated successfully"
-      parentOptions={parentOptions}
-      onSubmitAction={updateModuleAction}
-    />
+    <div className="min-w-0 space-y-4">
+      <div>
+        <PageHeader>Modify Module</PageHeader>
+        <HeaderSubtitle>Update the module configuration.</HeaderSubtitle>
+      </div>
+      <ModuleForm
+        id={id}
+        defaultValues={{
+          name: moduleData.name,
+          parentId: getModuleFormParentId(moduleData.parentId),
+        }}
+        successTitle="Module updated"
+        successMessage="Module updated successfully"
+        parentOptions={parentOptions}
+        onSubmitAction={updateModuleAction}
+      />
+    </div>
   )
 }
 

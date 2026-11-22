@@ -255,12 +255,22 @@ describe('QualityJourneyDetailPage', () => {
     const view = await renderPage()
     expect(screen.getByText('Manual preparation recovery')).toBeVisible()
     expect(mocks.manualIssued).toHaveBeenCalledWith({ journeyId: 'journey-1', targetProjectId: 'project-1' })
+    expect(mocks.manualChoices).toHaveBeenCalledWith({ journeyId: 'journey-1', targetProjectId: 'project-1' })
     view.unmount()
     mocks.getJourney.mockResolvedValue(journey({ stage: 'TRIAGE', status: 'ACTIVE', unresolvedQuestionIds: [] }))
     mocks.operatorTriage.mockResolvedValue(true)
     await renderPage()
     expect(screen.getByText('Operator report review')).toBeVisible()
     expect(mocks.operatorTriage).toHaveBeenCalledWith({ journeyId: 'journey-1', targetProjectId: 'project-1' })
+  })
+  it('renders the Automation stage without loading draft choices when no manual recovery exists', async () => {
+    mocks.getJourney.mockResolvedValue(journey({ stage: 'AUTOMATION', status: 'ACTIVE', unresolvedQuestionIds: [] }))
+
+    await renderPage()
+
+    expect(screen.getByRole('list', { name: 'Journey stages' })).toBeVisible()
+    expect(screen.queryByText('Manual preparation recovery')).not.toBeInTheDocument()
+    expect(mocks.manualChoices).not.toHaveBeenCalled()
   })
   it('does not offer a fresh role launch after its current dispatch is consumed without a retained recovery', async () => {
     mocks.getJourney.mockResolvedValue({
@@ -508,6 +518,7 @@ describe('QualityJourneyDetailPage', () => {
 
     const focus = within(screen.getByRole('region', { name: 'Current journey focus' }))
     expect(focus.getByText('Question for revision 2')).toBeInTheDocument()
+    expect(focus.queryByText('How to connect the agent')).not.toBeInTheDocument()
     await user.type(screen.getByRole('textbox', { name: /Your answer/ }), 'Wallet payment.')
     expect(screen.getByRole('button', { name: 'Record answer' })).toBeEnabled()
   })

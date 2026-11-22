@@ -58,7 +58,7 @@ function TestRunFieldErrors({ errors, isTouched }: TestRunFieldErrorsProps) {
   }
 
   return (
-    <div className="flex flex-col gap-1" aria-live="polite">
+    <div className="flex min-w-0 flex-col gap-1" aria-live="polite">
       {errors.map(error => (
         <ErrorMessage key={getFieldErrorMessage(error)} message={getFieldErrorMessage(error)} visible={true} />
       ))}
@@ -128,26 +128,32 @@ const TestRunForm = ({
   }
 
   return (
-    <TanStackForm onSubmit={() => form.handleSubmit()}>
+    <TanStackForm onSubmit={() => form.handleSubmit()} className="flex min-w-0 flex-col gap-4">
       {testSuites.every(suite => suite.testCases.length === 0) ? (
-        <Card className="border-amber-400/30 bg-amber-400/[0.04]">
-          <CardHeader>
+        <Card className="border-warning-border bg-warning-surface">
+          <CardHeader className="p-4">
             <CardTitle>Prepare tests before creating an independent run</CardTitle>
             <CardDescription>
               A manual run needs a project-owned test case in a suite. Create missing prerequisites in a new tab so the
               values entered here stay intact, then refresh the choices.
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-wrap gap-2">
-            <Button asChild size="sm" variant="outline">
-              <Link href="/test-cases/create" target="_blank">
-                Create test case
-              </Link>
+          <CardContent className="flex flex-wrap gap-2 p-4 pt-0">
+            <Button
+              size="sm"
+              variant="outline"
+              render={<Link href="/test-cases/create" target="_blank" />}
+              nativeButton={false}
+            >
+              Create test case
             </Button>
-            <Button asChild size="sm" variant="outline">
-              <Link href="/test-suites/create" target="_blank">
-                Create test suite
-              </Link>
+            <Button
+              size="sm"
+              variant="outline"
+              render={<Link href="/test-suites/create" target="_blank" />}
+              nativeButton={false}
+            >
+              Create test suite
             </Button>
             <Button onClick={() => refresh()} size="sm" type="button" variant="ghost">
               <RefreshCw aria-hidden="true" className="mr-2 size-4" /> Refresh choices
@@ -155,24 +161,24 @@ const TestRunForm = ({
           </CardContent>
         </Card>
       ) : null}
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_18rem]">
-        <div className="min-w-0">
-          <Card className="mb-4 h-fit">
-            <CardHeader>
+      <div className="grid min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
+        <div className="flex min-w-0 flex-col gap-4">
+          <Card className="min-w-0">
+            <CardHeader className="p-4">
               <CardTitle>Filter Tests</CardTitle>
               <CardDescription>Select how would you like to filter your tests</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 pt-0">
               <RadioGroup
                 value={testSelectionType}
                 onValueChange={value => handleSelectionTypeChange(value as TestSelectionType)}
-                className="mb-4 flex gap-4"
+                className="mb-4 flex flex-wrap gap-4"
               >
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-2">
                   <RadioGroupItem value={testSelectionTypes.TAGS} id={testSelectionTypes.TAGS} />
                   <Label htmlFor={testSelectionTypes.TAGS}>By Tags</Label>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-2">
                   <RadioGroupItem value={testSelectionTypes.TEST_SUITES} id={testSelectionTypes.TEST_SUITES} />
                   <Label htmlFor={testSelectionTypes.TEST_SUITES}>By Test Suites</Label>
                 </div>
@@ -187,7 +193,7 @@ const TestRunForm = ({
                 {field => {
                   return (
                     <div
-                      className={`mb-4 flex flex-col gap-2 ${testSelectionType === testSelectionTypes.TAGS ? 'block' : 'hidden'}`}
+                      className={`flex min-w-0 flex-col gap-2 ${testSelectionType === testSelectionTypes.TAGS ? 'block' : 'hidden'}`}
                     >
                       <MultiSelect
                         options={tags.map(tag => ({ label: tag.name, value: tag.id }))}
@@ -212,7 +218,7 @@ const TestRunForm = ({
                 {field => {
                   return (
                     <div
-                      className={`mb-4 flex flex-col gap-2 ${testSelectionType === testSelectionTypes.TEST_SUITES ? 'block' : 'hidden'}`}
+                      className={`flex min-w-0 flex-col gap-2 ${testSelectionType === testSelectionTypes.TEST_SUITES ? 'block' : 'hidden'}`}
                     >
                       <TestSuitePicker
                         testSuites={testSuites}
@@ -233,12 +239,12 @@ const TestRunForm = ({
             </CardContent>
           </Card>
 
-          <Card className="mb-4">
-            <CardHeader>
+          <Card className="min-w-0">
+            <CardHeader className="p-4">
               <CardTitle>Test Configuration</CardTitle>
               <CardDescription>Set the configuration for your test run</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="grid gap-4 p-4 pt-0 md:grid-cols-2">
               <form.Field
                 name="name"
                 validators={{
@@ -255,7 +261,7 @@ const TestRunForm = ({
               >
                 {field => {
                   return (
-                    <div className="mb-4 flex flex-col gap-2">
+                    <div className="flex min-w-0 flex-col gap-2">
                       <Label htmlFor={field.name}>Name</Label>
                       <Input
                         id={field.name}
@@ -276,9 +282,13 @@ const TestRunForm = ({
               >
                 {field => {
                   return (
-                    <div className="mb-4 flex flex-col gap-2">
+                    <div className="flex min-w-0 flex-col gap-2">
                       <Label htmlFor={field.name}>Environment</Label>
-                      <Select value={field.state.value} onValueChange={value => field.handleChange(value)}>
+                      <Select
+                        items={environments.map(environment => ({ value: environment.id, label: environment.name }))}
+                        value={field.state.value}
+                        onValueChange={value => field.handleChange(value)}
+                      >
                         <SelectTrigger id={field.name}>
                           <SelectValue placeholder="Select an environment" />
                         </SelectTrigger>
@@ -299,7 +309,7 @@ const TestRunForm = ({
               <form.Field name="testWorkersCount" validators={{ onChange: testRunFieldValidators.testWorkersCount }}>
                 {field => {
                   return (
-                    <div className="mb-4 flex flex-col gap-2">
+                    <div className="flex min-w-0 flex-col gap-2">
                       <Label htmlFor={field.name}>Test Workers Count</Label>
                       <Input
                         type="number"
@@ -314,9 +324,10 @@ const TestRunForm = ({
               <form.Field name="browserEngine" validators={{ onChange: testRunFieldValidators.browserEngine }}>
                 {field => {
                   return (
-                    <div className="mb-4 flex flex-col gap-2">
+                    <div className="flex min-w-0 flex-col gap-2">
                       <Label htmlFor={field.name}>Browser Engine</Label>
                       <Select
+                        items={getBrowserEngineOptions()}
                         value={field.state.value}
                         onValueChange={value => field.handleChange(value as BrowserEngine)}
                       >
@@ -338,22 +349,32 @@ const TestRunForm = ({
               </form.Field>
             </CardContent>
           </Card>
+          <form.Subscribe selector={formState => [formState.canSubmit, formState.isSubmitting]}>
+            {([canSubmit, isSubmitting]) => (
+              <div>
+                <Button type="submit" disabled={!canSubmit}>
+                  <Play className="size-4" />
+                  <span className="font-medium">{isSubmitting ? 'Starting…' : 'Start'}</span>
+                </Button>
+              </div>
+            )}
+          </form.Subscribe>
         </div>
-        <aside className="xl:sticky xl:top-5">
-          <Card className="border-white/[0.1] bg-[rgba(18,37,64,0.24)]">
-            <CardHeader className="mb-2">
+        <aside className="min-w-0 xl:sticky xl:top-4">
+          <Card className="border-border bg-card">
+            <CardHeader className="p-4">
               <CardTitle className="flex items-center gap-2 text-xl text-primary">
                 <Info className="size-5" />
-                <span className="font-bold">Quick Tips</span>
+                <span className="font-medium">Quick Tips</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-col gap-6">
+            <CardContent className="flex flex-col gap-4 p-4 pt-0">
               {testRunQuickTips.map((tip, index) => (
-                <div key={tip.title} className="flex items-start gap-4">
-                  <span className="flex size-6 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
+                <div key={tip.title} className="flex items-start gap-3">
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
                     {index + 1}
                   </span>
-                  <div className="flex flex-col gap-1">
+                  <div className="flex min-w-0 flex-col gap-1">
                     <span className="text-base font-bold">{tip.title}</span>
                     <span className="text-sm text-muted-foreground">{tip.description}</span>
                   </div>
@@ -363,16 +384,6 @@ const TestRunForm = ({
           </Card>
         </aside>
       </div>
-      <form.Subscribe selector={formState => [formState.canSubmit, formState.isSubmitting]}>
-        {([canSubmit, isSubmitting]) => (
-          <>
-            <Button type="submit" disabled={!canSubmit} className="hover:bg-emerald-500">
-              <Play className="size-4" />
-              <span className="font-bold">{isSubmitting ? '...' : 'Start'}</span>
-            </Button>
-          </>
-        )}
-      </form.Subscribe>
     </TanStackForm>
   )
 }

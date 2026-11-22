@@ -1,7 +1,7 @@
 'use client'
 
 import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
+import { createDataTableSelectionColumn } from '@/components/ui/data-table-selection-column'
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { formatDateTime } from '@/lib/utils'
 import { TestCasePickerRow } from '@/types/test-case-picker'
@@ -51,26 +51,6 @@ export const testCaseDataColumns: ColumnDef<TestCasePickerRow>[] = [
   },
 ]
 
-export const testCaseSelectionColumn: ColumnDef<TestCasePickerRow> = {
-  id: 'select',
-  header: ({ table }) => (
-    <Checkbox
-      checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate')}
-      onCheckedChange={value => table.toggleAllPageRowsSelected(!!value)}
-      aria-label="Select all"
-      className="mr-2"
-    />
-  ),
-  cell: ({ row }) => (
-    <Checkbox
-      checked={row.getIsSelected()}
-      onCheckedChange={value => row.toggleSelected(!!value)}
-      aria-label="Select row"
-      className="mr-2"
-    />
-  ),
-  enableSorting: false,
-  enableHiding: false,
-}
+export const testCaseSelectionColumn = createDataTableSelectionColumn<TestCasePickerRow>(row => row.title)
 
 export const testCasePickerColumns: ColumnDef<TestCasePickerRow>[] = [testCaseSelectionColumn, ...testCaseDataColumns]

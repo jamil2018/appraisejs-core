@@ -23,11 +23,11 @@ const ModifyTag = async ({ params }: { params: Promise<{ id: string }> }) => {
   const tagData = tagToBeEditedData as TagType
 
   return (
-    <>
-      <div className="mb-8">
+    <div className="min-w-0 space-y-4">
+      <div className="min-w-0">
         <PageHeader>
-          <span className="flex items-center">
-            <Tag className="mr-2 size-8" />
+          <span className="flex items-center gap-2">
+            <Tag className="size-7 shrink-0 sm:size-8" />
             Modify Tag
           </span>
         </PageHeader>
@@ -43,7 +43,7 @@ const ModifyTag = async ({ params }: { params: Promise<{ id: string }> }) => {
         }}
         id={id}
       />
-    </>
+    </div>
   )
 }
 

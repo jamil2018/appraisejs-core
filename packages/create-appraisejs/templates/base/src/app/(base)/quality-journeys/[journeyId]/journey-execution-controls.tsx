@@ -78,7 +78,7 @@ export function JourneyExecutionStartForm({
         <Label htmlFor={environmentControlId}>Execution environment</Label>
         <select
           id={environmentControlId}
-          className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+          className="flex h-9 w-full rounded-lg border border-input bg-background px-3 text-sm"
           value={environmentId}
           onChange={event => setEnvironmentId(event.target.value)}
         >

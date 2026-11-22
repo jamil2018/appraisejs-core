@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { getFilterTags } from '@/lib/tag-filters'
 import type { TestSuitePickerRow, TestSuiteSelection } from '@/types/test-suite-picker'
-import type { CheckedState } from '@radix-ui/react-checkbox'
+import type { CheckedState } from '@/components/ui/checkbox'
 import { ChevronDown, ChevronRight, FolderTree } from 'lucide-react'
 
 type TestSuitePickerSuiteRowHeaderProps = {

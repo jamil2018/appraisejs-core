@@ -7,11 +7,11 @@ export type { ReportDetailWithRelations } from '@/types/report'
 import type { ReportDetailWithRelations, ReportWithRelations } from '@/types/report'
 
 export const reportColorMap = {
-  passed: 'oklch(59.6% 0.145 163.225)',
-  failed: 'oklch(59.2% 0.249 0.584)',
-  cancelled: 'oklch(55.4% 0.046 257.417)',
-  unknown: 'oklch(79.5% 0.184 86.047)',
-  default: 'oklch(54.6% 0.245 262.881)',
+  passed: 'rgb(var(--success-rgb))',
+  failed: 'rgb(var(--danger-rgb))',
+  cancelled: 'rgb(var(--muted-foreground-rgb))',
+  unknown: 'rgb(var(--warning-rgb))',
+  default: 'rgb(var(--info-rgb))',
 } as const
 
 export const browserIcons = {
@@ -33,7 +33,7 @@ export const overViewPieChartConfig = {
     color: reportColorMap.failed,
   },
   cancelled: {
-    label: 'Cancelled',
+    label: 'Untested',
     color: reportColorMap.cancelled,
   },
   unknown: {
