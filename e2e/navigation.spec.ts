@@ -52,6 +52,37 @@ test.describe('Navigation @navigation', () => {
     await visitRoutes(page, [...listRoutes, ...createRoutes])
   })
 
+  test('command palette dismisses back to its trigger in desktop and mobile navigation', async ({ page }) => {
+    await page.goto('/')
+    const command = page.getByRole('dialog', { name: 'Command Palette' })
+    const commandInput = command.getByRole('combobox')
+    const desktopSearch = page.getByRole('button', { name: 'Open Command Palette' })
+
+    await desktopSearch.focus()
+    await desktopSearch.press('ControlOrMeta+k')
+    await expect(commandInput).toBeFocused()
+    await page.keyboard.press('Escape')
+    await expect(command).toBeHidden()
+    await expect(desktopSearch).toBeFocused()
+
+    await page.setViewportSize({ width: 390, height: 844 })
+    const navigationButton = page.getByRole('button', { name: 'Open navigation menu' })
+    const navigation = page.getByRole('dialog', { name: 'Navigation menu' })
+    await navigationButton.click()
+    const mobileSearch = navigation.getByRole('button', { name: 'Open Command Palette' })
+    await mobileSearch.focus()
+    await mobileSearch.press('ControlOrMeta+k')
+    await expect(command).toHaveCount(1)
+    await expect(commandInput).toBeFocused()
+    await page.keyboard.press('Escape')
+    await expect(command).toBeHidden()
+    await expect(navigation).toBeVisible()
+    await expect(mobileSearch).toBeFocused()
+    await page.keyboard.press('Escape')
+    await expect(navigation).toBeHidden()
+    await expect(navigationButton).toBeFocused()
+  })
+
   test('removed Quality Plan, Assessment, and compatibility routes return ordinary not-found pages', async ({
     page,
   }) => {

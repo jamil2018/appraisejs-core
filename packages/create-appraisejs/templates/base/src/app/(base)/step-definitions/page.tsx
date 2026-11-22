@@ -27,7 +27,7 @@ export default async function StepDefinitionsPage() {
 
   if (response.status !== 200 || draftResponse.status !== 200) {
     return (
-      <div role="alert" className="border-destructive/30 bg-destructive/10 rounded-md border p-4 text-sm">
+      <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm">
         Unable to load Step Definitions: {response.error ?? draftResponse.error ?? 'Unknown registry error.'}
       </div>
     )
@@ -63,12 +63,15 @@ export default async function StepDefinitionsPage() {
             Browse the ready, versioned contracts used by human-authored tests and managed validation.
           </HeaderSubtitle>
         </div>
-        <Button asChild>
-          <Link href="/step-definitions/create">
-            <Plus aria-hidden="true" className="size-4" />
-            Create Step Definition
-          </Link>
-        </Button>
+        <Button
+          nativeButton={false}
+          render={
+            <Link href="/step-definitions/create">
+              <Plus aria-hidden="true" className="size-4" />
+              Create Step Definition
+            </Link>
+          }
+        />
       </div>
       <StepDefinitionRegistry definitions={definitions} drafts={drafts} />
     </div>

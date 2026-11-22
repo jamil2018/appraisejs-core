@@ -55,12 +55,12 @@ export function FlowDiagramNodeSearch({
                 value={searchQuery}
                 onChange={event => onSearchQueryChange(event.target.value)}
                 placeholder="Search labels..."
-                className="border-border/70 bg-background/95 h-9 w-56 shadow-md backdrop-blur"
+                className="h-9 w-56 border-border/70 bg-background/95 shadow-md"
               />
               <AnimatePresence>
                 {shouldShowSearchSuggestions ? (
                   <motion.div
-                    className="border-border/70 mt-2 w-64 overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-xl"
+                    className="mt-2 w-64 overflow-hidden rounded-lg border border-border/70 bg-popover text-popover-foreground shadow-xl"
                     initial={{ opacity: 0, y: -6 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -6 }}
@@ -88,19 +88,21 @@ export function FlowDiagramNodeSearch({
             </motion.div>
           ) : null}
         </AnimatePresence>
-        <TooltipProvider delayDuration={0}>
+        <TooltipProvider delay={0}>
           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={onToggleSearch}
-                aria-label={isSearchOpen ? 'Close node search' : 'Search nodes'}
-              >
-                {isSearchOpen ? <X /> : <Search />}
-              </Button>
-            </TooltipTrigger>
+            <TooltipTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={onToggleSearch}
+                  aria-label={isSearchOpen ? 'Close node search' : 'Search nodes'}
+                >
+                  {isSearchOpen ? <X /> : <Search />}
+                </Button>
+              }
+            />
             <TooltipContent side="bottom">
               <div className="flex items-center gap-2">
                 <span>{isSearchOpen ? 'Close search' : 'Search nodes'}</span>

@@ -11,7 +11,7 @@ export async function openRowMenu(page: Page, rowIndex = 0): Promise<void> {
 export async function editRowByName(page: Page, name: string): Promise<void> {
   await filterTableByName(page, name)
   await openRowMenu(page)
-  await page.getByRole('menuitem', { name: /Edit/ }).getByRole('link').click()
+  await page.getByRole('menuitem', { name: /Edit/ }).click()
   await expect(page).toHaveURL(/\/modify\//)
 }
 

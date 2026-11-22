@@ -119,7 +119,7 @@ describe('CreateLocatorWorkspace', () => {
     await user.clear(screen.getByLabelText('Route'))
     await user.type(screen.getByLabelText('Route'), '/account/login')
     await user.click(screen.getByRole('combobox', { name: 'Module' }))
-    await user.click(screen.getByRole('option', { name: 'Account' }))
+    await user.click(await screen.findByRole('option', { name: 'Account' }))
     await user.click(screen.getByRole('button', { name: 'Save Locator' }))
 
     await waitFor(() => {

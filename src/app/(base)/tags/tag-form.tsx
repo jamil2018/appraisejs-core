@@ -76,14 +76,17 @@ const TagForm = ({
     },
   })
   return (
-    <TanStackForm onSubmit={() => form.handleSubmit()}>
+    <TanStackForm
+      className="app-surface w-full max-w-2xl rounded-xl border border-border bg-card p-6"
+      onSubmit={() => form.handleSubmit()}
+    >
       <form.Field
         name="name"
         validators={{
           onChange: tagFieldValidators.name,
         }}
       >
-        {field => <TextFormField field={field} label="Name" className="mb-4 flex w-full flex-col gap-2 lg:w-1/2" />}
+        {field => <TextFormField field={field} label="Name" className="mb-4 flex w-full flex-col gap-2" />}
       </form.Field>
       <form.Field
         name="tagExpression"
@@ -96,7 +99,7 @@ const TagForm = ({
             field={field}
             label="Tag Expression"
             placeholder="e.g. @smoke"
-            className="mb-4 flex w-full flex-col gap-2 lg:w-1/2"
+            className="mb-4 flex w-full flex-col gap-2"
           />
         )}
       </form.Field>

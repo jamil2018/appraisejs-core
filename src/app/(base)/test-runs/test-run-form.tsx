@@ -130,7 +130,7 @@ const TestRunForm = ({
   return (
     <TanStackForm onSubmit={() => form.handleSubmit()}>
       {testSuites.every(suite => suite.testCases.length === 0) ? (
-        <Card className="border-amber-400/30 bg-amber-400/[0.04]">
+        <Card className="border-warning-border bg-warning-surface">
           <CardHeader>
             <CardTitle>Prepare tests before creating an independent run</CardTitle>
             <CardDescription>
@@ -139,15 +139,21 @@ const TestRunForm = ({
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
-            <Button asChild size="sm" variant="outline">
-              <Link href="/test-cases/create" target="_blank">
-                Create test case
-              </Link>
+            <Button
+              size="sm"
+              variant="outline"
+              render={<Link href="/test-cases/create" target="_blank" />}
+              nativeButton={false}
+            >
+              Create test case
             </Button>
-            <Button asChild size="sm" variant="outline">
-              <Link href="/test-suites/create" target="_blank">
-                Create test suite
-              </Link>
+            <Button
+              size="sm"
+              variant="outline"
+              render={<Link href="/test-suites/create" target="_blank" />}
+              nativeButton={false}
+            >
+              Create test suite
             </Button>
             <Button onClick={() => refresh()} size="sm" type="button" variant="ghost">
               <RefreshCw aria-hidden="true" className="mr-2 size-4" /> Refresh choices
@@ -278,7 +284,11 @@ const TestRunForm = ({
                   return (
                     <div className="mb-4 flex flex-col gap-2">
                       <Label htmlFor={field.name}>Environment</Label>
-                      <Select value={field.state.value} onValueChange={value => field.handleChange(value)}>
+                      <Select
+                        items={environments.map(environment => ({ value: environment.id, label: environment.name }))}
+                        value={field.state.value}
+                        onValueChange={value => field.handleChange(value)}
+                      >
                         <SelectTrigger id={field.name}>
                           <SelectValue placeholder="Select an environment" />
                         </SelectTrigger>
@@ -317,6 +327,7 @@ const TestRunForm = ({
                     <div className="mb-4 flex flex-col gap-2">
                       <Label htmlFor={field.name}>Browser Engine</Label>
                       <Select
+                        items={getBrowserEngineOptions()}
                         value={field.state.value}
                         onValueChange={value => field.handleChange(value as BrowserEngine)}
                       >
@@ -340,17 +351,17 @@ const TestRunForm = ({
           </Card>
         </div>
         <aside className="xl:sticky xl:top-5">
-          <Card className="border-white/[0.1] bg-[rgba(18,37,64,0.24)]">
+          <Card className="border-border bg-card">
             <CardHeader className="mb-2">
               <CardTitle className="flex items-center gap-2 text-xl text-primary">
                 <Info className="size-5" />
-                <span className="font-bold">Quick Tips</span>
+                <span className="font-medium">Quick Tips</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-6">
               {testRunQuickTips.map((tip, index) => (
                 <div key={tip.title} className="flex items-start gap-4">
-                  <span className="flex size-6 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
+                  <span className="flex size-6 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
                     {index + 1}
                   </span>
                   <div className="flex flex-col gap-1">
@@ -366,9 +377,9 @@ const TestRunForm = ({
       <form.Subscribe selector={formState => [formState.canSubmit, formState.isSubmitting]}>
         {([canSubmit, isSubmitting]) => (
           <>
-            <Button type="submit" disabled={!canSubmit} className="hover:bg-emerald-500">
+            <Button type="submit" disabled={!canSubmit}>
               <Play className="size-4" />
-              <span className="font-bold">{isSubmitting ? '...' : 'Start'}</span>
+              <span className="font-medium">{isSubmitting ? 'Starting…' : 'Start'}</span>
             </Button>
           </>
         )}

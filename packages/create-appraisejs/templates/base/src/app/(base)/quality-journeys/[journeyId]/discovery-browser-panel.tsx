@@ -4,7 +4,7 @@ import type { AnonymousDiscoveryCaptureStatus } from '@/services/coordinator/app
 import { ExternalLink, LoaderCircle, ShieldCheck } from 'lucide-react'
 import { useState, useTransition } from 'react'
 
-import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -180,7 +180,7 @@ export function DiscoveryBrowserPanel({
                 <Label htmlFor="discovery-route">Page</Label>
                 <select
                   id="discovery-route"
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 font-mono text-sm"
+                  className="h-9 w-full rounded-lg border border-input bg-background px-3 font-mono text-sm"
                   value={routeId}
                   onChange={event => setRouteId(event.target.value)}
                 >
@@ -245,11 +245,11 @@ export function DiscoveryBrowserPanel({
         ) : (
           <section className="space-y-4" aria-label="Discovery browser session status">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline">{session.state.replaceAll('_', ' ')}</Badge>
+              <StatusBadge label={session.state.replaceAll('_', ' ')} />
               {session.currentUrl && <span className="text-xs text-muted-foreground">{session.currentUrl}</span>}
             </div>
             {session.accessMode === 'AUTHENTICATED_INTENT' && session.state === 'ACTIVE' ? (
-              <div className="rounded-md border border-amber-500/30 bg-amber-500/[0.05] p-3 text-sm">
+              <div className="rounded-lg border border-warning-border bg-warning-surface p-3 text-sm">
                 Complete sign-in and MFA directly in the opened target browser. Appraise never accepts those values.
                 {!returnCommitted ? (
                   <>
@@ -365,7 +365,7 @@ export function DiscoveryBrowserPanel({
           </section>
         )}
         {receipt ? (
-          <section className="rounded-md border border-emerald-500/30 bg-emerald-500/[0.05] p-3 text-sm" role="status">
+          <section className="rounded-lg border border-success-border bg-success-surface p-3 text-sm" role="status">
             <p className="font-medium">Page inspection saved</p>
             <details>
               <summary className="cursor-pointer text-xs">Inspection details</summary>

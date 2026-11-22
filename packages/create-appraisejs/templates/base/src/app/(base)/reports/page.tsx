@@ -36,8 +36,8 @@ const Reports = async () => {
             createRoute="/quality-journeys/new"
             createText="Start a Quality Journey"
           />
-          <Button asChild variant="outline">
-            <Link href="/test-runs/create">Prepare an independent run</Link>
+          <Button variant="outline" render={<Link href="/test-runs/create" />} nativeButton={false}>
+            Prepare an independent run
           </Button>
         </div>
       </div>

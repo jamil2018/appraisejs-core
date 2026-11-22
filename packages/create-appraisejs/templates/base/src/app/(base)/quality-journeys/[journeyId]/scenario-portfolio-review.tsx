@@ -6,7 +6,7 @@ import '@xyflow/react/dist/style.css'
 import { useRouter } from 'next/navigation'
 import { useRef, useState, useTransition } from 'react'
 
-import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -64,7 +64,7 @@ const actionId = (prefix: string) => `${prefix}:${crypto.randomUUID()}`
 function SharedSetupList({ setup }: { setup: unknown }) {
   if (!Array.isArray(setup) || !setup.length) return null
   return (
-    <section aria-label="Shared scenario setup" className="rounded-md border p-3 text-sm">
+    <section aria-label="Shared scenario setup" className="rounded-lg border p-3 text-sm">
       <p className="font-medium">Shared setup</p>
       <ul className="mt-1 list-disc pl-5 text-muted-foreground">
         {setup.map((item, index) => {
@@ -89,10 +89,19 @@ function ScenarioReviewCard({
   onAddComment: (scenarioRevisionId: string) => void
 }) {
   return (
-    <article className="rounded-md border p-3">
+    <article className="rounded-lg border p-3">
       <div className="flex justify-between gap-2">
         <p className="font-mono text-xs text-primary">{scenario.stableScenarioId}</p>
-        <Badge variant="outline">{scenario.decisions[0]?.decision ?? 'Pending review'}</Badge>
+        <StatusBadge
+          label={scenario.decisions[0]?.decision ?? 'Pending review'}
+          tone={
+            scenario.decisions[0]?.decision === 'APPROVED'
+              ? 'success'
+              : scenario.decisions[0]?.decision === 'REJECTED'
+                ? 'danger'
+                : 'warning'
+          }
+        />
       </div>
       <ScenarioMetadata scenario={scenario} />
       {review && !scenario.decisions.length ? (
@@ -240,7 +249,7 @@ function ScenarioDependencyList({
     }),
   )
   return (
-    <section aria-label="Linear scenario dependency view" className="space-y-2 rounded-md border p-3">
+    <section aria-label="Linear scenario dependency view" className="space-y-2 rounded-lg border p-3">
       <h3 className="text-sm font-semibold">Linear scenario dependency view</h3>
       <p className="text-xs text-muted-foreground">
         Keyboard-equivalent reading order for the visual graph. Each relationship names its source, target, and kind.
@@ -249,7 +258,7 @@ function ScenarioDependencyList({
         <ol className="space-y-2 text-sm">
           {dependencies.map((dependency, index) => (
             <li
-              className="rounded-md border border-white/[0.08] p-2"
+              className="rounded-lg border border-border p-2"
               key={`${dependency.source}:${dependency.target}:${index}`}
               tabIndex={0}
             >
@@ -400,7 +409,7 @@ function ScenarioPortfolioReviewControls({
   ...callbacks
 }: { review: ScenarioReviewState } & ScenarioReviewCallbacks) {
   return (
-    <section className="space-y-3 rounded-md border p-3" aria-label="Scenario review controls">
+    <section className="space-y-3 rounded-lg border p-3" aria-label="Scenario review controls">
       <label className="text-sm font-medium" htmlFor="scenario-review-feedback">
         Review feedback
       </label>
@@ -584,7 +593,7 @@ function ScenarioPortfolioReviewContent({
           <div
             aria-describedby="scenario-linear-dependency-view"
             aria-label="Visual scenario dependency graph. A keyboard-equivalent linear dependency view follows."
-            className="h-64 rounded-md border"
+            className="h-64 rounded-lg border"
             data-testid="scenario-readonly-flow"
             role="region"
             tabIndex={0}

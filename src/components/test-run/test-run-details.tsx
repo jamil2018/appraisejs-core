@@ -55,31 +55,26 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
           <CardTitle className="flex items-center justify-between">
             {testRun.status === TestRunStatus.RUNNING ? (
               <div className="flex items-center gap-2">
-                <LoaderCircle className="size-6 animate-spin text-blue-500" />
+                <LoaderCircle className="size-6 animate-spin text-info" />
                 <span>Executing</span>
               </div>
             ) : testRun.status === TestRunStatus.COMPLETED ? (
               <div className="flex items-center gap-2 duration-300 animate-in fade-in-0">
-                <CheckCircle className="size-6 text-green-500" />
+                <CheckCircle className="size-6 text-success" />
                 <span>Finished</span>
               </div>
             ) : testRun.status === TestRunStatus.CANCELLED ? (
               <div className="flex items-center gap-2 duration-300 animate-in fade-in-0">
-                <XCircle className="size-6 text-red-500 duration-300 animate-in fade-in-0" />
+                <XCircle className="size-6 text-danger duration-300 animate-in fade-in-0" />
                 <span>Interrupted</span>
               </div>
             ) : null}
             {testRun.status === TestRunStatus.RUNNING ? (
-              <Button
-                onClick={handleCancelRun}
-                disabled={isCancelling}
-                className="bg-red-500 font-bold text-white hover:bg-red-600"
-                size="sm"
-              >
+              <Button onClick={handleCancelRun} disabled={isCancelling} variant="destructive" size="sm">
                 {isCancelling ? (
                   <>
                     <LoaderCircle className="size-4 animate-spin" />
-                    Cancelling...
+                    Cancelling…
                   </>
                 ) : (
                   <>
@@ -119,10 +114,10 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Status</span>
               <Badge variant="outline" className={cn(statusMeta.badgeClassName, 'py-1')}>
-                <span className="mr-1 text-white">
+                <span className="mr-1">
                   <StatusIcon className={cn('size-4', testRun.status === TestRunStatus.RUNNING && 'animate-spin')} />
                 </span>
-                <span className="text-white">{statusMeta.label}</span>
+                <span>{statusMeta.label}</span>
               </Badge>
             </div>
             <div className="flex items-center justify-between">
@@ -193,8 +188,8 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
             {testRun.tags.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {testRun.tags.map(tag => (
-                  <Badge key={tag.id} variant="outline" className="bg-zinc-700 text-white">
-                    <TagIcon className="mr-2 size-4 text-white" />
+                  <Badge key={tag.id} variant="outline" className="bg-secondary text-foreground">
+                    <TagIcon className="mr-2 size-4 text-foreground" />
                     <span className="text-sm">{tag.name}</span>
                   </Badge>
                 ))}
@@ -224,19 +219,19 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
                   return (
                     <div
                       key={testCase.id}
-                      className="flex items-center justify-between rounded-md bg-muted p-2 shadow-md"
+                      className="flex items-center justify-between rounded-lg border border-border bg-secondary p-3"
                     >
                       <div className="flex items-center gap-2">
                         <TestTubeDiagonal
                           className={cn(
-                            'mr-2 size-6 text-white',
+                            'mr-2 size-6 text-foreground',
                             testCase.result === TestRunTestCaseResult.PASSED
-                              ? 'text-green-500'
+                              ? 'text-success'
                               : testCase.result === TestRunTestCaseResult.FAILED
-                                ? 'text-red-500'
+                                ? 'text-danger'
                                 : testCase.result === TestRunTestCaseResult.UNTESTED
-                                  ? 'text-blue-500'
-                                  : 'text-zinc-500',
+                                  ? 'text-info'
+                                  : 'text-muted-foreground',
                           )}
                         />
                         <div className="flex flex-col gap-1">
@@ -252,7 +247,7 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="bg-zinc-700 text-xs text-white">
+                        <Badge variant="outline" className="bg-secondary text-xs text-foreground">
                           <div className="flex min-w-20 items-center gap-2 p-1.5">
                             <TestCaseStatusIcon
                               className={cn(
@@ -265,7 +260,7 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
                             <span>{testCaseStatusMeta.label}</span>
                           </div>
                         </Badge>
-                        <Badge variant="outline" className="bg-zinc-700 text-xs text-white">
+                        <Badge variant="outline" className="bg-secondary text-xs text-foreground">
                           <div className="flex min-w-20 items-center gap-2 p-1.5">
                             <TestCaseResultIcon className={cn('size-4', testCaseResultMeta.iconClassName)} />
                             <span>{testCaseResultMeta.label}</span>

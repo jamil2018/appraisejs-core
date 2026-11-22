@@ -308,7 +308,7 @@ function FlowPanel({
         layout
         layoutId="test-case-flow-panel"
         className={cn(
-          'flex min-h-0 w-full flex-col overflow-hidden rounded-md border border-white/[0.1] bg-[rgba(18,37,64,0.28)] text-card-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] will-change-transform',
+          'flex min-h-0 w-full flex-col overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-none will-change-transform',
           className,
         )}
         transition={{ layout: { duration: 0.3, ease: 'easeInOut' } }}
@@ -316,7 +316,7 @@ function FlowPanel({
         <CardHeader className="shrink-0">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3">
-              <span className="bg-primary/10 flex size-9 shrink-0 items-center justify-center rounded-md border text-primary">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border bg-primary/10 text-primary">
                 <Workflow className="size-4" aria-hidden />
               </span>
               <div className="space-y-1">
@@ -400,7 +400,7 @@ function TemplateSelectionStep({
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-4 xl:flex-row">
         <div className="xl:w-1/2">
-          <Card className="h-full dark:border-zinc-700 dark:bg-zinc-500/10">
+          <Card className="h-full border-border bg-secondary">
             <CardHeader className="mb-4">
               <CardTitle className="text-xl font-bold text-primary">Template Selection</CardTitle>
               <CardDescription>Choose the template that should seed the new test case</CardDescription>
@@ -408,7 +408,7 @@ function TemplateSelectionStep({
             <CardContent>
               <div className="flex flex-col gap-2">
                 <Label htmlFor="templateTestCaseId">Case Template</Label>
-                <Select onValueChange={onTemplateChange} value={selectedTemplateId}>
+                <Select items={templateOptions} onValueChange={onTemplateChange} value={selectedTemplateId || null}>
                   <SelectTrigger
                     id="templateTestCaseId"
                     aria-label="Case Template"
@@ -434,7 +434,7 @@ function TemplateSelectionStep({
           </Card>
         </div>
         <div className="xl:w-1/2">
-          <Card className="h-full border-zinc-700 bg-zinc-500/10">
+          <Card className="h-full border-border bg-secondary">
             <CardHeader className="mb-2">
               <CardTitle className="text-xl font-bold text-primary">Selected Template</CardTitle>
               <CardDescription>Review what will be prefilled before moving into the form</CardDescription>
@@ -450,7 +450,7 @@ function TemplateSelectionStep({
         </div>
       </div>
       <div className="mb-4 flex flex-col gap-2">
-        <Button onClick={onContinue} className="w-fit px-6 hover:bg-emerald-500">
+        <Button onClick={onContinue} className="w-fit px-6 hover:bg-primary/90">
           <span className="font-bold">Continue</span>
           <ArrowRight className="size-4" />
         </Button>
@@ -552,7 +552,7 @@ function TemplatePreviewSteps({
 
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-foreground/80 text-xs font-medium uppercase tracking-wide">Flow Preview</span>
+      <span className="text-xs font-medium uppercase tracking-wide text-foreground/80">Flow Preview</span>
       <div className="flex flex-wrap gap-2">
         {selectedTemplatePreviewSteps.map(stepLabel => (
           <span key={stepLabel} className="rounded-full bg-muted px-3 py-1 text-xs text-foreground">
@@ -618,7 +618,7 @@ function DetailsStep({
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-4 xl:flex-row" id="meta">
         <div className="xl:w-1/2">
-          <Card className="h-full border-white/[0.1] bg-[rgba(18,37,64,0.28)] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+          <Card className="h-full border-border bg-card shadow-none">
             <CardHeader className="mb-4">
               <CardTitle className="text-xl font-bold text-primary">Test Case Details</CardTitle>
               <CardDescription>Enter the core details of your test scenario</CardDescription>
@@ -675,7 +675,7 @@ function DetailsStep({
             <span className="font-bold">Back</span>
           </Button>
         ) : null}
-        <Button onClick={onContinue} className="w-fit px-6 hover:bg-emerald-500">
+        <Button onClick={onContinue} className="w-fit px-6 hover:bg-primary/90">
           <span className="font-bold">Continue</span>
           <ArrowRight className="size-4" />
         </Button>
@@ -778,7 +778,7 @@ function TagSelectionField({ availableTags, selectedTags, onChange, onCreateClic
 function QuickTipsPanel() {
   return (
     <div className="xl:w-1/2">
-      <Card className="h-full border-white/[0.1] bg-[rgba(18,37,64,0.28)] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+      <Card className="h-full border-border bg-card shadow-none">
         <CardHeader className="mb-2">
           <CardTitle className="flex items-center gap-2 text-xl text-primary">
             <Info className="size-5" />
@@ -789,7 +789,7 @@ function QuickTipsPanel() {
           <ol className="flex list-none flex-col gap-3">
             {testCaseQuickTips.map((tip, index) => (
               <li key={tip.title} className="grid grid-cols-[1.5rem_1fr] gap-4">
-                <span className="flex size-6 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
+                <span className="flex size-6 items-center justify-center rounded-full bg-success/10 text-success">
                   {index + 1}
                 </span>
                 <span className="flex flex-col gap-1">
@@ -853,7 +853,7 @@ function FlowStep({
             <Button
               type="button"
               onClick={onSubmit}
-              className="w-fit px-6 hover:bg-emerald-500"
+              className="w-fit px-6 hover:bg-primary/90"
               aria-label="Save test case"
             >
               <Save className="size-4" aria-hidden />
@@ -1467,8 +1467,8 @@ const TestCaseForm = ({
         <motion.div
           key={currentStep}
           data-wizard-step-transition
-          initial={shouldReduceMotion ? false : { x: stepDirection * 32 }}
-          animate={{ x: 0 }}
+          initial={shouldReduceMotion ? false : { y: stepDirection * 12 }}
+          animate={{ y: 0 }}
           transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
           style={shouldReduceMotion ? undefined : { willChange: 'transform' }}
         >

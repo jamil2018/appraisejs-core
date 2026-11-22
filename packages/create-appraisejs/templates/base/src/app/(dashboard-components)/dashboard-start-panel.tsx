@@ -47,9 +47,9 @@ export function DashboardStartPanel({
   const primaryPath = agentReady ? journeyPath : setupPath
 
   return (
-    <Card className="border-primary/25 bg-primary/[0.035]">
+    <Card>
       <CardHeader className="gap-2">
-        <div className="flex items-center gap-2 text-sm font-medium text-primary">
+        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <Route aria-hidden="true" className="size-4" /> Guided starting point
         </div>
         <CardTitle>{copy.title}</CardTitle>
@@ -79,16 +79,12 @@ export function DashboardStartPanel({
           </li>
         </ul>
         <div className="flex flex-wrap gap-2">
-          <Button asChild>
-            <Link href={primaryPath}>
-              {agentReady ? 'Start a Quality Journey' : 'Set up Codex'}
-              <ArrowRight aria-hidden="true" className="ml-2 size-4" />
-            </Link>
+          <Button render={<Link href={primaryPath} />} nativeButton={false}>
+            {agentReady ? 'Start a Quality Journey' : 'Set up Codex'}
+            <ArrowRight aria-hidden="true" />
           </Button>
-          <Button asChild variant="outline">
-            <Link href="/test-cases/create">
-              <Wrench aria-hidden="true" className="mr-2 size-4" /> Manual test design
-            </Link>
+          <Button render={<Link href="/test-cases/create" />} nativeButton={false} variant="outline">
+            <Wrench aria-hidden="true" /> Manual test design
           </Button>
         </div>
       </CardContent>

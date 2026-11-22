@@ -13,7 +13,7 @@ export function DynamicParameterFieldLabel({
 }) {
   return (
     <Label htmlFor={htmlFor} className="text-primary">
-      {defaultValueInput ? `Default ${name}` : name} {!defaultValueInput && <span className="text-red-500">*</span>}
+      {defaultValueInput ? `Default ${name}` : name} {!defaultValueInput && <span className="text-danger">*</span>}
     </Label>
   )
 }

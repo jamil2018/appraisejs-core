@@ -66,12 +66,16 @@ function LinkedFollowUpAction({
 }) {
   if (!visible) return null
   return (
-    <Button asChild variant="outline">
-      <Link
-        href={`/quality-journeys/new?project=${encodeURIComponent(projectId)}&predecessor=${encodeURIComponent(journeyId)}`}
-      >
-        Start linked follow-up journey
-      </Link>
+    <Button
+      variant="outline"
+      nativeButton={false}
+      render={
+        <Link
+          href={`/quality-journeys/new?project=${encodeURIComponent(projectId)}&predecessor=${encodeURIComponent(journeyId)}`}
+        />
+      }
+    >
+      Start linked follow-up journey
     </Button>
   )
 }
@@ -694,12 +698,12 @@ function BlockerCard({
         ) : (
           <ul className="space-y-3">
             {blockers.map(blocker => (
-              <li className="rounded-md border border-amber-500/20 bg-amber-500/[0.06] p-3" key={blocker.id}>
+              <li className="rounded-lg border border-warning-border bg-warning-surface p-3" key={blocker.id}>
                 <p className="text-sm">{blocker.summary}</p>
                 <p className="mt-2 text-xs text-muted-foreground">How to resolve it: {blocker.requiredResolution}</p>
                 <details className="mt-2 text-muted-foreground">
                   <summary className="cursor-pointer text-xs">Technical details</summary>
-                  <p className="mt-1 font-mono text-[11px] text-amber-200">{blocker.reasonCode}</p>
+                  <p className="mt-1 font-mono text-[11px] text-warning">{blocker.reasonCode}</p>
                   <p className="mt-1 text-xs">Responsible actor: {blocker.responsibleActor}</p>
                   <p className="mt-1 break-all font-mono text-[11px]">
                     Canonical resumption: {blocker.safeResumeCommand}
@@ -730,7 +734,7 @@ function Timeline({ events }: { events: Array<{ id: string; sequence: number; ev
         ) : (
           <ol className="space-y-3">
             {events.map(event => (
-              <li className="border-l border-white/[0.14] pl-3" key={event.id}>
+              <li className="border-l border-border pl-3" key={event.id}>
                 <p className="text-sm font-medium">{qualityJourneyLabel(event.eventType)}</p>
                 <p className="mt-1 text-xs text-muted-foreground">{event.createdAt.toLocaleString()}</p>
                 <details className="mt-1 text-muted-foreground">

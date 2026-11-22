@@ -50,7 +50,10 @@ const ModuleForm = ({
     },
   })
   return (
-    <TanStackForm onSubmit={() => form.handleSubmit()}>
+    <TanStackForm
+      className="app-surface w-full max-w-2xl rounded-xl border border-border bg-card p-6"
+      onSubmit={() => form.handleSubmit()}
+    >
       <form.Field
         name="name"
         validators={{
@@ -62,9 +65,16 @@ const ModuleForm = ({
       <form.Field name="parentId">
         {field => {
           return (
-            <div className="mb-4 flex flex-col gap-2 lg:w-1/3">
+            <div className="mb-4 flex w-full flex-col gap-2">
               <Label htmlFor={field.name}>Parent</Label>
-              <Select value={field.state.value || ROOT_MODULE_UUID} onValueChange={value => field.handleChange(value)}>
+              <Select
+                items={[
+                  { value: ROOT_MODULE_UUID, label: 'Root (No Parent)' },
+                  ...parentOptions.map(option => ({ value: option.id, label: option.name })),
+                ]}
+                value={field.state.value || ROOT_MODULE_UUID}
+                onValueChange={value => field.handleChange(value)}
+              >
                 <SelectTrigger id={field.name}>
                   <SelectValue
                     placeholder={parentOptions.length === 0 ? 'No parent modules available' : 'Select a parent or Root'}

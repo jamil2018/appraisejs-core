@@ -27,7 +27,7 @@ export function FlowDiagramBlockOverlays({
         <div
           key={block.id}
           data-flow-block-overlay={block.id}
-          className="pointer-events-none absolute rounded-lg border border-emerald-400/70 bg-emerald-400/10"
+          className="pointer-events-none absolute rounded-lg border border-success/70 bg-success/10"
           style={{
             left: block.x,
             top: block.y,
@@ -36,7 +36,7 @@ export function FlowDiagramBlockOverlays({
             zIndex: -1,
           }}
         >
-          <div className="bg-background/95 shadow-background/40 pointer-events-auto absolute -top-9 left-2 flex items-center gap-1 rounded-md border border-emerald-300/80 px-2.5 py-1.5 text-sm font-semibold text-foreground shadow-md">
+          <div className="pointer-events-auto absolute -top-9 left-2 flex items-center gap-1 rounded-lg border border-success/80 bg-background/95 px-2.5 py-1.5 text-sm font-semibold text-foreground shadow-md shadow-background/40">
             <span>{block.name}</span>
             <Button
               type="button"

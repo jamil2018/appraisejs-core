@@ -53,10 +53,17 @@ export default async function QualityJourneyArtifactLibraryPage({ params, search
   return (
     <main className="space-y-6 pb-10">
       <header className="space-y-3">
-        <Button asChild size="sm" variant="ghost">
-          <Link href={`/quality-journeys/${encodeURIComponent(journeyId)}?project=${encodeURIComponent(project.id)}`}>
-            Back to journey
-          </Link>
+        <Button
+          size="sm"
+          variant="ghost"
+          nativeButton={false}
+          render={
+            <Link
+              href={`/quality-journeys/${encodeURIComponent(journeyId)}?project=${encodeURIComponent(project.id)}`}
+            />
+          }
+        >
+          Back to journey
         </Button>
         <div className="flex flex-col items-start justify-between gap-4 sm:flex-row">
           <div className="space-y-2">
@@ -70,22 +77,37 @@ export default async function QualityJourneyArtifactLibraryPage({ params, search
               Durable authored history for this journey. Historical artifacts remain readable after closure.
             </HeaderSubtitle>
           </div>
-          <Button asChild variant="outline">
-            <Link
-              href={`/quality-journeys/${encodeURIComponent(journeyId)}/artifacts/export?project=${encodeURIComponent(project.id)}`}
-            >
-              <Download aria-hidden="true" className="mr-2 size-4" />
-              Export JSON
-            </Link>
+          <Button
+            variant="outline"
+            nativeButton={false}
+            render={
+              <Link
+                href={`/quality-journeys/${encodeURIComponent(journeyId)}/artifacts/export?project=${encodeURIComponent(project.id)}`}
+              />
+            }
+          >
+            <Download aria-hidden="true" className="mr-2 size-4" />
+            Export JSON
           </Button>
         </div>
         <div className="flex flex-wrap gap-2" aria-label="Artifact kind filters">
-          <Button asChild size="sm" variant={query?.kind ? 'outline' : 'secondary'}>
-            <Link href={href(journeyId, project.id, { query: query?.query })}>All ({library.total})</Link>
+          <Button
+            size="sm"
+            variant={query?.kind ? 'outline' : 'secondary'}
+            nativeButton={false}
+            render={<Link href={href(journeyId, project.id, { query: query?.query })} />}
+          >
+            All ({library.total})
           </Button>
           {library.kinds.map(kind => (
-            <Button asChild key={kind} size="sm" variant={query?.kind === kind ? 'secondary' : 'outline'}>
-              <Link href={href(journeyId, project.id, { kind, query: query?.query })}>{label(kind)}</Link>
+            <Button
+              key={kind}
+              size="sm"
+              variant={query?.kind === kind ? 'secondary' : 'outline'}
+              nativeButton={false}
+              render={<Link href={href(journeyId, project.id, { kind, query: query?.query })} />}
+            >
+              {label(kind)}
             </Button>
           ))}
         </div>
@@ -111,16 +133,20 @@ export default async function QualityJourneyArtifactLibraryPage({ params, search
 
       <nav className="flex items-center justify-between gap-3" aria-label="Artifact library pagination">
         {hasPrevious ? (
-          <Button asChild variant="outline">
-            <Link
-              href={href(journeyId, project.id, {
-                kind: query?.kind,
-                query: query?.query,
-                offset: String(Math.max(0, offset - library.limit)),
-              })}
-            >
-              Previous
-            </Link>
+          <Button
+            variant="outline"
+            nativeButton={false}
+            render={
+              <Link
+                href={href(journeyId, project.id, {
+                  kind: query?.kind,
+                  query: query?.query,
+                  offset: String(Math.max(0, offset - library.limit)),
+                })}
+              />
+            }
+          >
+            Previous
           </Button>
         ) : (
           <Button disabled type="button" variant="outline">
@@ -133,16 +159,20 @@ export default async function QualityJourneyArtifactLibraryPage({ params, search
             : '0 artifacts'}
         </p>
         {hasNext ? (
-          <Button asChild variant="outline">
-            <Link
-              href={href(journeyId, project.id, {
-                kind: query?.kind,
-                query: query?.query,
-                offset: String(offset + library.limit),
-              })}
-            >
-              Next
-            </Link>
+          <Button
+            variant="outline"
+            nativeButton={false}
+            render={
+              <Link
+                href={href(journeyId, project.id, {
+                  kind: query?.kind,
+                  query: query?.query,
+                  offset: String(offset + library.limit),
+                })}
+              />
+            }
+          >
+            Next
           </Button>
         ) : (
           <Button disabled type="button" variant="outline">
@@ -187,15 +217,21 @@ function ArtifactCard({ entry, journeyId, projectId }: { entry: LibraryEntry; jo
         <Badge variant="outline">{label(entry.kind)}</Badge>
       </CardHeader>
       <CardContent className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-muted-foreground">
+        <p className="min-w-0 break-all text-muted-foreground">
           {entry.sourceContentHash ?? 'No source content hash'} · {entry.createdAt.toLocaleString()}
         </p>
-        <Button asChild size="sm" variant="outline">
-          <Link
-            href={`/quality-journeys/${encodeURIComponent(journeyId)}/artifacts/${encodeURIComponent(entry.entryId)}?project=${encodeURIComponent(projectId)}`}
-          >
-            Inspect <ExternalLink aria-hidden="true" className="ml-2 size-3.5" />
-          </Link>
+        <Button
+          className="shrink-0"
+          size="sm"
+          variant="outline"
+          nativeButton={false}
+          render={
+            <Link
+              href={`/quality-journeys/${encodeURIComponent(journeyId)}/artifacts/${encodeURIComponent(entry.entryId)}?project=${encodeURIComponent(projectId)}`}
+            />
+          }
+        >
+          Inspect <ExternalLink aria-hidden="true" className="ml-2 size-3.5" />
         </Button>
       </CardContent>
     </Card>

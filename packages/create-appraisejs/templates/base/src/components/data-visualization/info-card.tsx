@@ -28,14 +28,14 @@ const InfoCard = ({
     <>
       <Card className="flex min-w-40 max-w-80 items-center">
         <CardContent className="min-w-0 p-3">
-          <div className="flex min-w-0 items-center gap-4 text-primary">
+          <div className="flex min-w-0 items-center gap-3 text-muted-foreground">
             {showHighlightGroup ? (
               <>
                 <div className="shrink-0">{icon}</div>
                 <div className="flex h-full min-w-0 flex-col">
                   <div className="flex h-full items-center text-xs text-muted-foreground">{legend}</div>
                   <div
-                    className={`h-full min-w-0 items-center break-words font-mono text-primary ${getHighlightTextSize(
+                    className={`h-full min-w-0 items-center break-words font-mono text-foreground ${getHighlightTextSize(
                       highlight,
                     )}`}
                   >

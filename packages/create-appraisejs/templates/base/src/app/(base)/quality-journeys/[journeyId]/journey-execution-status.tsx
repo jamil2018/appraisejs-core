@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { getQualityJourneyExecution } from '@/services/coordinator/quality-journey-execution-service'
 import {
@@ -56,7 +56,7 @@ export function JourneyExecutionStatus({
         {execution.consents
           .filter(consent => ['REQUESTED', 'GRANTED'].includes(consent.status))
           .map(consent => (
-            <div key={consent.id} className="space-y-2 rounded-md border p-3">
+            <div key={consent.id} className="space-y-2 rounded-lg border p-3">
               <h3 className="text-sm font-medium">
                 {consent.status === 'GRANTED' ? 'Permission granted' : 'Allow these tests to run?'}
               </h3>
@@ -95,12 +95,23 @@ export function JourneyExecutionStatus({
         {execution.cycles.map(cycle => (
           <section
             key={cycle.id}
-            className="space-y-3 rounded-md border p-3"
+            className="space-y-3 rounded-lg border p-3"
             aria-label={`Execution cycle ${cycle.id}`}
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-sm font-medium">Test run</h3>
-              <Badge variant="outline">{readable(cycle.status)}</Badge>
+              <StatusBadge
+                label={readable(cycle.status)}
+                tone={
+                  cycle.status === 'COMPLETED'
+                    ? 'success'
+                    : cycle.status === 'FAILED'
+                      ? 'danger'
+                      : cycle.status === 'CANCELLING'
+                        ? 'warning'
+                        : 'neutral'
+                }
+              />
             </div>
             <p className="text-xs text-muted-foreground">
               {environments.find(environment => environment.id === cycle.environmentId)?.name ?? 'Selected environment'}{' '}
@@ -164,7 +175,7 @@ export function JourneyExecutionStatus({
           </section>
         ))}
         {execution.proposals.map(proposal => (
-          <div key={proposal.id} className="space-y-2 rounded-md border p-3">
+          <div key={proposal.id} className="space-y-2 rounded-lg border p-3">
             <h3 className="text-sm font-medium">Selective rerun · {proposal.status}</h3>
             <p className="text-sm">{proposal.reason}</p>
             <p className="text-xs">{(proposal.selectedScenarioRevisionIds as string[]).length} scenarios selected</p>

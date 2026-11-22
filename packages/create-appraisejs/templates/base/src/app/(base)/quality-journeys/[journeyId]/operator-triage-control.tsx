@@ -57,8 +57,11 @@ function RunReview({
         <>
           <Label htmlFor={`finding-kind-${run.testRunId}`}>Attribution</Label>
           <Select
+            items={kinds.map(([value, label]) => ({ value, label }))}
             value={finding.kind}
-            onValueChange={kind => onChange({ ...finding, kind: kind as OperatorFinding['kind'] })}
+            onValueChange={kind => {
+              if (kind) onChange({ ...finding, kind: kind as OperatorFinding['kind'] })
+            }}
           >
             <SelectTrigger id={`finding-kind-${run.testRunId}`}>
               <SelectValue />

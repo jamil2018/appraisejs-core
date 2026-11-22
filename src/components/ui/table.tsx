@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 function Table({ className, ...props }: React.ComponentProps<'table'>) {
   return (
     <div
-      className="relative w-full overflow-x-auto overscroll-x-contain"
+      className="app-focus relative w-full overflow-x-auto overscroll-x-contain rounded-lg"
       tabIndex={0}
       role="region"
       aria-label="Scrollable data table"
@@ -27,7 +27,7 @@ function TableRow({ className, ...props }: React.ComponentProps<'tr'>) {
   return (
     <tr
       className={cn(
-        'border-b border-white/[0.06] transition-colors hover:bg-white/[0.045] data-[state=selected]:bg-white/[0.075]',
+        'border-b border-border transition-colors hover:bg-accent/50 data-[state=selected]:bg-accent',
         className,
       )}
       {...props}
@@ -39,7 +39,7 @@ function TableHead({ className, ...props }: React.ComponentProps<'th'>) {
   return (
     <th
       className={cn(
-        'h-10 px-2 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
+        'h-9 px-3 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
         className,
       )}
       {...props}
@@ -50,7 +50,10 @@ function TableHead({ className, ...props }: React.ComponentProps<'th'>) {
 function TableCell({ className, ...props }: React.ComponentProps<'td'>) {
   return (
     <td
-      className={cn('p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]', className)}
+      className={cn(
+        'px-3 py-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
+        className,
+      )}
       {...props}
     />
   )

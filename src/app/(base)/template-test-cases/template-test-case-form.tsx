@@ -170,7 +170,7 @@ function FlowAuthoringViewToggle({
 }) {
   return (
     <div
-      className="flex h-9 w-fit items-center rounded-full border border-white/[0.09] bg-white/[0.025] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] backdrop-blur-xl"
+      className="flex h-9 w-fit items-center rounded-full border border-border bg-accent p-1 shadow-none"
       role="group"
       aria-label="Flow authoring view"
     >
@@ -180,8 +180,8 @@ function FlowAuthoringViewToggle({
         variant="ghost"
         className={`h-7 rounded-full border px-3 text-xs transition-[color,background-color,border-color,box-shadow] ${
           view === 'graph'
-            ? 'border-white/[0.12] bg-white/[0.075] text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_8px_20px_-14px_rgba(0,0,0,0.9)] hover:bg-white/[0.075]'
-            : 'border-transparent text-muted-foreground hover:bg-white/[0.035] hover:text-foreground'
+            ? 'border-border bg-accent text-foreground shadow-none hover:bg-accent'
+            : 'border-transparent text-muted-foreground hover:bg-accent hover:text-foreground'
         }`}
         aria-pressed={view === 'graph'}
         onClick={() => onChange('graph')}
@@ -194,8 +194,8 @@ function FlowAuthoringViewToggle({
         variant="ghost"
         className={`h-7 rounded-full border px-3 text-xs transition-[color,background-color,border-color,box-shadow] ${
           view === 'linear'
-            ? 'border-white/[0.12] bg-white/[0.075] text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_8px_20px_-14px_rgba(0,0,0,0.9)] hover:bg-white/[0.075]'
-            : 'border-transparent text-muted-foreground hover:bg-white/[0.035] hover:text-foreground'
+            ? 'border-border bg-accent text-foreground shadow-none hover:bg-accent'
+            : 'border-transparent text-muted-foreground hover:bg-accent hover:text-foreground'
         }`}
         aria-pressed={view === 'linear'}
         onClick={() => onChange('linear')}

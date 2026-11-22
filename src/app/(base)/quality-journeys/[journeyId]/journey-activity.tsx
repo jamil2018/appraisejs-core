@@ -144,7 +144,7 @@ export function JourneyActivity(props: Activity) {
     <div className="space-y-2">
       <div role="status" className="flex items-center gap-2 text-base font-medium">
         {stalled || isOutdated ? (
-          <CircleAlert aria-hidden="true" className="size-5 shrink-0 text-amber-500" />
+          <CircleAlert aria-hidden="true" className="size-5 shrink-0 text-warning" />
         ) : working ? (
           <LoaderCircle aria-hidden="true" className="size-5 shrink-0 text-primary motion-safe:animate-spin" />
         ) : (

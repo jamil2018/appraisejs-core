@@ -25,7 +25,7 @@ export default function DurationChart({
           <YAxis dataKey="feature" type="category" tickLine={false} tickMargin={10} axisLine={false} width={100} />
           <XAxis dataKey="duration" type="number" hide />
           <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-          <Bar dataKey="duration" fill="oklch(54.6% 0.245 262.881)" />
+          <Bar dataKey="duration" fill="rgb(var(--info-rgb))" />
         </BarChart>
       </ChartContainer>
     </>

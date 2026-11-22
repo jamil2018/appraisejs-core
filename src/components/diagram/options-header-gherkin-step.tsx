@@ -50,16 +50,18 @@ export function OptionsHeaderGherkinStep({
         }
 
         return (
-          <TooltipProvider key={`chip-${matchingParameter.name}-${matchingParameter.value}`} delayDuration={40}>
+          <TooltipProvider key={`chip-${matchingParameter.name}-${matchingParameter.value}`} delay={40}>
             <Tooltip>
-              <TooltipTrigger asChild>
-                <Badge
-                  variant="outline"
-                  className="border-primary/30 bg-primary/10 mx-0.5 inline-flex cursor-help px-1.5 py-0 align-baseline text-[11px] font-medium text-primary"
-                >
-                  {matchingParameter.value}
-                </Badge>
-              </TooltipTrigger>
+              <TooltipTrigger
+                render={
+                  <Badge
+                    variant="outline"
+                    className="mx-0.5 inline-flex cursor-help border-primary/30 bg-primary/10 px-1.5 py-0 align-baseline text-[11px] font-medium text-primary"
+                  >
+                    {matchingParameter.value}
+                  </Badge>
+                }
+              />
               <TooltipContent side="top" className="font-mono text-[10px] font-medium">
                 {matchingParameter.name}
               </TooltipContent>

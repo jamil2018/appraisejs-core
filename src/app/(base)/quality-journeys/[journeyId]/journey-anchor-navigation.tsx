@@ -20,8 +20,13 @@ export function JourneyAnchorNavigation({
     <nav aria-label="Journey sections" className="flex min-w-0 flex-wrap gap-2">
       {qualityJourneyDisplayStages.map((displayStage, index) => (
         <div className="flex items-center gap-1" key={displayStage.id}>
-          <Button asChild size="sm" variant="outline">
-            <Link href={`${basePath}#${displayStage.destination}`}>{displayStage.label}</Link>
+          <Button
+            size="sm"
+            variant="outline"
+            nativeButton={false}
+            render={<Link href={`${basePath}#${displayStage.destination}`} />}
+          >
+            {displayStage.label}
           </Button>
           {index <= currentStageIndex ? (
             <span className="text-xs text-muted-foreground">

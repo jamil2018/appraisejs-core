@@ -42,29 +42,28 @@ export function StepDefinitionPicker({
     <div className="flex min-w-64 flex-1 flex-col gap-2">
       <Label htmlFor={id}>Step Definition</Label>
       <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            id={id}
-            type="button"
-            variant="outline"
-            role="combobox"
-            aria-label="Step Definition results"
-            aria-expanded={open}
-            aria-controls={`${id}-list`}
-            className="h-auto min-h-10 w-full justify-between px-3 py-2 text-left font-normal"
-          >
-            <span className="min-w-0 truncate">{value ? value.title : 'Select a ready Step Definition'}</span>
-            <ChevronsUpDown data-icon="inline-end" className="opacity-50" aria-hidden />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent
-          align="start"
-          className="w-[var(--radix-popover-trigger-width)] overflow-hidden border-white/[0.12] bg-[linear-gradient(145deg,rgba(255,255,255,0.055),rgba(255,255,255,0.014)),rgba(13,20,34,0.9)] p-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_24px_60px_-28px_rgba(0,0,0,0.95)] backdrop-blur-2xl"
-        >
+        <PopoverTrigger
+          render={
+            <Button
+              id={id}
+              type="button"
+              variant="outline"
+              role="combobox"
+              aria-label="Step Definition results"
+              aria-expanded={open}
+              aria-controls={`${id}-list`}
+              className="h-9 w-full justify-between px-3 py-2 text-left font-normal"
+            >
+              <span className="min-w-0 truncate">{value ? value.title : 'Select a ready Step Definition'}</span>
+              <ChevronsUpDown data-icon="inline-end" className="opacity-50" aria-hidden />
+            </Button>
+          }
+        />
+        <PopoverContent align="start" className="w-[var(--anchor-width)] overflow-hidden p-0">
           <Command className="bg-transparent" shouldFilter={false}>
             <CommandInput value={query} placeholder="Search ready Step Definitions" onValueChange={setQuery} />
             <CommandList
-              className="overscroll-contain [scrollbar-color:rgba(255,255,255,0.18)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border [&::-webkit-scrollbar-thumb]:border-white/[0.08] [&::-webkit-scrollbar-thumb]:bg-white/[0.16] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-2"
+              className="overscroll-contain [scrollbar-color:rgba(255,255,255,0.18)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border [&::-webkit-scrollbar-thumb]:border-border [&::-webkit-scrollbar-thumb]:bg-accent [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-2"
               id={`${id}-list`}
               onWheel={event => {
                 event.preventDefault()
@@ -80,7 +79,7 @@ export function StepDefinitionPicker({
                     <CommandItem
                       key={keyOf(definition)}
                       value={keyOf(definition)}
-                      className="mx-1 items-start rounded-lg border border-transparent py-3 data-[selected=true]:border-white/[0.08]"
+                      className="mx-1 items-start rounded-lg border border-transparent py-3 data-[selected=true]:border-border"
                       onSelect={() => {
                         onChange(definition)
                         setOpen(false)

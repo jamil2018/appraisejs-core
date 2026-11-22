@@ -34,7 +34,7 @@ describe('TableActions', () => {
     render(<TableActions deleteHandler={deleteHandler} />)
 
     await user.click(screen.getByRole('button', { name: 'Open menu' }))
-    await user.click(screen.getByText('Delete'))
+    await user.click(await screen.findByRole('menuitem', { name: 'Delete' }))
     await user.click(screen.getByRole('button', { name: /^delete$/i }))
 
     await waitFor(() => {
@@ -48,6 +48,6 @@ describe('TableActions', () => {
     expect(document.body.style.pointerEvents).not.toBe('none')
 
     await user.click(screen.getByRole('button', { name: 'Open menu' }))
-    expect(screen.getByText('Actions')).toBeInTheDocument()
+    expect(await screen.findByText('Actions')).toBeInTheDocument()
   })
 })

@@ -2,7 +2,7 @@
 
 import { memo } from 'react'
 import type { TestSuitePickerRow, TestSuiteSelection } from '@/types/test-suite-picker'
-import type { CheckedState } from '@radix-ui/react-checkbox'
+import type { CheckedState } from '@/components/ui/checkbox'
 
 import { TestSuitePickerSuiteRowHeader } from './test-suite-picker-suite-row-header'
 import { TestSuitePickerTestCaseList } from './test-suite-picker-test-case-list'
@@ -44,7 +44,7 @@ function TestSuitePickerSuiteRowInner({
       />
 
       {isExpanded ? (
-        <div className="bg-muted/20 border-t px-4 py-3">
+        <div className="border-t bg-muted/20 px-4 py-3">
           <TestSuitePickerTestCaseList
             testSuite={testSuite}
             currentSelection={currentSelection}

@@ -10,8 +10,7 @@ import { Textarea } from '@/components/ui/textarea'
 import type { DraftSnapshot, EnvironmentOption } from './quality-journey-create-form-shared'
 import { useQualityJourneyCreateIntake } from './use-quality-journey-create-intake'
 
-const glassPanelClassName = 'rounded-xl border bg-card/40'
-const liquidGlassButtonClassName = 'rounded-full'
+const panelClassName = 'rounded-xl border border-border bg-card'
 
 function IntakeHeader({
   predecessorJourneyId,
@@ -37,12 +36,7 @@ function IntakeHeader({
             ? 'Couldn’t save—Retry.'
             : 'Your brief will be saved to this workspace after your first edit.'
   return (
-    <header className={`${glassPanelClassName} relative overflow-hidden rounded-xl px-5 py-6 sm:px-7`}>
-      <div className="pointer-events-none absolute inset-y-0 right-0 w-2/5 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.06),transparent_68%)]" />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.12] to-transparent"
-      />
+    <header className={`${panelClassName} relative overflow-hidden rounded-xl px-5 py-6 sm:px-6`}>
       <div className="relative">
         <h2 className="text-lg font-semibold tracking-tight">Start a Quality Journey</h2>
         <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
@@ -54,34 +48,16 @@ function IntakeHeader({
         </p>
         {saveConflict ? (
           <div className="mt-3 flex flex-wrap gap-2">
-            <Button
-              className={liquidGlassButtonClassName}
-              onClick={() => window.location.reload()}
-              size="sm"
-              type="button"
-              variant="outline"
-            >
+            <Button onClick={() => window.location.reload()} size="sm" type="button" variant="outline">
               Load saved version
             </Button>
-            <Button
-              className={liquidGlassButtonClassName}
-              onClick={onSaveAsNewDraft}
-              size="sm"
-              type="button"
-              variant="outline"
-            >
+            <Button onClick={onSaveAsNewDraft} size="sm" type="button" variant="outline">
               Save my edits as a new draft
             </Button>
           </div>
         ) : null}
         {saveStatus === 'failed' ? (
-          <Button
-            className={`${liquidGlassButtonClassName} mt-3`}
-            onClick={onRetry}
-            size="sm"
-            type="button"
-            variant="outline"
-          >
+          <Button className="mt-3" onClick={onRetry} size="sm" type="button" variant="outline">
             Retry save
           </Button>
         ) : null}
@@ -109,7 +85,7 @@ export function QualityJourneyCreateForm({
   })
   if (draft?.status === 'ARCHIVED')
     return (
-      <section className="bg-card/40 rounded-xl border p-6">
+      <section className="rounded-xl border border-border bg-card p-6">
         <h1 className="text-lg font-semibold">This draft is archived</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Restore it to continue editing. Archived drafts are never deleted automatically.
@@ -129,7 +105,7 @@ export function QualityJourneyCreateForm({
         saveStatus={saveStatus}
       />
       <form
-        className={`${glassPanelClassName} space-y-5 p-5 sm:p-7`}
+        className={`${panelClassName} space-y-5 p-5 sm:p-7`}
         onSubmit={event => {
           event.preventDefault()
           actions.submit()

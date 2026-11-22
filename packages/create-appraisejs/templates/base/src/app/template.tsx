@@ -18,7 +18,7 @@ export default function Template({ children }: Readonly<{ children: React.ReactN
   const pathname = usePathname()
   const shouldReduceMotion = useReducedMotion()
   const variant = getPageTransitionVariant(pathname)
-  const initial = variant === 'slide' ? { x: 28 } : { opacity: 0 }
+  const initial = variant === 'slide' ? { y: 12 } : { opacity: 0 }
   const duration = variant === 'slide' ? 0.4 : 0.32
 
   return (
@@ -28,7 +28,7 @@ export default function Template({ children }: Readonly<{ children: React.ReactN
         data-page-transition
         data-page-transition-variant={variant}
         initial={shouldReduceMotion ? false : initial}
-        animate={variant === 'slide' ? { x: 0 } : { opacity: 1 }}
+        animate={variant === 'slide' ? { y: 0 } : { opacity: 1 }}
         transition={shouldReduceMotion ? { duration: 0 } : { duration, ease: [0.22, 1, 0.36, 1] }}
         style={shouldReduceMotion ? undefined : { willChange: 'opacity, transform' }}
       >

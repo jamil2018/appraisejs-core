@@ -1,33 +1,30 @@
 'use client'
 
 import * as React from 'react'
-import * as RadioGroupPrimitive from '@radix-ui/react-radio-group'
-import { Circle } from 'lucide-react'
-
+import { RadioGroup as RadioGroupPrimitive } from '@base-ui/react/radio-group'
+import { Radio } from '@base-ui/react/radio'
 import { cn } from '@/lib/utils'
 
-function RadioGroup({ className, ...props }: React.ComponentProps<typeof RadioGroupPrimitive.Root>) {
-  return <RadioGroupPrimitive.Root className={cn('grid gap-2', className)} {...props} />
+type RadioGroupProps = Omit<RadioGroupPrimitive.Props<string>, 'className'> & { className?: string }
+function RadioGroup({ className, ...props }: RadioGroupProps) {
+  return <RadioGroupPrimitive className={cn('grid gap-2', className)} {...props} />
 }
 
-RadioGroup.displayName = RadioGroupPrimitive.Root.displayName
-
-function RadioGroupItem({ className, ...props }: React.ComponentProps<typeof RadioGroupPrimitive.Item>) {
+function RadioGroupItem({
+  className,
+  ...props
+}: Omit<React.ComponentProps<typeof Radio.Root>, 'className'> & { className?: string }) {
   return (
-    <RadioGroupPrimitive.Item
+    <Radio.Root
       className={cn(
-        'focus-visible:ring-primary/20 data-[state=checked]:border-primary/55 data-[state=checked]:bg-primary/10 aspect-square size-4 rounded-full border border-white/[0.16] bg-white/[0.025] text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] backdrop-blur-md focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50',
+        'app-focus flex size-4 shrink-0 items-center justify-center rounded-full border border-input bg-background text-primary disabled:cursor-not-allowed disabled:opacity-50 data-[checked]:border-primary',
         className,
       )}
       {...props}
     >
-      <RadioGroupPrimitive.Indicator className="flex items-center justify-center">
-        <Circle className="h-3.5 w-3.5 fill-primary" />
-      </RadioGroupPrimitive.Indicator>
-    </RadioGroupPrimitive.Item>
+      <Radio.Indicator className="size-2 rounded-full bg-current" />
+    </Radio.Root>
   )
 }
-
-RadioGroupItem.displayName = RadioGroupPrimitive.Item.displayName
 
 export { RadioGroup, RadioGroupItem }

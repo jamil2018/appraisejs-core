@@ -77,60 +77,60 @@ export function MultiSelect({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <div
-          id={id}
-          role="combobox"
-          aria-expanded={open}
-          aria-controls={listboxId}
-          aria-haspopup="listbox"
-          aria-label={label}
-          aria-invalid={invalid}
-          aria-describedby={describedBy}
-          aria-required={required}
-          tabIndex={0}
-          className={cn(
-            'bg-background/55 flex min-h-9 w-full flex-wrap items-center justify-between rounded-md border border-white/[0.12] px-3 py-1.5 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.025)] ring-offset-background transition-colors hover:border-white/[0.18] focus:outline-none focus:ring-1 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
-            className,
-          )}
-          onKeyDown={event => {
-            if (event.key === 'Enter' || event.key === ' ' || event.key === 'ArrowDown') {
-              event.preventDefault()
-              setOpen(true)
-            }
-          }}
-        >
-          <div className="flex flex-1 flex-wrap gap-1">
-            {selected.length === 0 && <span className="text-muted-foreground">{placeholder}</span>}
-            {selectedOptions.map(option => (
-              <Badge key={option.value} variant="secondary" className={cn('mb-1 mr-1 text-xs', badgeClassName)}>
-                {option.label}
-                <button
-                  type="button"
-                  className="ml-1 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                  onMouseDown={e => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                  }}
-                  onClick={e => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    handleUnselect(option.value)
-                  }}
-                >
-                  <X className="size-3" />
-                  <span className="sr-only">Remove {option.label}</span>
-                </button>
-              </Badge>
-            ))}
-          </div>
-          <ChevronDown className={cn('size-4 shrink-0 opacity-50 transition-transform', open && 'rotate-180')} />
-        </div>
-      </PopoverTrigger>
-      <PopoverContent
-        className="w-[var(--radix-popover-trigger-width)] border-white/[0.12] bg-[rgba(16,30,50,0.98)] p-0 shadow-xl backdrop-blur-xl"
-        align="start"
+      <PopoverTrigger
+        render={
+          <div
+            id={id}
+            role="combobox"
+            aria-expanded={open}
+            aria-controls={listboxId}
+            aria-haspopup="listbox"
+            aria-label={label}
+            aria-invalid={invalid}
+            aria-describedby={describedBy}
+            aria-required={required}
+            tabIndex={0}
+            className={cn(
+              'app-field app-focus aria-invalid:border-danger flex min-h-9 w-full flex-wrap items-center justify-between gap-2 rounded-lg border border-input bg-background px-3 py-1 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+              className,
+            )}
+            onKeyDown={event => {
+              if (event.key === 'Enter' || event.key === ' ' || event.key === 'ArrowDown') {
+                event.preventDefault()
+                setOpen(true)
+              }
+            }}
+          />
+        }
+        nativeButton={false}
       >
+        <div className="flex flex-1 flex-wrap gap-1">
+          {selected.length === 0 && <span className="text-muted-foreground">{placeholder}</span>}
+          {selectedOptions.map(option => (
+            <Badge key={option.value} variant="secondary" className={cn('gap-1 py-0 text-xs', badgeClassName)}>
+              {option.label}
+              <button
+                type="button"
+                className="ml-1 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                onMouseDown={e => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                }}
+                onClick={e => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  handleUnselect(option.value)
+                }}
+              >
+                <X className="size-3" />
+                <span className="sr-only">Remove {option.label}</span>
+              </button>
+            </Badge>
+          ))}
+        </div>
+        <ChevronDown className={cn('size-4 shrink-0 opacity-50 transition-transform', open && 'rotate-180')} />
+      </PopoverTrigger>
+      <PopoverContent className="w-[var(--anchor-width)] p-0" align="start">
         <Command label={accessibleSearchLabel}>
           <CommandInput placeholder={searchPlaceholder} aria-label={accessibleSearchLabel} />
           <CommandList id={listboxId} role="listbox" aria-multiselectable="true">

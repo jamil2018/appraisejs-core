@@ -30,6 +30,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuGroup,
   DropdownMenuTrigger,
 } from './dropdown-menu'
 
@@ -171,45 +172,51 @@ export function DataTable<TData, TValue>({
   }
 
   return (
-    <div className="mb-10 rounded-xl border border-white/[0.06] bg-[rgba(18,37,64,0.1)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl">
+    <div className="mb-10 rounded-xl border border-border bg-card p-4">
       <div className="flex justify-end">
         <div className="mb-4 flex flex-wrap justify-end gap-2">
           {createLink && (
-            <Button variant="default" size="icon" aria-label="Create item" asChild>
-              <Link href={createLink}>
-                <PlusCircle className="size-4" aria-hidden="true" />
-                <span className="sr-only">Create item</span>
-              </Link>
+            <Button
+              variant="default"
+              size="icon"
+              aria-label="Create item"
+              render={<Link href={createLink} />}
+              nativeButton={false}
+            >
+              <PlusCircle className="size-4" aria-hidden="true" />
+              <span className="sr-only">Create item</span>
             </Button>
           )}
           {multiOptionCreateButton && (
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="default" size="icon" aria-label={createMenuLabel}>
-                  <PlusCircle className="size-4" aria-hidden="true" />
-                  <span className="sr-only">{createMenuLabel}</span>
-                </Button>
+              <DropdownMenuTrigger render={<Button variant="default" size="icon" aria-label={createMenuLabel} />}>
+                <PlusCircle className="size-4" aria-hidden="true" />
+                <span className="sr-only">{createMenuLabel}</span>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuLabel>{createMenuLabel}</DropdownMenuLabel>
-                {createButtonOptions?.map(option => (
-                  <DropdownMenuItem key={option.label} asChild>
-                    <Link href={option.link}>
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel>{createMenuLabel}</DropdownMenuLabel>
+                  {createButtonOptions?.map(option => (
+                    <DropdownMenuItem key={option.label} render={<Link href={option.link} />} nativeButton={false}>
                       {option.icon}
                       {option.label}
-                    </Link>
-                  </DropdownMenuItem>
-                ))}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>
           )}
           {modifyLink &&
             (singleSelectedId ? (
-              <Button variant="outline" size="icon" aria-label="Edit selected item" asChild>
-                <Link href={`${modifyLink}/${singleSelectedId}`}>
-                  <Pencil className="size-4" aria-hidden="true" />
-                  <span className="sr-only">Edit selected item</span>
-                </Link>
+              <Button
+                variant="outline"
+                size="icon"
+                aria-label="Edit selected item"
+                render={<Link href={`${modifyLink}/${singleSelectedId}`} />}
+                nativeButton={false}
+              >
+                <Pencil className="size-4" aria-hidden="true" />
+                <span className="sr-only">Edit selected item</span>
               </Button>
             ) : (
               <Button variant="outline" size="icon" aria-label="Edit selected item" disabled>
@@ -219,11 +226,15 @@ export function DataTable<TData, TValue>({
             ))}
           {viewLink &&
             (singleSelectedId ? (
-              <Button variant="outline" size="icon" aria-label="View selected item" asChild>
-                <Link href={`${viewLink}/${singleSelectedId}`}>
-                  <Eye className="size-4" aria-hidden="true" />
-                  <span className="sr-only">View selected item</span>
-                </Link>
+              <Button
+                variant="outline"
+                size="icon"
+                aria-label="View selected item"
+                render={<Link href={`${viewLink}/${singleSelectedId}`} />}
+                nativeButton={false}
+              >
+                <Eye className="size-4" aria-hidden="true" />
+                <span className="sr-only">View selected item</span>
               </Button>
             ) : (
               <Button variant="outline" size="icon" aria-label="View selected item" disabled>
@@ -247,6 +258,7 @@ export function DataTable<TData, TValue>({
         <div className="flex min-w-0 items-center">
           <Search className="mr-2 size-4 shrink-0 text-muted-foreground" />
           <Input
+            aria-label={filterPlaceholder}
             placeholder={filterPlaceholder}
             value={(table.getColumn(filterColumn)?.getFilterValue() as string) ?? ''}
             onChange={event => table.getColumn(filterColumn)?.setFilterValue(event.target.value)}
@@ -255,14 +267,14 @@ export function DataTable<TData, TValue>({
         </div>
         <DataTableViewOptions table={table} />
       </div>
-      <div className="mb-4 overflow-hidden rounded-lg border border-white/[0.07] bg-black/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
+      <div className="mb-4 overflow-hidden rounded-lg border border-border bg-background shadow-none">
         <Table>
-          <TableHeader className="bg-white/[0.025] backdrop-blur-sm">
+          <TableHeader className="bg-secondary">
             {table.getHeaderGroups().map(headerGroup => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map(header => {
                   return (
-                    <TableHead key={header.id} className="font-bold dark:text-white">
+                    <TableHead key={header.id} className="font-medium text-foreground">
                       {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                     </TableHead>
                   )

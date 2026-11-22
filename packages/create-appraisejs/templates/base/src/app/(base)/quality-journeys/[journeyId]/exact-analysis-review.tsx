@@ -19,7 +19,7 @@ function RecordedDecision({ decision }: { decision: AnalysisRevisionView['decisi
   if (!decision) return null
 
   return (
-    <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm">
+    <div className="rounded-lg border border-success-border bg-success-surface p-3 text-sm">
       <p className="font-medium">{decision.decision.toLocaleLowerCase()} decision recorded</p>
     </div>
   )
@@ -45,9 +45,9 @@ function ReviewActions({
           {isPending ? 'Recording…' : 'Approve criteria'}
         </Button>
       </div>
-      {approvalBlockedReason ? <p className="text-sm text-amber-200">{approvalBlockedReason}</p> : null}
+      {approvalBlockedReason ? <p className="text-sm text-warning">{approvalBlockedReason}</p> : null}
       {hasUnresolvedQuestions ? (
-        <p className="text-sm text-amber-200">
+        <p className="text-sm text-warning">
           Answer {unresolvedQuestionIds.length} required question{unresolvedQuestionIds.length === 1 ? '' : 's'} before
           approval.
         </p>

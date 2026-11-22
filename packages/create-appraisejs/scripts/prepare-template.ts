@@ -456,7 +456,6 @@ function createBaseTemplate(): void {
     'tailwind.config.ts',
     'tsconfig.json',
     'postcss.config.mjs',
-    'components.json',
     'next.config.ts',
     'next-env.d.ts',
     'playwright.config.ts',

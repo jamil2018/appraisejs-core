@@ -21,7 +21,7 @@ export function DynamicParameterFieldShell({
   children,
 }: DynamicParameterFieldShellProps) {
   return (
-    <div className="grid w-full items-center gap-1.5 rounded-md bg-zinc-500/10 p-4">
+    <div className="grid w-full items-center gap-1.5 rounded-lg bg-secondary p-4">
       <DynamicParameterFieldLabel name={name} defaultValueInput={defaultValueInput} htmlFor={htmlFor} />
       {children}
       <ErrorMessage message={errorMessage || ''} visible={!!errorMessage} />

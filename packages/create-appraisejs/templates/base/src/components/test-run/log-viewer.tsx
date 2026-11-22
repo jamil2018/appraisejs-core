@@ -31,7 +31,7 @@ export function LogViewer({ testRunId, targetProjectId, status, className }: Log
       return
     }
 
-    const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]')
+    const scrollContainer = scrollAreaRef.current.querySelector('[data-slot="scroll-area-viewport"]')
     if (scrollContainer) {
       scrollContainer.scrollTop = scrollContainer.scrollHeight
     }
@@ -42,7 +42,7 @@ export function LogViewer({ testRunId, targetProjectId, status, className }: Log
       return
     }
 
-    const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]')
+    const scrollContainer = scrollAreaRef.current.querySelector('[data-slot="scroll-area-viewport"]')
     if (!scrollContainer) {
       return
     }
@@ -55,13 +55,13 @@ export function LogViewer({ testRunId, targetProjectId, status, className }: Log
     connectionStatus === 'connecting' || connectionStatus === 'loading' ? (
       <LoaderCircle className="size-4 animate-spin" />
     ) : connectionStatus === 'connected' ? (
-      <Wifi className="size-4 text-green-500" />
+      <Wifi className="size-4 text-success" />
     ) : connectionStatus === 'disconnected' ? (
-      <WifiOff className="size-4 text-zinc-500" />
+      <WifiOff className="size-4 text-muted-foreground" />
     ) : connectionStatus === 'error' ? (
-      <XCircle className="size-4 text-red-500" />
+      <XCircle className="size-4 text-danger" />
     ) : (
-      <CheckCircle className="size-4 text-blue-500" />
+      <CheckCircle className="size-4 text-info" />
     )
 
   return (
@@ -99,7 +99,7 @@ export function LogViewer({ testRunId, targetProjectId, status, className }: Log
 
           <ScrollArea
             ref={scrollAreaRef}
-            className="bg-muted/50 h-[600px] w-full rounded-md border p-4 font-mono text-sm"
+            className="h-[600px] w-full rounded-md border bg-muted/50 p-4 font-mono text-sm"
             onScroll={handleScroll}
           >
             {logs.length === 0 && (connectionStatus === 'connecting' || connectionStatus === 'loading') ? (
@@ -116,9 +116,9 @@ export function LogViewer({ testRunId, targetProjectId, status, className }: Log
                 key={`${log.timestamp.toISOString()}-${log.type}-${log.message}-${index}`}
                 className={cn(
                   'mb-1 flex items-start gap-2 whitespace-pre-wrap break-words',
-                  log.type === 'stderr' && 'text-red-400',
+                  log.type === 'stderr' && 'text-danger',
                   log.type === 'stdout' && 'text-foreground',
-                  log.type === 'status' && 'font-semibold text-blue-400',
+                  log.type === 'status' && 'font-semibold text-info',
                 )}
               >
                 <span className="shrink-0 text-xs text-muted-foreground">{log.timestamp.toLocaleTimeString()}</span>

@@ -81,20 +81,22 @@ export function FlowDiagramToolbar({
         />
       ) : null}
       {enableNodeGrouping ? (
-        <TooltipProvider delayDuration={0}>
+        <TooltipProvider delay={0}>
           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant={isGroupingSelectionMode ? 'default' : 'outline'}
-                size="icon"
-                className="bg-background/80 size-8"
-                onClick={onToggleGroupingSelectionMode}
-                aria-label={isGroupingSelectionMode ? 'Exit block selection mode' : 'Select nodes for block'}
-              >
-                {isGroupingSelectionMode ? <Boxes /> : <MousePointer2 />}
-              </Button>
-            </TooltipTrigger>
+            <TooltipTrigger
+              render={
+                <Button
+                  type="button"
+                  variant={isGroupingSelectionMode ? 'default' : 'outline'}
+                  size="icon"
+                  className="size-8 bg-background/80"
+                  onClick={onToggleGroupingSelectionMode}
+                  aria-label={isGroupingSelectionMode ? 'Exit block selection mode' : 'Select nodes for block'}
+                >
+                  {isGroupingSelectionMode ? <Boxes /> : <MousePointer2 />}
+                </Button>
+              }
+            />
             <TooltipContent side="bottom">
               <TooltipWithShortcut
                 label={isGroupingSelectionMode ? 'Selection mode' : 'Create block'}
@@ -104,20 +106,22 @@ export function FlowDiagramToolbar({
           </Tooltip>
         </TooltipProvider>
       ) : null}
-      <TooltipProvider delayDuration={0}>
+      <TooltipProvider delay={0}>
         <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              className="bg-background/80 size-8"
-              onClick={onOpenAddNodeDialog}
-              aria-label="Add Node"
-            >
-              <Plus />
-            </Button>
-          </TooltipTrigger>
+          <TooltipTrigger
+            render={
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="size-8 bg-background/80"
+                onClick={onOpenAddNodeDialog}
+                aria-label="Add Node"
+              >
+                <Plus />
+              </Button>
+            }
+          />
           <TooltipContent side="bottom">
             <TooltipWithShortcut label="Add Node" shortcutKey="C" />
           </TooltipContent>

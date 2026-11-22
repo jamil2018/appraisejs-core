@@ -6,7 +6,7 @@ const ErrorMessage = ({ id, message, visible }: { id?: string; message: string; 
       id={id}
       aria-live="polite"
       role={visible ? 'alert' : undefined}
-      className={`text-sm text-pink-400 ${visible ? 'visible' : 'invisible'}`}
+      className={`text-sm text-danger ${visible ? 'visible' : 'invisible'}`}
     >
       {message}
     </div>

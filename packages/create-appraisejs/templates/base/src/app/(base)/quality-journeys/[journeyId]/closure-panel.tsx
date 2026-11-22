@@ -163,7 +163,7 @@ function ClosureDecisionForm({
 }
 function Blockers({ messages }: { messages: string[] }) {
   return messages.length ? (
-    <ul className="space-y-1 text-amber-200">
+    <ul className="space-y-1 text-warning">
       {messages.map(message => (
         <li key={message}>{message}</li>
       ))}

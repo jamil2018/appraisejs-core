@@ -4,20 +4,12 @@ import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { ColumnDef } from '@tanstack/react-table'
 import { Checkbox } from '@/components/ui/checkbox'
 import TableActions from '@/components/table/table-actions'
-import {
-  BrowserEngine,
-  Environment,
-  Tag,
-  TagType,
-  TestRun,
-  TestRunResult,
-  TestRunStatus,
-  TestRunTestCase,
-} from '@prisma/client'
+import { BrowserEngine, Environment, Tag, TagType, TestRun, TestRunStatus, TestRunTestCase } from '@prisma/client'
 import { cancelTestRunAction, deleteTestRunAction } from '@/actions/test-run/test-run-actions'
 import { formatDateTime } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
-import { AlertTriangle, CheckCircle, Compass, Flame, ListEnd, LoaderCircle, XCircle } from 'lucide-react'
+import { Compass, Flame } from 'lucide-react'
+import { TestRunResultBadge, TestRunStatusBadge } from '@/components/test-run/test-run-report-badges'
 import { getEvidenceHealthMeta } from '@/components/test-run/test-run-details-helpers'
 
 const BrowserEngineIcon = {
@@ -80,70 +72,12 @@ export const testRunTableCols: ColumnDef<
   {
     accessorKey: 'status',
     header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
-    cell: ({ row }) => {
-      const status = row.original.status
-      const statusColorMap = {
-        [TestRunStatus.QUEUED]: 'bg-zinc-500 text-white',
-        [TestRunStatus.RUNNING]: 'bg-blue-500 text-white',
-        [TestRunStatus.CANCELLING]: 'bg-orange-500 text-white',
-        [TestRunStatus.COMPLETED]: 'bg-primary',
-        [TestRunStatus.CANCELLED]: 'bg-pink-500 text-white',
-      }
-      const statusIconMap = {
-        [TestRunStatus.QUEUED]: <ListEnd className="size-4" />,
-        [TestRunStatus.RUNNING]: <LoaderCircle className="size-4 animate-spin" />,
-        [TestRunStatus.CANCELLING]: <LoaderCircle className="size-4 animate-spin" />,
-        [TestRunStatus.COMPLETED]: <CheckCircle className="size-4" />,
-        [TestRunStatus.CANCELLED]: <XCircle className="size-4" />,
-      }
-      const statusTextMap = {
-        [TestRunStatus.QUEUED]: 'Queued',
-        [TestRunStatus.RUNNING]: 'Running',
-        [TestRunStatus.CANCELLING]: 'Cancelling',
-        [TestRunStatus.COMPLETED]: 'Completed',
-        [TestRunStatus.CANCELLED]: 'Cancelled',
-      }
-      return (
-        <Badge className={`${statusColorMap[status]} w-full text-center`}>
-          <span className="mr-1">{statusIconMap[status]}</span>
-          <span>{statusTextMap[status]}</span>
-        </Badge>
-      )
-    },
+    cell: ({ row }) => <TestRunStatusBadge status={row.original.status} />,
   },
   {
     accessorKey: 'result',
     header: ({ column }) => <DataTableColumnHeader column={column} title="Result" />,
-    cell: ({ row }) => {
-      const result = row.original.result
-      const resultColorMap = {
-        [TestRunResult.PASSED]: 'bg-primary',
-        [TestRunResult.FAILED]: 'bg-pink-500 text-white',
-        [TestRunResult.BLOCKED]: 'bg-amber-600 text-white',
-        [TestRunResult.CANCELLED]: 'bg-zinc-500 text-white',
-        [TestRunResult.PENDING]: 'bg-yellow-500 text-white',
-      }
-      const resultIconMap = {
-        [TestRunResult.PASSED]: <CheckCircle className="size-4" />,
-        [TestRunResult.FAILED]: <XCircle className="size-4" />,
-        [TestRunResult.BLOCKED]: <AlertTriangle className="size-4" />,
-        [TestRunResult.CANCELLED]: <XCircle className="size-4" />,
-        [TestRunResult.PENDING]: <LoaderCircle className="size-4 animate-spin" />,
-      }
-      const resultTextMap = {
-        [TestRunResult.PASSED]: 'Passed',
-        [TestRunResult.FAILED]: 'Failed',
-        [TestRunResult.BLOCKED]: 'Blocked',
-        [TestRunResult.CANCELLED]: 'Cancelled',
-        [TestRunResult.PENDING]: 'Pending',
-      }
-      return (
-        <Badge className={`${resultColorMap[result]} w-full text-center`}>
-          <span className="mr-1">{resultIconMap[result]}</span>
-          <span>{resultTextMap[result]}</span>
-        </Badge>
-      )
-    },
+    cell: ({ row }) => <TestRunResultBadge result={row.original.result} />,
   },
   {
     accessorKey: 'evidenceHealth',
@@ -176,13 +110,8 @@ export const testRunTableCols: ColumnDef<
     header: ({ column }) => <DataTableColumnHeader column={column} title="Browser Engine" />,
     cell: ({ row }) => {
       const browserEngine = row.original.browserEngine
-      const browserEngineColorMap = {
-        [BrowserEngine.CHROMIUM]: 'bg-blue-500 text-white',
-        [BrowserEngine.FIREFOX]: 'bg-red-500 text-white',
-        [BrowserEngine.WEBKIT]: 'bg-sky-500 text-white',
-      }
       return (
-        <Badge className={`${browserEngineColorMap[browserEngine]} w-fit`}>
+        <Badge variant="outline" className="w-fit gap-1">
           <span className="mr-2">{BrowserEngineIcon[browserEngine]}</span>
           <span>{browserEngine.charAt(0).toUpperCase() + browserEngine.slice(1).toLowerCase()}</span>
         </Badge>

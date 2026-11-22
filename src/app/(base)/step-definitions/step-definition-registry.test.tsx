@@ -79,9 +79,9 @@ describe('StepDefinitionRegistry', () => {
 
     const categoryFilter = screen.getByRole('combobox', { name: 'Filter by category' })
     await user.click(categoryFilter)
-    expect(categoryFilter).toHaveAttribute('data-state', 'open')
-    expect(categoryFilter.querySelector('svg')).toHaveClass('group-data-[state=open]:rotate-180')
-    await user.click(screen.getByRole('option', { name: 'navigation' }))
+    expect(categoryFilter).toHaveAttribute('data-popup-open')
+    expect(categoryFilter.querySelector('svg')).toHaveClass('group-data-[popup-open]:rotate-180')
+    await user.click(await screen.findByRole('option', { name: 'navigation' }))
     await user.type(screen.getByRole('searchbox', { name: 'Search Step Definitions' }), 'open')
     expect(screen.getByRole('status')).toHaveTextContent('Showing 1 of 2')
     expect(screen.getByText('Open a page')).toBeInTheDocument()
@@ -89,7 +89,7 @@ describe('StepDefinitionRegistry', () => {
 
     await user.click(screen.getByRole('button', { name: 'Compact' }))
     expect(screen.getByRole('button', { name: 'Compact' })).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByRole('button', { name: 'Compact' })).toHaveClass('bg-white/[0.075]')
+    expect(screen.getByRole('button', { name: 'Compact' })).toHaveClass('bg-accent')
     expect(screen.getByRole('button', { name: 'Cards' })).toHaveClass('border-transparent')
     expect(screen.getByRole('combobox', { name: 'Filter by category' })).toHaveTextContent('navigation')
     expect(screen.getByRole('searchbox', { name: 'Search Step Definitions' })).toHaveValue('open')

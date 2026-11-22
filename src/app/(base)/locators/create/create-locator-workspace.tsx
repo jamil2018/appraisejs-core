@@ -24,7 +24,7 @@ import { useLocatorWorkspace } from './use-locator-workspace'
 
 function PickedLocatorObservation({ pickedLocator }: { pickedLocator: PickedLocatorPayload }) {
   return (
-    <div className="bg-muted/30 rounded-lg border p-4">
+    <div className="rounded-lg border bg-muted/30 p-4">
       <div className="mb-2 flex items-center gap-2 text-sm font-medium">
         <ExternalLink className="size-4" />
         Picked from page
@@ -128,7 +128,11 @@ export default function CreateLocatorWorkspace({
             {state.sourceType === 'environment' ? (
               <div className="space-y-2">
                 <Label htmlFor="picker-environment">Environment</Label>
-                <Select value={state.environmentId} onValueChange={setEnvironmentId}>
+                <Select
+                  items={environments.map(item => ({ value: item.id, label: item.name }))}
+                  value={state.environmentId || null}
+                  onValueChange={setEnvironmentId}
+                >
                   <SelectTrigger id="picker-environment">
                     <SelectValue placeholder="Select an environment" />
                   </SelectTrigger>
@@ -274,7 +278,11 @@ export default function CreateLocatorWorkspace({
             {state.resolutionMode === 'existing' ? (
               <div className="space-y-2">
                 <Label htmlFor="existing-locator-group">Locator Group</Label>
-                <Select value={state.existingLocatorGroupId} onValueChange={setExistingLocatorGroupId}>
+                <Select
+                  items={locatorGroups.map(item => ({ value: item.id, label: item.name }))}
+                  value={state.existingLocatorGroupId || null}
+                  onValueChange={setExistingLocatorGroupId}
+                >
                   <SelectTrigger id="existing-locator-group">
                     <SelectValue placeholder="Select a locator group" />
                   </SelectTrigger>
@@ -311,7 +319,11 @@ export default function CreateLocatorWorkspace({
 
                 <div className="space-y-2">
                   <Label htmlFor="new-group-module">Module</Label>
-                  <Select value={state.moduleId} onValueChange={setModuleId}>
+                  <Select
+                    items={modules.map(item => ({ value: item.id, label: item.name }))}
+                    value={state.moduleId || null}
+                    onValueChange={setModuleId}
+                  >
                     <SelectTrigger id="new-group-module">
                       <SelectValue placeholder="Select a module" />
                     </SelectTrigger>

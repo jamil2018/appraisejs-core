@@ -25,12 +25,10 @@ const EmptyState = ({
         <EmptyDescription>{description}</EmptyDescription>
       </EmptyHeader>
       <EmptyContent>
-        <Button asChild>
-          <Link href={createRoute}>
-            <SquarePen className="size-4" />
-            <span className="sr-only">{createText}</span>
-            {createText}
-          </Link>
+        <Button render={<Link href={createRoute} />} nativeButton={false}>
+          <SquarePen className="size-4" />
+          <span className="sr-only">{createText}</span>
+          {createText}
         </Button>
       </EmptyContent>
     </Empty>

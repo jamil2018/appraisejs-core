@@ -59,10 +59,8 @@ export default function HelpPage() {
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-muted-foreground">
             <p>The guided path from requirement intake through analysis, approvals, execution evidence, and closure.</p>
-            <Button asChild size="sm">
-              <Link href="/quality-journeys/new">
-                Start a Journey <ArrowRight aria-hidden="true" className="ml-2 size-4" />
-              </Link>
+            <Button size="sm" render={<Link href="/quality-journeys/new" />} nativeButton={false}>
+              Start a Journey <ArrowRight aria-hidden="true" className="ml-2 size-4" />
             </Button>
           </CardContent>
         </Card>
@@ -76,8 +74,8 @@ export default function HelpPage() {
               Expert tools for reusable steps, Case Templates, test cases, suites, and independent runs. They do not
               bypass Journey approvals.
             </p>
-            <Button asChild size="sm" variant="outline">
-              <Link href="/test-cases">Open test design</Link>
+            <Button size="sm" variant="outline" render={<Link href="/test-cases" />} nativeButton={false}>
+              Open test design
             </Button>
           </CardContent>
         </Card>
@@ -91,8 +89,13 @@ export default function HelpPage() {
               A diagnostic receipt is the last observation, not proof of a live connection. Failed or expired handoffs
               must be retried from their Journey.
             </p>
-            <Button asChild size="sm" variant="outline">
-              <Link href="/projects?agentSetup=codex">Open Codex setup</Link>
+            <Button
+              size="sm"
+              variant="outline"
+              render={<Link href="/projects?agentSetup=codex" />}
+              nativeButton={false}
+            >
+              Open Codex setup
             </Button>
           </CardContent>
         </Card>

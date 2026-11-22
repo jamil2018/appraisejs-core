@@ -86,7 +86,7 @@ export function JourneyProgressNotice({
   return (
     <section
       aria-label="Observed journey progress"
-      className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-md border p-3"
+      className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-lg border p-3"
     >
       <p aria-live="polite" className="min-w-0 flex-1 text-sm text-muted-foreground" role="status">
         {observedStatusMessage({

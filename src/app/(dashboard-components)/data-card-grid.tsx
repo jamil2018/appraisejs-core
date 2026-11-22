@@ -2,10 +2,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 export const DataCardGrid = ({ children }: { children: React.ReactNode }) => {
   return (
-    <Card className="relative overflow-hidden border-white/[0.06] bg-[rgba(18,37,64,0.1)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl">
+    <Card>
       <CardHeader className="relative px-4 pb-3 pt-4">
-        <CardTitle className="text-base font-semibold text-white">States</CardTitle>
-        <CardDescription className="text-xs leading-5 text-zinc-400">
+        <CardTitle className="text-base font-semibold text-foreground">States</CardTitle>
+        <CardDescription className="text-xs leading-5 text-muted-foreground">
           Overview of active workspace entities
         </CardDescription>
       </CardHeader>

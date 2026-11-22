@@ -432,7 +432,7 @@ describe('typed Step Invocation input authoring', () => {
     expect(screen.getByTestId('react-flow')).toHaveAttribute('data-edge-count', '3')
   })
 
-  it('keeps graph search shortcuts out of editable fields and exposes renameable flow-block overlays', () => {
+  it('keeps graph search shortcuts out of editable fields and exposes renameable flow-block overlays', async () => {
     const onFlowBlocksChange = vi.fn()
     const node = createAuthoredFlowNode(definition, 'node-1')
     const secondNode = { ...createAuthoredFlowNode(definition, 'node-2'), order: 2 }
@@ -452,8 +452,8 @@ describe('typed Step Invocation input authoring', () => {
     )
 
     fireEvent.keyDown(window, { key: 's', ctrlKey: true, shiftKey: true })
-    expect(screen.getByLabelText('Search flow nodes')).toBeVisible()
-    expect(screen.getByLabelText('Search flow nodes')).toHaveFocus()
+    await waitFor(() => expect(screen.getByLabelText('Search flow nodes')).toBeVisible())
+    await waitFor(() => expect(screen.getByLabelText('Search flow nodes')).toHaveFocus())
     fireEvent.keyDown(screen.getByLabelText('Search flow nodes'), { key: 'c', ctrlKey: true, shiftKey: true })
     expect(screen.queryByRole('dialog', { name: 'Configure step parameters' })).not.toBeInTheDocument()
 

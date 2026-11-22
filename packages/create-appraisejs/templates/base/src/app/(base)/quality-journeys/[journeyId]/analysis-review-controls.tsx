@@ -62,7 +62,7 @@ function reviewAvailability({
 function FreshnessNotice({ newerVersionAvailable }: { newerVersionAvailable: boolean }) {
   if (!newerVersionAvailable) return null
   return (
-    <p className="text-sm text-amber-200" role="status">
+    <p className="text-sm text-warning" role="status">
       A newer version is available. Load it before recording answers or a review decision.
     </p>
   )

@@ -101,13 +101,13 @@ export const TestSuiteForm = ({
   const moduleOptions = getModuleOptions(moduleList)
   const tagOptions = getTagOptions(tags)
   const renderError = (error: unknown) => (
-    <p key={getFieldErrorMessage(error)} className="text-xs text-pink-500">
+    <p key={getFieldErrorMessage(error)} className="text-xs text-danger">
       {getFieldErrorMessage(error)}
     </p>
   )
   return (
     <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_18rem]">
-      <Card className="min-w-0 border-white/[0.1] bg-[rgba(18,37,64,0.32)]">
+      <Card className="min-w-0 border-border bg-card">
         <CardHeader>
           <CardTitle className="text-xl font-bold text-primary">Test Suite Details</CardTitle>
           <CardDescription>Enter the details for your test suite</CardDescription>
@@ -187,7 +187,11 @@ export const TestSuiteForm = ({
                     <Label htmlFor={field.name} className="font-bold">
                       Module
                     </Label>
-                    <Select value={field.state.value} onValueChange={value => field.handleChange(value)}>
+                    <Select
+                      items={moduleOptions}
+                      value={field.state.value || null}
+                      onValueChange={value => field.handleChange(value)}
+                    >
                       <SelectTrigger id={field.name} className="w-full bg-background">
                         <SelectValue placeholder="Select a module" />
                       </SelectTrigger>
@@ -229,7 +233,7 @@ export const TestSuiteForm = ({
             </form.Field>
             <form.Subscribe selector={formState => [formState.canSubmit, formState.isSubmitting]}>
               {([canSubmit, isSubmitting]) => (
-                <Button type="submit" disabled={!canSubmit} className="hover:bg-emerald-500">
+                <Button type="submit" disabled={!canSubmit} className="hover:bg-primary/90">
                   <Save className="size-4" />
                   <span className="font-bold">{isSubmitting ? '...' : 'Save'}</span>
                 </Button>
@@ -239,7 +243,7 @@ export const TestSuiteForm = ({
         </CardContent>
       </Card>
       <aside className="xl:sticky xl:top-5">
-        <Card className="border-white/[0.1] bg-[rgba(18,37,64,0.24)]">
+        <Card className="border-border bg-card">
           <CardHeader className="mb-2">
             <CardTitle className="flex items-center gap-2 text-xl text-primary">
               <Info className="size-5" />
@@ -249,7 +253,7 @@ export const TestSuiteForm = ({
           <CardContent className="flex flex-col gap-6">
             {testSuiteQuickTips.map((tip, index) => (
               <div key={tip.title} className="flex items-start gap-4">
-                <span className="flex size-6 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
+                <span className="flex size-6 items-center justify-center rounded-full bg-success/10 text-success">
                   {index + 1}
                 </span>
                 <div className="flex flex-col gap-1">

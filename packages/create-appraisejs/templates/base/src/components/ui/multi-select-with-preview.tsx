@@ -54,19 +54,21 @@ function MultiSelectWithPreviewImpl({
   return (
     <TooltipProvider>
       <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            id={id}
-            variant="outline"
-            role="combobox"
-            aria-expanded={open}
-            aria-controls={listId}
-            aria-label={placeholder}
-            className={cn('w-full justify-between text-muted-foreground', className)}
-          >
-            {selectedValues.length > 0 ? `${selectedValues.length} ${selectedLabel.toLowerCase()}` : placeholder}
-            <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
-          </Button>
+        <PopoverTrigger
+          render={
+            <Button
+              id={id}
+              variant="outline"
+              role="combobox"
+              aria-expanded={open}
+              aria-controls={listId}
+              aria-label={placeholder}
+              className={cn('w-full justify-between text-muted-foreground', className)}
+            />
+          }
+        >
+          {selectedValues.length > 0 ? `${selectedValues.length} ${selectedLabel.toLowerCase()}` : placeholder}
+          <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
         </PopoverTrigger>
         <PopoverContent className={cn('w-full max-w-[600px] p-0', className)} align="start">
           <Command label={searchPlaceholder ?? 'Search options'} className={cn('w-full', className)}>

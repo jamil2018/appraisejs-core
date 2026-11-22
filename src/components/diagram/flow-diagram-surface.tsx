@@ -55,12 +55,12 @@ function FlowStepNode({ id, data }: NodeProps<Node<DiagramNodeData>>) {
           aria-label={`Connect before ${data.label}`}
         />
       ) : null}
-      <Card className="border-border/80 bg-card/95 ring-primary/10 relative w-[28rem] overflow-hidden p-0 shadow-xl ring-1 backdrop-blur-sm">
+      <Card className="relative w-[28rem] overflow-hidden border-border/80 bg-card/95 p-0 shadow-xl ring-1 ring-primary/10">
         <CardHeader className="flex-row items-start justify-between gap-4 p-4">
           <div className="min-w-0">
             <CardTitle>{data.label}</CardTitle>
             {data.blockName ? (
-              <Badge variant="outline" className="border-primary/30 bg-primary/5 mt-2 text-primary">
+              <Badge variant="outline" className="mt-2 border-primary/30 bg-primary/5 text-primary">
                 Block: {data.blockName}
               </Badge>
             ) : null}
@@ -90,7 +90,7 @@ function FlowStepNode({ id, data }: NodeProps<Node<DiagramNodeData>>) {
         <Separator />
         <CardContent className="flex flex-col gap-3 p-4">
           {data.gherkinStep ? (
-            <p className="bg-muted/35 rounded-md px-3 py-2 text-sm leading-relaxed text-muted-foreground">
+            <p className="rounded-lg bg-muted/35 px-3 py-2 text-sm leading-relaxed text-muted-foreground">
               {data.gherkinStep}
             </p>
           ) : null}
@@ -101,7 +101,7 @@ function FlowStepNode({ id, data }: NodeProps<Node<DiagramNodeData>>) {
                 {data.parameters.map(parameter => (
                   <div
                     key={parameter.name}
-                    className="border-border/70 bg-background/35 min-w-0 rounded-md border px-3 py-2"
+                    className="min-w-0 rounded-lg border border-border/70 bg-background/35 px-3 py-2"
                   >
                     <dt className="truncate text-xs text-muted-foreground">{parameter.name}</dt>
                     <dd className="mt-1 truncate font-mono text-xs font-medium text-foreground" title={parameter.value}>
@@ -134,7 +134,7 @@ function FlowStepNode({ id, data }: NodeProps<Node<DiagramNodeData>>) {
               type="button"
               size="icon"
               variant="outline"
-              className="border-primary/60 relative z-10 size-7 rounded-full bg-background shadow-md hover:bg-primary hover:text-primary-foreground"
+              className="relative z-10 size-7 rounded-full border-primary/60 bg-background shadow-md hover:bg-primary hover:text-primary-foreground"
               aria-label={`Add connected step after ${data.label}`}
               data-invocation-insert={id}
               onClick={() => data.onInsert(id)}
@@ -213,14 +213,14 @@ export function FlowNodeSearch({
   }
 
   return (
-    <div className="rounded-md border p-2" data-node-search-root="true">
+    <div className="rounded-lg border p-2" data-node-search-root="true">
       <label className="sr-only" htmlFor="flow-node-search">
         Search flow nodes
       </label>
       <input
         id="flow-node-search"
         ref={inputRef}
-        className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+        className="h-9 w-full rounded-lg border bg-background px-2 text-sm"
         placeholder="Search graph nodes"
         value={query}
         onChange={event => onQueryChange(event.target.value)}
@@ -271,7 +271,7 @@ function FlowBlocksPanel({
           key={block.id}
           role="group"
           aria-label={`${block.name} flow block`}
-          className="bg-background/90 rounded-md border border-emerald-400/30 p-2 shadow-sm backdrop-blur"
+          className="rounded-lg border border-success/30 bg-background/90 p-2 shadow-sm"
         >
           <label className="sr-only" htmlFor={`flow-block-${block.id}`}>
             Rename {block.name} block
@@ -352,11 +352,11 @@ function EmptyFlowCanvas({ canAddFirst, onAddFirst }: Pick<FlowGraphCanvasProps,
         type="button"
         data-invocation-insert="first"
         aria-label="Add first step"
-        className="hover:border-primary/35 group flex min-h-32 w-72 flex-col items-center justify-center rounded-xl border border-white/[0.09] bg-[linear-gradient(145deg,rgba(255,255,255,0.045),rgba(255,255,255,0.012))] p-5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_18px_48px_-36px_rgba(0,0,0,0.9)] backdrop-blur-xl transition-[border-color,background-color,transform,box-shadow] hover:-translate-y-0.5 hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+        className="group flex min-h-32 w-72 flex-col items-center justify-center rounded-xl border border-border bg-card p-5 text-center shadow-none transition-[border-color,background-color,transform,box-shadow] hover:-translate-y-0.5 hover:border-primary/35 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
         disabled={!canAddFirst}
         onClick={onAddFirst}
       >
-        <span className="border-primary/25 bg-primary/[0.07] flex size-10 items-center justify-center rounded-full border text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]">
+        <span className="flex size-10 items-center justify-center rounded-full border border-primary/25 bg-primary/[0.07] text-primary shadow-none">
           <Plus aria-hidden />
         </span>
         <span className="mt-3 text-sm font-medium text-foreground">Add first step</span>
@@ -427,7 +427,7 @@ function PopulatedFlowCanvas({
 
 export function FlowGraphCanvas(props: FlowGraphCanvasProps) {
   return (
-    <div className="relative min-h-80 flex-1 overflow-hidden rounded-xl border border-white/[0.09] bg-[radial-gradient(circle_at_18%_8%,rgba(38,83,121,0.1),transparent_24rem),linear-gradient(145deg,rgba(255,255,255,0.024),rgba(8,13,22,0.24))] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),inset_0_-24px_48px_rgba(0,0,0,0.1)] backdrop-blur-xl">
+    <div className="relative min-h-80 flex-1 overflow-hidden rounded-xl border border-border bg-card shadow-none">
       {props.nodes.length > 0 ? (
         <PopulatedFlowCanvas {...props} />
       ) : (
@@ -457,11 +457,13 @@ export function FlowBlockControls({
   if (!enabled) return null
   return (
     <Popover>
-      <PopoverTrigger asChild>
-        <Button type="button" size="icon" variant="outline" aria-label="Create flow block" disabled={disabled}>
-          <Boxes aria-hidden />
-        </Button>
-      </PopoverTrigger>
+      <PopoverTrigger
+        render={
+          <Button type="button" size="icon" variant="outline" aria-label="Create flow block" disabled={disabled}>
+            <Boxes aria-hidden />
+          </Button>
+        }
+      />
       <PopoverContent align="end" className="flex w-72 flex-col gap-3">
         <div className="flex flex-col gap-1">
           <p className="text-sm font-medium">Create flow block</p>
@@ -469,7 +471,7 @@ export function FlowBlockControls({
         </div>
         <input
           aria-label="Flow block name"
-          className="h-9 rounded-md border bg-background px-2 text-sm"
+          className="h-9 rounded-lg border bg-background px-2 text-sm"
           value={blockName}
           onChange={event => onNameChange(event.target.value)}
           placeholder="Block name"

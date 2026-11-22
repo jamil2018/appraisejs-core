@@ -35,17 +35,10 @@ function SidebarNavItem({
     <Link
       href={projectScopedHref(item.href, projectId)}
       data-active={active}
-      className="hover:text-foreground/90 focus-visible:ring-sidebar-ring group relative flex min-h-8 items-center gap-2 rounded-md px-2.5 py-1.5 text-[13px] leading-5 text-zinc-400 outline-none transition-colors hover:bg-white/[0.045] focus-visible:ring-1 data-[active=true]:bg-white/[0.085] data-[active=true]:font-medium data-[active=true]:text-foreground data-[active=true]:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_0_0_1px_rgba(255,255,255,0.07)]"
+      className="app-focus group flex min-h-8 items-center gap-2 rounded-lg px-2 py-1 text-sm leading-5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground data-[active=true]:bg-accent data-[active=true]:font-medium data-[active=true]:text-foreground"
       aria-current={ariaCurrent(active)}
     >
-      <span
-        className="absolute bottom-2 left-0 top-2 hidden w-px rounded-full bg-primary group-data-[active=true]:block"
-        aria-hidden="true"
-      />
-      <Icon
-        className="group-hover:text-foreground/85 size-4 shrink-0 text-zinc-400/80 group-data-[active=true]:text-primary"
-        strokeWidth={1.9}
-      />
+      <Icon className="size-4 shrink-0" strokeWidth={1.8} aria-hidden="true" />
       <span className="min-w-0 flex-1">{item.label}</span>
     </Link>
   )
@@ -64,35 +57,31 @@ export default function AppSidebar({
 
   return (
     <aside
-      className="sticky top-0 z-40 hidden h-screen max-h-screen w-[15rem] shrink-0 flex-col overflow-hidden bg-transparent lg:flex"
+      className="app-glass sticky top-0 z-40 hidden h-dvh w-60 shrink-0 flex-col overflow-hidden border-r lg:flex"
       data-persistent-navigation
     >
-      <div className="flex shrink-0 items-center px-3 pb-0.5 pt-3">
+      <div className="flex shrink-0 items-center px-4 pb-2 pt-4">
         <Link
           href={projectScopedHref('/', projectId)}
-          className="focus-visible:ring-sidebar-ring rounded-md outline-none focus-visible:ring-1"
+          className="app-focus rounded-lg"
           aria-label="AppraiseJS dashboard"
         >
           <Logo compact />
         </Link>
       </div>
 
-      <div className="shrink-0 px-3 py-1.5">
-        <ProjectSelector
-          projects={projects}
-          cookieProjectId={cookieProjectId}
-          className="mb-2 h-8 border-white/[0.08] bg-white/[0.035] text-xs"
-        />
+      <div className="grid shrink-0 gap-2 px-3 pb-4">
+        <ProjectSelector projects={projects} cookieProjectId={cookieProjectId} className="h-8 text-xs" />
         <NavCommand
           variant="sidebar"
           label="Search"
-          className="h-8 w-full min-w-0 border border-white/[0.08] bg-white/[0.035] px-2.5 text-xs font-normal text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.04),inset_0_-10px_24px_rgba(0,0,0,0.18)] transition-all duration-200 hover:border-white/[0.12] hover:bg-white/[0.06] hover:text-foreground"
+          className="h-8 w-full min-w-0 px-2 text-xs font-normal text-muted-foreground"
           providerRunsEnabled={providerRunsEnabled}
         />
       </div>
 
       <nav
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2.5 pb-3 [scrollbar-color:rgba(255,255,255,0.12)_transparent] [scrollbar-width:thin] lg:pb-2"
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-4 [scrollbar-color:var(--border)_transparent] [scrollbar-width:thin]"
         aria-label="Primary navigation"
       >
         <NavigationSections

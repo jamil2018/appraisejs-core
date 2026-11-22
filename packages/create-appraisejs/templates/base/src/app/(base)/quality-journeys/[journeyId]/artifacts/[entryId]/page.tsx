@@ -25,7 +25,13 @@ function label(value: string) {
 }
 
 export default async function QualityJourneyArtifactDetailPage({ params, searchParams }: PageProps) {
-  const [{ journeyId, entryId }, query] = await Promise.all([params, searchParams])
+  const [{ journeyId, entryId: encodedEntryId }, query] = await Promise.all([params, searchParams])
+  let entryId: string
+  try {
+    entryId = decodeURIComponent(encodedEntryId)
+  } catch {
+    notFound()
+  }
   const project = await requireActiveProject(query?.project)
   const artifact = await getQualityJourneyLibraryArtifact({ journeyId, targetProjectId: project.id, entryId }).catch(
     error => {
@@ -36,12 +42,17 @@ export default async function QualityJourneyArtifactDetailPage({ params, searchP
 
   return (
     <main className="space-y-6 pb-10">
-      <Button asChild size="sm" variant="ghost">
-        <Link
-          href={`/quality-journeys/${encodeURIComponent(journeyId)}/artifacts?project=${encodeURIComponent(project.id)}`}
-        >
-          Back to artifact library
-        </Link>
+      <Button
+        size="sm"
+        variant="ghost"
+        nativeButton={false}
+        render={
+          <Link
+            href={`/quality-journeys/${encodeURIComponent(journeyId)}/artifacts?project=${encodeURIComponent(project.id)}`}
+          />
+        }
+      >
+        Back to artifact library
       </Button>
       <header className="space-y-2">
         <div className="flex flex-wrap items-center gap-3">
@@ -55,7 +66,7 @@ export default async function QualityJourneyArtifactDetailPage({ params, searchP
           <CardTitle className="break-all font-mono text-sm">{artifact.entry.entryId}</CardTitle>
         </CardHeader>
         <CardContent>
-          <pre className="max-h-[70vh] overflow-auto rounded-md bg-muted p-4 text-xs leading-5">
+          <pre className="max-h-[70vh] overflow-auto rounded-lg bg-muted p-4 text-xs leading-5">
             {JSON.stringify(artifact.entry, null, 2)}
           </pre>
         </CardContent>

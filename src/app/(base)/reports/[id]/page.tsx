@@ -80,13 +80,13 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
         </PageHeader>
         <div className="flex flex-wrap gap-x-3 gap-y-1">
           {testRun.completedAt && (
-            <div className="flex items-center gap-1 text-sm text-zinc-400">
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
               <Calendar className="size-4" />
               {formatDateTime(testRun.completedAt)}
             </div>
           )}
           {testRun.completedAt && testRun.startedAt && (
-            <div className="flex items-center gap-1 text-sm text-zinc-400">
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
               <Clock className="size-4" />
               {formatDuration(testRun.startedAt, testRun.completedAt)}
             </div>
@@ -101,7 +101,7 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
       </div>
       <Separator className="my-4 bg-muted" />
       <div className="grid gap-5 xl:grid-cols-2">
-        <Card className="min-w-0 border-white/[0.1] bg-[rgba(18,37,64,0.28)] shadow-none">
+        <Card className="min-w-0 border-border bg-card shadow-none">
           <CardHeader className="flex-shrink-0">
             <div className="flex items-center gap-2">
               <Info className="size-6" />
@@ -118,13 +118,13 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
               ].map(([label, value]) => (
                 <div
                   key={label}
-                  className="grid gap-1 border-b border-white/[0.06] pb-3 sm:grid-cols-[minmax(9rem,0.8fr)_minmax(0,1.2fr)] sm:gap-3"
+                  className="grid gap-1 border-b border-border pb-3 sm:grid-cols-[minmax(9rem,0.8fr)_minmax(0,1.2fr)] sm:gap-3"
                 >
                   <dt>{label}</dt>
                   <dd className="min-w-0 break-words font-medium text-foreground">{value}</dd>
                 </div>
               ))}
-              <div className="grid gap-1 border-b border-white/[0.06] pb-3 sm:grid-cols-[minmax(9rem,0.8fr)_minmax(0,1.2fr)] sm:gap-3">
+              <div className="grid gap-1 border-b border-border pb-3 sm:grid-cols-[minmax(9rem,0.8fr)_minmax(0,1.2fr)] sm:gap-3">
                 <dt>Browser Engine</dt>
                 <dd>{browserEngineToBadge(testRun.browserEngine)}</dd>
               </div>
@@ -137,7 +137,7 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
             </dl>
           </CardContent>
         </Card>
-        <Card className="flex min-w-0 flex-col border-white/[0.1] bg-[rgba(18,37,64,0.28)] shadow-none">
+        <Card className="flex min-w-0 flex-col border-border bg-card shadow-none">
           <CardHeader className="flex-shrink-0">
             <div className="flex items-center gap-2">
               <ChartLine className="size-6" />
@@ -146,7 +146,7 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
           </CardHeader>
           <CardContent className="flex min-h-[20rem] flex-1 flex-col overflow-hidden">
             <Tabs defaultValue="overview" className="flex min-w-0 flex-1 flex-col overflow-hidden">
-              <TabsList className="grid w-full grid-cols-3 bg-white/[0.055] p-1">
+              <TabsList className="grid w-full grid-cols-3 bg-secondary p-1">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="feature">Feature</TabsTrigger>
                 <TabsTrigger value="duration">Duration</TabsTrigger>

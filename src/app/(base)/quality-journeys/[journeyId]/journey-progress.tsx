@@ -1,4 +1,4 @@
-import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 import { qualityJourneyLabel } from './quality-journey-view-model'
@@ -69,12 +69,10 @@ export function JourneyProgress({
               </p>
               <ol className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {journey.runner.map(node => (
-                  <li className="min-w-0 rounded-md border p-3" key={node.role}>
+                  <li className="min-w-0 rounded-lg border p-3" key={node.role}>
                     <p className="text-sm font-medium capitalize">{qualityJourneyLabel(node.role)}</p>
                     <p className="mt-1 text-xs text-muted-foreground">Stage: {qualityJourneyLabel(node.stage)}</p>
-                    <Badge className="mt-2" variant="outline">
-                      {qualityJourneyLabel(node.state)}
-                    </Badge>
+                    <StatusBadge className="mt-2" label={qualityJourneyLabel(node.state)} />
                     <p className="mt-2 break-all font-mono text-[11px] text-muted-foreground">
                       Work item: {node.workItemId ?? 'Not issued'}
                     </p>
@@ -90,10 +88,10 @@ export function JourneyProgress({
                   {journey.workItems.map(item => {
                     const itemAttempts = attemptsByWorkItem.get(item.id) ?? []
                     return (
-                      <li className="min-w-0 rounded-md border p-3" key={item.id}>
+                      <li className="min-w-0 rounded-lg border p-3" key={item.id}>
                         <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
                           <p className="min-w-0 text-sm font-medium capitalize">{qualityJourneyLabel(item.role)}</p>
-                          <Badge variant="outline">{qualityJourneyLabel(item.status)}</Badge>
+                          <StatusBadge label={qualityJourneyLabel(item.status)} />
                         </div>
                         <p className="mt-1 break-all font-mono text-[11px] text-muted-foreground">
                           Work item: {item.id}
@@ -104,7 +102,7 @@ export function JourneyProgress({
                             {itemAttempts.map(attempt => (
                               <li className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1" key={attempt.id}>
                                 <span>Attempt {attempt.attempt}</span>
-                                <Badge variant="secondary">{qualityJourneyLabel(attempt.status)}</Badge>
+                                <StatusBadge label={qualityJourneyLabel(attempt.status)} />
                                 <span className="min-w-0 break-words text-muted-foreground">
                                   Started {attempt.startedAt.toLocaleString()}
                                   {attempt.completedAt ? ` · completed ${attempt.completedAt.toLocaleString()}` : ''}

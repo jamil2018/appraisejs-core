@@ -52,6 +52,11 @@ test('Journey starts from one autosaved brief using keyboard at a narrow viewpor
   await expect(page.getByRole('list', { name: 'Journey stages' }).locator('[aria-current="step"]')).toHaveText(
     'Requirements',
   )
+  const currentFocus = page.getByRole('region', { name: 'Current journey focus' })
+  await expect(currentFocus.getByText('Agent setup needed', { exact: true })).toBeVisible()
+  await currentFocus.getByText('How to connect the agent', { exact: true }).focus()
+  await page.keyboard.press('Enter')
+  await expect(currentFocus.getByText('Your brief stays saved here.', { exact: false })).toBeVisible()
   await expect(page.locator('#execution')).toHaveCount(0)
   await page.getByText('History', { exact: true }).focus()
   await page.keyboard.press('Enter')

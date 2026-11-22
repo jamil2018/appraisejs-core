@@ -43,7 +43,10 @@ const EnvironmentForm = ({ defaultValues, successTitle, successMessage, id, onSu
     </form.Subscribe>
   )
   return (
-    <TanStackForm onSubmit={() => form.handleSubmit()}>
+    <TanStackForm
+      className="app-surface w-full max-w-2xl rounded-xl border border-border bg-card p-6"
+      onSubmit={() => form.handleSubmit()}
+    >
       <form.Field
         name="name"
         validators={{
@@ -112,7 +115,7 @@ const EnvironmentForm = ({ defaultValues, successTitle, successMessage, id, onSu
         validators={{ onChange: environmentFieldValidators.discoveryAuthTransitPolicyJson }}
       >
         {field => (
-          <div className="mb-4 flex flex-col gap-2 lg:w-1/3">
+          <div className="mb-4 flex w-full flex-col gap-2">
             <label htmlFor="discoveryAuthTransitPolicyJson">Discovery sign-in transit policy (Optional)</label>
             <Textarea
               id="discoveryAuthTransitPolicyJson"

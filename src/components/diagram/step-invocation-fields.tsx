@@ -75,7 +75,11 @@ function selectAttributes({ input, id, error }: Pick<FieldControlProps, 'input' 
 function EnvironmentReferenceSelect({ input, id, value, error, onChange, resources }: FieldControlProps) {
   const options = resources?.environments ?? []
   return (
-    <Select value={displayValue(input, value) || undefined} onValueChange={onChange}>
+    <Select
+      items={options.map(resource => ({ value: resource.id, label: resource.name }))}
+      value={displayValue(input, value) || null}
+      onValueChange={onChange}
+    >
       <SelectTrigger {...selectAttributes({ input, id, error })}>
         <SelectValue placeholder="Select an environment" />
       </SelectTrigger>
@@ -122,7 +126,8 @@ function ExistingLocatorReference({
         Locator group
       </label>
       <Select
-        value={selectedGroupId || undefined}
+        items={groups.map(group => ({ value: group.id, label: group.name }))}
+        value={selectedGroupId || null}
         onValueChange={groupId => {
           setSelectedGroupId(groupId)
           onChange('')
@@ -144,7 +149,12 @@ function ExistingLocatorReference({
       <label className="text-sm font-medium" htmlFor={id}>
         Locator
       </label>
-      <Select value={displayValue(input, value) || undefined} onValueChange={onChange} disabled={!selectedGroupId}>
+      <Select
+        items={locators.map(locator => ({ value: locator.id, label: locator.name }))}
+        value={displayValue(input, value) || null}
+        onValueChange={onChange}
+        disabled={!selectedGroupId}
+      >
         <SelectTrigger {...selectAttributes({ input, id, error })}>
           <SelectValue placeholder="Select a locator" />
         </SelectTrigger>
@@ -247,11 +257,15 @@ function LocatorReferenceField({ input, id, value, error, onChange, resources }:
   }
 
   return (
-    <div className="space-y-3 rounded-md border p-3">
+    <div className="space-y-3 rounded-lg border p-3">
       <label className="text-sm font-medium" htmlFor={`${id}-mode`}>
         Selector source
       </label>
-      <Select value={mode} onValueChange={nextMode => setMode(nextMode === 'new' ? 'new' : 'existing')}>
+      <Select
+        items={{ existing: 'Use existing locator', new: 'Create New Selector' }}
+        value={mode}
+        onValueChange={nextMode => setMode(nextMode === 'new' ? 'new' : 'existing')}
+      >
         <SelectTrigger id={`${id}-mode`}>
           <SelectValue />
         </SelectTrigger>

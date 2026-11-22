@@ -1,5 +1,19 @@
 import type { Config } from 'tailwindcss'
 import animate from 'tailwindcss-animate'
+
+const semanticColor = (token: string) => `rgb(var(--${token}-rgb) / <alpha-value>)`
+
+const colorPair = (token: string, foreground = `${token}-foreground`) => ({
+  DEFAULT: semanticColor(token),
+  foreground: semanticColor(foreground),
+})
+
+const statusColors = (token: string) => ({
+  DEFAULT: semanticColor(token),
+  surface: semanticColor(`${token}-surface`),
+  border: semanticColor(`${token}-border`),
+})
+
 export default {
   darkMode: ['class'],
   content: [
@@ -10,40 +24,28 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: 'var(--font-sans)',
+        mono: 'var(--font-mono)',
+      },
       colors: {
-        background: 'var(--background)',
-        foreground: 'var(--foreground)',
-        card: {
-          DEFAULT: 'var(--card)',
-          foreground: 'var(--card-foreground)',
-        },
-        popover: {
-          DEFAULT: 'var(--popover)',
-          foreground: 'var(--popover-foreground)',
-        },
-        primary: {
-          DEFAULT: 'var(--primary)',
-          foreground: 'var(--primary-foreground)',
-        },
-        secondary: {
-          DEFAULT: 'var(--secondary)',
-          foreground: 'var(--secondary-foreground)',
-        },
-        muted: {
-          DEFAULT: 'var(--muted)',
-          foreground: 'var(--muted-foreground)',
-        },
-        accent: {
-          DEFAULT: 'var(--accent)',
-          foreground: 'var(--accent-foreground)',
-        },
-        destructive: {
-          DEFAULT: 'var(--destructive)',
-          foreground: 'var(--destructive-foreground)',
-        },
-        border: 'var(--border)',
-        input: 'var(--input)',
-        ring: 'var(--ring)',
+        background: semanticColor('background'),
+        foreground: semanticColor('foreground'),
+        card: colorPair('card', 'foreground'),
+        popover: colorPair('popover', 'foreground'),
+        primary: colorPair('primary'),
+        secondary: colorPair('secondary'),
+        muted: colorPair('muted'),
+        accent: colorPair('accent'),
+        destructive: colorPair('destructive'),
+        border: semanticColor('border'),
+        input: semanticColor('input'),
+        field: semanticColor('field'),
+        ring: semanticColor('ring'),
+        success: statusColors('success'),
+        warning: statusColors('warning'),
+        danger: statusColors('danger'),
+        info: statusColors('info'),
         chart: {
           '1': 'var(--chart-1)',
           '2': 'var(--chart-2)',

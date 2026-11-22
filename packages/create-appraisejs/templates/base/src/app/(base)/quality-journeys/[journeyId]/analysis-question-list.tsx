@@ -2,7 +2,7 @@
 
 import { MessageSquareMore } from 'lucide-react'
 
-import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -42,9 +42,10 @@ function QuestionStatus({ question, unresolved }: Pick<AnalysisQuestionItemProps
           <p className="text-sm text-muted-foreground">Why this matters: {question.rationale}</p>
         ) : null}
       </div>
-      <Badge variant={unresolved ? 'destructive' : 'outline'}>
-        {question.required ? `Required · ${status}` : status}
-      </Badge>
+      <StatusBadge
+        tone={unresolved ? 'warning' : answered ? 'success' : 'neutral'}
+        label={question.required ? `Required · ${status}` : status}
+      />
     </div>
   )
 }
@@ -53,7 +54,7 @@ function RecordedAnswer({ answer }: { answer: AnalysisQuestion['answers'][number
   if (!answer) return null
 
   return (
-    <div className="mt-3 rounded-md border border-emerald-500/20 bg-emerald-500/[0.06] p-3 text-sm">
+    <div className="mt-3 rounded-lg border border-success-border bg-success-surface p-3 text-sm">
       <p>{answer.answer}</p>
     </div>
   )
@@ -126,7 +127,7 @@ function AnalysisQuestionItem({
   const answer = answers[question.questionId] ?? ''
 
   return (
-    <li className="rounded-md border border-white/[0.08] bg-white/[0.025]">
+    <li className="rounded-lg border border-border bg-secondary">
       <details className="p-4" open={open}>
         <summary className="cursor-pointer pr-3 text-sm font-medium">{question.prompt}</summary>
         <div className="mt-4">

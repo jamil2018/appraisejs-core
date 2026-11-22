@@ -41,15 +41,20 @@ These rules are the working baseline for Appraise UI refactors.
 
 ## Visual Language Contract
 
-The Quality Journey create form is the primary visual reference for AppraiseJS product surfaces. Route work should
-preserve its dark navy depth, quiet liquid-glass panels, compact density, subtle white edge highlights, restrained
-emerald tint, and material hierarchy. Glass depth comes from translucent fills, backdrop blur, inset highlights, and
-low-contrast borders rather than saturated gradients or heavy shadows. Secondary controls should visually recede;
-primary actions may carry a slight emerald tint without becoming solid green. Do not mechanically replace route
-layouts or turn dense tables into card feeds at small widths.
+AppraiseJS uses a dark graphite palette. The Journey brief, a populated Test Cases table, and a Run Report are the
+reference screens for form, table, and report density. Use shared semantic tokens for solid canvas, panels, fields,
+borders, text, focus, and interaction states. Use the light primary fill for the main action. Reserve muted color for
+labeled status and chart data.
 
-- Use Inter through the root layout as the authoritative sans stack. Keep typography compact and semantic rather than
-  using route-local font families or heading-like labels for ordinary content.
+- Use `app-glass` for the navigation shell and raised overlays. It owns the translucent fill, edge highlight, and
+  backdrop blur, with an opaque fallback for reduced transparency, forced colors, and browsers without blur.
+  Give each overlay one material surface. Use solid fills within content.
+- Use system sans for product text and the shared monospace stack for code, IDs, and logs. Use the 4px spacing grid,
+  32px compact and 36px standard controls, 44px mobile navigation targets, 8px control corners, and 12px panel corners.
+  Standard panels use 24px padding and compact panels use 16px.
+- Appraise owns the wrappers in `src/components/ui`. Use Base UI for interaction semantics and compose custom triggers
+  through `render`. Use shared variants and tokens for state, emphasis, and density. Give buttons explicit submit intent
+  and source Select labels from option data so closed controls display the saved label on first render.
 - Keep `lg` and wider navigation as the desktop sidebar. Below `lg`, use the mobile navigation shell so content starts
   in the first viewport; Sheet/Dialog controls must retain native focus trapping, Escape dismissal, and trigger focus
   restoration.
@@ -59,14 +64,14 @@ layouts or turn dense tables into card feeds at small widths.
   grid track, and keep optional guidance secondary or below the primary task on narrow screens. Do not use
   `overflow-x-hidden` to conceal a form layout problem.
 - Selects, multi-selects, Browse controls, and popovers should share compact control height, quiet borders, muted
-  placeholders, visible focus rings, and translucent bordered overlay surfaces. Selected values must wrap safely
+  placeholders, visible focus outlines, and the shared overlay material. Selected values must wrap safely
   without forcing unexpected page overflow.
 - Status labels must remain readable without color alone. Use the shared semantic status treatment for equivalent
   success, failure, warning, informational, and neutral states; keep domain-specific mapping close to the feature.
-- Graph hosts should use the same bordered navy canvas family, compact empty prompt, responsive minimum height, and
+- Graph hosts should use the same solid graphite canvas, compact empty prompt, responsive minimum height, and
   labelled icon controls. Route-specific graph sizing is acceptable only when the workflow requires it.
 - Shared primitives should be changed only with representative route checks. For visual changes, capture the
-  Dashboard, Plans, sidebar, a dense table, a form, and the changed interactive state before and after the change.
+  Dashboard, Journey brief, sidebar, a dense table, a run report, and the changed interactive state before and after the change.
 
 ## Test-case authoring projections
 

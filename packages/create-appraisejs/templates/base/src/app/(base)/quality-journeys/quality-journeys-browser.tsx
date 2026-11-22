@@ -8,6 +8,7 @@ import { useMemo, useState, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { journeyStageName } from '@/lib/quality-journey/journey-stages'
 import { copyQualityJourneyBriefToDraftAction } from './quality-journey-actions'
 
@@ -61,7 +62,7 @@ export function QualityJourneysBrowser({ items, projectId }: { items: QualityJou
         />
       </div>
       {items.length === 0 ? (
-        <Card className="border-dashed border-white/[0.1] bg-[rgba(18,37,64,0.42)] shadow-none">
+        <Card className="border-dashed border-border bg-card shadow-none">
           <CardContent className="flex min-h-52 flex-col items-center justify-center p-6 text-center">
             <ClipboardCheck aria-hidden="true" className="size-8 text-muted-foreground" />
             <h2 className="mt-4 text-base font-semibold">No Quality Journeys yet</h2>
@@ -72,7 +73,7 @@ export function QualityJourneysBrowser({ items, projectId }: { items: QualityJou
         </Card>
       ) : visibleItems.length === 0 ? (
         <p
-          className="rounded-lg border border-dashed border-white/[0.1] p-8 text-center text-sm text-muted-foreground"
+          className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground"
           role="status"
         >
           No Quality Journeys match “{query}”.
@@ -107,7 +108,7 @@ function JourneyListCard({ item, projectId }: { item: QualityJourneyListItem; pr
                   ? 'Ready for review'
                   : null
   return (
-    <article className="flex min-w-0 items-center justify-between gap-3 rounded-lg border p-4">
+    <article className="app-surface flex min-w-0 items-center justify-between gap-4 rounded-xl p-4 transition-colors hover:border-input hover:bg-accent">
       <div className="min-w-0">
         <Link
           className="line-clamp-2 break-words font-semibold hover:underline"
@@ -120,7 +121,13 @@ function JourneyListCard({ item, projectId }: { item: QualityJourneyListItem; pr
           {attention ? ` · ${attention}` : ''}
         </p>
       </div>
-      <CopyBriefButton journeyId={item.id} projectId={projectId} />
+      <div className="flex shrink-0 flex-col items-end gap-2">
+        <StatusBadge
+          label={item.status === 'PAUSED' ? 'Paused' : item.stage === 'CLOSED' ? 'Complete' : 'Active'}
+          tone={item.status === 'PAUSED' ? 'warning' : item.stage === 'CLOSED' ? 'success' : 'neutral'}
+        />
+        <CopyBriefButton journeyId={item.id} projectId={projectId} />
+      </div>
     </article>
   )
 }

@@ -85,8 +85,8 @@ function SettingsDestination({
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent>
-        <Button asChild variant="outline">
-          <Link href={href}>{action}</Link>
+        <Button variant="outline" render={<Link href={href} />} nativeButton={false}>
+          {action}
         </Button>
       </CardContent>
     </Card>

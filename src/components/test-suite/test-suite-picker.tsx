@@ -179,7 +179,7 @@ function TestSuitePicker({
         onCancel={() => dispatch({ type: 'setOpen', open: false })}
         onSave={saveDraftSelection}
       >
-        <ScrollArea className="h-[480px] rounded-md border">
+        <ScrollArea className="h-[480px] rounded-lg border">
           <div className="divide-y">
             {filteredSuites.length > 0 ? (
               filteredSuites.map(testSuite => (
@@ -198,11 +198,16 @@ function TestSuitePicker({
                 <p>No project-owned test suites match this picker.</p>
                 {emptyActionHref ? (
                   <div className="flex flex-wrap justify-center gap-2">
-                    <Button asChild size="sm" variant="outline">
-                      <Link href={emptyActionHref} target="_blank">
-                        <Plus aria-hidden="true" className="mr-2 size-4" /> Create a test suite in a new tab
-                      </Link>
-                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      nativeButton={false}
+                      render={
+                        <Link href={emptyActionHref} target="_blank">
+                          <Plus aria-hidden="true" className="mr-2 size-4" /> Create a test suite in a new tab
+                        </Link>
+                      }
+                    />
                     {onRefresh ? (
                       <Button onClick={onRefresh} size="sm" type="button" variant="ghost">
                         <RefreshCw aria-hidden="true" className="mr-2 size-4" /> Refresh available suites
@@ -217,7 +222,7 @@ function TestSuitePicker({
       </PickerBrowseDialogFrame>
 
       {savedSuites.length > 0 && (
-        <div className="bg-muted/20 rounded-md border">
+        <div className="rounded-lg border bg-muted/20">
           <div className="border-b px-4 py-3 text-sm font-medium">{selectedLabel}</div>
           <ScrollArea className={cn(shouldConstrainSavedListHeight && 'h-72')}>
             <div className="space-y-3 p-4">
@@ -227,7 +232,7 @@ function TestSuitePicker({
                   : suite.testCases.filter(testCase => selection.testCaseIds.includes(testCase.id))
 
                 return (
-                  <div key={suite.id} className="rounded-md border bg-background p-3">
+                  <div key={suite.id} className="rounded-lg border bg-background p-3">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-sm font-semibold">{suite.name}</span>
                       <Badge variant="outline">{suite.module.name}</Badge>

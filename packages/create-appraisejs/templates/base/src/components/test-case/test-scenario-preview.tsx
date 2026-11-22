@@ -37,23 +37,25 @@ export function TestScenarioPreview({ title, description, scenario }: TestScenar
 
   return (
     <div ref={containerRef} className="relative min-h-0 xl:min-h-[1px]">
-      <TooltipProvider delayDuration={0}>
+      <TooltipProvider delay={0}>
         <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              className={cn(
-                'text-foreground/80 relative z-30 size-10 rounded-full border-white/[0.12] bg-[linear-gradient(180deg,rgba(255,255,255,0.075),rgba(255,255,255,0.018))] shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_12px_28px_-18px_rgba(0,0,0,0.9)] hover:border-white/[0.2] hover:bg-white/[0.07] hover:text-primary',
-              )}
-              type="button"
-              variant="outline"
-              size="icon"
-              aria-expanded={open}
-              aria-label={open ? 'Hide test scenario preview' : 'Show test scenario preview'}
-              onClick={() => setOpen(v => !v)}
-            >
-              {open ? <EyeOff /> : <Eye />}
-            </Button>
-          </TooltipTrigger>
+          <TooltipTrigger
+            render={
+              <Button
+                className={cn(
+                  'relative z-30 size-10 rounded-full border-border bg-card text-foreground/80 shadow-none hover:border-border hover:bg-accent hover:text-primary',
+                )}
+                type="button"
+                variant="outline"
+                size="icon"
+                aria-expanded={open}
+                aria-label={open ? 'Hide test scenario preview' : 'Show test scenario preview'}
+                onClick={() => setOpen(v => !v)}
+              >
+                {open ? <EyeOff /> : <Eye />}
+              </Button>
+            }
+          />
           <TooltipContent side="top" sideOffset={8}>
             {open ? 'Close Scenario Preview' : 'Open Scenario Preview'}
           </TooltipContent>
@@ -63,8 +65,8 @@ export function TestScenarioPreview({ title, description, scenario }: TestScenar
         <Card
           className={cn(
             'absolute right-0 top-12 z-50 max-h-[min(420px,70vh)] w-[min(28rem,calc(100vw-3rem))]',
-            'border-white/[0.1] bg-[rgba(13,20,34,0.88)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_60px_-28px_rgba(0,0,0,0.95)]',
-            'backdrop-blur-3xl backdrop-saturate-150',
+            'border-border bg-card shadow-none',
+            'backdrop-saturate-150',
             'flex min-h-0 flex-col overflow-hidden',
           )}
         >

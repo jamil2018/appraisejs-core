@@ -125,13 +125,13 @@ const LocatorGroupForm = ({
                 field.state.meta.errors.map(error => (
                   <p
                     key={typeof error === 'string' ? error : error?.message || String(error)}
-                    className="text-xs text-pink-500"
+                    className="text-xs text-danger"
                   >
                     {typeof error === 'string' ? error : error?.message || String(error)}
                   </p>
                 ))}
               {field.state.meta.isTouched && field.state.meta.errors.length === 0 && field.state.meta.isValidating && (
-                <p className="text-xs text-blue-500">Checking name availability...</p>
+                <p className="text-xs text-info">Checking name availability...</p>
               )}
             </div>
           )
@@ -147,7 +147,11 @@ const LocatorGroupForm = ({
           return (
             <div className="mb-4 flex flex-col gap-2 lg:w-1/3">
               <Label htmlFor={field.name}>Module</Label>
-              <Select value={field.state.value} onValueChange={value => field.handleChange(value)}>
+              <Select
+                items={moduleList.map(module => ({ value: module.id, label: module.name }))}
+                value={field.state.value || null}
+                onValueChange={value => field.handleChange(value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a module" />
                 </SelectTrigger>
@@ -163,7 +167,7 @@ const LocatorGroupForm = ({
                 field.state.meta.errors.map(error => (
                   <p
                     key={typeof error === 'string' ? error : error?.message || String(error)}
-                    className="text-xs text-pink-500"
+                    className="text-xs text-danger"
                   >
                     {typeof error === 'string' ? error : error?.message || String(error)}
                   </p>
@@ -192,7 +196,7 @@ const LocatorGroupForm = ({
                 field.state.meta.errors.map(error => (
                   <p
                     key={typeof error === 'string' ? error : error?.message || String(error)}
-                    className="text-xs text-pink-500"
+                    className="text-xs text-danger"
                   >
                     {typeof error === 'string' ? error : error?.message || String(error)}
                   </p>

@@ -8,13 +8,13 @@
   <circle class="ring" cx="88" cy="64" r="26" fill="none" stroke-width="7"/>
   <polyline class="check" points="76,66 85,76 102,54" fill="none" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
   <style>
-    .connector{stroke:#dbe7f3}
-    .connector-accent{stroke:#14b8a6}
-    .node{fill:#0e1b2e;stroke:#dbe7f3}
-    .node-large{fill:#14b8a6;stroke:#5eead4}
-    .node-halo{stroke:#22d3a6;opacity:.32}
-    .ring-halo{stroke:#22d3a6;opacity:.24}
-    .ring{stroke:#dbe7f3}
-    .check{stroke:#22d3a6}
+    .connector{stroke:#f2f2f2}
+    .connector-accent{stroke:#a8a8a8}
+    .node{fill:#181818;stroke:#f2f2f2}
+    .node-large{fill:#a8a8a8;stroke:#f2f2f2}
+    .node-halo{stroke:#c4c4c4;opacity:.32}
+    .ring-halo{stroke:#c4c4c4;opacity:.24}
+    .ring{stroke:#f2f2f2}
+    .check{stroke:#c4c4c4}
   </style>
 </svg>
