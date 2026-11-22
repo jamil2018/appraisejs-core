@@ -78,7 +78,7 @@ const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) =
 
   return (
     <>
-      <div className="mb-8">
+      <div className="mb-4">
         <PageHeader>Modify Test Case</PageHeader>
         <HeaderSubtitle>Modify a test case</HeaderSubtitle>
       </div>

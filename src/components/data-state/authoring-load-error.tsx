@@ -18,7 +18,7 @@ export default function AuthoringLoadError({
 }) {
   return (
     <div>
-      <div className="mb-8">
+      <div className="mb-4">
         <PageHeader>{title}</PageHeader>
       </div>
       <Alert>

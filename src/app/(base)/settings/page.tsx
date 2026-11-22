@@ -18,25 +18,16 @@ export default async function SettingsPage() {
   const project = await requireActiveProject()
   const projectParam = encodeURIComponent(project.id)
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
         <PageHeader>
           <span className="flex items-center">
-            <Settings2 className="mr-2 size-8" />
+            <Settings2 aria-hidden="true" className="mr-2 size-7" />
             Settings
           </span>
         </PageHeader>
-        <HeaderSubtitle>Workspace configuration lives with the resources it controls.</HeaderSubtitle>
+        <HeaderSubtitle>Manage project resources and agent setup.</HeaderSubtitle>
       </div>
-      <Card className="border-primary/25 bg-primary/[0.035]">
-        <CardHeader>
-          <CardTitle>Configuration overview</CardTitle>
-          <CardDescription>
-            AppraiseJS has no hidden desktop preferences here. Use these implemented destinations for the active
-            project.
-          </CardDescription>
-        </CardHeader>
-      </Card>
       <div className="grid gap-4 lg:grid-cols-3">
         <SettingsDestination
           icon={<FolderKanban aria-hidden="true" />}
@@ -78,14 +69,16 @@ function SettingsDestination({
   action: string
 }) {
   return (
-    <Card>
-      <CardHeader>
-        <span className="text-primary [&>svg]:size-5">{icon}</span>
-        <CardTitle>{title}</CardTitle>
+    <Card className="flex min-w-0 flex-col">
+      <CardHeader className="flex-1 p-4 pb-3">
+        <CardTitle className="flex items-center gap-2">
+          <span className="shrink-0 text-primary [&>svg]:size-5">{icon}</span>
+          <h2>{title}</h2>
+        </CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
-      <CardContent>
-        <Button variant="outline" render={<Link href={href} />} nativeButton={false}>
+      <CardContent className="p-4 pt-0">
+        <Button size="sm" variant="outline" render={<Link href={href} />} nativeButton={false}>
           {action}
         </Button>
       </CardContent>

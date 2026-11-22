@@ -5,6 +5,8 @@ import { getAllTestCasesAction } from '@/actions/test-case/test-case-actions'
 import { getAllModulesAction } from '@/actions/modules/module-actions'
 import { getAllTagsAction } from '@/actions/tags/tag-actions'
 import { Metadata } from 'next'
+import AuthoringLoadError from '@/components/data-state/authoring-load-error'
+import PageHeader from '@/components/typography/page-header'
 
 import { getEditableTestSuite, getModuleRows, getTagRows, getTestCasePickerRows } from '../../test-suite-helpers'
 
@@ -23,13 +25,16 @@ const ModifyTestSuite = async ({ params }: { params: Promise<{ id: string }> }) 
   ])
 
   const loadError = testSuiteResponse.error || moduleListResponse.error || tagsResponse.error
-  if (loadError) {
-    return <div>Error: {loadError}</div>
-  }
-
   const testSuiteData = getEditableTestSuite(testSuiteResponse.data)
-  if (!testSuiteData) {
-    return <div>Error: Invalid test suite</div>
+  if (loadError || !testSuiteData) {
+    return (
+      <AuthoringLoadError
+        title="Modify Test Suite"
+        listHref="/test-suites"
+        listLabel="Back to test suites"
+        message={loadError ?? 'The selected test suite could not be found.'}
+      />
+    )
   }
 
   const testCases = getTestCasePickerRows(testCasesResponse.data)
@@ -37,22 +42,25 @@ const ModifyTestSuite = async ({ params }: { params: Promise<{ id: string }> }) 
   const tags = getTagRows(tagsResponse.data)
 
   return (
-    <TestSuiteForm
-      defaultValues={{
-        name: testSuiteData.name ?? '',
-        description: testSuiteData.description ?? '',
-        testCases: testSuiteData.testCases.map(testCase => testCase.id),
-        moduleId: testSuiteData.moduleId ?? '',
-        tagIds: testSuiteData.tags?.map(tag => tag.id) || [],
-      }}
-      successTitle="Suite updated"
-      successMessage="Test suite updated successfully"
-      onSubmitAction={updateTestSuiteAction}
-      id={id}
-      testCases={testCases}
-      moduleList={moduleList}
-      tags={tags}
-    />
+    <div className="space-y-4">
+      <PageHeader>Modify Test Suite</PageHeader>
+      <TestSuiteForm
+        defaultValues={{
+          name: testSuiteData.name ?? '',
+          description: testSuiteData.description ?? '',
+          testCases: testSuiteData.testCases.map(testCase => testCase.id),
+          moduleId: testSuiteData.moduleId ?? '',
+          tagIds: testSuiteData.tags?.map(tag => tag.id) || [],
+        }}
+        successTitle="Suite updated"
+        successMessage="Test suite updated successfully"
+        onSubmitAction={updateTestSuiteAction}
+        id={id}
+        testCases={testCases}
+        moduleList={moduleList}
+        tags={tags}
+      />
+    </div>
   )
 }
 

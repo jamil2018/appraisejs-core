@@ -17,18 +17,14 @@ const TestCasesMetricsReport = async ({ searchParams }: { searchParams: Promise<
 
   return (
     <>
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <PageHeader>
-              <span className="flex items-center">
-                <Code className="mr-2 size-8" />
-                Failing Test Cases Report
-              </span>
-            </PageHeader>
-            <HeaderSubtitle>Report of test cases that have been failing repeatedly or are flaky</HeaderSubtitle>
-          </div>
-        </div>
+      <div className="mb-4">
+        <PageHeader>
+          <span className="flex items-center">
+            <Code className="mr-2 size-8 shrink-0" />
+            Failing Test Cases Report
+          </span>
+        </PageHeader>
+        <HeaderSubtitle>Report of test cases that have been failing repeatedly or are flaky</HeaderSubtitle>
       </div>
       <Suspense fallback={<DataTableSkeleton />}>
         <TestCasesMetricTable filter={filter || 'repeatedlyFailing'} />

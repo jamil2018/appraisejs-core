@@ -6,6 +6,7 @@ import { getAllTestCasesAction } from '@/actions/test-case/test-case-actions'
 import { getAllModulesAction } from '@/actions/modules/module-actions'
 import { getAllTagsAction } from '@/actions/tags/tag-actions'
 import { Metadata } from 'next'
+import AuthoringLoadError from '@/components/data-state/authoring-load-error'
 
 import { getModuleRows, getTagRows, getTestCasePickerRows } from '../test-suite-helpers'
 
@@ -23,7 +24,14 @@ const CreateTestSuite = async () => {
 
   const loadError = testCasesResponse.error || moduleListResponse.error || tagsResponse.error
   if (loadError) {
-    return <div>Error: {loadError}</div>
+    return (
+      <AuthoringLoadError
+        title="Create Test Suite"
+        listHref="/test-suites"
+        listLabel="Back to test suites"
+        message={loadError}
+      />
+    )
   }
 
   const testCases = getTestCasePickerRows(testCasesResponse.data)
@@ -32,7 +40,7 @@ const CreateTestSuite = async () => {
 
   return (
     <>
-      <div className="mb-8">
+      <div className="mb-4">
         <PageHeader>Create Test Suite</PageHeader>
         <HeaderSubtitle>Create a new test suite to run your tests against</HeaderSubtitle>
       </div>

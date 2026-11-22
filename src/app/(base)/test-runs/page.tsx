@@ -29,34 +29,30 @@ const TestRuns = async ({ searchParams }: { searchParams: Promise<{ filter?: str
     }
   )?.items
 
-  if (!testRunsData || testRunsData.length === 0) {
-    return (
-      <div className="flex min-h-[calc(100vh-20rem)] items-center justify-center">
-        <EmptyState
-          icon={<ListChecks className="size-8" />}
-          title="No test runs found"
-          description="Get started by creating a test run to execute your test cases"
-          createRoute="/test-runs/create"
-          createText="Create Test Run"
-        />
-      </div>
-    )
-  }
-
   return (
     <>
-      <div className="mb-8">
+      <div className="mb-4">
         <PageHeader>
           <span className="flex items-center">
-            <ListChecks className="mr-2 size-8" />
+            <ListChecks className="mr-2 size-8 shrink-0" />
             Test Runs
           </span>
         </PageHeader>
         <HeaderSubtitle>Orchestrate tests and track the execution progress with detailed results</HeaderSubtitle>
       </div>
-      <Suspense fallback={<DataTableSkeleton />}>
-        <TestRunTable initialData={testRunsData} filter={filter as 'recentFailed' | 'all'} />
-      </Suspense>
+      {!testRunsData || testRunsData.length === 0 ? (
+        <EmptyState
+          icon={<ListChecks className="size-5" />}
+          title="No test runs found"
+          description="Get started by creating a test run to execute your test cases"
+          createRoute="/test-runs/create"
+          createText="Create Test Run"
+        />
+      ) : (
+        <Suspense fallback={<DataTableSkeleton />}>
+          <TestRunTable initialData={testRunsData} filter={filter as 'recentFailed' | 'all'} />
+        </Suspense>
+      )}
     </>
   )
 }

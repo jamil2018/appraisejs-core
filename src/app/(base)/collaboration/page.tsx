@@ -4,6 +4,7 @@ import { GitPullRequestArrow } from 'lucide-react'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import PageHeader from '@/components/typography/page-header'
 import { Badge } from '@/components/ui/badge'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { requireActiveProject } from '@/lib/active-project'
 import { getCollaborationStatus } from '@/services/repository-collaboration'
 
@@ -16,11 +17,11 @@ export const metadata: Metadata = {
 
 function CollaborationHeader({ displayName, connectionState }: { displayName: string; connectionState?: string }) {
   return (
-    <header className="flex flex-col items-start justify-between gap-4 sm:flex-row">
-      <div className="space-y-2">
+    <header className="flex flex-wrap items-start justify-between gap-3">
+      <div className="min-w-0 space-y-1">
         <PageHeader>
           <span className="flex items-center gap-3">
-            <GitPullRequestArrow aria-hidden="true" className="size-7 text-primary sm:size-8" />
+            <GitPullRequestArrow aria-hidden="true" className="size-7 shrink-0 text-primary" />
             Repository collaboration
           </span>
         </PageHeader>
@@ -35,14 +36,14 @@ function CollaborationHeader({ displayName, connectionState }: { displayName: st
 
 function ConnectionSummary({ status }: { status: NonNullable<Awaited<ReturnType<typeof getCollaborationStatus>>> }) {
   return (
-    <section className="bg-card/40 grid gap-3 rounded-lg border p-5 text-sm sm:grid-cols-3" aria-label="Connection">
+    <section className="grid gap-3 rounded-xl border bg-card p-4 text-sm sm:grid-cols-3" aria-label="Connection">
       <div>
         <span className="text-muted-foreground">Portable project</span>
-        <p className="mt-1 font-mono text-xs">{status.portableProjectId}</p>
+        <p className="mt-1 break-all font-mono text-xs">{status.portableProjectId}</p>
       </div>
       <div>
         <span className="text-muted-foreground">Tracked ref</span>
-        <p className="mt-1">
+        <p className="mt-1 break-words [overflow-wrap:anywhere]">
           {status.remoteName}/{status.trackedBranch}
         </p>
       </div>
@@ -64,29 +65,29 @@ function OperationHistory({
       <h2 className="text-lg font-semibold" id="history-heading">
         Recent operations
       </h2>
-      <div className="overflow-x-auto rounded-lg border" tabIndex={0}>
-        <table className="w-full min-w-[44rem] text-left text-sm">
-          <thead className="bg-muted/40 text-muted-foreground">
-            <tr>
-              <th className="p-3">Intent</th>
-              <th className="p-3">State</th>
-              <th className="p-3">Changes</th>
-              <th className="p-3">Receipt</th>
-              <th className="p-3">Updated</th>
-            </tr>
-          </thead>
-          <tbody>
+      <div className="rounded-lg border">
+        <Table scrollLabel="Recent collaboration operations">
+          <TableHeader className="bg-secondary">
+            <TableRow>
+              <TableHead>Intent</TableHead>
+              <TableHead>State</TableHead>
+              <TableHead>Changes</TableHead>
+              <TableHead>Receipt</TableHead>
+              <TableHead>Updated</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {operations.map(operation => (
-              <tr className="border-t" key={operation.id}>
-                <td className="p-3 font-medium">{operation.intent}</td>
-                <td className="p-3">{operation.state}</td>
-                <td className="p-3">{operation.changeCount}</td>
-                <td className="p-3 font-mono text-xs">{operation.receiptHash?.slice(0, 12) ?? '—'}</td>
-                <td className="p-3">{operation.updatedAt.toLocaleString()}</td>
-              </tr>
+              <TableRow key={operation.id}>
+                <TableCell className="font-medium">{operation.intent}</TableCell>
+                <TableCell>{operation.state}</TableCell>
+                <TableCell>{operation.changeCount}</TableCell>
+                <TableCell className="font-mono text-xs">{operation.receiptHash?.slice(0, 12) ?? '—'}</TableCell>
+                <TableCell>{operation.updatedAt.toLocaleString()}</TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </section>
   )
@@ -106,10 +107,10 @@ export default async function CollaborationPage({ searchParams }: { searchParams
   const project = await requireActiveProject((await searchParams)?.project)
   const status = await getCollaborationStatus(project.id)
   return (
-    <main className="space-y-6 pb-10">
+    <div className="space-y-4">
       <CollaborationHeader displayName={project.displayName} connectionState={status?.connectionState} />
       <CollaborationControls projectId={project.id} status={status} />
       <StatusSections status={status} />
-    </main>
+    </div>
   )
 }

@@ -17,20 +17,16 @@ const TestSuitesMetricsReport = async ({ searchParams }: { searchParams: Promise
 
   return (
     <>
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <PageHeader>
-              <span className="flex items-center">
-                <TestTubes className="mr-2 size-8" />
-                Test Suites Report
-              </span>
-            </PageHeader>
-            <HeaderSubtitle>
-              Test suites are collections of tests that are used to test a specific feature or functionality
-            </HeaderSubtitle>
-          </div>
-        </div>
+      <div className="mb-4">
+        <PageHeader>
+          <span className="flex items-center">
+            <TestTubes className="mr-2 size-8 shrink-0" />
+            Test Suites Report
+          </span>
+        </PageHeader>
+        <HeaderSubtitle>
+          Test suites are collections of tests that are used to test a specific feature or functionality
+        </HeaderSubtitle>
       </div>
       <Suspense fallback={<DataTableSkeleton />}>
         <TestSuitesMetricTable filter={filter || 'notExecutedRecently'} />

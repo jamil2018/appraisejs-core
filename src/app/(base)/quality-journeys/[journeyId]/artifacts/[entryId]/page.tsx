@@ -41,7 +41,7 @@ export default async function QualityJourneyArtifactDetailPage({ params, searchP
   )
 
   return (
-    <main className="space-y-6 pb-10">
+    <div className="space-y-4">
       <Button
         size="sm"
         variant="ghost"
@@ -56,21 +56,21 @@ export default async function QualityJourneyArtifactDetailPage({ params, searchP
       </Button>
       <header className="space-y-2">
         <div className="flex flex-wrap items-center gap-3">
-          <PageHeader>{artifact.entry.title}</PageHeader>
+          <PageHeader className="min-w-0 break-words">{artifact.entry.title}</PageHeader>
           <Badge variant="outline">{label(artifact.entry.kind)}</Badge>
         </div>
         <HeaderSubtitle>Public artifact projection and immutable lineage.</HeaderSubtitle>
       </header>
       <Card>
-        <CardHeader>
+        <CardHeader className="p-4 pb-3">
           <CardTitle className="break-all font-mono text-sm">{artifact.entry.entryId}</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 pt-0">
           <pre className="max-h-[70vh] overflow-auto rounded-lg bg-muted p-4 text-xs leading-5">
             {JSON.stringify(artifact.entry, null, 2)}
           </pre>
         </CardContent>
       </Card>
-    </main>
+    </div>
   )
 }

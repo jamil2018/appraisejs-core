@@ -140,7 +140,7 @@ function ReadyDefinitionCard({
 }) {
   return (
     <Card className="border-border bg-card shadow-none">
-      <CardHeader className="space-y-3">
+      <CardHeader className="space-y-3 p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <CardTitle className="text-base">{definition.title}</CardTitle>
@@ -152,7 +152,7 @@ function ReadyDefinitionCard({
         </div>
         <p className="text-sm leading-6 text-muted-foreground">{definition.description}</p>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-3 p-4 pt-0">
         <code className="block overflow-x-auto rounded-lg border border-border bg-secondary px-3 py-2 text-xs">
           {definition.signature}
         </code>
@@ -302,7 +302,7 @@ export function StepDefinitionRegistry({
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       {drafts.length ? (
         <section aria-labelledby="step-definition-drafts-heading" className="space-y-3">
           <div>
@@ -326,7 +326,7 @@ export function StepDefinitionRegistry({
         </section>
       ) : null}
 
-      <section aria-labelledby="ready-step-definitions-heading" className="space-y-5">
+      <section aria-labelledby="ready-step-definitions-heading" className="space-y-4">
         <div>
           <h2 id="ready-step-definitions-heading" className="text-sm font-semibold text-foreground">
             Published library
@@ -336,7 +336,7 @@ export function StepDefinitionRegistry({
           </p>
         </div>
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div className="grid gap-3 sm:grid-cols-[minmax(16rem,1fr)_12rem] lg:max-w-3xl lg:flex-1">
+          <div className="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_12rem] lg:flex-1">
             <Input
               type="search"
               value={query}

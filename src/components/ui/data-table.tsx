@@ -174,26 +174,40 @@ export function DataTable<TData, TValue>({
   }
 
   return (
-    <div className="mb-10 rounded-xl border border-border bg-card p-4">
-      <div className="flex justify-end">
-        <div className="mb-4 flex flex-wrap justify-end gap-2">
+    <div className="min-w-0 space-y-3 rounded-xl border border-border bg-card p-3 sm:p-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-0 flex-[1_1_14rem] sm:max-w-md">
+          <Search
+            aria-hidden="true"
+            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+          />
+          <Input
+            aria-label={filterPlaceholder}
+            placeholder={filterPlaceholder}
+            value={(table.getColumn(filterColumn)?.getFilterValue() as string) ?? ''}
+            onChange={event => table.getColumn(filterColumn)?.setFilterValue(event.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+          <DataTableViewOptions table={table} />
           {createLink && (
             <Button
               variant="default"
-              size="icon"
+              size="sm"
               aria-label="Create item"
               render={<Link href={createLink} />}
               nativeButton={false}
             >
               <PlusCircle className="size-4" aria-hidden="true" />
-              <span className="sr-only">Create item</span>
+              Create
             </Button>
           )}
           {multiOptionCreateButton && (
             <DropdownMenu>
-              <DropdownMenuTrigger render={<Button variant="default" size="icon" aria-label={createMenuLabel} />}>
+              <DropdownMenuTrigger render={<Button variant="default" size="sm" aria-label={createMenuLabel} />}>
                 <PlusCircle className="size-4" aria-hidden="true" />
-                <span className="sr-only">{createMenuLabel}</span>
+                Create
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuGroup>
@@ -256,20 +270,7 @@ export function DataTable<TData, TValue>({
           )}
         </div>
       </div>
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 items-center">
-          <Search className="mr-2 size-4 shrink-0 text-muted-foreground" />
-          <Input
-            aria-label={filterPlaceholder}
-            placeholder={filterPlaceholder}
-            value={(table.getColumn(filterColumn)?.getFilterValue() as string) ?? ''}
-            onChange={event => table.getColumn(filterColumn)?.setFilterValue(event.target.value)}
-            className="max-w-sm"
-          />
-        </div>
-        <DataTableViewOptions table={table} />
-      </div>
-      <div className="mb-4 overflow-hidden rounded-lg border border-border bg-background shadow-none">
+      <div className="overflow-hidden rounded-lg border border-border bg-background">
         <Table scrollLabel={tableLabel}>
           <TableHeader className="bg-secondary">
             {table.getHeaderGroups().map(headerGroup => (
@@ -301,7 +302,7 @@ export function DataTable<TData, TValue>({
               })
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
+                <TableCell colSpan={table.getVisibleLeafColumns().length} className="h-16 text-center">
                   No results.
                 </TableCell>
               </TableRow>

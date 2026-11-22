@@ -89,9 +89,9 @@ export default function EnvironmentRegistry({ environments }: EnvironmentRegistr
   return (
     <section
       aria-labelledby="environment-registry-title"
-      className="overflow-hidden rounded-xl border border-border bg-card"
+      className="min-w-0 overflow-hidden rounded-xl border border-border bg-card"
     >
-      <div className="flex flex-col gap-4 border-b border-border px-4 py-4 sm:px-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-4 border-b border-border p-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h2 id="environment-registry-title" className="text-base font-semibold text-foreground">
             Runtime registry
@@ -106,7 +106,7 @@ export default function EnvironmentRegistry({ environments }: EnvironmentRegistr
         </Button>
       </div>
 
-      <div className="flex flex-col gap-3 border-b border-border px-4 py-3 sm:px-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-3 border-b border-border p-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="relative w-full lg:max-w-sm">
           <Search
             className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
@@ -153,11 +153,11 @@ export default function EnvironmentRegistry({ environments }: EnvironmentRegistr
       </div>
 
       {filteredEnvironments.length > 0 ? (
-        <div className="grid grid-cols-1 gap-4 p-4 sm:p-4 xl:grid-cols-2">
+        <div className="grid min-w-0 grid-cols-1 gap-4 p-4 xl:grid-cols-2">
           {filteredEnvironments.map(environment => (
             <article
               key={environment.id}
-              className="relative min-w-0 overflow-hidden rounded-xl border border-border bg-card p-4 transition-colors hover:border-input sm:p-4"
+              className="relative min-w-0 overflow-hidden rounded-xl border border-border bg-card p-4 transition-colors hover:border-input"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex min-w-0 items-center gap-3">
@@ -190,7 +190,7 @@ export default function EnvironmentRegistry({ environments }: EnvironmentRegistr
                 </div>
               </div>
 
-              <div className="mt-6">
+              <div className="mt-4">
                 <div className="relative overflow-hidden rounded-lg border border-border bg-secondary px-4 py-3">
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
@@ -256,7 +256,7 @@ export default function EnvironmentRegistry({ environments }: EnvironmentRegistr
                 </div>
               </div>
 
-              <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3 text-[11px] text-muted-foreground">
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3 text-[11px] text-muted-foreground">
                 <span>Created {formatDateTime(environment.createdAt)}</span>
                 <span>Updated {formatDateTime(environment.updatedAt)}</span>
               </div>
@@ -264,7 +264,7 @@ export default function EnvironmentRegistry({ environments }: EnvironmentRegistr
           ))}
         </div>
       ) : (
-        <div className="flex min-h-52 flex-col items-center justify-center px-6 py-10 text-center">
+        <div className="flex min-h-52 flex-col items-center justify-center p-4 text-center">
           <Search className="size-6 text-muted-foreground" aria-hidden="true" />
           <h3 className="mt-3 text-sm font-semibold text-foreground">No matching environments</h3>
           <p className="mt-1 max-w-sm text-sm text-muted-foreground">Try a different name, endpoint, or username.</p>

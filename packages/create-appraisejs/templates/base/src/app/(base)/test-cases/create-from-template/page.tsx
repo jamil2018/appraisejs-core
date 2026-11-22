@@ -55,7 +55,7 @@ const CreateTestCaseFromTemplate = async ({
 
   return (
     <div>
-      <div className="mb-8">
+      <div className="mb-4">
         <PageHeader>
           <span className="flex items-center">
             <LayoutPanelTop className="mr-2 size-8" />

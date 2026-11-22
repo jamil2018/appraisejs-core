@@ -51,7 +51,7 @@ export default async function QualityJourneyArtifactLibraryPage({ params, search
   const hasNext = library.offset + library.entries.length < library.total
 
   return (
-    <main className="space-y-6 pb-10">
+    <div className="space-y-4">
       <header className="space-y-3">
         <Button
           size="sm"
@@ -65,7 +65,7 @@ export default async function QualityJourneyArtifactLibraryPage({ params, search
         >
           Back to journey
         </Button>
-        <div className="flex flex-col items-start justify-between gap-4 sm:flex-row">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-2">
             <PageHeader>
               <span className="flex items-center gap-3">
@@ -114,7 +114,10 @@ export default async function QualityJourneyArtifactLibraryPage({ params, search
         <form className="flex flex-col gap-2 sm:flex-row sm:items-end" method="get">
           <input name="project" type="hidden" value={project.id} />
           {query?.kind ? <input name="kind" type="hidden" value={query.kind} /> : null}
-          <label className="grid gap-1 text-sm font-medium" htmlFor="artifact-library-query">
+          <label
+            className="grid min-w-0 gap-1 text-sm font-medium sm:w-full sm:max-w-md"
+            htmlFor="artifact-library-query"
+          >
             Search artifacts
             <Input
               defaultValue={query?.query}
@@ -180,7 +183,7 @@ export default async function QualityJourneyArtifactLibraryPage({ params, search
           </Button>
         )}
       </nav>
-    </main>
+    </div>
   )
 }
 

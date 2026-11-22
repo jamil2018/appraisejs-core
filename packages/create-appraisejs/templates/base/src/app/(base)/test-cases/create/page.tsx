@@ -39,11 +39,11 @@ const CreateTestCase = async () => {
 
   return (
     <div>
-      <div className="mb-8 flex items-start gap-3">
+      <div className="mb-4 flex items-start gap-3">
         <span className="mt-1 flex size-10 shrink-0 items-center justify-center rounded-md border bg-primary/10 text-primary">
           <FilePlus2 className="size-5" aria-hidden />
         </span>
-        <div>
+        <div className="min-w-0">
           <PageHeader>Create New Test Case</PageHeader>
           <HeaderSubtitle>Create a new test from scratch to execute against your application</HeaderSubtitle>
         </div>

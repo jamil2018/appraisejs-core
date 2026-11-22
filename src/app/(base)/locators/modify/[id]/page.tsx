@@ -51,11 +51,11 @@ const ModifyLocator = async ({ params }: { params: Promise<{ id: string }> }) =>
   const currentLocatorGroup = locatorGroups.find(locatorGroup => locatorGroup.id === locator.locatorGroupId)
 
   return (
-    <>
-      <div className="mb-8">
+    <div className="min-w-0 space-y-4">
+      <div className="min-w-0">
         <PageHeader>
-          <span className="flex items-center">
-            <Crosshair className="mr-2 size-8" />
+          <span className="flex items-center gap-2">
+            <Crosshair className="size-7 shrink-0 sm:size-8" />
             Modify Locator
           </span>
         </PageHeader>
@@ -79,7 +79,7 @@ const ModifyLocator = async ({ params }: { params: Promise<{ id: string }> }) =>
           moduleId: currentLocatorGroup?.moduleId ?? '',
         }}
       />
-    </>
+    </div>
   )
 }
 

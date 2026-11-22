@@ -65,9 +65,9 @@ export function LogViewer({ testRunId, targetProjectId, status, className }: Log
     )
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
+    <Card className="min-w-0">
+      <CardHeader className="p-4">
+        <CardTitle className="flex flex-wrap items-center justify-between gap-3">
           <span className="flex items-center gap-2">
             <Logs className="size-6" />
             Live Logs
@@ -77,9 +77,9 @@ export function LogViewer({ testRunId, targetProjectId, status, className }: Log
           ) : null}
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className={cn('flex flex-col gap-2', className)}>
-          <div className="flex items-center justify-between">
+      <CardContent className="p-4 pt-0">
+        <div className={cn('flex min-w-0 flex-col gap-3', className)}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <Badge variant="outline" className="flex items-center gap-2">
               {statusIcon}
               <span>{getConnectionStatusText(connectionStatus)}</span>
@@ -99,7 +99,7 @@ export function LogViewer({ testRunId, targetProjectId, status, className }: Log
 
           <ScrollArea
             ref={scrollAreaRef}
-            className="h-[600px] w-full rounded-md border bg-muted/50 p-4 font-mono text-sm"
+            className="h-[clamp(16rem,60vh,37.5rem)] w-full min-w-0 rounded-md border bg-muted/50 p-4 font-mono text-sm"
             onScroll={handleScroll}
           >
             {logs.length === 0 && (connectionStatus === 'connecting' || connectionStatus === 'loading') ? (
@@ -115,7 +115,7 @@ export function LogViewer({ testRunId, targetProjectId, status, className }: Log
               <div
                 key={`${log.timestamp.toISOString()}-${log.type}-${log.message}-${index}`}
                 className={cn(
-                  'mb-1 flex items-start gap-2 whitespace-pre-wrap break-words',
+                  'mb-1 grid min-w-0 grid-cols-[auto_1fr] items-start gap-x-2 gap-y-1 whitespace-pre-wrap break-words sm:flex sm:gap-2',
                   log.type === 'stderr' && 'text-danger',
                   log.type === 'stdout' && 'text-foreground',
                   log.type === 'status' && 'font-semibold text-info',
@@ -123,7 +123,7 @@ export function LogViewer({ testRunId, targetProjectId, status, className }: Log
               >
                 <span className="shrink-0 text-xs text-muted-foreground">{log.timestamp.toLocaleTimeString()}</span>
                 <span className="w-16 shrink-0 text-xs text-muted-foreground">[{log.type.toUpperCase()}]</span>
-                <span className="flex-1">{log.message}</span>
+                <span className="col-span-2 min-w-0 flex-1 [overflow-wrap:anywhere]">{log.message}</span>
               </div>
             ))}
           </ScrollArea>

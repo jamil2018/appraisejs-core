@@ -1,6 +1,6 @@
 'use client'
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Blocks, FileCheck, LayoutTemplate, ListChecks, Route, TestTubeDiagonal, TestTubes, Plus } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { presentationVocabulary } from '@/lib/presentation-vocabulary'
@@ -53,31 +53,28 @@ const quickActions = [
 export default function QuickActionsDrawer() {
   const { push } = useRouter()
   return (
-    <Card id="container">
-      <CardHeader id="header" className="relative px-4 pb-3 pt-4">
+    <Card>
+      <CardHeader className="px-4 pb-3 pt-4">
         <CardTitle className="text-base font-semibold text-foreground">Quick Actions</CardTitle>
-        <CardDescription className="text-xs leading-5 text-muted-foreground">
-          Instantly create workspace assets or execute runs
-        </CardDescription>
       </CardHeader>
-      <CardContent id="content" className="relative px-4 pb-4 pt-0">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <CardContent className="px-4 pb-4 pt-0">
+        <div className="grid min-w-0 gap-2 [grid-template-columns:repeat(auto-fit,minmax(min(100%,12rem),1fr))]">
           {quickActions.map(({ label, description, href, icon: Icon }) => (
             <button
               key={href}
               type="button"
               onClick={() => push(href)}
-              className="app-focus flex min-h-[84px] items-start gap-3 rounded-lg border bg-field p-3 text-left transition-colors hover:bg-accent"
+              className="app-focus flex min-h-14 items-start gap-2.5 rounded-lg border bg-field p-2.5 text-left transition-colors hover:bg-accent"
             >
               <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
-                <Icon className="size-5" />
+                <Icon aria-hidden className="size-5" />
               </div>
 
               <div className="min-w-0 flex-1 space-y-1">
                 <span className="block text-sm font-semibold text-foreground">{label}</span>
                 <span className="line-clamp-2 block text-xs leading-4 text-muted-foreground">{description}</span>
               </div>
-              <Plus className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+              <Plus aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
             </button>
           ))}
         </div>

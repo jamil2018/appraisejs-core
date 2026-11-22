@@ -11,8 +11,8 @@ export const metadata: Metadata = {
 
 const CreateEnvironment = async () => {
   return (
-    <>
-      <div className="mb-8">
+    <div className="min-w-0 space-y-4">
+      <div className="min-w-0">
         <PageHeader>Create Environment</PageHeader>
         <HeaderSubtitle>Create a new environment configuration for your test runs.</HeaderSubtitle>
       </div>
@@ -21,7 +21,7 @@ const CreateEnvironment = async () => {
         successMessage="Environment created successfully"
         onSubmitAction={createEnvironmentAction}
       />
-    </>
+    </div>
   )
 }
 

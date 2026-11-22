@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
-import { expect, test, type Locator } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 import prisma from '../src/config/db-config'
 import { createTargetProjectFixture } from '../src/test/migrated-test-database'
 import { hashQualityJourneyExecutionValue as hash } from '../src/lib/quality-journey'
@@ -47,10 +47,14 @@ test('Journey starts from one autosaved brief using keyboard at a narrow viewpor
   await context.addCookies([{ name: 'appraise-active-project', value: targetProjectId, url: baseURL! }])
   const errors: string[] = []
   const failures: string[] = []
-  page.on('pageerror', error => errors.push(error.message))
-  page.on('requestfailed', request => {
-    if (request.failure()?.errorText !== 'net::ERR_ABORTED') failures.push(request.url())
-  })
+  function observePage(openPage: Page) {
+    openPage.on('pageerror', error => errors.push(error.message))
+    openPage.on('requestfailed', request => {
+      if (request.failure()?.errorText !== 'net::ERR_ABORTED') failures.push(request.url())
+    })
+  }
+
+  observePage(page)
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto(`/quality-journeys/new?project=${targetProjectId}`)
   await expect(page.getByRole('textbox')).toHaveCount(1)
@@ -82,8 +86,12 @@ test('Journey starts from one autosaved brief using keyboard at a narrow viewpor
   await page.getByText('History', { exact: true }).focus()
   await page.keyboard.press('Enter')
   await expect(page.getByRole('heading', { name: 'Original brief' })).toBeVisible()
-  await page.reload()
-  await expect(page.getByRole('heading', { name: 'Check guest checkout.' })).toBeVisible()
+  // A fresh document checks persistence without canceling the first page's speculative requests during unload.
+  const reopened = await context.newPage()
+  observePage(reopened)
+  await reopened.setViewportSize({ width: 320, height: 900 })
+  await reopened.goto(page.url())
+  await expect(reopened.getByRole('heading', { name: 'Check guest checkout.' })).toBeVisible()
   expect(await prisma.qualityJourney.count({ where: { targetProjectId } })).toBe(1)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   expect(errors).toEqual([])

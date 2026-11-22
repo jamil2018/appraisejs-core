@@ -313,14 +313,14 @@ function FlowPanel({
         )}
         transition={{ layout: { duration: 0.3, ease: 'easeInOut' } }}
       >
-        <CardHeader className="shrink-0">
+        <CardHeader className="shrink-0 p-4">
           <div className="flex items-start justify-between gap-3">
-            <div className="flex items-start gap-3">
+            <div className="flex min-w-0 items-start gap-3">
               <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border bg-primary/10 text-primary">
                 <Workflow className="size-4" aria-hidden />
               </span>
-              <div className="space-y-1">
-                <CardTitle className="text-xl font-bold text-primary">Test Case Flow</CardTitle>
+              <div className="min-w-0 space-y-1">
+                <CardTitle className="text-base text-primary">Test Case Flow</CardTitle>
                 <CardDescription>Build your test scenario step by step visually</CardDescription>
               </div>
             </div>
@@ -353,7 +353,7 @@ function FlowPanel({
             </TabsList>
           </Tabs>
         </CardHeader>
-        <CardContent className="flex min-h-0 flex-1 flex-col">
+        <CardContent className="flex min-h-0 flex-1 flex-col p-4 pt-0">
           <div className="flex min-h-0 flex-1 flex-col gap-2">
             <div className="min-h-0 flex-1">
               <TestCaseFlow
@@ -398,14 +398,14 @@ function TemplateSelectionStep({
 }: TemplateSelectionStepProps) {
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-4 xl:flex-row">
-        <div className="xl:w-1/2">
-          <Card className="h-full border-border bg-secondary">
-            <CardHeader className="mb-4">
-              <CardTitle className="text-xl font-bold text-primary">Template Selection</CardTitle>
+      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,24rem)]">
+        <div className="min-w-0">
+          <Card className="border-border bg-secondary">
+            <CardHeader className="p-4">
+              <CardTitle className="text-base text-primary">Template Selection</CardTitle>
               <CardDescription>Choose the template that should seed the new test case</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 pt-0">
               <div className="flex flex-col gap-2">
                 <Label htmlFor="templateTestCaseId">Case Template</Label>
                 <Select items={templateOptions} onValueChange={onTemplateChange} value={selectedTemplateId || null}>
@@ -433,13 +433,13 @@ function TemplateSelectionStep({
             </CardContent>
           </Card>
         </div>
-        <div className="xl:w-1/2">
-          <Card className="h-full border-border bg-secondary">
-            <CardHeader className="mb-2">
-              <CardTitle className="text-xl font-bold text-primary">Selected Template</CardTitle>
+        <div className="min-w-0">
+          <Card className="border-border bg-secondary">
+            <CardHeader className="p-4">
+              <CardTitle className="text-base text-primary">Selected Template</CardTitle>
               <CardDescription>Review what will be prefilled before moving into the form</CardDescription>
             </CardHeader>
-            <CardContent className="flex h-full flex-col gap-3">
+            <CardContent className="flex flex-col gap-3 p-4 pt-0">
               <SelectedTemplateSummary
                 selectedTemplateTestCase={selectedTemplateTestCase}
                 selectedReusableStepCount={selectedReusableStepCount}
@@ -616,15 +616,15 @@ function DetailsStep({
 }: DetailsStepProps) {
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-4 xl:flex-row" id="meta">
-        <div className="xl:w-1/2">
-          <Card className="h-full border-border bg-card shadow-none">
-            <CardHeader className="mb-4">
-              <CardTitle className="text-xl font-bold text-primary">Test Case Details</CardTitle>
+      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,24rem)]" id="meta">
+        <div className="min-w-0">
+          <Card className="border-border bg-card shadow-none">
+            <CardHeader className="p-4">
+              <CardTitle className="text-base text-primary">Test Case Details</CardTitle>
               <CardDescription>Enter the core details of your test scenario</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="mb-6 flex flex-col gap-2">
+            <CardContent className="p-4 pt-0">
+              <div className="mb-4 flex flex-col gap-2">
                 <Label htmlFor="title">Title</Label>
                 <Input
                   id="title"
@@ -637,7 +637,7 @@ function DetailsStep({
                 />
                 <TestCaseFormFieldError id="title-error" message={errors.title} />
               </div>
-              <div className="mb-6 flex flex-col gap-2">
+              <div className="mb-4 flex flex-col gap-2">
                 <Label htmlFor="description">Description</Label>
                 <Textarea
                   id="description"
@@ -700,10 +700,10 @@ function TestSuiteSelectionField({
   onCreateClick,
 }: TestSuiteSelectionFieldProps) {
   return (
-    <div className="mb-6 flex flex-col gap-2">
+    <div className="mb-4 flex flex-col gap-2">
       <Label htmlFor="test-suites">Test Suites</Label>
       <div className="flex items-end gap-2">
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <MultiSelect
             id="test-suites"
             label="Test Suites"
@@ -747,7 +747,7 @@ function TagSelectionField({ availableTags, selectedTags, onChange, onCreateClic
     <div className="flex flex-col gap-2">
       <Label htmlFor="tags">Filter Tags</Label>
       <div className="flex items-end gap-2">
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <MultiSelect
             id="tags"
             label="Filter Tags"
@@ -777,23 +777,23 @@ function TagSelectionField({ availableTags, selectedTags, onChange, onCreateClic
 
 function QuickTipsPanel() {
   return (
-    <div className="xl:w-1/2">
-      <Card className="h-full border-border bg-card shadow-none">
-        <CardHeader className="mb-2">
-          <CardTitle className="flex items-center gap-2 text-xl text-primary">
-            <Info className="size-5" />
-            <span className="font-bold">Quick Tips</span>
+    <div className="min-w-0">
+      <Card className="border-border bg-card shadow-none">
+        <CardHeader className="p-4">
+          <CardTitle className="flex items-center gap-2 text-base text-primary">
+            <Info className="size-4" />
+            <span>Quick Tips</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-3">
+        <CardContent className="flex flex-col gap-3 p-4 pt-0">
           <ol className="flex list-none flex-col gap-3">
             {testCaseQuickTips.map((tip, index) => (
-              <li key={tip.title} className="grid grid-cols-[1.5rem_1fr] gap-4">
+              <li key={tip.title} className="grid grid-cols-[1.5rem_minmax(0,1fr)] gap-3">
                 <span className="flex size-6 items-center justify-center rounded-full bg-success/10 text-success">
                   {index + 1}
                 </span>
                 <span className="flex flex-col gap-1">
-                  <span className="text-base font-bold">{tip.title}</span>
+                  <span className="text-sm font-semibold">{tip.title}</span>
                   <span className="text-sm text-muted-foreground">{tip.description}</span>
                 </span>
               </li>
@@ -828,7 +828,7 @@ function FlowStep({
     <div className="flex flex-col gap-4">
       <LazyMotion features={domAnimation} strict>
         <LayoutGroup id="test-case-flow-panel-layout">
-          <div className="w-full min-w-0 overflow-x-hidden">
+          <div className="w-full min-w-0">
             {isFlowImmersive ? (
               <div className="fixed inset-0 z-40 bg-background p-3 sm:p-4">{immersiveFlowPanel}</div>
             ) : (

@@ -25,7 +25,7 @@ export default function DataCard({ title, value, link }: DataCardProps) {
       type="button"
       onClick={() => push(link)}
       disabled={isEmpty}
-      className="app-focus flex min-h-[116px] w-full flex-col justify-between gap-4 rounded-lg border bg-field p-3 text-left transition-colors enabled:hover:bg-accent disabled:cursor-not-allowed"
+      className="app-focus flex min-h-20 w-full min-w-0 flex-col justify-between gap-2 rounded-lg border bg-field p-2.5 text-left transition-colors enabled:hover:bg-accent disabled:cursor-not-allowed"
     >
       <span className="flex items-center justify-between gap-2 text-xs font-medium text-muted-foreground">
         {title}

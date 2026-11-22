@@ -39,36 +39,35 @@ const TestSuites = async () => {
       ),
   }))
 
-  if (testSuitesData.length === 0) {
-    return (
-      <div className="flex min-h-[calc(100vh-20rem)] items-center justify-center">
-        <EmptyState
-          icon={<TestTubes className="size-8" />}
-          title="No test suites found"
-          description="Get started by creating a test suite and grouping tests together"
-          createRoute="/test-suites/create"
-          createText="Create Test Suite"
-        />
-      </div>
-    )
-  }
   return (
     <>
-      <div className="mb-8">
+      <div className="mb-4">
         <PageHeader>
           <span className="flex items-center">
-            <TestTubes className="mr-2 size-8" />
+            <TestTubes className="mr-2 size-8 shrink-0" />
             Test Suites
           </span>
         </PageHeader>
         <HeaderSubtitle>
           Test suites are collections of tests that are used to test a specific feature or functionality
         </HeaderSubtitle>
-        <InfoGrid infoCards={infoCards} />
       </div>
-      <Suspense fallback={<DataTableSkeleton />}>
-        <TestSuiteTable />
-      </Suspense>
+      {testSuitesData.length === 0 ? (
+        <EmptyState
+          icon={<TestTubes className="size-5" />}
+          title="No test suites found"
+          description="Get started by creating a test suite and grouping tests together"
+          createRoute="/test-suites/create"
+          createText="Create Test Suite"
+        />
+      ) : (
+        <>
+          <InfoGrid infoCards={infoCards} />
+          <Suspense fallback={<DataTableSkeleton />}>
+            <TestSuiteTable />
+          </Suspense>
+        </>
+      )}
     </>
   )
 }

@@ -23,35 +23,31 @@ const Tags = async () => {
 
   const tagsData = tags as TagModel[]
 
-  if (!tagsData || tagsData.length === 0) {
-    return (
-      <div className="flex min-h-[calc(100vh-20rem)] items-center justify-center">
-        <EmptyState
-          icon={<Tag className="size-8" />}
-          title="No tags found"
-          description="Get started by creating a tag to categorize your test cases and test runs"
-          createRoute="/tags/create"
-          createText="Create Tag"
-        />
-      </div>
-    )
-  }
-
   return (
-    <>
-      <div className="mb-8">
+    <div className="min-w-0 space-y-4">
+      <div className="min-w-0">
         <PageHeader>
-          <span className="flex items-center">
-            <Tag className="mr-2 size-8" />
+          <span className="flex items-center gap-2">
+            <Tag className="size-7 shrink-0 sm:size-8" />
             Tags
           </span>
         </PageHeader>
         <HeaderSubtitle>Categorize test cases and test runs for better organization and filtering</HeaderSubtitle>
       </div>
-      <Suspense fallback={<DataTableSkeleton />}>
-        <TagTable />
-      </Suspense>
-    </>
+      {!tagsData || tagsData.length === 0 ? (
+        <EmptyState
+          icon={<Tag className="size-5" />}
+          title="No tags found"
+          description="Get started by creating a tag to categorize your test cases and test runs"
+          createRoute="/tags/create"
+          createText="Create Tag"
+        />
+      ) : (
+        <Suspense fallback={<DataTableSkeleton />}>
+          <TagTable />
+        </Suspense>
+      )}
+    </div>
   )
 }
 

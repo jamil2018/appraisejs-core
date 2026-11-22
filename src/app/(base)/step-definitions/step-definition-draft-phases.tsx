@@ -198,11 +198,11 @@ function StageButton({
 export function WizardPanel(props: WizardProps) {
   return (
     <Card className="min-w-0 overflow-hidden">
-      <CardHeader className="border-b border-border px-5 pb-4 pt-5">
+      <CardHeader className="border-b border-border p-4">
         <CardTitle className="text-base text-foreground">{stages[props.stage]}</CardTitle>
         <CardDescription className="mt-1 max-w-2xl text-xs leading-5">{stageDescriptions[props.stage]}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-5 px-5 pb-5 pt-5">
+      <CardContent className="space-y-4 p-4">
         <WizardPhase {...props} />
         <WizardFooter {...props} />
       </CardContent>
@@ -1137,16 +1137,22 @@ export function PublishPhase({
   )
 }
 
-export function PublishedStepSuccess({ published }: { published: { id: string; version: string; signature: string } }) {
+export function PublishedStepSuccess({
+  published,
+  heading: Heading = 'h2',
+}: {
+  published: { id: string; version: string; signature: string }
+  heading?: 'h1' | 'h2'
+}) {
   return (
     <Card className="border-primary/20 bg-card shadow-none">
-      <CardContent className="space-y-5 p-6">
+      <CardContent className="space-y-4 p-4">
         <div className="flex items-start gap-3">
           <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-primary/25 bg-primary/10 text-primary">
             <CheckCircle2 className="size-5" />
           </span>
           <div>
-            <h2 className="text-lg font-semibold text-foreground">Reusable step published</h2>
+            <Heading className="text-lg font-semibold text-foreground">Reusable step published</Heading>
             <p className="mt-1 text-sm text-muted-foreground">
               The immutable version is ready for human-authored tests and managed validation.
             </p>
@@ -1155,13 +1161,13 @@ export function PublishedStepSuccess({ published }: { published: { id: string; v
         <dl className="grid gap-3 rounded-lg border border-border bg-secondary p-4 text-sm sm:grid-cols-2">
           <div>
             <dt className="text-xs text-muted-foreground">Step Definition</dt>
-            <dd className="mt-1 font-mono text-foreground">
+            <dd className="mt-1 break-all font-mono text-foreground">
               {published.id}@{published.version}
             </dd>
           </div>
           <div>
             <dt className="text-xs text-muted-foreground">Human sentence</dt>
-            <dd className="mt-1 text-foreground">{published.signature}</dd>
+            <dd className="mt-1 break-words text-foreground">{published.signature}</dd>
           </div>
         </dl>
         <div className="flex flex-wrap gap-2">

@@ -29,9 +29,9 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger render={<Button variant="outline" size="sm" className="ml-auto hidden h-8 lg:flex" />}>
-        <Settings2 />
-        View
+      <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
+        <Settings2 aria-hidden="true" />
+        Columns
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[150px]">
         <DropdownMenuGroup>

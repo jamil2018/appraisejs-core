@@ -82,8 +82,8 @@ export default async function QualityJourneysPage({
   ])
 
   return (
-    <main className="space-y-6 pb-10">
-      <header className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-start">
+    <div className="space-y-4">
+      <header className="flex flex-col items-start justify-between gap-3 sm:flex-row">
         <PageHeader>Quality Journeys</PageHeader>
         <Button
           nativeButton={false}
@@ -129,6 +129,6 @@ export default async function QualityJourneysPage({
           <DraftCards drafts={drafts} projectId={project.id} />
         </section>
       </details>
-    </main>
+    </div>
   )
 }

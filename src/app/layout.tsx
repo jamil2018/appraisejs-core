@@ -126,9 +126,9 @@ export default async function RootLayout({
             <main
               id="main-content"
               tabIndex={-1}
-              className="min-w-0 flex-1 scroll-mt-4 bg-background px-4 pb-6 pt-16 focus:outline-none sm:px-6 lg:min-h-dvh lg:px-8 lg:py-6"
+              className="min-w-0 flex-1 scroll-mt-4 bg-background px-4 pb-6 pt-16 focus:outline-none sm:px-6 lg:min-h-dvh lg:py-5"
             >
-              <div className="relative mx-auto max-w-screen-2xl">
+              <div className="relative min-w-0">
                 <ProjectScopedContent hasProjects={projects.length > 0} requiresProject={requiresProject}>
                   {children}
                 </ProjectScopedContent>

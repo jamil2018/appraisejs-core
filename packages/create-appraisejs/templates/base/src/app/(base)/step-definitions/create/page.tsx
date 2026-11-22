@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 const CreateStepDefinition = async () => {
   return (
     <>
-      <header className="mb-4 flex items-start gap-3 rounded-xl border border-border bg-card p-5 shadow-none sm:p-6">
+      <header className="mb-4 flex items-start gap-3 rounded-xl border border-border bg-card p-4 shadow-none">
         <div className="flex size-10 shrink-0 items-center justify-center rounded-full border border-primary/20 bg-primary/[0.07] text-primary shadow-none">
           <LayoutTemplate aria-hidden="true" className="size-5" />
         </div>

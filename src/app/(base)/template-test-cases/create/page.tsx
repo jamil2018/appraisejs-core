@@ -23,7 +23,7 @@ const CreateTemplateTestCase = async () => {
 
   return (
     <>
-      <div className="mb-8">
+      <div className="mb-4">
         <PageHeader>
           <span className="flex items-center">
             <Blocks className="mr-2 size-8" />

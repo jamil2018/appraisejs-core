@@ -85,8 +85,8 @@ export default function ProjectManagement({
 
   return (
     <Card>
-      <CardHeader className="flex-row items-start justify-between gap-4">
-        <div className="flex flex-col gap-1.5">
+      <CardHeader className="flex-row flex-wrap items-start justify-between gap-3 p-4 pb-3">
+        <div className="flex min-w-0 flex-col gap-1.5">
           <CardTitle>Registered projects</CardTitle>
           <CardDescription>
             Search, select, rename, or permanently remove registered local and remote targets.
@@ -94,7 +94,7 @@ export default function ProjectManagement({
         </div>
         <RegisterProjectDialog />
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+      <CardContent className="flex min-w-0 flex-col gap-3 p-4 pt-0">
         {agentSetup === 'codex' ? (
           <AgentSetupGuidance
             project={projects.find(project => project.id === highlightedProjectId)}
@@ -117,13 +117,13 @@ export default function ProjectManagement({
         </div>
 
         {projects.length === 0 ? (
-          <div className="flex min-h-48 flex-col items-center justify-center gap-2 text-center">
+          <div className="flex min-h-24 flex-col items-center justify-center gap-2 text-center">
             <FolderGit2 aria-hidden="true" className="size-8 text-muted-foreground" />
             <p className="font-medium">No projects registered</p>
             <p className="text-sm text-muted-foreground">Register a local workspace or remote target to begin.</p>
           </div>
         ) : filteredProjects.length === 0 ? (
-          <div className="flex min-h-32 items-center justify-center text-sm text-muted-foreground" role="status">
+          <div className="flex min-h-16 items-center justify-center text-sm text-muted-foreground" role="status">
             No projects match “{query}”.
           </div>
         ) : (

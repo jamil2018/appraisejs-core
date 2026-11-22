@@ -24,23 +24,9 @@ const TemplateTestCasesPage = async () => {
 
   const templateTestCasesData = templateTestCases as (TemplateTestCase & { steps: TemplateTestCaseStep[] })[]
 
-  if (!templateTestCasesData || templateTestCasesData.length === 0) {
-    return (
-      <div className="flex min-h-[calc(100vh-20rem)] items-center justify-center">
-        <EmptyState
-          icon={<Blocks className="size-8" />}
-          title="No Case Templates found"
-          description="Create a reusable Case Template to prepare test cases faster"
-          createRoute="/template-test-cases/create"
-          createText={presentationVocabulary.caseTemplate.create}
-        />
-      </div>
-    )
-  }
-
   return (
     <>
-      <div className="mb-8">
+      <div className="mb-4">
         <PageHeader>
           <span className="flex items-center">
             <Blocks className="mr-2 size-8" />
@@ -49,9 +35,19 @@ const TemplateTestCasesPage = async () => {
         </PageHeader>
         <HeaderSubtitle>A collection of templates to quickly create test cases</HeaderSubtitle>
       </div>
-      <Suspense fallback={<DataTableSkeleton />}>
-        <TemplateTestCaseTable />
-      </Suspense>
+      {!templateTestCasesData || templateTestCasesData.length === 0 ? (
+        <EmptyState
+          icon={<Blocks className="size-5" />}
+          title="No Case Templates found"
+          description="Create a reusable Case Template to prepare test cases faster"
+          createRoute="/template-test-cases/create"
+          createText={presentationVocabulary.caseTemplate.create}
+        />
+      ) : (
+        <Suspense fallback={<DataTableSkeleton />}>
+          <TemplateTestCaseTable />
+        </Suspense>
+      )}
     </>
   )
 }

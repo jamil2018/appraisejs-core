@@ -70,11 +70,11 @@ export function TestScenarioPreview({ title, description, scenario }: TestScenar
             'flex min-h-0 flex-col overflow-hidden',
           )}
         >
-          <CardHeader className="shrink-0">
-            <CardTitle className="text-xl font-bold text-primary">{title}</CardTitle>
+          <CardHeader className="shrink-0 p-4">
+            <CardTitle className="text-base text-primary">{title}</CardTitle>
             {description ? <CardDescription>{description}</CardDescription> : null}
           </CardHeader>
-          <CardContent className="min-h-0 flex-1 overflow-auto">
+          <CardContent className="min-h-0 flex-1 overflow-auto p-4 pt-0">
             <CodeMirror
               editable={false}
               value={scenario}

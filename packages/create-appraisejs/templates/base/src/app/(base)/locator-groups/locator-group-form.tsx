@@ -97,7 +97,10 @@ const LocatorGroupForm = ({
     },
   })
   return (
-    <TanStackForm onSubmit={() => form.handleSubmit()}>
+    <TanStackForm
+      className="app-surface grid w-full min-w-0 gap-4 rounded-xl border border-border bg-card p-4 lg:grid-cols-2"
+      onSubmit={() => form.handleSubmit()}
+    >
       <form.Field
         name="name"
         validators={{
@@ -113,7 +116,7 @@ const LocatorGroupForm = ({
       >
         {field => {
           return (
-            <div className="mb-4 flex flex-col gap-2 lg:w-1/3">
+            <div className="flex min-w-0 flex-col gap-2">
               <Label htmlFor={field.name}>Name</Label>
               <Input
                 id={field.name}
@@ -145,7 +148,7 @@ const LocatorGroupForm = ({
       >
         {field => {
           return (
-            <div className="mb-4 flex flex-col gap-2 lg:w-1/3">
+            <div className="flex min-w-0 flex-col gap-2">
               <Label htmlFor={field.name}>Module</Label>
               <Select
                 items={moduleList.map(module => ({ value: module.id, label: module.name }))}
@@ -184,7 +187,7 @@ const LocatorGroupForm = ({
       >
         {field => {
           return (
-            <div className="mb-4 flex flex-col gap-2 lg:w-1/3">
+            <div className="flex min-w-0 flex-col gap-2 lg:col-span-2">
               <Label htmlFor={field.name}>Route</Label>
               <Input
                 id={field.name}
@@ -206,14 +209,16 @@ const LocatorGroupForm = ({
         }}
       </form.Field>
 
-      <form.Subscribe selector={formState => [formState.canSubmit, formState.isSubmitting]}>
-        {([canSubmit, isSubmitting]) => (
-          <Button type="submit" disabled={!canSubmit}>
-            <Save className="size-4" aria-hidden />
-            <span className="font-bold">{isSubmitting ? '...' : 'Save'}</span>
-          </Button>
-        )}
-      </form.Subscribe>
+      <div className="flex border-t border-border pt-4 lg:col-span-2">
+        <form.Subscribe selector={formState => [formState.canSubmit, formState.isSubmitting]}>
+          {([canSubmit, isSubmitting]) => (
+            <Button type="submit" disabled={!canSubmit}>
+              <Save className="size-4" aria-hidden />
+              <span className="font-bold">{isSubmitting ? '...' : 'Save'}</span>
+            </Button>
+          )}
+        </form.Subscribe>
+      </div>
     </TanStackForm>
   )
 }

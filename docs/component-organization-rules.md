@@ -58,9 +58,14 @@ labeled status and chart data.
 - Keep `lg` and wider navigation as the desktop sidebar. Below `lg`, use the mobile navigation shell so content starts
   in the first viewport; Sheet/Dialog controls must retain native focus trapping, Escape dismissal, and trigger focus
   restoration.
+- Use the shell's padded content column for page headers and primary workspace surfaces, including on wide displays.
+  Keep local width limits for readable prose, compact controls, and secondary guidance. Use 16px between major
+  sections in dense workspaces.
+- Keep the page heading visible when a collection is empty. Place the next action in a compact panel directly below it.
 - For data tables, preserve table semantics and use a contained, keyboard-focusable horizontal scroll surface with a
   stable minimum width. Name scroll regions for the content they contain and row action menus for the record they
-  operate on. Toolbars and pagination may wrap; the page itself must not gain horizontal overflow.
+  operate on. Keep search, view controls, and actions on one toolbar when they fit. Let toolbars and pagination wrap
+  as needed while containing horizontal overflow in the table.
 - Keep picker search and footer actions reachable in short viewports. Let the results area scroll within the overlay
   so users can reach pagination while keeping the commit and cancel controls in view.
 - Compose forms as responsive content-and-guidance grids. Use full-width primary cards with a deliberate max-width or

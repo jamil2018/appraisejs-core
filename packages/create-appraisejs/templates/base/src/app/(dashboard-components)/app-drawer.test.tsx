@@ -14,14 +14,7 @@ vi.mock('next/navigation', () => ({
 
 describe('AppDrawer', () => {
   it('disables attention cards whose count is zero', () => {
-    render(
-      <AppDrawer
-        metrics={null}
-        title="Attention Needed"
-        description="Issues requiring action"
-        hasExecutionEvidence={false}
-      />,
-    )
+    render(<AppDrawer metrics={null} title="Attention Needed" hasExecutionEvidence={false} />)
 
     expect(screen.getByRole('button', { name: 'Failed Runs: 0. No completed-run evidence yet' })).toHaveAttribute(
       'data-state',
@@ -47,7 +40,6 @@ describe('AppDrawer', () => {
           targetProjectId: 'project-1',
         }}
         title="Attention Needed"
-        description="Issues requiring action"
         hasExecutionEvidence={true}
       />,
     )

@@ -56,7 +56,7 @@ function ConnectForm({ projectId, mutation }: { projectId: string; mutation: Mut
   const [trackedBranch, setTrackedBranch] = useState('appraise-0.5')
   const [remoteName, setRemoteName] = useState('origin')
   return (
-    <section className="space-y-4 rounded-lg border bg-card/40 p-5" aria-labelledby="connect-heading">
+    <section className="space-y-4 rounded-xl border bg-card p-4" aria-labelledby="connect-heading">
       <div>
         <h2 className="font-semibold" id="connect-heading">
           Connect collaboration agent
@@ -103,7 +103,7 @@ function ConnectForm({ projectId, mutation }: { projectId: string; mutation: Mut
 
 function PermissionPanel({ projectId, status, mutation }: { projectId: string; status: Status; mutation: Mutation }) {
   return (
-    <section className="space-y-3 rounded-lg border bg-card/40 p-5" aria-labelledby="permissions-heading">
+    <section className="space-y-3 rounded-xl border bg-card p-4" aria-labelledby="permissions-heading">
       <div>
         <h2 className="font-semibold" id="permissions-heading">
           Standing permissions
@@ -138,7 +138,7 @@ function PermissionPanel({ projectId, status, mutation }: { projectId: string; s
 function ConnectionPanel({ projectId, status, mutation }: { projectId: string; status: Status; mutation: Mutation }) {
   const { connection } = status
   return (
-    <section className="space-y-3 rounded-lg border bg-card/40 p-5" aria-labelledby="connection-mode-heading">
+    <section className="space-y-3 rounded-xl border bg-card p-4" aria-labelledby="connection-mode-heading">
       <div>
         <h2 className="font-semibold" id="connection-mode-heading">
           Agent connection
@@ -190,7 +190,7 @@ function NotificationsPanel({ status }: { status: Status }) {
   if (!actionable.length) return null
   return (
     <section
-      className="rounded-lg border border-warning-border bg-warning-surface p-5"
+      className="rounded-xl border border-warning-border bg-warning-surface p-4"
       aria-label="Actionable collaboration notifications"
     >
       <h2 className="font-semibold">Needs attention</h2>
@@ -224,7 +224,7 @@ function PreparationPanel({ projectId, mutation }: { projectId: string; mutation
       }),
     )
   return (
-    <section className="space-y-4 rounded-lg border bg-card/40 p-5" aria-labelledby="prepare-heading">
+    <section className="space-y-4 rounded-xl border bg-card p-4" aria-labelledby="prepare-heading">
       <div>
         <h2 className="font-semibold" id="prepare-heading">
           Prepare synchronization
@@ -514,7 +514,7 @@ function ActiveOperationPanel({
   mutation: Mutation
 }) {
   return (
-    <section className="space-y-3 rounded-lg border bg-card/40 p-5" aria-labelledby="active-operation-heading">
+    <section className="space-y-3 rounded-xl border bg-card p-4" aria-labelledby="active-operation-heading">
       <div>
         <h2 className="font-semibold" id="active-operation-heading">
           Active operation
@@ -552,7 +552,7 @@ export function CollaborationControls({ projectId, status }: { projectId: string
   if (!status) return <ConnectForm projectId={projectId} mutation={mutation} />
   const operation = activeOperation(status)
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <PermissionPanel projectId={projectId} status={status} mutation={mutation} />
       <ConnectionPanel projectId={projectId} status={status} mutation={mutation} />
       <NotificationsPanel status={status} />

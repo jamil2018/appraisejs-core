@@ -52,20 +52,20 @@ export const ExecutionHealthPanel = ({ featureData }: ExecutionHealthPanelProps)
   )
 
   const successRate = totals.total > 0 ? Math.round((totals.passed / totals.total) * 100) : 0
-  const hasData = featureData.length > 0
+  const hasData = totals.total > 0
 
   return (
-    <Card className="relative flex size-full min-h-[320px] flex-col overflow-hidden 2xl:min-h-[calc(100vh-8.75rem)]">
+    <Card className="relative min-w-0">
       <CardHeader className="relative px-4 pb-3 pt-4">
         <CardTitle className="text-base font-semibold text-foreground">Execution Health</CardTitle>
         <CardDescription className="text-xs leading-5 text-muted-foreground">
           Pass/fail counts by test suite across last 10 completed runs
         </CardDescription>
       </CardHeader>
-      <CardContent className="relative flex flex-1 flex-col px-4 pb-4 pt-0">
+      <CardContent className="relative px-4 pb-4 pt-0">
         {hasData ? (
-          <div className="flex flex-1 flex-col justify-between space-y-5">
-            <div className="rounded-lg border border-border bg-muted p-4">
+          <div className="space-y-4">
+            <div className="rounded-lg border border-border bg-muted p-3">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -78,7 +78,7 @@ export const ExecutionHealthPanel = ({ featureData }: ExecutionHealthPanelProps)
                 </div>
 
                 <div className="relative flex items-center justify-center">
-                  <svg className="size-14 -rotate-90">
+                  <svg aria-hidden="true" className="size-14 -rotate-90">
                     <circle cx="28" cy="28" r="22" className="stroke-white/[0.04]" strokeWidth="4" fill="transparent" />
                     <circle
                       cx="28"
@@ -92,7 +92,6 @@ export const ExecutionHealthPanel = ({ featureData }: ExecutionHealthPanelProps)
                       strokeLinecap="round"
                     />
                   </svg>
-                  <span className="absolute text-[10px] font-bold text-foreground">{successRate}%</span>
                 </div>
               </div>
 
@@ -124,13 +123,11 @@ export const ExecutionHealthPanel = ({ featureData }: ExecutionHealthPanelProps)
               </div>
             </div>
 
-            <div className="flex flex-1 flex-col justify-center">
-              <FeatureChart config={resultByTestSuiteBarChartConfig} data={featureData} />
-            </div>
+            <FeatureChart config={resultByTestSuiteBarChartConfig} data={featureData} />
           </div>
         ) : (
-          <div className="flex min-h-[250px] flex-1 flex-col items-center justify-center rounded-lg border border-dashed border-border bg-transparent p-6 text-center">
-            <PlayCircle className="mb-3 size-10 text-muted-foreground" />
+          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border p-5 text-center">
+            <PlayCircle aria-hidden="true" className="mb-2 size-6 text-muted-foreground" />
             <p className="text-sm font-semibold text-muted-foreground">No execution data available</p>
             <p className="mt-1 max-w-[240px] text-xs leading-5 text-muted-foreground">
               Execute test suites in the dashboard to populate performance metrics.

@@ -13,11 +13,11 @@ export const metadata: Metadata = {
 
 const CreateTag = () => {
   return (
-    <>
-      <div className="mb-8">
+    <div className="min-w-0 space-y-4">
+      <div className="min-w-0">
         <PageHeader>
-          <span className="flex items-center">
-            <Tag className="mr-2 size-8" />
+          <span className="flex items-center gap-2">
+            <Tag className="size-7 shrink-0 sm:size-8" />
             Create Tag
           </span>
         </PageHeader>
@@ -32,7 +32,7 @@ const CreateTag = () => {
           tagExpression: '',
         }}
       />
-    </>
+    </div>
   )
 }
 

@@ -36,6 +36,8 @@ test.describe('Runs and reports @runs', () => {
     await page.getByRole('link', { name: /View Report/ }).click()
     await expectPageHeading(page, /Test Run Report:/)
     await expect(page.getByText('Total Tests')).toBeVisible()
+    const result = page.getByRole('row', { name: /E2E seeded login works/ })
+    await expect(result.getByRole('cell', { name: '1 ms', exact: true })).toBeVisible()
   })
 
   test('create test run form loads selections without starting execution', async ({ page }) => {

@@ -106,13 +106,13 @@ export const TestSuiteForm = ({
     </p>
   )
   return (
-    <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_18rem]">
+    <div className="grid min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
       <Card className="min-w-0 border-border bg-card">
-        <CardHeader>
+        <CardHeader className="p-4">
           <CardTitle className="text-xl font-bold text-primary">Test Suite Details</CardTitle>
           <CardDescription>Enter the details for your test suite</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 pt-0">
           <TanStackForm onSubmit={() => form.handleSubmit()}>
             <form.Field
               name="name"
@@ -122,7 +122,7 @@ export const TestSuiteForm = ({
             >
               {field => {
                 return (
-                  <div className="mb-6 flex flex-col gap-2">
+                  <div className="mb-4 flex min-w-0 flex-col gap-2">
                     <Label htmlFor={field.name} className="font-bold">
                       Name
                     </Label>
@@ -142,7 +142,7 @@ export const TestSuiteForm = ({
             <form.Field name="description">
               {field => {
                 return (
-                  <div className="mb-6 flex flex-col gap-2">
+                  <div className="mb-4 flex min-w-0 flex-col gap-2">
                     <Label htmlFor={field.name} className="font-bold">
                       Description
                     </Label>
@@ -162,7 +162,7 @@ export const TestSuiteForm = ({
             <form.Field name="testCases">
               {field => {
                 return (
-                  <div className="mb-6 flex flex-col gap-2">
+                  <div className="mb-4 flex min-w-0 flex-col gap-2">
                     <Label htmlFor={field.name} className="font-bold">
                       Test Cases
                     </Label>
@@ -183,7 +183,7 @@ export const TestSuiteForm = ({
             <form.Field name="moduleId">
               {field => {
                 return (
-                  <div className="mb-6 flex flex-col gap-2">
+                  <div className="mb-4 flex min-w-0 flex-col gap-2">
                     <Label htmlFor={field.name} className="font-bold">
                       Module
                     </Label>
@@ -211,7 +211,7 @@ export const TestSuiteForm = ({
             <form.Field name="tagIds">
               {field => {
                 return (
-                  <div className="mb-6 flex flex-col gap-2">
+                  <div className="mb-4 flex min-w-0 flex-col gap-2">
                     <Label htmlFor={field.name} className="font-bold">
                       Tags
                     </Label>
@@ -242,21 +242,21 @@ export const TestSuiteForm = ({
           </TanStackForm>
         </CardContent>
       </Card>
-      <aside className="xl:sticky xl:top-5">
+      <aside className="min-w-0 xl:sticky xl:top-4">
         <Card className="border-border bg-card">
-          <CardHeader className="mb-2">
+          <CardHeader className="p-4">
             <CardTitle className="flex items-center gap-2 text-xl text-primary">
               <Info className="size-5" />
               <span className="font-bold">Quick Tips</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col gap-6">
+          <CardContent className="flex flex-col gap-4 p-4 pt-0">
             {testSuiteQuickTips.map((tip, index) => (
-              <div key={tip.title} className="flex items-start gap-4">
-                <span className="flex size-6 items-center justify-center rounded-full bg-success/10 text-success">
+              <div key={tip.title} className="flex items-start gap-3">
+                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-success/10 text-success">
                   {index + 1}
                 </span>
-                <div className="flex flex-col gap-1">
+                <div className="flex min-w-0 flex-col gap-1">
                   <span className="text-base font-bold">{tip.title}</span>
                   <span className="text-sm text-muted-foreground">{tip.description}</span>
                 </div>

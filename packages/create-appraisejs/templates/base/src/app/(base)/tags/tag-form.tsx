@@ -77,7 +77,7 @@ const TagForm = ({
   })
   return (
     <TanStackForm
-      className="app-surface w-full max-w-2xl rounded-xl border border-border bg-card p-6"
+      className="app-surface grid w-full min-w-0 gap-4 rounded-xl border border-border bg-card p-4 lg:grid-cols-2"
       onSubmit={() => form.handleSubmit()}
     >
       <form.Field
@@ -86,7 +86,7 @@ const TagForm = ({
           onChange: tagFieldValidators.name,
         }}
       >
-        {field => <TextFormField field={field} label="Name" className="mb-4 flex w-full flex-col gap-2" />}
+        {field => <TextFormField field={field} label="Name" className="flex min-w-0 flex-col gap-2" />}
       </form.Field>
       <form.Field
         name="tagExpression"
@@ -99,13 +99,15 @@ const TagForm = ({
             field={field}
             label="Tag Expression"
             placeholder="e.g. @smoke"
-            className="mb-4 flex w-full flex-col gap-2"
+            className="flex min-w-0 flex-col gap-2"
           />
         )}
       </form.Field>
-      <form.Subscribe selector={formState => [formState.canSubmit, formState.isSubmitting]}>
-        {([canSubmit, isSubmitting]) => <FormSubmitButton canSubmit={canSubmit} isSubmitting={isSubmitting} />}
-      </form.Subscribe>
+      <div className="flex border-t border-border pt-4 lg:col-span-2">
+        <form.Subscribe selector={formState => [formState.canSubmit, formState.isSubmitting]}>
+          {([canSubmit, isSubmitting]) => <FormSubmitButton canSubmit={canSubmit} isSubmitting={isSubmitting} />}
+        </form.Subscribe>
+      </div>
     </TanStackForm>
   )
 }

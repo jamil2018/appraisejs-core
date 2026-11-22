@@ -60,6 +60,14 @@ const testRunTestCaseResultToBadge = (result: TestRunTestCaseResult) => {
   }
 }
 
+function parseDurationMs(duration: string) {
+  const match = duration.trim().match(/^(\d+(?:\.\d+)?)(ms)?$/)
+  if (!match) return undefined
+  const value = Number(match[1])
+  if (!Number.isFinite(value)) return undefined
+  return match[2] ? value : value / 1_000_000
+}
+
 export const reportViewTableCols: ColumnDef<ReportTestCaseWithRelations>[] = [
   {
     id: 'result',
@@ -88,13 +96,13 @@ export const reportViewTableCols: ColumnDef<ReportTestCaseWithRelations>[] = [
   },
   {
     id: 'duration',
-    accessorFn: row => (row.duration ? Number(row.duration) : 0),
+    accessorFn: row => parseDurationMs(row.duration),
     header: ({ column }) => <DataTableColumnHeader column={column} title="Duration" />,
-    cell: ({ row }) => {
-      if (!row.original.duration) return <div>-</div>
-      const durationMs = Math.round(Number(row.original.duration) / 1000000)
-      const durationSeconds = (durationMs / 1000).toFixed(2)
-      return <div>{durationSeconds}s</div>
+    cell: ({ getValue }) => {
+      const durationMs = getValue<number | undefined>()
+      if (durationMs === undefined) return <span className="text-muted-foreground">Unavailable</span>
+      const duration = durationMs < 1000 ? `${Number(durationMs.toFixed(2))} ms` : `${(durationMs / 1000).toFixed(2)} s`
+      return <span className="tabular-nums">{duration}</span>
     },
   },
   {

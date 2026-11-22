@@ -1,5 +1,4 @@
 import PageHeader from '@/components/typography/page-header'
-import { Separator } from '@/components/ui/separator'
 import { BrowserEngine } from '@prisma/client'
 import { Calendar, ChartLine, Clock, Info } from 'lucide-react'
 import { Metadata } from 'next'
@@ -67,12 +66,12 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
   const durationData = getDurationData(report)
 
   return (
-    <>
-      <div>
+    <div className="flex min-w-0 flex-col gap-4">
+      <div className="min-w-0">
         <div className="mb-2 w-fit">
           <TestRunResultBadge result={testRun.result} className="text-sm" />
         </div>
-        <PageHeader className="mb-2 text-4xl">
+        <PageHeader className="mb-2 break-words">
           <div>
             <span>Test Run Report: </span>
             <span>{report.testRun.name}</span>
@@ -93,23 +92,22 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
           )}
         </div>
       </div>
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <ReportMetricCard title="Total Tests" value={totalTests.toString()} />
         <ReportMetricCard title="Passed" value={passedTests.toString()} />
         <ReportMetricCard title="Failed" value={failedTests.toString()} />
         <ReportMetricCard title="Untested" value={untestedTests.toString()} />
       </div>
-      <Separator className="my-4 bg-muted" />
-      <div className="grid gap-5 xl:grid-cols-2">
+      <div className="grid gap-4 xl:grid-cols-2">
         <Card className="min-w-0 border-border bg-card shadow-none">
-          <CardHeader className="flex-shrink-0">
+          <CardHeader className="shrink-0 p-4">
             <div className="flex items-center gap-2">
               <Info className="size-6" />
               <CardTitle className="text-lg font-semibold">Configuration</CardTitle>
             </div>
           </CardHeader>
-          <CardContent>
-            <dl className="space-y-3 text-sm text-muted-foreground">
+          <CardContent className="p-4 pt-0">
+            <dl className="flex flex-col gap-3 text-sm text-muted-foreground">
               {[
                 ['Environment Name', testRun.environment.name],
                 ['Environment Base URL', testRun.environment.baseUrl],
@@ -138,13 +136,13 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
           </CardContent>
         </Card>
         <Card className="flex min-w-0 flex-col border-border bg-card shadow-none">
-          <CardHeader className="flex-shrink-0">
+          <CardHeader className="shrink-0 p-4">
             <div className="flex items-center gap-2">
               <ChartLine className="size-6" />
               <CardTitle className="text-lg font-semibold">Visualizations</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="flex min-h-[20rem] flex-1 flex-col overflow-hidden">
+          <CardContent className="flex min-h-[20rem] flex-1 flex-col overflow-hidden p-4 pt-0">
             <Tabs defaultValue="overview" className="flex min-w-0 flex-1 flex-col overflow-hidden">
               <TabsList className="grid w-full grid-cols-3 bg-secondary p-1">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -164,9 +162,8 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
           </CardContent>
         </Card>
       </div>
-      <Separator className="my-4 bg-muted" />
       <ReportViewTable report={report} />
-    </>
+    </div>
   )
 }
 

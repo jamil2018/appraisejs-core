@@ -29,7 +29,7 @@ const CreateTestRun = async () => {
 
   return (
     <>
-      <div className="mb-8">
+      <div className="mb-4">
         <PageHeader>Create Test Run</PageHeader>
         <HeaderSubtitle>Create a new test run to execute selected suites or tagged tests</HeaderSubtitle>
       </div>
