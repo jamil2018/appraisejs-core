@@ -66,6 +66,8 @@ labeled status and chart data.
 - Compose forms as responsive content-and-guidance grids. Use full-width primary cards with a deliberate max-width or
   grid track, and keep optional guidance secondary or below the primary task on narrow screens. Do not use
   `overflow-x-hidden` to conceal a form layout problem.
+- Align the Journey brief and detail panels to the app content edges. Keep explanatory prose readable within the
+  panel and use compact padding and spacing around the current action.
 - Selects, multi-selects, Browse controls, and popovers should share compact control height, quiet borders, muted
   placeholders, visible focus outlines, and the shared overlay material. Selected values must wrap safely
   without forcing unexpected page overflow.

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
-import { expect, test } from '@playwright/test'
+import { expect, test, type Locator } from '@playwright/test'
 import prisma from '../src/config/db-config'
 import { createTargetProjectFixture } from '../src/test/migrated-test-database'
 import { hashQualityJourneyExecutionValue as hash } from '../src/lib/quality-journey'
@@ -19,6 +19,25 @@ async function projectFixture() {
   return targetProjectId
 }
 
+async function expectToFillWorkspace(panel: Locator) {
+  await expect(panel).toBeVisible()
+  await expect
+    .poll(() =>
+      panel.evaluate(element => {
+        const workspace = element.closest('#main-content')
+        if (!workspace) throw new Error('The Journey is outside the app content area.')
+        const style = getComputedStyle(workspace)
+        const bounds = workspace.getBoundingClientRect()
+        const panelBounds = element.getBoundingClientRect()
+        return Math.max(
+          Math.abs(panelBounds.left - (bounds.left + parseFloat(style.paddingLeft))),
+          Math.abs(panelBounds.right - (bounds.right - parseFloat(style.paddingRight))),
+        )
+      }),
+    )
+    .toBeLessThan(2)
+}
+
 test('Journey starts from one autosaved brief using keyboard at a narrow viewport @smoke', async ({
   page,
   context,
@@ -32,10 +51,12 @@ test('Journey starts from one autosaved brief using keyboard at a narrow viewpor
   page.on('requestfailed', request => {
     if (request.failure()?.errorText !== 'net::ERR_ABORTED') failures.push(request.url())
   })
-  await page.setViewportSize({ width: 320, height: 900 })
+  await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto(`/quality-journeys/new?project=${targetProjectId}`)
   await expect(page.getByRole('textbox')).toHaveCount(1)
   const brief = page.getByRole('textbox', { name: 'What do you want to validate?' })
+  await expectToFillWorkspace(page.locator('form').filter({ has: brief }))
+  await page.setViewportSize({ width: 320, height: 900 })
   await brief.fill('Check guest checkout.')
   await expect(page.getByText('Saved to this workspace', { exact: true })).toBeVisible()
   const saved = await prisma.qualityJourneyDraft.findFirstOrThrow({ where: { targetProjectId, status: 'ACTIVE' } })
@@ -224,8 +245,10 @@ test('Journey suggested answers support keyboard selection and survive refresh a
   await context.addCookies([{ name: 'appraise-active-project', value: targetProjectId, url: baseURL! }])
   const errors: string[] = []
   page.on('pageerror', error => errors.push(error.message))
-  await page.setViewportSize({ width: 320, height: 900 })
+  await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto(`/quality-journeys/${journey.journeyId}?project=${targetProjectId}`)
+  await expectToFillWorkspace(page.getByRole('region', { name: 'Current journey focus' }))
+  await page.setViewportSize({ width: 320, height: 900 })
   const currentQuestion = page.getByRole('region', { name: 'Current essential question' })
   await expect(currentQuestion).toBeVisible()
   // Both questions can share a creation timestamp. Follow the order rendered by the Journey.

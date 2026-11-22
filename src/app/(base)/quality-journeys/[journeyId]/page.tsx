@@ -344,7 +344,7 @@ function JourneyHistory({ detail, projectId, closed }: { detail: Detail; project
   const { journey, activeAnalysis, requirementSummary } = detail
   const journeyId = journey.journey.journeyId
   return (
-    <details className="border-t pt-4">
+    <details className="border-t pt-3">
       <summary className="cursor-pointer text-sm font-medium">History</summary>
       <div className="mt-4 space-y-4">
         <section>
@@ -613,23 +613,25 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
       stateHash={journey.journey.stateHash}
       version={journey.journey.version}
     >
-      <main className="mx-auto w-full max-w-4xl space-y-6 pb-10">
-        <Link
-          className="app-focus inline-flex min-h-8 items-center gap-2 rounded-md text-sm text-muted-foreground hover:text-foreground"
-          href={`/quality-journeys?project=${encodeURIComponent(project.id)}`}
-        >
-          <ArrowLeft aria-hidden="true" className="size-4" /> Quality Journeys
-        </Link>
-        <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
-          <h1 className="min-w-0 flex-[1_1_16rem] break-words text-2xl font-semibold tracking-tight sm:text-3xl">
-            {requirementSummary.split('\n')[0].slice(0, 100)}
-          </h1>
-          <JourneyRecoveryPanel
-            journeyId={journeyId}
-            status={journey.journey.status}
-            stateHash={journey.journey.stateHash}
-            version={journey.journey.version}
-          />
+      <div className="space-y-4">
+        <header className="space-y-2">
+          <Link
+            className="app-focus inline-flex min-h-8 items-center gap-2 rounded-md text-sm text-muted-foreground hover:text-foreground"
+            href={`/quality-journeys?project=${encodeURIComponent(project.id)}`}
+          >
+            <ArrowLeft aria-hidden="true" className="size-4" /> Quality Journeys
+          </Link>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <h1 className="min-w-0 flex-[1_1_12rem] break-words text-2xl font-semibold tracking-tight sm:text-3xl">
+              {requirementSummary.split('\n')[0].slice(0, 100)}
+            </h1>
+            <JourneyRecoveryPanel
+              journeyId={journeyId}
+              status={journey.journey.status}
+              stateHash={journey.journey.stateHash}
+              version={journey.journey.version}
+            />
+          </div>
         </header>
         <JourneyStages stage={stage} />
         {managedActive ? (
@@ -639,8 +641,8 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
             discoveryCaptureStatus={detail.discoveryCaptureStatus}
           />
         ) : null}
-        <section className="space-y-4" aria-label="Current journey focus">
-          <div className={showAgentSetup ? 'space-y-3 rounded-xl border border-border bg-card p-4 sm:p-6' : undefined}>
+        <section className="space-y-3" aria-label="Current journey focus">
+          <div className={showAgentSetup ? 'space-y-2 rounded-xl border border-border bg-card p-4' : undefined}>
             <JourneyActivity
               stage={stage}
               status={journey.journey.status}
@@ -688,7 +690,7 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
           ) : null}
         </section>
         <JourneyHistory detail={detail} projectId={project.id} closed={presentation.hasClosureReceipt} />
-      </main>
+      </div>
     </JourneyStatusObservationProvider>
   )
 }

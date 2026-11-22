@@ -54,7 +54,7 @@ function RecordedAnswer({ answer }: { answer: AnalysisQuestion['answers'][number
   if (!answer) return null
 
   return (
-    <div className="mt-3 rounded-lg border border-success-border bg-success-surface p-3 text-sm">
+    <div className="rounded-lg border border-success-border bg-success-surface p-3 text-sm">
       <p>{answer.answer}</p>
     </div>
   )
@@ -72,12 +72,13 @@ function AnswerForm({
   latest: AnalysisQuestion['answers'][number] | undefined
 }) {
   return (
-    <div className="mt-4 space-y-3">
+    <div className="space-y-2">
       {question.suggestedAnswers?.length ? (
         <div className="flex flex-wrap gap-2" role="group" aria-label={`Suggested answers for ${question.prompt}`}>
           {question.suggestedAnswers.map((suggestion, index) => (
             <Button
               key={suggestion}
+              className="h-auto min-h-9 min-w-0 max-w-full flex-auto whitespace-normal text-left [overflow-wrap:anywhere] sm:flex-none"
               type="button"
               variant={answer === suggestion ? 'secondary' : 'outline'}
               disabled={isPending}
@@ -96,15 +97,16 @@ function AnswerForm({
           <span className="sr-only">: {question.prompt}</span>
         </Label>
         <Textarea
+          className="min-h-20"
           id={`analysis-answer-${question.id}`}
           onChange={event => onAnswerChange(question.questionId, event.target.value)}
           placeholder="Write your answer"
-          rows={3}
+          rows={2}
           value={answer}
         />
       </div>
       <Button
-        className="w-full sm:w-auto"
+        className="w-full sm:ml-auto sm:flex sm:w-auto"
         disabled={isPending || !answer.trim() || answer.trim() === latest?.answer.trim()}
         onClick={() => onRecordAnswer(question)}
         type="button"
@@ -133,11 +135,11 @@ function AnalysisQuestionItem({
     <li className="rounded-lg border border-border bg-secondary">
       <details className="p-4" open={open}>
         <summary className="cursor-pointer pr-3 text-sm font-medium">{question.prompt}</summary>
-        <div className="mt-4">
+        <div className="mt-3 space-y-3">
           <QuestionStatus question={question} unresolved={unresolved} />
           <RecordedAnswer answer={latest} />
           {question.answers.length > 1 ? (
-            <details className="mt-3 text-sm text-muted-foreground">
+            <details className="text-sm text-muted-foreground">
               <summary className="cursor-pointer">Earlier answers ({question.answers.length - 1})</summary>
               <ol className="mt-2 space-y-2">
                 {question.answers.slice(0, -1).map(answer => (
@@ -191,19 +193,19 @@ export function AnalysisQuestionList({
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="p-4 pb-2">
         <CardTitle className="flex items-start gap-2.5 text-lg leading-snug">
           <MessageSquareMore aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
-          <h2 className="app-focus min-w-0 rounded-md" tabIndex={-1}>
+          <h2 className="app-focus min-w-0 break-words rounded-md" tabIndex={-1}>
             {requiredOpen[0]?.prompt ?? 'Your answers'}
           </h2>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3 p-4 pt-0">
         {requiredOpen.length ? (
           <section aria-label="Current essential question" className="space-y-3">
             {requiredOpen[0]!.rationale ? (
-              <p className="text-sm text-muted-foreground">{requiredOpen[0]!.rationale}</p>
+              <p className="max-w-prose text-sm text-muted-foreground">{requiredOpen[0]!.rationale}</p>
             ) : null}
             {canAnswer ? (
               <AnswerForm

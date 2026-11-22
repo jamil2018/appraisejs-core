@@ -87,8 +87,8 @@ export function QualityJourneyCreateForm({
       </section>
     )
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <header className="space-y-3">
+    <div className="space-y-4">
+      <header className="space-y-2">
         <Link
           className="app-focus inline-flex min-h-8 items-center gap-2 rounded-md text-sm text-muted-foreground hover:text-foreground"
           href={`/quality-journeys?project=${encodeURIComponent(projectId)}`}
@@ -114,7 +114,7 @@ export function QualityJourneyCreateForm({
         ) : null}
       </header>
       <form
-        className="space-y-4 rounded-xl border border-border bg-card p-4 sm:p-6"
+        className="space-y-3 rounded-xl border border-border bg-card p-4"
         onSubmit={event => {
           event.preventDefault()
           actions.submit()
@@ -144,7 +144,7 @@ export function QualityJourneyCreateForm({
             {state.error}
           </p>
         ) : null}
-        <div className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-2 border-t border-border pt-3 sm:flex-row sm:items-center sm:justify-between">
           <DraftSaveStatus
             onRetry={() => void actions.enqueueSave()}
             onSaveAsNewDraft={actions.saveAsNewDraft}

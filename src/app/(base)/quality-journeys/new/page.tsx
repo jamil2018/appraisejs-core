@@ -11,9 +11,5 @@ export default async function NewQualityJourneyPage({
 }) {
   const params = await searchParams
   const project = await requireActiveProject(params?.project)
-  return (
-    <main className="mx-auto max-w-5xl pb-10">
-      <QualityJourneyCreateForm predecessorJourneyId={params?.predecessor} projectId={project.id} />
-    </main>
-  )
+  return <QualityJourneyCreateForm predecessorJourneyId={params?.predecessor} projectId={project.id} />
 }
