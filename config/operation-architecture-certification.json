@@ -42,7 +42,7 @@
       },
       {
         "suite": "src/components/diagram/flow-diagram.test.tsx",
-        "sourceHash": "sha256:270e2aaede8823757960abc83cae510bf2832da4199e8cd6da43b3c8d91ec83d"
+        "sourceHash": "sha256:36e8dd87c3c50e3f7c6bdb334b0f6c2ce9e54967a6bc7ca8413b9ad0afc210f6"
       }
     ],
     "scenarios": [
@@ -65,5 +65,5 @@
       "^packages\\/create-appraisejs\\/templates\\/base\\/scripts\\/certify-operation-architecture\\.ts$"
     ]
   },
-  "receiptHash": "sha256:a0c970bf20e495f08d8796bca2e680670d0c0925d87adab18de6b29edc4b5bef"
+  "receiptHash": "sha256:534fa86e3ec9f66f8f477e5a1702a54ede610c0708200d0d378bc93a92463ff2"
 }
