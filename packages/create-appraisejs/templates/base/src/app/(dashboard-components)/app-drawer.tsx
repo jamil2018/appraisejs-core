@@ -17,6 +17,19 @@ type AppDrawerItemConfig = {
   onClick: () => void
 }
 
+const attentionTone = {
+  danger: {
+    text: 'text-danger',
+    surface:
+      'data-[state=actionable]:border-danger-border data-[state=actionable]:bg-danger-surface enabled:hover:border-danger',
+  },
+  warning: {
+    text: 'text-warning',
+    surface:
+      'data-[state=actionable]:border-warning-border data-[state=actionable]:bg-warning-surface enabled:hover:border-warning',
+  },
+}
+
 const AppDrawerItem = ({
   item,
   hasExecutionEvidence,
@@ -26,7 +39,7 @@ const AppDrawerItem = ({
 }) => {
   const isHealthy = item.count === 0
   const emptyEvidence = isHealthy && !hasExecutionEvidence
-  const attentionClass = item.tone === 'danger' ? 'text-danger' : 'text-warning'
+  const tone = attentionTone[item.tone]
 
   return (
     <button
@@ -35,18 +48,21 @@ const AppDrawerItem = ({
       data-state={isHealthy ? 'disabled' : 'actionable'}
       aria-label={`${item.title}: ${item.count}. ${emptyEvidence ? 'No completed-run evidence yet' : isHealthy ? item.healthyDescription : item.description}`}
       type="button"
-      className="app-focus flex min-h-20 w-full min-w-0 flex-col justify-between gap-2 rounded-lg border bg-field p-2.5 text-left transition-colors enabled:hover:bg-accent disabled:cursor-not-allowed"
+      className={cn(
+        'app-focus group flex min-h-20 w-full min-w-0 flex-col justify-between gap-2 rounded-lg border bg-field p-2.5 text-left transition-colors disabled:cursor-not-allowed',
+        tone.surface,
+      )}
     >
-      <span className="flex items-center justify-between gap-2 text-xs font-medium text-muted-foreground">
+      <span className="flex items-center justify-between gap-2 text-xs font-medium text-muted-foreground group-data-[state=actionable]:text-foreground">
         {item.title}
         {isHealthy && !emptyEvidence ? (
           <CheckCircle2 className="size-4 shrink-0" aria-hidden />
         ) : (
-          <span className={cn('flex shrink-0', !isHealthy && attentionClass)}>{item.icon}</span>
+          <span className={cn('flex shrink-0', !isHealthy && tone.text)}>{item.icon}</span>
         )}
       </span>
       <span className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-        <span className={cn('text-2xl font-semibold tabular-nums', isHealthy ? 'text-foreground' : attentionClass)}>
+        <span className={cn('text-2xl font-semibold tabular-nums', isHealthy ? 'text-foreground' : tone.text)}>
           {item.count}
         </span>
         {isHealthy ? (

@@ -43,10 +43,10 @@ These rules are the working baseline for Appraise UI refactors.
 
 AppraiseJS uses a dark graphite palette. The Journey brief, a populated Test Cases table, and a Run Report are the
 reference screens for form, table, and report density. Use shared semantic tokens for solid canvas, panels, fields,
-borders, text, focus, and interaction states. Use the light primary fill for the main action. Use blue to orient users in navigation,
-keyboard focus, selection, and active or informational states. Reserve green for confirmed success, amber for
-attention or decisions, and red for failures and destructive actions. Use distinct chart colors with readable data
-labels or summaries.
+borders, text, focus, and interaction states. Use a saturated blue fill with dark text for the main action. Use blue markers for navigation,
+keyboard focus, selection, and active or informational states. Use vivid emerald for confirmed success, amber for
+attention or decisions, and coral red for failures and destructive actions. Use solid tinted fills on actionable
+warnings and failures. Use distinct chart colors with readable data labels or summaries.
 
 - Use `app-glass` for the navigation shell and raised overlays. It owns the translucent fill, edge highlight, and
   backdrop blur, with an opaque fallback for increased contrast, reduced transparency, forced colors, and browsers without

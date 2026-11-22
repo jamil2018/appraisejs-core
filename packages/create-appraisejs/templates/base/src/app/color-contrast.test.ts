@@ -42,6 +42,7 @@ describe('graphite palette contrast', () => {
       const surface = color(`${tone}-surface`)
       const border = color(`${tone}-border`)
       expect(contrast(color(tone), surface)).toBeGreaterThanOrEqual(4.5)
+      expect(contrast(color(tone), color('accent'))).toBeGreaterThanOrEqual(4.5)
       expect(contrast(border, surface)).toBeGreaterThanOrEqual(3)
       expect(contrast(border, color('popover'))).toBeGreaterThanOrEqual(3)
     },
@@ -60,6 +61,8 @@ describe('graphite palette contrast', () => {
     const glassOverWhite = color('popover').map(channel => channel * glassOpacity + 255 * (1 - glassOpacity))
 
     expect(contrast(color('primary-foreground'), color('primary'))).toBeGreaterThanOrEqual(4.5)
+    expect(contrast(color('primary-foreground'), color('selection'))).toBeGreaterThanOrEqual(4.5)
+    expect(contrast(color('primary'), color('accent'))).toBeGreaterThanOrEqual(4.5)
     expect(contrast(color('muted-foreground'), glassOverWhite)).toBeGreaterThanOrEqual(4.5)
   })
 })

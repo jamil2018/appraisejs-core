@@ -9,7 +9,7 @@
     --foreground-rgb: 242 242 242;
     --card-rgb: 32 32 32;
     --popover-rgb: 41 41 41;
-    --primary-rgb: 242 242 242;
+    --primary-rgb: 90 167 255;
     --primary-foreground-rgb: 24 24 24;
     --secondary-rgb: 51 51 51;
     --secondary-foreground-rgb: 196 196 196;
@@ -17,32 +17,32 @@
     --muted-foreground-rgb: 180 180 180;
     --accent-rgb: 58 58 58;
     --accent-foreground-rgb: 242 242 242;
-    --destructive-rgb: 255 170 173;
+    --destructive-rgb: 255 126 135;
     --destructive-foreground-rgb: 36 23 23;
     --border-rgb: 61 61 61;
     --input-rgb: 130 130 130;
     --field-rgb: 34 34 34;
-    --ring-rgb: 156 197 255;
-    --success-rgb: 149 219 174;
-    --success-surface-rgb: 32 60 45;
-    --success-border-rgb: 101 170 126;
-    --warning-rgb: 242 203 128;
-    --warning-surface-rgb: 64 49 29;
-    --warning-border-rgb: 189 150 85;
-    --danger-rgb: 255 170 173;
-    --danger-surface-rgb: 72 40 45;
-    --danger-border-rgb: 201 121 128;
-    --info-rgb: 169 210 255;
-    --info-surface-rgb: 34 51 68;
-    --info-border-rgb: 120 164 212;
-    --selection-rgb: 186 216 255;
-    --selection-surface-rgb: 38 58 81;
-    --selection-border-rgb: 120 159 204;
-    --chart-1: #aac4b1;
-    --chart-2: #a8bfd9;
-    --chart-3: #d9be95;
-    --chart-4: #d2a8af;
-    --chart-5: #bdb1cf;
+    --ring-rgb: 116 189 255;
+    --success-rgb: 55 224 148;
+    --success-surface-rgb: 16 47 35;
+    --success-border-rgb: 38 171 113;
+    --warning-rgb: 255 194 79;
+    --warning-surface-rgb: 69 43 9;
+    --warning-border-rgb: 216 148 43;
+    --danger-rgb: 255 126 135;
+    --danger-surface-rgb: 78 30 45;
+    --danger-border-rgb: 228 91 107;
+    --info-rgb: 108 186 255;
+    --info-surface-rgb: 20 46 73;
+    --info-border-rgb: 68 143 223;
+    --selection-rgb: 150 204 255;
+    --selection-surface-rgb: 23 61 112;
+    --selection-border-rgb: 80 156 254;
+    --chart-1: #37e094;
+    --chart-2: #5aa7ff;
+    --chart-3: #ffc24f;
+    --chart-4: #ff7e87;
+    --chart-5: #b794fa;
     --background: rgb(var(--background-rgb));
     --foreground: rgb(var(--foreground-rgb));
     --card: rgb(var(--card-rgb));
@@ -105,7 +105,7 @@
 
   .app-nav-item[aria-current='page']::before {
     content: '';
-    @apply absolute inset-y-2 left-0 rounded-full border-l-2 border-selection;
+    @apply absolute inset-y-2 left-0 rounded-full border-l-2 border-primary;
   }
 
   .app-nav-item[aria-current='page'] > svg {
