@@ -5,6 +5,67 @@ import { ServiceError } from '@/services/shared/errors'
 
 type JsonRecord = Record<string, string>
 
+export type JourneyNavigationItem = {
+  id: string
+  kind: 'journey' | 'draft'
+  title: string
+  updatedAt: number
+  status: string
+}
+
+export async function listRecentJourneyNavigation(projectIds: string[]) {
+  if (!projectIds.length) return {}
+
+  const orderBy = [{ updatedAt: 'desc' }, { id: 'asc' }] satisfies Prisma.QualityJourneyOrderByWithRelationInput[]
+  const projects = await prisma.targetProject.findMany({
+    where: { id: { in: projectIds } },
+    select: {
+      id: true,
+      qualityJourneys: {
+        orderBy,
+        take: 20,
+        select: {
+          id: true,
+          updatedAt: true,
+          status: true,
+          stage: true,
+          revisions: {
+            orderBy: { revision: 'asc' },
+            take: 1,
+            select: { contentJson: true },
+          },
+        },
+      },
+      qualityJourneyDrafts: {
+        where: { status: 'ACTIVE' },
+        orderBy,
+        take: 20,
+        select: { id: true, updatedAt: true, requirementJson: true },
+      },
+    },
+  })
+
+  return Object.fromEntries(
+    projects.map(project => {
+      const journeys: JourneyNavigationItem[] = project.qualityJourneys.map(journey => ({
+        id: journey.id,
+        kind: 'journey',
+        title: requirementSummary(journey.revisions[0]?.contentJson ?? '', 'Untitled Journey'),
+        updatedAt: journey.updatedAt.getTime(),
+        status: journey.status === 'ACTIVE' ? journey.stage : journey.status,
+      }))
+      const drafts: JourneyNavigationItem[] = project.qualityJourneyDrafts.map(draft => ({
+        id: draft.id,
+        kind: 'draft',
+        title: requirementSummary(draft.requirementJson, 'Untitled brief'),
+        updatedAt: draft.updatedAt.getTime(),
+        status: 'DRAFT',
+      }))
+      return [project.id, [...journeys, ...drafts].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 20)]
+    }),
+  )
+}
+
 function json(value: string): unknown {
   try {
     return JSON.parse(value)
@@ -28,9 +89,9 @@ function stringArray(value: string): string[] {
   return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : []
 }
 
-function requirementSummary(value: string) {
+function requirementSummary(value: string, fallback = 'Requirement snapshot unavailable') {
   const objective = object(json(value))?.objective
-  return typeof objective === 'string' && objective.trim() ? objective : 'Requirement snapshot unavailable'
+  return typeof objective === 'string' && objective.trim() ? objective : fallback
 }
 
 export type QualityJourneyStatusSnapshot = {

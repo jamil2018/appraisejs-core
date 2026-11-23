@@ -10,7 +10,7 @@ function clearPollingInterval(pollingRef: React.RefObject<NodeJS.Timeout | null>
   }
 }
 
-export function useRunningTestRunsCount(initialCount: number) {
+export function useRunningTestRunsCount(initialCount: number, projectId: string) {
   const [count, setCount] = useState(initialCount)
   const pollingRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -23,7 +23,7 @@ export function useRunningTestRunsCount(initialCount: number) {
 
     pollingRef.current = setInterval(async () => {
       try {
-        const { data, error } = await getRunningTestRunsCountAction()
+        const { data, error } = await getRunningTestRunsCountAction(projectId)
         if (error) {
           console.error('Error polling running test runs count:', error)
           return
@@ -41,7 +41,7 @@ export function useRunningTestRunsCount(initialCount: number) {
     }, 2000)
 
     return () => clearPollingInterval(pollingRef)
-  }, [count])
+  }, [count, projectId])
 
   return count
 }

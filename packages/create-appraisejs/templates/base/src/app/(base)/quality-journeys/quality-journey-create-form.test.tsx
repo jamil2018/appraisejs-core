@@ -51,7 +51,7 @@ describe('QualityJourneyCreateForm', () => {
     mocks.confirmDraft.mockResolvedValue({ success: true, data: { journeyId: 'journey-1' } })
     const user = userEvent.setup()
     render(<QualityJourneyCreateForm projectId="project one" />)
-    expect(screen.getByRole('heading', { level: 1, name: 'Start a Quality Journey' })).toBeVisible()
+    expect(screen.getByRole('heading', { level: 1, name: 'What would you like to check?' })).toBeVisible()
     expect(screen.getAllByRole('textbox')).toHaveLength(1)
     expect(screen.getByRole('button', { name: 'Start journey' })).toBeDisabled()
     await user.type(screen.getByLabelText('What do you want to validate?'), 'A shopper can submit an order.')

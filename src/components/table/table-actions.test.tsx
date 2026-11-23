@@ -44,11 +44,9 @@ describe('TableActions', () => {
 
     const checkoutMenu = within(screen.getByRole('row', { name: /Checkout flow/ })).getByRole('button', {
       name: 'Actions for Checkout flow',
-      exact: true,
     })
     const loginMenu = within(screen.getByRole('row', { name: /Login flow/ })).getByRole('button', {
       name: 'Actions for Login flow',
-      exact: true,
     })
 
     await user.tab()
@@ -56,9 +54,9 @@ describe('TableActions', () => {
     await user.tab()
     expect(loginMenu).toHaveFocus()
     await user.keyboard('{Enter}')
-    expect(await screen.findByRole('menuitem', { name: 'Edit', exact: true })).toHaveFocus()
+    expect(await screen.findByRole('menuitem', { name: 'Edit' })).toHaveFocus()
     await user.keyboard('{ArrowDown}')
-    expect(screen.getByRole('menuitem', { name: 'Delete', exact: true })).toHaveFocus()
+    expect(screen.getByRole('menuitem', { name: 'Delete' })).toHaveFocus()
     await user.keyboard('{Escape}')
     await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument())
     expect(loginMenu).toHaveFocus()
@@ -73,7 +71,7 @@ describe('TableActions', () => {
 
     render(<TableActions rowName="Checkout flow" deleteHandler={deleteHandler} />)
 
-    await user.click(screen.getByRole('button', { name: 'Actions for Checkout flow', exact: true }))
+    await user.click(screen.getByRole('button', { name: 'Actions for Checkout flow' }))
     await user.click(await screen.findByRole('menuitem', { name: 'Delete' }))
     await user.click(screen.getByRole('button', { name: /^delete$/i }))
 
@@ -87,7 +85,7 @@ describe('TableActions', () => {
 
     expect(document.body.style.pointerEvents).not.toBe('none')
 
-    await user.click(screen.getByRole('button', { name: 'Actions for Checkout flow', exact: true }))
+    await user.click(screen.getByRole('button', { name: 'Actions for Checkout flow' }))
     expect(await screen.findByText('Actions')).toBeInTheDocument()
   })
 })

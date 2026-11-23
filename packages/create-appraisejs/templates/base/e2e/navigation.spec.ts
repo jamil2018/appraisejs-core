@@ -15,7 +15,8 @@ test.describe('Navigation @navigation', () => {
   })
 
   const listRoutes: RouteExpectation[] = [
-    { path: '/', heading: 'Dashboard' },
+    { path: '/', heading: 'What would you like to check?' },
+    { path: '/dashboard', heading: 'Dashboard' },
     { path: '/quality-journeys', heading: 'Quality Journeys' },
     { path: '/collaboration', heading: 'Repository collaboration' },
     { path: '/settings', heading: 'Settings' },
@@ -52,9 +53,31 @@ test.describe('Navigation @navigation', () => {
     await visitRoutes(page, [...listRoutes, ...createRoutes])
   })
 
+  test('home opens the project brief and Workspace opens the metrics dashboard', async ({ page }) => {
+    await page.goto(`/?project=${seededIds.targetProject}`)
+    await expectPageHeading(page, 'What would you like to check?')
+    await expect(page).toHaveURL(/\/quality-journeys\/new\?project=/)
+
+    const areas = page.getByRole('navigation', { name: 'App sections' })
+    await expect(areas.getByRole('link', { name: 'Chats' })).toHaveAttribute('aria-current', 'true')
+    const search = page.getByRole('button', { name: 'Search recent Journeys' })
+    await search.click()
+    const input = page.getByRole('searchbox', { name: 'Filter recent Journeys' })
+    await expect(input).toBeFocused()
+    await input.fill('missing brief')
+    await expect(page.getByText('No recent Journeys found.')).toBeVisible()
+    await input.press('Escape')
+    await expect(search).toBeFocused()
+
+    await areas.getByRole('link', { name: 'Workspace' }).click()
+    await expectPageHeading(page, 'Dashboard')
+    await expect(areas.getByRole('link', { name: 'Workspace' })).toHaveAttribute('aria-current', 'true')
+    await expect(page.getByRole('link', { name: 'Test Cases', exact: true })).toBeVisible()
+  })
+
   test('workspace screens fill wide displays and contain overflow on narrow screens', async ({ page }) => {
     const screens = [
-      { path: '/', heading: 'Dashboard' },
+      { path: '/dashboard', heading: 'Dashboard' },
       { path: '/test-cases', heading: 'Test Cases' },
       { path: '/test-suites/create', heading: 'Create Test Suite' },
       { path: '/environments/create', heading: 'Create Environment' },
@@ -183,7 +206,7 @@ test.describe('Navigation @navigation', () => {
   })
 
   test('dashboard attention needed links navigate to filtered report pages', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/dashboard')
     await expectPageHeading(page, 'Dashboard')
 
     await page.getByRole('button', { name: 'Failed Runs' }).click()
@@ -191,24 +214,24 @@ test.describe('Navigation @navigation', () => {
     await expectPageHeading(page, 'Test Runs')
     await expect(page.getByText('E2E Failed Run', { exact: true }).first()).toBeVisible()
 
-    await page.goto('/')
+    await page.goto('/dashboard')
     await page.getByRole('button', { name: 'Failing Tests' }).click()
     await expect(page).toHaveURL(/\/reports\/test-cases\?filter=repeatedlyFailing/)
     await expectPageHeading(page, 'Failing Test Cases Report')
 
-    await page.goto('/')
+    await page.goto('/dashboard')
     await page.getByRole('button', { name: 'Flaky Tests' }).click()
     await expect(page).toHaveURL(/\/reports\/test-cases\?filter=flaky/)
     await expectPageHeading(page, 'Failing Test Cases Report')
 
-    await page.goto('/')
+    await page.goto('/dashboard')
     await page.getByRole('button', { name: 'Unexecuted Suites' }).click()
     await expect(page).toHaveURL(/\/reports\/test-suites\?filter=notExecutedRecently/)
     await expectPageHeading(page, 'Test Suites Report')
   })
 
   test('client navigation remounts route content while preserving navigation', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/dashboard')
     await expectPageHeading(page, 'Dashboard')
     await expect(page.locator('[data-page-transition]')).toHaveAttribute('data-page-transition-variant', 'fade')
 

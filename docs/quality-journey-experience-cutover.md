@@ -1,9 +1,11 @@
 # Quality Journey Authority Cutover
 
-The Control navigation contains Dashboard followed by Quality Journeys. Quality Journey is the sole user-facing and
-agent-enabled quality workflow.
+Appraise home opens the Quality Journey brief. On desktop, the Chats pane groups recent Journeys and active drafts
+by project. Use its search and sort controls or open **All Journeys** for the full project library. **New chat** opens
+the same brief. Workspace contains the metrics Dashboard at `/dashboard` and the manual authoring and execution tools.
+The mobile menu links to the brief and the full Journey library. Quality Journey is the sole agent-enabled quality workflow.
 
-Choose **New journey**, enter a brief, and choose **Start journey**. The project-scoped draft autosaves. Starting freezes the saved version and submits the requirement once. Structured details from older drafts remain part of the requirement. New journeys use the local managed agent.
+Choose **New chat** or **New journey**, enter a brief, and choose **Start journey**. The project-scoped draft autosaves. Starting freezes the saved version and submits the requirement once. Structured details from older drafts remain part of the requirement. New journeys use the local managed agent.
 
 The Journey screen groups lifecycle stages into **Requirements → Scenarios → Test run → Results**. One activity line reports the current work, pending decision, or interruption. Only the current stage presents actions. **History** holds the original brief, prior requirements and answers, the event timeline and the evidence library.
 

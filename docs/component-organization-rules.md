@@ -48,7 +48,8 @@ keyboard focus, selection, and active or informational states. Use vivid emerald
 attention or decisions, and coral red for failures and destructive actions. Use solid tinted fills on actionable
 warnings and failures. Use distinct chart colors with readable data labels or summaries.
 
-- Use `app-glass` for the navigation shell and raised overlays. It owns the translucent fill, edge highlight, and
+- Use solid surfaces and dividers for the desktop rail and its second pane. Use `app-glass` for the mobile header
+  and raised overlays. It owns the translucent fill, edge highlight, and
   backdrop blur, with an opaque fallback for increased contrast, reduced transparency, forced colors, and browsers without
   blur.
   Give each overlay one material surface. Use solid fills within content.
@@ -58,7 +59,8 @@ warnings and failures. Use distinct chart colors with readable data labels or su
 - Appraise owns the wrappers in `src/components/ui`. Use Base UI for interaction semantics and compose custom triggers
   through `render`. Use shared variants and tokens for state, emphasis, and density. Give buttons explicit submit intent
   and source Select labels from option data so closed controls display the saved label on first render.
-- Keep `lg` and wider navigation as the desktop sidebar. Below `lg`, use the mobile navigation shell so content starts
+- Keep the icon-only app rail and the context pane visible at `lg` and wider. Give rail icons accessible names and
+  hover and focus tooltips. Keep branding and actions above the independently scrolling list. Below `lg`, use the mobile navigation shell so content starts
   in the first viewport; Sheet/Dialog controls must retain native focus trapping, Escape dismissal, and trigger focus
   restoration.
 - Use the shell's padded content column for page headers and primary workspace surfaces, including on wide displays.

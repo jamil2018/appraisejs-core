@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 const stylesheet = readFileSync(new URL('./globals.css', import.meta.url), 'utf8')
 const tokens = new Map(
-  Array.from(stylesheet.matchAll(/--([\w-]+)-rgb: (\d+ \d+ \d+);/g), match => [
+  Array.from(stylesheet.matchAll(/--([\w-]+)-rgb: (\d+ \d+ \d+);/g), (match): [string, number[]] => [
     match[1],
     match[2].split(' ').map(Number),
   ]).reverse(),

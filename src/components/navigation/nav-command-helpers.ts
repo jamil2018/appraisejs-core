@@ -74,7 +74,7 @@ function getControlSection(): NavigationSection {
   return {
     label: 'Control',
     items: [
-      { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+      { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { href: '/quality-journeys', label: 'Quality Journeys', icon: Route },
       {
         href: '/collaboration',

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Menu } from 'lucide-react'
+import { Menu, SquarePen } from 'lucide-react'
 import { useState } from 'react'
 
 import Logo from '@/components/logo'
@@ -13,6 +13,7 @@ import NavigationSections from './navigation-sections'
 import ProjectSelector from './project-selector'
 import type { NavigationCommandItem } from './nav-command-helpers'
 import {
+  emptyNavigationProjects,
   isNavigationItemActive,
   projectScopedHref,
   type ProjectNavigationProps,
@@ -49,7 +50,7 @@ function MobileNavigationItem({
 
 export default function MobileNavigation({
   providerRunsEnabled = false,
-  projects = [],
+  projects = emptyNavigationProjects,
   cookieProjectId,
 }: ProjectNavigationProps) {
   const { pathname, projectId, sections } = useProjectNavigationState({
@@ -64,7 +65,7 @@ export default function MobileNavigation({
       <div className="app-glass flex h-12 items-center justify-between border-b px-3">
         <Link
           href={projectScopedHref('/', projectId)}
-          aria-label="AppraiseJS dashboard"
+          aria-label="AppraiseJS home"
           className="app-focus flex min-h-11 items-center rounded-lg"
         >
           <Logo compact />
@@ -91,6 +92,13 @@ export default function MobileNavigation({
           />
         </div>
         <nav className="min-h-0 flex-1 overflow-y-auto px-3 pb-4" aria-label="Primary navigation">
+          <Link
+            href={projectScopedHref('/quality-journeys/new', projectId)}
+            className="app-focus mb-2 flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-medium hover:bg-muted"
+            onClick={() => setOpen(false)}
+          >
+            <SquarePen className="size-4" aria-hidden="true" /> New chat
+          </Link>
           <NavigationSections
             sections={sections}
             renderItem={item => (
