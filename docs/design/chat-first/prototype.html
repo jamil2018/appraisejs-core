@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Appraise · Chat-first prototype</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="prototype.css" />
+    <script defer src="prototype.js"></script>
+  </head>
+  <body>
+    <a class="skip" href="#content">Skip to content</a>
+    <header class="topbar">
+      <button
+        class="icon-button"
+        id="toggle-nav"
+        aria-label="Hide sidebar"
+        aria-controls="sidebar"
+        aria-expanded="true"
+      >
+        <span class="sidebar-icon" aria-hidden="true"></span>
+      </button>
+      <button class="brand quiet" data-go="home"><span class="brand-mark" aria-hidden="true">A</span> Appraise</button>
+      <span class="prototype-label">Prototype</span>
+      <button class="quiet command-button" id="open-command">
+        <span>Quick jump</span><kbd aria-hidden="true">⌘ K</kbd>
+      </button>
+    </header>
+    <div class="layout">
+      <aside id="sidebar">
+        <label class="project-label" for="project">Project</label>
+        <select id="project">
+          <option value="store">Northstar Store</option>
+          <option value="empty">Empty project</option>
+        </select>
+
+        <nav aria-label="Workspace">
+          <button class="nav-link new-chat" data-action="new-chat"><span aria-hidden="true">＋</span> New chat</button>
+          <div id="recent">
+            <h2 class="nav-label">Conversations</h2>
+            <button class="nav-link" data-go="journey">
+              <span class="nav-dot pending" id="recent-journey-dot" aria-hidden="true"></span>
+              <span>Guest checkout</span>
+              <span id="recent-journey-status" class="sr-only">Needs review</span>
+            </button>
+            <button class="nav-link" data-go="result">
+              <span class="nav-dot failed" aria-hidden="true"></span>
+              <span>Checkout failure</span><span class="sr-only">Failed</span>
+            </button>
+            <button class="nav-link" data-action="interrupted">
+              <span class="nav-dot" aria-hidden="true"></span>
+              <span>Discount rules</span><span class="sr-only">Interrupted</span>
+            </button>
+          </div>
+          <details class="workspace" open>
+            <summary>Browse workspace</summary>
+            <button class="nav-link" data-go="library">Test cases</button>
+            <button class="nav-link" data-go="result">Test runs</button>
+          </details>
+        </nav>
+        <button class="quiet settings-link" data-go="settings">Settings</button>
+      </aside>
+      <main id="content" tabindex="-1"></main>
+    </div>
+    <p id="announcement" class="sr-only" role="status"></p>
+    <dialog id="dialog" aria-labelledby="dialog-title"></dialog>
+  </body>
+</html>
