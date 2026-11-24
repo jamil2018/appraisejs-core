@@ -4,12 +4,12 @@
 - cluster-only mode — file stats not available
 
 ## Summary
-- 13001 nodes · 30326 edges · 425 communities (413 shown, 12 thin omitted)
+- 13001 nodes · 30326 edges · 421 communities (409 shown, 12 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 140 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `46b6d961`
+- Built from commit: `a9319b49`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -418,13 +418,9 @@
 - [[_COMMUNITY_Community 401|Community 401]]
 - [[_COMMUNITY_Community 402|Community 402]]
 - [[_COMMUNITY_Community 403|Community 403]]
-- [[_COMMUNITY_Community 404|Community 404]]
-- [[_COMMUNITY_Community 405|Community 405]]
 - [[_COMMUNITY_Community 407|Community 407]]
 - [[_COMMUNITY_Community 408|Community 408]]
 - [[_COMMUNITY_Community 410|Community 410]]
-- [[_COMMUNITY_Community 423|Community 423]]
-- [[_COMMUNITY_Community 424|Community 424]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `canonicalContractJson()` - 315 edges
@@ -443,37 +439,37 @@
   services/repository-collaboration/materialization-helpers.ts → app/api/test-runs/[runId]/download/route.ts
 - `withJourneyBusinessWriteJoinInTransaction()` --calls--> `body()`  [INFERRED]
   services/coordinator/quality-journey-business-write-join.ts → lib/quality-journey/codex-app-server/outcome-source-envelope.test.ts
-- `NewConversationPage()` --calls--> `requireActiveProject()`  [INFERRED]
-  app/(base)/conversations/new/page.tsx → lib/active-project.ts
 - `CollaborationPage()` --calls--> `requireActiveProject()`  [EXTRACTED]
   app/(base)/collaboration/page.tsx → lib/active-project.ts
 - `Dashboard()` --calls--> `requireActiveProject()`  [EXTRACTED]
   app/(base)/dashboard/page.tsx → lib/active-project.ts
+- `BriefAttentionRow()` --calls--> `withProjectScope()`  [EXTRACTED]
+  app/(base)/quality-journeys/new/brief-attention.tsx → lib/project-scope.ts
 
 ## Import Cycles
 - 3-file cycle: `lib/quality-journey/codex-app-server/native-outcome-profile.ts -> lib/quality-journey/codex-app-server/native-outcome-source.ts -> lib/quality-journey/codex-app-server/native-outcome-replay.ts -> lib/quality-journey/codex-app-server/native-outcome-profile.ts`
 
-## Communities (425 total, 12 thin omitted)
+## Communities (421 total, 12 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.04
-Nodes (93): OperatorFinding, artifact, finding, input, ClosureContext, closureGates(), conflict(), Db (+85 more)
+Nodes (94): OperatorFinding, artifact, finding, input, ClosureContext, closureGates(), conflict(), Db (+86 more)
 
 ### Community 1 - "Community 1"
 Cohesion: 0.02
-Nodes (207): canonicalContractJson(), beforeWrite(), appManagedAnalysisCorrectionIssuanceSchema, digest, reconcileAppManagedDiscoveryRole(), assertAnalysisFollowupAttemptBudget(), readAnalysisFollowupAttemptBudget(), readCurrentFollowupReadiness() (+199 more)
+Nodes (205): canonicalContractJson(), beforeWrite(), reconcileAppManagedDiscoveryRole(), assertAnalysisFollowupAttemptBudget(), readAnalysisFollowupAttemptBudget(), readCurrentFollowupReadiness(), reportReviewKernelState(), ensureQualityJourneyAutomationForApprovedScenarios() (+197 more)
 
 ### Community 2 - "Community 2"
-Cohesion: 0.02
-Nodes (121): captureOfflineProviderJson(), appManagedDiscoveryDefinitions, envelope, id, resourceBundle, scoutBundle, ready(), closeQualityJourney() (+113 more)
+Cohesion: 0.04
+Nodes (65): ready(), closeQualityJourney(), approveQualityJourneyRerun(), grantQualityJourneyExecutionConsent(), proposeQualityJourneyRerun(), registerQualityJourneyExecutionRuntimeAdapter(), revokeQualityJourneyExecutionConsent(), digest() (+57 more)
 
 ### Community 3 - "Community 3"
-Cohesion: 0.05
-Nodes (60): acceptsWithoutWrites(), { configuredDatabaseReads }, fixture(), leaseExpiresAt, Mode, modes, principal, readMethods (+52 more)
+Cohesion: 0.04
+Nodes (61): acceptsWithoutWrites(), { configuredDatabaseReads }, fixture(), leaseExpiresAt, Mode, modes, principal, readMethods (+53 more)
 
 ### Community 4 - "Community 4"
 Cohesion: 0.03
-Nodes (98): observeManagedAnalysisCleanup(), getAppManagedAnonymousDiscoveryCaptureStatus(), continueAppManagedJourney(), Input, readAppManagedJourneyContinuation(), registerAppManagedJourneyRuntimeWake(), Role, scheduleAppManagedJourneyContinuation() (+90 more)
+Nodes (100): observeManagedAnalysisCleanup(), fixture(), appManagedScenarioAutomationDefinitions, appManagedScenarioAutomationOutputSchema, appManagedScenarioAutomationPromptTool(), AppManagedScenarioAutomationRole, appManagedScenarioAutomationRoleSchema, appManagedScenarioAutomationTools (+92 more)
 
 ### Community 5 - "Community 5"
 Cohesion: 0.06
@@ -485,7 +481,7 @@ Nodes (75): DiscoverySetupItem, { push, refresh, toast, startLocatorPickerSessio
 
 ### Community 7 - "Community 7"
 Cohesion: 0.03
-Nodes (81): CollaborationPage(), metadata, OptionsHeaderGherkinParameter, formatDateTime(), locatorGroupTableCols, LocatorGroupTable(), LocatorTableRow, locatorTableCols (+73 more)
+Nodes (71): CollaborationPage(), metadata, formatDateTime(), locatorGroupTableCols, LocatorGroupTable(), LocatorTableRow, locatorTableCols, LocatorTable() (+63 more)
 
 ### Community 8 - "Community 8"
 Cohesion: 0.05
@@ -521,7 +517,7 @@ Nodes (41): NativeRangeVerifier, Operation, Origin, RawRecord, b, d, emptyManife
 
 ### Community 16 - "Community 16"
 Cohesion: 0.02
-Nodes (185): classifyManagedAnalysisFailure(), runManagedAnalysis(), verifyManagedAnalysisExecutable(), ensureProjectDatabaseUrl(), globalForPrisma, normalizeDatabaseUrl(), { PrismaClient }, PrismaClientInstance (+177 more)
+Nodes (166): appManagedAnalysisAnswerResolutionContract(), appManagedAnalysisArgumentsSchema, appManagedAnalysisDefinitions, appManagedAnalysisOutputSchema, id, appManagedAnalysisCorrectionIssuanceSchema, digest, correctionCandidate() (+158 more)
 
 ### Community 17 - "Community 17"
 Cohesion: 0.06
@@ -537,7 +533,7 @@ Nodes (83): acceptExternalAutomation(), activeAutomationJourney(), addLocatorInp
 
 ### Community 20 - "Community 20"
 Cohesion: 0.04
-Nodes (54): fixture(), fixture(), commitSnapshot(), execFile, git(), originalCwd, prismaState, startCoordinatorRouteServer() (+46 more)
+Nodes (52): fixture(), fixture(), commitSnapshot(), execFile, git(), originalCwd, prismaState, startCoordinatorRouteServer() (+44 more)
 
 ### Community 21 - "Community 21"
 Cohesion: 0.06
@@ -553,19 +549,19 @@ Nodes (30): Admission, admitBusinessGroup(), assertTerminalInput(), assertTermin
 
 ### Community 24 - "Community 24"
 Cohesion: 0.05
-Nodes (50): BaseNode(), ProjectRequiredEmptyState(), FlowDiagramNodeSearch(), FlowDiagramNodeSearchProps, FlowNodeSearchResult, FlowDiagramToolbarProps, EmptyTube(), TubePlus() (+42 more)
+Nodes (51): BaseNode(), ProjectRequiredEmptyState(), FlowDiagramNodeSearch(), FlowDiagramNodeSearchProps, FlowNodeSearchResult, FlowDiagramToolbarProps, OptionsHeaderGherkinParameter, EmptyTube() (+43 more)
 
 ### Community 25 - "Community 25"
 Cohesion: 0.05
-Nodes (69): appliedPageLimit(), cursorSchema, decodePageCursor(), encodePageCursor(), Page, PageCursor, pageFromItems(), PageRequest (+61 more)
+Nodes (67): appliedPageLimit(), cursorSchema, decodePageCursor(), encodePageCursor(), Page, PageCursor, pageFromItems(), PageRequest (+59 more)
 
 ### Community 26 - "Community 26"
 Cohesion: 0.03
-Nodes (51): DEFAULT_EDGE_STYLE, FlowEdgeMutationGuard, flowEdgeMutationGuardRef, FlowDiagramBlockDialog(), FlowDiagramBlockDialogProps, displayValue(), EnvironmentReferenceSelect(), ExistingLocatorReference() (+43 more)
+Nodes (56): FlowDiagramBlockDialog(), FlowDiagramBlockDialogProps, displayValue(), EnvironmentReferenceSelect(), ExistingLocatorReference(), FieldControlProps, InlineLocatorCreationProps, inputAttributes() (+48 more)
 
 ### Community 27 - "Community 27"
 Cohesion: 0.04
-Nodes (81): requireCollaborationPermission(), assertCurrentFilesystemRecovery(), assertDecisionOperation(), assertFilesystemRecoveryStep(), assertIdempotentOperation(), assertMatchingPortableProject(), assertNoConflictingPersistedDecision(), assertPreparingReceiveReservation() (+73 more)
+Nodes (82): requireCollaborationPermission(), assertCurrentFilesystemRecovery(), assertDecisionOperation(), assertFilesystemRecoveryStep(), assertIdempotentOperation(), assertMatchingPortableProject(), assertNoConflictingPersistedDecision(), assertPinnedGitSnapshotBeforeDatabaseApply() (+74 more)
 
 ### Community 28 - "Community 28"
 Cohesion: 0.05
@@ -581,7 +577,7 @@ Nodes (60): start(), assertConsumableExecutionConsent(), assertInitialPreparedSe
 
 ### Community 31 - "Community 31"
 Cohesion: 0.06
-Nodes (74): authorityRequestDigest(), canonicalJson(), collaborationHash(), appendCollaborationJournalEntry(), Transaction, DivergentReconciliationReview, acquireDivergentMutationLease(), acquirePreparationLease() (+66 more)
+Nodes (73): authorityRequestDigest(), canonicalJson(), collaborationHash(), appendCollaborationJournalEntry(), Transaction, DivergentReconciliationReview, acquireDivergentMutationLease(), acquirePreparationLease() (+65 more)
 
 ### Community 32 - "Community 32"
 Cohesion: 0.09
@@ -597,15 +593,15 @@ Nodes (41): CapsuleExecutionRequest, CapsuleExecutorAdapter, TestRunExecutionRes
 
 ### Community 35 - "Community 35"
 Cohesion: 0.03
-Nodes (112): materializeQualityJourneyApprovedScenarios(), AttemptTerminalInput, BeforeJourneyBusinessWrite, DiscoveryBootstrap, getQualityJourneyDiscoveryBootstrap(), InternalDiscoveryReadiness, registerQualityJourneyDiscoveryBootstrap(), readInternalScoutEvidence() (+104 more)
+Nodes (114): materializeQualityJourneyApprovedScenarios(), AttemptTerminalInput, BeforeJourneyBusinessWrite, DiscoveryBootstrap, getQualityJourneyDiscoveryBootstrap(), InternalDiscoveryReadiness, registerQualityJourneyDiscoveryBootstrap(), readInternalScoutEvidence() (+106 more)
 
 ### Community 36 - "Community 36"
 Cohesion: 0.06
 Nodes (56): authPolicy(), execFile, listen(), LoginResult, mockClient(), realChromiumRuntime(), scope, startServers() (+48 more)
 
 ### Community 37 - "Community 37"
-Cohesion: 0.06
-Nodes (57): GET(), { findUnique, readDiagnostic }, evidenceHarness(), frozenFixture(), harness, consumeCandidate(), extractTestCaseTitleFromScenarioName(), findMatchingTestRunTestCase() (+49 more)
+Cohesion: 0.05
+Nodes (64): GET(), { findUnique, readDiagnostic }, canonicalTagExpression(), canonicalTagName(), TagShape, getTagTypeFromExpression(), getTagTypeFromName(), isIdentifierTagExpression() (+56 more)
 
 ### Community 38 - "Community 38"
 Cohesion: 0.07
@@ -613,7 +609,7 @@ Nodes (46): getPageTransitionVariant(), PageTransitionVariant, Template(), { use
 
 ### Community 39 - "Community 39"
 Cohesion: 0.07
-Nodes (25): LocatorGroup, locatorGroupFormOpts, locatorGroupSchema, checkLocatorGroupNameUnique(), checkUniqueName(), collectEffects(), deleteLocatorGroups(), exactGroups() (+17 more)
+Nodes (26): LocatorGroup, locatorGroupFormOpts, locatorGroupSchema, checkLocatorGroupNameUnique(), checkUniqueName(), collectEffects(), createLocatorGroup(), deleteLocatorGroups() (+18 more)
 
 ### Community 40 - "Community 40"
 Cohesion: 0.03
@@ -629,7 +625,7 @@ Nodes (28): assertE2BusinessAdmission(), assertExactCredentials(), assertJourney
 
 ### Community 43 - "Community 43"
 Cohesion: 0.06
-Nodes (57): assertCompleteCoverage(), assertCompleteLiveGuard(), assertFreshRootAbsent(), assertLiveResourceTarget(), assertSharedResourcesMutable(), assertTargetId(), assertUnknownOrCompleteCoverage(), caseKey (+49 more)
+Nodes (51): assertCompleteCoverage(), assertCompleteLiveGuard(), assertFreshRootAbsent(), assertLiveResourceTarget(), assertSharedResourcesMutable(), assertTargetId(), assertUnknownOrCompleteCoverage(), caseKey (+43 more)
 
 ### Community 44 - "Community 44"
 Cohesion: 0.09
@@ -656,8 +652,8 @@ Cohesion: 0.06
 Nodes (71): assertBootstrapInventory(), bootstrapClassifications, bootstrapDirectJourneyIdModels, bootstrapDirectTargetProjectIdModels, BootstrapDomainEpoch, bootstrapEdgeClassifications, BootstrapEdgeSummary, bootstrapExtractorIds (+63 more)
 
 ### Community 50 - "Community 50"
-Cohesion: 0.05
-Nodes (38): AdmissionOwner, mocks, fixture(), mocks, RetainedExecutionIdentity, OwnedProcessStopError, hashRuntimeCapsuleValue(), executionIdentityBase (+30 more)
+Cohesion: 0.04
+Nodes (48): AdmissionOwner, mocks, fixture(), mocks, RetainedExecutionIdentity, admissionHash(), authority(), authorityWithAttempt() (+40 more)
 
 ### Community 51 - "Community 51"
 Cohesion: 0.07
@@ -672,12 +668,12 @@ Cohesion: 0.07
 Nodes (33): acquireOriginalSqliteOutcomeCustody(), assertCommittedTuple(), committedReceipt(), committedResult(), committedState(), OutcomeRequestPin, outcomeSafeInteger(), createSyntheticOutcomeCustodian() (+25 more)
 
 ### Community 54 - "Community 54"
-Cohesion: 0.06
-Nodes (55): writeSnapshot(), canonicalize(), authoredStepSchema, COLLABORATION_FORMAT, collaborationEntityKinds, collaborationEntityKindSchema, CollaborationManifest, collaborationManifestSchema (+47 more)
+Cohesion: 0.05
+Nodes (54): PrepareCollaborationRestoreInput, RecordUnseenTombstoneInput, canonicalize(), authoredStepSchema, COLLABORATION_FORMAT, collaborationEntityKinds, collaborationEntityKindSchema, CollaborationManifest (+46 more)
 
 ### Community 55 - "Community 55"
-Cohesion: 0.05
-Nodes (61): templateTestCaseSchema, testCaseSchema, flowBlockSchema, testCaseStepSchema, testCaseStepsSchema, generateUniqueTestCaseIdentifier(), isSharedResourceId(), AuthoredStep (+53 more)
+Cohesion: 0.04
+Nodes (58): SharedResourceMutationKey, generateUniqueTestCaseIdentifier(), isSharedResourceId(), InvocationInput, resolveReadyExactStepDefinitions(), StepDefinitionReader, client, definition (+50 more)
 
 ### Community 56 - "Community 56"
 Cohesion: 0.07
@@ -688,8 +684,8 @@ Cohesion: 0.05
 Nodes (19): configureTypeScript(), MonacoEditor, StepDefinitionCodeEditor(), TypeScriptDefaults, CompositionSearchResponse, DraftReference, executionLabels, executionRuntime() (+11 more)
 
 ### Community 58 - "Community 58"
-Cohesion: 0.05
-Nodes (97): assertCollaborationOnlyWorktree(), assertCommit(), assertDivergentReconciliationReview(), assertOperationId(), assertPreparedSource(), assertProposal(), changedDivergentWorktreePaths(), changedPaths() (+89 more)
+Cohesion: 0.07
+Nodes (67): redactValue(), sanitizeGitDiagnostic(), CollaborationGitStep, completeStep(), executeCollaborationGitStep(), ExecuteCollaborationGitStepInput, executeStartedGitStep(), getCollaborationGitStatus() (+59 more)
 
 ### Community 59 - "Community 59"
 Cohesion: 0.09
@@ -712,8 +708,8 @@ Cohesion: 0.06
 Nodes (47): assertE2PrivateCommandMatchesGrant(), assertE2PrivateReceiptMatchesGrant(), commandExtras, common, decodeE2PrivateFrame(), digestFields, E2_PRIVATE_MAGIC, E2_PRIVATE_VERSION (+39 more)
 
 ### Community 64 - "Community 64"
-Cohesion: 0.15
-Nodes (26): newPortableId(), assignPortableIds(), commonRecord(), ensureStepPortableId(), entityKindByRecordKind, filterTagPortableIds(), invocationProjection(), keywordFor() (+18 more)
+Cohesion: 0.07
+Nodes (49): postUndoPrepare(), activeDependencies(), archivePreparation(), archiveReview(), beforeImage(), localStateHash(), operationAfterImage(), operationInput() (+41 more)
 
 ### Community 65 - "Community 65"
 Cohesion: 0.09
@@ -721,11 +717,11 @@ Nodes (39): approvedScout(), disposableHerokuSameOriginSubresources, Phase, sani
 
 ### Community 66 - "Community 66"
 Cohesion: 0.07
-Nodes (25): addCapsuleDownloadArtifacts(), Archive, createZipArchive(), createZipDownloadResponse(), finalizeArchive(), GET(), getDownloadTestRun(), { mockFindFirst, mockReadBytes, archiveState } (+17 more)
+Nodes (27): addCapsuleDownloadArtifacts(), Archive, createZipArchive(), createZipDownloadResponse(), finalizeArchive(), GET(), getDownloadTestRun(), { mockFindFirst, mockReadBytes, archiveState } (+19 more)
 
 ### Community 67 - "Community 67"
-Cohesion: 0.07
-Nodes (41): postUndoPrepare(), activeDependencies(), archivePreparation(), archiveReview(), beforeImage(), localStateHash(), operationAfterImage(), operationInput() (+33 more)
+Cohesion: 0.06
+Nodes (47): readAnalysisFollowupPhysicalReadiness(), assertHistoricalHubQuiescent(), assertProviderEffectsQuiescent(), assertProviderReplacementSafe(), conflict(), hash(), hasUnreconciledProviderEffects(), HistoricalDispatch (+39 more)
 
 ### Community 68 - "Community 68"
 Cohesion: 0.06
@@ -744,16 +740,16 @@ Cohesion: 0.04
 Nodes (56): description, type, enum, type, enum, type, enum, type (+48 more)
 
 ### Community 72 - "Community 72"
-Cohesion: 0.04
-Nodes (56): description, type, enum, type, enum, type, oneOf, enum (+48 more)
+Cohesion: 0.03
+Nodes (58): description, type, enum, type, enum, type, enum, type (+50 more)
 
 ### Community 73 - "Community 73"
 Cohesion: 0.04
 Nodes (54): anyOf, anyOf, anyOf, anyOf, description, type, anyOf, additionalProperties (+46 more)
 
 ### Community 74 - "Community 74"
-Cohesion: 0.04
-Nodes (56): metadata, metadata, browserEngineToBadge(), TestCaseEditorHeader(), TestRunDetailPageProps, ViewReport(), journeyRecordBriefHref(), DurationChart (+48 more)
+Cohesion: 0.05
+Nodes (43): metadata, metadata, browserEngineToBadge(), TestCaseEditorHeader(), TestRunDetailPageProps, ViewReport(), journeyRecordBriefHref(), DurationChart (+35 more)
 
 ### Community 75 - "Community 75"
 Cohesion: 0.08
@@ -780,8 +776,8 @@ Cohesion: 0.07
 Nodes (47): pauseCurrent(), OwnedTurn, readOwnedJourneyTurnDatabaseIdentity(), registerOwnedQualityJourneyTurn(), Scope, stopOwnedQualityJourneyTurns(), scope, turns (+39 more)
 
 ### Community 81 - "Community 81"
-Cohesion: 0.06
-Nodes (40): metadata, CollectionEmpty(), CollectionHeader(), collectionLoadError(), CollectionResults(), EmptyState(), FlowDiagramGroupingHintsProps, Environments() (+32 more)
+Cohesion: 0.05
+Nodes (44): metadata, CollectionEmpty(), CollectionHeader(), collectionLoadError(), CollectionResults(), EmptyState(), DEFAULT_EDGE_STYLE, FlowEdgeMutationGuard (+36 more)
 
 ### Community 82 - "Community 82"
 Cohesion: 0.10
@@ -804,8 +800,8 @@ Cohesion: 0.05
 Nodes (47): Logo(), LogoProps, presentationVocabulary, AppSidebar(), AppSidebarProps, areas, attentionStatuses, authoringPaths (+39 more)
 
 ### Community 87 - "Community 87"
-Cohesion: 0.13
-Nodes (10): listQualityJourneyDrafts(), DraftSummary, draftTabs, draftView, metadata, copyQualityJourneyBriefToDraftAction(), QualityJourneyListItem, QualityJourneysBrowser() (+2 more)
+Cohesion: 0.05
+Nodes (32): listQualityJourneyDrafts(), Action, JourneyExecutionCommand(), JourneyExecutionStartForm(), JourneyRerunProposalForm(), mocks, Execution, JourneyExecutionStatus() (+24 more)
 
 ### Community 88 - "Community 88"
 Cohesion: 0.04
@@ -872,8 +868,8 @@ Cohesion: 0.08
 Nodes (32): DeadlineField, due(), E2_DUE_AT_SOURCE_DOMAIN, E2DueAtSource, evaluateSyntheticE2Admission(), issueE2GrantInTx(), readE2IdentityAndLineage(), refused() (+24 more)
 
 ### Community 104 - "Community 104"
-Cohesion: 0.07
-Nodes (29): properties, type, description, type, ConfigReadParams, ExternalAgentConfigImportHistoryRecordSuccessParams, ExternalAgentConfigImportItemTypeFailure, type (+21 more)
+Cohesion: 0.06
+Nodes (39): properties, type, description, type, ConfigReadParams, ExternalAgentConfigImportHistoryRecordSuccessParams, ExternalAgentConfigImportItemTypeFailure, ExternalAgentConfigMigrationItem (+31 more)
 
 ### Community 105 - "Community 105"
 Cohesion: 0.15
@@ -904,24 +900,24 @@ Cohesion: 0.07
 Nodes (37): properties, required, type, properties, required, type, properties, required (+29 more)
 
 ### Community 112 - "Community 112"
-Cohesion: 0.08
-Nodes (30): metadata, redirectInvalidProjectScope(), RootLayout(), viewport, GET(), safeReturnTo(), listRecentProjectConversations(), isFeatureEnabled() (+22 more)
+Cohesion: 0.09
+Nodes (25): metadata, redirectInvalidProjectScope(), RootLayout(), viewport, GET(), safeReturnTo(), listRecentProjectConversations(), JourneyNavigationItem (+17 more)
 
 ### Community 113 - "Community 113"
 Cohesion: 0.10
 Nodes (24): DashboardExperienceState, DashboardStartPanel(), getDashboardExperienceState(), metrics, DataCard(), DataCardProps, entityIcons, DataCardGrid() (+16 more)
 
 ### Community 114 - "Community 114"
-Cohesion: 0.08
-Nodes (38): chatContextFromJourney(), chatContextKinds, ChatContextReference, chatContextReferenceFromJourney(), conversationContextHref(), journeyReferenceFromChat(), kinds, loadChatContext() (+30 more)
+Cohesion: 0.09
+Nodes (34): chatContextFromJourney(), chatContextKinds, ChatContextReference, chatContextReferenceFromJourney(), conversationContextHref(), journeyReferenceFromChat(), kinds, loadChatContext() (+26 more)
 
 ### Community 115 - "Community 115"
 Cohesion: 0.08
 Nodes (29): admission(), assertPublished(), AuthorityFields, authorizationFence(), carrier, client(), contentHash(), dataOf() (+21 more)
 
 ### Community 116 - "Community 116"
-Cohesion: 0.02
-Nodes (182): answer(), next(), ready(), answerFixtureQuestion(), clients, legacyFailure, setup(), strandFixtureTask() (+174 more)
+Cohesion: 0.03
+Nodes (138): answer(), ready(), answerFixtureQuestion(), setup(), ready(), answerQualityJourneyAnalysisQuestion(), decideQualityJourneyAnalysis(), publishQualityJourneyAnalysis() (+130 more)
 
 ### Community 117 - "Community 117"
 Cohesion: 0.06
@@ -932,24 +928,24 @@ Cohesion: 0.06
 Nodes (32): additionalProperties, properties, required, type, AsyncUserInputQuestion, MemoryCitation, items, type (+24 more)
 
 ### Community 119 - "Community 119"
-Cohesion: 0.06
-Nodes (36): description, type, enum, type, oneOf, description, enum, type (+28 more)
+Cohesion: 0.05
+Nodes (37): description, type, enum, type, oneOf, description, enum, type (+29 more)
 
 ### Community 120 - "Community 120"
 Cohesion: 0.11
 Nodes (23): createNativeQualificationProtocol(), localReferences(), reject(), responses, activeProtocol(), initialization(), passiveStartReceipt(), cleanupFailedLaunch() (+15 more)
 
 ### Community 121 - "Community 121"
-Cohesion: 0.03
-Nodes (79): fixture(), candidateSchema, createQualityJourneyAnalysisFixtureDelivery(), digest(), QualityJourneyAnalysisFixtureDeliveryOptions, deliveries, Delivery, Fixture (+71 more)
+Cohesion: 0.05
+Nodes (48): candidateSchema, createQualityJourneyAnalysisFixtureDelivery(), digest(), QualityJourneyAnalysisFixtureDeliveryOptions, deliveries, Delivery, Fixture, fixtures (+40 more)
 
 ### Community 122 - "Community 122"
 Cohesion: 0.15
 Nodes (34): activeWorkItemIds(), assertActiveTriageCycle(), assertAdmissionBindings(), assertAdmissionPrincipal(), assertAdmissionReceipt(), assertAdmissionRequest(), assertAttemptIdentity(), assertEvidenceScope() (+26 more)
 
 ### Community 123 - "Community 123"
-Cohesion: 0.08
-Nodes (28): metadata, metadata, metadata, AuthoringLoadError(), ActionResponseData, TestRun, testRunSchema, getAllTagsAction() (+20 more)
+Cohesion: 0.09
+Nodes (27): metadata, metadata, metadata, AuthoringLoadError(), TestRun, testRunSchema, getAllTagsAction(), getAllTestSuiteTestCasesAction() (+19 more)
 
 ### Community 124 - "Community 124"
 Cohesion: 0.12
@@ -961,7 +957,7 @@ Nodes (32): artifactReferenceSchema, assignmentAuthorityViolations(), assignment
 
 ### Community 126 - "Community 126"
 Cohesion: 0.06
-Nodes (34): anyOf, description, type, anyOf, description, description, description, type (+26 more)
+Nodes (36): anyOf, description, type, anyOf, description, description, description, type (+28 more)
 
 ### Community 127 - "Community 127"
 Cohesion: 0.11
@@ -992,8 +988,8 @@ Cohesion: 0.07
 Nodes (15): carrier, client(), Fixture, fixtureFault, hashFile(), migrationIds, newFixture(), openFreshCase() (+7 more)
 
 ### Community 134 - "Community 134"
-Cohesion: 0.10
-Nodes (24): ChatContext, ConversationReadAttempt, getLatestConversationJourney(), records, WorkspaceRecord, workspaceRecordHref(), WorkspaceRecordKind, workspaceRecordKinds (+16 more)
+Cohesion: 0.08
+Nodes (31): HomePage(), ChatContext, ConversationReadAttempt, getLatestConversationJourney(), records, WorkspaceRecord, workspaceRecordHref(), WorkspaceRecordKind (+23 more)
 
 ### Community 135 - "Community 135"
 Cohesion: 0.05
@@ -1004,8 +1000,8 @@ Cohesion: 0.06
 Nodes (32): description, properties, required, type, CommandExecParams, description, type, description (+24 more)
 
 ### Community 137 - "Community 137"
-Cohesion: 0.10
-Nodes (21): ExternalAgentConfigImportHistoryRecordParams, ExternalAgentConfigImportParams, properties, required, type, properties, required, type (+13 more)
+Cohesion: 0.07
+Nodes (32): ExternalAgentConfigImportHistoryRecordParams, ExternalAgentConfigImportHistoryRecordTypeResultParams, ExternalAgentConfigImportParams, properties, required, type, properties, required (+24 more)
 
 ### Community 138 - "Community 138"
 Cohesion: 0.07
@@ -1060,8 +1056,8 @@ Cohesion: 0.10
 Nodes (23): activateUse(), admission(), assertOneAdmissionBeforeEffects(), assertPublished(), authorizationFence(), carrier, client(), dataOf() (+15 more)
 
 ### Community 151 - "Community 151"
-Cohesion: 0.09
-Nodes (26): properties, required, type, properties, required, type, properties, required (+18 more)
+Cohesion: 0.08
+Nodes (29): properties, required, type, properties, required, type, properties, required (+21 more)
 
 ### Community 152 - "Community 152"
 Cohesion: 0.12
@@ -1136,8 +1132,8 @@ Cohesion: 0.09
 Nodes (43): GET(), PUT(), RouteContext, POST(), POST(), DELETE(), GET(), PATCH() (+35 more)
 
 ### Community 170 - "Community 170"
-Cohesion: 0.08
-Nodes (30): activeCaptures, captureAppManagedAnonymousDiscovery(), frozenScope, Input, readAppManagedAnonymousDiscoveryCapture(), managedDiscoveryRoleSchema, createAppManagedDiscoveryCorrection(), Input (+22 more)
+Cohesion: 0.04
+Nodes (65): classifyManagedAnalysisFailure(), runManagedAnalysis(), verifyManagedAnalysisExecutable(), ensureProjectDatabaseUrl(), globalForPrisma, normalizeDatabaseUrl(), { PrismaClient }, PrismaClientInstance (+57 more)
 
 ### Community 171 - "Community 171"
 Cohesion: 0.16
@@ -1185,7 +1181,7 @@ Nodes (18): E2_REVIEWED_PROVIDER_INTENT_POLICY_DIGEST, E2_REVIEWED_PROVIDER_INTE
 
 ### Community 182 - "Community 182"
 Cohesion: 0.09
-Nodes (24): ExternalAgentConfigImportHistoryRecordTypeResultParams, ExternalAgentConfigMigrationItem, type, anyOf, items, type, properties, required (+16 more)
+Nodes (51): assertCollaborationOnlyWorktree(), assertCommit(), assertDivergentReconciliationReview(), assertOperationId(), assertPreparedSource(), assertProposal(), changedDivergentWorktreePaths(), changedPaths() (+43 more)
 
 ### Community 183 - "Community 183"
 Cohesion: 0.08
@@ -1232,7 +1228,7 @@ Cohesion: 0.09
 Nodes (22): anyOf, $ref, type, properties, type, properties, required, type (+14 more)
 
 ### Community 194 - "Community 194"
-Cohesion: 0.16
+Cohesion: 0.15
 Nodes (5): post(), CdpResponse, CdpRoute, deferred(), isRedirect()
 
 ### Community 195 - "Community 195"
@@ -1281,15 +1277,15 @@ Nodes (19): abortRouteFailClosed(), authorizedRedirect(), denyHumanReturnRequest
 
 ### Community 206 - "Community 206"
 Cohesion: 0.05
-Nodes (53): createLocatorGroup(), collectLocatorEffects(), deleteLocators(), detectAndCreateConflicts(), listLocators(), LocatorRow, locatorSelect, refuse() (+45 more)
+Nodes (52): collectLocatorEffects(), deleteLocators(), detectAndCreateConflicts(), listLocators(), LocatorRow, locatorSelect, refuse(), savePickedLocatorFromRequest() (+44 more)
 
 ### Community 207 - "Community 207"
 Cohesion: 0.12
 Nodes (16): ExternalAgentConfigDetectParams, properties, type, description, type, description, format, minimum (+8 more)
 
 ### Community 208 - "Community 208"
-Cohesion: 0.13
-Nodes (22): getBriefRecordContext(), JourneyRecordContext, journeyRecordLabels, recordContextSchema, BriefContext(), QualityJourneyCreateForm(), actionId(), buildBriefRequirement() (+14 more)
+Cohesion: 0.10
+Nodes (28): metadata, BriefParams, NewQualityJourneyPage(), requestedRecord(), resolveBriefContext(), getBriefRecordContext(), JourneyRecordContext, journeyRecordLabels (+20 more)
 
 ### Community 209 - "Community 209"
 Cohesion: 0.26
@@ -1352,8 +1348,8 @@ Cohesion: 0.29
 Nodes (5): Draft, initialStageFrom(), metadata, ResumeStepDefinitionDraftPage(), StepDefinitionEditorDraft
 
 ### Community 224 - "Community 224"
-Cohesion: 0.06
-Nodes (28): metadata, metadata, TextFormField(), Tag, tagFormOpts, tagSchema, createTag(), deleteTags() (+20 more)
+Cohesion: 0.13
+Nodes (12): metadata, metadata, TextFormField(), Tag, tagFormOpts, tagSchema, getActionErrorMessage(), getCreatedTag() (+4 more)
 
 ### Community 225 - "Community 225"
 Cohesion: 0.20
@@ -1388,8 +1384,8 @@ Cohesion: 0.15
 Nodes (14): Attachment, autoAttach, CdpFrame, FrameRecord, nonemptyString(), Pause, PendingResponse, projectPause() (+6 more)
 
 ### Community 233 - "Community 233"
-Cohesion: 0.16
-Nodes (14): metadata, HomePage(), JourneyNavigationItem, listRecentJourneyNavigation(), GET(), requireActiveProject(), attention, BriefAttention() (+6 more)
+Cohesion: 0.10
+Nodes (25): templateTestCaseSchema, testCaseSchema, flowBlockSchema, testCaseStepSchema, testCaseStepsSchema, AuthoredStep, authoredStepBase(), exactDefinitionForAuthoredStep() (+17 more)
 
 ### Community 234 - "Community 234"
 Cohesion: 0.12
@@ -1605,7 +1601,7 @@ Nodes (11): JourneyCommand, JourneyWorkItemStatus, JourneyTransition, stageRoleE
 
 ### Community 289 - "Community 289"
 Cohesion: 0.07
-Nodes (35): CreateFromTemplateForm(), collectTemplateStepReferences(), loadCreateFromTemplateRouteResources(), resolveTemplateTestCaseSelection(), metadata, {
+Nodes (36): CreateFromTemplateForm(), collectTemplateStepReferences(), loadCreateFromTemplateRouteResources(), resolveTemplateTestCaseSelection(), metadata, {
   getAllTemplateTestCasesAction,
   listReadyStepDefinitionOptionsAction,
   listReferencedStepDefinitionOptionsAction,
@@ -1620,7 +1616,7 @@ Nodes (35): CreateFromTemplateForm(), collectTemplateStepReferences(), loadCreat
   createTestSuiteAction,
   createTagAction,
   testCaseFormSpy,
-}, metadata, getAllTemplateTestCasesAction() (+27 more)
+}, metadata, ActionResponseData (+28 more)
 
 ### Community 290 - "Community 290"
 Cohesion: 0.18
@@ -1759,8 +1755,8 @@ Cohesion: 0.25
 Nodes (8): properties, required, type, AgentMessageModeration, anyOf, type, display, moderated
 
 ### Community 324 - "Community 324"
-Cohesion: 0.21
-Nodes (10): admissionHash(), authority(), authorityWithAttempt(), bytes, capsuleHash, externalAuthority(), manifestHash, mocks (+2 more)
+Cohesion: 0.26
+Nodes (10): evaluateLocalRequestBoundary(), forwardedPeersAreLocal(), isLoopbackHost(), LocalRequestBoundaryInput, LocalRequestBoundaryResult, LOOPBACK_HOSTS, MUTATION_METHODS, parseHost() (+2 more)
 
 ### Community 325 - "Community 325"
 Cohesion: 0.17
@@ -1803,8 +1799,8 @@ Cohesion: 0.25
 Nodes (8): HookPromptFragment, properties, required, type, type, hookRunId, text, type
 
 ### Community 336 - "Community 336"
-Cohesion: 0.23
-Nodes (9): Action, JourneyExecutionCommand(), JourneyExecutionStartForm(), JourneyRerunProposalForm(), mocks, Execution, JourneyExecutionStatus(), permissionTarget() (+1 more)
+Cohesion: 0.40
+Nodes (4): required, $schema, title, type
 
 ### Community 337 - "Community 337"
 Cohesion: 0.29
@@ -1823,12 +1819,12 @@ Cohesion: 0.18
 Nodes (11): allOf, description, $ref, ThreadEnvironment, type, cwd, environmentId, description (+3 more)
 
 ### Community 342 - "Community 342"
-Cohesion: 0.25
-Nodes (6): createSubmissionPayloadCapture(), exactIdentity(), observations, PayloadObservation, recordSubmissionPayloadIdentity(), SubmissionPayloadIdentity
+Cohesion: 0.04
+Nodes (70): captureOfflineProviderJson(), appManagedDiscoveryDefinitions, envelope, id, resourceBundle, scoutBundle, conflict(), prepareAppManagedDiscoveryTask() (+62 more)
 
 ### Community 343 - "Community 343"
-Cohesion: 0.29
-Nodes (7): canonicalTagExpression(), canonicalTagName(), TagShape, getTagTypeFromExpression(), getTagTypeFromName(), isIdentifierTagExpression(), isIdentifierTagName()
+Cohesion: 0.50
+Nodes (4): ReasoningEffort, description, minLength, type
 
 ### Community 344 - "Community 344"
 Cohesion: 0.31
@@ -2027,8 +2023,8 @@ Cohesion: 0.33
 Nodes (4): digest, qualityJourneyClosureInputSchema, qualityJourneyIdentifierSchema, qualityJourneyTriageEvidenceArtifactKindSchema
 
 ### Community 399 - "Community 399"
-Cohesion: 0.50
-Nodes (4): ReasoningEffort, description, minLength, type
+Cohesion: 0.67
+Nodes (3): ThreadActiveFlag, enum, type
 
 ### Community 400 - "Community 400"
 Cohesion: 0.67
@@ -2036,7 +2032,7 @@ Nodes (3): enum, type, AgentMessageDelivery
 
 ### Community 401 - "Community 401"
 Cohesion: 0.67
-Nodes (3): ImageDetail, enum, type
+Nodes (3): NetworkAccess, enum, type
 
 ### Community 402 - "Community 402"
 Cohesion: 0.67
@@ -2044,47 +2040,31 @@ Nodes (3): enum, type, CommandExecutionStatus
 
 ### Community 403 - "Community 403"
 Cohesion: 0.67
-Nodes (3): serviceTierForTurn, description, type
-
-### Community 404 - "Community 404"
-Cohesion: 0.67
-Nodes (3): turnTrigger, description, type
-
-### Community 405 - "Community 405"
-Cohesion: 0.67
-Nodes (3): enum, type, CollabAgentStatus
+Nodes (3): NonSteerableTurnKind, enum, type
 
 ### Community 407 - "Community 407"
 Cohesion: 0.67
 Nodes (3): MessagePhase, description, oneOf
 
-### Community 423 - "Community 423"
-Cohesion: 0.67
-Nodes (3): PatchApplyStatus, enum, type
-
-### Community 424 - "Community 424"
-Cohesion: 0.67
-Nodes (3): TurnStatus, enum, type
-
 ## Knowledge Gaps
-- **4013 isolated node(s):** `order`, `mocks`, `input`, `scope`, `mode` (+4008 more)
+- **4013 isolated node(s):** `call`, `supportedModels`, `modelCatalog`, `terminalEvent`, `toolCall` (+4008 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **12 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `ServiceError` connect `Community 16` to `Community 0`, `Community 1`, `Community 2`, `Community 4`, `Community 5`, `Community 6`, `Community 8`, `Community 9`, `Community 10`, `Community 11`, `Community 18`, `Community 19`, `Community 20`, `Community 23`, `Community 25`, `Community 27`, `Community 28`, `Community 30`, `Community 31`, `Community 33`, `Community 34`, `Community 35`, `Community 37`, `Community 39`, `Community 42`, `Community 43`, `Community 45`, `Community 46`, `Community 47`, `Community 50`, `Community 51`, `Community 55`, `Community 56`, `Community 58`, `Community 61`, `Community 62`, `Community 64`, `Community 66`, `Community 67`, `Community 77`, `Community 78`, `Community 79`, `Community 80`, `Community 81`, `Community 83`, `Community 89`, `Community 90`, `Community 93`, `Community 94`, `Community 97`, `Community 99`, `Community 101`, `Community 102`, `Community 107`, `Community 114`, `Community 116`, `Community 121`, `Community 122`, `Community 127`, `Community 132`, `Community 134`, `Community 139`, `Community 161`, `Community 163`, `Community 166`, `Community 169`, `Community 170`, `Community 173`, `Community 178`, `Community 191`, `Community 206`, `Community 213`, `Community 215`, `Community 224`, `Community 231`, `Community 242`, `Community 271`?**
+- **Why does `ServiceError` connect `Community 16` to `Community 0`, `Community 1`, `Community 2`, `Community 4`, `Community 5`, `Community 6`, `Community 8`, `Community 9`, `Community 10`, `Community 11`, `Community 18`, `Community 19`, `Community 20`, `Community 23`, `Community 25`, `Community 27`, `Community 28`, `Community 30`, `Community 31`, `Community 33`, `Community 34`, `Community 35`, `Community 37`, `Community 39`, `Community 42`, `Community 43`, `Community 45`, `Community 46`, `Community 47`, `Community 50`, `Community 51`, `Community 55`, `Community 56`, `Community 58`, `Community 61`, `Community 62`, `Community 64`, `Community 66`, `Community 67`, `Community 77`, `Community 78`, `Community 79`, `Community 80`, `Community 81`, `Community 83`, `Community 89`, `Community 90`, `Community 93`, `Community 94`, `Community 97`, `Community 99`, `Community 101`, `Community 102`, `Community 107`, `Community 114`, `Community 121`, `Community 122`, `Community 127`, `Community 132`, `Community 134`, `Community 139`, `Community 161`, `Community 163`, `Community 166`, `Community 169`, `Community 170`, `Community 173`, `Community 178`, `Community 191`, `Community 206`, `Community 213`, `Community 215`, `Community 231`, `Community 233`, `Community 242`, `Community 271`, `Community 342`?**
   _High betweenness centrality (0.121) - this node is a cross-community bridge._
-- **Why does `canonicalContractJson()` connect `Community 1` to `Community 0`, `Community 2`, `Community 3`, `Community 4`, `Community 5`, `Community 10`, `Community 11`, `Community 140`, `Community 12`, `Community 139`, `Community 142`, `Community 16`, `Community 145`, `Community 18`, `Community 19`, `Community 14`, `Community 22`, `Community 23`, `Community 28`, `Community 30`, `Community 161`, `Community 33`, `Community 35`, `Community 36`, `Community 164`, `Community 170`, `Community 44`, `Community 46`, `Community 178`, `Community 179`, `Community 52`, `Community 312`, `Community 59`, `Community 188`, `Community 61`, `Community 324`, `Community 68`, `Community 79`, `Community 80`, `Community 85`, `Community 342`, `Community 215`, `Community 218`, `Community 348`, `Community 225`, `Community 97`, `Community 355`, `Community 101`, `Community 231`, `Community 107`, `Community 110`, `Community 115`, `Community 116`, `Community 121`, `Community 122`, `Community 127`?**
+- **Why does `canonicalContractJson()` connect `Community 1` to `Community 0`, `Community 2`, `Community 3`, `Community 4`, `Community 5`, `Community 10`, `Community 11`, `Community 140`, `Community 12`, `Community 139`, `Community 142`, `Community 16`, `Community 145`, `Community 18`, `Community 19`, `Community 14`, `Community 22`, `Community 23`, `Community 28`, `Community 30`, `Community 161`, `Community 33`, `Community 35`, `Community 36`, `Community 164`, `Community 170`, `Community 44`, `Community 46`, `Community 178`, `Community 50`, `Community 52`, `Community 179`, `Community 312`, `Community 59`, `Community 188`, `Community 61`, `Community 67`, `Community 68`, `Community 79`, `Community 80`, `Community 85`, `Community 342`, `Community 215`, `Community 218`, `Community 348`, `Community 225`, `Community 97`, `Community 355`, `Community 101`, `Community 231`, `Community 107`, `Community 110`, `Community 115`, `Community 116`, `Community 121`, `Community 122`, `Community 127`?**
   _High betweenness centrality (0.069) - this node is a cross-community bridge._
-- **Why does `ActionResponse` connect `Community 8` to `Community 0`, `Community 130`, `Community 4`, `Community 6`, `Community 135`, `Community 7`, `Community 143`, `Community 16`, `Community 21`, `Community 26`, `Community 289`, `Community 169`, `Community 170`, `Community 56`, `Community 62`, `Community 69`, `Community 77`, `Community 206`, `Community 81`, `Community 90`, `Community 224`, `Community 99`, `Community 102`, `Community 113`, `Community 242`, `Community 116`, `Community 123`, `Community 124`?**
+- **Why does `ActionResponse` connect `Community 8` to `Community 2`, `Community 130`, `Community 4`, `Community 6`, `Community 135`, `Community 7`, `Community 143`, `Community 16`, `Community 21`, `Community 26`, `Community 289`, `Community 169`, `Community 170`, `Community 56`, `Community 62`, `Community 69`, `Community 77`, `Community 206`, `Community 81`, `Community 90`, `Community 224`, `Community 99`, `Community 102`, `Community 113`, `Community 242`, `Community 123`, `Community 124`?**
   _High betweenness centrality (0.044) - this node is a cross-community bridge._
-- **What connects `order`, `mocks`, `input` to the rest of the system?**
+- **What connects `call`, `supportedModels`, `modelCatalog` to the rest of the system?**
   _4013 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.0435971685971686 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.043758043758043756 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
-  _Cohesion score 0.022461923807215286 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.02291407222914072 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
-  _Cohesion score 0.02476780185758514 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.04330392943063352 - nodes in this community are weakly interconnected._
