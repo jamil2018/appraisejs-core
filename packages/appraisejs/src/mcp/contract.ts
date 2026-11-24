@@ -49,6 +49,7 @@ export const canonicalMcpToolAnnotations = Object.freeze({
   project_diagnostic: localMutation,
   project_add: Object.freeze({ ...localMutation, openWorldHint: true }),
   project_list: readOnly,
+  workspace_record_search: readOnly,
   locator_graph_query: readOnly,
   locator_ensure: localMutation,
   operation_categories: readOnly,

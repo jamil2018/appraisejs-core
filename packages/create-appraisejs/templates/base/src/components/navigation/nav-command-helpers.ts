@@ -6,6 +6,7 @@ import {
   Group,
   LayoutDashboard,
   LayoutTemplate,
+  MessagesSquare,
   ListChecks,
   FolderKanban,
   GitPullRequestArrow,
@@ -75,6 +76,7 @@ function getControlSection(): NavigationSection {
     label: 'Control',
     items: [
       { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { href: '/conversations', label: 'Chats', icon: MessagesSquare },
       { href: '/quality-journeys', label: 'Quality Journeys', icon: Route },
       {
         href: '/collaboration',

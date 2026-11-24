@@ -392,6 +392,10 @@
     {
       "name": "20261112010000_add_journey_hosting_contract_version",
       "checksum": "f7243eb642b69f529b9695f525ede19051925b8f82784d00b43236d95329cd0f"
+    },
+    {
+      "name": "20261124010000_add_project_conversations",
+      "checksum": "c7a2e97cb09e06efd873a44ded1c0b127d19d6fa3675f75ec21e7015cbdcbc73"
     }
   ]
 }

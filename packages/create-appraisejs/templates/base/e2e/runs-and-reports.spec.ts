@@ -1,12 +1,18 @@
 import { test, expect } from '@playwright/test'
 
-import { disconnectPrisma, findTestRunById, resetE2eData, seedCoreData, seededIds } from './helpers/test-data'
+import {
+  disconnectPrisma,
+  findTestRunById,
+  resetGuardedAuthoringE2eData,
+  seedCoreData,
+  seededIds,
+} from './helpers/test-data'
 import { expectPageHeading } from './helpers/ui'
 
 test.describe('Runs and reports @runs', () => {
-  test.beforeEach(async () => {
-    await resetE2eData()
-    await seedCoreData()
+  test.beforeEach(async ({ page }) => {
+    await resetGuardedAuthoringE2eData(page)
+    await seedCoreData(true)
   })
 
   test.afterAll(async () => {

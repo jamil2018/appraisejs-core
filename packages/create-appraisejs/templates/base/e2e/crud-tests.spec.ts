@@ -1,15 +1,21 @@
 import { test, expect } from '@playwright/test'
 
-import { disconnectPrisma, findModuleByName, resetE2eData, seedCoreData, seededIds } from './helpers/test-data'
+import {
+  disconnectPrisma,
+  findModuleByName,
+  resetGuardedAuthoringE2eData,
+  seedCoreData,
+  seededIds,
+} from './helpers/test-data'
 import { createTestCaseWithSeededStep, createTestSuite } from './helpers/forms'
 import { expectPageHeading, saveForm } from './helpers/ui'
 import { deleteRowByName, editRowByName, expectRowHidden } from './helpers/table'
 import { selectFilterTags, selectTestSuites } from './helpers/forms'
 
 test.describe('Test hierarchy CRUD @crud', () => {
-  test.beforeEach(async () => {
-    await resetE2eData()
-    await seedCoreData()
+  test.beforeEach(async ({ page }) => {
+    await resetGuardedAuthoringE2eData(page)
+    await seedCoreData(true)
   })
 
   test.afterAll(async () => {
@@ -25,7 +31,7 @@ test.describe('Test hierarchy CRUD @crud', () => {
     await editRowByName(page, suiteName, 'Search test suites')
     await page.getByPlaceholder('Enter name for your test suite').fill(editedSuiteName)
     await saveForm(page)
-    await expect(page.getByText(editedSuiteName, { exact: true }).first()).toBeVisible()
+    await expect(page.getByRole('row', { name: new RegExp(editedSuiteName) })).toBeVisible()
 
     await deleteRowByName(page, editedSuiteName, 'Search test suites')
     await page.reload()
@@ -68,7 +74,7 @@ test.describe('Test hierarchy CRUD @crud', () => {
 
   test('secondary module suite seed is visible for assignment coverage', async ({ page }) => {
     await page.goto('/test-suites')
-    await expect(page.getByText('E2E Secondary Suite', { exact: true }).first()).toBeVisible()
+    await expect(page.getByRole('row', { name: /E2E Secondary Suite/ })).toBeVisible()
 
     const secondModule = await findModuleByName('E2E Secondary')
     expect(secondModule).not.toBeNull()

@@ -39,9 +39,14 @@ The live workspace has a collapsible desktop navigation pane, a project-scoped J
 compact collections for authoring, configuration, execution, and reports. Compact tables with a project scope restore
 their view within the same browser tab. **Use in a Journey** on a case, run, or report brings its verified record into
 the new brief. An edited brief autosaves its record reference alongside the objective. Reports lead with confirmed
-results and failed checks. Settings offers persistent Dark and Light appearances and the existing Codex diagnostic.
+results and failed checks. Settings offers persistent Dark and Light appearances, the Codex diagnostic, and a local
+ChatGPT authorization flow on macOS and Linux.
 
-An uncoached first-use walkthrough, real provider onboarding, generalized provider-backed conversations, and live
-manual-to-chat parity remain qualification work. The [provider proof](provider-proof.md) records the required external
-evidence. The [action inventory](action-inventory.md) maps effects to current Appraise authority and separates
-manual and CLI/MCP evidence from provider-verified parity.
+**New chat** opens a saved project conversation. Appraise can find cases, suites, templates, runs, and reports locally.
+Use **Attach** on a case result and send “Rename this case to …” to update its title in the same conversation. The
+saved reply links to the actual editor. Cases, runs, and reports also offer **Discuss in chat**, which starts with the
+exact record attached. Ordinary messages are saved as notes in the conversation.
+
+An uncoached first-use walkthrough, live provider onboarding, provider-backed conversations, and full action parity
+remain open. The [provider proof](provider-proof.md) records the required evidence. The
+[action inventory](action-inventory.md) maps effects to current Appraise services.

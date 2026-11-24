@@ -2,11 +2,13 @@ import { ArrowUpRight } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 
+import { readChatGptConnection, readChatGptProfiles } from '@/actions/provider-connection/chatgpt-actions'
 import PageHeader from '@/components/typography/page-header'
 import { readActiveProjectCookie } from '@/lib/active-project'
 import { withProjectScope } from '@/lib/project-scope'
 
 import { AppearanceSettings } from './appearance-settings'
+import { ChatGptSettings } from './chatgpt-settings'
 
 export const metadata: Metadata = {
   title: 'Appraise | Settings',
@@ -14,7 +16,11 @@ export const metadata: Metadata = {
 }
 
 export default async function SettingsPage() {
-  const project = await readActiveProjectCookie()
+  const [project, chatGptStatus, chatGptProfiles] = await Promise.all([
+    readActiveProjectCookie(),
+    readChatGptConnection(),
+    readChatGptProfiles(),
+  ])
   const scoped = (href: string) => (project ? withProjectScope(href, project) : href)
 
   return (
@@ -38,6 +44,7 @@ export default async function SettingsPage() {
           Agent setup
         </h2>
         <div className="divide-y divide-border rounded-xl border bg-card">
+          <ChatGptSettings initialStatus={chatGptStatus} profiles={chatGptProfiles} />
           <SettingsLink href={scoped('/projects?agentSetup=codex')} title="Codex diagnostic" />
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-3 text-sm">
             <span>Claude Code</span>

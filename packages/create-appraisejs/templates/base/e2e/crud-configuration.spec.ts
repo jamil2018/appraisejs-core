@@ -5,7 +5,7 @@ import {
   findEnvironmentByName,
   findModuleByName,
   findTagByName,
-  resetE2eData,
+  resetGuardedAuthoringE2eData,
   seedCoreData,
   seededIds,
 } from './helpers/test-data'
@@ -14,9 +14,9 @@ import { createEnvironment, createModule, createTag, saveForm } from './helpers/
 import { confirmDeleteDialog, deleteRowByName, expectRowHidden } from './helpers/table'
 
 test.describe('Configuration CRUD @crud', () => {
-  test.beforeEach(async () => {
-    await resetE2eData()
-    await seedCoreData()
+  test.beforeEach(async ({ page }) => {
+    await resetGuardedAuthoringE2eData(page)
+    await seedCoreData(true)
   })
 
   test.afterAll(async () => {

@@ -4,17 +4,19 @@
 
 Appraise has internal Codex provider intent, process supervision, and recovery building blocks for Quality Journeys.
 M13 evidence covers specific native observations and leaves historical provider outcomes unresolved. Appraise's current
-Journey setup exposes a Codex diagnostic and the current Settings surface links to it. In-app account enrollment,
-provider switching, and a completed subscription-backed Appraise read remain open for both providers. Production
-app-server dispatch still refuses to start. The redesign does not consume another native attempt or resolve an
-unknown historical send.
+Journey setup exposes a Codex diagnostic and Settings links to it. **Settings → Agent setup → Connect ChatGPT**
+prepares an expiring loopback authorization for a local macOS or Linux installation. Appraise verifies the signed
+account identity and granted scopes before storing credentials in the operating-system user's private directory.
+The local disconnect clears usable credentials. Synthetic tests exercise the callback and credential storage.
+Live consent, provider switching, and a subscription-backed Appraise read remain open. Production Journey
+app-server dispatch still refuses to start. Historical native attempts retain their recorded outcomes.
 [Hosting and sessions](../../quality-journey-host-sessions.md) ·
 [Provider intent](../../quality-journey-provider-intents.md) ·
 [M13 evidence](../../../tasks/codex-app-server-journeys/M13-INTEGRATED-IMPLEMENTATION.md)
 
 | Provider    | Starting path                                                                                                                                                                            | Evidence still needed                                                                                                                                                                                                                                                                                                                   |
 | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ChatGPT     | Evaluate OpenAI's documented Sign in with ChatGPT and Codex app-server integration for Appraise, including registration, supported account plans, and token storage.                     | A clean Appraise install guides the user through consent, completes a turn on the subscription path, and returns the verified project record. [OpenAI app-server guide](https://developers.openai.com/siwc/token-sharing-open-source/codex-app-server)                                                                                  |
+| ChatGPT     | Use Settings to start ChatGPT's browser consent for the local open-source preview.                                                                                                       | Verify consent on a clean install with an eligible account, then complete a subscription-backed turn returning the verified project record. [OpenAI app-server guide](https://developers.openai.com/siwc/token-sharing-open-source/codex-app-server)                                                                                    |
 | Claude Code | Evaluate hosting the official, unmodified Claude Code binary with provider-owned sign-in under Anthropic's published conditions. Review the commercial terms for this integration shape. | A clean Appraise install guides the user into Claude Code's sign-in flow and completes the same Appraise read. Claude.ai sign-in inside Appraise and Appraise handling Claude subscription credentials fall outside the published provider path. [Anthropic legal and compliance](https://code.claude.com/docs/en/legal-and-compliance) |
 
 ## Qualification sequence

@@ -26,6 +26,7 @@ const localDiscoveryTools = new Set(['locator_search'])
 
 const exactCoordinatorOperations: Readonly<Record<string, CoordinatorOperationId>> = {
   environment_list: 'environment-read',
+  workspace_record_search: 'workspace-records-read',
   environment_ensure: 'environment-write',
   locator_graph_query: 'locator-graph',
   locator_ensure: 'locator-write',

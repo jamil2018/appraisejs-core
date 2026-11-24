@@ -20,7 +20,7 @@ export async function completeNamedCreate(
 ): Promise<void> {
   await page.getByRole('button', { name: saveButton }).click()
   await expect(page).toHaveURL(destination)
-  await expect(page.getByText(name, { exact: true }).first()).toBeVisible()
+  await expect(page.getByText(name, { exact: true }).filter({ visible: true }).first()).toBeVisible()
 }
 
 export async function createModule(page: Page, name: string): Promise<void> {

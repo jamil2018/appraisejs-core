@@ -32,6 +32,35 @@ const relationships: () => never = () => {
   )
 }
 const missing: () => never = () => { throw new ServiceError('Test case not found', 'NOT_FOUND', 404) }
+
+/** Rename only the live, scoped case whose title still matches the attached snapshot. The caller owns this transaction. */
+export async function renameTestCaseTitleInTransaction(
+  tx: Tx, input: { targetProjectId: string; testCaseId: string; expectedTitle: string; nextTitle: string },
+): Promise<{ id: string; title: string }> {
+  const { targetProjectId, testCaseId, expectedTitle } = input
+  if (!isSharedResourceId(targetProjectId) || !isSharedResourceId(testCaseId) || typeof expectedTitle !== 'string') relationships()
+  if (typeof input.nextTitle !== 'string') relationships()
+  const title = input.nextTitle.trim()
+  if (title.length < 3 || title.length > 512 || Buffer.byteLength(title, 'utf8') > 2_048) relationships()
+  const current = await tx.testCase.findFirst({
+    where: { id: testCaseId, targetProjectId, archivedAt: null },
+    select: { id: true, targetProjectId: true, title: true, archivedAt: true },
+  })
+  if (!current || current.id !== testCaseId || current.targetProjectId !== targetProjectId || current.archivedAt !== null) missing()
+  if (current.title !== expectedTitle) {
+    throw new ServiceError('The attached test case title changed. Refresh it before renaming.', 'CONFLICT', 409)
+  }
+  await prepareSharedResourceMutationInTransaction(tx, targetProjectId, {
+    existing: keys([testCaseId], []), newRoots: [], deleted: [],
+  })
+  const result = await tx.testCase.updateMany({
+    where: { id: testCaseId, targetProjectId, archivedAt: null, title: expectedTitle }, data: { title },
+  })
+  if (result.count !== 1) {
+    throw new ServiceError('The attached test case changed during renaming.', 'CONFLICT', 409)
+  }
+  return { id: testCaseId, title }
+}
 function examined<T extends { id: string }>(rows: T[], budget: Examined) {
   budget.count += rows.length
   if (budget.count > rowLimit) refuse('ROW_BOUND')

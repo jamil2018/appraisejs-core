@@ -19,7 +19,7 @@ import { deleteTargetProject } from './target-project-service'
 const targetProjectId = 'target-delete'
 const sample = new Date('2026-10-25T00:00:00.000Z')
 const modelNames = [
-  'targetProject', 'module', 'locatorGroup', 'locator', 'testSuite', 'testCase', 'templateTestCase', 'environment', 'tag',
+  'targetProject', 'projectConversation', 'projectConversationMessage', 'module', 'locatorGroup', 'locator', 'testSuite', 'testCase', 'templateTestCase', 'environment', 'tag',
   'testCaseStep', 'templateTestCaseStep', 'testCaseStepParameter', 'templateTestCaseStepParameter',
   'testCaseFlowBlock', 'templateTestCaseFlowBlock', 'testCaseFlowBlockNode', 'templateTestCaseFlowBlockNode',
   'conflictResolution', 'testCaseMetrics', 'testSuiteMetrics', 'dashboardMetrics', 'projectResourceOwnership', 'projectResourceImport',
@@ -44,7 +44,7 @@ type Relation = { some: { id: string } }
 type Where = {
   targetProjectId?: string; id?: string | IdList; parentId?: IdList; moduleId?: IdList; locatorGroupId?: IdList;
   TestSuite?: Relation; testCases?: Relation; testSuites?: Relation; tags?: Relation;
-  testCaseId?: IdList; templateTestCaseId?: IdList; flowBlockId?: IdList;
+  testCaseId?: IdList; templateTestCaseId?: IdList; flowBlockId?: IdList; conversationId?: IdList;
   entityType?: string; entityId?: IdList; OR?: Where[];
 }
 type Query = { where?: Where; select?: Record<string, boolean>; take?: number }
@@ -71,7 +71,7 @@ function read(model: Model, method: string) {
 function scopedRows(model: Model, query: Query): Row[] {
   const where = query.where ?? {}, available = rows[model] ?? []
   const { targetProjectId: scope, parentId, moduleId, locatorGroupId, TestSuite, testCases, testSuites,
-    tags, id, testCaseId, templateTestCaseId, flowBlockId, OR } = where
+    tags, id, testCaseId, templateTestCaseId, flowBlockId, conversationId, OR } = where
   const has = (values: readonly string[], value: unknown) => typeof value === 'string' && values.includes(value)
   const related = (row: Row, field: string, selected: string) => {
     const value = row[field]
@@ -90,6 +90,7 @@ function scopedRows(model: Model, query: Query): Row[] {
   if (testCaseId) return available.filter(row => has(testCaseId.in, row.testCaseId))
   if (templateTestCaseId) return available.filter(row => has(templateTestCaseId.in, row.templateTestCaseId))
   if (flowBlockId) return available.filter(row => has(flowBlockId.in, row.flowBlockId))
+  if (conversationId) return available.filter(row => has(conversationId.in, row.conversationId))
   // Explicit OR query fixtures supply all matching own/incoming rows. They do
   // not target-filter incoming edges or synthesize absent selected fields.
   if (model === 'projectResourceOwnership' && OR) return available.filter(row =>
@@ -105,6 +106,8 @@ function noWrites() {
 }
 function populate() {
   const owned = { targetProjectId, archivedAt: null, collaborationManaged: false }
+  rows.projectConversation = [{ id: 'conversation', targetProjectId }]
+  rows.projectConversationMessage = [{ id: 'conversation-message', conversationId: 'conversation' }]
   rows.module = [{ id: 'module-parent', ...owned, parentId: null }, { id: 'module-leaf', ...owned, parentId: 'module-parent', archivedAt: sample, collaborationManaged: true }]
   rows.locatorGroup = [{ id: 'group', ...owned, moduleId: 'module-leaf' }]
   rows.locator = [{ id: 'locator', ...owned, locatorGroupId: 'group', archivedAt: sample, collaborationManaged: true }]
@@ -183,13 +186,19 @@ describe('Target deletion exact owner effects', () => {
     ]
     expect(mocks.prepare).toHaveBeenCalledExactlyOnceWith(tx, targetProjectId, { existing: expected, newRoots: [], deleted: expected })
     expect(calls.filter(call => call.startsWith('write:')).map(call => call.split(':')[1])).toEqual([
-      'projectResourceImport', 'projectResourceOwnership', 'testCaseStepParameter', 'templateTestCaseStepParameter',
+      'projectResourceImport', 'projectConversationMessage', 'projectConversation', 'projectResourceOwnership', 'testCaseStepParameter', 'templateTestCaseStepParameter',
       'testCaseFlowBlockNode', 'templateTestCaseFlowBlockNode', 'testCaseStep', 'templateTestCaseStep',
       'testCaseFlowBlock', 'templateTestCaseFlowBlock', 'testCaseMetrics', 'testSuiteMetrics', 'dashboardMetrics',
       'testCase', 'templateTestCase', 'testSuite', 'conflictResolution', 'locator', 'locatorGroup',
       'module', 'module', 'environment', 'tag', 'targetProject',
     ])
     expect(tx.module.deleteMany.mock.calls.map(([query]) => query.where.id)).toEqual(['module-leaf', 'module-parent'])
+    expect(tx.projectConversationMessage.deleteMany).toHaveBeenCalledExactlyOnceWith({
+      where: { id: { in: ['conversation-message'] }, conversationId: { in: ['conversation'] } },
+    })
+    expect(tx.projectConversation.deleteMany).toHaveBeenCalledExactlyOnceWith({
+      where: { id: { in: ['conversation'] }, targetProjectId },
+    })
     expect(tx.module.findMany.mock.calls[0][0].where).toEqual({ targetProjectId })
     expect(tx.locator.findMany.mock.calls[0][0].where).toEqual({ targetProjectId })
     expect(tx.testCase.findMany.mock.calls[0][0].where).toEqual({ targetProjectId })
@@ -199,6 +208,15 @@ describe('Target deletion exact owner effects', () => {
     expect(tx.qualityJourneySharedResourceGuard.deleteMany).not.toHaveBeenCalled()
     expect(tx.qualityJourneySharedResourceUse.deleteMany).not.toHaveBeenCalled()
     expect(tx.qualityJourneySharedResourceClaim.deleteMany).not.toHaveBeenCalled()
+  })
+
+  it('rejects conversation message count drift before deleting its parent or target', async () => {
+    populate()
+    tx.projectConversationMessage.deleteMany.mockResolvedValueOnce({ count: 0 })
+    await expect(deleteTargetProject(targetProjectId, client)).rejects.toMatchObject({ statusCode: 409 })
+    expect(tx.projectConversation.deleteMany).not.toHaveBeenCalled()
+    expect(tx.targetProject.deleteMany).not.toHaveBeenCalled()
+    expect(calls).toContain('rollback-signal')
   })
 
   it('keeps a foreign source ownership target and root read-only while removing only this target destination import', async () => {

@@ -95,10 +95,13 @@ operation definitions are step execution primitives, not substitutes for authori
   every state-dependent control, or measure accessibility and keyboard behavior.
 - **Package inventory:** names above are bounded by the public MCP contract/registration and CLI commands. A named
   counterpart is not proof of identical authorization, input, output, or recovery semantics.
-- **Provider connection:** no in-app provider connection, credential flow, or Claude integration was evidenced by the
-  current settings route and package registries. Codex setup guidance and MCP registration are setup surfaces. The
-  production coordinator dispatch path currently refuses work; therefore Codex and Claude natural-language parity,
-  read-only behavior, runtime claims, and provider tests are **unqualified**.
+- **Project chat:** the local transcript can find test cases, suites, case templates, runs, and reports. A typed
+  “Rename this case to …” with an exact case attachment updates only its title through the case service and its
+  shared-resource guard. SQLite commits the edit and both messages together, with replay through the same request key.
+  The coordinator exposes the same bounded search through `workspace_record_search`.
+- **Provider connection:** Settings offers local ChatGPT authorization with signed identity verification and
+  private credential custody. Live sign-in, inference, Claude Code hosting, and two-provider parity are unqualified.
+  The existing production Journey dispatch path retains its refusal.
 - **Next parity evidence:** enumerate state-dependent row and bulk controls, disclosures, keyboard actions, template
   instantiation (if actually present), report export (if actually present), project import (if actually present),
   exact approval scope, and test IDs from the rendered UI and live providers. Keep absent controls absent in the

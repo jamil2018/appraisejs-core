@@ -1,5 +1,10 @@
 # Project Ownership Boundary
 
+Each saved conversation belongs to one target project. Its messages and attachments are available through that
+project's conversation routes. Attachments store verified record identifiers and display-title snapshots.
+An exact chat rename rechecks case ownership, current title, and the shared-resource guard before committing the
+case and turn together. Project deletion counts and removes conversation messages before their parent conversations.
+
 AppraiseJS treats a `TargetProject` as the mandatory isolation boundary for authored data, managed lifecycle state,
 execution, reports, metrics, reviews, integrations, and evidence. System configuration and built-in contract schemas
 remain global. Ready Step Definitions form a shared library visible to every project. Compositions are immutable

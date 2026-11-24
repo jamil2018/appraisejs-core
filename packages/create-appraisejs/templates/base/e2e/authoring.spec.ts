@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test'
 
 import {
   disconnectPrisma,
-  resetE2eData,
+  resetGuardedAuthoringE2eData,
   seedCoreData,
   seedInvalidTopologyTestCase,
   seededIds,
@@ -42,9 +42,9 @@ async function switchAuthoringView(page: Page, view: 'Graph' | 'Linear'): Promis
 }
 
 test.describe('Test authoring @authoring', () => {
-  test.beforeEach(async () => {
-    await resetE2eData()
-    await seedCoreData()
+  test.beforeEach(async ({ page }) => {
+    await resetGuardedAuthoringE2eData(page)
+    await seedCoreData(true)
   })
 
   test.afterAll(async () => {
@@ -196,17 +196,20 @@ test.describe('Test authoring @authoring', () => {
 
     await page.getByRole('button', { name: 'Enter immersive flow editing' }).click()
     await expect(page.getByRole('button', { name: 'Exit immersive flow editing' })).toBeVisible()
-    await page.waitForTimeout(500)
     const immersiveEditButton = page.getByRole('button', { name: 'Edit', exact: true })
+    await expect(immersiveEditButton).toBeVisible()
     await immersiveEditButton.focus()
     await page.keyboard.press('Enter')
     await expect(editor).toBeVisible()
     await expect(page.getByRole('textbox', { name: 'url' })).toBeFocused()
     await expectNoAuthoringHorizontalOverflow(page)
     await page.getByRole('button', { name: 'Cancel' }).click()
+    await expect(editor).toBeHidden()
+    await expect(immersiveEditButton).toBeFocused()
 
     const exitImmersiveButton = page.getByRole('button', { name: 'Exit immersive flow editing' })
     await exitImmersiveButton.focus()
+    await expect(exitImmersiveButton).toBeFocused()
     await page.keyboard.press('Enter')
     await expect(page.getByRole('button', { name: 'Enter immersive flow editing' })).toBeVisible()
     await expect(editor).toBeHidden()
@@ -218,7 +221,7 @@ test.describe('Test authoring @authoring', () => {
   })
 
   test('rejects persisted non-contiguous flow-block topology before saving', async ({ page }) => {
-    await seedInvalidTopologyTestCase()
+    await seedInvalidTopologyTestCase(true)
     await page.goto(`/test-cases/modify/${seededIds.invalidTopologyTestCase}`)
     await expectPageHeading(page, 'Modify Test Case')
     await fillTestCaseDetails(page, 'E2E Invalid Topology Case')

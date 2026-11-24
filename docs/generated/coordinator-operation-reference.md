@@ -15,6 +15,7 @@ the canonical MCP registry. Human-owned lifecycle meaning and examples remain in
 | `step-definitions-read`      | GET    | `/api/internal/coordinator/step-definitions/*`   |
 | `target-projects-list`       | GET    | `/api/internal/coordinator/target-projects`      |
 | `locator-graph`              | GET    | `/api/internal/coordinator/locator-graph/*`      |
+| `workspace-records-read`     | GET    | `/api/internal/coordinator/workspace/records`    |
 | `environment-read`           | GET    | `/api/internal/coordinator/environments`         |
 | `quality-read`               | GET    | `/api/internal/coordinator/quality/*`            |
 | `step-definitions-write`     | POST   | `/api/internal/coordinator/step-definitions/*`   |

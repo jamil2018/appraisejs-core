@@ -9,6 +9,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Plug,
+  Route,
   Search,
   Settings,
   SquarePen,
@@ -42,12 +43,22 @@ import {
   useProjectNavigationState,
 } from './project-navigation-helpers'
 
+export type RecentWorkspaceItem =
+  | JourneyNavigationItem
+  | {
+      kind: 'chat'
+      id: string
+      title: string
+      updatedAt: number
+      status: 'CHAT'
+    }
+
 type AppSidebarProps = ProjectNavigationProps & {
-  recentJourneys?: Record<string, JourneyNavigationItem[]>
+  recentItems?: Record<string, RecentWorkspaceItem[]>
 }
 
 const areas = [
-  { id: 'chats', label: 'Chats', href: '/quality-journeys/new', Icon: MessagesSquare },
+  { id: 'chats', label: 'Chats', href: '/conversations', Icon: MessagesSquare },
   { id: 'workspace', label: 'Workspace', href: '/dashboard', Icon: Layers3 },
   { id: 'integrations', label: 'Integrations', href: '/collaboration', Icon: Plug },
   { id: 'settings', label: 'Settings', href: '/settings', Icon: Settings },
@@ -58,6 +69,7 @@ type SidebarArea = (typeof areas)[number]['id']
 const routeAreas = new Map<string, SidebarArea>([
   ['/', 'chats'],
   ['/quality-journeys', 'chats'],
+  ['/conversations', 'chats'],
   ['/collaboration', 'integrations'],
   ['/settings', 'settings'],
   ['/help', 'settings'],
@@ -65,14 +77,14 @@ const routeAreas = new Map<string, SidebarArea>([
 
 function currentArea(pathname: string, agentSetup: boolean): SidebarArea {
   if (pathname === '/projects' && agentSetup) return 'integrations'
-  const sectionPath = pathname.replace(/^\/quality-journeys\/.*$/, '/quality-journeys')
+  const sectionPath = pathname.replace(/^\/(quality-journeys|conversations)\/.*$/, '/$1')
   return routeAreas.get(sectionPath) ?? 'workspace'
 }
 
 const setupPaths = new Set(['/locators', '/locator-groups', '/environments'])
 const authoringPaths = new Set(['/test-cases', '/test-suites'])
 const attentionStatuses = new Set(['ANALYSIS_REVIEW', 'SCENARIO_REVIEW', 'REPORT_REVIEW', 'BLOCKED', 'PAUSED'])
-const emptyRecentJourneys: Record<string, JourneyNavigationItem[]> = {}
+const emptyRecentItems: Record<string, RecentWorkspaceItem[]> = {}
 
 function workspaceSections([control, execution, library, system]: NavigationSection[]): NavigationSection[] {
   return [
@@ -121,24 +133,31 @@ function SidebarNavItem({
   )
 }
 
-function recentJourneyStatus(item: JourneyNavigationItem, needsAttention: boolean) {
+function recentItemStatus(item: RecentWorkspaceItem, needsAttention: boolean) {
   if (item.kind === 'draft') return 'Draft'
+  if (item.kind === 'chat') return 'Chat'
   return needsAttention ? qualityJourneyLabel(item.status) : displayStageForQualityJourney(item.status).label
 }
 
-function RecentJourneyLink({
+const recentItemRoutes = {
+  chat: '/conversations',
+  draft: '/quality-journeys/drafts',
+  journey: '/quality-journeys',
+}
+
+function RecentItemLink({
   item,
   projectId,
   activePath,
 }: {
-  item: JourneyNavigationItem
+  item: RecentWorkspaceItem
   projectId: string
   activePath?: string
 }) {
   const id = encodeURIComponent(item.id)
-  const path = item.kind === 'draft' ? `/quality-journeys/drafts/${id}` : `/quality-journeys/${id}`
+  const path = `${recentItemRoutes[item.kind]}/${id}`
   const needsAttention = attentionStatuses.has(item.status)
-  const status = recentJourneyStatus(item, needsAttention)
+  const status = recentItemStatus(item, needsAttention)
 
   return (
     <Link
@@ -155,16 +174,16 @@ function RecentJourneyLink({
   )
 }
 
-function RecentJourneys({
+function RecentItems({
   projects,
-  recentJourneys,
+  recentItems,
   projectId,
   pathname,
   search,
   sort,
 }: {
   projects: NonNullable<ProjectNavigationProps['projects']>
-  recentJourneys: NonNullable<AppSidebarProps['recentJourneys']>
+  recentItems: NonNullable<AppSidebarProps['recentItems']>
   projectId?: string
   pathname: string
   search: string
@@ -172,7 +191,7 @@ function RecentJourneys({
 }) {
   const term = search.trim().toLocaleLowerCase()
   const groups = projects.map(project => {
-    const matches = (recentJourneys[project.id] ?? []).filter(item =>
+    const matches = (recentItems[project.id] ?? []).filter(item =>
       [project.displayName, item.title].some(text => text.toLocaleLowerCase().includes(term)),
     )
     return { project, items: sort === 'title' ? matches.toSorted((a, b) => a.title.localeCompare(b.title)) : matches }
@@ -182,7 +201,7 @@ function RecentJourneys({
     <div className="space-y-2">
       {term && groups.every(group => !group.items.length) ? (
         <p className="px-2 text-sm text-muted-foreground" role="status">
-          No recent Journeys found.
+          No recent chats or Journeys found.
         </p>
       ) : null}
       {groups
@@ -206,13 +225,16 @@ function RecentJourneys({
             </summary>
             <div className="space-y-px pl-3">
               {items.map(item => (
-                <RecentJourneyLink
+                <RecentItemLink
                   key={`${item.kind}:${item.id}`}
                   item={item}
                   projectId={project.id}
                   activePath={project.id === projectId ? pathname : undefined}
                 />
               ))}
+              <Link className={navLinkClass} href={withProjectScope('/conversations', project.id)} prefetch={false}>
+                All chats
+              </Link>
               <Link className={navLinkClass} href={withProjectScope('/quality-journeys', project.id)} prefetch={false}>
                 All Journeys
               </Link>
@@ -226,9 +248,14 @@ function RecentJourneys({
 function NewChatLink({ area, projectId }: { area: SidebarArea; projectId?: string }) {
   if (area !== 'chats') return null
   return (
-    <Link className={navLinkClass} href={projectScopedHref('/quality-journeys/new', projectId)}>
-      <SquarePen className="size-4" aria-hidden="true" /> New chat
-    </Link>
+    <div className="space-y-px">
+      <Link className={navLinkClass} href={projectScopedHref('/conversations/new', projectId)}>
+        <SquarePen className="size-4" aria-hidden="true" /> New chat
+      </Link>
+      <Link className={navLinkClass} href={projectScopedHref('/quality-journeys/new', projectId)}>
+        <Route className="size-4" aria-hidden="true" /> New Journey
+      </Link>
+    </div>
   )
 }
 
@@ -285,7 +312,7 @@ function SidebarSection({
   return (
     <nav
       className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 [scrollbar-color:var(--input)_transparent] [scrollbar-width:thin]"
-      aria-label={chats ? 'Recent Journeys by project' : 'Section navigation'}
+      aria-label={chats ? 'Recent chats and Journeys by project' : 'Section navigation'}
     >
       {chats ? children : <SectionLinks area={area} sections={sections} pathname={pathname} projectId={projectId} />}
     </nav>
@@ -386,7 +413,7 @@ export default function AppSidebar({
   providerRunsEnabled = false,
   projects = emptyNavigationProjects,
   cookieProjectId,
-  recentJourneys = emptyRecentJourneys,
+  recentItems = emptyRecentItems,
 }: AppSidebarProps) {
   const { pathname, projectId, sections, searchParams } = useProjectNavigationState({
     providerRunsEnabled,
@@ -444,7 +471,7 @@ export default function AppSidebar({
                         size="icon"
                         className="size-7 rounded-xl"
                         variant="ghost"
-                        aria-label="Sort recent Journeys"
+                        aria-label="Sort recent chats and Journeys"
                       />
                     }
                   >
@@ -465,7 +492,7 @@ export default function AppSidebar({
                   className="size-7 rounded-xl"
                   variant="ghost"
                   ref={searchTrigger}
-                  aria-label="Search recent Journeys"
+                  aria-label="Search recent chats and Journeys"
                   aria-expanded={showSearch}
                   aria-controls="recent-journey-search"
                   onClick={() => {
@@ -491,8 +518,8 @@ export default function AppSidebar({
             <Input
               id="recent-journey-search"
               type="search"
-              aria-label="Filter recent Journeys"
-              placeholder="Search recent Journeys"
+              aria-label="Filter recent chats and Journeys"
+              placeholder="Search recent chats and Journeys"
               value={search}
               ref={searchInput}
               onChange={event => setSearch(event.target.value)}
@@ -506,9 +533,9 @@ export default function AppSidebar({
           ) : null}
         </div>
         <SidebarSection area={area} sections={sections} pathname={pathname} projectId={projectId}>
-          <RecentJourneys
+          <RecentItems
             projects={projects}
-            recentJourneys={recentJourneys}
+            recentItems={recentItems}
             projectId={projectId}
             pathname={pathname}
             search={search}

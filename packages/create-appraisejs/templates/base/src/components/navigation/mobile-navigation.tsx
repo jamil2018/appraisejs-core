@@ -93,7 +93,7 @@ export default function MobileNavigation({
         </div>
         <nav className="min-h-0 flex-1 overflow-y-auto px-3 pb-4" aria-label="Primary navigation">
           <Link
-            href={projectScopedHref('/quality-journeys/new', projectId)}
+            href={projectScopedHref('/conversations/new', projectId)}
             className="app-focus mb-2 flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-medium hover:bg-muted"
             onClick={() => setOpen(false)}
           >

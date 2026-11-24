@@ -514,11 +514,51 @@ model TargetProject {
   qualityJourneyExecutionCycles          QualityJourneyExecutionCycle[]
   qualityJourneyCoordinatorHandoffs      QualityJourneyCoordinatorHandoff[]
   collaborationBinding                   CollaborationBinding?
+  conversations                          ProjectConversation[]
 
   @@index([displayName])
   @@index([canonicalPath])
   @@index([normalizedRemoteOrigin])
   @@index([fingerprint])
+}
+
+enum ProjectConversationRole {
+  USER
+  APPRAISE
+}
+
+model ProjectConversation {
+  id              String                       @id @default(uuid())
+  targetProjectId String
+  targetProject   TargetProject                @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  title           String
+  initialIdempotencyKey String?
+  nextOrdinal     Int                          @default(1)
+  createdAt       DateTime                     @default(now())
+  updatedAt       DateTime                     @updatedAt
+  messages        ProjectConversationMessage[]
+
+  @@index([targetProjectId, updatedAt, id])
+  @@unique([targetProjectId, initialIdempotencyKey])
+}
+
+model ProjectConversationMessage {
+  id             String                  @id @default(uuid())
+  conversationId String
+  conversation   ProjectConversation     @relation(fields: [conversationId], references: [id], onDelete: Restrict)
+  ordinal        Int
+  role           ProjectConversationRole
+  content        String
+  contextJson    String?
+  recordsJson    String?
+  turnId         String
+  idempotencyKey String?
+  requestHash    String?
+  createdAt      DateTime                @default(now())
+
+  @@unique([conversationId, ordinal])
+  @@unique([conversationId, idempotencyKey])
+  @@index([conversationId, turnId])
 }
 
 model QualityJourney {

@@ -4,11 +4,12 @@ import { redirect } from 'next/navigation'
 import './globals.css'
 import { ThemeProvider } from '@/components/theme/theme-provider'
 import { Toaster } from '@/components/ui/toaster'
-import AppSidebar from '@/components/navigation/app-sidebar'
+import AppSidebar, { type RecentWorkspaceItem } from '@/components/navigation/app-sidebar'
 import MobileNavigation from '@/components/navigation/mobile-navigation'
 import { isProviderNativeRunsEnabled } from '@/lib/feature-flags'
 import { readActiveProjectCookie } from '@/lib/active-project'
 import { listTargetProjects } from '@/services/target-project/target-project-service'
+import { listRecentProjectConversations } from '@/services/conversation/conversation-service'
 import { listRecentJourneyNavigation } from '@/services/coordinator/quality-journey-query-service'
 import ProjectRequiredEmptyState from '@/components/data-state/project-required-empty-state'
 import { APPRAISE_REQUEST_TARGET_HEADER, isProjectScopedPath, staleProjectScopeReturnTo } from '@/lib/project-scope'
@@ -99,7 +100,18 @@ export default async function RootLayout({
     registeredProjectIds,
     cookieProjectId,
   })
-  const recentJourneys = await listRecentJourneyNavigation(projectOptions.map(project => project.id))
+  const projectIds = projectOptions.map(project => project.id)
+  const [recentJourneys, chats] = await Promise.all([
+    listRecentJourneyNavigation(projectIds),
+    listRecentProjectConversations(projectIds),
+  ])
+  const recentItems = Object.fromEntries(
+    projectIds.map(id => {
+      const items: RecentWorkspaceItem[] = (chats[id] ?? []).map(chat => ({ ...chat, kind: 'chat', status: 'CHAT' }))
+      items.push(...(recentJourneys[id] ?? []))
+      return [id, items.sort((left, right) => right.updatedAt - left.updatedAt)]
+    }),
+  )
 
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
@@ -116,7 +128,7 @@ export default async function RootLayout({
               providerRunsEnabled={providerRunsEnabled}
               projects={projectOptions}
               cookieProjectId={cookieProjectId}
-              recentJourneys={recentJourneys}
+              recentItems={recentItems}
             />
             <div className="fixed inset-x-0 top-0 z-40 lg:hidden">
               <MobileNavigation

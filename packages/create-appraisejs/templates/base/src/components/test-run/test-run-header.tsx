@@ -1,5 +1,7 @@
 'use client'
 
+import { DiscussRecordLink } from '@/components/navigation/discuss-record-link'
+
 import PageHeader from '@/components/typography/page-header'
 import { ViewReportButton } from '@/components/test-run/view-report-button'
 import { TestRunResultBadge } from '@/components/test-run/test-run-report-badges'
@@ -37,6 +39,7 @@ export function TestRunHeader({ initialTestRun }: TestRunHeaderProps) {
           <p className="text-sm text-muted-foreground">{testRun.name}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <DiscussRecordLink projectId={testRun.targetProjectId} reference={{ kind: 'test-run', id: testRun.id }} />
           <Button
             nativeButton={false}
             variant="secondary"

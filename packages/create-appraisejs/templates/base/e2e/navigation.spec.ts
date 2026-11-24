@@ -1,13 +1,20 @@
 import { test, expect } from '@playwright/test'
 
-import { disconnectPrisma, resetE2eData, seedCoreData, seedEmptyProject, seededIds } from './helpers/test-data'
+import {
+  disconnectPrisma,
+  resetE2eData,
+  resetGuardedAuthoringE2eData,
+  seedCoreData,
+  seedEmptyProject,
+  seededIds,
+} from './helpers/test-data'
 import { buildModifyPath, visitRoutes, type RouteExpectation } from './helpers/navigation'
 import { expectPageHeading } from './helpers/ui'
 
 test.describe('Navigation @navigation', () => {
-  test.beforeEach(async () => {
-    await resetE2eData()
-    await seedCoreData()
+  test.beforeEach(async ({ page }) => {
+    await resetGuardedAuthoringE2eData(page)
+    await seedCoreData(true)
   })
 
   test.afterAll(async () => {
@@ -60,12 +67,12 @@ test.describe('Navigation @navigation', () => {
 
     const areas = page.getByRole('navigation', { name: 'App sections' })
     await expect(areas.getByRole('link', { name: 'Chats' })).toHaveAttribute('aria-current', 'true')
-    const search = page.getByRole('button', { name: 'Search recent Journeys' })
+    const search = page.getByRole('button', { name: 'Search recent chats and Journeys' })
     await search.click()
-    const input = page.getByRole('searchbox', { name: 'Filter recent Journeys' })
+    const input = page.getByRole('searchbox', { name: 'Filter recent chats and Journeys' })
     await expect(input).toBeFocused()
     await input.fill('missing brief')
-    await expect(page.getByText('No recent Journeys found.')).toBeVisible()
+    await expect(page.getByText('No recent chats or Journeys found.')).toBeVisible()
     await input.press('Escape')
     await expect(search).toBeFocused()
 
@@ -123,7 +130,7 @@ test.describe('Navigation @navigation', () => {
     await page.getByRole('button', { name: `Actions for ${rowName}`, exact: true }).click()
     await page.getByRole('menuitem', { name: 'Use in a Journey' }).click()
     await expectPageHeading(page, 'What would you like to check?')
-    await expect(page).toHaveURL(/quality-journeys\/new\?.*record=e2e-test-case/)
+    await expect(page).toHaveURL(new RegExp(`quality-journeys/new\\?.*record=${seededIds.testCase}`))
     await expect(page.locator('form').getByText(rowName, { exact: true })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Start journey' })).toBeDisabled()
 
@@ -136,7 +143,7 @@ test.describe('Navigation @navigation', () => {
     await page.goto('/quality-journeys/new')
     await expectPageHeading(page, 'What would you like to check?')
     const rail = page.getByRole('navigation', { name: 'App sections' })
-    const context = page.getByRole('navigation', { name: 'Recent Journeys by project' })
+    const context = page.getByRole('navigation', { name: 'Recent chats and Journeys by project' })
     await expect(context).toBeVisible()
     await rail.getByRole('button', { name: 'Collapse sidebar' }).press('Enter')
     await expect(context).toBeHidden()

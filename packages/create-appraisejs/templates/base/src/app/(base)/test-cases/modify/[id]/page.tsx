@@ -1,3 +1,4 @@
+import { DiscussRecordLink } from '@/components/navigation/discuss-record-link'
 import AuthoringLoadError from '@/components/data-state/authoring-load-error'
 import { getTestCaseByIdAction, updateTestCaseAction } from '@/actions/test-case/test-case-actions'
 import React from 'react'
@@ -39,16 +40,19 @@ function TestCaseEditorHeader({
         <p className="truncate text-sm text-muted-foreground">{testCase.title}</p>
       </div>
       {testCase.targetProjectId && (
-        <Button
-          variant="outline"
-          size="sm"
-          nativeButton={false}
-          render={
-            <Link href={journeyRecordBriefHref(testCase.targetProjectId, { kind: 'test-case', id: testCase.id })} />
-          }
-        >
-          Use in a Journey
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            nativeButton={false}
+            render={
+              <Link href={journeyRecordBriefHref(testCase.targetProjectId, { kind: 'test-case', id: testCase.id })} />
+            }
+          >
+            Use in a Journey
+          </Button>
+          <DiscussRecordLink projectId={testCase.targetProjectId} reference={{ kind: 'test-case', id: testCase.id }} />
+        </div>
       )}
     </div>
   )

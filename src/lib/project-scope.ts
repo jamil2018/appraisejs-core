@@ -9,6 +9,7 @@ const PROJECT_SCOPED_ROUTE_SEGMENTS = new Set([
   'locators',
   'modules',
   'collaboration',
+  'conversations',
   'quality-journeys',
   'reports',
   'tags',

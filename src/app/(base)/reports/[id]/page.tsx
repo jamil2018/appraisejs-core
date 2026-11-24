@@ -1,3 +1,4 @@
+import { DiscussRecordLink } from '@/components/navigation/discuss-record-link'
 import PageHeader from '@/components/typography/page-header'
 import { BrowserEngine } from '@prisma/client'
 import { Calendar, ChartLine, Clock } from 'lucide-react'
@@ -97,14 +98,17 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
             )}
           </div>
         </div>
-        <Button
-          nativeButton={false}
-          variant="secondary"
-          size="sm"
-          render={<Link href={journeyRecordBriefHref(testRun.targetProjectId, { kind: 'report', id: report.id })} />}
-        >
-          Use in a Journey
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <DiscussRecordLink projectId={testRun.targetProjectId} reference={{ kind: 'report', id: report.id }} />
+          <Button
+            nativeButton={false}
+            variant="secondary"
+            size="sm"
+            render={<Link href={journeyRecordBriefHref(testRun.targetProjectId, { kind: 'report', id: report.id })} />}
+          >
+            Use in a Journey
+          </Button>
+        </div>
       </div>
       <section
         aria-labelledby="report-outcome-heading"

@@ -1,5 +1,10 @@
 # Coordinator API and MCP
 
+`workspace_record_search` uses `GET /api/internal/coordinator/workspace/records` to list up to eight matching cases,
+suites, templates, runs, or reports. Provide the registered target, record kind, and an optional title query.
+The coordinator resolves the authenticated project and returns record IDs and display titles. Use the generated
+reference for the exact argument names and allowed kinds.
+
 For human operation of setup, handoff, lifecycle review, and recovery, see the
 [Quality Journey operator guide](quality-journey-operator-guide.md).
 
