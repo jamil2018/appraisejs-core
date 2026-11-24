@@ -401,7 +401,7 @@ describe.each([true, false])(
             )?.networkId,
           ).toBe(response.networkId)
         }
-        expect(f.redirectPauses.filter(pause => pause.path === '/image-independent')).not.toHaveLength(0)
+        await expect.poll(() => f.redirectPauses.some(pause => pause.path === '/image-independent')).toBe(true)
         expect(f.servers.hits.some(hit => hit.path.startsWith('/image-final-'))).toBe(false)
       } finally {
         f.releaseRedirectContinuations()

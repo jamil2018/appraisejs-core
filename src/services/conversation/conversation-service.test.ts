@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { PrismaClient } from '@prisma/client'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const guard = vi.hoisted(() => ({ prepare: vi.fn(async () => undefined) }))
 vi.mock('@/config/db-config', () => ({
@@ -29,6 +29,7 @@ import {
   replayConversationTurn,
 } from './conversation-service'
 import { deleteTargetProject } from '@/services/target-project/target-project-service'
+import { copyMigratedTestDatabase, prepareMigratedTestDatabase } from '@/test/migrated-test-database'
 import {
   readConversationProviderState,
   releaseUnconfirmedConversationRead,
@@ -53,12 +54,7 @@ let client: PrismaClient
 
 async function fullProjectDatabase(projectId: string): Promise<PrismaClient> {
   const fullFile = path.join(directory, `${projectId}.db`)
-  const ddl = execFileSync(
-    'npx',
-    ['prisma', 'migrate', 'diff', '--from-empty', '--to-schema-datamodel', 'prisma/schema.prisma', '--script'],
-    { cwd: process.cwd(), encoding: 'utf8' },
-  )
-  execFileSync('sqlite3', [fullFile], { input: ddl })
+  await copyMigratedTestDatabase(fullFile)
   const full = new PrismaClient({ datasources: { db: { url: `file:${fullFile}` } } })
   await full.targetProject.create({
     data: {
@@ -72,6 +68,10 @@ async function fullProjectDatabase(projectId: string): Promise<PrismaClient> {
   })
   return full
 }
+
+beforeAll(async () => {
+  await prepareMigratedTestDatabase()
+}, 30_000)
 
 beforeEach(() => {
   guard.prepare.mockReset()
@@ -213,6 +213,7 @@ describe('durable project conversations', () => {
   it('deletes finite conversation messages before conversations on a real disposable project database', async () => {
     const full = await fullProjectDatabase('delete-project')
     try {
+      const projectCount = await full.targetProject.count()
       const turn = await appendConversationTurn(
         {
           targetProjectId: 'delete-project',
@@ -226,7 +227,8 @@ describe('durable project conversations', () => {
       await deleteTargetProject('delete-project', full)
       expect(await full.projectConversationMessage.count()).toBe(0)
       expect(await full.projectConversation.count()).toBe(0)
-      expect(await full.targetProject.count()).toBe(0)
+      expect(await full.targetProject.findUnique({ where: { id: 'delete-project' } })).toBeNull()
+      expect(await full.targetProject.count()).toBe(projectCount - 1)
     } finally {
       await full.$disconnect()
     }

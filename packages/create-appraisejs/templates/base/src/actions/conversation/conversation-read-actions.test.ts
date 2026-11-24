@@ -8,11 +8,16 @@ const mocks = vi.hoisted(() => ({
   provider: vi.fn(),
   nativeProvider: vi.fn(),
   nativeImage: vi.fn(),
+  platform: vi.fn(),
   select: vi.fn(),
   verify: vi.fn(),
   revalidate: vi.fn(),
 }))
 
+vi.mock('node:os', async importOriginal => ({
+  ...(await importOriginal<typeof import('node:os')>()),
+  platform: mocks.platform,
+}))
 vi.mock('next/cache', () => ({ revalidatePath: mocks.revalidate }))
 vi.mock('@/lib/active-project', () => ({ requireActiveProjectForMutation: mocks.activeProject }))
 vi.mock('@/services/conversation/chatgpt-read-provider', () => ({ createChatGptReadProvider: mocks.provider }))
@@ -39,6 +44,7 @@ const input = {
 describe('ChatGPT lookup action', () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    mocks.platform.mockReturnValue('darwin')
     mocks.activeProject.mockResolvedValue({ id: input.projectId })
     mocks.nativeImage.mockReturnValue({ executable: '/pinned/codex', sha256: 'a'.repeat(64) })
     mocks.token.mockResolvedValue('secret')
@@ -76,25 +82,32 @@ describe('ChatGPT lookup action', () => {
     expect(mocks.provider).toHaveBeenCalledOnce()
   })
 
-  it('rejects native selection or dispatch without a configured executable', async () => {
-    mocks.nativeImage.mockReturnValue(undefined)
-    expect(
-      await selectConversationReadProvider({
-        projectId: input.projectId,
-        conversationId: input.conversationId,
-        provider: 'CHATGPT',
-        engine: 'CODEX',
-      }),
-    ).toMatchObject({ success: false, error: /Native Codex is unavailable/ })
-    expect(await runConversationChatGptLookup({ ...input, engine: 'CODEX' })).toMatchObject({
-      success: false,
-      error: /Native Codex is unavailable/,
-    })
-    expect(mocks.select).not.toHaveBeenCalled()
-    expect(mocks.verify).not.toHaveBeenCalled()
-    expect(mocks.provider).not.toHaveBeenCalled()
-    expect(mocks.nativeProvider).not.toHaveBeenCalled()
-  })
+  it.each([
+    { host: 'darwin', configured: false },
+    { host: 'linux', configured: true },
+  ])(
+    'rejects unsupported native selection or dispatch on $host (configured: $configured)',
+    async ({ host, configured }) => {
+      mocks.platform.mockReturnValue(host)
+      if (!configured) mocks.nativeImage.mockReturnValue(undefined)
+      expect(
+        await selectConversationReadProvider({
+          projectId: input.projectId,
+          conversationId: input.conversationId,
+          provider: 'CHATGPT',
+          engine: 'CODEX',
+        }),
+      ).toMatchObject({ success: false, error: /Native Codex is unavailable/ })
+      expect(await runConversationChatGptLookup({ ...input, engine: 'CODEX' })).toMatchObject({
+        success: false,
+        error: /Native Codex is unavailable/,
+      })
+      expect(mocks.select).not.toHaveBeenCalled()
+      expect(mocks.verify).not.toHaveBeenCalled()
+      expect(mocks.provider).not.toHaveBeenCalled()
+      expect(mocks.nativeProvider).not.toHaveBeenCalled()
+    },
+  )
 
   it('does not fall back to Responses when native provider setup fails', async () => {
     mocks.nativeProvider.mockImplementationOnce(() => {

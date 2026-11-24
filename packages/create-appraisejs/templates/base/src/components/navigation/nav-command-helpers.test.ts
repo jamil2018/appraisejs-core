@@ -7,8 +7,13 @@ describe('getSidebarNavigationSections', () => {
     const sections = getSidebarNavigationSections()
     const control = sections.find(section => section.label === 'Control')
 
-    expect(control?.items.map(item => item.label)).toEqual(['Dashboard', 'Quality Journeys', 'Collaboration'])
-    expect(control?.items.map(item => item.href)).toEqual(['/dashboard', '/quality-journeys', '/collaboration'])
+    expect(control?.items.map(item => item.label)).toEqual(['Dashboard', 'Chats', 'Quality Journeys', 'Collaboration'])
+    expect(control?.items.map(item => item.href)).toEqual([
+      '/dashboard',
+      '/conversations',
+      '/quality-journeys',
+      '/collaboration',
+    ])
   })
 
   it('groups reusable project resources under Library', () => {

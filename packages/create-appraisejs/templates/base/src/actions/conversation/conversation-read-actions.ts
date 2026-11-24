@@ -1,5 +1,6 @@
 'use server'
 
+import { platform } from 'node:os'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
@@ -28,7 +29,7 @@ const verify = scope
 const release = scope.extend({ attemptId: z.string().uuid() }).strict()
 
 function requireNativeCodexConfiguration() {
-  if (process.platform !== 'darwin' || !configuredMacCodexReadExecutable()) {
+  if (platform() !== 'darwin' || !configuredMacCodexReadExecutable()) {
     throw new ServiceError('Native Codex is unavailable in this app session.', 'CONFLICT')
   }
 }

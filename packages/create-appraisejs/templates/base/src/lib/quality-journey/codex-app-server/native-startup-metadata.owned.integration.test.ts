@@ -45,8 +45,8 @@ async function setup(
   { invalidConfig = false, requestMs = 5000 }: { invalidConfig?: boolean; requestMs?: number } = {},
 ) {
   const f = syntheticNativeManifest()
-  // Functional cases need headroom for real child I/O and verification on loaded runners.
-  Object.assign(f.manifest.limits, { caseMs: 15000, requestMs, cleanupMs: 5000 })
+  // The fixture must allow for the supervisor stop and process-group exit verification windows.
+  Object.assign(f.manifest.limits, { caseMs: 15000, requestMs, cleanupMs: 10000 })
   roots.push(f.parent)
   const configuration = {
     origins: {},
