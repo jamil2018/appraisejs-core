@@ -101,7 +101,7 @@
     "lucide-react": "^0.473.0",
     "monaco-editor": "^0.56.0",
     "motion": "^12.42.2",
-    "next": "^16.2.10",
+    "next": "^16.4.6",
     "next-themes": "^0.4.6",
     "parse5": "8.0.1",
     "react": "^19.2.7",
@@ -141,7 +141,7 @@
     "glob": "^11.0.3",
     "jsdom": "^29.1.1",
     "playwright": "^1.61.1",
-    "postcss": "^8.5.20",
+    "postcss": "^8.5.23",
     "postcss-load-config": "^6.0.1",
     "prettier": "^3.9.5",
     "prettier-plugin-tailwindcss": "^0.7.4",
@@ -165,7 +165,7 @@
     "@types/react-dom": "^19.2.3",
     "minimatch": ">=10.2.1",
     "next": {
-      "postcss": "8.5.19"
+      "postcss": "8.5.23"
     }
   },
   "allowScripts": {
@@ -173,7 +173,7 @@
     "esbuild@0.28.1": true,
     "fsevents@2.3.3": true,
     "fsevents@2.3.2": true,
-    "sharp@0.34.5": true,
+    "sharp@0.35.5": true,
     "simple-git-hooks@2.13.1": true,
     "prisma@6.19.3": true,
     "@prisma/engines@6.19.3": true

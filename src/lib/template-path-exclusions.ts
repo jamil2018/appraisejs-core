@@ -28,7 +28,12 @@ const REPOSITORY_ONLY_TEMPLATE_PREFIXES = [
   'tests/p0-',
 ]
 const REPOSITORY_ONLY_TEMPLATE_PATHS = new Set([
+  'scripts/lib/agent-setup-capabilities.test.ts',
+  'lib/agent-setup-capabilities.test.ts',
   'src/lib/quality-journey/managed-worker-gateway.test.ts',
+  'src/services/coordinator/app-managed-analysis-task.sqlite.integration.test.ts',
+  'src/services/coordinator/app-managed-triage-service.sqlite.integration.test.ts',
+  'src/services/coordinator/quality-journey-discovery-resource-labels.sqlite.integration.test.ts',
   'src/services/coordinator/quality-journey-internal-discovery-gateway.sqlite.integration.test.ts',
   'src/services/coordinator/quality-journey-offline-role-lifecycle.sqlite.integration.test.ts',
   'src/services/coordinator/quality-journey-native-qualification.sqlite.integration.test.ts',
@@ -101,6 +106,7 @@ const REPOSITORY_ONLY_TEMPLATE_PATHS = new Set([
   'scripts/m06-analysis-smoke.ts',
   'm06-analysis-smoke.ts',
   'src/services/coordinator/quality-journey-analysis-delivery.ts',
+  'src/services/coordinator/quality-journey-analysis-delivery.test.ts',
   'src/services/coordinator/quality-journey-analysis-delivery.sqlite.integration.test.ts',
   'src/services/coordinator/quality-journey-analysis-scheduler.ts',
   'src/services/coordinator/quality-journey-analysis-scheduler.test.ts',

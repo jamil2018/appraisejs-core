@@ -58,6 +58,9 @@ development and should not increase the installed scaffold or published `create-
 Repository-only parity harnesses that reach across package boundaries are also excluded from the prepared template.
 For example, the Scenario Portfolio MCP parity corpus compares root canonical source with the independently published
 MCP package; generated applications retain their self-contained tests and must not import the producer repository.
+That boundary also keeps the MCP agent capability test and the managed Analysis, Triager, and Discovery tests
+that import excluded M06 or M10 fixtures in the repository. Production builds type-check the bundled sources and
+self-contained tests.
 The Quality OS certifier resolves repository-only suites only when their files exist, so generated apps never attempt
 to run excluded parity tests or record them in their certification receipt.
 
