@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test'
 import { disconnectPrisma, findModuleByName, resetE2eData, seedCoreData, seededIds } from './helpers/test-data'
 import { createTestCaseWithSeededStep, createTestSuite } from './helpers/forms'
 import { expectPageHeading, saveForm } from './helpers/ui'
-import { deleteRowByName, editRowByName, expectRowHidden, filterTableByName } from './helpers/table'
+import { deleteRowByName, editRowByName, expectRowHidden } from './helpers/table'
 import { selectFilterTags, selectTestSuites } from './helpers/forms'
 
 test.describe('Test hierarchy CRUD @crud', () => {
@@ -45,9 +45,9 @@ test.describe('Test hierarchy CRUD @crud', () => {
     await expect(page.getByText('Test Scenario(Preview)')).toBeVisible()
 
     await page.goto('/test-cases')
-    await deleteRowByName(page, caseTitle, 'Filter by title...')
+    await deleteRowByName(page, caseTitle, 'Search test cases')
     await page.reload()
-    await expectRowHidden(page, caseTitle, 'Filter by title...')
+    await expectRowHidden(page, caseTitle, 'Search test cases')
   })
 
   test('create test case from template lands on modify with prefilled flow', async ({ page }) => {

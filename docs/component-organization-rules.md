@@ -66,11 +66,13 @@ warnings and failures. Use distinct chart colors with readable data labels or su
 - Use the shell's padded content column for page headers and primary workspace surfaces, including on wide displays.
   Keep local width limits for readable prose, compact controls, and secondary guidance. Use 16px between major
   sections in dense workspaces.
-- Keep the page heading visible when a collection is empty. Place the next action in a compact panel directly below it.
+- Keep the page heading visible when a collection is empty. Use a single primary action. Keep it in the title row
+  when it applies on populated and empty views, as in Test Cases. Use a compact panel for empty-state guidance.
 - For data tables, preserve table semantics and use a contained, keyboard-focusable horizontal scroll surface with a
   stable minimum width. Name scroll regions for the content they contain and row action menus for the record they
   operate on. Keep search, view controls, and actions on one toolbar when they fit. Let toolbars and pagination wrap
-  as needed while containing horizontal overflow in the table.
+  as needed while containing horizontal overflow in the table. Make an active search easy to clear. In the compact
+  Test Cases toolbar, show selection actions once there is a selection.
 - Keep picker search and footer actions reachable in short viewports. Let the results area scroll within the overlay
   so users can reach pagination while keeping the commit and cancel controls in view.
 - Compose forms as responsive content-and-guidance grids. Use full-width primary cards with a deliberate max-width or

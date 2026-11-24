@@ -7,7 +7,6 @@ import {
   Layers3,
   MessagesSquare,
   Plug,
-  Plus,
   Search,
   Settings,
   SquarePen,
@@ -222,30 +221,13 @@ function RecentJourneys({
   )
 }
 
-function SidebarQuickAction({
-  area,
-  pathname,
-  projectId,
-}: {
-  area: SidebarArea
-  pathname: string
-  projectId?: string
-}) {
-  if (area === 'chats') {
-    return (
-      <Link className={navLinkClass} href={projectScopedHref('/quality-journeys/new', projectId)}>
-        <SquarePen className="size-4" aria-hidden="true" /> New chat
-      </Link>
-    )
-  }
-  if (pathname === '/test-cases') {
-    return (
-      <Link className={navLinkClass} href={projectScopedHref('/test-cases/create', projectId)}>
-        <Plus className="size-4" aria-hidden="true" /> New test case
-      </Link>
-    )
-  }
-  return null
+function NewChatLink({ area, projectId }: { area: SidebarArea; projectId?: string }) {
+  if (area !== 'chats') return null
+  return (
+    <Link className={navLinkClass} href={projectScopedHref('/quality-journeys/new', projectId)}>
+      <SquarePen className="size-4" aria-hidden="true" /> New chat
+    </Link>
+  )
 }
 
 function SectionLinks({
@@ -419,7 +401,7 @@ export default function AppSidebar({
               </div>
             ) : null}
           </div>
-          <SidebarQuickAction area={area} pathname={pathname} projectId={projectId} />
+          <NewChatLink area={area} projectId={projectId} />
           <div className="flex items-center gap-1">
             <ProjectSelector
               projects={projects}

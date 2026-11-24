@@ -114,6 +114,13 @@ describe('DataTable', () => {
     await user.type(screen.getByPlaceholderText('Search names'), 'missing')
 
     expect(screen.getByText('No results.')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Clear search' }))
+
+    expect(screen.getByRole('textbox', { name: 'Search names' })).toHaveValue('')
+    expect(screen.getByRole('textbox', { name: 'Search names' })).toHaveFocus()
+    expect(screen.getByText('Smoke')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Clear search' })).toBeNull()
   })
 
   it('contains wide table content in a keyboard-focusable scroll region', () => {

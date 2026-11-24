@@ -1,38 +1,21 @@
-import { deleteTestCaseAction, getAllTestCasesAction } from '@/actions/test-case/test-case-actions'
+import { deleteTestCaseAction } from '@/actions/test-case/test-case-actions'
 import { DataTable } from '@/components/ui/data-table'
+import type { TestCasePickerRow } from '@/types/test-case-picker'
+
 import { testCaseTableCols } from './test-case-table-columns'
-import { Cog, LayoutPanelTop } from 'lucide-react'
 
-import { getTestCaseRows } from './test-case-row-helpers'
-
-export default async function TestCaseTable() {
-  const { data: testCases } = await getAllTestCasesAction()
-  const testCaseRows = getTestCaseRows(testCases)
-
+export default function TestCaseTable({ rows }: { rows: TestCasePickerRow[] }) {
   return (
-    <>
-      <DataTable
-        tableLabel="Test cases"
-        columns={testCaseTableCols}
-        data={testCaseRows}
-        filterColumn="title"
-        filterPlaceholder="Filter by title..."
-        modifyLink="/test-cases/modify"
-        deleteAction={deleteTestCaseAction}
-        multiOptionCreateButton={true}
-        createButtonOptions={[
-          {
-            label: 'From Scratch',
-            link: '/test-cases/create',
-            icon: <Cog className="size-4" />,
-          },
-          {
-            label: 'From Template',
-            link: '/test-cases/create-from-template',
-            icon: <LayoutPanelTop className="size-4" />,
-          },
-        ]}
-      />
-    </>
+    <DataTable
+      tableLabel="Test cases"
+      columns={testCaseTableCols}
+      data={rows}
+      filterColumn="title"
+      filterPlaceholder="Search test cases"
+      modifyLink="/test-cases/modify"
+      deleteAction={deleteTestCaseAction}
+      density="compact"
+      initialColumnVisibility={{ description: false, createdAt: false }}
+    />
   )
 }

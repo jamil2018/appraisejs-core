@@ -75,6 +75,44 @@ test.describe('Navigation @navigation', () => {
     await expect(page.getByRole('link', { name: 'Test Cases', exact: true })).toBeVisible()
   })
 
+  test('test cases keep creation, search, and selection actions together', async ({ page }) => {
+    await page.goto('/test-cases')
+
+    const create = page.getByRole('button', { name: 'New test case', exact: true })
+    await expect(create).toHaveCount(1)
+    await create.press('ArrowDown')
+    await expect(page.getByRole('menuitem', { name: 'From scratch' })).toHaveAttribute('href', '/test-cases/create')
+    await expect(page.getByRole('menuitem', { name: 'From template' })).toHaveAttribute(
+      'href',
+      '/test-cases/create-from-template',
+    )
+    await page.keyboard.press('Escape')
+    await expect(create).toBeFocused()
+
+    const search = page.getByRole('textbox', { name: 'Search test cases' })
+    const region = page.getByRole('region', { name: 'Test cases' })
+    const description = region.getByRole('columnheader', { name: 'Description' })
+    await expect(description).toBeHidden()
+    await page.getByRole('button', { name: 'Columns', exact: true }).click()
+    await page.getByRole('menuitemcheckbox', { name: 'description' }).click()
+    await expect(description).toBeVisible()
+    await page.keyboard.press('Escape')
+    await search.fill('missing')
+    await expect(region.getByText('No results.')).toBeVisible()
+    await page.getByRole('button', { name: 'Clear search' }).click()
+    await expect(search).toBeFocused()
+    await expect(search).toHaveValue('')
+
+    const remove = page.getByRole('button', { name: 'Delete selected item(s)' })
+    await expect(remove).toBeHidden()
+    await region.getByRole('checkbox', { name: 'Select E2E seeded login works' }).check()
+    await expect(remove).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Edit selected item' })).toHaveAttribute(
+      'href',
+      `/test-cases/modify/${seededIds.testCase}`,
+    )
+  })
+
   test('workspace screens fill wide displays and contain overflow on narrow screens', async ({ page }) => {
     const screens = [
       { path: '/dashboard', heading: 'Dashboard' },
@@ -279,8 +317,17 @@ test('empty libraries keep their heading and next action together on a narrow sc
   await seedEmptyProject()
   await page.setViewportSize({ width: 320, height: 740 })
 
+  await page.goto('/test-cases')
+  await expect(page.getByRole('heading', { name: 'Test Cases', level: 1 })).toBeInViewport()
+  await expect(page.getByRole('heading', { name: 'No test cases yet' })).toBeInViewport()
+  const create = page.getByRole('button', { name: 'New test case' })
+  await expect(create).toBeInViewport()
+  await create.click()
+  await expect(page.getByRole('menuitem', { name: 'From template' })).toBeVisible()
+  await page.keyboard.press('Escape')
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+
   for (const [path, title, action] of [
-    ['/test-cases', 'Test Cases', 'Create Test Case'],
     ['/test-runs', 'Test Runs', 'Create Test Run'],
     ['/reports', 'Reports', 'Start a Quality Journey'],
   ]) {
