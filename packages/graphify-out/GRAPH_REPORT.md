@@ -1,4 +1,4 @@
-# Graph Report - packages  (2026-11-22)
+# Graph Report - packages  (2026-11-24)
 
 ## Corpus Check
 - cluster-only mode — file stats not available
@@ -9,7 +9,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `cb6ecbb0`
+- Built from commit: `2fa60211`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -72,13 +72,13 @@
 - [[_COMMUNITY_Community 55|Community 55]]
 - [[_COMMUNITY_Community 56|Community 56]]
 - [[_COMMUNITY_Community 57|Community 57]]
+- [[_COMMUNITY_Community 58|Community 58]]
 - [[_COMMUNITY_Community 59|Community 59]]
 - [[_COMMUNITY_Community 60|Community 60]]
 - [[_COMMUNITY_Community 61|Community 61]]
 - [[_COMMUNITY_Community 62|Community 62]]
 - [[_COMMUNITY_Community 63|Community 63]]
 - [[_COMMUNITY_Community 69|Community 69]]
-- [[_COMMUNITY_Community 70|Community 70]]
 - [[_COMMUNITY_Community 71|Community 71]]
 
 ## God Nodes (most connected - your core abstractions)
@@ -90,8 +90,8 @@
 6. `createAppraiseMcpServer()` - 17 edges
 7. `compilerOptions` - 17 edges
 8. `LocatorPickerCompanion` - 16 edges
-9. `buildOfflineComposition()` - 15 edges
-10. `scripts` - 15 edges
+9. `createBaseTemplate()` - 15 edges
+10. `buildOfflineComposition()` - 15 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `fn()` --calls--> `retry()`  [INFERRED]
@@ -144,7 +144,7 @@ Nodes (36): CliOptions, program, LocatorCache, LocatorMapCache, toGlobPath(), BR
 
 ### Community 8 - "Community 8"
 Cohesion: 0.10
-Nodes (27): boundedOperationValueSchema, operationValueSchema, canonicalStepDefinitionJson(), computeStepDefinitionHashes(), computeStepExecutableReadiness(), STEP_DEFINITION_SCHEMA_VERSION, stepDefinitionContentHash(), StepDefinitionDraft (+19 more)
+Nodes (26): boundedOperationValueSchema, operationValueSchema, computeStepDefinitionHashes(), computeStepExecutableReadiness(), STEP_DEFINITION_SCHEMA_VERSION, stepDefinitionContentHash(), StepDefinitionDraft, stepDefinitionDraftAuthoringSchema (+18 more)
 
 ### Community 9 - "Community 9"
 Cohesion: 0.12
@@ -163,8 +163,8 @@ Cohesion: 0.10
 Nodes (22): acceptanceSchema, assertSafeProjection(), bindingSchema, CapturedTool, createExternalWorkerGateway(), digest, ExternalWorkerBinding, ExternalWorkerCallError (+14 more)
 
 ### Community 13 - "Community 13"
-Cohesion: 0.11
-Nodes (22): agentOperationProjectionSchema, humanOperationProjectionSchema, identifierSchema, OPERATION_CONTRACT_VERSION, operationAliasSchema, operationContentHash(), OperationDefinition, operationDefinitionSchema (+14 more)
+Cohesion: 0.10
+Nodes (23): agentOperationProjectionSchema, humanOperationProjectionSchema, identifierSchema, OPERATION_CONTRACT_VERSION, operationAliasSchema, operationContentHash(), OperationDefinition, operationDefinitionSchema (+15 more)
 
 ### Community 14 - "Community 14"
 Cohesion: 0.11
@@ -342,6 +342,10 @@ Nodes (6): Analysis and human waits, Appraise Quality Journey, Automation prepar
 Cohesion: 0.40
 Nodes (5): dependencies, cli-progress, cross-spawn, fs-extra, @inquirer/prompts
 
+### Community 58 - "Community 58"
+Cohesion: 0.28
+Nodes (9): copyFile(), createBaseTemplate(), resetAutomationEnvironments(), resetAutomationReports(), syncInternalPackage(), syncLegacyEnvironmentConfig(), writeTemplateHarnessCheck(), writeTemplatePackageJson() (+1 more)
+
 ### Community 59 - "Community 59"
 Cohesion: 0.50
 Nodes (4): repository, directory, type, url
@@ -354,16 +358,12 @@ Nodes (3): allowScripts, esbuild@0.28.1, fsevents@2.3.3
 Cohesion: 0.50
 Nodes (3): AppraiseJS, Journey operation, Recovery and upgrades
 
-### Community 70 - "Community 70"
-Cohesion: 0.28
-Nodes (9): copyFile(), createBaseTemplate(), resetAutomationEnvironments(), resetAutomationReports(), syncInternalPackage(), syncLegacyEnvironmentConfig(), writeTemplateHarnessCheck(), writeTemplatePackageJson() (+1 more)
-
 ### Community 71 - "Community 71"
 Cohesion: 0.47
 Nodes (4): contractFields(), contractRuntime(), generateStepDefinitionContract(), StepContractValue
 
 ## Knowledge Gaps
-- **490 isolated node(s):** `name`, `version`, `description`, `license`, `author` (+485 more)
+- **490 isolated node(s):** `readOnly`, `localMutation`, `durableLifecycleMutation`, `externalExecution`, `externalStop` (+485 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **3 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -371,12 +371,12 @@ Nodes (4): contractFields(), contractRuntime(), generateStepDefinitionContract()
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `fn()` connect `Community 47` to `Community 0`?**
-  _High betweenness centrality (0.176) - this node is a cross-community bridge._
+  _High betweenness centrality (0.170) - this node is a cross-community bridge._
 - **Why does `retry()` connect `Community 0` to `Community 47`?**
-  _High betweenness centrality (0.175) - this node is a cross-community bridge._
-- **Why does `canonicalContractJson()` connect `Community 11` to `Community 70`?**
-  _High betweenness centrality (0.109) - this node is a cross-community bridge._
-- **What connects `name`, `version`, `description` to the rest of the system?**
+  _High betweenness centrality (0.170) - this node is a cross-community bridge._
+- **Why does `writeTemplateQualityOsCertificationReceipt()` connect `Community 58` to `Community 11`, `Community 14`?**
+  _High betweenness centrality (0.102) - this node is a cross-community bridge._
+- **What connects `readOnly`, `localMutation`, `durableLifecycleMutation` to the rest of the system?**
   _490 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.08169262415515721 - nodes in this community are weakly interconnected._
