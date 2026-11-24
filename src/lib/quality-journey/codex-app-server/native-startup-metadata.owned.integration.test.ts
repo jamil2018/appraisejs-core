@@ -521,9 +521,11 @@ describe('genuine original wire snapshot and final admission regressions', () =>
         const baseline = f.child.transport.snapshot(),
           waiting = f.thread()
         expect(f.child.transport.snapshot()).toMatchObject({ pendingRequests: 0, issuedRequests: 2 })
+        writeFileSync(path.join(f.manifest.freshRoot, 'cwd', 'release-premature-reply'), '', { mode: 0o600 })
         await expect(waiting).rejects.toThrow()
         expect(f.child.transport.snapshot()).toMatchObject({
           status: 'fenced',
+          reason: 'native_passive_drain_refused',
           issuedRequests: 2,
           writtenBytes: baseline.writtenBytes,
         })
