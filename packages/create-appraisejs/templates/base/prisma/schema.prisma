@@ -532,6 +532,11 @@ enum ProjectConversationReadProvider {
   CHATGPT
 }
 
+enum ProjectConversationChatGptEngine {
+  RESPONSES
+  CODEX
+}
+
 enum ProjectConversationReadState {
   RUNNING
   COMPLETED
@@ -550,6 +555,7 @@ model ProjectConversation {
   updatedAt       DateTime                     @updatedAt
   messages        ProjectConversationMessage[]
   readProvider    ProjectConversationReadProvider @default(LOCAL)
+  chatGptEngine   ProjectConversationChatGptEngine @default(RESPONSES)
 
   @@index([targetProjectId, updatedAt, id])
   @@unique([targetProjectId, initialIdempotencyKey])
@@ -582,6 +588,7 @@ model ProjectConversationRead {
   messageId             String
   message               ProjectConversationMessage   @relation(fields: [conversationId, messageId], references: [conversationId, id], onDelete: Restrict)
   provider              ProjectConversationReadProvider
+  engine                ProjectConversationChatGptEngine @default(RESPONSES)
   state                 ProjectConversationReadState
   blockedConversationId String?                      @unique
   createdAt             DateTime                     @default(now())

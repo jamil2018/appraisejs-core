@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 import type { WorkspaceRequest } from '@/lib/conversation/workspace-request'
 
+import { readChatGptStreamEvent } from './chatgpt-read-stream'
 import type { ConversationLookupProvider } from './conversation-read-service'
 
 const endpoint = 'https://api.openai.com/v1/responses'
@@ -57,7 +58,12 @@ function inferenceRequest({ kind, query }: WorkspaceRequest, model: string) {
   }
 }
 
-async function accountModel(transport: typeof fetch, authorization: string, signal: AbortSignal) {
+export async function readListedChatGptLookupModel(
+  transport: typeof fetch,
+  authorization: string,
+  signal: AbortSignal,
+  candidates: readonly string[] = supportedModels,
+) {
   const response = await transport(modelsEndpoint, {
     headers: { Authorization: authorization, Accept: 'application/json' },
     redirect: 'error',
@@ -80,21 +86,14 @@ async function accountModel(transport: typeof fetch, authorization: string, sign
     }
     const catalog = modelCatalog.parse(JSON.parse(Buffer.concat(chunks).toString('utf8')))
     const listed = new Set(catalog.models.filter(model => model.visibility === 'list').map(model => model.slug))
-    return supportedModels.find(model => listed.has(model))
+    return candidates.find(model => listed.has(model))
   } finally {
     await reader.cancel().catch(() => undefined)
   }
 }
 
 function terminalFrame(frame: string) {
-  const data = frame
-    .split(/\r?\n/)
-    .filter(line => line.startsWith('data:'))
-    .map(line => line.slice(5).trimStart())
-    .join('\n')
-  if (!data || data === '[DONE]') return undefined
-  const value: unknown = JSON.parse(data)
-  const event = terminalEvent.safeParse(value)
+  const event = terminalEvent.safeParse(readChatGptStreamEvent(frame))
   return event.success ? event.data : undefined
 }
 
@@ -169,7 +168,7 @@ export function createChatGptReadProvider(
     const accessToken = await readAccessToken().catch(() => undefined)
     if (!accessToken || signal.aborted) return 'failed'
     const authorization = `Bearer ${accessToken}`
-    const model = await accountModel(transport, authorization, signal).catch(() => undefined)
+    const model = await readListedChatGptLookupModel(transport, authorization, signal).catch(() => undefined)
     if (!model || signal.aborted) return 'failed'
     if ((await readAccessToken().catch(() => undefined)) !== accessToken || signal.aborted) return 'failed'
     const response = await transport(endpoint, {

@@ -1,5 +1,6 @@
 import { PassThrough } from 'node:stream'
 import { describe, expect, it, vi } from 'vitest'
+import { codexLookupAcknowledgement } from '@/lib/conversation/codex-lookup-contract'
 
 import { CodexReadAttemptError, runCodexRecordLookup } from './codex-read-provider'
 import type { CodexReadLaunch, CodexReadTransport } from './codex-read-provider'
@@ -8,7 +9,8 @@ type Frame = Record<string, unknown>
 
 type HostOptions = {
   tool?: string
-  kind?: string
+  namespace?: string
+  arguments?: Record<string, unknown>
   threadId?: string
   turnId?: string
   completedStatus?: string
@@ -31,9 +33,9 @@ function toolCall(options: HostOptions, id = 43): Frame {
       threadId: options.threadId ?? 'thread-a',
       turnId: options.turnId ?? 'turn-a',
       callId: id === 43 ? 'call-a' : 'call-b',
-      namespace: null,
+      namespace: options.namespace ?? 'appraise',
       tool: options.tool ?? 'workspace_record_search',
-      arguments: options.malformedToolCall ? null : { kind: options.kind ?? 'TEST_CASE', query: 'checkout' },
+      arguments: options.malformedToolCall ? null : (options.arguments ?? {}),
     },
   }
 }
@@ -86,7 +88,6 @@ function syntheticHost(options: HostOptions = {}) {
   })
   const open = vi.fn(async (launch: CodexReadLaunch, _signal: AbortSignal): Promise<CodexReadTransport> => {
     expect(_signal.aborted).toBe(false)
-    expect(launch.environment).toEqual({ ACCESS_TOKEN: 'synthetic-token' })
     expect(launch.args).toContain('sandbox_mode="read-only"')
     return {
       stdin,
@@ -101,7 +102,6 @@ function syntheticHost(options: HostOptions = {}) {
 }
 
 const input = () => ({
-  accessToken: 'synthetic-token',
   query: { kind: 'TEST_CASE' as const, query: 'checkout' },
   lookup: vi.fn(async () => [{ kind: 'TEST_CASE' as const, id: 'case-1', title: 'Checkout' }]),
 })
@@ -118,12 +118,17 @@ describe('Codex read adapter with a synthetic JSONL host', () => {
     })
     expect(request.lookup).toHaveBeenCalledTimes(1)
     expect(host.sent.filter(frame => frame.id === 43)).toHaveLength(1)
+    expect(host.sent.find(frame => frame.id === 43)?.result).toEqual({
+      contentItems: [{ type: 'inputText', text: codexLookupAcknowledgement }],
+      success: true,
+    })
     expect(host.stop).toHaveBeenCalledTimes(1)
   })
 
   it.each([
     ['another tool', { tool: 'exec_command' }],
-    ['another record kind', { kind: 'REPORT' }],
+    ['another namespace', { namespace: 'other' }],
+    ['a supplied record scope', { arguments: { kind: 'REPORT' } }],
     ['another thread', { threadId: 'thread-b' }],
     ['another turn', { turnId: 'turn-b' }],
     ['malformed arguments', { malformedToolCall: true }],

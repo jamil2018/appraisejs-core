@@ -13,6 +13,7 @@ import {
   readConversationProviderState,
   type ConversationReadAttempt,
 } from '@/services/conversation/conversation-read-service'
+import { configuredMacCodexReadExecutable } from '@/services/conversation/codex-read-launcher'
 import {
   getLatestConversationJourney,
   getProjectConversation,
@@ -30,7 +31,7 @@ import { ConversationComposer } from '../conversation-composer'
 import {
   ConversationProviderControls,
   ConversationReadStatus,
-  VerifyWithChatGpt,
+  VerifyWithProvider,
 } from '../conversation-provider-controls'
 
 export const metadata: Metadata = { title: 'Chat' }
@@ -153,6 +154,12 @@ export default async function ConversationPage({
     getLatestConversationJourney(serverScope),
   ])
   const journeyId = context?.kind === 'QUALITY_JOURNEY' ? context.id : savedJourney
+  let nativeAvailable = false
+  try {
+    nativeAvailable = process.platform === 'darwin' && !!configuredMacCodexReadExecutable()
+  } catch {
+    // Invalid host configuration is presented as unavailable; the action also rejects it.
+  }
   const profile =
     readState.readProvider === 'CHATGPT' && isChatGptConnectionSupported()
       ? await chatGptConnection.readLookupProfile()
@@ -173,6 +180,8 @@ export default async function ConversationPage({
         <ConversationProviderControls
           scope={providerScope}
           provider={readState.readProvider}
+          engine={readState.chatGptEngine}
+          nativeAvailable={nativeAvailable}
           profile={profile}
           blocked={readState.blocked}
         />
@@ -205,6 +214,8 @@ export default async function ConversationPage({
                   scope={providerScope}
                   attempt={attempts.get(message.id)}
                   profile={profile}
+                  engine={readState.readProvider === 'CHATGPT' ? readState.chatGptEngine : undefined}
+                  nativeAvailable={nativeAvailable}
                   blocked={!!readState.blocked}
                 />
               }
@@ -228,17 +239,38 @@ type MessageLookupProps = {
   message: ConversationMessage
   scope: { projectId: string; conversationId: string }
   profile?: { key: string; account?: string }
+  engine?: 'RESPONSES' | 'CODEX'
+  nativeAvailable: boolean
   blocked: boolean
 }
 
 function MessageProviderRead({ attempt, ...request }: MessageLookupProps & { attempt?: ConversationReadAttempt }) {
-  if (attempt) return <ConversationReadStatus scope={request.scope} attempt={attempt} />
+  if (attempt) return <ConversationReadStatus scope={request.scope} attempt={attempt} selectedEngine={request.engine} />
   return <MessageLookupCandidate {...request} />
 }
 
-function MessageLookupCandidate({ message, scope, profile, blocked }: MessageLookupProps) {
-  if (message.role !== 'USER' || !profile) return null
-  const query = parseWorkspaceRequest(message.content)
+function MessageLookupCandidate({ message, scope, profile, blocked, engine, nativeAvailable }: MessageLookupProps) {
+  if (!profile || !engine) return null
+  const query = eligibleWorkspaceRequest(message, engine, nativeAvailable)
   if (!query) return null
-  return <VerifyWithChatGpt scope={scope} messageId={message.id} query={query} profile={profile} blocked={blocked} />
+  return (
+    <VerifyWithProvider
+      scope={scope}
+      messageId={message.id}
+      query={query}
+      profile={profile}
+      engine={engine}
+      blocked={blocked}
+    />
+  )
+}
+
+function eligibleWorkspaceRequest(
+  message: ConversationMessage,
+  engine: 'RESPONSES' | 'CODEX',
+  nativeAvailable: boolean,
+) {
+  if (message.role !== 'USER') return null
+  if (engine === 'CODEX' && !nativeAvailable) return null
+  return parseWorkspaceRequest(message.content)
 }

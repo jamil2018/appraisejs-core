@@ -42,6 +42,10 @@ const providerMigration = path.join(
   process.cwd(),
   'prisma/migrations/20261124020000_add_conversation_read_attempts/migration.sql',
 )
+const engineMigration = path.join(
+  process.cwd(),
+  'prisma/migrations/20261124030000_add_conversation_read_engines/migration.sql',
+)
 const projectA = 'project-a'
 const projectB = 'project-b'
 let directory: string
@@ -81,6 +85,7 @@ beforeEach(() => {
   ])
   execFileSync('sqlite3', [file, readFileSync(migration, 'utf8')])
   execFileSync('sqlite3', [file, readFileSync(providerMigration, 'utf8')])
+  execFileSync('sqlite3', [file, readFileSync(engineMigration, 'utf8')])
   execFileSync('sqlite3', [file, `INSERT INTO "TargetProject" ("id") VALUES ('${projectA}'), ('${projectB}');`])
   client = new PrismaClient({ datasources: { db: { url: `file:${file}` } } })
 })
@@ -413,6 +418,55 @@ async function savedLookup(name = 'Guest checkout') {
 describe('durable provider reads', () => {
   const records = [{ kind: 'TEST_CASE' as const, id: 'checkout-disposable', title: 'Guest checkout' }]
 
+  it('upgrades historical provider rows with their exact state, records, and blocker intact', async () => {
+    const file = path.join(directory, 'legacy-provider.db')
+    execFileSync('sqlite3', [
+      file,
+      'PRAGMA foreign_keys = ON; CREATE TABLE "TargetProject" ("id" TEXT NOT NULL PRIMARY KEY);',
+    ])
+    execFileSync('sqlite3', [file, readFileSync(migration, 'utf8')])
+    execFileSync('sqlite3', [file, readFileSync(providerMigration, 'utf8')])
+    execFileSync('sqlite3', [
+      file,
+      `
+      INSERT INTO "TargetProject" ("id") VALUES ('${projectA}');
+      INSERT INTO "ProjectConversation" ("id", "targetProjectId", "title", "nextOrdinal", "updatedAt", "readProvider")
+        VALUES ('legacy', '${projectA}', 'Checkout', 3, CURRENT_TIMESTAMP, 'CHATGPT');
+      INSERT INTO "ProjectConversationMessage" ("id", "conversationId", "ordinal", "role", "content", "turnId")
+        VALUES ('old-complete', 'legacy', 1, 'USER', 'Find test case named Checkout', 'turn-1'),
+               ('old-unknown', 'legacy', 2, 'USER', 'Find test case named Checkout', 'turn-2');
+      INSERT INTO "ProjectConversationRead" ("id", "conversationId", "messageId", "provider", "state", "expiresAt", "settledAt", "recordsJson")
+        VALUES ('complete', 'legacy', 'old-complete', 'CHATGPT', 'COMPLETED', 1767225600000, 1767225600000, '[{"kind":"TEST_CASE","id":"old","title":"Checkout"}]');
+      INSERT INTO "ProjectConversationRead" ("id", "conversationId", "messageId", "provider", "state", "blockedConversationId", "expiresAt", "settledAt")
+        VALUES ('unknown', 'legacy', 'old-unknown', 'CHATGPT', 'UNKNOWN', 'legacy', 1767225600000, 1767225600000);
+    `,
+    ])
+    execFileSync('sqlite3', [file, readFileSync(engineMigration, 'utf8')])
+    const upgraded = new PrismaClient({ datasources: { db: { url: `file:${file}` } } })
+    try {
+      const scope = { targetProjectId: projectA, conversationId: 'legacy' }
+      const state = await readConversationProviderState(scope, ['old-complete', 'old-unknown'], upgraded)
+      expect(state).toMatchObject({
+        readProvider: 'CHATGPT',
+        chatGptEngine: 'RESPONSES',
+        attempts: [
+          {
+            id: 'complete',
+            messageId: 'old-complete',
+            engine: 'RESPONSES',
+            state: 'COMPLETED',
+            records: [{ id: 'old' }],
+          },
+          { id: 'unknown', messageId: 'old-unknown', engine: 'RESPONSES', state: 'UNKNOWN', released: false },
+        ],
+        blocked: { id: 'unknown', engine: 'RESPONSES' },
+      })
+      await expect(setConversationReadProvider(scope, 'CHATGPT', upgraded, 'CODEX')).rejects.toThrow('outstanding read')
+    } finally {
+      await upgraded.$disconnect()
+    }
+  })
+
   it('keeps lookup scope server-side and does not admit an external read in local mode', async () => {
     const input = await savedLookup()
     const provider = vi.fn<ConversationLookupProvider>()
@@ -444,6 +498,7 @@ describe('durable provider reads', () => {
       const duplicate = await verifyConversationLookup(input, provider, client, search)
       expect(duplicate.state).toBe('RUNNING')
       await expect(setConversationReadProvider(input, 'LOCAL', client)).rejects.toThrow('outstanding read')
+      await expect(setConversationReadProvider(input, 'CHATGPT', client, 'CODEX')).rejects.toThrow('outstanding read')
       const second = await appendConversationTurn(
         {
           targetProjectId: projectA,
@@ -471,6 +526,49 @@ describe('durable provider reads', () => {
     expect(snapshot.blocked).toBeUndefined()
   })
 
+  it('keeps one saved-message attempt across engines and records a fresh native read with the selected engine', async () => {
+    const input = await savedLookup()
+    const search = vi.fn().mockResolvedValue(records)
+    const responses = vi.fn<ConversationLookupProvider>(async ({ lookup }) => {
+      await lookup()
+      return 'completed'
+    })
+    await setConversationReadProvider(input, 'CHATGPT', client)
+    const original = await verifyConversationLookup(input, responses, client, search)
+    expect(original).toMatchObject({ engine: 'RESPONSES', state: 'COMPLETED', records })
+
+    await setConversationReadProvider(input, 'CHATGPT', client, 'CODEX')
+    const native = vi.fn<ConversationLookupProvider>(async ({ lookup }) => {
+      await lookup()
+      return 'completed'
+    })
+    expect(await verifyConversationLookup({ ...input, expectedEngine: 'CODEX' }, native, client, search)).toEqual(
+      original,
+    )
+    expect(native).not.toHaveBeenCalled()
+
+    const second = await appendConversationTurn(
+      {
+        targetProjectId: projectA,
+        conversationId: input.conversationId,
+        idempotencyKey: 'native-second',
+        content: 'Find test case named Checkout',
+      },
+      client,
+    )
+    const fresh = { ...input, messageId: second.messages[0].id }
+    await expect(verifyConversationLookup(fresh, native, client, search)).rejects.toThrow('engine changed')
+    expect(native).not.toHaveBeenCalled()
+    const nativeReceipt = await verifyConversationLookup({ ...fresh, expectedEngine: 'CODEX' }, native, client, search)
+    expect(nativeReceipt).toMatchObject({ engine: 'CODEX', state: 'COMPLETED', records })
+    expect(native).toHaveBeenCalledTimes(1)
+    expect(await readConversationProviderState(input, [input.messageId, fresh.messageId], client)).toMatchObject({
+      readProvider: 'CHATGPT',
+      chatGptEngine: 'CODEX',
+      attempts: expect.arrayContaining([original, nativeReceipt]),
+    })
+  })
+
   it('keeps uncertain outcomes on restart and acknowledges the exact original attempt without replay', async () => {
     const input = await savedLookup()
     await setConversationReadProvider(input, 'CHATGPT', client)
@@ -488,11 +586,14 @@ describe('durable provider reads', () => {
     await releaseUnconfirmedConversationRead(exact, client)
     await releaseUnconfirmedConversationRead(exact, client)
     await setConversationReadProvider(input, 'LOCAL', client)
-    await setConversationReadProvider(input, 'CHATGPT', client)
-    expect(await verifyConversationLookup(input, provider, client, read)).toMatchObject({
-      state: 'UNKNOWN',
-      released: true,
-    })
+    await setConversationReadProvider(input, 'CHATGPT', client, 'CODEX')
+    expect(await verifyConversationLookup({ ...input, expectedEngine: 'CODEX' }, provider, client, read)).toMatchObject(
+      {
+        state: 'UNKNOWN',
+        engine: 'RESPONSES',
+        released: true,
+      },
+    )
     expect(provider).toHaveBeenCalledTimes(1)
     expect(read).not.toHaveBeenCalled()
   })

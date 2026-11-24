@@ -1,5 +1,11 @@
 import { randomUUID } from 'node:crypto'
-import type { Prisma, PrismaClient, ProjectConversationRead, ProjectConversationReadProvider } from '@prisma/client'
+import type {
+  Prisma,
+  PrismaClient,
+  ProjectConversationChatGptEngine,
+  ProjectConversationRead,
+  ProjectConversationReadProvider,
+} from '@prisma/client'
 import { z } from 'zod'
 
 import prisma from '@/config/db-config'
@@ -11,12 +17,13 @@ import { searchWorkspaceRecords } from '@/services/workspace-search/workspace-re
 const runTimeoutMs = 45_000
 const reservationLifetimeMs = 60_000
 type Scope = { targetProjectId: string; conversationId: string }
-type ReadInput = Scope & { messageId: string }
+type ReadInput = Scope & { messageId: string; expectedEngine?: ProjectConversationChatGptEngine }
 type ReadDatabase = Prisma.TransactionClient | PrismaClient
 
 export type ConversationReadAttempt = {
   id: string
   messageId: string
+  engine: ProjectConversationChatGptEngine
   state: ProjectConversationRead['state']
   released: boolean
   records: WorkspaceRecord[]
@@ -52,6 +59,7 @@ function snapshot(row: ProjectConversationRead, now: Date): ConversationReadAtte
   return {
     id: row.id,
     messageId: row.messageId,
+    engine: row.engine,
     state: expired ? 'UNKNOWN' : row.state,
     released: row.releasedAt !== null,
     records: readRecords(row.recordsJson),
@@ -65,7 +73,7 @@ function conversationWhere(scope: Scope) {
 async function scopedConversation(db: ReadDatabase, scope: Scope) {
   const conversation = await db.projectConversation.findFirst({
     where: conversationWhere(scope),
-    select: { readProvider: true },
+    select: { readProvider: true, chatGptEngine: true },
   })
   if (!conversation) throw new ServiceError('Conversation not found.', 'NOT_FOUND')
   return conversation
@@ -84,7 +92,7 @@ export async function readConversationProviderState(
   client: PrismaClient = prisma,
 ) {
   const now = new Date()
-  const { readProvider } = await scopedConversation(client, scope)
+  const { readProvider, chatGptEngine } = await scopedConversation(client, scope)
   const attempts = await client.projectConversationRead.findMany({
     where: {
       conversationId: scope.conversationId,
@@ -95,23 +103,32 @@ export async function readConversationProviderState(
     take: visibleMessageIds.length + 1,
   })
   const blocked = attempts.find(item => item.blockedConversationId !== null)
-  return { readProvider, attempts: attempts.map(row => snapshot(row, now)), blocked: blocked && snapshot(blocked, now) }
+  return {
+    readProvider,
+    chatGptEngine,
+    attempts: attempts.map(row => snapshot(row, now)),
+    blocked: blocked && snapshot(blocked, now),
+  }
 }
 
 export async function setConversationReadProvider(
   scope: Scope,
   readProvider: ProjectConversationReadProvider,
   client: PrismaClient = prisma,
+  engine: ProjectConversationChatGptEngine = 'RESPONSES',
 ) {
   return client.$transaction(async tx => {
-    const { readProvider: previous } = await scopedConversation(tx, scope)
-    if (previous === readProvider) return
+    const { readProvider: previous, chatGptEngine: previousEngine } = await scopedConversation(tx, scope)
+    if (previous === readProvider && (readProvider !== 'CHATGPT' || previousEngine === engine)) return
     const blocker = await tx.projectConversationRead.findUnique({
       where: { blockedConversationId: scope.conversationId },
       select: { id: true },
     })
     if (blocker) throw new ServiceError('Resolve the outstanding read before switching providers.', 'CONFLICT')
-    await tx.projectConversation.update({ where: conversationWhere(scope), data: { readProvider } })
+    await tx.projectConversation.update({
+      where: conversationWhere(scope),
+      data: readProvider === 'CHATGPT' ? { readProvider, chatGptEngine: engine } : { readProvider },
+    })
   })
 }
 
@@ -159,10 +176,13 @@ function existingAttempt(db: ReadDatabase, input: ReadInput) {
 
 async function reserveRead(input: ReadInput, client: PrismaClient) {
   return client.$transaction(async tx => {
-    const { readProvider } = await scopedConversation(tx, input)
+    const { readProvider, chatGptEngine } = await scopedConversation(tx, input)
     const existing = await existingAttempt(tx, input)
     if (existing) return { row: existing }
     if (readProvider !== 'CHATGPT') throw new ServiceError('Choose ChatGPT for this chat first.', 'CONFLICT')
+    if (chatGptEngine !== (input.expectedEngine ?? 'RESPONSES')) {
+      throw new ServiceError('The selected ChatGPT engine changed before this read started.', 'CONFLICT')
+    }
     const blocker = await tx.projectConversationRead.findUnique({
       where: { blockedConversationId: input.conversationId },
       select: { id: true },
@@ -175,6 +195,7 @@ async function reserveRead(input: ReadInput, client: PrismaClient) {
         conversationId: input.conversationId,
         messageId: input.messageId,
         provider: readProvider,
+        engine: chatGptEngine,
         state: 'RUNNING',
         blockedConversationId: input.conversationId,
         expiresAt: new Date(Date.now() + reservationLifetimeMs),

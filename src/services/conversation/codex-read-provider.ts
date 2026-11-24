@@ -2,12 +2,18 @@ import path from 'node:path'
 import type { Readable, Writable } from 'node:stream'
 import { StringDecoder } from 'node:string_decoder'
 
+import {
+  codexLookupAcknowledgement,
+  codexLookupModel,
+  codexLookupNamespace,
+  codexLookupParameters,
+  codexLookupPrompt,
+  codexLookupTool,
+} from '@/lib/conversation/codex-lookup-contract'
 import type { WorkspaceRecord, WorkspaceRecordKind } from '@/lib/conversation/workspace-records'
 import { workspaceRecordKinds } from '@/lib/conversation/workspace-records'
 import type { WorkspaceRequest } from '@/lib/conversation/workspace-request'
 
-const TOOL = 'workspace_record_search'
-const MODEL = 'gpt-6.1-sol'
 const FRAME_LIMIT = 64 * 1024
 const TOTAL_LIMIT = 1024 * 1024
 const FRAME_COUNT_LIMIT = 128
@@ -15,9 +21,7 @@ const TURN_TIMEOUT_MS = 45_000
 const STOP_TIMEOUT_MS = 3_000
 
 export type CodexReadLaunch = Readonly<{
-  accessToken: string
   args: readonly string[]
-  environment: Readonly<Record<string, string>>
 }>
 
 export type CodexReadTransport = Readonly<{
@@ -53,12 +57,11 @@ const providerArgs = Object.freeze([
   'app-server',
   '--listen',
   'stdio://',
+  '--strict-config',
   '-c',
   'model_provider="openai_chatgpt_plan"',
   '-c',
   'model_providers.openai_chatgpt_plan.name="ChatGPT plan"',
-  '-c',
-  'model_providers.openai_chatgpt_plan.base_url="https://api.openai.com/v1"',
   '-c',
   'model_providers.openai_chatgpt_plan.env_key="ACCESS_TOKEN"',
   '-c',
@@ -67,6 +70,10 @@ const providerArgs = Object.freeze([
   'model_providers.openai_chatgpt_plan.requires_openai_auth=false',
   '-c',
   'model_providers.openai_chatgpt_plan.supports_websockets=false',
+  '-c',
+  'model_providers.openai_chatgpt_plan.request_max_retries=0',
+  '-c',
+  'model_providers.openai_chatgpt_plan.stream_max_retries=0',
   '-c',
   'approval_policy="never"',
   '-c',
@@ -81,6 +88,14 @@ const providerArgs = Object.freeze([
   'history.persistence="none"',
   '-c',
   'shell_environment_policy.inherit="none"',
+  '-c',
+  'features.shell_tool=false',
+  '-c',
+  'features.apps=false',
+  '-c',
+  'features.code_mode=false',
+  '-c',
+  'features.code_mode_only=false',
 ])
 
 function object(value: unknown): Record<string, unknown> {
@@ -111,11 +126,8 @@ function query(input: WorkspaceRequest): WorkspaceRequest {
   return { kind: input.kind, query: input.query }
 }
 
-function exactArguments(value: unknown, expected: WorkspaceRequest): void {
-  const args = object(value)
-  if (Object.keys(args).length !== 2 || args.kind !== expected.kind || args.query !== expected.query) {
-    throw new Error('Provider lookup did not match the requested project read.')
-  }
+function emptyArguments(value: unknown): void {
+  if (Object.keys(object(value)).length) throw new Error('Provider lookup may not supply record scope.')
 }
 
 function records(value: readonly WorkspaceRecord[], requestedKind: WorkspaceRecordKind): readonly WorkspaceRecord[] {
@@ -192,9 +204,10 @@ async function boundedStop(transport: CodexReadTransport) {
 }
 
 type ReadInput = Readonly<{
-  accessToken: string
   query: WorkspaceRequest
   lookup: () => Promise<readonly WorkspaceRecord[]>
+  authorizeToolCall?: (callId: string) => void
+  acknowledgeToolCall?: (callId: string) => void
   signal?: AbortSignal
 }>
 
@@ -223,21 +236,13 @@ function attemptError(state: ProtocolState): CodexReadAttemptError {
   )
 }
 
-function launchRequest(accessToken: string): CodexReadLaunch {
-  return { accessToken, args: providerArgs, environment: { ACCESS_TOKEN: accessToken } }
-}
-
 function stopLateTransport(transport: CodexReadTransport): void {
   transport.stdout.destroy()
   transport.stdin.destroy()
   void boundedStop(transport).catch(() => undefined)
 }
 
-async function openBounded(
-  open: OpenCodexReadTransport,
-  accessToken: string,
-  signal: AbortSignal,
-): Promise<CodexReadTransport> {
+async function openBounded(open: OpenCodexReadTransport, signal: AbortSignal): Promise<CodexReadTransport> {
   let expired = false
   let onAbort: (() => void) | undefined
   const aborted = new Promise<never>((_, reject) => {
@@ -247,7 +252,7 @@ async function openBounded(
     }
     signal.addEventListener('abort', onAbort, { once: true })
   })
-  const launch = open(launchRequest(accessToken), signal)
+  const launch = open({ args: providerArgs }, signal)
   void launch.then(
     late => {
       if (expired) stopLateTransport(late)
@@ -291,22 +296,24 @@ function threadRequest() {
     id: 1,
     method: 'thread/start',
     params: {
-      model: MODEL,
+      model: codexLookupModel,
       approvalPolicy: 'never',
       sandbox: 'read-only',
       serviceName: 'AppraiseJS',
       ephemeral: true,
       dynamicTools: [
         {
-          type: 'function',
-          name: TOOL,
-          description: 'Read matching records in the selected Appraise project.',
-          inputSchema: {
-            type: 'object',
-            properties: { kind: { type: 'string', enum: workspaceRecordKinds }, query: { type: 'string' } },
-            required: ['kind', 'query'],
-            additionalProperties: false,
-          },
+          type: 'namespace',
+          name: codexLookupNamespace,
+          description: 'Appraise project reads.',
+          tools: [
+            {
+              type: 'function',
+              name: codexLookupTool,
+              description: 'Read the scoped records selected by Appraise.',
+              inputSchema: codexLookupParameters,
+            },
+          ],
         },
       ],
     },
@@ -319,12 +326,12 @@ function turnRequest(threadId: string, requested: WorkspaceRequest) {
     method: 'turn/start',
     params: {
       threadId,
-      model: MODEL,
+      model: codexLookupModel,
       effort: 'low',
       input: [
         {
           type: 'text',
-          text: `Use ${TOOL} exactly once with kind ${requested.kind} and query ${JSON.stringify(requested.query)}. Describe the result briefly.`,
+          text: codexLookupPrompt(requested),
         },
       ],
     },
@@ -386,16 +393,20 @@ async function handleToolCall(
   if (state.phase !== 'running' || state.toolCalls !== 0) throw new Error('Unexpected provider tool call.')
   const params = object(message.params)
   assertScoped(params, state)
-  if (params.namespace !== null || params.tool !== TOOL) throw new Error('Unexpected provider tool call.')
-  name(params.callId)
-  exactArguments(params.arguments, context.requested)
+  if (params.namespace !== codexLookupNamespace || params.tool !== codexLookupTool) {
+    throw new Error('Unexpected provider tool call.')
+  }
+  const callId = name(params.callId)
+  emptyArguments(params.arguments)
+  context.input.authorizeToolCall?.(callId)
   state.toolCalls += 1
   state.returnedRecords = records(await context.input.lookup(), context.requested.kind)
   if (context.signal.aborted) throw new Error('Provider read was interrupted.')
+  context.input.acknowledgeToolCall?.(callId)
   await write(context.transport.stdin, {
     id: message.id,
     result: {
-      contentItems: [{ type: 'inputText', text: JSON.stringify({ records: state.returnedRecords }) }],
+      contentItems: [{ type: 'inputText', text: codexLookupAcknowledgement }],
       success: true,
     },
   })
@@ -416,7 +427,7 @@ function completedResult(params: Record<string, unknown>, state: ProtocolState):
   return { records: state.returnedRecords, threadId: state.threadId, turnId: state.turnId }
 }
 
-function assertItem(message: Record<string, unknown>, context: ProtocolContext, state: ProtocolState): void {
+function assertItem(message: Record<string, unknown>, state: ProtocolState): void {
   const params = object(message.params)
   assertScoped(params, state)
   const item = object(params.item)
@@ -424,22 +435,25 @@ function assertItem(message: Record<string, unknown>, context: ProtocolContext, 
     throw new Error('Unexpected provider item.')
   }
   if (item.type === 'dynamicToolCall') {
-    if (item.tool !== TOOL) throw new Error('Unexpected provider tool item.')
-    exactArguments(item.arguments, context.requested)
+    if (item.tool !== codexLookupTool) throw new Error('Unexpected provider tool item.')
+    emptyArguments(item.arguments)
   }
 }
 
-function handleNotification(
-  message: Record<string, unknown>,
-  context: ProtocolContext,
-  state: ProtocolState,
-): CodexReadResult | undefined {
+function handleNotification(message: Record<string, unknown>, state: ProtocolState): CodexReadResult | undefined {
   if (message.method === 'turn/completed') return completedResult(object(message.params), state)
   if (message.method === 'item/started' || message.method === 'item/completed') {
-    assertItem(message, context, state)
+    assertItem(message, state)
     return undefined
   }
-  if (message.method === 'item/agentMessage/delta') {
+  if (
+    [
+      'item/agentMessage/delta',
+      'item/reasoning/summaryTextDelta',
+      'item/reasoning/summaryPartAdded',
+      'item/reasoning/textDelta',
+    ].includes(String(message.method))
+  ) {
     assertScoped(object(message.params), state)
     return undefined
   }
@@ -457,15 +471,15 @@ async function routeFrame(
   if (context.signal.aborted) throw new Error('Provider read was interrupted.')
   const message = object(incoming)
   if (message.error) throw new Error('Provider request failed.')
-  if (message.id === 0 || message.id === 1 || message.id === 2) {
-    await handleResponse(message, context, state)
-    return undefined
-  }
   if (message.method === 'item/tool/call' && message.id !== undefined) {
     await handleToolCall(message, context, state)
     return undefined
   }
-  return handleNotification(message, context, state)
+  if (message.method === undefined && (message.id === 0 || message.id === 1 || message.id === 2)) {
+    await handleResponse(message, context, state)
+    return undefined
+  }
+  return handleNotification(message, state)
 }
 
 async function consume(context: ProtocolContext, state: ProtocolState): Promise<CodexReadResult> {
@@ -491,9 +505,6 @@ async function consumeBounded(context: ProtocolContext, state: ProtocolState): P
 }
 
 function readInput(input: ReadInput): WorkspaceRequest {
-  if (typeof input.accessToken !== 'string' || !input.accessToken || input.accessToken.length > 16_384) {
-    throw new CodexReadAttemptError('ChatGPT access is unavailable.', 'NOT_STARTED')
-  }
   try {
     const requested = query(input.query)
     if (typeof input.lookup !== 'function') throw new Error('Invalid lookup callback.')
@@ -516,7 +527,7 @@ export async function runCodexRecordLookup(input: ReadInput, open: OpenCodexRead
   const state: ProtocolState = { phase: 'initializing', turnIssued: false, toolCalls: 0 }
   let transport: CodexReadTransport | undefined
   try {
-    transport = await openBounded(open, input.accessToken, signal)
+    transport = await openBounded(open, signal)
     assertIsolated(transport)
     return await consumeBounded({ input, requested, transport, signal }, state)
   } catch {

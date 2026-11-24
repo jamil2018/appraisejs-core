@@ -6,6 +6,8 @@ import { z } from 'zod'
 import { requireActiveProjectForMutation } from '@/lib/active-project'
 import { qualityJourneyIdentifierSchema } from '@/lib/quality-journey/contracts'
 import { createChatGptReadProvider } from '@/services/conversation/chatgpt-read-provider'
+import { configuredMacCodexReadExecutable } from '@/services/conversation/codex-read-launcher'
+import { createConfiguredCodexReadProvider } from '@/services/conversation/codex-read-runtime'
 import {
   releaseUnconfirmedConversationRead,
   setConversationReadProvider,
@@ -18,9 +20,18 @@ import {
 import { ServiceError } from '@/services/shared/errors'
 
 const scope = z.object({ projectId: qualityJourneyIdentifierSchema, conversationId: z.string().uuid() })
-const mode = scope.extend({ provider: z.enum(['LOCAL', 'CHATGPT']) }).strict()
-const verify = scope.extend({ messageId: z.string().uuid(), profileKey: z.string().regex(/^[0-9a-f]{64}$/) }).strict()
+const engine = z.enum(['RESPONSES', 'CODEX']).optional().default('RESPONSES')
+const mode = scope.extend({ provider: z.enum(['LOCAL', 'CHATGPT']), engine }).strict()
+const verify = scope
+  .extend({ messageId: z.string().uuid(), profileKey: z.string().regex(/^[0-9a-f]{64}$/), engine })
+  .strict()
 const release = scope.extend({ attemptId: z.string().uuid() }).strict()
+
+function requireNativeCodexConfiguration() {
+  if (process.platform !== 'darwin' || !configuredMacCodexReadExecutable()) {
+    throw new ServiceError('Native Codex is unavailable in this app session.', 'CONFLICT')
+  }
+}
 
 async function scopedReadAction<T extends { projectId: string; conversationId: string }>(
   schema: z.ZodType<T>,
@@ -45,16 +56,22 @@ async function scopedReadAction<T extends { projectId: string; conversationId: s
 }
 
 export async function selectConversationReadProvider(input: unknown) {
-  return scopedReadAction(mode, input, value => setConversationReadProvider(value, value.provider))
+  return scopedReadAction(mode, input, value => {
+    if (value.provider === 'CHATGPT' && value.engine === 'CODEX') requireNativeCodexConfiguration()
+    return setConversationReadProvider(value, value.provider, undefined, value.engine)
+  })
 }
 
 export async function runConversationChatGptLookup(input: unknown) {
   return scopedReadAction(verify, input, async value => {
+    if (value.engine === 'CODEX') requireNativeCodexConfiguration()
     const readToken = () => chatGptConnection.readLookupAccessToken(value.profileKey)
     const token = isChatGptConnectionSupported() ? await readToken() : undefined
     if (!token)
       throw new ServiceError('The ChatGPT connection changed. Reload the chat and review the lookup.', 'CONFLICT')
-    await verifyConversationLookup(value, createChatGptReadProvider(readToken))
+    const provider =
+      value.engine === 'CODEX' ? createConfiguredCodexReadProvider(readToken) : createChatGptReadProvider(readToken)
+    await verifyConversationLookup({ ...value, expectedEngine: value.engine }, provider)
   })
 }
 

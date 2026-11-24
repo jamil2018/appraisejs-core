@@ -4,8 +4,11 @@ Each saved conversation belongs to one target project. Its messages and attachme
 project's conversation routes. Attachments store verified record identifiers and display-title snapshots.
 An exact chat rename rechecks case ownership, current title, and the shared-resource guard before committing the
 case and turn together. Provider-read attempts belong to the original message and conversation through a composite
-foreign key. Project deletion requires explicit acknowledgement for outstanding, uncertain attempts. The exact
-deletion transaction removes settled attempt history before its messages and conversations.
+foreign key. Each saved message can start one provider-read attempt and retains that attempt's engine. For native
+Codex, Appraise keeps the account credential and scoped records in the local app. The subprocess receives a
+per-attempt broker capability and the fixed tool acknowledgement. Project deletion requires explicit acknowledgement
+for outstanding, uncertain attempts. The exact deletion transaction removes settled attempt history before its
+messages and conversations.
 
 AppraiseJS treats a `TargetProject` as the mandatory isolation boundary for authored data, managed lifecycle state,
 execution, reports, metrics, reviews, integrations, and evidence. System configuration and built-in contract schemas

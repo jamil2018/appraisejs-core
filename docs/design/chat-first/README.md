@@ -51,11 +51,11 @@ Use **Discuss in chat** on a Journey to keep its current question, review, permi
 saved conversation. The card opens the scoped canonical control. Appraise still checks the active review revision
 and exact run consent when the user acts there.
 
-The ChatGPT preview can verify a saved lookup after the user reviews the exact search terms. Its attempt status
-and verified records remain with the message. Local and ChatGPT lookup selection share the same conversation.
-Unresolved attempts stay visible after restart.
+The ChatGPT preview can verify a saved lookup after the user reviews the exact search terms. A conversation can
+use Local, ChatGPT Responses, or native Codex when a pinned macOS app-server is configured. The engine, attempt
+status, and verified records remain with the message. Unresolved attempts stay visible after restart.
 
-The local macOS preview completed a live ChatGPT plan lookup for the disposable checkout case. An uncoached
-first-use walkthrough, broader provider lifecycle coverage, native provider launch qualification, and full action
-parity remain open. The [provider proof](provider-proof.md) records the evidence and remaining checks. The
+The local macOS preview completed live ChatGPT Responses and native Codex lookups for the disposable checkout
+case. An uncoached first-use walkthrough, broader provider lifecycle coverage, and full action parity remain open.
+The [provider proof](provider-proof.md) records the evidence and remaining checks. The
 [action inventory](action-inventory.md) maps effects to current Appraise services.

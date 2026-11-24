@@ -8,16 +8,19 @@ Journey setup exposes a Codex diagnostic and Settings links to it. **Settings �
 prepares an expiring loopback authorization for a local macOS or Linux installation. Appraise verifies the signed
 account identity and granted scopes before storing credentials in the operating-system user's private directory.
 The local disconnect clears usable credentials. Synthetic tests exercise the callback and credential storage.
-Saved chats can switch between local lookup and explicit ChatGPT lookup verification. ChatGPT receives the
-record type and search terms after the user reviews them. The app checks which supported model the selected
-account lists, then makes one stateless, streamed Responses request with one Appraise read function. Matching
-records stay in Appraise. Local chat continues to answer workspace queries through the same project-scoped reader.
+Saved chats offer local lookup, ChatGPT Responses, and native Codex on a configured macOS host. ChatGPT receives
+the record type and search terms after the user reviews them. Appraise checks the account's model catalog before
+inference. The direct Responses route makes one stateless, streamed request with one Appraise read function.
+Matching records stay in Appraise. Local chat uses the same project-scoped reader.
 The accepted attempt and its result survive restart. An interrupted attempt remains unresolved and blocks switching
 until the user acknowledges that exact attempt. Its saved message cannot start another provider attempt.
 
-The Codex app-server adapter passed simulated JSONL tests with one matching dynamic tool call. The native launch
-requires a pinned host that proves the required isolation and protocol capability. Production Journey dispatch
-retains its refusal, and historical native attempts retain their recorded outcomes.
+The native route starts one ephemeral Codex app-server per saved lookup. macOS Seatbelt limits the subprocess to
+its private scratch directory, system resources, and the per-attempt loopback broker. The subprocess gets a random
+broker capability. Appraise keeps the account credential, forwards the reviewed query with one namespaced tool,
+and follows the verified tool call with a fixed acknowledgement and any reasoning history from the provider's
+first response. A result requires Appraise's local read and a confirmed native turn completion. Production
+Journey dispatch retains its refusal, and historical attempts keep their recorded outcomes.
 [Hosting and sessions](../../quality-journey-host-sessions.md) ·
 [Provider intent](../../quality-journey-provider-intents.md) ·
 [M13 evidence](../../../tasks/codex-app-server-journeys/M13-INTEGRATED-IMPLEMENTATION.md)
@@ -28,6 +31,23 @@ both the completed lookup and the earlier failed attempt. The earlier attempt st
 The live catalog measured 850,543 decoded bytes, so the catalog now has its own 4 MiB limit. The Responses stream
 omitted `Content-Type`; Appraise checks the event body directly in that case and requires a valid terminal event
 with exactly the allowed function call. The inference stream keeps its separate 256 KiB limit.
+
+The same disposable preview database was upgraded to migration 101 and opened in a separate macOS 27.2.1 preview.
+The official installed Codex app-server 0.166.0 completed a fresh lookup through **Review Codex lookup** and
+**Send lookup to Codex**. The Appraise UI and SQLite agreed on one project-scoped match, **Guest checkout returns
+an order number**. Reload preserved the native completion and the earlier failed and completed Responses attempts.
+The installed binary also completed an offline two-round tool fixture with one Appraise read. Seatbelt canaries
+allowed only the assigned broker port and denied an outside file read, alternate and self process spawning, and a
+sibling localhost port. The UI test used Playwright because the in-app browser host was unavailable.
+
+## Enable native Codex lookups on macOS
+
+Set `APPRAISE_CODEX_READ_EXECUTABLE` to the canonical absolute path of a trusted, installed `codex` executable.
+Set `APPRAISE_CODEX_READ_SHA256` to its verified lowercase SHA-256 digest and restart Appraise. The preview uses
+Codex app-server 0.166.0 with the `gpt-6.1-sol` model listed for the signed-in ChatGPT account. Reverify the binary
+and update the configured digest when upgrading. Connect ChatGPT in Settings, open a saved project conversation,
+and select **Use native Codex for lookups**. Save a fresh lookup message and review the search before sending it.
+The preview keeps earlier attempts attached to their original messages and engines.
 
 | Provider    | Starting path                                                                                                                                                                                                                  | Evidence still needed                                                                                                                                                                                                                                                                                                                   |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
