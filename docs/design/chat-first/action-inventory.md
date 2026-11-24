@@ -102,8 +102,9 @@ operation definitions are step execution primitives, not substitutes for authori
 - **Provider lookup:** Settings offers local ChatGPT authorization with signed identity verification and private
   credential custody. A saved project lookup can request one Appraise read through the ChatGPT Responses preview.
   The user reviews the query before sending it. Appraise owns the scoped search result and retains interrupted
-  attempts for explicit acknowledgement. Live sign-in, inference, native Codex and Claude Code, and full parity
-  are unqualified. The production Journey dispatch path retains its refusal.
+  attempts for explicit acknowledgement. One live ChatGPT lookup returned its exact checkout case on macOS.
+  Broader provider lifecycle coverage, native Codex and Claude Code, and full parity remain open. The production
+  Journey dispatch path retains its refusal.
 - **Journey cards:** Attached Journeys show the current question, proposed checks, change review, activity, run
   permission, or result and evidence. Decisions stay on the current canonical Journey control.
 - **Next parity evidence:** enumerate state-dependent row and bulk controls, disclosures, keyboard actions, template

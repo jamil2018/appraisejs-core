@@ -17,15 +17,21 @@ until the user acknowledges that exact attempt. Its saved message cannot start a
 
 The Codex app-server adapter passed simulated JSONL tests with one matching dynamic tool call. The native launch
 requires a pinned host that proves the required isolation and protocol capability. Production Journey dispatch
-retains its refusal, and historical native attempts retain their recorded outcomes. Live account consent and
-successful inference still require qualification.
+retains its refusal, and historical native attempts retain their recorded outcomes.
 [Hosting and sessions](../../quality-journey-host-sessions.md) ·
 [Provider intent](../../quality-journey-provider-intents.md) ·
 [M13 evidence](../../../tasks/codex-app-server-journeys/M13-INTEGRATED-IMPLEMENTATION.md)
 
+In the disposable macOS preview, a signed-in ChatGPT plan account completed a fresh saved lookup through the app
+and returned the exact project-scoped case, **Guest checkout returns an order number**. A browser reload preserved
+both the completed lookup and the earlier failed attempt. The earlier attempt stopped at the model catalog size limit.
+The live catalog measured 850,543 decoded bytes, so the catalog now has its own 4 MiB limit. The Responses stream
+omitted `Content-Type`; Appraise checks the event body directly in that case and requires a valid terminal event
+with exactly the allowed function call. The inference stream keeps its separate 256 KiB limit.
+
 | Provider    | Starting path                                                                                                                                                                                                                  | Evidence still needed                                                                                                                                                                                                                                                                                                                   |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ChatGPT     | Use Settings to start browser consent for the local open-source preview. In a saved project chat, select **Use ChatGPT for lookups**, open **Review ChatGPT lookup** on a saved search, and choose **Send lookup to ChatGPT**. | Verify consent on a clean install with an eligible account, then complete a subscription-backed lookup and match the displayed result to the scoped record. [OpenAI Responses guidance](https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference)                                                              |
+| ChatGPT     | Use Settings to start browser consent for the local open-source preview. In a saved project chat, select **Use ChatGPT for lookups**, open **Review ChatGPT lookup** on a saved search, and choose **Send lookup to ChatGPT**. | One live lookup matched the expected project record on macOS. Live disconnect, expiration, interrupted requests, and other installations still need coverage. [OpenAI Responses guidance](https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference)                                                            |
 | Claude Code | Evaluate hosting the official, unmodified Claude Code binary with provider-owned sign-in under Anthropic's published conditions. Review the commercial terms for this integration shape.                                       | A clean Appraise install guides the user into Claude Code's sign-in flow and completes the same Appraise read. Claude.ai sign-in inside Appraise and Appraise handling Claude subscription credentials fall outside the published provider path. [Anthropic legal and compliance](https://code.claude.com/docs/en/legal-and-compliance) |
 
 ## Qualification sequence

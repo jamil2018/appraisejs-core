@@ -8,6 +8,8 @@ const endpoint = 'https://api.openai.com/v1/responses'
 const modelsEndpoint = 'https://api.openai.com/v1/models'
 const toolName = 'workspace_record_search'
 const namespace = 'appraise'
+// The account catalog includes full model metadata, even though lookup uses only the visible slugs.
+const maxCatalogBytes = 4 * 1024 * 1024
 const maxStreamBytes = 256 * 1024
 const supportedModels = ['gpt-6.2-sol', 'gpt-6.1-sol'] as const
 const modelCatalog = z.object({ models: z.array(z.object({ slug: z.string(), visibility: z.string() })) })
@@ -73,7 +75,7 @@ async function accountModel(transport: typeof fetch, authorization: string, sign
       const chunk = await reader.read()
       if (chunk.done) break
       bytes += chunk.value.byteLength
-      if (bytes > maxStreamBytes) return undefined
+      if (bytes > maxCatalogBytes) return undefined
       chunks.push(chunk.value)
     }
     const catalog = modelCatalog.parse(JSON.parse(Buffer.concat(chunks).toString('utf8')))
@@ -142,7 +144,9 @@ async function takeReply(response: Response) {
     if (response.status >= 400 && response.status < 500 && response.status !== 408) return undefined
     throw new Error('Provider did not confirm receipt of the read.')
   }
-  if (!response.body || !response.headers.get('content-type')?.startsWith('text/event-stream')) {
+  const mediaType = response.headers.get('content-type')?.split(';', 1)[0].trim().toLowerCase()
+  // The plan-usage endpoint can omit Content-Type. The parser still requires a valid terminal event.
+  if (!response.body || (mediaType !== undefined && mediaType !== 'text/event-stream')) {
     throw new Error('Provider did not return an event stream.')
   }
   return readTerminal(response.body)

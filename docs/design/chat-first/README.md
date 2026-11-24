@@ -55,6 +55,7 @@ The ChatGPT preview can verify a saved lookup after the user reviews the exact s
 and verified records remain with the message. Local and ChatGPT lookup selection share the same conversation.
 Unresolved attempts stay visible after restart.
 
-An uncoached first-use walkthrough, live provider onboarding and inference, native provider launch qualification,
-and full action parity remain open. The [provider proof](provider-proof.md) records the required evidence. The
+The local macOS preview completed a live ChatGPT plan lookup for the disposable checkout case. An uncoached
+first-use walkthrough, broader provider lifecycle coverage, native provider launch qualification, and full action
+parity remain open. The [provider proof](provider-proof.md) records the evidence and remaining checks. The
 [action inventory](action-inventory.md) maps effects to current Appraise services.

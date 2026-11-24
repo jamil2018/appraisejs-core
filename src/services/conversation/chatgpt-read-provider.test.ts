@@ -29,7 +29,12 @@ function events(...payloads: unknown[]) {
   )
 }
 
-function fixture(response: Response, models = [{ slug: 'gpt-6.2-sol', visibility: 'list' }]) {
+function fixture(
+  response: Response,
+  models: Array<{ slug: string; visibility: string; base_instructions?: string }> = [
+    { slug: 'gpt-6.2-sol', visibility: 'list' },
+  ],
+) {
   const fetchProvider = vi
     .fn<typeof fetch>()
     .mockResolvedValueOnce(Response.json({ models }))
@@ -105,5 +110,35 @@ describe('ChatGPT plan record lookup', () => {
     await expect(switched.run()).resolves.toBe('failed')
     expect(switched.fetchProvider).toHaveBeenCalledTimes(1)
     expect(switched.lookup).not.toHaveBeenCalled()
+  })
+
+  it('accepts a model catalog with large model metadata', async () => {
+    const { run, fetchProvider, lookup } = fixture(events(completed([call])), [
+      { slug: 'gpt-6.2-sol', visibility: 'list', base_instructions: 'x'.repeat(850_000) },
+    ])
+    await expect(run()).resolves.toBe('completed')
+    expect(fetchProvider).toHaveBeenCalledTimes(2)
+    expect(lookup).toHaveBeenCalledExactlyOnceWith()
+  })
+
+  it('refuses a catalog that exceeds its own size limit before inference', async () => {
+    const { run, fetchProvider, lookup } = fixture(events(completed([call])), [
+      { slug: 'gpt-6.2-sol', visibility: 'list', base_instructions: 'x'.repeat(4 * 1024 * 1024) },
+    ])
+    await expect(run()).resolves.toBe('failed')
+    expect(fetchProvider).toHaveBeenCalledTimes(1)
+    expect(lookup).not.toHaveBeenCalled()
+  })
+
+  it('recognizes a valid event stream when the provider omits the content type', async () => {
+    const { run, lookup } = fixture(new Response(events(completed([call])).body))
+    await expect(run()).resolves.toBe('completed')
+    expect(lookup).toHaveBeenCalledExactlyOnceWith()
+  })
+
+  it('refuses an explicit non-event-stream content type', async () => {
+    const { run, lookup } = fixture(Response.json(completed([call])))
+    await expect(run()).rejects.toThrow('did not return an event stream')
+    expect(lookup).not.toHaveBeenCalled()
   })
 })
