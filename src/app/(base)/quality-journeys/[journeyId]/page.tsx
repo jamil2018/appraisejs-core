@@ -52,6 +52,8 @@ import { ManagedDiscoveryControl } from './managed-discovery-control'
 import { ManagedScenarioAutomationControl } from './managed-scenario-automation-control'
 import { TriageReportPanel } from './triage-report-panel'
 import { qualityJourneyLabel, toAnalysisRevisionView } from './quality-journey-view-model'
+import { JourneyFocusCard } from './journey-focus-card'
+import { currentJourneyAnalysis, currentJourneyFocus } from './journey-focus-data'
 
 type PageProps = { params: Promise<{ journeyId: string }>; searchParams?: Promise<{ project?: string }> }
 
@@ -107,6 +109,41 @@ async function loadJourneySupplementalArtifacts(journeyId: string, projectId: st
   return { scenarios: scenarioPortfolio, automation: automationContext }
 }
 
+async function loadDesignStageContext(journeyId: string, projectId: string, stage: string) {
+  const [discoverySetup, preparationRecovery, designCorrection] = await Promise.all([
+    ['ANALYSIS', 'ANALYSIS_REVIEW'].includes(stage) ? getQualityJourneyDiscoveryPrerequisites(projectId) : null,
+    ['SCENARIO_DESIGN', 'SCENARIO_REVIEW', 'AUTOMATION'].includes(stage)
+      ? getAppManagedPreparationRecovery({
+          journeyId,
+          targetProjectId: projectId,
+          role: stage === 'AUTOMATION' ? 'AUTOMATOR' : 'TEST_SCENARIO_DESIGNER',
+        })
+      : null,
+    stage === 'SCENARIO_DESIGN'
+      ? getAppManagedScenarioDesignCorrection({ journeyId, targetProjectId: projectId })
+      : null,
+  ])
+  return { discoverySetup, preparationRecovery, designCorrection }
+}
+
+async function loadRunStageContext(journeyId: string, projectId: string, stage: string, stateHash: string) {
+  const [triageRecovery, discoveryCaptureStatus, manualPreparation, operatorTriageAvailable] = await Promise.all([
+    ['TRIAGE', 'REPORT_REVIEW'].includes(stage)
+      ? getAppManagedTriageRecovery({ journeyId, targetProjectId: projectId })
+      : null,
+    stage === 'DISCOVERY'
+      ? getAppManagedAnonymousDiscoveryCaptureStatus({
+          journeyId,
+          targetProjectId: projectId,
+          expectedStateHash: stateHash,
+        })
+      : null,
+    stage === 'AUTOMATION' ? loadManualPreparation(journeyId, projectId) : null,
+    stage === 'TRIAGE' ? getOperatorTriageAvailable({ journeyId, targetProjectId: projectId }) : false,
+  ])
+  return { triageRecovery, discoveryCaptureStatus, manualPreparation, operatorTriageAvailable }
+}
+
 async function loadJourneyDetail(journeyId: string, projectId: string) {
   const [journey, analysis] = await Promise.all([
     getQualityJourney({ journeyId, targetProjectId: projectId }).then(
@@ -118,14 +155,7 @@ async function loadJourneyDetail(journeyId: string, projectId: string) {
     ),
     getQualityJourneyAnalysis({ journeyId, targetProjectId: projectId }),
   ])
-  const activeAnalysisId = journey.journey.activeRevisionIds.analysis
-  const activeRevision = analysis.revisions.find(item => item.artifactRevisionId === activeAnalysisId)
-  const successorDraft = analysis.revisions.findLast(item => !item.publication)
-  const revision =
-    journey.journey.stage === 'ANALYSIS'
-      ? (successorDraft ?? activeRevision)
-      : (activeRevision ?? analysis.revisions.at(-1))
-  const activeAnalysis = revision ? toAnalysisRevisionView(revision) : null
+  const { revision, view: activeAnalysis } = currentJourneyAnalysis(journey, analysis)
   const answerable =
     journey.journey.stage === 'ANALYSIS_REVIEW' ||
     (journey.journey.stage === 'ANALYSIS' && Boolean(revision && !revision.publication))
@@ -137,13 +167,8 @@ async function loadJourneyDetail(journeyId: string, projectId: string) {
     environments,
     attempts,
     requirement,
-    discoverySetup,
-    preparationRecovery,
-    designCorrection,
-    triageRecovery,
-    discoveryCaptureStatus,
-    manualPreparation,
-    operatorTriageAvailable,
+    { discoverySetup, preparationRecovery, designCorrection },
+    { triageRecovery, discoveryCaptureStatus, manualPreparation, operatorTriageAvailable },
   ] = await Promise.all([
     loadJourneySupplementalArtifacts(journeyId, projectId, journey.journey.stage),
     loadActiveDiscovery(journey.journey.stage, journeyId, projectId),
@@ -173,31 +198,8 @@ async function loadJourneyDetail(journeyId: string, projectId: string) {
       orderBy: { revision: 'asc' },
       select: { contentJson: true },
     }),
-    ['ANALYSIS', 'ANALYSIS_REVIEW'].includes(journey.journey.stage)
-      ? getQualityJourneyDiscoveryPrerequisites(projectId)
-      : null,
-    ['SCENARIO_DESIGN', 'SCENARIO_REVIEW', 'AUTOMATION'].includes(journey.journey.stage)
-      ? getAppManagedPreparationRecovery({
-          journeyId,
-          targetProjectId: projectId,
-          role: journey.journey.stage === 'AUTOMATION' ? 'AUTOMATOR' : 'TEST_SCENARIO_DESIGNER',
-        })
-      : null,
-    journey.journey.stage === 'SCENARIO_DESIGN'
-      ? getAppManagedScenarioDesignCorrection({ journeyId, targetProjectId: projectId })
-      : null,
-    ['TRIAGE', 'REPORT_REVIEW'].includes(journey.journey.stage)
-      ? getAppManagedTriageRecovery({ journeyId, targetProjectId: projectId })
-      : null,
-    journey.journey.stage === 'DISCOVERY'
-      ? getAppManagedAnonymousDiscoveryCaptureStatus({
-          journeyId,
-          targetProjectId: projectId,
-          expectedStateHash: journey.journey.stateHash,
-        })
-      : null,
-    journey.journey.stage === 'AUTOMATION' ? loadManualPreparation(journeyId, projectId) : null,
-    journey.journey.stage === 'TRIAGE' ? getOperatorTriageAvailable({ journeyId, targetProjectId: projectId }) : false,
+    loadDesignStageContext(journeyId, projectId, journey.journey.stage),
+    loadRunStageContext(journeyId, projectId, journey.journey.stage, journey.journey.stateHash),
   ])
   return {
     activeAnalysis,
@@ -333,6 +335,7 @@ function detailPresentation(
 }
 
 type Detail = Awaited<ReturnType<typeof loadJourneyDetail>>
+
 type CurrentWorkProps = {
   detail: Detail
   presentation: ReturnType<typeof detailPresentation>
@@ -416,7 +419,7 @@ function JourneyCurrentWork({ detail, presentation, projectId, closure }: Curren
     case 'ANALYSIS':
     case 'ANALYSIS_REVIEW':
       return activeAnalysis ? (
-        <section id="analysis" className="space-y-3">
+        <section id="analysis" tabIndex={-1} className="space-y-3">
           <AnalysisReviewControls
             discoveryReady={discoverySetup?.ready ?? true}
             previousAnalyses={detail.previousAnalyses}
@@ -504,7 +507,7 @@ function JourneyCurrentWork({ detail, presentation, projectId, closure }: Curren
               <AutomationMaterializationStatus context={automation} />
             </section>
           }
-          {presentation.allPrepared ? run : null}
+          {presentation.allPrepared || presentation.requestedExecutionConsentCount > 0 ? run : null}
         </>
       )
     case 'EXECUTION':
@@ -540,7 +543,10 @@ function JourneyCurrentWork({ detail, presentation, projectId, closure }: Curren
               />
             </section>
           }
-          {execution.proposals.some(p => ['PROPOSED', 'APPROVED'].includes(p.status)) ? run : null}
+          {presentation.requestedExecutionConsentCount > 0 ||
+          execution.proposals.some(p => ['PROPOSED', 'APPROVED'].includes(p.status))
+            ? run
+            : null}
           {stage === 'TRIAGE' ? null : (
             <ClosurePanel
               key={closure.reportHash ?? journeyId}
@@ -591,6 +597,7 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
     answerable &&
     (journey.journey.unresolvedQuestionIds.length > 0 ||
       Boolean(activeAnalysis?.questions.some(question => question.required && !question.answers.length)))
+  const focus = currentJourneyFocus(detail)
   const showAgentSetup =
     managedActive &&
     setting &&
@@ -631,6 +638,18 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
               stateHash={journey.journey.stateHash}
               version={journey.journey.version}
             />
+            <Button
+              size="sm"
+              variant="outline"
+              nativeButton={false}
+              render={
+                <Link
+                  href={`/conversations/new?kind=quality-journey&record=${encodeURIComponent(journeyId)}&project=${encodeURIComponent(project.id)}`}
+                />
+              }
+            >
+              Discuss in chat
+            </Button>
           </div>
         </header>
         <JourneyStages stage={stage} />
@@ -641,7 +660,10 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
             discoveryCaptureStatus={detail.discoveryCaptureStatus}
           />
         ) : null}
-        <section className="space-y-3" aria-label="Current journey focus">
+        <section id="current-work" className="space-y-3" aria-label="Current journey focus">
+          {!paused && !legacy && !journey.blockers.length && focus.kind !== 'activity' ? (
+            <JourneyFocusCard focus={focus} />
+          ) : null}
           <div
             className={
               showAgentSetup ? 'space-y-2 rounded-xl border border-warning-border bg-warning-surface p-4' : undefined

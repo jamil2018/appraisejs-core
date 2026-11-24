@@ -15,7 +15,9 @@ function AttachedRecord({ context, onRemove }: { context: ChatContext; onRemove:
   return (
     <div className="mx-1 flex w-fit max-w-full items-center gap-1.5 rounded-lg bg-muted py-1 pl-2 pr-1 text-sm">
       <Paperclip aria-hidden="true" className="size-3.5 shrink-0 text-muted-foreground" />
-      <span className="shrink-0 text-muted-foreground">{workspaceRecordLabel(context.kind)}</span>
+      <span className="shrink-0 text-muted-foreground">
+        {context.kind === 'QUALITY_JOURNEY' ? 'Quality Journey' : workspaceRecordLabel(context.kind)}
+      </span>
       <span className="min-w-0 truncate" title={context.title}>
         {context.title}
       </span>
@@ -106,6 +108,11 @@ export function ConversationComposer({
         className="min-h-20 resize-y border-transparent bg-transparent px-2 text-base shadow-none"
         value={content}
         onChange={event => setContent(event.target.value)}
+        onKeyDown={event => {
+          if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return
+          event.preventDefault()
+          event.currentTarget.form?.requestSubmit()
+        }}
         disabled={pending}
       />
       {error && (

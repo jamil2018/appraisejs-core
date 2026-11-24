@@ -128,6 +128,13 @@ export function createChatGptConnection(
     }
   }
 
+  async function lookupCredentials() {
+    if (operation || pending) return undefined
+    const selected = await store.readSelected()
+    if (operation || pending) return undefined
+    return chatGptConnectionStatus(selected).state === 'connected' ? selected : undefined
+  }
+
   async function exchange(
     { attempt, subject }: Pending,
     callback: Extract<ChatGptSignInCallbackResult, { status: 'authorized' }>,
@@ -252,6 +259,21 @@ export function createChatGptConnection(
   return {
     status,
     profiles,
+    async readLookupProfile() {
+      const selected = await lookupCredentials().catch(() => undefined)
+      return (
+        selected && {
+          key: registrationKey({ clientId: selected.client_id, subject: selected.subject }),
+          account: selected.email,
+        }
+      )
+    },
+    async readLookupAccessToken(profileKey: string) {
+      const selected = await lookupCredentials()
+      if (selected && registrationKey({ clientId: selected.client_id, subject: selected.subject }) === profileKey) {
+        return selected.access_token
+      }
+    },
     async start(selection?: string): Promise<ChatGptSettingsStatus> {
       if (operation || pending) return status()
       operation = 'starting'

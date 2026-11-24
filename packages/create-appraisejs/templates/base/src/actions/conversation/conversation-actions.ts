@@ -4,11 +4,11 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
 import { requireActiveProjectForMutation } from '@/lib/active-project'
-import { chatContextFromJourney, journeyReferenceFromChat } from '@/lib/conversation/chat-context'
+import { chatContextKinds } from '@/lib/conversation/chat-context'
 import { parseAttachedCaseRename, parseWorkspaceRequest } from '@/lib/conversation/workspace-request'
 import { qualityJourneyIdentifierSchema } from '@/lib/quality-journey/contracts'
 import { appendConversationTurn, replayConversationTurn } from '@/services/conversation/conversation-service'
-import { loadJourneyRecordContext } from '@/services/coordinator/quality-journey-record-context'
+import { loadChatContext } from '@/services/conversation/chat-context-service'
 import { ServiceError, unknownErrorToActionResponse } from '@/services/shared/errors'
 import { answerWorkspaceRequest } from '@/services/workspace-search/workspace-record-search'
 
@@ -20,7 +20,7 @@ const order = z
     content: z.string().trim().min(1).max(8000),
     context: z
       .object({
-        kind: z.enum(['TEST_CASE', 'TEST_RUN', 'REPORT']),
+        kind: z.enum(chatContextKinds),
         id: qualityJourneyIdentifierSchema,
         shownTitle: z.string().min(1).max(512).optional(),
       })
@@ -31,9 +31,9 @@ const order = z
 
 async function verifyContext(projectId: string, reference: z.infer<typeof order>['context']) {
   if (!reference) return undefined
-  const record = await loadJourneyRecordContext(projectId, journeyReferenceFromChat(reference))
+  const record = await loadChatContext(projectId, reference)
   if (!record) throw new ServiceError('The attached record is unavailable in this project.', 'NOT_FOUND')
-  return chatContextFromJourney(record)
+  return record
 }
 
 function requireRenameContext(context: Awaited<ReturnType<typeof verifyContext>>, shownTitle: string | undefined) {

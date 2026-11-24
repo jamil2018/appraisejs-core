@@ -396,6 +396,10 @@
     {
       "name": "20261124010000_add_project_conversations",
       "checksum": "c7a2e97cb09e06efd873a44ded1c0b127d19d6fa3675f75ec21e7015cbdcbc73"
+    },
+    {
+      "name": "20261124020000_add_conversation_read_attempts",
+      "checksum": "ea4b9c65103b938ab63b2c76826ed8f43f4fee0491d8a7969c5a773e03b11b43"
     }
   ]
 }

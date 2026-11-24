@@ -22,14 +22,26 @@ vi.mock('@/services/coordinator/quality-journey-shared-resource-guard-service', 
 
 import {
   appendConversationTurn,
+  getLatestConversationJourney,
   getProjectConversation,
   listProjectConversations,
   listRecentProjectConversations,
   replayConversationTurn,
 } from './conversation-service'
 import { deleteTargetProject } from '@/services/target-project/target-project-service'
+import {
+  readConversationProviderState,
+  releaseUnconfirmedConversationRead,
+  setConversationReadProvider,
+  verifyConversationLookup,
+  type ConversationLookupProvider,
+} from './conversation-read-service'
 
 const migration = path.join(process.cwd(), 'prisma/migrations/20261124010000_add_project_conversations/migration.sql')
+const providerMigration = path.join(
+  process.cwd(),
+  'prisma/migrations/20261124020000_add_conversation_read_attempts/migration.sql',
+)
 const projectA = 'project-a'
 const projectB = 'project-b'
 let directory: string
@@ -68,6 +80,7 @@ beforeEach(() => {
     'PRAGMA foreign_keys = ON; CREATE TABLE "TargetProject" ("id" TEXT NOT NULL PRIMARY KEY);',
   ])
   execFileSync('sqlite3', [file, readFileSync(migration, 'utf8')])
+  execFileSync('sqlite3', [file, readFileSync(providerMigration, 'utf8')])
   execFileSync('sqlite3', [file, `INSERT INTO "TargetProject" ("id") VALUES ('${projectA}'), ('${projectB}');`])
   client = new PrismaClient({ datasources: { db: { url: `file:${file}` } } })
 })
@@ -77,6 +90,22 @@ afterEach(async () => {
 })
 
 describe('durable project conversations', () => {
+  it('retains the latest exact Journey attachment and recognizes its message replay', async () => {
+    const context = { kind: 'QUALITY_JOURNEY' as const, id: 'qjy_123', title: 'Guest checkout' }
+    const input = {
+      targetProjectId: projectA,
+      idempotencyKey: 'journey-link',
+      content: 'Keep this with my chat.',
+      context,
+    }
+    const committed = await appendConversationTurn(input, client)
+    const scope = { targetProjectId: projectA, conversationId: committed.conversation.id }
+    expect(await getLatestConversationJourney(scope, client)).toBe(context.id)
+    expect(await getLatestConversationJourney({ ...scope, targetProjectId: projectB }, client)).toBeUndefined()
+    const replay = await replayConversationTurn(input, client)
+    expect(replay).toMatchObject({ replayed: true, messages: [{ context }] })
+  })
+
   it('upgrades an existing SQLite project with restrictive FKs and survives client restart', async () => {
     const first = await appendConversationTurn(
       { targetProjectId: projectA, idempotencyKey: 'first', content: 'Check login' },
@@ -366,5 +395,123 @@ describe('durable project conversations', () => {
     } finally {
       await full.$disconnect()
     }
+  })
+})
+
+async function savedLookup(name = 'Guest checkout') {
+  const turn = await appendConversationTurn(
+    {
+      targetProjectId: projectA,
+      idempotencyKey: name,
+      content: `Find test case named ${name}`,
+    },
+    client,
+  )
+  return { targetProjectId: projectA, conversationId: turn.conversation.id, messageId: turn.messages[0].id }
+}
+
+describe('durable provider reads', () => {
+  const records = [{ kind: 'TEST_CASE' as const, id: 'checkout-disposable', title: 'Guest checkout' }]
+
+  it('keeps lookup scope server-side and does not admit an external read in local mode', async () => {
+    const input = await savedLookup()
+    const provider = vi.fn<ConversationLookupProvider>()
+    const search = vi.fn()
+    await expect(verifyConversationLookup(input, provider, client, search)).rejects.toThrow('Choose ChatGPT')
+    const foreign = { ...input, targetProjectId: projectB }
+    await expect(setConversationReadProvider(foreign, 'CHATGPT', client)).rejects.toThrow('not found')
+    await expect(verifyConversationLookup(foreign, provider, client, search)).rejects.toThrow('not found')
+    expect(provider).not.toHaveBeenCalled()
+    expect(search).not.toHaveBeenCalled()
+  })
+
+  it('deduplicates overlapping sends, blocks switching while running and persists exact verified records', async () => {
+    const input = await savedLookup()
+    await setConversationReadProvider(input, 'CHATGPT', client)
+    const search = vi.fn().mockResolvedValue(records)
+    let complete!: () => void
+    const wait = new Promise<void>(resolve => {
+      complete = resolve
+    })
+    const provider = vi.fn<ConversationLookupProvider>(async ({ lookup }) => {
+      await wait
+      await lookup()
+      return 'completed'
+    })
+    const inFlight = verifyConversationLookup(input, provider, client, search)
+    try {
+      await vi.waitFor(() => expect(provider).toHaveBeenCalledTimes(1))
+      const duplicate = await verifyConversationLookup(input, provider, client, search)
+      expect(duplicate.state).toBe('RUNNING')
+      await expect(setConversationReadProvider(input, 'LOCAL', client)).rejects.toThrow('outstanding read')
+      const second = await appendConversationTurn(
+        {
+          targetProjectId: projectA,
+          conversationId: input.conversationId,
+          idempotencyKey: 'other',
+          content: 'Find test case for order number',
+        },
+        client,
+      )
+      await expect(
+        verifyConversationLookup({ ...input, messageId: second.messages[0].id }, provider, client, search),
+      ).rejects.toThrow('outstanding provider read')
+    } finally {
+      complete()
+      await inFlight
+    }
+    const completed = await inFlight
+    expect(completed).toMatchObject({ state: 'COMPLETED', records })
+    expect(search).toHaveBeenCalledExactlyOnceWith(projectA, { kind: 'TEST_CASE', query: 'Guest checkout' })
+    await setConversationReadProvider(input, 'LOCAL', client)
+    expect(await verifyConversationLookup(input, provider, client, search)).toEqual(completed)
+    expect(provider).toHaveBeenCalledTimes(1)
+    const snapshot = await readConversationProviderState(input, [input.messageId], client)
+    expect(snapshot).toMatchObject({ readProvider: 'LOCAL', attempts: [completed] })
+    expect(snapshot.blocked).toBeUndefined()
+  })
+
+  it('keeps uncertain outcomes on restart and acknowledges the exact original attempt without replay', async () => {
+    const input = await savedLookup()
+    await setConversationReadProvider(input, 'CHATGPT', client)
+    const provider = vi.fn<ConversationLookupProvider>().mockRejectedValue(new Error('disconnect after send'))
+    const read = vi.fn()
+    const attempt = await verifyConversationLookup(input, provider, client, read)
+    expect(attempt).toMatchObject({ state: 'UNKNOWN', released: false, records: [] })
+    await client.$disconnect()
+    client = new PrismaClient({ datasources: { db: { url: `file:${path.join(directory, 'scratch.db')}` } } })
+    expect((await readConversationProviderState(input, [], client)).blocked).toEqual(attempt)
+    const exact = { ...input, attemptId: attempt.id }
+    await expect(releaseUnconfirmedConversationRead({ ...exact, targetProjectId: projectB }, client)).rejects.toThrow(
+      'not found',
+    )
+    await releaseUnconfirmedConversationRead(exact, client)
+    await releaseUnconfirmedConversationRead(exact, client)
+    await setConversationReadProvider(input, 'LOCAL', client)
+    await setConversationReadProvider(input, 'CHATGPT', client)
+    expect(await verifyConversationLookup(input, provider, client, read)).toMatchObject({
+      state: 'UNKNOWN',
+      released: true,
+    })
+    expect(provider).toHaveBeenCalledTimes(1)
+    expect(read).not.toHaveBeenCalled()
+  })
+
+  it('preserves an expired reservation and rejects a late result after its original deadline', async () => {
+    const input = await savedLookup()
+    await setConversationReadProvider(input, 'CHATGPT', client)
+    const provider: ConversationLookupProvider = async ({ lookup }) => {
+      await lookup()
+      await client.projectConversationRead.updateMany({
+        where: { messageId: input.messageId },
+        data: { expiresAt: new Date(0) },
+      })
+      return 'completed'
+    }
+    const attempt = await verifyConversationLookup(input, provider, client, vi.fn().mockResolvedValue(records))
+    expect(attempt).toMatchObject({ state: 'UNKNOWN', records: [] })
+    await expect(setConversationReadProvider(input, 'LOCAL', client)).rejects.toThrow('outstanding read')
+    await releaseUnconfirmedConversationRead({ ...input, attemptId: attempt.id }, client)
+    await setConversationReadProvider(input, 'LOCAL', client)
   })
 })

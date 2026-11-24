@@ -19,7 +19,7 @@ async function projectFixture() {
   return targetProjectId
 }
 
-async function expectToFillWorkspace(panel: Locator) {
+async function expectWorkspaceAlignment(panel: Locator, width: 'compact' | 'full') {
   await expect(panel).toBeVisible()
   await expect
     .poll(() =>
@@ -29,13 +29,16 @@ async function expectToFillWorkspace(panel: Locator) {
         const style = getComputedStyle(workspace)
         const bounds = workspace.getBoundingClientRect()
         const panelBounds = element.getBoundingClientRect()
-        return Math.max(
-          Math.abs(panelBounds.left - (bounds.left + parseFloat(style.paddingLeft))),
-          Math.abs(panelBounds.right - (bounds.right - parseFloat(style.paddingRight))),
-        )
+        const leadingSpace = panelBounds.left - (bounds.left + parseFloat(style.paddingLeft))
+        const trailingSpace = bounds.right - parseFloat(style.paddingRight) - panelBounds.right
+        return {
+          centered: Math.abs(leadingSpace - trailingSpace) < 2,
+          compact: Math.min(leadingSpace, trailingSpace) > 32,
+          full: Math.max(Math.abs(leadingSpace), Math.abs(trailingSpace)) < 2,
+        }
       }),
     )
-    .toBeLessThan(2)
+    .toMatchObject({ centered: true, [width]: true })
 }
 
 test('Journey starts from one autosaved brief using keyboard at a narrow viewport @smoke', async ({
@@ -59,7 +62,7 @@ test('Journey starts from one autosaved brief using keyboard at a narrow viewpor
   await page.goto(`/quality-journeys/new?project=${targetProjectId}`)
   await expect(page.getByRole('textbox')).toHaveCount(1)
   const brief = page.getByRole('textbox', { name: 'What do you want to validate?' })
-  await expectToFillWorkspace(page.locator('form').filter({ has: brief }))
+  await expectWorkspaceAlignment(page.locator('form').filter({ has: brief }), 'compact')
   await page.setViewportSize({ width: 320, height: 900 })
   await brief.fill('Check guest checkout.')
   await expect(page.getByText('Saved to this workspace', { exact: true })).toBeVisible()
@@ -96,6 +99,21 @@ test('Journey starts from one autosaved brief using keyboard at a narrow viewpor
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   expect(errors).toEqual([])
   expect(failures).toEqual([])
+
+  await reopened.getByRole('link', { name: 'Discuss in chat' }).click()
+  await expect(reopened.getByRole('heading', { name: 'What are you working on?' })).toBeVisible()
+  const activity = reopened.getByRole('article', { name: 'Activity' })
+  const focus = activity.getByRole('link')
+  await expect(focus).toHaveAttribute('href', new RegExp(`/quality-journeys/${journey.id}\\?project=`))
+  const chat = reopened.getByRole('textbox', { name: 'Message' })
+  await chat.fill('Keep the guest checkout Journey in this chat.')
+  await chat.press('Enter')
+  await expect(reopened).toHaveURL(/\/conversations\/[0-9a-f-]+\?project=/)
+  await reopened.reload()
+  await expect(focus).toBeVisible()
+  await expect(reopened.getByRole('list', { name: 'Messages' }).getByText('Check guest checkout.')).toBeVisible()
+  const unchanged = await prisma.qualityJourney.findUniqueOrThrow({ where: { id: journey.id } })
+  expect(unchanged.stateHash).toBe(journey.stateHash)
 })
 
 test('Journey stage map remains readable for incomplete lifecycle snapshots @smoke', async ({
@@ -255,7 +273,7 @@ test('Journey suggested answers support keyboard selection and survive refresh a
   page.on('pageerror', error => errors.push(error.message))
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto(`/quality-journeys/${journey.journeyId}?project=${targetProjectId}`)
-  await expectToFillWorkspace(page.getByRole('region', { name: 'Current journey focus' }))
+  await expectWorkspaceAlignment(page.getByRole('region', { name: 'Current journey focus' }), 'full')
   await page.setViewportSize({ width: 320, height: 900 })
   const currentQuestion = page.getByRole('region', { name: 'Current essential question' })
   await expect(currentQuestion).toBeVisible()

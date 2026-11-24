@@ -7,8 +7,10 @@ const kinds = {
   report: 'REPORT',
 } as const
 
+export const chatContextKinds = ['TEST_CASE', 'TEST_RUN', 'REPORT', 'QUALITY_JOURNEY'] as const
+
 export type ChatContext = {
-  kind: (typeof kinds)[keyof typeof kinds]
+  kind: (typeof chatContextKinds)[number]
   id: string
   title: string
 }
@@ -21,10 +23,20 @@ export function conversationContextHref(projectId: string, { kind, id }: Journey
 }
 
 export function chatContextFromJourney(record: JourneyRecordReference & { title: string }): ChatContext {
-  return { kind: kinds[record.kind], id: record.id, title: record.title }
+  return { ...chatContextReferenceFromJourney(record), title: record.title }
 }
 
-export function journeyReferenceFromChat({ kind, id }: ChatContextReference): JourneyRecordReference {
+export function chatContextReferenceFromJourney({ kind, id }: JourneyRecordReference): ChatContextReference {
+  return { kind: kinds[kind], id }
+}
+
+export function journeyReferenceFromChat({
+  kind,
+  id,
+}: {
+  kind: Exclude<ChatContext['kind'], 'QUALITY_JOURNEY'>
+  id: string
+}): JourneyRecordReference {
   const mapping = { TEST_CASE: 'test-case', TEST_RUN: 'test-run', REPORT: 'report' } as const
   return { kind: mapping[kind], id }
 }

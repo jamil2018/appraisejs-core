@@ -19,7 +19,7 @@ import { deleteTargetProject } from './target-project-service'
 const targetProjectId = 'target-delete'
 const sample = new Date('2026-10-25T00:00:00.000Z')
 const modelNames = [
-  'targetProject', 'projectConversation', 'projectConversationMessage', 'module', 'locatorGroup', 'locator', 'testSuite', 'testCase', 'templateTestCase', 'environment', 'tag',
+  'targetProject', 'projectConversation', 'projectConversationMessage', 'projectConversationRead', 'module', 'locatorGroup', 'locator', 'testSuite', 'testCase', 'templateTestCase', 'environment', 'tag',
   'testCaseStep', 'templateTestCaseStep', 'testCaseStepParameter', 'templateTestCaseStepParameter',
   'testCaseFlowBlock', 'templateTestCaseFlowBlock', 'testCaseFlowBlockNode', 'templateTestCaseFlowBlockNode',
   'conflictResolution', 'testCaseMetrics', 'testSuiteMetrics', 'dashboardMetrics', 'projectResourceOwnership', 'projectResourceImport',
@@ -108,6 +108,9 @@ function populate() {
   const owned = { targetProjectId, archivedAt: null, collaborationManaged: false }
   rows.projectConversation = [{ id: 'conversation', targetProjectId }]
   rows.projectConversationMessage = [{ id: 'conversation-message', conversationId: 'conversation' }]
+  rows.projectConversationRead = [{
+    id: 'conversation-read', conversationId: 'conversation', messageId: 'conversation-message', blockedConversationId: null,
+  }]
   rows.module = [{ id: 'module-parent', ...owned, parentId: null }, { id: 'module-leaf', ...owned, parentId: 'module-parent', archivedAt: sample, collaborationManaged: true }]
   rows.locatorGroup = [{ id: 'group', ...owned, moduleId: 'module-leaf' }]
   rows.locator = [{ id: 'locator', ...owned, locatorGroupId: 'group', archivedAt: sample, collaborationManaged: true }]
@@ -186,13 +189,16 @@ describe('Target deletion exact owner effects', () => {
     ]
     expect(mocks.prepare).toHaveBeenCalledExactlyOnceWith(tx, targetProjectId, { existing: expected, newRoots: [], deleted: expected })
     expect(calls.filter(call => call.startsWith('write:')).map(call => call.split(':')[1])).toEqual([
-      'projectResourceImport', 'projectConversationMessage', 'projectConversation', 'projectResourceOwnership', 'testCaseStepParameter', 'templateTestCaseStepParameter',
+      'projectResourceImport', 'projectConversationRead', 'projectConversationMessage', 'projectConversation', 'projectResourceOwnership', 'testCaseStepParameter', 'templateTestCaseStepParameter',
       'testCaseFlowBlockNode', 'templateTestCaseFlowBlockNode', 'testCaseStep', 'templateTestCaseStep',
       'testCaseFlowBlock', 'templateTestCaseFlowBlock', 'testCaseMetrics', 'testSuiteMetrics', 'dashboardMetrics',
       'testCase', 'templateTestCase', 'testSuite', 'conflictResolution', 'locator', 'locatorGroup',
       'module', 'module', 'environment', 'tag', 'targetProject',
     ])
     expect(tx.module.deleteMany.mock.calls.map(([query]) => query.where.id)).toEqual(['module-leaf', 'module-parent'])
+    expect(tx.projectConversationRead.deleteMany).toHaveBeenCalledExactlyOnceWith({
+      where: { id: { in: ['conversation-read'] }, conversationId: { in: ['conversation'] } },
+    })
     expect(tx.projectConversationMessage.deleteMany).toHaveBeenCalledExactlyOnceWith({
       where: { id: { in: ['conversation-message'] }, conversationId: { in: ['conversation'] } },
     })
@@ -217,6 +223,19 @@ describe('Target deletion exact owner effects', () => {
     expect(tx.projectConversation.deleteMany).not.toHaveBeenCalled()
     expect(tx.targetProject.deleteMany).not.toHaveBeenCalled()
     expect(calls).toContain('rollback-signal')
+  })
+
+  it('preserves the target while an attached provider read remains unresolved', async () => {
+    populate()
+    rows.projectConversationRead = [{
+      id: 'conversation-read', conversationId: 'conversation', messageId: 'conversation-message',
+      blockedConversationId: 'conversation',
+    }]
+    await expect(deleteTargetProject(targetProjectId, client)).rejects.toMatchObject({
+      details: { reason: 'UNRESOLVED_CONVERSATION_READ' },
+    })
+    expect(tx.projectConversationRead.deleteMany).not.toHaveBeenCalled()
+    expect(tx.targetProject.deleteMany).not.toHaveBeenCalled()
   })
 
   it('keeps a foreign source ownership target and root read-only while removing only this target destination import', async () => {

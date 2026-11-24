@@ -12,6 +12,7 @@ import {
 async function clearTestChats() {
   const scope = { targetProjectId: seededIds.targetProject }
   await prisma.$transaction([
+    prisma.projectConversationRead.deleteMany({ where: { message: { conversation: scope } } }),
     prisma.projectConversationMessage.deleteMany({ where: { conversation: scope } }),
     prisma.projectConversation.deleteMany({ where: scope }),
   ])
@@ -61,6 +62,50 @@ test.describe('Project conversations', () => {
     await page.reload()
     const transcript = page.getByRole('list', { name: 'Messages' })
     await expect(transcript.getByText('E2E seeded login works')).toBeVisible()
+  })
+
+  test('keyboard submits a lookup and provider switching preserves its unresolved original', async ({ page }) => {
+    await page.setViewportSize({ width: 720, height: 900 })
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.goto('/conversations/new')
+    const composer = page.getByRole('textbox', { name: 'Message' })
+    await composer.fill('Find test cases for seeded login')
+    await composer.press('Shift+Enter')
+    await expect(composer).toHaveValue('Find test cases for seeded login\n')
+    await composer.press('Enter')
+    await expect(page).toHaveURL(/\/conversations\/[0-9a-f-]+\?project=/)
+
+    const picker = page.getByRole('region', { name: 'Lookup provider' })
+    const enable = picker.getByRole('button', { name: 'Use ChatGPT for lookups' })
+    await enable.focus()
+    await expect(enable).toBeFocused()
+    await enable.press('Enter')
+    await expect(picker.getByText('Lookup provider · ChatGPT')).toBeVisible()
+    const message = await prisma.projectConversationMessage.findFirstOrThrow({
+      where: { role: 'USER', conversation: { targetProjectId: seededIds.targetProject } },
+    })
+    // A synthetic expired reservation exercises recovery without provider consent or traffic.
+    await prisma.projectConversationRead.create({
+      data: {
+        conversationId: message.conversationId,
+        messageId: message.id,
+        provider: 'CHATGPT',
+        state: 'RUNNING',
+        blockedConversationId: message.conversationId,
+        expiresAt: new Date(0),
+      },
+    })
+    await page.reload()
+    await expect(picker.getByRole('status')).toHaveText('ChatGPT lookup outcome unknown')
+    await expect(picker.getByRole('button', { name: 'Use local lookups' })).toBeDisabled()
+    await picker.getByRole('button', { name: 'Acknowledge unresolved lookup' }).click()
+    await picker.getByRole('button', { name: 'Use local lookups' }).click()
+    await expect(picker.getByText('Lookup provider · Local')).toBeVisible()
+    await expect(
+      page.getByRole('list', { name: 'Messages' }).getByText('ChatGPT lookup outcome unknown · Acknowledged'),
+    ).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Test case E2E seeded login works' })).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   })
 })
 

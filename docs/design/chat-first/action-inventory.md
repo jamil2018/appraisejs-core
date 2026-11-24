@@ -99,9 +99,13 @@ operation definitions are step execution primitives, not substitutes for authori
   “Rename this case to …” with an exact case attachment updates only its title through the case service and its
   shared-resource guard. SQLite commits the edit and both messages together, with replay through the same request key.
   The coordinator exposes the same bounded search through `workspace_record_search`.
-- **Provider connection:** Settings offers local ChatGPT authorization with signed identity verification and
-  private credential custody. Live sign-in, inference, Claude Code hosting, and two-provider parity are unqualified.
-  The existing production Journey dispatch path retains its refusal.
+- **Provider lookup:** Settings offers local ChatGPT authorization with signed identity verification and private
+  credential custody. A saved project lookup can request one Appraise read through the ChatGPT Responses preview.
+  The user reviews the query before sending it. Appraise owns the scoped search result and retains interrupted
+  attempts for explicit acknowledgement. Live sign-in, inference, native Codex and Claude Code, and full parity
+  are unqualified. The production Journey dispatch path retains its refusal.
+- **Journey cards:** Attached Journeys show the current question, proposed checks, change review, activity, run
+  permission, or result and evidence. Decisions stay on the current canonical Journey control.
 - **Next parity evidence:** enumerate state-dependent row and bulk controls, disclosures, keyboard actions, template
   instantiation (if actually present), report export (if actually present), project import (if actually present),
   exact approval scope, and test IDs from the rendered UI and live providers. Keep absent controls absent in the

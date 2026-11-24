@@ -18,7 +18,7 @@ const description: Record<ChatGptSettingsStatus['state'], string> = {
   'awaiting-consent': 'Continue in your browser to review access in ChatGPT.',
   starting: 'Preparing a local sign-in.',
   verifying: 'Checking the connection.',
-  connected: 'Authorized. ChatGPT conversation runtime qualification is pending.',
+  connected: 'Authorized. Open a saved project chat to review and send a ChatGPT lookup.',
   expired: 'ChatGPT access needs renewal. Sign in again to reconnect.',
   'plan-permission-required': 'ChatGPT plan access was not granted. Review permissions when you reconnect.',
   denied: 'Sign-in was cancelled in ChatGPT.',

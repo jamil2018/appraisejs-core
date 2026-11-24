@@ -7,12 +7,31 @@ import { z } from 'zod'
 import PageHeader from '@/components/typography/page-header'
 import { requireActiveProject } from '@/lib/active-project'
 import { workspaceRecordHref, workspaceRecordLabel, type WorkspaceRecord } from '@/lib/conversation/workspace-records'
+import { parseWorkspaceRequest } from '@/lib/conversation/workspace-request'
 import { withProjectScope } from '@/lib/project-scope'
-import { getProjectConversation, type ConversationMessage } from '@/services/conversation/conversation-service'
+import {
+  readConversationProviderState,
+  type ConversationReadAttempt,
+} from '@/services/conversation/conversation-read-service'
+import {
+  getLatestConversationJourney,
+  getProjectConversation,
+  type ConversationMessage,
+} from '@/services/conversation/conversation-service'
+import {
+  chatGptConnection,
+  isChatGptConnectionSupported,
+} from '@/services/provider-connection/chatgpt-connection-service'
 import { ServiceError } from '@/services/shared/errors'
 
+import { JourneyChatFocus } from '../../quality-journeys/[journeyId]/journey-chat-focus'
 import { loadChatAttachment, type ContextParams } from '../chat-attachment'
 import { ConversationComposer } from '../conversation-composer'
+import {
+  ConversationProviderControls,
+  ConversationReadStatus,
+  VerifyWithChatGpt,
+} from '../conversation-provider-controls'
 
 export const metadata: Metadata = { title: 'Chat' }
 
@@ -57,10 +76,12 @@ function Message({
   message,
   projectId,
   conversationPath,
+  providerRead,
 }: {
   message: ConversationMessage
   projectId: string
   conversationPath: string
+  providerRead?: React.ReactNode
 }) {
   const fromUser = message.role === 'USER'
   return (
@@ -86,6 +107,7 @@ function Message({
           </ul>
         )}
       </div>
+      {providerRead}
     </li>
   )
 }
@@ -120,7 +142,22 @@ export default async function ConversationPage({
     if (error instanceof ServiceError && error.code === 'NOT_FOUND') notFound()
     throw error
   })
-  const context = await loadChatAttachment(scope.id, query)
+  const providerScope = { projectId: scope.id, conversationId }
+  const serverScope = { targetProjectId: scope.id, conversationId }
+  const [context, readState, savedJourney] = await Promise.all([
+    loadChatAttachment(scope.id, query),
+    readConversationProviderState(
+      serverScope,
+      messages.map(message => message.id),
+    ),
+    getLatestConversationJourney(serverScope),
+  ])
+  const journeyId = context?.kind === 'QUALITY_JOURNEY' ? context.id : savedJourney
+  const profile =
+    readState.readProvider === 'CHATGPT' && isChatGptConnectionSupported()
+      ? await chatGptConnection.readLookupProfile()
+      : undefined
+  const attempts = new Map(readState.attempts.map(attempt => [attempt.messageId, attempt]))
   const path = `/conversations/${conversation.id}`
   const first = messages[0]?.ordinal ?? 1
   return (
@@ -133,7 +170,14 @@ export default async function ConversationPage({
           <ArrowLeft aria-hidden="true" className="size-4" /> Chats
         </Link>
         <PageHeader className="break-words">{conversation.title}</PageHeader>
+        <ConversationProviderControls
+          scope={providerScope}
+          provider={readState.readProvider}
+          profile={profile}
+          blocked={readState.blocked}
+        />
       </header>
+      {journeyId && <JourneyChatFocus projectId={scope.id} journeyId={journeyId} />}
       <div className="flex flex-1 flex-wrap items-start gap-2 text-sm text-primary">
         {first > 1 && (
           <Link
@@ -150,7 +194,21 @@ export default async function ConversationPage({
         )}
         <ol className="flex w-full min-w-0 flex-col gap-5 text-foreground" aria-label="Messages">
           {messages.map(message => (
-            <Message key={message.id} message={message} projectId={scope.id} conversationPath={path} />
+            <Message
+              key={message.id}
+              message={message}
+              projectId={scope.id}
+              conversationPath={path}
+              providerRead={
+                <MessageProviderRead
+                  message={message}
+                  scope={providerScope}
+                  attempt={attempts.get(message.id)}
+                  profile={profile}
+                  blocked={!!readState.blocked}
+                />
+              }
+            />
           ))}
         </ol>
       </div>
@@ -164,4 +222,23 @@ export default async function ConversationPage({
       </div>
     </div>
   )
+}
+
+type MessageLookupProps = {
+  message: ConversationMessage
+  scope: { projectId: string; conversationId: string }
+  profile?: { key: string; account?: string }
+  blocked: boolean
+}
+
+function MessageProviderRead({ attempt, ...request }: MessageLookupProps & { attempt?: ConversationReadAttempt }) {
+  if (attempt) return <ConversationReadStatus scope={request.scope} attempt={attempt} />
+  return <MessageLookupCandidate {...request} />
+}
+
+function MessageLookupCandidate({ message, scope, profile, blocked }: MessageLookupProps) {
+  if (message.role !== 'USER' || !profile) return null
+  const query = parseWorkspaceRequest(message.content)
+  if (!query) return null
+  return <VerifyWithChatGpt scope={scope} messageId={message.id} query={query} profile={profile} blocked={blocked} />
 }

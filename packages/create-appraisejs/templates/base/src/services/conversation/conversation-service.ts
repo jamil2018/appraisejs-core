@@ -2,14 +2,14 @@ import { createHash, randomUUID } from 'node:crypto'
 import type { PrismaClient, ProjectConversation, ProjectConversationMessage } from '@prisma/client'
 
 import prisma from '@/config/db-config'
+import { chatContextKinds, type ChatContext } from '@/lib/conversation/chat-context'
+import { workspaceRecordKinds, type WorkspaceRecord } from '@/lib/conversation/workspace-records'
 import { isSharedResourceId } from '@/lib/quality-journey/shared-resource-contract'
 import { ServiceError } from '@/services/shared/errors'
 import { renameTestCaseTitleInTransaction } from '@/services/test-case/test-case-service'
 
-export const conversationRecordKinds = ['TEST_CASE', 'TEST_SUITE', 'CASE_TEMPLATE', 'TEST_RUN', 'REPORT'] as const
-export type ConversationRecordKind = (typeof conversationRecordKinds)[number]
-export type ConversationRecord = { kind: ConversationRecordKind; id: string; title: string }
-export type ConversationContext = { kind: 'TEST_CASE' | 'TEST_RUN' | 'REPORT'; id: string; title: string }
+export type ConversationRecord = WorkspaceRecord
+export type ConversationContext = ChatContext
 export type AppendConversationTurnInput = {
   targetProjectId: string
   conversationId?: string
@@ -68,7 +68,7 @@ const chatContent = (value: unknown, name: string): string => {
 }
 const attachment = (value: ConversationContext | undefined): ConversationContext | undefined => {
   if (value === undefined) return undefined
-  if (!value || !['TEST_CASE', 'TEST_RUN', 'REPORT'].includes(value.kind)) return bad('Context kind is invalid.')
+  if (!value || !chatContextKinds.includes(value.kind)) return bad('Context kind is invalid.')
   return { kind: value.kind, id: sourceId(value.id, 'Context id'), title: sourceTitle(value.title, 'Context title') }
 }
 const replyRecords = (records: readonly ConversationRecord[] | undefined): ConversationRecord[] => {
@@ -76,7 +76,7 @@ const replyRecords = (records: readonly ConversationRecord[] | undefined): Conve
   if (!Array.isArray(records) || records.length > 8) return bad('Reply records exceed the bound.')
   const seen = new Set<string>()
   return records.map(record => {
-    if (!record || !conversationRecordKinds.includes(record.kind)) return bad('Reply record kind is invalid.')
+    if (!record || !workspaceRecordKinds.includes(record.kind)) return bad('Reply record kind is invalid.')
     const result = {
       kind: record.kind,
       id: sourceId(record.id, 'Reply record id'),
@@ -156,10 +156,7 @@ export async function replayConversationTurn(
   const key = bounded(input.idempotencyKey, 'Idempotency key', 128)
   const content = chatContent(input.content, 'Message')
   const context = input.context
-  if (
-    context &&
-    (!['TEST_CASE', 'TEST_RUN', 'REPORT'].includes(context.kind) || !/^[\x20-\x7e]{1,200}$/.test(context.id))
-  )
+  if (context && (!chatContextKinds.includes(context.kind) || !/^[\x20-\x7e]{1,200}$/.test(context.id)))
     return bad('Context identity is invalid.')
   return (
     (await lookupReplay(client, targetProjectId, conversationId, key, requestDigest(content, context))) ?? undefined
@@ -322,6 +319,25 @@ export async function getProjectConversation(
     take: limit,
   })
   return { conversation: summary(row), messages: rows.reverse().map(message) }
+}
+
+export async function getLatestConversationJourney(
+  scope: { targetProjectId: string; conversationId: string },
+  client: PrismaClient = prisma,
+) {
+  const message = await client.projectConversationMessage.findFirst({
+    where: {
+      conversationId: scope.conversationId,
+      conversation: { targetProjectId: scope.targetProjectId },
+      role: 'USER',
+      contextJson: { contains: '"kind":"QUALITY_JOURNEY"' },
+    },
+    select: { contextJson: true },
+    orderBy: { ordinal: 'desc' },
+  })
+  if (!message?.contextJson) return undefined
+  const context = JSON.parse(message.contextJson) as ConversationContext
+  return context.kind === 'QUALITY_JOURNEY' ? context.id : undefined
 }
 
 /** Bounded per-project relation reads for the workspace sidebar. */

@@ -527,6 +527,18 @@ enum ProjectConversationRole {
   APPRAISE
 }
 
+enum ProjectConversationReadProvider {
+  LOCAL
+  CHATGPT
+}
+
+enum ProjectConversationReadState {
+  RUNNING
+  COMPLETED
+  FAILED
+  UNKNOWN
+}
+
 model ProjectConversation {
   id              String                       @id @default(uuid())
   targetProjectId String
@@ -537,6 +549,7 @@ model ProjectConversation {
   createdAt       DateTime                     @default(now())
   updatedAt       DateTime                     @updatedAt
   messages        ProjectConversationMessage[]
+  readProvider    ProjectConversationReadProvider @default(LOCAL)
 
   @@index([targetProjectId, updatedAt, id])
   @@unique([targetProjectId, initialIdempotencyKey])
@@ -555,10 +568,29 @@ model ProjectConversationMessage {
   idempotencyKey String?
   requestHash    String?
   createdAt      DateTime                @default(now())
+  providerReads  ProjectConversationRead[]
 
   @@unique([conversationId, ordinal])
   @@unique([conversationId, idempotencyKey])
+  @@unique([conversationId, id])
   @@index([conversationId, turnId])
+}
+
+model ProjectConversationRead {
+  id                    String                       @id @default(uuid())
+  conversationId        String
+  messageId             String
+  message               ProjectConversationMessage   @relation(fields: [conversationId, messageId], references: [conversationId, id], onDelete: Restrict)
+  provider              ProjectConversationReadProvider
+  state                 ProjectConversationReadState
+  blockedConversationId String?                      @unique
+  createdAt             DateTime                     @default(now())
+  expiresAt             DateTime
+  settledAt             DateTime?
+  releasedAt            DateTime?
+  recordsJson           String?
+
+  @@unique([conversationId, messageId, provider])
 }
 
 model QualityJourney {

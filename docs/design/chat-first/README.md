@@ -47,6 +47,14 @@ Use **Attach** on a case result and send “Rename this case to …” to update
 saved reply links to the actual editor. Cases, runs, and reports also offer **Discuss in chat**, which starts with the
 exact record attached. Ordinary messages are saved as notes in the conversation.
 
-An uncoached first-use walkthrough, live provider onboarding, provider-backed conversations, and full action parity
-remain open. The [provider proof](provider-proof.md) records the required evidence. The
+Use **Discuss in chat** on a Journey to keep its current question, review, permission, or evidence card with the
+saved conversation. The card opens the scoped canonical control. Appraise still checks the active review revision
+and exact run consent when the user acts there.
+
+The ChatGPT preview can verify a saved lookup after the user reviews the exact search terms. Its attempt status
+and verified records remain with the message. Local and ChatGPT lookup selection share the same conversation.
+Unresolved attempts stay visible after restart.
+
+An uncoached first-use walkthrough, live provider onboarding and inference, native provider launch qualification,
+and full action parity remain open. The [provider proof](provider-proof.md) records the required evidence. The
 [action inventory](action-inventory.md) maps effects to current Appraise services.
