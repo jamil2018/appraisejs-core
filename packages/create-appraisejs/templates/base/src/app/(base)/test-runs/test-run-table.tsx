@@ -122,9 +122,18 @@ const TestRunTable = ({ initialData, filter = 'all' }: TestRunTableProps) => {
         columns={testRunTableCols}
         data={testRuns}
         filterColumn="name"
-        filterPlaceholder="Filter by name..."
+        filterPlaceholder="Search test runs"
         deleteAction={deleteTestRunAction}
-        createLink={filter === 'all' ? '/test-runs/create' : undefined}
+        density="compact"
+        initialColumnVisibility={{
+          runId: false,
+          testWorkersCount: false,
+          browserEngine: false,
+          tags: false,
+          completedAt: false,
+        }}
+        key={`test-runs:${initialData[0].targetProjectId}:${filter}`}
+        viewKey={`test-runs:${initialData[0].targetProjectId}:${filter}`}
       />
     </>
   )

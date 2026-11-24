@@ -5,8 +5,11 @@ import type { TestCasePickerRow } from '@/types/test-case-picker'
 import { testCaseTableCols } from './test-case-table-columns'
 
 export default function TestCaseTable({ rows }: { rows: TestCasePickerRow[] }) {
+  const viewKey = rows[0]?.targetProjectId && `test-cases:${rows[0].targetProjectId}`
   return (
     <DataTable
+      key={viewKey}
+      viewKey={viewKey}
       tableLabel="Test cases"
       columns={testCaseTableCols}
       data={rows}

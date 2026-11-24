@@ -137,4 +137,36 @@ describe('DataTable', () => {
 
     expect(screen.getByRole('region', { name: 'Test cases' })).toHaveAttribute('tabindex', '0')
   })
+
+  it('restores filters and selection only in the same collection and project', async () => {
+    const user = userEvent.setup()
+    const renderView = (viewKey: string) =>
+      render(
+        <DataTable
+          tableLabel="Test cases"
+          columns={columns}
+          data={[
+            { id: 'row-1', name: 'Smoke' },
+            { id: 'row-2', name: 'Regression' },
+          ]}
+          filterColumn="name"
+          filterPlaceholder="Search cases"
+          viewKey={viewKey}
+        />,
+      )
+
+    const first = renderView('test-cases:project-a')
+    await user.type(screen.getByRole('textbox', { name: 'Search cases' }), 'Smoke')
+    await user.click(screen.getByRole('checkbox', { name: 'Select Smoke' }))
+    first.unmount()
+
+    const other = renderView('test-cases:project-b')
+    expect(screen.getByRole('textbox', { name: 'Search cases' })).toHaveValue('')
+    expect(screen.getByRole('checkbox', { name: 'Select Smoke' })).not.toBeChecked()
+    other.unmount()
+
+    renderView('test-cases:project-a')
+    expect(screen.getByRole('textbox', { name: 'Search cases' })).toHaveValue('Smoke')
+    expect(screen.getByRole('checkbox', { name: 'Select Smoke' })).toBeChecked()
+  })
 })

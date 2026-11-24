@@ -1,7 +1,5 @@
 import type { Metadata } from 'next'
-import { GitPullRequestArrow } from 'lucide-react'
 
-import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import PageHeader from '@/components/typography/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -19,15 +17,8 @@ function CollaborationHeader({ displayName, connectionState }: { displayName: st
   return (
     <header className="flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0 space-y-1">
-        <PageHeader>
-          <span className="flex items-center gap-3">
-            <GitPullRequestArrow aria-hidden="true" className="size-7 shrink-0 text-primary" />
-            Repository collaboration
-          </span>
-        </PageHeader>
-        <HeaderSubtitle>
-          Durable, reviewed synchronization for {displayName}. SQLite remains local authoring authority.
-        </HeaderSubtitle>
+        <PageHeader>Repository collaboration</PageHeader>
+        <p className="text-sm text-muted-foreground">{displayName}</p>
       </div>
       <Badge variant="outline">{connectionState ?? 'NOT CONNECTED'}</Badge>
     </header>

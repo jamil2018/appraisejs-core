@@ -18,8 +18,7 @@ const appDescription =
   'AppraiseJS helps teams organize automated tests, execute suites, and review results from one dashboard.'
 
 export const viewport: Viewport = {
-  colorScheme: 'dark',
-  themeColor: '#141414',
+  colorScheme: 'dark light',
 }
 
 export const metadata: Metadata = {

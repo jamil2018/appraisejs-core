@@ -89,6 +89,28 @@ describe('QualityJourneyCreateForm', () => {
     expect(screen.getByText(/autosaves after your first edit/i)).toBeInTheDocument()
   })
 
+  it('retains a verified record reference in the exact autosaved brief', async () => {
+    const reference = {
+      source: 'appraise.record/v1' as const,
+      kind: 'test-case' as const,
+      id: 'checkout-case',
+      title: 'Guest checkout shows an order number',
+    }
+    const user = userEvent.setup()
+    render(<QualityJourneyCreateForm projectId="project-1" recordContext={reference} />)
+    expect(screen.getByText(reference.title)).toBeVisible()
+    expect(mocks.createDraft).not.toHaveBeenCalled()
+
+    await user.type(screen.getByLabelText('What do you want to validate?'), 'Verify the confirmation page.')
+    await waitFor(() => expect(mocks.createDraft).toHaveBeenCalledOnce(), { timeout: 1500 })
+    expect(mocks.createDraft).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requirement: { objective: 'Verify the confirmation page.', context: JSON.stringify(reference) },
+      }),
+    )
+    expect(mocks.confirmDraft).not.toHaveBeenCalled()
+  })
+
   it('offers save recovery and prevents starting over a conflicting version', async () => {
     mocks.createDraft.mockResolvedValueOnce({ success: false, error: 'A newer saved version exists.' })
     const user = userEvent.setup()

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { act, render, screen } from '@testing-library/react'
-import { TestRunResult, TestRunStatus } from '@prisma/client'
+import { TestRunResult, TestRunStatus, TestRunTestCaseResult } from '@prisma/client'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { TestRunHeader } from './test-run-header'
@@ -23,6 +23,7 @@ function createTestRun(overrides?: Partial<TestRunDetailsData>): TestRunDetailsD
   return {
     id: 'run-db-id',
     runId: 'run-1',
+    targetProjectId: 'project-1',
     name: 'Nightly run',
     startedAt: new Date('2024-01-01T00:00:00.000Z'),
     completedAt: null,
@@ -97,5 +98,50 @@ describe('TestRunHeader', () => {
     })
 
     expect(screen.getByRole('button', { name: /view report/i })).toBeInTheDocument()
+  })
+
+  it('shows recorded failure and scopes the Journey action to the run', () => {
+    render(
+      <TestRunHeader
+        initialTestRun={createTestRun({
+          status: TestRunStatus.COMPLETED,
+          result: TestRunResult.FAILED,
+          testCases: [
+            {
+              id: 'case-1',
+              result: TestRunTestCaseResult.FAILED,
+              testCase: { title: 'Guest checkout', description: 'Checkout flow' },
+            },
+          ] as never,
+        })}
+      />,
+    )
+
+    expect(screen.getByRole('heading', { name: 'Run failed' })).toBeInTheDocument()
+    expect(screen.getByText('Guest checkout')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Use in a Journey' })).toHaveAttribute(
+      'href',
+      '/quality-journeys/new?record=run-db-id&kind=test-run&project=project-1',
+    )
+  })
+
+  it('labels unexecuted cases as pending while a run is queued', () => {
+    render(
+      <TestRunHeader
+        initialTestRun={createTestRun({
+          status: TestRunStatus.QUEUED,
+          testCases: [
+            {
+              id: 'case-2',
+              result: TestRunTestCaseResult.UNTESTED,
+              testCase: { title: 'Search', description: 'Search flow' },
+            },
+          ] as never,
+        })}
+      />,
+    )
+
+    expect(screen.getByRole('heading', { name: 'Run result pending' })).toBeInTheDocument()
+    expect(screen.getByText('0 passed · 0 failed · 1 pending')).toBeInTheDocument()
   })
 })

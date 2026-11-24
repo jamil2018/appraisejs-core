@@ -2,23 +2,19 @@
 
 import {
   ColumnDef,
-  type RowSelectionState,
   type Table as TanStackTable,
   flexRender,
   getCoreRowModel,
   useReactTable,
-  SortingState,
   getSortedRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
-  ColumnFiltersState,
-  PaginationState,
   type VisibilityState,
 } from '@tanstack/react-table'
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
-import { useRef, useState } from 'react'
+import { useRef } from 'react'
 import { DataTablePagination } from './data-table-pagination'
 import { DataTableViewOptions } from './data-table-view-options'
 import { Eye, Pencil, PlusCircle, Search, X } from 'lucide-react'
@@ -35,6 +31,7 @@ import {
   DropdownMenuGroup,
   DropdownMenuTrigger,
 } from './dropdown-menu'
+import { useDataTableView } from './use-data-table-view'
 
 type DataTableRowLike = {
   id?: string
@@ -63,6 +60,7 @@ export type DataTableProps<TData, TValue> = {
   showSelectedRows?: boolean
   density?: 'standard' | 'compact'
   initialColumnVisibility?: VisibilityState
+  viewKey?: string
   getRowId?: (row: TData, index: number) => string
 }
 
@@ -96,6 +94,10 @@ function getEntityId<TData>(row: TData, index: number, getRowId?: (row: TData, i
 
 function rowHasConflicts(value: unknown) {
   return hasDataTableRowShape(value) && Array.isArray(value.conflicts) && value.conflicts.length > 0
+}
+
+function selectionForActions<TData>(table: TanStackTable<TData>, density: DataTableProps<TData, unknown>['density']) {
+  return density === 'compact' ? table.getFilteredSelectedRowModel().rows : table.getSelectedRowModel().rows
 }
 
 function DataTableSearch<TData>({
@@ -157,41 +159,31 @@ export function DataTable<TData, TValue>({
   deleteAction,
   showSelectedRows = true,
   density = 'standard',
-  initialColumnVisibility = {},
+  initialColumnVisibility,
+  viewKey,
   createMenuLabel = 'Create item',
   getRowId,
 }: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
-  const [pagination, setPagination] = useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 10,
-  })
+  const { state, update, scrollRef } = useDataTableView(viewKey, initialColumnVisibility)
 
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table's useReactTable returns unstable refs; React Compiler skips memoization
   const table = useReactTable({
     data,
     columns,
-    initialState: { columnVisibility: initialColumnVisibility },
     getCoreRowModel: getCoreRowModel(),
-    onSortingChange: setSorting,
+    onSortingChange: update('sorting'),
     getSortedRowModel: getSortedRowModel(),
-    onColumnFiltersChange: setColumnFilters,
+    onColumnFiltersChange: update('columnFilters'),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    onPaginationChange: setPagination,
-    onRowSelectionChange: setRowSelection,
-    state: {
-      sorting,
-      columnFilters,
-      rowSelection,
-      pagination,
-    },
+    onPaginationChange: update('pagination'),
+    onRowSelectionChange: update('rowSelection'),
+    onColumnVisibilityChange: update('columnVisibility'),
+    state,
     getRowId: (row, index) => getResolvedRowId(row, index, getRowId),
   })
 
-  const selectedRows = table.getSelectedRowModel().rows
+  const selectedRows = selectionForActions(table, density)
   const selectedIds = selectedRows.reduce<string[]>((ids, row) => {
     const value = getEntityId(row.original, row.index, getRowId)
     if (value !== null) {
@@ -319,7 +311,7 @@ export function DataTable<TData, TValue>({
         </div>
       </div>
       <div className="overflow-hidden rounded-lg border border-border bg-background">
-        <Table scrollLabel={tableLabel}>
+        <Table scrollLabel={tableLabel} scrollRef={scrollRef}>
           <TableHeader className="bg-secondary">
             {table.getHeaderGroups().map(headerGroup => (
               <TableRow key={headerGroup.id}>

@@ -1,12 +1,17 @@
 'use client'
 
-import { ArrowLeft, ArrowUp, Check } from 'lucide-react'
+import { ArrowLeft, ArrowUp, Check, Paperclip } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  getBriefRecordContext,
+  journeyRecordLabels,
+  type JourneyRecordContext,
+} from '@/lib/quality-journey/record-context'
 
 import type { DraftSnapshot } from './quality-journey-create-form-shared'
 import { useQualityJourneyCreateIntake } from './use-quality-journey-create-intake'
@@ -58,14 +63,33 @@ function DraftSaveStatus({
   )
 }
 
+function BriefContext({ draft, recordContext }: { draft?: DraftSnapshot; recordContext?: JourneyRecordContext }) {
+  const attachment = recordContext ?? getBriefRecordContext(draft?.requirement.context)
+  if (attachment) {
+    return (
+      <p className="mx-1 flex w-fit max-w-full items-center gap-1.5 rounded-lg bg-muted px-2 py-1 text-sm">
+        <Paperclip className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <span className="shrink-0 text-muted-foreground">{journeyRecordLabels[attachment.kind]}</span>
+        <span className="min-w-0 truncate" title={attachment.title}>
+          {attachment.title}
+        </span>
+      </p>
+    )
+  }
+  if (!draft || !Object.keys(draft.requirement).some(key => key !== 'objective' && key !== 'schemaVersion')) return null
+  return <p className="px-2 text-xs text-muted-foreground">Details from your saved brief are retained.</p>
+}
+
 export function QualityJourneyCreateForm({
   projectId,
   predecessorJourneyId,
   draft,
+  recordContext,
 }: {
   projectId: string
   predecessorJourneyId?: string
   draft?: DraftSnapshot
+  recordContext?: JourneyRecordContext
 }) {
   const { push } = useRouter()
   const { actions, isPending, requirement, saveConflict, saveStatus, state, update } = useQualityJourneyCreateIntake({
@@ -73,6 +97,7 @@ export function QualityJourneyCreateForm({
     predecessorJourneyId,
     projectId,
     push,
+    recordContext,
   })
   if (draft?.status === 'ARCHIVED')
     return (
@@ -135,9 +160,7 @@ export function QualityJourneyCreateForm({
           <p className="sr-only" id="quality-journey-brief-help">
             Include the expected behavior and any risks or constraints that matter.
           </p>
-          {draft && Object.keys(draft.requirement).some(key => key !== 'objective' && key !== 'schemaVersion') ? (
-            <p className="text-xs text-muted-foreground">Details from your saved brief are retained.</p>
-          ) : null}
+          <BriefContext draft={draft} recordContext={recordContext} />
         </div>
         {state.error ? (
           <p className="text-sm text-destructive" role="alert">

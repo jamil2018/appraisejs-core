@@ -1,4 +1,5 @@
 import type { QualityJourneyRequirement } from '@/lib/quality-journey/requirement-values'
+import type { JourneyRecordContext } from '@/lib/quality-journey/record-context'
 
 export type IntakeState = {
   objective: string
@@ -24,8 +25,10 @@ export function actionId(prefix: string) {
 export function buildBriefRequirement(
   values: IntakeState,
   saved?: DraftSnapshot['requirement'],
+  recordContext?: JourneyRecordContext,
 ): QualityJourneyRequirement {
-  return { ...saved, objective: values.objective.trim() }
+  const source = recordContext ? { context: JSON.stringify(recordContext) } : undefined
+  return { ...source, ...saved, objective: values.objective.trim() }
 }
 
 export function initialIntakeState(draft?: DraftSnapshot): IntakeState {

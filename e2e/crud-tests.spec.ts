@@ -22,14 +22,14 @@ test.describe('Test hierarchy CRUD @crud', () => {
 
     await createTestSuite(page, suiteName, 'E2E Auth', 'E2E seeded login works')
 
-    await editRowByName(page, suiteName)
+    await editRowByName(page, suiteName, 'Search test suites')
     await page.getByPlaceholder('Enter name for your test suite').fill(editedSuiteName)
     await saveForm(page)
     await expect(page.getByText(editedSuiteName, { exact: true }).first()).toBeVisible()
 
-    await deleteRowByName(page, editedSuiteName)
+    await deleteRowByName(page, editedSuiteName, 'Search test suites')
     await page.reload()
-    await expectRowHidden(page, editedSuiteName)
+    await expectRowHidden(page, editedSuiteName, 'Search test suites')
   })
 
   test('test case create modify preview and delete', async ({ page }) => {

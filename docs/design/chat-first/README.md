@@ -29,11 +29,19 @@ entry points and a light theme. The Quick jump palette opens with Cmd+K or Ctrl+
 | Failed run     | Lead with the observable failure. Keep the assertion, skipped checks, and logs available in context. |
 | Settings       | List the two provider connection states and appearance alongside their actions.                      |
 
-The dark palette and system typography come from [the current app theme](../../../src/app/globals.css).
-Light mode is a prototype palette. Desktop controls start at 36 px, and conversation and tables use 16 px and
-14 px type respectively. Motion is limited to highlighting a revised criterion. The same criterion gets an
-“Added” label in reduced-motion mode.
+The prototype uses the app’s system typography and graphite palette. Desktop controls start at 36 px, and conversation
+and tables use 16 px and 14 px type respectively. The prototype highlights revised criteria and displays an “Added”
+label in reduced-motion mode.
 
-The design still needs an uncoached first-time walkthrough and a same-data density comparison. The provider proof
-needs both real subscription paths. The inventory covers the first implementation slice and needs completion before
-full parity testing.
+## Feature branch
+
+The live workspace has a collapsible desktop navigation pane, a project-scoped Journey brief and return queue, and
+compact collections for authoring, configuration, execution, and reports. Compact tables with a project scope restore
+their view within the same browser tab. **Use in a Journey** on a case, run, or report brings its verified record into
+the new brief. An edited brief autosaves its record reference alongside the objective. Reports lead with confirmed
+results and failed checks. Settings offers persistent Dark and Light appearances and the existing Codex diagnostic.
+
+An uncoached first-use walkthrough, real provider onboarding, generalized provider-backed conversations, and live
+manual-to-chat parity remain qualification work. The [provider proof](provider-proof.md) records the required external
+evidence. The [action inventory](action-inventory.md) maps effects to current Appraise authority and separates
+manual and CLI/MCP evidence from provider-verified parity.

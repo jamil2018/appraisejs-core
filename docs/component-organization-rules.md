@@ -41,7 +41,7 @@ These rules are the working baseline for Appraise UI refactors.
 
 ## Visual Language Contract
 
-AppraiseJS uses a dark graphite palette. The Journey brief, a populated Test Cases table, and a Run Report are the
+AppraiseJS defaults to a dark graphite palette and offers Light appearance in Settings. The Journey brief, a populated Test Cases table, and a Run Report are the
 reference screens for form, table, and report density. Use shared semantic tokens for solid canvas, panels, fields,
 borders, text, focus, and interaction states. Use a saturated blue fill with dark text for the main action. Use blue markers for navigation,
 keyboard focus, selection, and active or informational states. Use vivid emerald for confirmed success, amber for
@@ -59,7 +59,7 @@ warnings and failures. Use distinct chart colors with readable data labels or su
 - Appraise owns the wrappers in `src/components/ui`. Use Base UI for interaction semantics and compose custom triggers
   through `render`. Use shared variants and tokens for state, emphasis, and density. Give buttons explicit submit intent
   and source Select labels from option data so closed controls display the saved label on first render.
-- Keep the icon-only app rail and the context pane visible at `lg` and wider. Give rail icons accessible names and
+- Keep the icon-only app rail visible at `lg` and wider. Let users collapse or reopen the context pane from the rail. Give rail icons accessible names and
   hover and focus tooltips. Keep branding and actions above the independently scrolling list. Below `lg`, use the mobile navigation shell so content starts
   in the first viewport; Sheet/Dialog controls must retain native focus trapping, Escape dismissal, and trigger focus
   restoration.
@@ -72,7 +72,9 @@ warnings and failures. Use distinct chart colors with readable data labels or su
   stable minimum width. Name scroll regions for the content they contain and row action menus for the record they
   operate on. Keep search, view controls, and actions on one toolbar when they fit. Let toolbars and pagination wrap
   as needed while containing horizontal overflow in the table. Make an active search easy to clear. In the compact
-  Test Cases toolbar, show selection actions once there is a selection.
+  toolbars, show selection actions for selected rows that match the current search. Pass the collection and actual
+  loaded project identity to `viewKey` for in-tab view restoration. Include normalized URL filters when they change
+  the table’s record universe. Keep table state within its qualified collection and project.
 - Keep picker search and footer actions reachable in short viewports. Let the results area scroll within the overlay
   so users can reach pagination while keeping the commit and cancel controls in view.
 - Compose forms as responsive content-and-guidance grids. Use full-width primary cards with a deliberate max-width or

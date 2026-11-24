@@ -6,6 +6,8 @@ import {
   Folder,
   Layers3,
   MessagesSquare,
+  PanelLeftClose,
+  PanelLeftOpen,
   Plug,
   Search,
   Settings,
@@ -290,6 +292,96 @@ function SidebarSection({
   )
 }
 
+function SidebarRailLink({
+  item: { id, label, href, Icon },
+  area,
+  projectId,
+}: {
+  item: (typeof areas)[number]
+  area: SidebarArea
+  projectId?: string
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Link
+            href={projectScopedHref(href, projectId)}
+            aria-label={label}
+            aria-current={area === id ? 'true' : undefined}
+            className="app-focus grid size-9 place-items-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground aria-[current=true]:bg-selection-surface aria-[current=true]:text-selection data-[area=settings]:mt-auto"
+            data-area={id}
+          />
+        }
+      >
+        <Icon className="size-[1.15rem]" strokeWidth={1.8} aria-hidden="true" />
+      </TooltipTrigger>
+      <TooltipContent role="tooltip" side="right" className="px-2 py-1">
+        {label}
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
+function SidebarRail({
+  area,
+  projectId,
+  collapsed,
+  providerRunsEnabled,
+  toggle,
+}: {
+  area: SidebarArea
+  projectId?: string
+  collapsed: boolean
+  providerRunsEnabled: boolean
+  toggle: () => void
+}) {
+  const label = collapsed ? 'Expand sidebar' : 'Collapse sidebar'
+  const Icon = collapsed ? PanelLeftOpen : PanelLeftClose
+
+  return (
+    <TooltipProvider delay={150}>
+      <nav
+        aria-label="App sections"
+        className="flex w-[3.25rem] shrink-0 flex-col items-center gap-1 border-r bg-background py-3"
+      >
+        {areas.slice(0, 3).map(item => (
+          <SidebarRailLink key={item.id} item={item} area={area} projectId={projectId} />
+        ))}
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-9 rounded-xl text-muted-foreground"
+                aria-label={label}
+                aria-expanded={!collapsed}
+                aria-controls="workspace-navigation-pane"
+                onClick={toggle}
+              />
+            }
+          >
+            <Icon aria-hidden="true" />
+          </TooltipTrigger>
+          <TooltipContent role="tooltip" side="right" className="px-2 py-1">
+            {label}
+          </TooltipContent>
+        </Tooltip>
+        {collapsed && (
+          <NavCommand
+            variant="icon"
+            className="size-9 text-muted-foreground"
+            providerRunsEnabled={providerRunsEnabled}
+          />
+        )}
+        <SidebarRailLink item={areas[3]} area={area} projectId={projectId} />
+      </nav>
+    </TooltipProvider>
+  )
+}
+
 export default function AppSidebar({
   providerRunsEnabled = false,
   projects = emptyNavigationProjects,
@@ -302,6 +394,7 @@ export default function AppSidebar({
     cookieProjectId,
   })
   const area = currentArea(pathname, searchParams.get('agentSetup') === 'codex')
+  const [collapsed, setCollapsed] = useState(false)
   const [search, setSearch] = useState('')
   const [showSearch, setShowSearch] = useState(false)
   const [sort, setSort] = useState<'recent' | 'title'>('recent')
@@ -320,34 +413,18 @@ export default function AppSidebar({
 
   return (
     <aside className="sticky top-0 z-40 hidden h-dvh shrink-0 lg:flex" data-persistent-navigation>
-      <TooltipProvider delay={150}>
-        <nav
-          aria-label="App sections"
-          className="flex w-[3.25rem] shrink-0 flex-col items-center gap-1 border-r bg-background py-3"
-        >
-          {areas.map(({ id, label, href, Icon }) => (
-            <Tooltip key={id}>
-              <TooltipTrigger
-                render={
-                  <Link
-                    href={projectScopedHref(href, projectId)}
-                    aria-label={label}
-                    aria-current={area === id ? 'true' : undefined}
-                    className="app-focus grid size-9 place-items-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground aria-[current=true]:bg-selection-surface aria-[current=true]:text-selection data-[area=settings]:mt-auto"
-                    data-area={id}
-                  />
-                }
-              >
-                <Icon className="size-[1.15rem]" strokeWidth={1.8} aria-hidden="true" />
-              </TooltipTrigger>
-              <TooltipContent role="tooltip" side="right" className="px-2 py-1">
-                {label}
-              </TooltipContent>
-            </Tooltip>
-          ))}
-        </nav>
-      </TooltipProvider>
-      <div className="flex h-full w-[16.5rem] flex-col border-r bg-card">
+      <SidebarRail
+        area={area}
+        projectId={projectId}
+        collapsed={collapsed}
+        providerRunsEnabled={providerRunsEnabled}
+        toggle={() => setCollapsed(value => !value)}
+      />
+      <div
+        id="workspace-navigation-pane"
+        data-collapsed={collapsed}
+        className="flex h-full w-[16.5rem] flex-col border-r bg-card data-[collapsed=true]:hidden"
+      >
         <div className="shrink-0 space-y-1 border-b px-2.5 pb-2 pt-1.5">
           <div className="flex h-8 items-center justify-between">
             <Link

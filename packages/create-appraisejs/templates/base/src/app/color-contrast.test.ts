@@ -2,17 +2,14 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const stylesheet = readFileSync(new URL('./globals.css', import.meta.url), 'utf8')
-const tokens = new Map(
-  Array.from(stylesheet.matchAll(/--([\w-]+)-rgb: (\d+ \d+ \d+);/g), (match): [string, number[]] => [
-    match[1],
-    match[2].split(' ').map(Number),
-  ]).reverse(),
-)
-
-function color(name: string) {
-  const channels = tokens.get(name)
-  if (!channels) throw new Error(`Missing color token ${name}`)
-  return channels
+function themeTokens(selector: string) {
+  const block = stylesheet.split(`  ${selector} {`)[1]?.split('\n  }')[0]
+  return new Map(
+    Array.from((block ?? '').matchAll(/--([\w-]+)-rgb: (\d+ \d+ \d+);/g), (match): [string, number[]] => [
+      match[1],
+      match[2].split(' ').map(Number),
+    ]),
+  )
 }
 
 function luminance(rgb: number[]) {
@@ -29,7 +26,14 @@ function contrast(first: number[], second: number[]) {
   return (Math.max(firstLuminance, secondLuminance) + 0.05) / (Math.min(firstLuminance, secondLuminance) + 0.05)
 }
 
-describe('graphite palette contrast', () => {
+describe.each([':root', ':root.light'])('%s palette contrast', selector => {
+  const tokens = themeTokens(selector)
+  function color(name: string) {
+    const channels = tokens.get(name)
+    if (!channels) throw new Error(`Missing ${selector} color token ${name}`)
+    return channels
+  }
+
   const neutralSurfaces = ['background', 'card', 'popover', 'field', 'secondary', 'muted', 'accent']
 
   it.each(neutralSurfaces)('keeps small supporting text readable on %s', surface => {
@@ -56,13 +60,14 @@ describe('graphite palette contrast', () => {
     expect(contrast(color('input'), color(surface))).toBeGreaterThanOrEqual(3)
   })
 
-  it('keeps text legible in the primary action and in glass over a white backdrop', () => {
+  it('keeps text legible in the primary action and in glass over the opposite backdrop', () => {
     const glassOpacity = Number(stylesheet.match(/background-color: rgb\(var\(--popover-rgb\) \/ ([\d.]+)\)/)?.[1])
-    const glassOverWhite = color('popover').map(channel => channel * glassOpacity + 255 * (1 - glassOpacity))
+    const backdrop = selector === ':root' ? 255 : 0
+    const glass = color('popover').map(channel => channel * glassOpacity + backdrop * (1 - glassOpacity))
 
     expect(contrast(color('primary-foreground'), color('primary'))).toBeGreaterThanOrEqual(4.5)
     expect(contrast(color('primary-foreground'), color('selection'))).toBeGreaterThanOrEqual(4.5)
     expect(contrast(color('primary'), color('accent'))).toBeGreaterThanOrEqual(4.5)
-    expect(contrast(color('muted-foreground'), glassOverWhite)).toBeGreaterThanOrEqual(4.5)
+    expect(contrast(color('muted-foreground'), glass)).toBeGreaterThanOrEqual(4.5)
   })
 })

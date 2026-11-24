@@ -1,31 +1,23 @@
-import { deleteLocatorAction, getAllLocatorsAction } from '@/actions/locator/locator-actions'
+import { deleteLocatorAction } from '@/actions/locator/locator-actions'
 import { DataTable } from '@/components/ui/data-table'
+
+import type { LocatorTableRow } from './locator-helpers'
 import { locatorTableCols } from './locator-table-columns'
-import { getLocatorTableRows } from './locator-helpers'
 
-const LocatorTable = async () => {
-  const { data: locators, error: locatorsError } = await getAllLocatorsAction()
-
-  if (locatorsError) {
-    return <div>Error: {locatorsError}</div>
-  }
-
-  const locatorRows = getLocatorTableRows(locators)
-
+export default function LocatorTable({ rows }: { rows: LocatorTableRow[] }) {
   return (
-    <>
-      <DataTable
-        tableLabel="Locators"
-        columns={locatorTableCols}
-        data={locatorRows}
-        filterColumn="name"
-        filterPlaceholder="Filter by name..."
-        createLink="/locators/create"
-        modifyLink="/locators/modify"
-        deleteAction={deleteLocatorAction}
-      />
-    </>
+    <DataTable
+      tableLabel="Locators"
+      columns={locatorTableCols}
+      data={rows}
+      filterColumn="name"
+      filterPlaceholder="Search locators"
+      modifyLink="/locators/modify"
+      deleteAction={deleteLocatorAction}
+      density="compact"
+      initialColumnVisibility={{ createdAt: false }}
+      key={`locators:${rows[0].targetProjectId}`}
+      viewKey={`locators:${rows[0].targetProjectId}`}
+    />
   )
 }
-
-export default LocatorTable

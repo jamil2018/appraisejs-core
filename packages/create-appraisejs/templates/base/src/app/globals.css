@@ -43,6 +43,9 @@
     --chart-3: #ffb63f;
     --chart-4: #ff7e87;
     --chart-5: #b794fa;
+    --glass-border: rgb(255 255 255 / 0.16);
+    --glass-highlight: rgb(255 255 255 / 0.07);
+    --glass-shadow: rgb(0 0 0 / 0.28);
     --background: rgb(var(--background-rgb));
     --foreground: rgb(var(--foreground-rgb));
     --card: rgb(var(--card-rgb));
@@ -57,12 +60,64 @@
     --radius: 0.5rem;
   }
 
+  :root.light {
+    color-scheme: light;
+    --background-rgb: 248 250 253;
+    --foreground-rgb: 24 32 45;
+    --card-rgb: 255 255 255;
+    --popover-rgb: 252 253 255;
+    --primary-rgb: 10 85 191;
+    --primary-foreground-rgb: 255 255 255;
+    --secondary-rgb: 234 238 244;
+    --secondary-foreground-rgb: 55 69 85;
+    --muted-rgb: 237 241 247;
+    --muted-foreground-rgb: 68 79 96;
+    --accent-rgb: 231 238 247;
+    --accent-foreground-rgb: 24 32 45;
+    --destructive-rgb: 165 26 49;
+    --destructive-foreground-rgb: 255 255 255;
+    --border-rgb: 207 218 232;
+    --input-rgb: 103 118 140;
+    --field-rgb: 255 255 255;
+    --ring-rgb: 18 90 200;
+    --success-rgb: 10 100 57;
+    --success-surface-rgb: 226 249 234;
+    --success-border-rgb: 41 131 82;
+    --warning-rgb: 122 73 0;
+    --warning-surface-rgb: 255 243 216;
+    --warning-border-rgb: 144 94 9;
+    --danger-rgb: 158 27 51;
+    --danger-surface-rgb: 255 232 235;
+    --danger-border-rgb: 174 55 75;
+    --info-rgb: 16 80 160;
+    --info-surface-rgb: 226 239 254;
+    --info-border-rgb: 39 105 184;
+    --selection-rgb: 8 71 155;
+    --selection-surface-rgb: 218 233 255;
+    --selection-border-rgb: 42 99 195;
+    --chart-1: #197447;
+    --chart-2: #0a55bf;
+    --chart-3: #955800;
+    --chart-4: #ad3453;
+    --chart-5: #6940a5;
+    --glass-border: rgb(78 99 128 / 0.26);
+    --glass-highlight: rgb(255 255 255 / 0.72);
+    --glass-shadow: rgb(22 39 63 / 0.17);
+  }
+
   @media (prefers-contrast: more) {
-    :root {
+    :root:not(.light) {
       --muted-foreground-rgb: 215 215 215;
       --secondary-foreground-rgb: 229 229 229;
       --input-rgb: 166 166 166;
       --border-rgb: 120 120 120;
+    }
+
+    :root.light {
+      --muted-foreground-rgb: 47 56 69;
+      --secondary-foreground-rgb: 35 45 59;
+      --input-rgb: 76 90 110;
+      --border-rgb: 115 129 148;
     }
   }
 
@@ -123,10 +178,10 @@
 
   .app-glass {
     @apply bg-popover text-popover-foreground;
-    border-color: rgb(255 255 255 / 0.16);
+    border-color: var(--glass-border);
     box-shadow:
-      inset 0 1px rgb(255 255 255 / 0.07),
-      0 12px 32px rgb(0 0 0 / 0.28);
+      inset 0 1px var(--glass-highlight),
+      0 12px 32px var(--glass-shadow);
   }
 
   @supports ((backdrop-filter: blur(16px)) or (-webkit-backdrop-filter: blur(16px))) {
@@ -140,6 +195,7 @@
   @media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) {
     .app-glass {
       @apply bg-popover;
+      border-color: var(--border);
       -webkit-backdrop-filter: none;
       backdrop-filter: none;
       box-shadow: none;

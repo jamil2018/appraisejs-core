@@ -113,6 +113,62 @@ test.describe('Navigation @navigation', () => {
     )
   })
 
+  test('a case opens a scoped Journey brief and returning restores the collection view', async ({ page }) => {
+    await page.goto('/test-cases')
+    const search = page.getByRole('textbox', { name: 'Search test cases' })
+    const rowName = 'E2E seeded login works'
+    const selection = page.getByRole('checkbox', { name: `Select ${rowName}` })
+    await search.fill('seeded login')
+    await selection.check()
+    await page.getByRole('button', { name: `Actions for ${rowName}`, exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Use in a Journey' }).click()
+    await expectPageHeading(page, 'What would you like to check?')
+    await expect(page).toHaveURL(/quality-journeys\/new\?.*record=e2e-test-case/)
+    await expect(page.locator('form').getByText(rowName, { exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Start journey' })).toBeDisabled()
+
+    await page.goBack()
+    await expect(search).toHaveValue('seeded login')
+    await expect(selection).toBeChecked()
+  })
+
+  test('the desktop rail can collapse and reopen the project context pane', async ({ page }) => {
+    await page.goto('/quality-journeys/new')
+    await expectPageHeading(page, 'What would you like to check?')
+    const rail = page.getByRole('navigation', { name: 'App sections' })
+    const context = page.getByRole('navigation', { name: 'Recent Journeys by project' })
+    await expect(context).toBeVisible()
+    await rail.getByRole('button', { name: 'Collapse sidebar' }).press('Enter')
+    await expect(context).toBeHidden()
+    await expect(rail.getByRole('link', { name: 'Integrations' })).toBeVisible()
+    const expand = rail.getByRole('button', { name: 'Expand sidebar' })
+    await expect(expand).toBeFocused()
+    const command = rail.getByRole('button', { name: 'Open Command Palette' })
+    const palette = page.getByRole('dialog', { name: 'Command Palette' })
+    await command.click()
+    await expect(palette).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(palette).toBeHidden()
+    await expect(command).toBeFocused()
+    await expand.press('Enter')
+    await expect(context).toBeVisible()
+  })
+
+  test('appearance follows the saved theme across routes and reloads', async ({ page }) => {
+    await page.goto('/settings')
+    const root = page.locator('html')
+    await expect(root).toHaveClass(/\bdark\b/)
+    await page.getByRole('button', { name: 'Light', exact: true }).click()
+    await expect(root).toHaveClass(/\blight\b/)
+    await page.goto('/test-cases')
+    await expect(root).toHaveClass(/\blight\b/)
+    await expectPageHeading(page, 'Test Cases')
+    await page.goto('/settings')
+    await expect(page.getByRole('button', { name: 'Light', exact: true })).toHaveAttribute('aria-pressed', 'true')
+    await page.getByRole('button', { name: 'Dark', exact: true }).click()
+    await expect(root).toHaveClass(/\bdark\b/)
+  })
+
   test('workspace screens fill wide displays and contain overflow on narrow screens', async ({ page }) => {
     const screens = [
       { path: '/dashboard', heading: 'Dashboard' },

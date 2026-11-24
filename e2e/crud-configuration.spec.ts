@@ -53,19 +53,19 @@ test.describe('Configuration CRUD @crud', () => {
     await expect(page).toHaveURL(/\/locators$/)
     await expect(page.getByText('E2E Sign In Button Edited', { exact: true }).first()).toBeVisible()
 
-    await deleteRowByName(page, locatorName)
+    await deleteRowByName(page, locatorName, 'Search locators')
     await page.reload()
-    await expectRowHidden(page, locatorName)
+    await expectRowHidden(page, locatorName, 'Search locators')
 
     await page.goto('/locator-groups')
-    await deleteRowByName(page, locatorGroupName)
+    await deleteRowByName(page, locatorGroupName, 'Search locator groups')
     await page.reload()
-    await expectRowHidden(page, locatorGroupName)
+    await expectRowHidden(page, locatorGroupName, 'Search locator groups')
 
     await page.goto('/tags')
-    await deleteRowByName(page, editedTagName)
+    await deleteRowByName(page, editedTagName, 'Search tags')
     await page.reload()
-    await expectRowHidden(page, editedTagName)
+    await expectRowHidden(page, editedTagName, 'Search tags')
 
     await page.goto('/environments')
     await page.getByRole('searchbox', { name: 'Search environments' }).fill(editedEnvironmentName)
@@ -86,9 +86,9 @@ test.describe('Configuration CRUD @crud', () => {
     await createTemplateTestCase(page, templateCaseName)
 
     await page.goto('/template-test-cases')
-    await deleteRowByName(page, templateCaseName)
+    await deleteRowByName(page, templateCaseName, 'Search case templates')
     await page.reload()
-    await expectRowHidden(page, templateCaseName)
+    await expectRowHidden(page, templateCaseName, 'Search case templates')
   })
 
   test('module create edit delete remains available for configuration flows', async ({ page }) => {
@@ -104,8 +104,8 @@ test.describe('Configuration CRUD @crud', () => {
     await saveForm(page)
     await expect(page.getByText(editedModuleName, { exact: true }).first()).toBeVisible()
 
-    await deleteRowByName(page, editedModuleName)
+    await deleteRowByName(page, editedModuleName, 'Search modules')
     await page.reload()
-    await expectRowHidden(page, editedModuleName)
+    await expectRowHidden(page, editedModuleName, 'Search modules')
   })
 })

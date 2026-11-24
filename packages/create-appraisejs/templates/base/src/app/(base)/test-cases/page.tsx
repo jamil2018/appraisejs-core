@@ -1,7 +1,6 @@
 import { getAllTestCasesAction } from '@/actions/test-case/test-case-actions'
-import PageHeader from '@/components/typography/page-header'
+import { CollectionEmpty, CollectionHeader } from '@/components/data-state/collection-layout'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Empty, EmptyHeader } from '@/components/ui/empty'
 import { CircleAlert } from 'lucide-react'
 import type { Metadata } from 'next'
 
@@ -20,10 +19,9 @@ export default async function TestCases() {
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <PageHeader>Test Cases</PageHeader>
+      <CollectionHeader title="Test Cases">
         <NewTestCaseMenu />
-      </div>
+      </CollectionHeader>
       <TestCaseResults rows={rows} error={success ? undefined : error || message || 'Try refreshing this page.'} />
     </div>
   )
@@ -40,15 +38,7 @@ function TestCaseResults({ rows, error }: { rows: ReturnType<typeof getTestCaseR
     )
   }
 
-  if (rows.length === 0) {
-    return (
-      <Empty className="items-start rounded-xl border border-solid border-border bg-card p-4 text-left md:p-4">
-        <EmptyHeader className="items-start text-left">
-          <h2 className="text-sm font-medium">No test cases yet</h2>
-        </EmptyHeader>
-      </Empty>
-    )
-  }
+  if (rows.length === 0) return <CollectionEmpty title="No test cases yet" />
 
   return <TestCaseTable rows={rows} />
 }

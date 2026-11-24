@@ -1,4 +1,4 @@
-import { BrowserEngine, StepStatus } from '@prisma/client'
+import { BrowserEngine, StepStatus, TestRunResult } from '@prisma/client'
 import { Compass, Flame } from 'lucide-react'
 import { createElement } from 'react'
 
@@ -142,6 +142,39 @@ export function getReportMetrics(report: ReportDetailWithRelations) {
     passedTests,
     failedTests,
     untestedTests,
+  }
+}
+
+export function getReportOutcome(report: ReportDetailWithRelations) {
+  const metrics = getReportMetrics(report)
+  const { passedTests, failedTests, untestedTests, totalTests } = metrics
+  const skippedSteps = report.features.reduce(
+    (count, feature) =>
+      count +
+      feature.scenarios.reduce(
+        (scenarioCount, scenario) =>
+          scenarioCount + scenario.steps.filter(step => step.status === StepStatus.SKIPPED).length,
+        0,
+      ),
+    0,
+  )
+  const counts = `${passedTests} passed · ${failedTests} failed · ${untestedTests} untested${skippedSteps ? ` · ${skippedSteps} skipped ${skippedSteps === 1 ? 'step' : 'steps'}` : ''}`
+
+  switch (report.testRun.result) {
+    case TestRunResult.FAILED:
+      return { title: 'Run failed', description: counts, tone: 'danger' as const }
+    case TestRunResult.BLOCKED:
+      return { title: 'Run blocked pending human verification', description: counts, tone: 'warning' as const }
+    case TestRunResult.PASSED:
+      return { title: 'Run passed', description: counts, tone: 'success' as const }
+    case TestRunResult.CANCELLED:
+      return { title: 'Run cancelled', description: counts, tone: 'neutral' as const }
+    default:
+      return {
+        title: 'Run result pending',
+        description: totalTests > 0 ? counts : 'No test case results are available yet.',
+        tone: 'neutral' as const,
+      }
   }
 }
 

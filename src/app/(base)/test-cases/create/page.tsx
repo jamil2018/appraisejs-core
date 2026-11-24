@@ -1,13 +1,11 @@
 import AuthoringLoadError from '@/components/data-state/authoring-load-error'
 import PageHeader from '@/components/typography/page-header'
-import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import React from 'react'
 import TestCaseForm from '../test-case-form'
 import { createTestCaseAction } from '@/actions/test-case/test-case-actions'
 import { createTagAction } from '@/actions/tags/tag-actions'
 import { createTestSuiteAction } from '@/actions/test-suite/test-suite-actions'
 import { Metadata } from 'next'
-import { FilePlus2 } from 'lucide-react'
 
 import {
   getTestCaseFormRouteResources,
@@ -39,14 +37,8 @@ const CreateTestCase = async () => {
 
   return (
     <div>
-      <div className="mb-4 flex items-start gap-3">
-        <span className="mt-1 flex size-10 shrink-0 items-center justify-center rounded-md border bg-primary/10 text-primary">
-          <FilePlus2 className="size-5" aria-hidden />
-        </span>
-        <div className="min-w-0">
-          <PageHeader>Create New Test Case</PageHeader>
-          <HeaderSubtitle>Create a new test from scratch to execute against your application</HeaderSubtitle>
-        </div>
+      <div className="mb-3">
+        <PageHeader>Create New Test Case</PageHeader>
       </div>
       <TestCaseForm
         defaultNodesOrder={{}}
