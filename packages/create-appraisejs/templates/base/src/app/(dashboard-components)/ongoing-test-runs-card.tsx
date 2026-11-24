@@ -9,11 +9,12 @@ import { useRunningTestRunsCount } from './use-running-test-runs-count'
 interface OngoingTestRunsCardProps {
   initialCount: number
   link: string
+  projectId: string
 }
 
-export default function OngoingTestRunsCard({ initialCount, link }: OngoingTestRunsCardProps) {
+export default function OngoingTestRunsCard({ initialCount, link, projectId }: OngoingTestRunsCardProps) {
   const { push } = useRouter()
-  const count = useRunningTestRunsCount(initialCount)
+  const count = useRunningTestRunsCount(initialCount, projectId)
   const hasActiveRuns = count > 0
 
   return (

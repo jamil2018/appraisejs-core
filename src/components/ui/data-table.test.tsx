@@ -114,6 +114,13 @@ describe('DataTable', () => {
     await user.type(screen.getByPlaceholderText('Search names'), 'missing')
 
     expect(screen.getByText('No results.')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Clear search' }))
+
+    expect(screen.getByRole('textbox', { name: 'Search names' })).toHaveValue('')
+    expect(screen.getByRole('textbox', { name: 'Search names' })).toHaveFocus()
+    expect(screen.getByText('Smoke')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Clear search' })).toBeNull()
   })
 
   it('contains wide table content in a keyboard-focusable scroll region', () => {
@@ -129,5 +136,37 @@ describe('DataTable', () => {
     )
 
     expect(screen.getByRole('region', { name: 'Test cases' })).toHaveAttribute('tabindex', '0')
+  })
+
+  it('restores filters and selection only in the same collection and project', async () => {
+    const user = userEvent.setup()
+    const renderView = (viewKey: string) =>
+      render(
+        <DataTable
+          tableLabel="Test cases"
+          columns={columns}
+          data={[
+            { id: 'row-1', name: 'Smoke' },
+            { id: 'row-2', name: 'Regression' },
+          ]}
+          filterColumn="name"
+          filterPlaceholder="Search cases"
+          viewKey={viewKey}
+        />,
+      )
+
+    const first = renderView('test-cases:project-a')
+    await user.type(screen.getByRole('textbox', { name: 'Search cases' }), 'Smoke')
+    await user.click(screen.getByRole('checkbox', { name: 'Select Smoke' }))
+    first.unmount()
+
+    const other = renderView('test-cases:project-b')
+    expect(screen.getByRole('textbox', { name: 'Search cases' })).toHaveValue('')
+    expect(screen.getByRole('checkbox', { name: 'Select Smoke' })).not.toBeChecked()
+    other.unmount()
+
+    renderView('test-cases:project-a')
+    expect(screen.getByRole('textbox', { name: 'Search cases' })).toHaveValue('Smoke')
+    expect(screen.getByRole('checkbox', { name: 'Select Smoke' })).toBeChecked()
   })
 })

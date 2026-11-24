@@ -2,6 +2,7 @@
 
 import { Command, Plus, Search } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import type { ComponentProps } from 'react'
 
 import { cn } from '@/lib/utils'
 
@@ -23,8 +24,14 @@ export type NavCommandProps = {
   className?: string
   label?: string
   providerRunsEnabled?: boolean
-  variant?: 'default' | 'sidebar'
+  variant?: 'default' | 'sidebar' | 'icon'
 }
+
+const triggerStyles = {
+  icon: { variant: 'ghost', size: 'icon', className: 'size-7 shrink-0 rounded-xl' },
+  sidebar: { variant: 'outline', className: 'flex items-center gap-2' },
+  default: { variant: 'outline', className: 'flex w-1/5 justify-between px-4' },
+} satisfies Record<NonNullable<NavCommandProps['variant']>, ComponentProps<typeof Button>>
 
 function CommandShortcut({ isMac }: { isMac: boolean }) {
   return (
@@ -67,18 +74,14 @@ export default function NavCommand({
     setOpen(false)
   }
 
-  const isSidebar = variant === 'sidebar'
+  const { className: triggerClassName, ...triggerStyle } = triggerStyles[variant]
 
   return (
     <>
       <Button
-        variant="outline"
+        {...triggerStyle}
         aria-label="Open Command Palette"
-        className={cn(
-          'min-w-0 hover:text-foreground',
-          isSidebar ? 'flex items-center gap-2' : 'flex w-1/5 justify-between px-4',
-          className,
-        )}
+        className={cn('min-w-0 hover:text-foreground', triggerClassName, className)}
         ref={triggerRef}
         data-nav-command-trigger=""
         onClick={() => {
@@ -86,7 +89,9 @@ export default function NavCommand({
           setOpen(true)
         }}
       >
-        {isSidebar ? (
+        {variant === 'icon' ? (
+          <Command aria-hidden="true" />
+        ) : variant === 'sidebar' ? (
           <>
             <Search className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
             <span className="min-w-0 flex-1 truncate text-left">{label}</span>

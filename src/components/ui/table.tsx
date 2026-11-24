@@ -2,10 +2,16 @@ import * as React from 'react'
 
 import { cn } from '@/lib/utils'
 
-function Table({ className, scrollLabel, ...props }: React.ComponentProps<'table'> & { scrollLabel: string }) {
+function Table({
+  className,
+  scrollLabel,
+  scrollRef,
+  ...props
+}: React.ComponentProps<'table'> & { scrollLabel: string; scrollRef?: React.Ref<HTMLDivElement> }) {
   return (
     <div
       className="app-focus relative w-full overflow-x-auto overscroll-x-contain rounded-lg"
+      ref={scrollRef}
       tabIndex={0}
       role="region"
       aria-label={scrollLabel}

@@ -189,6 +189,7 @@ describe('Create Test Case From Template page', () => {
       }),
     )
 
+    expect(screen.getByRole('heading', { name: 'Create Test Case From Template' })).toBeInTheDocument()
     expect(screen.getByText('Mock Test Case Form')).toBeInTheDocument()
     expect(listReferencedStepDefinitionOptionsAction).toHaveBeenCalledWith([
       {

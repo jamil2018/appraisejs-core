@@ -99,6 +99,7 @@ describe('Create Test Case page', () => {
 
     render(await CreateTestCase())
 
+    expect(screen.getByRole('heading', { name: 'Create New Test Case' })).toBeInTheDocument()
     expect(screen.getByText('Mock Test Case Form')).toBeInTheDocument()
     expect(testCaseFormSpy).toHaveBeenCalledWith(
       expect.objectContaining({

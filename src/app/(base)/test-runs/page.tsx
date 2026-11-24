@@ -1,60 +1,55 @@
-import DataTableSkeleton from '@/components/loading-skeleton/data-table/data-table-skeleton'
-import PageHeader from '@/components/typography/page-header'
-import HeaderSubtitle from '@/components/typography/page-header-subtitle'
-import { ListChecks } from 'lucide-react'
-import React, { Suspense } from 'react'
-import TestRunTable from './test-run-table'
 import { getAllTestRunsAction } from '@/actions/test-run/test-run-actions'
-import EmptyState from '@/components/data-state/empty-state'
-import { Environment, Tag, TestRun, TestRunTestCase } from '@prisma/client'
-import { Metadata } from 'next'
+import { CollectionEmpty, CollectionHeader } from '@/components/data-state/collection-layout'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import type { Environment, Tag, TestRun, TestRunTestCase } from '@prisma/client'
+import { Plus } from 'lucide-react'
+import type { Metadata } from 'next'
+import Link from 'next/link'
+
+import TestRunTable from './test-run-table'
 
 export const metadata: Metadata = {
   title: 'Appraise | Test Runs',
   description: 'Manage test runs and their execution results',
 }
 
-const TestRuns = async ({ searchParams }: { searchParams: Promise<{ filter?: string }> }) => {
-  const resolvedSearchParams = await searchParams
-  const filter = resolvedSearchParams?.filter
-  const { data: testRuns, error: testRunsError } = await getAllTestRunsAction(filter)
+type TestRunRow = TestRun & { testCases: TestRunTestCase[]; tags: Tag[]; environment: Environment }
 
-  if (testRunsError) {
-    return <div>Error: {testRunsError}</div>
-  }
-
-  const testRunsData = (
-    testRuns as {
-      items: (TestRun & { testCases: TestRunTestCase[]; tags: Tag[]; environment: Environment })[]
-    }
-  )?.items
+export default async function TestRuns({ searchParams }: { searchParams: Promise<{ filter?: string }> }) {
+  const { filter } = await searchParams
+  const { data, error, success, message } = await getAllTestRunsAction(filter)
+  const rows =
+    data && typeof data === 'object' && 'items' in data && Array.isArray(data.items) ? (data.items as TestRunRow[]) : []
 
   return (
-    <>
-      <div className="mb-4">
-        <PageHeader>
-          <span className="flex items-center">
-            <ListChecks className="mr-2 size-8 shrink-0" />
-            Test Runs
+    <div className="flex min-w-0 flex-col gap-4">
+      <CollectionHeader title="Test Runs">
+        <Button render={<Link href="/test-runs/create" />} nativeButton={false} className="rounded-xl">
+          <Plus aria-hidden="true" data-icon="inline-start" />
+          Create Test Run
+        </Button>
+      </CollectionHeader>
+      {filter === 'recentFailed' && (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="rounded-lg border border-border bg-card px-2 py-1 text-muted-foreground">
+            Recent failures
           </span>
-        </PageHeader>
-        <HeaderSubtitle>Orchestrate tests and track the execution progress with detailed results</HeaderSubtitle>
-      </div>
-      {!testRunsData || testRunsData.length === 0 ? (
-        <EmptyState
-          icon={<ListChecks className="size-5" />}
-          title="No test runs found"
-          description="Get started by creating a test run to execute your test cases"
-          createRoute="/test-runs/create"
-          createText="Create Test Run"
-        />
-      ) : (
-        <Suspense fallback={<DataTableSkeleton />}>
-          <TestRunTable initialData={testRunsData} filter={filter as 'recentFailed' | 'all'} />
-        </Suspense>
+          <Link href="/test-runs" className="app-focus rounded-md text-primary hover:underline">
+            View all runs
+          </Link>
+        </div>
       )}
-    </>
+      {success === false || error ? (
+        <Alert variant="destructive">
+          <AlertTitle>Couldn’t load test runs</AlertTitle>
+          <AlertDescription>{error || message || 'Try refreshing this page.'}</AlertDescription>
+        </Alert>
+      ) : rows.length === 0 ? (
+        <CollectionEmpty title={filter === 'recentFailed' ? 'No recent failed runs' : 'No test runs yet'} />
+      ) : (
+        <TestRunTable initialData={rows} filter={filter === 'recentFailed' ? 'recentFailed' : 'all'} />
+      )}
+    </div>
   )
 }
-
-export default TestRuns

@@ -1,33 +1,28 @@
-import PageHeader from '@/components/typography/page-header'
-import HeaderSubtitle from '@/components/typography/page-header-subtitle'
-import { TestTubes } from 'lucide-react'
-import TestSuiteTable from './test-suite-table'
-import { Suspense } from 'react'
-import DataTableSkeleton from '@/components/loading-skeleton/data-table/data-table-skeleton'
 import { getAllTestSuitesAction } from '@/actions/test-suite/test-suite-actions'
-import InfoGrid from '@/components/data-visualization/info-grid'
-import EmptyState from '@/components/data-state/empty-state'
-import { Metadata } from 'next'
-import { TubePlus } from '@/assets/icons/tube-plus'
 import EmptyTube from '@/assets/icons/empty-tube'
-import { Tag as TagIcon } from 'lucide-react'
+import { TubePlus } from '@/assets/icons/tube-plus'
+import { CollectionEmpty, CollectionHeader } from '@/components/data-state/collection-layout'
+import InfoGrid from '@/components/data-visualization/info-grid'
+import { Button } from '@/components/ui/button'
+import { Plus, Tag } from 'lucide-react'
+import Link from 'next/link'
+import type { Metadata } from 'next'
 
 import { buildTestSuiteInfoCards, getTestSuiteTableRows } from './test-suite-helpers'
+import TestSuiteTable from './test-suite-table'
 
 export const metadata: Metadata = {
   title: 'Appraise | Test Suites',
   description: 'Manage test suites and their configurations',
 }
 
-const TestSuites = async () => {
-  const { data: testSuites, error: testSuitesError } = await getAllTestSuitesAction()
+export default async function TestSuites() {
+  const { data, error } = await getAllTestSuitesAction()
+  const rows = getTestSuiteTableRows(data)
 
-  if (testSuitesError) {
-    return <div>Error: {testSuitesError}</div>
-  }
+  if (error) return <div role="alert">Error: {error}</div>
 
-  const testSuitesData = getTestSuiteTableRows(testSuites)
-  const infoCards = buildTestSuiteInfoCards(testSuitesData).map(card => ({
+  const infoCards = buildTestSuiteInfoCards(rows).map(card => ({
     ...card,
     icon:
       card.legend === 'Empty test suite(s)' ? (
@@ -35,41 +30,28 @@ const TestSuites = async () => {
       ) : card.legend === 'Latest test suite' ? (
         <TubePlus className="size-12 rounded-sm bg-muted p-2" />
       ) : (
-        <TagIcon className="size-12 rounded-sm bg-muted p-2" />
+        <Tag className="size-12 rounded-sm bg-muted p-2" />
       ),
   }))
 
   return (
-    <>
-      <div className="mb-4">
-        <PageHeader>
-          <span className="flex items-center">
-            <TestTubes className="mr-2 size-8 shrink-0" />
-            Test Suites
-          </span>
-        </PageHeader>
-        <HeaderSubtitle>
-          Test suites are collections of tests that are used to test a specific feature or functionality
-        </HeaderSubtitle>
-      </div>
-      {testSuitesData.length === 0 ? (
-        <EmptyState
-          icon={<TestTubes className="size-5" />}
-          title="No test suites found"
-          description="Get started by creating a test suite and grouping tests together"
-          createRoute="/test-suites/create"
-          createText="Create Test Suite"
-        />
+    <div className="min-w-0 space-y-4">
+      <CollectionHeader title="Test Suites">
+        <Button render={<Link href="/test-suites/create" />} nativeButton={false}>
+          <Plus aria-hidden="true" /> New test suite
+        </Button>
+      </CollectionHeader>
+      {rows.length === 0 ? (
+        <CollectionEmpty title="No test suites yet" />
       ) : (
         <>
-          <InfoGrid infoCards={infoCards} />
-          <Suspense fallback={<DataTableSkeleton />}>
-            <TestSuiteTable />
-          </Suspense>
+          <details className="rounded-xl border border-border bg-card px-4 py-2 text-sm">
+            <summary className="app-focus cursor-pointer font-medium">Suite overview</summary>
+            <InfoGrid infoCards={infoCards} />
+          </details>
+          <TestSuiteTable rows={rows} />
         </>
       )}
-    </>
+    </div>
   )
 }
-
-export default TestSuites

@@ -1,0 +1,1445 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="../../../public/favicon.svg" />
+    <title>Appraise · Navigation mock</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --background: #141414;
+        --rail: #151515;
+        --sidebar: #1c1c1c;
+        --raised: #252525;
+        --field: #1e1e1e;
+        --foreground: #f2f2f2;
+        --muted: #b4b4b4;
+        --border: #373737;
+        --accent: #4298fa;
+        --accent-hover: #62acff;
+        --focus: #71b5ff;
+        --selection: #163f7a;
+        --selection-soft: #192f4a;
+        --warning: #ffb63f;
+        --control-radius: 10px;
+        --icon-target: 28px;
+        --row-target: 28px;
+        --rail-target: 36px;
+        --rail-width: 52px;
+        font:
+          14px/1.5 -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          system-ui,
+          sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        display: grid;
+        grid-template-columns: var(--rail-width) clamp(216px, 18.5vw, 278px) minmax(0, 1fr);
+        height: 100dvh;
+        margin: 0;
+        overflow: hidden;
+        color: var(--foreground);
+        background: var(--background);
+      }
+      [hidden] {
+        display: none !important;
+      }
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+        color: inherit;
+      }
+      button {
+        cursor: pointer;
+      }
+      button:focus-visible,
+      summary:focus-visible,
+      input:focus-visible,
+      textarea:focus-visible,
+      select:focus-visible {
+        outline: 2px solid var(--focus);
+        outline-offset: 2px;
+      }
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+      h1 {
+        font-size: 16px;
+        line-height: 1.35;
+        font-weight: 640;
+      }
+      h2 {
+        font-size: 15px;
+        font-weight: 620;
+      }
+      small,
+      .muted {
+        color: var(--muted);
+      }
+      svg.icon {
+        width: 17px;
+        height: 17px;
+        flex: none;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+
+      .rail {
+        position: relative;
+        z-index: 3;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        padding: 13px 0 10px;
+        border-right: 1px solid var(--border);
+        background: var(--rail);
+      }
+      .rail-button,
+      .icon-button,
+      .menu-action,
+      .thread,
+      .sort summary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        background: transparent;
+        border-radius: var(--control-radius);
+      }
+      .rail-button {
+        position: relative;
+        width: var(--rail-target);
+        height: var(--rail-target);
+        padding: 0;
+        color: var(--muted);
+      }
+      .rail-button .icon {
+        width: 19px;
+        height: 19px;
+      }
+      .rail-button:hover,
+      .rail-button:focus-visible {
+        background: var(--raised);
+        color: var(--foreground);
+      }
+      .rail-button[aria-current='page'] {
+        background: var(--selection);
+        color: #d3e8ff;
+      }
+      .rail-button:last-child {
+        margin-top: auto;
+      }
+      .tooltip {
+        position: absolute;
+        top: 50%;
+        left: calc(100% + 9px);
+        transform: translateY(-50%);
+        padding: 3px 8px;
+        border: 1px solid #535353;
+        border-radius: 8px;
+        background: #282828;
+        color: var(--foreground);
+        box-shadow: 0 4px 13px #0006;
+        font-size: 12px;
+        white-space: nowrap;
+        visibility: hidden;
+        pointer-events: none;
+      }
+      .rail-button:is(:hover, :focus-visible) .tooltip {
+        visibility: visible;
+      }
+
+      .secondary {
+        position: relative;
+        z-index: 2;
+        min-height: 0;
+        overflow: auto;
+        overscroll-behavior: contain;
+        border-right: 1px solid var(--border);
+        background: var(--sidebar);
+        scrollbar-width: thin;
+        scrollbar-color: #535353 transparent;
+      }
+      .secondary-head {
+        position: sticky;
+        z-index: 1;
+        top: 0;
+        padding: 8px 10px 7px;
+        border-bottom: 1px solid var(--border);
+        background: var(--sidebar);
+      }
+      .brand-row {
+        min-height: 32px;
+        justify-content: space-between;
+        gap: 4px;
+      }
+      .brand {
+        gap: 7px;
+        font-size: 17px;
+        font-weight: 680;
+        letter-spacing: -0.024em;
+      }
+      .brand img {
+        width: 28px;
+        height: 28px;
+        object-fit: contain;
+      }
+      .icon-button,
+      .sort summary {
+        width: var(--icon-target);
+        height: var(--icon-target);
+        padding: 0;
+        color: var(--muted);
+      }
+      .brand-row > .row:last-child {
+        gap: 3px;
+      }
+      .icon-button:hover,
+      .sort summary:hover,
+      .sort[open] summary {
+        color: var(--foreground);
+        background: var(--raised);
+      }
+      .sort {
+        position: relative;
+      }
+      .sort summary {
+        list-style: none;
+        cursor: pointer;
+      }
+      .sort summary::-webkit-details-marker {
+        display: none;
+      }
+      .sort-menu {
+        position: absolute;
+        z-index: 2;
+        top: calc(100% + 4px);
+        right: 0;
+        width: max-content;
+        padding: 4px;
+        border: 1px solid #494949;
+        border-radius: 12px;
+        background: #242424;
+        box-shadow: 0 8px 20px #0005;
+      }
+      .sort-menu .menu-action {
+        width: 100%;
+        justify-content: space-between;
+      }
+      .menu-action {
+        justify-content: flex-start;
+        width: 100%;
+        min-height: var(--row-target);
+        padding: 2px 8px;
+        gap: 6px;
+        font-size: 13px;
+        font-weight: 550;
+      }
+      .menu-action:hover,
+      .thread:hover,
+      .group summary:hover {
+        background: var(--raised);
+      }
+      .menu-action[aria-pressed='true'] {
+        color: #a4ceff;
+      }
+      .area-actions {
+        margin-top: 5px;
+      }
+      .search,
+      select {
+        width: 100%;
+        min-height: var(--row-target);
+        padding: 2px 8px;
+        border: 1px solid #5b5b5b;
+        border-radius: var(--control-radius);
+        background: var(--field);
+      }
+      .search {
+        margin-top: 6px;
+      }
+
+      .area-list {
+        padding: 6px 8px 12px;
+      }
+      .group {
+        margin: 1px 0 7px;
+      }
+      .group summary {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        min-height: var(--row-target);
+        padding-inline: 6px;
+        border-radius: var(--control-radius);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        list-style: none;
+      }
+      .group summary::-webkit-details-marker {
+        display: none;
+      }
+      .group summary > .icon {
+        color: var(--muted);
+        width: 15px;
+        height: 15px;
+      }
+      .group[open] summary > .chevron {
+        transform: rotate(90deg);
+      }
+      .thread {
+        justify-content: space-between;
+        width: calc(100% - 13px);
+        min-height: var(--row-target);
+        margin-left: 13px;
+        padding: 2px 8px 2px 10px;
+        color: #d0d0d0;
+        font-size: 13px;
+        text-align: left;
+      }
+      .thread[aria-current='page'] {
+        background: #2b2b2b;
+        color: var(--foreground);
+      }
+      .thread-title {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .thread .icon {
+        width: 14px;
+        height: 14px;
+        color: #b5b5b5;
+      }
+      .dot {
+        display: inline-block;
+        width: 7px;
+        height: 7px;
+        flex: none;
+        border-radius: 50%;
+      }
+      .dot.review {
+        background: var(--warning);
+      }
+      .dot.running {
+        background: var(--accent);
+      }
+      .category {
+        margin: 10px 8px 4px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 550;
+      }
+      .empty {
+        padding: 15px 12px;
+        color: var(--muted);
+      }
+
+      main {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        min-height: 0;
+      }
+      .topbar {
+        min-height: 52px;
+        padding: 5px 17px;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--border);
+      }
+      .topbar small {
+        font-size: 12px;
+      }
+      .work {
+        display: flex;
+        flex: 1;
+        min-height: 0;
+      }
+      .chat {
+        display: flex;
+        min-width: 0;
+        flex: 1;
+        flex-direction: column;
+      }
+      .transcript {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+      }
+      .transcript-inner {
+        width: min(100% - 48px, 680px);
+        margin: 0 auto;
+        padding: 27px 0 20px;
+        font-size: 16px;
+      }
+      .message {
+        margin-bottom: 17px;
+      }
+      .message small {
+        display: block;
+        margin-bottom: 3px;
+        font-size: 12px;
+      }
+      .activity {
+        gap: 7px;
+        margin: 7px 0 11px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .activity .icon {
+        color: var(--accent);
+      }
+      .artifact {
+        width: auto;
+        border-radius: 999px;
+        background: #212121;
+      }
+      .composer {
+        display: grid;
+        gap: 3px;
+        width: min(100% - 48px, 680px);
+        margin: 0 auto 17px;
+        padding: 6px 7px;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: var(--raised);
+      }
+      .composer:focus-within {
+        border-color: #636363;
+      }
+      .composer textarea {
+        width: 100%;
+        min-height: 42px;
+        max-height: 160px;
+        padding: 4px 7px;
+        border: 0;
+        border-radius: 8px;
+        resize: none;
+        field-sizing: content;
+        background: transparent;
+      }
+      .composer-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 4px 8px;
+      }
+      .composer-group {
+        gap: 2px;
+      }
+      .composer-group:last-child {
+        margin-left: auto;
+      }
+      .composer-menu {
+        position: relative;
+      }
+      .composer-menu summary {
+        display: inline-flex;
+        min-height: var(--row-target);
+        align-items: center;
+        gap: 4px;
+        padding-inline: 6px;
+        border-radius: 999px;
+        color: var(--muted);
+        font-size: 13px;
+        list-style: none;
+        cursor: pointer;
+      }
+      .composer-menu summary::-webkit-details-marker {
+        display: none;
+      }
+      .composer-menu summary.icon-button {
+        padding: 0;
+      }
+      .composer-menu summary:hover,
+      .composer-menu[open] summary,
+      .composer .icon-button:hover {
+        background: #353535;
+        color: var(--foreground);
+      }
+      .composer-menu summary .caret {
+        width: 12px;
+        height: 12px;
+      }
+      .composer-menu .sort-menu {
+        inset: auto auto calc(100% + 6px) 0;
+        min-width: 148px;
+      }
+      .composer-group:last-child .sort-menu {
+        right: 0;
+        left: auto;
+      }
+      .context-chip {
+        width: fit-content;
+        min-height: var(--row-target);
+        margin-left: 4px;
+        padding: 2px 6px 2px 8px;
+        border-radius: 999px;
+        background: #303030;
+        color: var(--foreground);
+        font-size: 12px;
+      }
+      .context-chip .icon-button {
+        width: var(--icon-target);
+        height: var(--icon-target);
+      }
+      .context-chip .icon {
+        width: 13px;
+        height: 13px;
+      }
+      .composer textarea::placeholder,
+      .search::placeholder {
+        color: var(--muted);
+        opacity: 1;
+      }
+      .primary {
+        min-height: var(--row-target);
+        padding: 2px 10px;
+        border: 0;
+        border-radius: 999px;
+        background: var(--accent);
+        color: var(--background);
+        font-size: 13px;
+        font-weight: 630;
+      }
+      .primary:hover {
+        background: var(--accent-hover);
+      }
+      .composer .primary {
+        display: grid;
+        width: var(--icon-target);
+        height: var(--icon-target);
+        flex: none;
+        padding: 0;
+        place-items: center;
+      }
+      .stop-indicator {
+        width: 9px;
+        height: 9px;
+        border-radius: 2px;
+        background: currentColor;
+      }
+      .inspector {
+        display: flex;
+        width: clamp(264px, 25vw, 350px);
+        min-width: 0;
+        flex-direction: column;
+        padding: 15px 15px 14px;
+        border-left: 1px solid var(--border);
+        background: #171717;
+      }
+      .inspector > .row {
+        justify-content: space-between;
+      }
+      .inspector ol {
+        padding: 0;
+        margin: 11px 0 8px;
+        list-style-position: inside;
+      }
+      .inspector li {
+        padding: 7px 5px;
+        border-top: 1px solid var(--border);
+      }
+      .inspector li:last-child {
+        padding-left: 8px;
+        border-left: 2px solid var(--accent);
+        background: var(--selection-soft);
+      }
+      .inspector small {
+        font-size: 12px;
+      }
+      .decision {
+        gap: 7px;
+        margin-top: auto;
+        padding-top: 9px;
+        border-top: 1px solid var(--border);
+      }
+      .decision small {
+        min-width: 0;
+      }
+      .list-content {
+        overflow: auto;
+        padding: 24px 20px;
+      }
+      .list-content table {
+        width: min(100%, 800px);
+        margin-top: 10px;
+        border-collapse: collapse;
+      }
+      .list-content th,
+      .list-content td {
+        padding: 8px;
+        border-bottom: 1px solid var(--border);
+        text-align: left;
+      }
+      .list-content th {
+        color: var(--muted);
+        font-weight: 550;
+      }
+
+      dialog {
+        width: min(420px, 90vw);
+        padding: 16px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--sidebar);
+      }
+      dialog p {
+        margin-top: 8px;
+      }
+      dialog form {
+        display: flex;
+        justify-content: end;
+        margin-top: 13px;
+      }
+      @media (max-width: 1060px) {
+        .inspector {
+          position: absolute;
+          z-index: 1;
+          inset: 52px 0 0 auto;
+          width: min(350px, 66vw);
+          box-shadow: -10px 0 30px #0006;
+        }
+      }
+      @media (max-width: 680px) {
+        body {
+          grid-template-columns: var(--rail-width) minmax(0, 1fr);
+        }
+        .secondary {
+          position: absolute;
+          inset: 0 auto 0 var(--rail-width);
+          width: min(248px, calc(100vw - var(--rail-width)));
+        }
+        .secondary[data-mobile-hidden='true'] {
+          display: none;
+        }
+        .topbar {
+          padding-inline: 11px;
+        }
+        .transcript-inner,
+        .composer {
+          width: calc(100% - 26px);
+        }
+      }
+      @media (pointer: coarse) {
+        :root {
+          --icon-target: 44px;
+          --row-target: 44px;
+          --rail-target: 44px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!--
+      Lucide icons, ISC License
+      Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT).
+      All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+
+      Permission to use, copy, modify, and/or distribute this software for any
+      purpose with or without fee is hereby granted, provided that the above
+      copyright notice and this permission notice appear in all copies.
+
+      THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+      WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+      MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+      ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+      WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+      ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+      OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+    -->
+    <svg aria-hidden="true" width="0" height="0" style="position: absolute">
+      <defs>
+        <symbol
+          id="messages-square"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.65"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2z" />
+          <path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1" />
+        </symbol>
+        <symbol
+          id="layers"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.65"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path
+            d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"
+          />
+          <path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12" />
+          <path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17" />
+        </symbol>
+        <symbol
+          id="plug"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.65"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M12 22v-5" />
+          <path d="M9 8V2" />
+          <path d="M15 8V2" />
+          <path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z" />
+        </symbol>
+        <symbol
+          id="settings"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.65"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path
+            d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
+          />
+          <circle cx="12" cy="12" r="3" />
+        </symbol>
+        <symbol
+          id="arrow-down-wide-narrow"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.65"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="m3 16 4 4 4-4" />
+          <path d="M7 20V4" />
+          <path d="M11 4h10" />
+          <path d="M11 8h7" />
+          <path d="M11 12h4" />
+        </symbol>
+        <symbol
+          id="search"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.65"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="11" cy="11" r="8" />
+          <path d="m21 21-4.3-4.3" />
+        </symbol>
+        <symbol
+          id="square-pen"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.65"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+          <path
+            d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"
+          />
+        </symbol>
+        <symbol
+          id="chevron-right"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.65"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="m9 18 6-6-6-6" />
+        </symbol>
+        <symbol
+          id="folder"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.65"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path
+            d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"
+          />
+        </symbol>
+        <symbol
+          id="circle-pause"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.65"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <line x1="10" x2="10" y1="15" y2="9" />
+          <line x1="14" x2="14" y1="15" y2="9" />
+        </symbol>
+        <symbol
+          id="plus"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.65"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M5 12h14" />
+          <path d="M12 5v14" />
+        </symbol>
+        <symbol
+          id="circle-check"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.65"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <path d="m9 12 2 2 4-4" />
+        </symbol>
+        <symbol
+          id="panel-right"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.65"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <rect width="18" height="18" x="3" y="3" rx="2" />
+          <path d="M15 3v18" />
+        </symbol>
+        <symbol
+          id="x"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.65"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M18 6 6 18" />
+          <path d="m6 6 12 12" />
+        </symbol>
+        <symbol
+          id="arrow-up"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.65"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="m5 12 7-7 7 7" />
+          <path d="M12 19V5" />
+        </symbol>
+        <symbol
+          id="mic"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.65"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+          <line x1="12" x2="12" y1="19" y2="22" />
+        </symbol>
+        <symbol
+          id="chevron-down"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.65"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="m6 9 6 6 6-6" />
+        </symbol>
+      </defs>
+    </svg>
+    <nav class="rail" aria-label="App sections">
+      <button class="rail-button" data-area="chats" aria-label="Chats" aria-current="page">
+        <svg class="icon" aria-hidden="true"><use href="#messages-square"></use></svg>
+        <span class="tooltip" aria-hidden="true">Chats</span>
+      </button>
+      <button class="rail-button" data-area="workspace" aria-label="Workspace">
+        <svg class="icon" aria-hidden="true"><use href="#layers"></use></svg>
+        <span class="tooltip" aria-hidden="true">Workspace</span>
+      </button>
+      <button class="rail-button" data-area="integrations" aria-label="Integrations">
+        <svg class="icon" aria-hidden="true"><use href="#plug"></use></svg>
+        <span class="tooltip" aria-hidden="true">Integrations</span>
+      </button>
+      <button class="rail-button" data-area="settings" aria-label="Settings">
+        <svg class="icon" aria-hidden="true"><use href="#settings"></use></svg>
+        <span class="tooltip" aria-hidden="true">Settings</span>
+      </button>
+    </nav>
+    <aside class="secondary" id="secondary" aria-label="Section navigation">
+      <div class="secondary-head">
+        <div class="row brand-row">
+          <div class="row brand"><img src="../../../public/logo.svg" alt="" />Appraise</div>
+          <div class="row" id="chat-tools">
+            <details class="sort" id="chat-sort">
+              <summary aria-label="Sort chats" title="Sort chats">
+                <svg class="icon" aria-hidden="true"><use href="#arrow-down-wide-narrow"></use></svg>
+              </summary>
+              <div class="sort-menu">
+                <button class="menu-action" data-sort="recent" aria-pressed="true">Recently updated</button>
+                <button class="menu-action" data-sort="title" aria-pressed="false">Title A–Z</button>
+              </div>
+            </details>
+            <button
+              class="icon-button"
+              id="search-toggle"
+              aria-expanded="false"
+              aria-controls="chat-search"
+              aria-label="Search chats"
+              title="Search chats"
+            >
+              <svg class="icon" aria-hidden="true"><use href="#search"></use></svg>
+            </button>
+          </div>
+        </div>
+        <div id="area-actions" class="area-actions"></div>
+        <input
+          class="search"
+          id="chat-search"
+          type="search"
+          aria-label="Search chats"
+          placeholder="Search chats"
+          hidden
+        />
+      </div>
+      <nav class="area-list" id="area-list" aria-label="Chats"></nav>
+    </aside>
+    <main id="work-area"></main>
+    <dialog id="sample-action">
+      <h2 id="dialog-title"></h2>
+      <p class="muted">This control is part of the navigation mock.</p>
+      <form method="dialog"><button class="primary">Close</button></form>
+    </dialog>
+    <span class="sr-only" id="announcement" role="status"></span>
+
+    <script>
+      const projects = [
+        {
+          name: 'Northstar Store',
+          chats: [
+            ['Guest checkout', 'Review needed'],
+            ['Discount rules', 'Interrupted'],
+            ['Search suggestions', 'Running'],
+            ['Cart quantities'],
+            ['Checkout address fields'],
+            ['Refund approval'],
+            ['Saved payment methods'],
+            ['Mobile checkout'],
+            ['Inventory availability'],
+          ],
+        },
+        {
+          name: 'Beacon Portal',
+          chats: [
+            ['Sign-in recovery'],
+            ['Invite new member', 'Review needed'],
+            ['Password reset'],
+            ['Account preferences'],
+            ['Profile photo upload'],
+            ['Access request'],
+            ['Email notifications'],
+          ],
+        },
+        {
+          name: 'Fulfillment console',
+          chats: [
+            ['Dispatch one order'],
+            ['Shipping label retry'],
+            ['Split shipment'],
+            ['Tracking history'],
+            ['Delivery estimates'],
+            ['Address validation'],
+          ],
+        },
+      ]
+
+      const sections = {
+        workspace: [
+          ['Authoring', ['Test cases', 'Test suites', 'Step definitions']],
+          ['Execution', ['Journeys', 'Test runs', 'Reports']],
+          ['Setup', ['Environments', 'Locators']],
+        ],
+        integrations: [
+          ['Chat providers', ['ChatGPT', 'Claude Code']],
+          ['Project integrations', ['Repository']],
+        ],
+        settings: [['Preferences', ['Appearance', 'Keyboard shortcuts']]],
+      }
+
+      const state = {
+        area: 'chats',
+        project: projects[0].name,
+        chatProject: projects[0].name,
+        title: projects[0].chats[0][0],
+        status: projects[0].chats[0][1],
+        sort: 'recent',
+        searchOpen: false,
+        navClosed: false,
+        inspector: !matchMedia('(max-width: 1060px)').matches,
+        approved: false,
+        context: '',
+        permission: 'Ask before running',
+        provider: 'ChatGPT',
+        model: 'Default',
+        reasoning: 'Standard',
+        responding: false,
+      }
+      const collapsedProjects = new Set()
+      const sidebar = document.querySelector('#secondary')
+      const chatTools = document.querySelector('#chat-tools')
+      const searchToggle = document.querySelector('#search-toggle')
+      const search = document.querySelector('#chat-search')
+      const sortMenu = document.querySelector('#chat-sort')
+      const areaActions = document.querySelector('#area-actions')
+      const areaList = document.querySelector('#area-list')
+      const main = document.querySelector('#work-area')
+      const announcement = document.querySelector('#announcement')
+      const dialog = document.querySelector('#sample-action')
+
+      function icon(name, className = '') {
+        return `<svg class="icon ${className}" aria-hidden="true"><use href="#${name}"></use></svg>`
+      }
+
+      function escapeHtml(value) {
+        return String(value).replace(
+          /[&<>"']/g,
+          character =>
+            ({
+              '&': '&amp;',
+              '<': '&lt;',
+              '>': '&gt;',
+              '"': '&quot;',
+              "'": '&#39;',
+            })[character],
+        )
+      }
+
+      function composerOptions(key, choices) {
+        return choices
+          .map(
+            value => `<button class="menu-action" type="button"
+          data-composer-option="${key}" data-value="${value}"
+          aria-pressed="${state[key] === value}">${value}</button>`,
+          )
+          .join('')
+      }
+
+      function renderComposer(demo) {
+        const caret = icon('chevron-down', 'caret')
+        return `<form class="composer" id="composer" aria-label="Chat composer">
+          <div id="attached-context" class="row context-chip" hidden>
+            <span id="context-label"></span>
+            <button class="icon-button" type="button" aria-label="Remove context" data-remove-context>${icon('x')}</button>
+          </div>
+          <textarea rows="2" aria-label="Message" placeholder="${demo ? 'Refine these checks…' : 'What would you like to check?'}"></textarea>
+          <div class="composer-actions">
+            <div class="row composer-group">
+              <details class="composer-menu" name="composer-controls">
+                <summary class="icon-button" aria-label="Add context" title="Add context">${icon('plus')}</summary>
+                <div class="sort-menu">${composerOptions('context', ['Test case', 'Acceptance criteria', 'Run evidence'])}</div>
+              </details>
+              <details class="composer-menu" name="composer-controls">
+                <summary aria-label="Permissions"><span id="permission-label"></span>${caret}</summary>
+                <div class="sort-menu">${composerOptions('permission', ['Ask before running', 'Read only'])}</div>
+              </details>
+            </div>
+            <div class="row composer-group">
+              <details class="composer-menu" name="composer-controls">
+                <summary aria-label="Provider and model"><span id="provider-label"></span>${caret}</summary>
+                <div class="sort-menu">
+                  <p class="category">Provider</p>
+                  ${composerOptions('provider', ['ChatGPT', 'Claude Code'])}
+                  <p class="category">Model preference</p>
+                  ${composerOptions('model', ['Default', 'Fast'])}
+                  <p class="category">Reasoning effort</p>
+                  ${composerOptions('reasoning', ['Standard', 'High'])}
+                </div>
+              </details>
+              <button class="icon-button" type="button" aria-label="Dictate" title="Dictate" data-sample="Voice input">${icon('mic')}</button>
+              <button class="primary" id="send-or-stop" type="submit" aria-label="Send">${icon('arrow-up')}</button>
+            </div>
+          </div>
+        </form>`
+      }
+
+      function updateComposer() {
+        const form = main.querySelector('#composer')
+        form.querySelector('#permission-label').textContent = state.permission
+        const modelLabel = `${state.provider} · ${state.model}`
+        form.querySelector('#provider-label').textContent =
+          state.reasoning === 'Standard' ? modelLabel : `${modelLabel} · ${state.reasoning}`
+        form.querySelector('#context-label').textContent = state.context
+        form.querySelector('#attached-context').hidden = !state.context
+        const send = form.querySelector('#send-or-stop')
+        send.setAttribute('aria-label', state.responding ? 'Stop response' : 'Send')
+        send.title = state.responding ? 'Stop response' : 'Send'
+        send.innerHTML = state.responding ? '<span class="stop-indicator" aria-hidden="true"></span>' : icon('arrow-up')
+      }
+
+      function showSidebar(open) {
+        state.navClosed = !open
+        sidebar.dataset.mobileHidden = String(!open)
+      }
+
+      function renderChatList() {
+        const query = search.value.trim().toLowerCase()
+        areaList.innerHTML =
+          projects
+            .map(project => {
+              const matches = project.chats.filter(
+                ([title]) => title.toLowerCase().includes(query) || project.name.toLowerCase().includes(query),
+              )
+              if (!matches.length) return ''
+              if (state.sort === 'title') matches.sort(([left], [right]) => left.localeCompare(right))
+              const rows = matches
+                .map(([title, status]) => {
+                  const current = title === state.title && project.name === state.chatProject
+                  const marker =
+                    status === 'Interrupted'
+                      ? icon('circle-pause')
+                      : status
+                        ? `<span class="dot ${status === 'Running' ? 'running' : 'review'}" aria-hidden="true"></span>`
+                        : ''
+                  return `<button class="thread" data-chat="${escapeHtml(title)}"
+              data-project="${escapeHtml(project.name)}" data-status="${status ?? ''}"
+              ${current ? 'aria-current="page"' : ''}>
+                <span class="thread-title" title="${escapeHtml(title)}">${escapeHtml(title)}</span>
+                ${marker}<span class="sr-only">${status ?? ''}</span>
+              </button>`
+                })
+                .join('')
+              return `<details class="group" data-project-group="${escapeHtml(project.name)}"
+            ${query || !collapsedProjects.has(project.name) ? 'open' : ''}>
+            <summary>${icon('chevron-right', 'chevron')}${icon('folder')}${escapeHtml(project.name)}</summary>${rows}
+          </details>`
+            })
+            .join('') || '<p class="empty">No chats found.</p>'
+      }
+
+      function renderSidebar() {
+        document.querySelectorAll('[data-area]').forEach(button => {
+          if (button.dataset.area === state.area) button.setAttribute('aria-current', 'page')
+          else button.removeAttribute('aria-current')
+        })
+        const chats = state.area === 'chats'
+        chatTools.hidden = !chats
+        search.hidden = !chats || !state.searchOpen
+        if (!chats) sortMenu.open = false
+        searchToggle.setAttribute('aria-expanded', String(!search.hidden))
+
+        if (chats) {
+          areaList.setAttribute('aria-label', 'Project chats')
+          areaActions.innerHTML = `<button class="menu-action" data-new-chat>${icon('square-pen')}New chat</button>`
+          renderChatList()
+          return
+        }
+
+        areaList.setAttribute('aria-label', state.area)
+        const action = { workspace: 'New test case', integrations: 'Add connection' }[state.area]
+        areaActions.innerHTML = action
+          ? `<button class="menu-action" data-sample="${action}">${icon('plus')}${action}</button>`
+          : ''
+        if (state.area === 'workspace') {
+          areaActions.insertAdjacentHTML(
+            'beforeend',
+            `<select id="workspace-project" aria-label="Project">${projects
+              .map(
+                project =>
+                  `<option${project.name === state.project ? ' selected' : ''}>${escapeHtml(project.name)}</option>`,
+              )
+              .join('')}</select>`,
+          )
+        }
+        areaList.innerHTML = sections[state.area]
+          .map(
+            ([heading, items]) => `<section>
+          <h2 class="category">${heading}</h2>
+          ${items
+            .map(
+              title => `<button class="menu-action" data-page="${title}"
+            ${state.page === title ? 'aria-pressed="true"' : ''}>${title}</button>`,
+            )
+            .join('')}
+        </section>`,
+          )
+          .join('')
+      }
+
+      function renderMain() {
+        if (state.area !== 'chats') {
+          const subtitle = state.area === 'workspace' ? state.project : ''
+          const example =
+            state.page === 'Test cases'
+              ? `<table><thead><tr><th scope="col">Name</th><th scope="col">Steps</th></tr></thead>
+            <tbody><tr><td>Guest checkout with one item</td><td>4</td></tr><tr><td>Cart updates after quantity changes</td><td>5</td></tr></tbody></table>`
+              : ''
+          main.innerHTML = `<header class="row topbar"><div><h1>${escapeHtml(state.page)}</h1>
+            <small>${escapeHtml(subtitle)}</small></div></header><div class="list-content">${example}</div>`
+          return
+        }
+
+        const demo = state.title === 'Guest checkout' && state.chatProject === 'Northstar Store'
+        const status = demo && state.approved ? 'Criteria approved' : state.status
+        const messages = demo
+          ? `<p class="message"><small>You</small>Check that a guest can buy one item.</p>
+             <p class="message"><small>Appraise</small>I drafted two checks for guest checkout.</p>
+             <p class="message"><small>You</small>Also check that I get an order number.</p>
+             <p class="message"><small>Appraise</small>I added an order number check.</p>
+             <p class="row activity">${icon('circle-check')} Acceptance criteria · Revision 2</p>
+             <button class="menu-action artifact" data-inspect="open">${icon('panel-right')}View acceptance criteria</button>`
+          : ''
+        const inspector = demo
+          ? `<aside class="inspector" id="review-panel" aria-label="Acceptance criteria" ${state.inspector ? '' : 'hidden'}>
+          <div class="row"><h2>Acceptance criteria</h2><button class="icon-button" data-inspect="close" aria-label="Close review">${icon('x')}</button></div>
+          <small>Revision 2 · Staging · Chromium</small>
+          <ol><li>Add one in-stock item to the cart</li><li>Complete checkout as a guest</li><li>Show an order number on confirmation</li></ol>
+          <div class="row decision"><small>${state.approved ? 'Revision 2 approved' : 'Revision 2'}</small>
+            ${state.approved ? '' : '<button class="primary" data-approve>Approve criteria</button>'}</div>
+        </aside>`
+          : ''
+        main.innerHTML = `<header class="row topbar">
+          <div><h1>${escapeHtml(state.title)}</h1><small>${escapeHtml(state.chatProject)}${demo ? ' · Staging' : ''}</small></div>
+          <div class="row">${status ? `<small id="chat-status">${escapeHtml(status)}</small>` : ''}
+            ${
+              demo
+                ? `<button class="icon-button" data-inspect="toggle" aria-label="Toggle review" aria-controls="review-panel"
+              aria-expanded="${state.inspector}">${icon('panel-right')}</button>`
+                : ''
+            }
+          </div></header>
+          <div class="work"><section class="chat" aria-label="Conversation">
+            <div class="transcript"><div class="transcript-inner" id="messages">${messages}</div></div>
+            ${renderComposer(demo)}
+          </section>${inspector}</div>`
+        updateComposer()
+      }
+
+      document.addEventListener('click', event => {
+        const button = event.target.closest('button')
+        main.querySelectorAll('.composer-menu[open]').forEach(menu => {
+          if (!menu.contains(event.target)) menu.open = false
+        })
+        if (!button) {
+          if (!sortMenu.contains(event.target)) sortMenu.open = false
+          return
+        }
+        if (button.dataset.area) {
+          if (state.area === button.dataset.area && matchMedia('(max-width: 680px)').matches) {
+            showSidebar(state.navClosed)
+            return
+          }
+          state.area = button.dataset.area
+          state.page = sections[state.area]?.[0][1][0]
+          showSidebar(true)
+          renderSidebar()
+          sidebar.scrollTop = 0
+          renderMain()
+        }
+        if (button.dataset.sort) {
+          state.sort = button.dataset.sort
+          sortMenu
+            .querySelectorAll('button')
+            .forEach(option => option.setAttribute('aria-pressed', String(option === button)))
+          sortMenu.open = false
+          sortMenu.querySelector('summary').focus()
+          renderChatList()
+        }
+        if (button.dataset.chat) {
+          state.title = button.dataset.chat
+          state.project = button.dataset.project
+          state.chatProject = button.dataset.project
+          state.status = button.dataset.status
+          state.context = ''
+          state.responding = state.status === 'Running'
+          showSidebar(false)
+          areaList.querySelector('[aria-current]')?.removeAttribute('aria-current')
+          button.setAttribute('aria-current', 'page')
+          renderMain()
+        }
+        if (button.hasAttribute('data-new-chat')) {
+          state.title = 'New chat'
+          state.chatProject = state.project
+          state.status = ''
+          state.context = ''
+          state.responding = false
+          areaList.querySelector('[aria-current]')?.removeAttribute('aria-current')
+          showSidebar(false)
+          renderMain()
+          main.querySelector('textarea').focus()
+        }
+        if (button.dataset.page) {
+          state.page = button.dataset.page
+          areaList.querySelector('[aria-pressed]')?.removeAttribute('aria-pressed')
+          button.setAttribute('aria-pressed', 'true')
+          showSidebar(false)
+          renderMain()
+        }
+        if (button.dataset.sample) {
+          dialog.querySelector('h2').textContent = button.dataset.sample
+          dialog.showModal()
+        }
+        if (button.dataset.composerOption) {
+          const key = button.dataset.composerOption
+          state[key] = button.dataset.value
+          const menu = button.closest('details')
+          menu
+            .querySelectorAll(`[data-composer-option="${key}"]`)
+            .forEach(item => item.setAttribute('aria-pressed', String(item === button)))
+          menu.open = false
+          updateComposer()
+          menu.querySelector('summary').focus()
+        }
+        if (button.hasAttribute('data-remove-context')) {
+          state.context = ''
+          updateComposer()
+          main.querySelector('[aria-label="Add context"]').focus()
+        }
+        if (button.dataset.inspect) {
+          state.inspector =
+            button.dataset.inspect === 'open' || (button.dataset.inspect === 'toggle' && !state.inspector)
+          const panel = document.querySelector('#review-panel')
+          panel.hidden = !state.inspector
+          const toggle = document.querySelector('[aria-controls="review-panel"]')
+          toggle.setAttribute('aria-expanded', String(state.inspector))
+          if (panel.hidden && panel.contains(button)) toggle.focus()
+        }
+        if (button.hasAttribute('data-approve')) {
+          state.approved = true
+          renderMain()
+          announcement.textContent = 'Revision 2 approved in the mock.'
+        }
+      })
+
+      areaList.addEventListener(
+        'toggle',
+        event => {
+          const group = event.target.dataset.projectGroup
+          if (!group || search.value) return
+          if (event.target.open) collapsedProjects.delete(group)
+          else collapsedProjects.add(group)
+        },
+        true,
+      )
+
+      searchToggle.addEventListener('click', () => {
+        state.searchOpen = !state.searchOpen
+        search.hidden = !state.searchOpen
+        searchToggle.setAttribute('aria-expanded', String(state.searchOpen))
+        if (state.searchOpen) search.focus()
+        else {
+          search.value = ''
+          renderChatList()
+        }
+      })
+      search.addEventListener('input', renderChatList)
+      search.addEventListener('keydown', event => {
+        if (event.key === 'Escape') {
+          searchToggle.click()
+          searchToggle.focus()
+        }
+      })
+      sortMenu.addEventListener('keydown', event => {
+        if (event.key === 'Escape') {
+          sortMenu.open = false
+          sortMenu.querySelector('summary').focus()
+        }
+      })
+      sidebar.addEventListener('change', event => {
+        if (event.target.id === 'workspace-project') {
+          state.project = event.target.value
+          renderMain()
+        }
+      })
+      main.addEventListener('submit', event => {
+        if (event.target.id !== 'composer') return
+        event.preventDefault()
+        const input = event.target.querySelector('textarea')
+        if (state.responding) {
+          state.responding = false
+          if (state.status === 'Running') {
+            state.status = 'Interrupted'
+            const project = projects.find(project => project.name === state.chatProject)
+            const chat = project.chats.find(([title]) => title === state.title)
+            chat[1] = state.status
+            main.querySelector('#chat-status').textContent = state.status
+            renderChatList()
+          }
+          updateComposer()
+          announcement.textContent = 'Sample response stopped.'
+          input.focus()
+          return
+        }
+        const message = input.value.trim()
+        if (!message) return
+        const paragraph = document.createElement('p')
+        paragraph.className = 'message'
+        paragraph.innerHTML = `<small>You</small>${escapeHtml(message)}`
+        document.querySelector('#messages').append(paragraph)
+        paragraph.scrollIntoView({ block: 'nearest' })
+        input.value = ''
+        state.responding = true
+        updateComposer()
+        announcement.textContent = 'Sample response in progress.'
+        input.focus({ preventScroll: true })
+      })
+      main.addEventListener('keydown', event => {
+        if (event.key === 'Escape') {
+          const menu = main.querySelector('.composer-menu[open]')
+          if (menu) {
+            menu.open = false
+            menu.querySelector('summary').focus()
+          }
+        }
+      })
+
+      dialog.setAttribute('aria-labelledby', 'dialog-title')
+      renderSidebar()
+      renderMain()
+    </script>
+  </body>
+</html>

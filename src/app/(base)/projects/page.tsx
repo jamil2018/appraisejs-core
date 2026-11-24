@@ -1,10 +1,8 @@
 import type { Metadata } from 'next'
 
 import PageHeader from '@/components/typography/page-header'
-import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import { listTargetProjects } from '@/services/target-project/target-project-service'
 import { listLatestAgentPreflightReceipts } from '@/services/agent-preflight/agent-preflight-service'
-import { FolderGit2 } from 'lucide-react'
 
 import ProjectManagement from './project-management'
 import ProjectSelectionDialog from './project-selection-dialog'
@@ -45,15 +43,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams?: Pr
 
   return (
     <div className="space-y-4">
-      <div>
-        <PageHeader>
-          <span className="flex items-center gap-2">
-            <FolderGit2 aria-hidden="true" className="size-8" />
-            Projects
-          </span>
-        </PageHeader>
-        <HeaderSubtitle>Register and manage the workspaces isolated by AppraiseJS project ownership.</HeaderSubtitle>
-      </div>
+      <PageHeader>Projects</PageHeader>
       <ProjectManagement
         agentSetup={resolvedSearchParams?.agentSetup}
         highlightedProjectId={resolvedSearchParams?.project}

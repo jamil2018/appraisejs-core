@@ -41,14 +41,15 @@ These rules are the working baseline for Appraise UI refactors.
 
 ## Visual Language Contract
 
-AppraiseJS uses a dark graphite palette. The Journey brief, a populated Test Cases table, and a Run Report are the
+AppraiseJS defaults to a dark graphite palette and offers Light appearance in Settings. The Journey brief, a populated Test Cases table, and a Run Report are the
 reference screens for form, table, and report density. Use shared semantic tokens for solid canvas, panels, fields,
 borders, text, focus, and interaction states. Use a saturated blue fill with dark text for the main action. Use blue markers for navigation,
 keyboard focus, selection, and active or informational states. Use vivid emerald for confirmed success, amber for
 attention or decisions, and coral red for failures and destructive actions. Use solid tinted fills on actionable
 warnings and failures. Use distinct chart colors with readable data labels or summaries.
 
-- Use `app-glass` for the navigation shell and raised overlays. It owns the translucent fill, edge highlight, and
+- Use solid surfaces and dividers for the desktop rail and its second pane. Use `app-glass` for the mobile header
+  and raised overlays. It owns the translucent fill, edge highlight, and
   backdrop blur, with an opaque fallback for increased contrast, reduced transparency, forced colors, and browsers without
   blur.
   Give each overlay one material surface. Use solid fills within content.
@@ -58,17 +59,22 @@ warnings and failures. Use distinct chart colors with readable data labels or su
 - Appraise owns the wrappers in `src/components/ui`. Use Base UI for interaction semantics and compose custom triggers
   through `render`. Use shared variants and tokens for state, emphasis, and density. Give buttons explicit submit intent
   and source Select labels from option data so closed controls display the saved label on first render.
-- Keep `lg` and wider navigation as the desktop sidebar. Below `lg`, use the mobile navigation shell so content starts
+- Keep the icon-only app rail visible at `lg` and wider. Let users collapse or reopen the context pane from the rail. Give rail icons accessible names and
+  hover and focus tooltips. Keep branding and actions above the independently scrolling list. Below `lg`, use the mobile navigation shell so content starts
   in the first viewport; Sheet/Dialog controls must retain native focus trapping, Escape dismissal, and trigger focus
   restoration.
 - Use the shell's padded content column for page headers and primary workspace surfaces, including on wide displays.
   Keep local width limits for readable prose, compact controls, and secondary guidance. Use 16px between major
   sections in dense workspaces.
-- Keep the page heading visible when a collection is empty. Place the next action in a compact panel directly below it.
+- Keep the page heading visible when a collection is empty. Use a single primary action. Keep it in the title row
+  when it applies on populated and empty views, as in Test Cases. Use a compact panel for empty-state guidance.
 - For data tables, preserve table semantics and use a contained, keyboard-focusable horizontal scroll surface with a
   stable minimum width. Name scroll regions for the content they contain and row action menus for the record they
   operate on. Keep search, view controls, and actions on one toolbar when they fit. Let toolbars and pagination wrap
-  as needed while containing horizontal overflow in the table.
+  as needed while containing horizontal overflow in the table. Make an active search easy to clear. In the compact
+  toolbars, show selection actions for selected rows that match the current search. Pass the collection and actual
+  loaded project identity to `viewKey` for in-tab view restoration. Include normalized URL filters when they change
+  the table’s record universe. Keep table state within its qualified collection and project.
 - Keep picker search and footer actions reachable in short viewports. Let the results area scroll within the overlay
   so users can reach pagination while keeping the commit and cancel controls in view.
 - Compose forms as responsive content-and-guidance grids. Use full-width primary cards with a deliberate max-width or

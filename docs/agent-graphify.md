@@ -95,7 +95,9 @@ Good follow-up graph candidates:
 - `prisma/` has a schema-aware generator: run `npm run graphify:build:prisma` and commit
   `prisma/graphify-out/graph.json`, `prisma/graphify-out/graph.html`, and `prisma/graphify-out/GRAPH_REPORT.md`.
 - `scripts/` can be refreshed with `npm run graphify:build:scripts`; commit `scripts/graphify-out/graph.json`,
-  `scripts/graphify-out/graph.html`, and `scripts/graphify-out/GRAPH_REPORT.md`.
+  `scripts/graphify-out/graph.html`, and `scripts/graphify-out/GRAPH_REPORT.md`. An existing graph supports
+  code-only refresh without a Gemini/Google key while retaining semantic nodes. Set
+  `GRAPHIFY_VIZ_NODE_LIMIT` above the node count to refresh the HTML for this larger scope.
 - `packages/` can be refreshed with `npm run graphify:build:packages`; the graph excludes
   `packages/create-appraisejs/templates/`, package docs, package `dist/`, package `node_modules/`, and nested graph
   outputs. Package agent-skill Markdown remains graphable. If the terminal builder reports that semantic extraction is

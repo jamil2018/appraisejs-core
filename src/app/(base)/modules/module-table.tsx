@@ -1,26 +1,26 @@
+import { deleteModuleAction } from '@/actions/modules/module-actions'
 import { DataTable } from '@/components/ui/data-table'
-import { getAllModulesAction, deleteModuleAction } from '@/actions/modules/module-actions'
-import { moduleTableCols } from './module-table-columns'
-import { getModuleTableRows } from './module-helpers'
 
-const ModuleTable = async () => {
-  const { data: modules } = await getAllModulesAction()
-  const moduleRows = getModuleTableRows(modules)
+import type { ModuleTableRow } from './module-helpers'
+import { moduleTableCols } from './module-table-columns'
+
+export default function ModuleTable({ rows }: { rows: ModuleTableRow[] }) {
+  const projectId = rows[0]?.targetProjectId
+  const viewKey = typeof projectId === 'string' && projectId ? `modules:${projectId}` : undefined
 
   return (
-    <>
-      <DataTable
-        tableLabel="Modules"
-        columns={moduleTableCols}
-        data={moduleRows}
-        filterColumn="name"
-        filterPlaceholder="Filter by name..."
-        createLink="/modules/create"
-        modifyLink="/modules/modify"
-        deleteAction={deleteModuleAction}
-      />
-    </>
+    <DataTable
+      key={viewKey}
+      viewKey={viewKey}
+      tableLabel="Modules"
+      columns={moduleTableCols}
+      data={rows}
+      filterColumn="name"
+      filterPlaceholder="Search modules"
+      modifyLink="/modules/modify"
+      deleteAction={deleteModuleAction}
+      density="compact"
+      initialColumnVisibility={{ createdAt: false }}
+    />
   )
 }
-
-export default ModuleTable

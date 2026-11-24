@@ -24,6 +24,7 @@ const COLLECTION_ROUTES = new Set([
 
 function equivalentProjectRoute(pathname: string) {
   const [segment] = pathname.split('/').filter(Boolean)
+  if (segment === 'quality-journeys' && pathname !== '/quality-journeys/new') return '/quality-journeys'
   return segment && COLLECTION_ROUTES.has(segment) ? `/${segment}` : pathname
 }
 

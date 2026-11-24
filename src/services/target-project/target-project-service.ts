@@ -380,6 +380,15 @@ export async function deleteTargetProject(
     if (plan.imports.length) assertTargetDeletionCount(await tx.projectResourceImport.deleteMany({
       where: { id: { in: [...plan.imports] } },
     }), plan.imports.length)
+    if (plan.conversationReads.length) assertTargetDeletionCount(await tx.projectConversationRead.deleteMany({
+      where: { id: { in: [...plan.conversationReads] }, conversationId: { in: [...plan.conversations] } },
+    }), plan.conversationReads.length)
+    if (plan.conversationMessages.length) assertTargetDeletionCount(await tx.projectConversationMessage.deleteMany({
+      where: { id: { in: [...plan.conversationMessages] }, conversationId: { in: [...plan.conversations] } },
+    }), plan.conversationMessages.length)
+    if (plan.conversations.length) assertTargetDeletionCount(await tx.projectConversation.deleteMany({
+      where: { id: { in: [...plan.conversations] }, targetProjectId: id },
+    }), plan.conversations.length)
     if (plan.ownerships.length) assertTargetDeletionCount(await tx.projectResourceOwnership.deleteMany({
       where: { id: { in: [...plan.ownerships] }, targetProjectId: id },
     }), plan.ownerships.length)

@@ -1,5 +1,6 @@
-// Inert owned Node protocol fixture. Only stdio; never reads credentials or opens a network connection.
+// Inert owned Node protocol fixture. Uses stdio and a disposable test marker. Never reads credentials or opens a network connection.
 /* eslint-disable @typescript-eslint/no-require-imports -- Direct CommonJS executable fixture. */
+const { existsSync } = require('node:fs')
 const readline = require('node:readline')
 const send = value => process.stdout.write(JSON.stringify(value) + '\n')
 const warning = { method: 'configWarning', params: { summary: startupWarning } }
@@ -40,7 +41,14 @@ function configuration(request) {
     pendingAccountSuffix = ''
   }
   send({ id: request.id, result: safeConfiguration })
-  if (startupScenario === 'premature-reply') setTimeout(() => send({ id: 3, result: {} }), 25)
+  if (startupScenario === 'premature-reply') {
+    const timer = setInterval(() => {
+      if (!existsSync('release-premature-reply')) return
+      clearInterval(timer)
+      send({ id: 3, result: {} })
+    }, 5)
+    timer.unref()
+  }
 }
 function thread(request) {
   if (

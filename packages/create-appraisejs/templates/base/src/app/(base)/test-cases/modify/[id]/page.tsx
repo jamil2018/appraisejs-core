@@ -1,9 +1,12 @@
+import { DiscussRecordLink } from '@/components/navigation/discuss-record-link'
 import AuthoringLoadError from '@/components/data-state/authoring-load-error'
 import { getTestCaseByIdAction, updateTestCaseAction } from '@/actions/test-case/test-case-actions'
 import React from 'react'
+import Link from 'next/link'
 import TestCaseForm from '../../test-case-form'
-import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import PageHeader from '@/components/typography/page-header'
+import { Button } from '@/components/ui/button'
+import { journeyRecordBriefHref } from '@/lib/quality-journey/record-context'
 import { createTagAction } from '@/actions/tags/tag-actions'
 import { createTestSuiteAction } from '@/actions/test-suite/test-suite-actions'
 import { Metadata } from 'next'
@@ -23,6 +26,36 @@ import {
 export const metadata: Metadata = {
   title: 'Appraise | Modify Test Case',
   description: 'Modify a test case',
+}
+
+function TestCaseEditorHeader({
+  testCase,
+}: {
+  testCase: Pick<NonNullable<ReturnType<typeof getEditableTestCase>>, 'id' | 'title' | 'targetProjectId'>
+}) {
+  return (
+    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <div className="min-w-0">
+        <PageHeader>Modify Test Case</PageHeader>
+        <p className="truncate text-sm text-muted-foreground">{testCase.title}</p>
+      </div>
+      {testCase.targetProjectId && (
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            nativeButton={false}
+            render={
+              <Link href={journeyRecordBriefHref(testCase.targetProjectId, { kind: 'test-case', id: testCase.id })} />
+            }
+          >
+            Use in a Journey
+          </Button>
+          <DiscussRecordLink projectId={testCase.targetProjectId} reference={{ kind: 'test-case', id: testCase.id }} />
+        </div>
+      )}
+    </div>
+  )
 }
 
 const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) => {
@@ -78,10 +111,7 @@ const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) =
 
   return (
     <>
-      <div className="mb-4">
-        <PageHeader>Modify Test Case</PageHeader>
-        <HeaderSubtitle>Modify a test case</HeaderSubtitle>
-      </div>
+      <TestCaseEditorHeader testCase={testCase} />
       <TestCaseForm
         onSubmitAction={updateTestCaseAction}
         id={id}

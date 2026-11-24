@@ -1,3 +1,4 @@
+import { createHash, randomUUID } from 'node:crypto'
 import {
   BrowserEngine,
   StepKeyword,
@@ -9,11 +10,18 @@ import {
   TestRunStatus,
   TestRunTestCaseResult,
   TestRunTestCaseStatus,
+  type Prisma,
 } from '@prisma/client'
+import type { Page } from '@playwright/test'
 
 import prisma from '../../src/config/db-config'
 import { StepDefinitionRegistryService } from '../../src/services/step-definition/step-definition-registry-service'
 import { builtInStepDefinitions, computeStepReferenceHash } from '../../packages/cucumber-runtime/src/step-definitions'
+import { sharedResourceKinds, type SharedResourceKind } from '../../src/lib/quality-journey/shared-resource-contract'
+import {
+  initializeNewTargetSharedResourceCoverage,
+  reserveSharedResourceInsert,
+} from '../../src/services/coordinator/quality-journey-shared-resource-guard-service'
 
 export const seededIds = {
   targetProject: '00000000-0000-4000-8000-000000000001',
@@ -48,6 +56,7 @@ export const seededIds = {
   runningTestRun: 'e2e-running-run',
   runningTestRunRunId: 'e2e-running-run-id',
 }
+const defaultSeededIds = { ...seededIds }
 
 function seededNavigationInvocation() {
   const definition = builtInStepDefinitions.find(item => item.identity.id === seededIds.stepDefinition)
@@ -64,6 +73,7 @@ function seededNavigationInvocation() {
 }
 
 export async function resetE2eData(): Promise<void> {
+  Object.assign(seededIds, defaultSeededIds)
   await prisma.$transaction([
     prisma.reportStep.deleteMany(),
     prisma.reportHook.deleteMany(),
@@ -100,20 +110,146 @@ export async function resetE2eData(): Promise<void> {
   ])
 }
 
-export async function seedEmptyProject(): Promise<void> {
-  await prisma.targetProject.create({
-    data: {
-      id: seededIds.targetProject,
-      kind: 'LOCAL_WORKSPACE',
-      canonicalIdentity: 'workspace:/e2e/appraisejs',
-      canonicalPath: '/e2e/appraisejs',
-      displayName: 'E2E AppraiseJS',
-      fingerprint: 'e2e-appraisejs-fixture',
+export async function resetGuardedAuthoringE2eData(page: Page): Promise<void> {
+  await resetE2eData()
+  // The M06 retained guard/coverage triggers prohibit fixture identity reuse.
+  // Each guarded browser test gets a fresh project and finite root set.
+  for (const key of Object.keys(seededIds) as (keyof typeof seededIds)[]) {
+    if (key !== 'stepDefinition') seededIds[key] = `e2e-${key}-${randomUUID()}`
+  }
+  seededIds.targetProject = randomUUID()
+  await page.context().addCookies([
+    {
+      name: 'appraise-active-project',
+      value: seededIds.targetProject,
+      url: process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${process.env.E2E_PORT ?? 3200}`,
     },
+  ])
+}
+
+export async function seedEmptyProject(guarded = false): Promise<void> {
+  if (!guarded) {
+    await prisma.targetProject.create({
+      data: {
+        id: seededIds.targetProject,
+        kind: 'LOCAL_WORKSPACE',
+        canonicalIdentity: 'workspace:/e2e/appraisejs',
+        canonicalPath: '/e2e/appraisejs',
+        displayName: 'E2E AppraiseJS',
+        fingerprint: 'e2e-appraisejs-fixture',
+      },
+    })
+    return
+  }
+  await prisma.$transaction(async tx => {
+    await initializeNewTargetSharedResourceCoverage(tx, seededIds.targetProject)
+    await tx.targetProject.create({
+      data: {
+        id: seededIds.targetProject,
+        kind: 'LOCAL_WORKSPACE',
+        canonicalIdentity: `workspace:/e2e/appraisejs/${seededIds.targetProject}`,
+        canonicalPath: `/e2e/appraisejs/${seededIds.targetProject}`,
+        displayName: 'E2E AppraiseJS',
+        fingerprint: `e2e-appraisejs-fixture-${seededIds.targetProject}`,
+      },
+    })
   })
 }
 
-export async function seedCoreData(): Promise<void> {
+async function seedRoot(
+  guarded: boolean,
+  kind: SharedResourceKind,
+  resourceId: string,
+  insert: (tx: Prisma.TransactionClient) => Promise<unknown>,
+): Promise<void> {
+  if (!guarded) {
+    await insert(prisma)
+    return
+  }
+  await prisma.$transaction(async tx => {
+    await reserveSharedResourceInsert(tx, seededIds.targetProject, { kind, resourceId })
+    await insert(tx)
+  })
+}
+
+async function completeSyntheticSeedCoverage(): Promise<void> {
+  // Fixture-only Journey-free proof for the finite authored roots below. This
+  // is never called by product code or used as a production coverage issuer.
+  const digest = (value: string) => createHash('sha256').update(value).digest('hex')
+  const census: Record<SharedResourceKind, string[]> = {
+    MODULE: [seededIds.module, seededIds.secondModule],
+    LOCATOR_GROUP: [seededIds.locatorGroup],
+    LOCATOR: [seededIds.locator],
+    TEST_CASE: [seededIds.testCase, seededIds.secondTestCase],
+    TEST_SUITE: [seededIds.testSuite, seededIds.secondTestSuite],
+  }
+  await prisma.$transaction(async tx => {
+    const scope = { targetProjectId: seededIds.targetProject }
+    const [journey, use, claim, ensureReceipt] = await Promise.all([
+      tx.qualityJourney.findFirst({ where: scope, select: { id: true } }),
+      tx.qualityJourneySharedResourceUse.findFirst({ where: scope, select: { id: true } }),
+      tx.qualityJourneySharedResourceClaim.findFirst({ where: scope, select: { id: true } }),
+      tx.qualityJourneyLocatorEnsureReceipt.findFirst({ where: scope, select: { id: true } }),
+    ])
+    if (journey || use || claim || ensureReceipt)
+      throw new Error('Synthetic E2E coverage requires a Journey-free fixture')
+    for (const kind of sharedResourceKinds) {
+      const resourceIds = census[kind].sort()
+      const actualIds = (
+        kind === 'MODULE'
+          ? await tx.module.findMany({ where: { targetProjectId: seededIds.targetProject }, select: { id: true } })
+          : kind === 'LOCATOR_GROUP'
+            ? await tx.locatorGroup.findMany({
+                where: { targetProjectId: seededIds.targetProject },
+                select: { id: true },
+              })
+            : kind === 'LOCATOR'
+              ? await tx.locator.findMany({ where: { targetProjectId: seededIds.targetProject }, select: { id: true } })
+              : kind === 'TEST_CASE'
+                ? await tx.testCase.findMany({
+                    where: { targetProjectId: seededIds.targetProject },
+                    select: { id: true },
+                  })
+                : await tx.testSuite.findMany({
+                    where: { targetProjectId: seededIds.targetProject },
+                    select: { id: true },
+                  })
+      )
+        .map(row => row.id)
+        .sort()
+      if (JSON.stringify(actualIds) !== JSON.stringify(resourceIds))
+        throw new Error(`Synthetic E2E ${kind} census differs from seeded roots`)
+      const guards = await tx.qualityJourneySharedResourceGuard.findMany({
+        where: { targetProjectId: seededIds.targetProject, kind },
+        select: { resourceId: true, resourceState: true },
+      })
+      if (
+        JSON.stringify(guards.map(row => row.resourceId).sort()) !== JSON.stringify(resourceIds) ||
+        guards.some(row => row.resourceState !== 'LIVE')
+      )
+        throw new Error(`Synthetic E2E ${kind} guards differ from seeded roots`)
+      await tx.qualityJourneySharedResourceCoverage.update({
+        where: {
+          targetProjectId_kind_protocolVersion: { targetProjectId: seededIds.targetProject, kind, protocolVersion: 1 },
+        },
+        data: {
+          state: 'COMPLETE',
+          epoch: { increment: 1 },
+          proofKind: 'JOURNEY_FREE_V1',
+          completedAt: new Date(),
+          writerClosureDigest: digest(`SYNTHETIC_E2E_ONLY:writer:${kind}`),
+          readerClosureDigest: digest(`SYNTHETIC_E2E_ONLY:reader:${kind}`),
+          sourceUniverseDigest: digest(
+            JSON.stringify({ syntheticOnly: true, targetProjectId: seededIds.targetProject, kind, resourceIds }),
+          ),
+          reconciliationDigest: digest(`SYNTHETIC_E2E_ONLY:no-Journey:${seededIds.targetProject}:${kind}`),
+        },
+      })
+    }
+  })
+}
+
+export async function seedCoreData(guarded = false): Promise<void> {
   const now = new Date('2026-01-01T00:00:00.000Z')
   const completedAt = new Date('2026-01-01T00:00:04.000Z')
   const stepRegistry = new StepDefinitionRegistryService(prisma)
@@ -121,15 +257,17 @@ export async function seedCoreData(): Promise<void> {
     await stepRegistry.registerBuiltIn(definition, 'e2e-source-conformance')
   const navigationInvocationJson = JSON.stringify(seededNavigationInvocation())
 
-  await seedEmptyProject()
+  await seedEmptyProject(guarded)
 
-  await prisma.module.create({
-    data: {
-      id: seededIds.module,
-      name: 'E2E Auth',
-      targetProjectId: seededIds.targetProject,
-    },
-  })
+  await seedRoot(guarded, 'MODULE', seededIds.module, tx =>
+    tx.module.create({
+      data: {
+        id: seededIds.module,
+        name: 'E2E Auth',
+        targetProjectId: seededIds.targetProject,
+      },
+    }),
+  )
 
   await prisma.environment.create({
     data: {
@@ -154,75 +292,83 @@ export async function seedCoreData(): Promise<void> {
     },
   })
 
-  await prisma.locatorGroup.create({
-    data: {
-      id: seededIds.locatorGroup,
-      name: 'E2E Login Page',
-      route: '/login',
-      moduleId: seededIds.module,
-      targetProjectId: seededIds.targetProject,
-    },
-  })
-
-  await prisma.locator.create({
-    data: {
-      id: seededIds.locator,
-      name: 'E2E Sign In Button',
-      value: 'text=Sign in',
-      locatorGroupId: seededIds.locatorGroup,
-      targetProjectId: seededIds.targetProject,
-    },
-  })
-
-  await prisma.testCase.create({
-    data: {
-      id: seededIds.testCase,
-      title: 'E2E seeded login works',
-      description: 'Seeded login smoke case',
-      targetProjectId: seededIds.targetProject,
-      tags: {
-        connect: [{ id: seededIds.tag }],
+  await seedRoot(guarded, 'LOCATOR_GROUP', seededIds.locatorGroup, tx =>
+    tx.locatorGroup.create({
+      data: {
+        id: seededIds.locatorGroup,
+        name: 'E2E Login Page',
+        route: '/login',
+        moduleId: seededIds.module,
+        targetProjectId: seededIds.targetProject,
       },
-      steps: {
-        create: [
-          {
-            id: seededIds.testCaseStep,
-            order: 0,
-            gherkinStep: 'When the user navigates to the / url',
-            icon: StepIcon.NAVIGATION,
-            label: 'Navigate to URL',
-            invocationJson: navigationInvocationJson,
-            parameters: {
-              create: [
-                {
-                  name: 'url',
-                  value: '/',
-                  order: 0,
-                  type: StepParameterType.STRING,
-                },
-              ],
+    }),
+  )
+
+  await seedRoot(guarded, 'LOCATOR', seededIds.locator, tx =>
+    tx.locator.create({
+      data: {
+        id: seededIds.locator,
+        name: 'E2E Sign In Button',
+        value: 'text=Sign in',
+        locatorGroupId: seededIds.locatorGroup,
+        targetProjectId: seededIds.targetProject,
+      },
+    }),
+  )
+
+  await seedRoot(guarded, 'TEST_CASE', seededIds.testCase, tx =>
+    tx.testCase.create({
+      data: {
+        id: seededIds.testCase,
+        title: 'E2E seeded login works',
+        description: 'Seeded login smoke case',
+        targetProjectId: seededIds.targetProject,
+        tags: {
+          connect: [{ id: seededIds.tag }],
+        },
+        steps: {
+          create: [
+            {
+              id: seededIds.testCaseStep,
+              order: 0,
+              gherkinStep: 'When the user navigates to the / url',
+              icon: StepIcon.NAVIGATION,
+              label: 'Navigate to URL',
+              invocationJson: navigationInvocationJson,
+              parameters: {
+                create: [
+                  {
+                    name: 'url',
+                    value: '/',
+                    order: 0,
+                    type: StepParameterType.STRING,
+                  },
+                ],
+              },
             },
-          },
-        ],
+          ],
+        },
       },
-    },
-  })
+    }),
+  )
 
-  await prisma.testSuite.create({
-    data: {
-      id: seededIds.testSuite,
-      name: 'E2E Auth Suite',
-      description: 'Seeded suite for E2E feature generation',
-      moduleId: seededIds.module,
-      targetProjectId: seededIds.targetProject,
-      tags: {
-        connect: [{ id: seededIds.tag }],
+  await seedRoot(guarded, 'TEST_SUITE', seededIds.testSuite, tx =>
+    tx.testSuite.create({
+      data: {
+        id: seededIds.testSuite,
+        name: 'E2E Auth Suite',
+        description: 'Seeded suite for E2E feature generation',
+        moduleId: seededIds.module,
+        targetProjectId: seededIds.targetProject,
+        tags: {
+          connect: [{ id: seededIds.tag }],
+        },
+        testCases: {
+          connect: [{ id: seededIds.testCase }],
+        },
       },
-      testCases: {
-        connect: [{ id: seededIds.testCase }],
-      },
-    },
-  })
+    }),
+  )
 
   await prisma.testRun.create({
     data: {
@@ -342,7 +488,8 @@ export async function seedCoreData(): Promise<void> {
   })
 
   await seedTemplateCatalog(navigationInvocationJson)
-  await seedSecondModuleSuite()
+  await seedSecondModuleSuite(guarded)
+  if (guarded) await completeSyntheticSeedCoverage()
   await seedTestRunVariants()
   await seedDashboardAttentionMetrics()
 }
@@ -382,74 +529,82 @@ export async function seedTemplateCatalog(
   })
 }
 
-export async function seedInvalidTopologyTestCase(): Promise<void> {
+export async function seedInvalidTopologyTestCase(guarded = false): Promise<void> {
   const invocationJson = JSON.stringify(seededNavigationInvocation())
   const nodeIds = ['e2e-invalid-topology-first', 'e2e-invalid-topology-middle', 'e2e-invalid-topology-last']
 
-  await prisma.testCase.create({
-    data: {
-      id: seededIds.invalidTopologyTestCase,
-      title: 'E2E Invalid Topology Case',
-      description: 'Persisted malformed flow block used to verify browser-facing rejection.',
-      targetProjectId: seededIds.targetProject,
-      steps: {
-        create: nodeIds.map((flowNodeId, order) => ({
-          id: `e2e-invalid-topology-step-${order + 1}`,
-          flowNodeId,
-          order,
-          gherkinStep: 'When the user navigates to the / url',
-          icon: StepIcon.NAVIGATION,
-          label: 'Navigate to URL',
-          invocationJson,
-          parameters: {
-            create: [{ name: 'url', value: '/', order: 0, type: StepParameterType.STRING }],
-          },
-        })),
-      },
-      flowBlocks: {
-        create: {
-          id: 'e2e-invalid-topology-block',
-          name: 'Malformed setup',
-          order: 0,
-          nodes: {
-            create: [{ flowNodeId: nodeIds[0]! }, { flowNodeId: nodeIds[2]! }],
+  await seedRoot(guarded, 'TEST_CASE', seededIds.invalidTopologyTestCase, tx =>
+    tx.testCase.create({
+      data: {
+        id: seededIds.invalidTopologyTestCase,
+        title: 'E2E Invalid Topology Case',
+        description: 'Persisted malformed flow block used to verify browser-facing rejection.',
+        targetProjectId: seededIds.targetProject,
+        steps: {
+          create: nodeIds.map((flowNodeId, order) => ({
+            id: `e2e-invalid-topology-step-${order + 1}`,
+            flowNodeId,
+            order,
+            gherkinStep: 'When the user navigates to the / url',
+            icon: StepIcon.NAVIGATION,
+            label: 'Navigate to URL',
+            invocationJson,
+            parameters: {
+              create: [{ name: 'url', value: '/', order: 0, type: StepParameterType.STRING }],
+            },
+          })),
+        },
+        flowBlocks: {
+          create: {
+            id: 'e2e-invalid-topology-block',
+            name: 'Malformed setup',
+            order: 0,
+            nodes: {
+              create: [{ flowNodeId: nodeIds[0]! }, { flowNodeId: nodeIds[2]! }],
+            },
           },
         },
       },
-    },
-  })
+    }),
+  )
 }
 
-export async function seedSecondModuleSuite(): Promise<void> {
-  await prisma.module.create({
-    data: {
-      id: seededIds.secondModule,
-      name: 'E2E Secondary',
-      targetProjectId: seededIds.targetProject,
-    },
-  })
-
-  await prisma.testCase.create({
-    data: {
-      id: seededIds.secondTestCase,
-      title: 'E2E secondary case',
-      description: 'Secondary module assignment case',
-      targetProjectId: seededIds.targetProject,
-    },
-  })
-
-  await prisma.testSuite.create({
-    data: {
-      id: seededIds.secondTestSuite,
-      name: 'E2E Secondary Suite',
-      description: 'Suite for assignment coverage',
-      moduleId: seededIds.secondModule,
-      targetProjectId: seededIds.targetProject,
-      testCases: {
-        connect: [{ id: seededIds.secondTestCase }],
+export async function seedSecondModuleSuite(guarded = false): Promise<void> {
+  await seedRoot(guarded, 'MODULE', seededIds.secondModule, tx =>
+    tx.module.create({
+      data: {
+        id: seededIds.secondModule,
+        name: 'E2E Secondary',
+        targetProjectId: seededIds.targetProject,
       },
-    },
-  })
+    }),
+  )
+
+  await seedRoot(guarded, 'TEST_CASE', seededIds.secondTestCase, tx =>
+    tx.testCase.create({
+      data: {
+        id: seededIds.secondTestCase,
+        title: 'E2E secondary case',
+        description: 'Secondary module assignment case',
+        targetProjectId: seededIds.targetProject,
+      },
+    }),
+  )
+
+  await seedRoot(guarded, 'TEST_SUITE', seededIds.secondTestSuite, tx =>
+    tx.testSuite.create({
+      data: {
+        id: seededIds.secondTestSuite,
+        name: 'E2E Secondary Suite',
+        description: 'Suite for assignment coverage',
+        moduleId: seededIds.secondModule,
+        targetProjectId: seededIds.targetProject,
+        testCases: {
+          connect: [{ id: seededIds.secondTestCase }],
+        },
+      },
+    }),
+  )
 }
 
 export async function seedTestRunVariants(): Promise<void> {

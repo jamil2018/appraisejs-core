@@ -1,33 +1,26 @@
+import { deleteTestSuiteAction } from '@/actions/test-suite/test-suite-actions'
 import { DataTable } from '@/components/ui/data-table'
-import React from 'react'
+
+import type { TestSuiteTableRow } from './test-suite-helpers'
 import { testSuiteTableCols } from './test-suite-table-columns'
-import { getAllTestSuitesAction, deleteTestSuiteAction } from '@/actions/test-suite/test-suite-actions'
 
-import { getTestSuiteTableRows } from './test-suite-helpers'
-
-const TestSuiteTable = async () => {
-  const { data: testSuites, error: testSuitesError } = await getAllTestSuitesAction()
-
-  if (testSuitesError) {
-    return <div>Error: {testSuitesError}</div>
-  }
-
-  const rows = getTestSuiteTableRows(testSuites)
+export default function TestSuiteTable({ rows }: { rows: TestSuiteTableRow[] }) {
+  const projectId = rows[0]?.targetProjectId
+  const viewKey = typeof projectId === 'string' && projectId ? `test-suites:${projectId}` : undefined
 
   return (
-    <>
-      <DataTable
-        tableLabel="Test suites"
-        columns={testSuiteTableCols}
-        data={rows}
-        filterColumn="name"
-        filterPlaceholder="Filter by name..."
-        createLink="/test-suites/create"
-        modifyLink="/test-suites/modify"
-        deleteAction={deleteTestSuiteAction}
-      />
-    </>
+    <DataTable
+      key={viewKey}
+      viewKey={viewKey}
+      tableLabel="Test suites"
+      columns={testSuiteTableCols}
+      data={rows}
+      filterColumn="name"
+      filterPlaceholder="Search test suites"
+      modifyLink="/test-suites/modify"
+      deleteAction={deleteTestSuiteAction}
+      density="compact"
+      initialColumnVisibility={{ description: false, createdAt: false }}
+    />
   )
 }
-
-export default TestSuiteTable

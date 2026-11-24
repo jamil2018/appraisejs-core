@@ -10508,6 +10508,45 @@
         "idempotentHint": true,
         "openWorldHint": true
       }
+    },
+    {
+      "kind": "tool",
+      "name": "workspace_record_search",
+      "description": "Find up to eight matching case, suite, template, run, or report summaries in the requested Appraise project.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "TEST_CASE",
+              "TEST_SUITE",
+              "CASE_TEMPLATE",
+              "TEST_RUN",
+              "REPORT"
+            ]
+          },
+          "query": {
+            "type": "string",
+            "maxLength": 160
+          }
+        },
+        "required": [
+          "target",
+          "kind"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false
+      }
     }
   ]
 }

@@ -514,11 +514,90 @@ model TargetProject {
   qualityJourneyExecutionCycles          QualityJourneyExecutionCycle[]
   qualityJourneyCoordinatorHandoffs      QualityJourneyCoordinatorHandoff[]
   collaborationBinding                   CollaborationBinding?
+  conversations                          ProjectConversation[]
 
   @@index([displayName])
   @@index([canonicalPath])
   @@index([normalizedRemoteOrigin])
   @@index([fingerprint])
+}
+
+enum ProjectConversationRole {
+  USER
+  APPRAISE
+}
+
+enum ProjectConversationReadProvider {
+  LOCAL
+  CHATGPT
+}
+
+enum ProjectConversationChatGptEngine {
+  RESPONSES
+  CODEX
+}
+
+enum ProjectConversationReadState {
+  RUNNING
+  COMPLETED
+  FAILED
+  UNKNOWN
+}
+
+model ProjectConversation {
+  id              String                       @id @default(uuid())
+  targetProjectId String
+  targetProject   TargetProject                @relation(fields: [targetProjectId], references: [id], onDelete: Restrict)
+  title           String
+  initialIdempotencyKey String?
+  nextOrdinal     Int                          @default(1)
+  createdAt       DateTime                     @default(now())
+  updatedAt       DateTime                     @updatedAt
+  messages        ProjectConversationMessage[]
+  readProvider    ProjectConversationReadProvider @default(LOCAL)
+  chatGptEngine   ProjectConversationChatGptEngine @default(RESPONSES)
+
+  @@index([targetProjectId, updatedAt, id])
+  @@unique([targetProjectId, initialIdempotencyKey])
+}
+
+model ProjectConversationMessage {
+  id             String                  @id @default(uuid())
+  conversationId String
+  conversation   ProjectConversation     @relation(fields: [conversationId], references: [id], onDelete: Restrict)
+  ordinal        Int
+  role           ProjectConversationRole
+  content        String
+  contextJson    String?
+  recordsJson    String?
+  turnId         String
+  idempotencyKey String?
+  requestHash    String?
+  createdAt      DateTime                @default(now())
+  providerReads  ProjectConversationRead[]
+
+  @@unique([conversationId, ordinal])
+  @@unique([conversationId, idempotencyKey])
+  @@unique([conversationId, id])
+  @@index([conversationId, turnId])
+}
+
+model ProjectConversationRead {
+  id                    String                       @id @default(uuid())
+  conversationId        String
+  messageId             String
+  message               ProjectConversationMessage   @relation(fields: [conversationId, messageId], references: [conversationId, id], onDelete: Restrict)
+  provider              ProjectConversationReadProvider
+  engine                ProjectConversationChatGptEngine @default(RESPONSES)
+  state                 ProjectConversationReadState
+  blockedConversationId String?                      @unique
+  createdAt             DateTime                     @default(now())
+  expiresAt             DateTime
+  settledAt             DateTime?
+  releasedAt            DateTime?
+  recordsJson           String?
+
+  @@unique([conversationId, messageId, provider])
 }
 
 model QualityJourney {

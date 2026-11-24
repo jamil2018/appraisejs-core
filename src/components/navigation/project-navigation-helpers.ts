@@ -10,6 +10,8 @@ export type ProjectNavigationProps = {
   cookieProjectId?: string
 }
 
+export const emptyNavigationProjects: NonNullable<ProjectNavigationProps['projects']> = []
+
 export function isNavigationItemActive(pathname: string, href: string) {
   return href === '/' ? pathname === '/' : pathname.startsWith(href)
 }
@@ -36,6 +38,7 @@ export function useProjectNavigationState({
   const searchParams = useSearchParams()
   return {
     pathname,
+    searchParams,
     projectId: resolveNavigationProjectId(projects, searchParams.get('project'), cookieProjectId),
     sections: getSidebarNavigationSections({ providerRunsEnabled }),
   }

@@ -15,3 +15,8 @@ The investigation used one read-only evidence lane and coordinator implementatio
 do not prove effective model, context isolation or sandbox enforcement. The local route command initially rejected
 an unsupported task-class value; the corrected `localized-fix` receipt records that tooling correction without changing
 the router or manufacturing runtime proof. Detailed evidence: [M12 follow-up](../../../tasks/codex-app-server-journeys/M12-POST-MERGE-CI.md).
+
+The chat-first browser suite exposed a separate setup issue. Retained resource guards outlive a fixture reset,
+so reusing the same authored root IDs made legacy write tests fail their coverage checks. The affected browser
+specs now opt into fresh project and root IDs and seed synthetic guard coverage in the disposable database.
+They exercise the existing product guards. That fixture coverage says nothing about a real project's Journey history.

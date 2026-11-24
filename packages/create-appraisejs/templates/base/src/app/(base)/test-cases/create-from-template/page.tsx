@@ -1,6 +1,4 @@
 import PageHeader from '@/components/typography/page-header'
-import HeaderSubtitle from '@/components/typography/page-header-subtitle'
-import { LayoutPanelTop } from 'lucide-react'
 import React from 'react'
 import { Metadata } from 'next'
 import { getTestCaseFormRouteResources, getTestCaseRouteLoadError } from '../test-case-route-resource-helpers'
@@ -55,14 +53,8 @@ const CreateTestCaseFromTemplate = async ({
 
   return (
     <div>
-      <div className="mb-4">
-        <PageHeader>
-          <span className="flex items-center">
-            <LayoutPanelTop className="mr-2 size-8" />
-            Create Test Case From Template
-          </span>
-        </PageHeader>
-        <HeaderSubtitle>Select a template, add the test details, then refine the generated flow</HeaderSubtitle>
+      <div className="mb-3">
+        <PageHeader>Create Test Case From Template</PageHeader>
       </div>
       <CreateFromTemplateForm
         resources={resources}

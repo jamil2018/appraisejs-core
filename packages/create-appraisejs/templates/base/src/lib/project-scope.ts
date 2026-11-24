@@ -3,11 +3,13 @@ export const APPRAISE_PATHNAME_HEADER = 'x-appraise-pathname'
 export const APPRAISE_REQUEST_TARGET_HEADER = 'x-appraise-request-target'
 
 const PROJECT_SCOPED_ROUTE_SEGMENTS = new Set([
+  'dashboard',
   'environments',
   'locator-groups',
   'locators',
   'modules',
   'collaboration',
+  'conversations',
   'quality-journeys',
   'reports',
   'tags',

@@ -36,6 +36,7 @@ const TableActions = ({
   deleteActionIcon = <Trash className="size-4" />,
   viewActionIcon = <Eye className="size-4" />,
   cancelActionIcon = <XCircle className="size-4" />,
+  children,
 }: {
   rowName: string
   modifyLink?: string
@@ -54,6 +55,7 @@ const TableActions = ({
   cancelActionText?: string
   cancelActionIcon?: React.ReactNode
   deleteButtonDisabled?: boolean
+  children?: React.ReactNode
 }) => {
   const [isCancelling, setIsCancelling] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
@@ -145,6 +147,7 @@ const TableActions = ({
                 </span>
               </DropdownMenuItem>
             )}
+            {children}
 
             <DropdownMenuItem
               disabled={deleteButtonDisabled}

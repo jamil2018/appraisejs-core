@@ -52,6 +52,7 @@ export const coordinatorOperationRegistry = createCoordinatorOperationRegistry([
   { id: 'step-definitions-read', method: 'GET', pattern: ['step-definitions', '*'] },
   { id: 'target-projects-list', method: 'GET', pattern: ['target-projects'] },
   { id: 'locator-graph', method: 'GET', pattern: ['locator-graph', '*'] },
+  { id: 'workspace-records-read', method: 'GET', pattern: ['workspace', 'records'] },
   { id: 'environment-read', method: 'GET', pattern: ['environments'] },
   { id: 'quality-read', method: 'GET', pattern: ['quality', '*'] },
   // Coordinator reads usually use GET. This compact recovery packet needs a

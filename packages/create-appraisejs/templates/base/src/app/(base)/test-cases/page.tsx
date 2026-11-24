@@ -1,57 +1,44 @@
-import PageHeader from '@/components/typography/page-header'
-import HeaderSubtitle from '@/components/typography/page-header-subtitle'
-import React, { Suspense } from 'react'
-import { TestTubeDiagonal } from 'lucide-react'
-import TestCaseTable from './test-case-table'
-import DataTableSkeleton from '@/components/loading-skeleton/data-table/data-table-skeleton'
 import { getAllTestCasesAction } from '@/actions/test-case/test-case-actions'
-import EmptyState from '@/components/data-state/empty-state'
-import { Metadata } from 'next'
+import { CollectionEmpty, CollectionHeader } from '@/components/data-state/collection-layout'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { CircleAlert } from 'lucide-react'
+import type { Metadata } from 'next'
 
+import { NewTestCaseMenu } from './new-test-case-menu'
 import { getTestCaseRows } from './test-case-row-helpers'
+import TestCaseTable from './test-case-table'
 
 export const metadata: Metadata = {
   title: 'Appraise | Test Cases',
   description: 'Manage test cases and their configurations',
 }
 
-const TestCases = async () => {
-  const { data: testCases, error: testCasesError } = await getAllTestCasesAction()
-
-  if (testCasesError) {
-    return <div>Error: {testCasesError}</div>
-  }
-
-  const testCasesData = getTestCaseRows(testCases)
+export default async function TestCases() {
+  const { data, success, error, message } = await getAllTestCasesAction()
+  const rows = getTestCaseRows(data)
 
   return (
-    <>
-      <div className="mb-4">
-        <PageHeader>
-          <span className="flex items-center">
-            <TestTubeDiagonal className="mr-2 size-8" />
-            Test Cases
-          </span>
-        </PageHeader>
-        <HeaderSubtitle>
-          Test cases are individual tests that are used to test a specific feature or functionality
-        </HeaderSubtitle>
-      </div>
-      {!testCasesData || testCasesData.length === 0 ? (
-        <EmptyState
-          icon={<TestTubeDiagonal className="size-5" />}
-          title="No test cases found"
-          description="Get started by creating a test case to test your application functionality"
-          createRoute="/test-cases/create"
-          createText="Create Test Case"
-        />
-      ) : (
-        <Suspense fallback={<DataTableSkeleton />}>
-          <TestCaseTable />
-        </Suspense>
-      )}
-    </>
+    <div className="flex min-w-0 flex-col gap-4">
+      <CollectionHeader title="Test Cases">
+        <NewTestCaseMenu />
+      </CollectionHeader>
+      <TestCaseResults rows={rows} error={success ? undefined : error || message || 'Try refreshing this page.'} />
+    </div>
   )
 }
 
-export default TestCases
+function TestCaseResults({ rows, error }: { rows: ReturnType<typeof getTestCaseRows>; error?: string }) {
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <CircleAlert aria-hidden="true" />
+        <AlertTitle>Couldn’t load test cases</AlertTitle>
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    )
+  }
+
+  if (rows.length === 0) return <CollectionEmpty title="No test cases yet" />
+
+  return <TestCaseTable rows={rows} />
+}

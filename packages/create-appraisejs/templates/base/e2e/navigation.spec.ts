@@ -1,13 +1,20 @@
 import { test, expect } from '@playwright/test'
 
-import { disconnectPrisma, resetE2eData, seedCoreData, seedEmptyProject, seededIds } from './helpers/test-data'
+import {
+  disconnectPrisma,
+  resetE2eData,
+  resetGuardedAuthoringE2eData,
+  seedCoreData,
+  seedEmptyProject,
+  seededIds,
+} from './helpers/test-data'
 import { buildModifyPath, visitRoutes, type RouteExpectation } from './helpers/navigation'
 import { expectPageHeading } from './helpers/ui'
 
 test.describe('Navigation @navigation', () => {
-  test.beforeEach(async () => {
-    await resetE2eData()
-    await seedCoreData()
+  test.beforeEach(async ({ page }) => {
+    await resetGuardedAuthoringE2eData(page)
+    await seedCoreData(true)
   })
 
   test.afterAll(async () => {
@@ -15,7 +22,8 @@ test.describe('Navigation @navigation', () => {
   })
 
   const listRoutes: RouteExpectation[] = [
-    { path: '/', heading: 'Dashboard' },
+    { path: '/', heading: 'What would you like to check?' },
+    { path: '/dashboard', heading: 'Dashboard' },
     { path: '/quality-journeys', heading: 'Quality Journeys' },
     { path: '/collaboration', heading: 'Repository collaboration' },
     { path: '/settings', heading: 'Settings' },
@@ -52,9 +60,125 @@ test.describe('Navigation @navigation', () => {
     await visitRoutes(page, [...listRoutes, ...createRoutes])
   })
 
+  test('home opens the project brief and Workspace opens the metrics dashboard', async ({ page }) => {
+    await page.goto(`/?project=${seededIds.targetProject}`)
+    await expectPageHeading(page, 'What would you like to check?')
+    await expect(page).toHaveURL(/\/quality-journeys\/new\?project=/)
+
+    const areas = page.getByRole('navigation', { name: 'App sections' })
+    await expect(areas.getByRole('link', { name: 'Chats' })).toHaveAttribute('aria-current', 'true')
+    const search = page.getByRole('button', { name: 'Search recent chats and Journeys' })
+    await search.click()
+    const input = page.getByRole('searchbox', { name: 'Filter recent chats and Journeys' })
+    await expect(input).toBeFocused()
+    await input.fill('missing brief')
+    await expect(page.getByText('No recent chats or Journeys found.')).toBeVisible()
+    await input.press('Escape')
+    await expect(search).toBeFocused()
+
+    await areas.getByRole('link', { name: 'Workspace' }).click()
+    await expectPageHeading(page, 'Dashboard')
+    await expect(areas.getByRole('link', { name: 'Workspace' })).toHaveAttribute('aria-current', 'true')
+    await expect(page.getByRole('link', { name: 'Test Cases', exact: true })).toBeVisible()
+  })
+
+  test('test cases keep creation, search, and selection actions together', async ({ page }) => {
+    await page.goto('/test-cases')
+
+    const create = page.getByRole('button', { name: 'New test case', exact: true })
+    await expect(create).toHaveCount(1)
+    await create.press('ArrowDown')
+    await expect(page.getByRole('menuitem', { name: 'From scratch' })).toHaveAttribute('href', '/test-cases/create')
+    await expect(page.getByRole('menuitem', { name: 'From template' })).toHaveAttribute(
+      'href',
+      '/test-cases/create-from-template',
+    )
+    await page.keyboard.press('Escape')
+    await expect(create).toBeFocused()
+
+    const search = page.getByRole('textbox', { name: 'Search test cases' })
+    const region = page.getByRole('region', { name: 'Test cases' })
+    const description = region.getByRole('columnheader', { name: 'Description' })
+    await expect(description).toBeHidden()
+    await page.getByRole('button', { name: 'Columns', exact: true }).click()
+    await page.getByRole('menuitemcheckbox', { name: 'description' }).click()
+    await expect(description).toBeVisible()
+    await page.keyboard.press('Escape')
+    await search.fill('missing')
+    await expect(region.getByText('No results.')).toBeVisible()
+    await page.getByRole('button', { name: 'Clear search' }).click()
+    await expect(search).toBeFocused()
+    await expect(search).toHaveValue('')
+
+    const remove = page.getByRole('button', { name: 'Delete selected item(s)' })
+    await expect(remove).toBeHidden()
+    await region.getByRole('checkbox', { name: 'Select E2E seeded login works' }).check()
+    await expect(remove).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Edit selected item' })).toHaveAttribute(
+      'href',
+      `/test-cases/modify/${seededIds.testCase}`,
+    )
+  })
+
+  test('a case opens a scoped Journey brief and returning restores the collection view', async ({ page }) => {
+    await page.goto('/test-cases')
+    const search = page.getByRole('textbox', { name: 'Search test cases' })
+    const rowName = 'E2E seeded login works'
+    const selection = page.getByRole('checkbox', { name: `Select ${rowName}` })
+    await search.fill('seeded login')
+    await selection.check()
+    await page.getByRole('button', { name: `Actions for ${rowName}`, exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Use in a Journey' }).click()
+    await expectPageHeading(page, 'What would you like to check?')
+    await expect(page).toHaveURL(new RegExp(`quality-journeys/new\\?.*record=${seededIds.testCase}`))
+    await expect(page.locator('form').getByText(rowName, { exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Start journey' })).toBeDisabled()
+
+    await page.goBack()
+    await expect(search).toHaveValue('seeded login')
+    await expect(selection).toBeChecked()
+  })
+
+  test('the desktop rail can collapse and reopen the project context pane', async ({ page }) => {
+    await page.goto('/quality-journeys/new')
+    await expectPageHeading(page, 'What would you like to check?')
+    const rail = page.getByRole('navigation', { name: 'App sections' })
+    const context = page.getByRole('navigation', { name: 'Recent chats and Journeys by project' })
+    await expect(context).toBeVisible()
+    await rail.getByRole('button', { name: 'Collapse sidebar' }).press('Enter')
+    await expect(context).toBeHidden()
+    await expect(rail.getByRole('link', { name: 'Integrations' })).toBeVisible()
+    const expand = rail.getByRole('button', { name: 'Expand sidebar' })
+    await expect(expand).toBeFocused()
+    const command = rail.getByRole('button', { name: 'Open Command Palette' })
+    const palette = page.getByRole('dialog', { name: 'Command Palette' })
+    await command.click()
+    await expect(palette).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(palette).toBeHidden()
+    await expect(command).toBeFocused()
+    await expand.press('Enter')
+    await expect(context).toBeVisible()
+  })
+
+  test('appearance follows the saved theme across routes and reloads', async ({ page }) => {
+    await page.goto('/settings')
+    const root = page.locator('html')
+    await expect(root).toHaveClass(/\bdark\b/)
+    await page.getByRole('button', { name: 'Light', exact: true }).click()
+    await expect(root).toHaveClass(/\blight\b/)
+    await page.goto('/test-cases')
+    await expect(root).toHaveClass(/\blight\b/)
+    await expectPageHeading(page, 'Test Cases')
+    await page.goto('/settings')
+    await expect(page.getByRole('button', { name: 'Light', exact: true })).toHaveAttribute('aria-pressed', 'true')
+    await page.getByRole('button', { name: 'Dark', exact: true }).click()
+    await expect(root).toHaveClass(/\bdark\b/)
+  })
+
   test('workspace screens fill wide displays and contain overflow on narrow screens', async ({ page }) => {
     const screens = [
-      { path: '/', heading: 'Dashboard' },
+      { path: '/dashboard', heading: 'Dashboard' },
       { path: '/test-cases', heading: 'Test Cases' },
       { path: '/test-suites/create', heading: 'Create Test Suite' },
       { path: '/environments/create', heading: 'Create Environment' },
@@ -183,7 +307,7 @@ test.describe('Navigation @navigation', () => {
   })
 
   test('dashboard attention needed links navigate to filtered report pages', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/dashboard')
     await expectPageHeading(page, 'Dashboard')
 
     await page.getByRole('button', { name: 'Failed Runs' }).click()
@@ -191,24 +315,24 @@ test.describe('Navigation @navigation', () => {
     await expectPageHeading(page, 'Test Runs')
     await expect(page.getByText('E2E Failed Run', { exact: true }).first()).toBeVisible()
 
-    await page.goto('/')
+    await page.goto('/dashboard')
     await page.getByRole('button', { name: 'Failing Tests' }).click()
     await expect(page).toHaveURL(/\/reports\/test-cases\?filter=repeatedlyFailing/)
     await expectPageHeading(page, 'Failing Test Cases Report')
 
-    await page.goto('/')
+    await page.goto('/dashboard')
     await page.getByRole('button', { name: 'Flaky Tests' }).click()
     await expect(page).toHaveURL(/\/reports\/test-cases\?filter=flaky/)
     await expectPageHeading(page, 'Failing Test Cases Report')
 
-    await page.goto('/')
+    await page.goto('/dashboard')
     await page.getByRole('button', { name: 'Unexecuted Suites' }).click()
     await expect(page).toHaveURL(/\/reports\/test-suites\?filter=notExecutedRecently/)
     await expectPageHeading(page, 'Test Suites Report')
   })
 
   test('client navigation remounts route content while preserving navigation', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/dashboard')
     await expectPageHeading(page, 'Dashboard')
     await expect(page.locator('[data-page-transition]')).toHaveAttribute('data-page-transition-variant', 'fade')
 
@@ -256,8 +380,17 @@ test('empty libraries keep their heading and next action together on a narrow sc
   await seedEmptyProject()
   await page.setViewportSize({ width: 320, height: 740 })
 
+  await page.goto('/test-cases')
+  await expect(page.getByRole('heading', { name: 'Test Cases', level: 1 })).toBeInViewport()
+  await expect(page.getByRole('heading', { name: 'No test cases yet' })).toBeInViewport()
+  const create = page.getByRole('button', { name: 'New test case' })
+  await expect(create).toBeInViewport()
+  await create.click()
+  await expect(page.getByRole('menuitem', { name: 'From template' })).toBeVisible()
+  await page.keyboard.press('Escape')
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+
   for (const [path, title, action] of [
-    ['/test-cases', 'Test Cases', 'Create Test Case'],
     ['/test-runs', 'Test Runs', 'Create Test Run'],
     ['/reports', 'Reports', 'Start a Quality Journey'],
   ]) {

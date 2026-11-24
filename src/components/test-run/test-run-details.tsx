@@ -110,10 +110,6 @@ export function TestRunDetails({ testRun: initialTestRun }: TestRunDetailsProps)
           </CardHeader>
           <CardContent className="flex flex-col gap-4 p-4 pt-0">
             <div className="grid grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)] items-start gap-3">
-              <span className="text-sm font-medium">Name</span>
-              <span className="min-w-0 break-words text-right text-sm">{testRun.name}</span>
-            </div>
-            <div className="grid grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)] items-start gap-3">
               <span className="text-sm font-medium">Status</span>
               <Badge variant="outline" className={cn(statusMeta.badgeClassName, 'max-w-full justify-self-end py-1')}>
                 <span className="mr-1">

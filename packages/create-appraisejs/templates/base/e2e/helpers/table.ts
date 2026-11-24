@@ -9,8 +9,8 @@ export async function openRowMenu(page: Page, name: string): Promise<void> {
   await row.getByRole('button', { name: `Actions for ${name}`, exact: true }).click()
 }
 
-export async function editRowByName(page: Page, name: string): Promise<void> {
-  await filterTableByName(page, name)
+export async function editRowByName(page: Page, name: string, filterPlaceholder?: string): Promise<void> {
+  await filterTableByName(page, name, filterPlaceholder)
   await openRowMenu(page, name)
   await page.getByRole('menuitem', { name: /Edit/ }).click()
   await expect(page).toHaveURL(/\/modify\//)

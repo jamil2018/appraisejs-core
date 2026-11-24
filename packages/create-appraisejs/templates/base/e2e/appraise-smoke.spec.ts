@@ -1,12 +1,18 @@
 import { test, expect } from '@playwright/test'
 
-import { disconnectPrisma, findModuleByName, resetE2eData, seedCoreData, seededIds } from './helpers/test-data'
+import {
+  disconnectPrisma,
+  findModuleByName,
+  resetGuardedAuthoringE2eData,
+  seedCoreData,
+  seededIds,
+} from './helpers/test-data'
 import { createModule, expectPageHeading } from './helpers/ui'
 
 test.describe('Smoke @smoke', () => {
-  test.beforeEach(async () => {
-    await resetE2eData()
-    await seedCoreData()
+  test.beforeEach(async ({ page }) => {
+    await resetGuardedAuthoringE2eData(page)
+    await seedCoreData(true)
   })
 
   test.afterAll(async () => {
@@ -14,7 +20,7 @@ test.describe('Smoke @smoke', () => {
   })
 
   test('dashboard renders seeded entity metrics', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/dashboard')
     await expectPageHeading(page, 'Dashboard')
     await expect(page.getByRole('button', { name: 'Test Cases' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Test Suites' })).toBeVisible()

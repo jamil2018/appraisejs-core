@@ -1,3 +1,5 @@
+import { workspaceRecordKinds } from '@/lib/conversation/workspace-records'
+import { searchWorkspaceRecords } from '@/services/workspace-search/workspace-record-search'
 import { createHash } from 'node:crypto'
 
 import { z } from 'zod'
@@ -372,6 +374,20 @@ async function getEnvironments(request: Request) {
   })
 }
 
+async function getWorkspaceRecords(request: Request) {
+  const parameters = new URL(request.url).searchParams
+  const input = z
+    .object({
+      target: z.string().min(1).max(1024),
+      kind: z.enum(workspaceRecordKinds),
+      query: z.string().trim().max(160).default(''),
+    })
+    .parse(Object.fromEntries(parameters))
+  const project = await resolveTargetProject(input.target)
+  const records = await searchWorkspaceRecords(project.id, input)
+  return Response.json({ targetProjectId: project.id, records })
+}
+
 async function dispatchGet(request: Request, operation: string[]): Promise<Response> {
   const handoffResponse = await getQualityJourneyHandoffRoute(operation, new URL(request.url).searchParams)
   if (handoffResponse) return handoffResponse
@@ -381,6 +397,8 @@ async function dispatchGet(request: Request, operation: string[]): Promise<Respo
   if (operation.length === 1 && operation[0] === 'target-projects')
     return Response.json({ targetProjects: await listTargetProjects() })
   if (operation[0] === 'operations') return getOperations(request, operation)
+  if (operation.length === 2 && operation[0] === 'workspace' && operation[1] === 'records')
+    return getWorkspaceRecords(request)
   if (operation.length === 1 && operation[0] === 'environments') return getEnvironments(request)
   if (operation[0] === 'locator-graph') return getLocatorGraph(request, operation)
   if (operation[0] === 'step-definitions') return getStepDefinitions(request, operation)

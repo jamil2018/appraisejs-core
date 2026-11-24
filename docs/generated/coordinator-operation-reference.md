@@ -15,6 +15,7 @@ the canonical MCP registry. Human-owned lifecycle meaning and examples remain in
 | `step-definitions-read`      | GET    | `/api/internal/coordinator/step-definitions/*`   |
 | `target-projects-list`       | GET    | `/api/internal/coordinator/target-projects`      |
 | `locator-graph`              | GET    | `/api/internal/coordinator/locator-graph/*`      |
+| `workspace-records-read`     | GET    | `/api/internal/coordinator/workspace/records`    |
 | `environment-read`           | GET    | `/api/internal/coordinator/environments`         |
 | `quality-read`               | GET    | `/api/internal/coordinator/quality/*`            |
 | `step-definitions-write`     | POST   | `/api/internal/coordinator/step-definitions/*`   |
@@ -111,6 +112,7 @@ the canonical MCP registry. Human-owned lifecycle meaning and examples remain in
 | `test_run_diagnose`                                               | read-only    | `test-run-evidence`                                                         | Diagnose invalid or suspicious managed test-run evidence with concise blockers and next action.                                                                                                                                                         |
 | `test_run_read`                                                   | read-only    | `test-run-evidence`                                                         | Read bounded status and evidence summary for a managed Appraise test run. A human-verification block is terminal and requires a fresh TestRun; it cannot be resumed.                                                                                    |
 | `test_run_start`                                                  | default      | `test-run-write`                                                            | Start an independent capsule-only TestRun from a target-owned authored suite/case selection. Independent runs are non-authoritative diagnostics and never create Journey evidence.                                                                      |
+| `workspace_record_search`                                         | read-only    | `workspace-records-read`                                                    | Find up to eight matching case, suite, template, run, or report summaries in the requested Appraise project.                                                                                                                                            |
 
 ## MCP resources
 

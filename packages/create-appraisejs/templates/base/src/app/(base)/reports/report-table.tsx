@@ -14,7 +14,11 @@ const ReportTable = ({ reports }: ReportTableProps) => {
         columns={reportTableCols}
         data={reports}
         filterColumn="testRunName"
-        filterPlaceholder="Filter by test run name..."
+        filterPlaceholder="Search reports"
+        density="compact"
+        initialColumnVisibility={{ tags: false, totalTestCases: false }}
+        key={`reports:${reports[0].testRun.targetProjectId}`}
+        viewKey={`reports:${reports[0].testRun.targetProjectId}`}
       />
     </>
   )

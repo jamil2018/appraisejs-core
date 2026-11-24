@@ -45,8 +45,8 @@ async function setup(
   { invalidConfig = false, requestMs = 5000 }: { invalidConfig?: boolean; requestMs?: number } = {},
 ) {
   const f = syntheticNativeManifest()
-  // Functional cases need headroom for real child I/O and verification on loaded runners.
-  Object.assign(f.manifest.limits, { caseMs: 15000, requestMs, cleanupMs: 5000 })
+  // The fixture must allow for the supervisor stop and process-group exit verification windows.
+  Object.assign(f.manifest.limits, { caseMs: 15000, requestMs, cleanupMs: 10000 })
   roots.push(f.parent)
   const configuration = {
     origins: {},
@@ -521,9 +521,11 @@ describe('genuine original wire snapshot and final admission regressions', () =>
         const baseline = f.child.transport.snapshot(),
           waiting = f.thread()
         expect(f.child.transport.snapshot()).toMatchObject({ pendingRequests: 0, issuedRequests: 2 })
+        writeFileSync(path.join(f.manifest.freshRoot, 'cwd', 'release-premature-reply'), '', { mode: 0o600 })
         await expect(waiting).rejects.toThrow()
         expect(f.child.transport.snapshot()).toMatchObject({
           status: 'fenced',
+          reason: 'native_passive_drain_refused',
           issuedRequests: 2,
           writtenBytes: baseline.writtenBytes,
         })

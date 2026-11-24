@@ -1,87 +1,69 @@
+import { ArrowUpRight } from 'lucide-react'
 import type { Metadata } from 'next'
-import type React from 'react'
-import { Settings2 } from 'lucide-react'
-import PageHeader from '@/components/typography/page-header'
-import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import Link from 'next/link'
-import { Bot, FolderKanban, Server } from 'lucide-react'
-import { requireActiveProject } from '@/lib/active-project'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+
+import { readChatGptConnection, readChatGptProfiles } from '@/actions/provider-connection/chatgpt-actions'
+import PageHeader from '@/components/typography/page-header'
+import { readActiveProjectCookie } from '@/lib/active-project'
+import { withProjectScope } from '@/lib/project-scope'
+
+import { AppearanceSettings } from './appearance-settings'
+import { ChatGptSettings } from './chatgpt-settings'
 
 export const metadata: Metadata = {
   title: 'Appraise | Settings',
-  description: 'Find the project, environment, and verified agent setup controls for this workspace.',
+  description: 'Manage appearance, workspace preferences, and agent setup.',
 }
 
 export default async function SettingsPage() {
-  const project = await requireActiveProject()
-  const projectParam = encodeURIComponent(project.id)
+  const [project, chatGptStatus, chatGptProfiles] = await Promise.all([
+    readActiveProjectCookie(),
+    readChatGptConnection(),
+    readChatGptProfiles(),
+  ])
+  const scoped = (href: string) => (project ? withProjectScope(href, project) : href)
+
   return (
-    <div className="space-y-4">
-      <div>
-        <PageHeader>
-          <span className="flex items-center">
-            <Settings2 aria-hidden="true" className="mr-2 size-7" />
-            Settings
-          </span>
-        </PageHeader>
-        <HeaderSubtitle>Manage project resources and agent setup.</HeaderSubtitle>
-      </div>
-      <div className="grid gap-4 lg:grid-cols-3">
-        <SettingsDestination
-          icon={<FolderKanban aria-hidden="true" />}
-          title="Project"
-          description="Select, register, rename, or inspect project ownership."
-          href={`/projects?project=${projectParam}`}
-          action="Manage projects"
-        />
-        <SettingsDestination
-          icon={<Server aria-hidden="true" />}
-          title="Environments"
-          description="Manage project-owned targets and their stable identities."
-          href={`/environments?project=${projectParam}`}
-          action="Manage environments"
-        />
-        <SettingsDestination
-          icon={<Bot aria-hidden="true" />}
-          title="Codex setup"
-          description="Review setup instructions and the latest diagnostic observation."
-          href={`/projects?agentSetup=codex&project=${projectParam}`}
-          action="Open agent setup"
-        />
-      </div>
+    <div className="flex max-w-3xl flex-col gap-4">
+      <PageHeader>Settings</PageHeader>
+      <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4">
+        <h2 className="text-sm font-semibold">Appearance</h2>
+        <AppearanceSettings />
+      </section>
+      <section className="flex flex-col gap-2" aria-labelledby="workspace-settings">
+        <h2 className="text-sm font-semibold" id="workspace-settings">
+          Workspace
+        </h2>
+        <div className="divide-y divide-border rounded-xl border bg-card">
+          <SettingsLink href={scoped('/projects')} title="Manage projects" />
+          <SettingsLink href={scoped('/environments')} title="Manage environments" />
+        </div>
+      </section>
+      <section className="flex flex-col gap-2" aria-labelledby="agent-settings">
+        <h2 className="text-sm font-semibold" id="agent-settings">
+          Agent setup
+        </h2>
+        <div className="divide-y divide-border rounded-xl border bg-card">
+          <ChatGptSettings initialStatus={chatGptStatus} profiles={chatGptProfiles} />
+          <SettingsLink href={scoped('/projects?agentSetup=codex')} title="Codex diagnostic" />
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-3 text-sm">
+            <span>Claude Code</span>
+            <span className="text-muted-foreground">Setup unavailable</span>
+          </div>
+        </div>
+      </section>
     </div>
   )
 }
 
-function SettingsDestination({
-  icon,
-  title,
-  description,
-  href,
-  action,
-}: {
-  icon: React.ReactNode
-  title: string
-  description: string
-  href: string
-  action: string
-}) {
+function SettingsLink({ href, title }: { href: string; title: string }) {
   return (
-    <Card className="flex min-w-0 flex-col">
-      <CardHeader className="flex-1 p-4 pb-3">
-        <CardTitle className="flex items-center gap-2">
-          <span className="shrink-0 text-primary [&>svg]:size-5">{icon}</span>
-          <h2>{title}</h2>
-        </CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent className="p-4 pt-0">
-        <Button size="sm" variant="outline" render={<Link href={href} />} nativeButton={false}>
-          {action}
-        </Button>
-      </CardContent>
-    </Card>
+    <Link
+      href={href}
+      className="app-focus flex min-h-11 items-center justify-between gap-3 px-4 py-2 text-sm leading-5 first:rounded-t-xl last:rounded-b-xl hover:bg-muted"
+    >
+      {title}
+      <ArrowUpRight aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+    </Link>
   )
 }

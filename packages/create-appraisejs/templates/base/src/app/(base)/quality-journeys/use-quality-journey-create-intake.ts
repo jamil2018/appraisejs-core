@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useReducer, useRef, useState, useTransition } from 'react'
 
 import { toast } from '@/hooks/use-toast'
+import type { JourneyRecordContext } from '@/lib/quality-journey/record-context'
 import { hashQualityJourneyRequirementForBrowser } from '@/lib/quality-journey/requirement-browser'
 
 import {
@@ -51,11 +52,13 @@ export function useQualityJourneyCreateIntake({
   predecessorJourneyId,
   projectId,
   push,
+  recordContext,
 }: {
   draft?: DraftSnapshot
   predecessorJourneyId?: string
   projectId: string
   push: (href: string) => void
+  recordContext?: JourneyRecordContext
 }) {
   const [state, dispatch] = useReducer(
     (current: IntakeState, patch: Partial<IntakeState>) => ({ ...current, ...patch }),
@@ -88,7 +91,7 @@ export function useQualityJourneyCreateIntake({
   )
   const [saveConflict, setSaveConflict] = useState(false)
   const [isPending, startTransition] = useTransition()
-  const requirement = buildBriefRequirement(state, draft?.requirement)
+  const requirement = buildBriefRequirement(state, draft?.requirement, recordContext)
   const requirementRef = useRef(requirement)
   const currentStepRef = useRef(state.currentStep)
   requirementRef.current = requirement

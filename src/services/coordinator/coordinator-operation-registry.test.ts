@@ -11,6 +11,7 @@ describe('coordinator operation registry', () => {
     ['GET', ['diagnostic'], 'diagnostic'],
     ['GET', ['quality', 'journeys', 'journey-1', 'analysis'], 'quality-read'],
     ['GET', ['step-definitions', 'search'], 'step-definitions-read'],
+    ['GET', ['workspace', 'records'], 'workspace-records-read'],
     ['GET', ['environments'], 'environment-read'],
     ['POST', ['diagnostic', 'preflight'], 'diagnostic-preflight-write'],
     ['POST', ['quality', 'journeys', 'journey-1', 'analysis', 'publish'], 'quality-write'],

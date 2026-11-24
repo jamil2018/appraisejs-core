@@ -1,4 +1,4 @@
-import { StepStatus } from '@prisma/client'
+import { StepStatus, TestRunResult } from '@prisma/client'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -7,10 +7,12 @@ import {
   getFeatureData,
   getOverviewData,
   getReportMetrics,
+  getReportOutcome,
   isValidReportDetail,
+  type ReportDetailWithRelations,
 } from './report-detail-helpers'
 
-function createReport() {
+function createReport(): ReportDetailWithRelations {
   return {
     id: 'report-1',
     testRun: {
@@ -68,7 +70,7 @@ function createReport() {
         ],
       },
     ],
-  } as never
+  } as unknown as ReportDetailWithRelations
 }
 
 describe('report-detail helpers', () => {
@@ -105,5 +107,18 @@ describe('report-detail helpers', () => {
         duration: 4.5,
       },
     ])
+  })
+
+  it('uses the run result as the outcome while preserving case counts', () => {
+    const report = createReport()
+    report.testRun.result = TestRunResult.BLOCKED
+    expect(getReportOutcome(report)).toEqual({
+      title: 'Run blocked pending human verification',
+      description: '1 passed · 1 failed · 1 untested · 1 skipped step',
+      tone: 'warning',
+    })
+
+    report.testRun.result = TestRunResult.FAILED
+    expect(getReportOutcome(report).title).toBe('Run failed')
   })
 })

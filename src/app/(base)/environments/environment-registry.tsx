@@ -1,12 +1,10 @@
 'use client'
 
-import Link from 'next/link'
-import { Braces, ExternalLink, KeyRound, Pencil, Plus, Search, Server, ShieldCheck, UserRound } from 'lucide-react'
+import { Braces, ExternalLink, KeyRound, Pencil, Search, Server, ShieldCheck, UserRound } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import { deleteEnvironmentAction } from '@/actions/environments/environment-actions'
 import TableActions from '@/components/table/table-actions'
-import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import DeletePrompt from '@/components/user-prompt/delete-prompt'
@@ -91,22 +89,11 @@ export default function EnvironmentRegistry({ environments }: EnvironmentRegistr
       aria-labelledby="environment-registry-title"
       className="min-w-0 overflow-hidden rounded-xl border border-border bg-card"
     >
-      <div className="flex flex-col gap-4 border-b border-border p-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h2 id="environment-registry-title" className="text-base font-semibold text-foreground">
-            Runtime registry
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Endpoints and access profiles available to test execution.
-          </p>
-        </div>
-        <Button className="w-full sm:w-auto" render={<Link href="/environments/create" />} nativeButton={false}>
-          <Plus className="size-4" aria-hidden="true" />
-          New environment
-        </Button>
-      </div>
+      <h2 id="environment-registry-title" className="sr-only">
+        Environment registry
+      </h2>
 
-      <div className="flex flex-col gap-3 border-b border-border p-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-3 border-b border-border p-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="relative w-full lg:max-w-sm">
           <Search
             className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
@@ -141,14 +128,16 @@ export default function EnvironmentRegistry({ environments }: EnvironmentRegistr
           <span className="text-xs tabular-nums text-muted-foreground">
             {filteredEnvironments.length} of {environments.length}
           </span>
-          <DeletePrompt
-            isDisabled={selectedIds.length === 0}
-            dialogTitle="Delete environments"
-            dialogDescription="This removes the selected runtime configurations."
-            confirmationText={`Delete ${selectedIds.length} selected environment${selectedIds.length === 1 ? '' : 's'}?`}
-            deleteHandler={deleteSelected}
-            triggerLabel="Delete selected environments"
-          />
+          {selectedIds.length > 0 && (
+            <DeletePrompt
+              isDisabled={selectedIds.length === 0}
+              dialogTitle="Delete environments"
+              dialogDescription="This removes the selected runtime configurations."
+              confirmationText={`Delete ${selectedIds.length} selected environment${selectedIds.length === 1 ? '' : 's'}?`}
+              deleteHandler={deleteSelected}
+              triggerLabel="Delete selected environments"
+            />
+          )}
         </div>
       </div>
 

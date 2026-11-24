@@ -1,14 +1,12 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { BookOpenCheck, Plus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 
 import {
   listReadyStepDefinitionOptionsAction,
   listStepDefinitionDraftsAction,
 } from '@/actions/step-definition/step-definition-actions'
-import EmptyState from '@/components/data-state/empty-state'
-import PageHeader from '@/components/typography/page-header'
-import HeaderSubtitle from '@/components/typography/page-header-subtitle'
+import { CollectionEmpty, CollectionHeader } from '@/components/data-state/collection-layout'
 import { Button } from '@/components/ui/button'
 import type { StepDefinitionDraftSummary, StepDefinitionOption } from '@/types/step-definition-option'
 
@@ -17,35 +15,6 @@ import { StepDefinitionRegistry } from './step-definition-registry'
 export const metadata: Metadata = {
   title: 'Appraise | Step Definitions',
   description: 'Browse ready reusable Step Definitions and their exact invocation contracts.',
-}
-
-function StepDefinitionsHeader({ showCreate }: { showCreate: boolean }) {
-  return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-      <div className="min-w-0">
-        <PageHeader>
-          <span className="flex items-center gap-2">
-            <BookOpenCheck aria-hidden="true" className="size-8" />
-            Step Definitions
-          </span>
-        </PageHeader>
-        <HeaderSubtitle>
-          Browse the ready, versioned contracts used by human-authored tests and managed validation.
-        </HeaderSubtitle>
-      </div>
-      {showCreate && (
-        <Button
-          nativeButton={false}
-          render={
-            <Link href="/step-definitions/create">
-              <Plus aria-hidden="true" className="size-4" />
-              Create Step Definition
-            </Link>
-          }
-        />
-      )}
-    </div>
-  )
 }
 
 export default async function StepDefinitionsPage() {
@@ -69,15 +38,13 @@ export default async function StepDefinitionsPage() {
 
   return (
     <div className="space-y-4">
-      <StepDefinitionsHeader showCreate={!empty} />
+      <CollectionHeader title="Step Definitions">
+        <Button render={<Link href="/step-definitions/create" />} nativeButton={false} className="rounded-xl">
+          <Plus aria-hidden="true" /> Create Step Definition
+        </Button>
+      </CollectionHeader>
       {empty ? (
-        <EmptyState
-          icon={<BookOpenCheck className="size-5" />}
-          title="No ready Step Definitions found"
-          description="Create and publish a reusable Step Definition to make it available for authored tests."
-          createRoute="/step-definitions/create"
-          createText="Create Step Definition"
-        />
+        <CollectionEmpty title="No ready Step Definitions found" />
       ) : (
         <StepDefinitionRegistry definitions={definitions} drafts={drafts} />
       )}

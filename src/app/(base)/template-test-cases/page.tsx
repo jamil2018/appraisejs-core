@@ -1,55 +1,43 @@
-import PageHeader from '@/components/typography/page-header'
-import HeaderSubtitle from '@/components/typography/page-header-subtitle'
-import { Blocks } from 'lucide-react'
-import React, { Suspense } from 'react'
-import TemplateTestCaseTable from './template-test-case-table'
-import DataTableSkeleton from '@/components/loading-skeleton/data-table/data-table-skeleton'
+import { z } from 'zod'
+import { namedProjectRecord } from '@/lib/collection-record'
+import type { TemplateTestCase, TemplateTestCaseStep } from '@prisma/client'
 import { getAllTemplateTestCasesAction } from '@/actions/template-test-case/template-test-case-actions'
-import EmptyState from '@/components/data-state/empty-state'
-import { TemplateTestCase, TemplateTestCaseStep } from '@prisma/client'
-import { Metadata } from 'next'
+import { CollectionEmpty, CollectionHeader } from '@/components/data-state/collection-layout'
+import { Button } from '@/components/ui/button'
 import { presentationVocabulary } from '@/lib/presentation-vocabulary'
+import { Plus } from 'lucide-react'
+import Link from 'next/link'
+import type { Metadata } from 'next'
+
+import TemplateTestCaseTable from './template-test-case-table'
+
+type TemplateTestCaseWithSteps = TemplateTestCase & { steps: TemplateTestCaseStep[] }
+
+const rowSchema = namedProjectRecord.extend({ steps: z.array(z.unknown()) })
+
+function isTemplateTestCaseWithSteps(value: unknown): value is TemplateTestCaseWithSteps {
+  return rowSchema.safeParse(value).success
+}
 
 export const metadata: Metadata = {
   title: `Appraise | ${presentationVocabulary.caseTemplate.plural}`,
   description: 'Manage reusable Case Templates for quickly creating test cases',
 }
 
-const TemplateTestCasesPage = async () => {
-  const { data: templateTestCases, error: templateTestCasesError } = await getAllTemplateTestCasesAction()
+export default async function TemplateTestCasesPage() {
+  const { data, error } = await getAllTemplateTestCasesAction()
+  const rows = Array.isArray(data) ? data.filter(isTemplateTestCaseWithSteps) : []
 
-  if (templateTestCasesError) {
-    return <div>Error: {templateTestCasesError}</div>
-  }
-
-  const templateTestCasesData = templateTestCases as (TemplateTestCase & { steps: TemplateTestCaseStep[] })[]
+  if (error) return <div role="alert">Error: {error}</div>
 
   return (
-    <>
-      <div className="mb-4">
-        <PageHeader>
-          <span className="flex items-center">
-            <Blocks className="mr-2 size-8" />
-            {presentationVocabulary.caseTemplate.plural}
-          </span>
-        </PageHeader>
-        <HeaderSubtitle>A collection of templates to quickly create test cases</HeaderSubtitle>
-      </div>
-      {!templateTestCasesData || templateTestCasesData.length === 0 ? (
-        <EmptyState
-          icon={<Blocks className="size-5" />}
-          title="No Case Templates found"
-          description="Create a reusable Case Template to prepare test cases faster"
-          createRoute="/template-test-cases/create"
-          createText={presentationVocabulary.caseTemplate.create}
-        />
-      ) : (
-        <Suspense fallback={<DataTableSkeleton />}>
-          <TemplateTestCaseTable />
-        </Suspense>
-      )}
-    </>
+    <div className="min-w-0 space-y-4">
+      <CollectionHeader title={presentationVocabulary.caseTemplate.plural}>
+        <Button render={<Link href="/template-test-cases/create" />} nativeButton={false}>
+          <Plus aria-hidden="true" /> New case template
+        </Button>
+      </CollectionHeader>
+      {rows.length === 0 ? <CollectionEmpty title="No case templates yet" /> : <TemplateTestCaseTable rows={rows} />}
+    </div>
   )
 }
-
-export default TemplateTestCasesPage

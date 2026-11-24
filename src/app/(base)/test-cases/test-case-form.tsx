@@ -1,5 +1,5 @@
 'use client'
-import React, { useCallback, useEffect, useMemo, useReducer, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 
 import {
   getConvertedTemplateTestCaseData,
@@ -221,7 +221,7 @@ function WizardProgress({ steps, currentStep, onStepClick }: WizardProgressProps
   const stepProgressWidth = steps.length > 1 ? `${(currentStep / (steps.length - 1)) * 100}%` : '0%'
 
   return (
-    <div className="mb-4 px-1 pt-1">
+    <div className="mb-2 px-1 pt-1">
       <div className="relative">
         <div
           className="pointer-events-none absolute z-0 h-px -translate-y-1/2 bg-border"
@@ -242,7 +242,7 @@ function WizardProgress({ steps, currentStep, onStepClick }: WizardProgressProps
           <div className="h-full bg-success transition-all duration-200" style={{ width: stepProgressWidth }} />
         </div>
         <div
-          className="grid gap-3"
+          className="grid gap-2"
           style={{
             gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))`,
           }}
@@ -255,7 +255,7 @@ function WizardProgress({ steps, currentStep, onStepClick }: WizardProgressProps
               <button
                 key={step}
                 type="button"
-                className="flex flex-col items-center gap-2 px-2 text-center"
+                className="flex flex-col items-center gap-1 px-2 text-center"
                 onClick={() => onStepClick(index)}
                 aria-current={isActive ? 'step' : undefined}
               >
@@ -327,22 +327,17 @@ function FlowPanel({
         )}
         transition={{ layout: { duration: 0.3, ease: 'easeInOut' } }}
       >
-        <CardHeader className="shrink-0 p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex min-w-0 items-start gap-3">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-info-border bg-info-surface text-info">
-                <Workflow className="size-4" aria-hidden />
-              </span>
-              <div className="min-w-0 space-y-1">
-                <CardTitle className="text-base text-primary">Test Case Flow</CardTitle>
-                <CardDescription>Build your test scenario step by step visually</CardDescription>
-              </div>
-            </div>
+        <CardHeader className="shrink-0 p-3">
+          <div className="flex items-center justify-between gap-3">
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+              <Workflow className="size-4 text-primary" aria-hidden />
+              Test Case Flow
+            </CardTitle>
             <Button
               type="button"
               variant="outline"
               size="icon"
-              className="size-9 shrink-0"
+              className="size-8 shrink-0"
               onClick={onToggleImmersive}
               aria-label={isFlowImmersive ? 'Exit immersive flow editing' : 'Enter immersive flow editing'}
             >
@@ -353,7 +348,7 @@ function FlowPanel({
             value={authoringView}
             onValueChange={value => onAuthoringViewChange(value as AuthoringView)}
             aria-label="Flow authoring view"
-            className="mt-3"
+            className="mt-2"
           >
             <TabsList>
               <TabsTrigger value="graph" size="compact">
@@ -367,7 +362,7 @@ function FlowPanel({
             </TabsList>
           </Tabs>
         </CardHeader>
-        <CardContent className="flex min-h-0 flex-1 flex-col p-4 pt-0">
+        <CardContent className="flex min-h-0 flex-1 flex-col p-3 pt-0">
           <div className="flex min-h-0 flex-1 flex-col gap-2">
             <div className="min-h-0 flex-1">
               <TestCaseFlow
@@ -629,15 +624,14 @@ function DetailsStep({
   onCreateTagClick,
 }: DetailsStepProps) {
   return (
-    <div className="flex flex-col gap-4">
-      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,24rem)]" id="meta">
+    <div className="flex flex-col gap-3">
+      <div className="grid items-start gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,24rem)]" id="meta">
         <div className="min-w-0">
           <Card className="border-border bg-card shadow-none">
-            <CardHeader className="p-4">
-              <CardTitle className="text-base text-primary">Test Case Details</CardTitle>
-              <CardDescription>Enter the core details of your test scenario</CardDescription>
+            <CardHeader className="p-3">
+              <CardTitle className="text-sm font-semibold">Test Case Details</CardTitle>
             </CardHeader>
-            <CardContent className="p-4 pt-0">
+            <CardContent className="p-3 pt-0">
               <div className="mb-4 flex flex-col gap-2">
                 <Label htmlFor="title">Title</Label>
                 <Input
@@ -682,7 +676,7 @@ function DetailsStep({
         </div>
         <QuickTipsPanel />
       </div>
-      <div className="mb-4 flex flex-row flex-wrap items-center justify-start gap-2">
+      <div className="flex flex-row flex-wrap items-center justify-start gap-2">
         {hasTemplateSelectionStep ? (
           <Button variant="outline" onClick={onBack} className="w-fit px-6">
             <ArrowLeft className="size-4" />
@@ -791,35 +785,31 @@ function TagSelectionField({ availableTags, selectedTags, onChange, onCreateClic
 
 function QuickTipsPanel() {
   return (
-    <div className="min-w-0">
-      <Card className="border-border bg-card shadow-none">
-        <CardHeader className="p-4">
-          <CardTitle className="flex items-center gap-2 text-base text-primary">
-            <Info className="size-4" />
-            <span>Quick Tips</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3 p-4 pt-0">
-          <ol className="flex list-none flex-col gap-3">
-            {testCaseQuickTips.map((tip, index) => (
-              <li key={tip.title} className="grid grid-cols-[1.5rem_minmax(0,1fr)] gap-3">
-                <span className="flex size-6 items-center justify-center rounded-full bg-info-surface text-info">
-                  {index + 1}
-                </span>
-                <span className="flex flex-col gap-1">
-                  <span className="text-sm font-semibold">{tip.title}</span>
-                  <span className="text-sm text-muted-foreground">{tip.description}</span>
-                </span>
-              </li>
-            ))}
-          </ol>
-        </CardContent>
-      </Card>
-    </div>
+    <details className="rounded-lg border border-border bg-card px-3 py-2">
+      <summary className="flex cursor-pointer items-center gap-2 text-sm font-medium">
+        <Info className="size-4 text-primary" aria-hidden />
+        Quick tips
+      </summary>
+      <ol className="mt-3 flex list-none flex-col gap-3 border-t border-border pt-3">
+        {testCaseQuickTips.map((tip, index) => (
+          <li key={tip.title} className="grid grid-cols-[1.5rem_minmax(0,1fr)] gap-2">
+            <span className="flex size-6 items-center justify-center rounded-full bg-info-surface text-info">
+              {index + 1}
+            </span>
+            <span className="flex flex-col gap-1">
+              <span className="text-sm font-semibold">{tip.title}</span>
+              <span className="text-sm text-muted-foreground">{tip.description}</span>
+            </span>
+          </li>
+        ))}
+      </ol>
+    </details>
   )
 }
 
 type FlowStepProps = {
+  title: string
+  isSaving: boolean
   isFlowImmersive: boolean
   scenarioPreview: string
   errors: TestCaseFormErrors
@@ -830,6 +820,8 @@ type FlowStepProps = {
 }
 
 function FlowStep({
+  title,
+  isSaving,
   isFlowImmersive,
   scenarioPreview,
   errors,
@@ -839,7 +831,28 @@ function FlowStep({
   onSubmit,
 }: FlowStepProps) {
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
+      {!isFlowImmersive && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 py-2">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold">{title.trim() || 'Untitled test case'}</p>
+            <p role="status" className="text-xs text-muted-foreground">
+              {isSaving ? 'Saving test case…' : 'Save when ready'}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <TestScenarioPreview title="Test Scenario(Preview)" scenario={scenarioPreview} />
+            <Button type="button" variant="outline" size="sm" onClick={onBack} disabled={isSaving}>
+              <ArrowLeft className="size-4" aria-hidden />
+              Back
+            </Button>
+            <Button type="button" size="sm" onClick={onSubmit} disabled={isSaving} aria-label="Save test case">
+              <Save className="size-4" aria-hidden />
+              {isSaving ? 'Saving…' : 'Save'}
+            </Button>
+          </div>
+        </div>
+      )}
       <LazyMotion features={domAnimation} strict>
         <LayoutGroup id="test-case-flow-panel-layout">
           <div className="w-full min-w-0">
@@ -852,30 +865,6 @@ function FlowStep({
           </div>
         </LayoutGroup>
       </LazyMotion>
-      {!isFlowImmersive && (
-        <div className="flex flex-col gap-4">
-          <TestScenarioPreview
-            title="Test Scenario(Preview)"
-            description="Preview of the test scenario in Gherkin syntax"
-            scenario={scenarioPreview}
-          />
-          <div className="mb-4 flex flex-col gap-2 sm:flex-row">
-            <Button variant="outline" onClick={onBack} className="w-fit px-6">
-              <ArrowLeft className="size-4" />
-              <span className="font-bold">Back</span>
-            </Button>
-            <Button
-              type="button"
-              onClick={onSubmit}
-              className="w-fit px-6 hover:bg-primary/90"
-              aria-label="Save test case"
-            >
-              <Save className="size-4" aria-hidden />
-              <span className="font-bold">Save</span>
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
@@ -890,6 +879,7 @@ type WizardStepContentProps = {
     title: string
   }
   flow: {
+    isSaving: boolean
     isFlowImmersive: boolean
     flowPanel: React.ReactNode
     immersiveFlowPanel: React.ReactNode
@@ -967,6 +957,8 @@ function WizardStepContent({ actions, details, errors, flow, navigation, templat
 
   return (
     <FlowStep
+      title={details.title}
+      isSaving={flow.isSaving}
       isFlowImmersive={flow.isFlowImmersive}
       scenarioPreview={flow.scenarioPreview}
       errors={errors}
@@ -1062,6 +1054,18 @@ function useReusableStepNavigation({
   }, [appliedTemplateId, detailsStepIndex, dispatch, hasTemplateSelectionStep, selectedTemplateId, templateTestCases])
 }
 
+function showTestCaseSaveResult(response: ActionResponse, push: (path: string) => void) {
+  if (response.status === 500 || (response.status === 200 && response.success !== false)) {
+    handleTestCaseSaveResponse({ response, redirectPath: '/test-cases', push, toast })
+    return
+  }
+  toast({
+    title: 'Error',
+    description: response.error ?? response.message ?? 'Could not save the test case. Please try again.',
+    variant: 'destructive',
+  })
+}
+
 function useTestCaseSubmitHandler({
   description,
   detailsStepIndex,
@@ -1087,7 +1091,10 @@ function useTestCaseSubmitHandler({
   title: string
   dispatch: React.Dispatch<import('./test-case-form-reducer').TestCaseFormAction>
 }) {
-  return useCallback(async () => {
+  const pendingRef = useRef(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const handleSubmit = useCallback(async () => {
+    if (pendingRef.current) return
     const topologyError = validateScenarioTopology(nodesOrder, flowBlocks)
     if (topologyError) {
       dispatch({ type: 'setErrors', errors: { steps: [topologyError] } })
@@ -1122,8 +1129,21 @@ function useTestCaseSubmitHandler({
       return
     }
     dispatch({ type: 'clearErrors' })
-    const response = await onSubmitAction(result.data, id)
-    handleTestCaseSaveResponse({ response, redirectPath: '/test-cases', push, toast })
+    pendingRef.current = true
+    setIsSaving(true)
+    try {
+      const response = await onSubmitAction(result.data, id)
+      showTestCaseSaveResult(response, push)
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Could not save the test case. Your changes are still here; try again.',
+        variant: 'destructive',
+      })
+    } finally {
+      pendingRef.current = false
+      setIsSaving(false)
+    }
   }, [
     description,
     detailsStepIndex,
@@ -1137,6 +1157,7 @@ function useTestCaseSubmitHandler({
     dispatch,
     title,
   ])
+  return { handleSubmit, isSaving }
 }
 
 function useFlowStepNavigation({
@@ -1399,7 +1420,7 @@ const TestCaseForm = ({
     title,
   })
 
-  const handleSubmit = useTestCaseSubmitHandler({
+  const { handleSubmit, isSaving } = useTestCaseSubmitHandler({
     description,
     detailsStepIndex,
     dispatch,
@@ -1439,6 +1460,7 @@ const TestCaseForm = ({
       title,
     },
     flow: {
+      isSaving,
       isFlowImmersive,
       flowPanel: <FlowPanel {...flowPanelProps} className="relative h-[max(22rem,calc(100dvh-12rem))]" />,
       immersiveFlowPanel: <FlowPanel {...flowPanelProps} className="h-full bg-background" />,

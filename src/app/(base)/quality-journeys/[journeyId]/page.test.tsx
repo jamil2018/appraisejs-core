@@ -440,6 +440,10 @@ describe('QualityJourneyDetailPage', () => {
     )
     expect(screen.queryByText('Operational control')).not.toBeInTheDocument()
     expect(screen.queryByText('Open required questions')).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Discuss in chat' })).toHaveAttribute(
+      'href',
+      '/conversations/new?kind=quality-journey&record=journey-1&project=project-1',
+    )
     expect(mocks.getJourney).toHaveBeenCalledWith({ journeyId: 'journey-1', targetProjectId: 'project-1' })
   })
 
@@ -517,7 +521,7 @@ describe('QualityJourneyDetailPage', () => {
     await renderPage()
 
     const focus = within(screen.getByRole('region', { name: 'Current journey focus' }))
-    expect(focus.getByText('Question for revision 2')).toBeInTheDocument()
+    expect(focus.getByRole('heading', { name: 'Question for revision 2' })).toBeInTheDocument()
     expect(focus.queryByText('How to connect the agent')).not.toBeInTheDocument()
     await user.type(screen.getByRole('textbox', { name: /Your answer/ }), 'Wallet payment.')
     expect(screen.getByRole('button', { name: 'Record answer' })).toBeEnabled()

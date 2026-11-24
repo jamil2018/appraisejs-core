@@ -15,6 +15,8 @@ export async function selectFilterTags(page: Page, ...tagNames: string[]): Promi
   for (const tagName of tagNames) {
     await combobox.click()
     await page.getByRole('option', { name: tagName }).click()
+    await page.keyboard.press('Escape')
+    await expect(combobox).toHaveAttribute('aria-expanded', 'false')
   }
 }
 
@@ -24,6 +26,8 @@ export async function selectTestSuites(page: Page, ...suiteNames: string[]): Pro
   for (const suiteName of suiteNames) {
     await combobox.click()
     await page.getByRole('option', { name: suiteName }).click()
+    await page.keyboard.press('Escape')
+    await expect(combobox).toHaveAttribute('aria-expanded', 'false')
   }
 }
 

@@ -2,24 +2,22 @@
 
 import {
   ColumnDef,
-  type RowSelectionState,
+  type Table as TanStackTable,
   flexRender,
   getCoreRowModel,
   useReactTable,
-  SortingState,
   getSortedRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
-  ColumnFiltersState,
-  PaginationState,
+  type VisibilityState,
 } from '@tanstack/react-table'
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
-import { useState } from 'react'
+import { useRef } from 'react'
 import { DataTablePagination } from './data-table-pagination'
 import { DataTableViewOptions } from './data-table-view-options'
-import { Eye, Pencil, PlusCircle, Search } from 'lucide-react'
+import { Eye, Pencil, PlusCircle, Search, X } from 'lucide-react'
 import { Button } from './button'
 import Link from 'next/link'
 import { toast } from '@/hooks/use-toast'
@@ -33,6 +31,7 @@ import {
   DropdownMenuGroup,
   DropdownMenuTrigger,
 } from './dropdown-menu'
+import { useDataTableView } from './use-data-table-view'
 
 type DataTableRowLike = {
   id?: string
@@ -59,6 +58,9 @@ export type DataTableProps<TData, TValue> = {
   createMenuLabel?: string
   viewLink?: string
   showSelectedRows?: boolean
+  density?: 'standard' | 'compact'
+  initialColumnVisibility?: VisibilityState
+  viewKey?: string
   getRowId?: (row: TData, index: number) => string
 }
 
@@ -94,6 +96,55 @@ function rowHasConflicts(value: unknown) {
   return hasDataTableRowShape(value) && Array.isArray(value.conflicts) && value.conflicts.length > 0
 }
 
+function selectionForActions<TData>(table: TanStackTable<TData>, density: DataTableProps<TData, unknown>['density']) {
+  return density === 'compact' ? table.getFilteredSelectedRowModel().rows : table.getSelectedRowModel().rows
+}
+
+function DataTableSearch<TData>({
+  table,
+  filterColumn,
+  label,
+}: {
+  table: TanStackTable<TData>
+  filterColumn: string
+  label: string
+}) {
+  const input = useRef<HTMLInputElement>(null)
+  const column = table.getColumn(filterColumn)
+  const value = String(column?.getFilterValue() ?? '')
+  return (
+    <div className="relative min-w-0 flex-[1_1_14rem] sm:max-w-md">
+      <Search
+        aria-hidden="true"
+        className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+      />
+      <Input
+        ref={input}
+        aria-label={label}
+        placeholder={label}
+        value={value}
+        onChange={event => column?.setFilterValue(event.target.value)}
+        className="pl-9 pr-9"
+      />
+      {value && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="absolute right-1 top-1/2 size-7 -translate-y-1/2 rounded-lg"
+          aria-label="Clear search"
+          onClick={() => {
+            column?.setFilterValue('')
+            input.current?.focus()
+          }}
+        >
+          <X aria-hidden="true" />
+        </Button>
+      )}
+    </div>
+  )
+}
+
 export function DataTable<TData, TValue>({
   columns,
   data,
@@ -107,39 +158,32 @@ export function DataTable<TData, TValue>({
   viewLink,
   deleteAction,
   showSelectedRows = true,
+  density = 'standard',
+  initialColumnVisibility,
+  viewKey,
   createMenuLabel = 'Create item',
   getRowId,
 }: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
-  const [pagination, setPagination] = useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 10,
-  })
+  const { state, update, scrollRef } = useDataTableView(viewKey, initialColumnVisibility)
 
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table's useReactTable returns unstable refs; React Compiler skips memoization
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    onSortingChange: setSorting,
+    onSortingChange: update('sorting'),
     getSortedRowModel: getSortedRowModel(),
-    onColumnFiltersChange: setColumnFilters,
+    onColumnFiltersChange: update('columnFilters'),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    onPaginationChange: setPagination,
-    onRowSelectionChange: setRowSelection,
-    state: {
-      sorting,
-      columnFilters,
-      rowSelection,
-      pagination,
-    },
+    onPaginationChange: update('pagination'),
+    onRowSelectionChange: update('rowSelection'),
+    onColumnVisibilityChange: update('columnVisibility'),
+    state,
     getRowId: (row, index) => getResolvedRowId(row, index, getRowId),
   })
 
-  const selectedRows = table.getSelectedRowModel().rows
+  const selectedRows = selectionForActions(table, density)
   const selectedIds = selectedRows.reduce<string[]>((ids, row) => {
     const value = getEntityId(row.original, row.index, getRowId)
     if (value !== null) {
@@ -174,21 +218,12 @@ export function DataTable<TData, TValue>({
   }
 
   return (
-    <div className="min-w-0 space-y-3 rounded-xl border border-border bg-card p-3 sm:p-4">
+    <div
+      data-density={density}
+      className="group/data-table min-w-0 space-y-3 rounded-xl border border-border bg-card p-3 data-[density=compact]:border-0 data-[density=compact]:bg-transparent data-[density=compact]:p-0 sm:p-4"
+    >
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-0 flex-[1_1_14rem] sm:max-w-md">
-          <Search
-            aria-hidden="true"
-            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-          />
-          <Input
-            aria-label={filterPlaceholder}
-            placeholder={filterPlaceholder}
-            value={(table.getColumn(filterColumn)?.getFilterValue() as string) ?? ''}
-            onChange={event => table.getColumn(filterColumn)?.setFilterValue(event.target.value)}
-            className="pl-9"
-          />
-        </div>
+        <DataTableSearch table={table} filterColumn={filterColumn} label={filterPlaceholder} />
         <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
           <DataTableViewOptions table={table} />
           {createLink && (
@@ -222,56 +257,61 @@ export function DataTable<TData, TValue>({
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-          {modifyLink &&
-            (singleSelectedId ? (
-              <Button
-                variant="outline"
-                size="icon"
-                aria-label="Edit selected item"
-                render={<Link href={`${modifyLink}/${singleSelectedId}`} />}
-                nativeButton={false}
-              >
-                <Pencil className="size-4" aria-hidden="true" />
-                <span className="sr-only">Edit selected item</span>
-              </Button>
-            ) : (
-              <Button variant="outline" size="icon" aria-label="Edit selected item" disabled>
-                <Pencil className="size-4" aria-hidden="true" />
-                <span className="sr-only">Edit selected item</span>
-              </Button>
-            ))}
-          {viewLink &&
-            (singleSelectedId ? (
-              <Button
-                variant="outline"
-                size="icon"
-                aria-label="View selected item"
-                render={<Link href={`${viewLink}/${singleSelectedId}`} />}
-                nativeButton={false}
-              >
-                <Eye className="size-4" aria-hidden="true" />
-                <span className="sr-only">View selected item</span>
-              </Button>
-            ) : (
-              <Button variant="outline" size="icon" aria-label="View selected item" disabled>
-                <Eye className="size-4" aria-hidden="true" />
-                <span className="sr-only">View selected item</span>
-              </Button>
-            ))}
-          {deleteAction && (
-            <DeletePrompt
-              isDisabled={selectedIds.length === 0}
-              dialogTitle="Delete Item"
-              dialogDescription="Please confirm your action"
-              confirmationText="Are you sure you want to delete the selected item(s)?"
-              deleteHandler={deleteHandler}
-              triggerLabel="Delete selected item(s)"
-            />
-          )}
+          <div
+            className="contents data-[hidden=true]:hidden"
+            data-hidden={density === 'compact' && selectedRowCount === 0}
+          >
+            {modifyLink &&
+              (singleSelectedId ? (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  aria-label="Edit selected item"
+                  render={<Link href={`${modifyLink}/${singleSelectedId}`} />}
+                  nativeButton={false}
+                >
+                  <Pencil className="size-4" aria-hidden="true" />
+                  <span className="sr-only">Edit selected item</span>
+                </Button>
+              ) : (
+                <Button variant="outline" size="icon" aria-label="Edit selected item" disabled>
+                  <Pencil className="size-4" aria-hidden="true" />
+                  <span className="sr-only">Edit selected item</span>
+                </Button>
+              ))}
+            {viewLink &&
+              (singleSelectedId ? (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  aria-label="View selected item"
+                  render={<Link href={`${viewLink}/${singleSelectedId}`} />}
+                  nativeButton={false}
+                >
+                  <Eye className="size-4" aria-hidden="true" />
+                  <span className="sr-only">View selected item</span>
+                </Button>
+              ) : (
+                <Button variant="outline" size="icon" aria-label="View selected item" disabled>
+                  <Eye className="size-4" aria-hidden="true" />
+                  <span className="sr-only">View selected item</span>
+                </Button>
+              ))}
+            {deleteAction && (
+              <DeletePrompt
+                isDisabled={selectedIds.length === 0}
+                dialogTitle="Delete Item"
+                dialogDescription="Please confirm your action"
+                confirmationText="Are you sure you want to delete the selected item(s)?"
+                deleteHandler={deleteHandler}
+                triggerLabel="Delete selected item(s)"
+              />
+            )}
+          </div>
         </div>
       </div>
       <div className="overflow-hidden rounded-lg border border-border bg-background">
-        <Table scrollLabel={tableLabel}>
+        <Table scrollLabel={tableLabel} scrollRef={scrollRef}>
           <TableHeader className="bg-secondary">
             {table.getHeaderGroups().map(headerGroup => (
               <TableRow key={headerGroup.id}>
@@ -295,7 +335,9 @@ export function DataTable<TData, TValue>({
                     className={rowHasConflicts(row.original) ? 'bg-destructive/10' : ''}
                   >
                     {row.getVisibleCells().map(cell => (
-                      <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                      <TableCell key={cell.id} className="group-data-[density=compact]/data-table:py-0.5">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
                     ))}
                   </TableRow>
                 )

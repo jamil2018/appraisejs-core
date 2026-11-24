@@ -52,15 +52,14 @@ describe('EnvironmentRegistry', () => {
   it('presents environments as runtime cards with their configuration details', () => {
     render(<EnvironmentRegistry environments={environments} />)
 
-    expect(screen.getByRole('heading', { name: 'Runtime registry' })).toBeVisible()
-    expect(screen.getByRole('link', { name: 'New environment' })).toHaveAttribute('href', '/environments/create')
+    expect(screen.getByRole('heading', { name: 'Environment registry' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Local' })).toBeVisible()
     expect(screen.getByText('http://localhost:3000/api')).toBeVisible()
     expect(screen.getByText('qa-user')).toBeVisible()
     expect(screen.getByText('Not configured')).toBeVisible()
     expect(screen.getByText('No username')).toBeVisible()
 
-    expect(screen.getByRole('region', { name: 'Runtime registry' })).toHaveClass('bg-card')
+    expect(screen.getByRole('region', { name: 'Environment registry' })).toHaveClass('bg-card')
     expect(screen.getByRole('heading', { name: 'Local' }).closest('article')).toHaveClass('bg-card')
   })
 

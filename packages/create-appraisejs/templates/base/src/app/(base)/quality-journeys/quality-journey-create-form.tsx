@@ -1,12 +1,17 @@
 'use client'
 
-import { ArrowLeft, ArrowRight, Check } from 'lucide-react'
+import { ArrowLeft, ArrowUp, Check, Paperclip } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  getBriefRecordContext,
+  journeyRecordLabels,
+  type JourneyRecordContext,
+} from '@/lib/quality-journey/record-context'
 
 import type { DraftSnapshot } from './quality-journey-create-form-shared'
 import { useQualityJourneyCreateIntake } from './use-quality-journey-create-intake'
@@ -58,14 +63,33 @@ function DraftSaveStatus({
   )
 }
 
+function BriefContext({ draft, recordContext }: { draft?: DraftSnapshot; recordContext?: JourneyRecordContext }) {
+  const attachment = recordContext ?? getBriefRecordContext(draft?.requirement.context)
+  if (attachment) {
+    return (
+      <p className="mx-1 flex w-fit max-w-full items-center gap-1.5 rounded-lg bg-muted px-2 py-1 text-sm">
+        <Paperclip className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <span className="shrink-0 text-muted-foreground">{journeyRecordLabels[attachment.kind]}</span>
+        <span className="min-w-0 truncate" title={attachment.title}>
+          {attachment.title}
+        </span>
+      </p>
+    )
+  }
+  if (!draft || !Object.keys(draft.requirement).some(key => key !== 'objective' && key !== 'schemaVersion')) return null
+  return <p className="px-2 text-xs text-muted-foreground">Details from your saved brief are retained.</p>
+}
+
 export function QualityJourneyCreateForm({
   projectId,
   predecessorJourneyId,
   draft,
+  recordContext,
 }: {
   projectId: string
   predecessorJourneyId?: string
   draft?: DraftSnapshot
+  recordContext?: JourneyRecordContext
 }) {
   const { push } = useRouter()
   const { actions, isPending, requirement, saveConflict, saveStatus, state, update } = useQualityJourneyCreateIntake({
@@ -73,6 +97,7 @@ export function QualityJourneyCreateForm({
     predecessorJourneyId,
     projectId,
     push,
+    recordContext,
   })
   if (draft?.status === 'ARCHIVED')
     return (
@@ -87,7 +112,7 @@ export function QualityJourneyCreateForm({
       </section>
     )
   return (
-    <div className="space-y-4">
+    <div className="mx-auto max-w-3xl space-y-4 lg:pt-12">
       <header className="space-y-2">
         <Link
           className="app-focus inline-flex min-h-8 items-center gap-2 rounded-md text-sm text-muted-foreground hover:text-foreground"
@@ -96,11 +121,8 @@ export function QualityJourneyCreateForm({
           <ArrowLeft aria-hidden="true" className="size-4" /> Quality Journeys
         </Link>
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-          {draft ? 'Continue your Journey brief' : 'Start a Quality Journey'}
+          {draft ? 'Continue your Journey brief' : 'What would you like to check?'}
         </h1>
-        <p className="max-w-xl text-sm leading-6 text-muted-foreground">
-          Appraise reviews your brief and asks for missing details on the Journey page.
-        </p>
         {predecessorJourneyId ? (
           <p className="text-sm text-muted-foreground">
             Follow-up to{' '}
@@ -114,37 +136,38 @@ export function QualityJourneyCreateForm({
         ) : null}
       </header>
       <form
-        className="space-y-3 rounded-xl border border-border bg-card p-4"
+        className="space-y-2 rounded-[1.125rem] border border-border bg-popover p-2 focus-within:border-input"
         onSubmit={event => {
           event.preventDefault()
           actions.submit()
         }}
       >
         <div className="space-y-2">
-          <Label htmlFor="quality-journey-objective">What do you want to validate?</Label>
+          <Label htmlFor="quality-journey-objective" className="sr-only">
+            What do you want to validate?
+          </Label>
           <Textarea
             aria-describedby="quality-journey-brief-help"
+            className="min-h-20 resize-y border-transparent bg-transparent px-2 py-1.5 text-base shadow-none"
             disabled={isPending}
             id="quality-journey-objective"
             maxLength={8000}
             onChange={event => update({ objective: event.target.value, error: null })}
             placeholder="For example: Check that a shopper can place an order, including payment failures and returning to checkout."
-            rows={6}
+            rows={3}
             value={state.objective}
           />
-          <p className="text-xs leading-5 text-muted-foreground" id="quality-journey-brief-help">
+          <p className="sr-only" id="quality-journey-brief-help">
             Include the expected behavior and any risks or constraints that matter.
           </p>
-          {draft && Object.keys(draft.requirement).some(key => key !== 'objective' && key !== 'schemaVersion') ? (
-            <p className="text-xs text-muted-foreground">Details from your saved brief are retained.</p>
-          ) : null}
+          <BriefContext draft={draft} recordContext={recordContext} />
         </div>
         {state.error ? (
           <p className="text-sm text-destructive" role="alert">
             {state.error}
           </p>
         ) : null}
-        <div className="flex flex-col gap-2 border-t border-border pt-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-1 pb-1">
           <DraftSaveStatus
             onRetry={() => void actions.enqueueSave()}
             onSaveAsNewDraft={actions.saveAsNewDraft}
@@ -152,12 +175,13 @@ export function QualityJourneyCreateForm({
             saveStatus={saveStatus}
           />
           <Button
-            className="w-full sm:w-auto"
+            className="ml-auto rounded-full"
             disabled={isPending || saveConflict || !requirement.objective}
+            size="sm"
             type="submit"
           >
             {isPending ? 'Starting…' : 'Start journey'}
-            <ArrowRight aria-hidden="true" className="size-4" />
+            <ArrowUp aria-hidden="true" className="size-4" />
           </Button>
         </div>
       </form>

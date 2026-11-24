@@ -2,6 +2,10 @@
 
 # MCP Setup For Quality Work
 
+After registering a compatible client, use `workspace_record_search` with the registered target and record kind to find
+cases, suites, templates, runs, and reports in its project. It returns record identifiers and titles and grants read
+access only within that target. Appraise Settings account authorization and MCP registration are separate steps.
+
 For the complete operator path from setup through handoff, recovery, and upgrade, see the
 [Quality Journey operator guide](quality-journey-operator-guide.md).
 

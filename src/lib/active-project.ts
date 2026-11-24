@@ -20,13 +20,16 @@ export async function requireActiveProject(urlProjectId?: string | null): Promis
 export async function requireActiveProjectForMutation(
   callerTargetProjectId?: string | null,
 ): Promise<ActiveProjectContext> {
-  // The proxy sets this from the actual action request, including the project in a shared Journey link.
+  // The proxy sets this from the actual action request, including the project in a workspace link.
   const requestTarget = (await headers()).get(APPRAISE_REQUEST_TARGET_HEADER)
-  const journeyUrl =
-    requestTarget && /^\/quality-journeys(?:[/?]|$)/.test(requestTarget)
+  const scopedUrl =
+    requestTarget &&
+    /^\/(?:quality-journeys|conversations|reports|test-cases|test-runs|test-suites|template-test-cases)(?:[/?]|$)/.test(
+      requestTarget,
+    )
       ? new URL(requestTarget, 'http://appraise.local')
       : null
-  const project = await requireActiveProject(journeyUrl?.searchParams.get('project') || callerTargetProjectId)
+  const project = await requireActiveProject(scopedUrl?.searchParams.get('project') || callerTargetProjectId)
   if (callerTargetProjectId && callerTargetProjectId !== project.id) {
     throw new ServiceError('Caller project scope conflicts with the active project.', 'CONFLICT', 409)
   }

@@ -58,6 +58,25 @@ export async function collectTargetProjectDeletionEffects(tx: Tx, targetProjectI
     orderBy: { id: 'asc' }, take: take() }))
   const tags = scoped(await tx.tag.findMany({ where: { targetProjectId }, select: rootSelect,
     orderBy: { id: 'asc' }, take: take() }))
+  const conversations = scoped(await tx.projectConversation.findMany({ where: { targetProjectId }, select: rootSelect,
+    orderBy: { id: 'asc' }, take: take() }))
+  const conversationIds = ids(conversations), conversationSet = new Set(conversationIds)
+  const conversationMessages = listed(await tx.projectConversationMessage.findMany({
+    where: { conversationId: { in: conversationIds } }, select: { id: true, conversationId: true },
+    orderBy: { id: 'asc' }, take: take(),
+  }))
+  for (const row of conversationMessages) endpoint(row.conversationId, conversationSet)
+  const conversationMessageSet = new Set(ids(conversationMessages))
+  const conversationReads = listed(await tx.projectConversationRead.findMany({
+    where: { conversationId: { in: conversationIds } },
+    select: { id: true, conversationId: true, messageId: true, blockedConversationId: true },
+    orderBy: { id: 'asc' }, take: take(),
+  }))
+  for (const row of conversationReads) {
+    endpoint(row.conversationId, conversationSet)
+    endpoint(row.messageId, conversationMessageSet)
+    if (row.blockedConversationId !== null) refuse('UNRESOLVED_CONVERSATION_READ')
+  }
   const moduleIds = ids(modules), groupIds = ids(groups), locatorIds = ids(locators), suiteIds = ids(suites),
     caseIds = ids(cases), templateIds = ids(templates), environmentIds = ids(environments), tagIds = ids(tags)
   const moduleSet = new Set(moduleIds), groupSet = new Set(groupIds), locatorSet = new Set(locatorIds),
@@ -301,5 +320,7 @@ export async function collectTargetProjectDeletionEffects(tx: Tx, targetProjectI
     blocks: Object.freeze(blockIds), templateBlocks: Object.freeze(templateBlockIds), conflicts: Object.freeze(ids(conflicts)),
     caseMetrics: Object.freeze(ids(caseMetrics)), suiteMetrics: Object.freeze(ids(suiteMetrics)), dashboardMetrics: Object.freeze(ids(dashboardMetrics)),
     imports: Object.freeze(ids(imports)), ownerships: Object.freeze(ownershipIds),
+    conversations: Object.freeze(conversationIds), conversationMessages: Object.freeze(ids(conversationMessages)),
+    conversationReads: Object.freeze(ids(conversationReads)),
   })
 }

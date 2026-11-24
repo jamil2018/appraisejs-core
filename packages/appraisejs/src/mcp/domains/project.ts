@@ -43,6 +43,23 @@ export function registerProjectOperations(context: McpRegistryContext): void {
   const { server, api } = context
 
   server.registerTool(
+    'workspace_record_search',
+    {
+      description:
+        'Find up to eight matching case, suite, template, run, or report summaries in the requested Appraise project.',
+      inputSchema: {
+        target: z.string().min(1).max(1024),
+        kind: z.enum(['TEST_CASE', 'TEST_SUITE', 'CASE_TEMPLATE', 'TEST_RUN', 'REPORT']),
+        query: z.string().trim().max(160).optional(),
+      },
+    },
+    async ({ target, kind, query }) => {
+      const parameters = new URLSearchParams({ target, kind, query: query ?? '' })
+      return text(await api.request(`workspace/records?${parameters}`))
+    },
+  )
+
+  server.registerTool(
     'environment_list',
     {
       description:
