@@ -4,6 +4,7 @@ import type {
   PrismaClient,
   ProjectConversationChatGptEngine,
   ProjectConversationRead,
+  ProjectConversationReadEngine,
   ProjectConversationReadProvider,
 } from '@prisma/client'
 import { z } from 'zod'
@@ -17,13 +18,13 @@ import { searchWorkspaceRecords } from '@/services/workspace-search/workspace-re
 const runTimeoutMs = 45_000
 const reservationLifetimeMs = 60_000
 type Scope = { targetProjectId: string; conversationId: string }
-type ReadInput = Scope & { messageId: string; expectedEngine?: ProjectConversationChatGptEngine }
+type ReadInput = Scope & { messageId: string; expectedEngine?: ProjectConversationReadEngine }
 type ReadDatabase = Prisma.TransactionClient | PrismaClient
 
 export type ConversationReadAttempt = {
   id: string
   messageId: string
-  engine: ProjectConversationChatGptEngine
+  engine: ProjectConversationReadEngine
   state: ProjectConversationRead['state']
   released: boolean
   records: WorkspaceRecord[]
@@ -168,7 +169,6 @@ function existingAttempt(db: ReadDatabase, input: ReadInput) {
     where: {
       conversationId: input.conversationId,
       messageId: input.messageId,
-      provider: 'CHATGPT',
       message: { conversation: conversationWhere(input) },
     },
   })
@@ -179,9 +179,11 @@ async function reserveRead(input: ReadInput, client: PrismaClient) {
     const { readProvider, chatGptEngine } = await scopedConversation(tx, input)
     const existing = await existingAttempt(tx, input)
     if (existing) return { row: existing }
-    if (readProvider !== 'CHATGPT') throw new ServiceError('Choose ChatGPT for this chat first.', 'CONFLICT')
-    if (chatGptEngine !== (input.expectedEngine ?? 'RESPONSES')) {
-      throw new ServiceError('The selected ChatGPT engine changed before this read started.', 'CONFLICT')
+    if (readProvider === 'LOCAL') throw new ServiceError('Choose a provider for this chat first.', 'CONFLICT')
+    const selectedEngine = readProvider === 'CLAUDE' ? 'CLAUDE_CODE' : chatGptEngine
+    const expectedEngine = input.expectedEngine ?? (readProvider === 'CLAUDE' ? 'CLAUDE_CODE' : 'RESPONSES')
+    if (selectedEngine !== expectedEngine) {
+      throw new ServiceError('The selected provider engine changed before this read started.', 'CONFLICT')
     }
     const blocker = await tx.projectConversationRead.findUnique({
       where: { blockedConversationId: input.conversationId },
@@ -195,7 +197,7 @@ async function reserveRead(input: ReadInput, client: PrismaClient) {
         conversationId: input.conversationId,
         messageId: input.messageId,
         provider: readProvider,
-        engine: chatGptEngine,
+        engine: selectedEngine,
         state: 'RUNNING',
         blockedConversationId: input.conversationId,
         expiresAt: new Date(Date.now() + reservationLifetimeMs),

@@ -404,6 +404,10 @@
     {
       "name": "20261124030000_add_conversation_read_engines",
       "checksum": "73ba4350722e0279d897cd873c27c84220763ebd8ce0dfb2cd4885aa56f69050"
+    },
+    {
+      "name": "20261125010000_add_claude_conversation_reads",
+      "checksum": "9c7011772e916a75a7147a5a212674385121079c6fed84eb2a3a0324e7094c70"
     }
   ]
 }

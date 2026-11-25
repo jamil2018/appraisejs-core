@@ -47,6 +47,10 @@ const engineMigration = path.join(
   process.cwd(),
   'prisma/migrations/20261124030000_add_conversation_read_engines/migration.sql',
 )
+const claudeMigration = path.join(
+  process.cwd(),
+  'prisma/migrations/20261125010000_add_claude_conversation_reads/migration.sql',
+)
 const projectA = 'project-a'
 const projectB = 'project-b'
 let directory: string
@@ -86,6 +90,7 @@ beforeEach(() => {
   execFileSync('sqlite3', [file, readFileSync(migration, 'utf8')])
   execFileSync('sqlite3', [file, readFileSync(providerMigration, 'utf8')])
   execFileSync('sqlite3', [file, readFileSync(engineMigration, 'utf8')])
+  execFileSync('sqlite3', [file, readFileSync(claudeMigration, 'utf8')])
   execFileSync('sqlite3', [file, `INSERT INTO "TargetProject" ("id") VALUES ('${projectA}'), ('${projectB}');`])
   client = new PrismaClient({ datasources: { db: { url: `file:${file}` } } })
 })
@@ -444,6 +449,22 @@ describe('durable provider reads', () => {
     `,
     ])
     execFileSync('sqlite3', [file, readFileSync(engineMigration, 'utf8')])
+    const priorAttempts = execFileSync('sqlite3', [file, 'SELECT * FROM "ProjectConversationRead" ORDER BY "id";'], {
+      encoding: 'utf8',
+    })
+    const priorConversation = execFileSync('sqlite3', [file, 'SELECT * FROM "ProjectConversation";'], {
+      encoding: 'utf8',
+    })
+    execFileSync('sqlite3', [file, readFileSync(claudeMigration, 'utf8')])
+    expect(
+      execFileSync('sqlite3', [file, 'SELECT * FROM "ProjectConversationRead" ORDER BY "id";'], {
+        encoding: 'utf8',
+      }),
+    ).toBe(priorAttempts)
+    expect(execFileSync('sqlite3', [file, 'SELECT * FROM "ProjectConversation";'], { encoding: 'utf8' })).toBe(
+      priorConversation,
+    )
+    expect(execFileSync('sqlite3', [file, 'PRAGMA foreign_key_check;'], { encoding: 'utf8' })).toBe('')
     const upgraded = new PrismaClient({ datasources: { db: { url: `file:${file}` } } })
     try {
       const scope = { targetProjectId: projectA, conversationId: 'legacy' }
@@ -473,7 +494,7 @@ describe('durable provider reads', () => {
     const input = await savedLookup()
     const provider = vi.fn<ConversationLookupProvider>()
     const search = vi.fn()
-    await expect(verifyConversationLookup(input, provider, client, search)).rejects.toThrow('Choose ChatGPT')
+    await expect(verifyConversationLookup(input, provider, client, search)).rejects.toThrow('Choose a provider')
     const foreign = { ...input, targetProjectId: projectB }
     await expect(setConversationReadProvider(foreign, 'CHATGPT', client)).rejects.toThrow('not found')
     await expect(verifyConversationLookup(foreign, provider, client, search)).rejects.toThrow('not found')
@@ -569,6 +590,96 @@ describe('durable provider reads', () => {
       chatGptEngine: 'CODEX',
       attempts: expect.arrayContaining([original, nativeReceipt]),
     })
+  })
+
+  it('keeps one saved-message attempt across providers and persists Claude Code reads', async () => {
+    const input = await savedLookup()
+    const search = vi.fn().mockResolvedValue(records)
+    const chatGpt = vi.fn<ConversationLookupProvider>(async ({ lookup }) => {
+      await lookup()
+      return 'completed'
+    })
+    await setConversationReadProvider(input, 'CHATGPT', client, 'CODEX')
+    const original = await verifyConversationLookup({ ...input, expectedEngine: 'CODEX' }, chatGpt, client, search)
+
+    await setConversationReadProvider(input, 'CLAUDE', client)
+    const claude = vi.fn<ConversationLookupProvider>(async ({ lookup }) => {
+      await lookup()
+      return 'completed'
+    })
+    expect(await verifyConversationLookup({ ...input, expectedEngine: 'CLAUDE_CODE' }, claude, client, search)).toEqual(
+      original,
+    )
+    expect(claude).not.toHaveBeenCalled()
+
+    const second = await appendConversationTurn(
+      {
+        targetProjectId: projectA,
+        conversationId: input.conversationId,
+        idempotencyKey: 'claude-second',
+        content: 'Find test case named Checkout',
+      },
+      client,
+    )
+    const fresh = { ...input, messageId: second.messages[0].id }
+    await expect(
+      verifyConversationLookup({ ...fresh, expectedEngine: 'CODEX' }, claude, client, search),
+    ).rejects.toThrow('engine changed')
+    const claudeReceipt = await verifyConversationLookup(
+      { ...fresh, expectedEngine: 'CLAUDE_CODE' },
+      claude,
+      client,
+      search,
+    )
+    expect(claudeReceipt).toMatchObject({ engine: 'CLAUDE_CODE', state: 'COMPLETED', records })
+    expect(claude).toHaveBeenCalledTimes(1)
+    expect(await readConversationProviderState(input, [input.messageId, fresh.messageId], client)).toMatchObject({
+      readProvider: 'CLAUDE',
+      chatGptEngine: 'CODEX',
+      attempts: expect.arrayContaining([original, claudeReceipt]),
+    })
+    await setConversationReadProvider(input, 'CHATGPT', client, 'CODEX')
+    expect(await verifyConversationLookup({ ...fresh, expectedEngine: 'CODEX' }, chatGpt, client, search)).toEqual(
+      claudeReceipt,
+    )
+    expect(chatGpt).toHaveBeenCalledTimes(1)
+
+    await expect(
+      client.projectConversationRead.create({
+        data: {
+          id: 'invalid-provider-engine',
+          conversationId: input.conversationId,
+          messageId: fresh.messageId,
+          provider: 'CLAUDE',
+          engine: 'CODEX',
+          state: 'FAILED',
+          expiresAt: new Date(),
+          settledAt: new Date(),
+        },
+      }),
+    ).rejects.toThrow()
+  })
+
+  it('retains an uncertain Claude Code attempt while switching providers', async () => {
+    const input = await savedLookup()
+    await setConversationReadProvider(input, 'CLAUDE', client)
+    const claude = vi.fn<ConversationLookupProvider>().mockRejectedValue(new Error('lost reply after send'))
+    const read = vi.fn()
+    const attempt = await verifyConversationLookup({ ...input, expectedEngine: 'CLAUDE_CODE' }, claude, client, read)
+    expect(attempt).toMatchObject({ engine: 'CLAUDE_CODE', state: 'UNKNOWN', released: false })
+    await expect(setConversationReadProvider(input, 'CHATGPT', client)).rejects.toThrow('outstanding read')
+    await releaseUnconfirmedConversationRead({ ...input, attemptId: attempt.id }, client)
+    await setConversationReadProvider(input, 'CHATGPT', client)
+    const chatGpt = vi.fn<ConversationLookupProvider>()
+    expect(await verifyConversationLookup(input, chatGpt, client, read)).toMatchObject({
+      id: attempt.id,
+      engine: 'CLAUDE_CODE',
+      state: 'UNKNOWN',
+      released: true,
+    })
+    expect(claude).toHaveBeenCalledTimes(1)
+    expect(chatGpt).not.toHaveBeenCalled()
+    expect(read).not.toHaveBeenCalled()
   })
 
   it('keeps uncertain outcomes on restart and acknowledges the exact original attempt without replay', async () => {

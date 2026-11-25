@@ -530,11 +530,18 @@ enum ProjectConversationRole {
 enum ProjectConversationReadProvider {
   LOCAL
   CHATGPT
+  CLAUDE
 }
 
 enum ProjectConversationChatGptEngine {
   RESPONSES
   CODEX
+}
+
+enum ProjectConversationReadEngine {
+  RESPONSES
+  CODEX
+  CLAUDE_CODE
 }
 
 enum ProjectConversationReadState {
@@ -588,7 +595,7 @@ model ProjectConversationRead {
   messageId             String
   message               ProjectConversationMessage   @relation(fields: [conversationId, messageId], references: [conversationId, id], onDelete: Restrict)
   provider              ProjectConversationReadProvider
-  engine                ProjectConversationChatGptEngine @default(RESPONSES)
+  engine                ProjectConversationReadEngine @default(RESPONSES)
   state                 ProjectConversationReadState
   blockedConversationId String?                      @unique
   createdAt             DateTime                     @default(now())

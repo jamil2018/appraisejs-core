@@ -99,13 +99,12 @@ operation definitions are step execution primitives, not substitutes for authori
   “Rename this case to …” with an exact case attachment updates only its title through the case service and its
   shared-resource guard. SQLite commits the edit and both messages together, with replay through the same request key.
   The coordinator exposes the same bounded search through `workspace_record_search`.
-- **Provider lookup:** Settings offers local ChatGPT authorization with signed identity verification and private
-  credential custody. A saved project lookup can use ChatGPT Responses or a pinned native Codex app-server on macOS.
-  The user reviews the query before sending it. Appraise owns the scoped search result and retains interrupted
-  attempts for explicit acknowledgement. Live Responses and native Codex lookups each returned the exact checkout
-  case on macOS.
-  Broader provider lifecycle coverage, Claude Code, and full parity remain open. The production Journey dispatch
-  path retains its refusal.
+- **Provider lookup:** Settings offers local ChatGPT authorization with signed identity verification and sign-in
+  through the official Claude Code CLI on a configured Mac. A saved project lookup can use ChatGPT Responses,
+  native Codex, or the user's Claude subscription. The user reviews the query before sending it. Appraise owns
+  the scoped search result and retains interrupted attempts for explicit acknowledgement. Live lookups through
+  all three paths returned the expected checkout case on macOS. Broader provider lifecycle coverage and full
+  action parity remain open. The production Journey dispatch path retains its refusal.
 - **Journey cards:** Attached Journeys show the current question, proposed checks, change review, activity, run
   permission, or result and evidence. Decisions stay on the current canonical Journey control.
 - **Next parity evidence:** enumerate state-dependent row and bulk controls, disclosures, keyboard actions, template
