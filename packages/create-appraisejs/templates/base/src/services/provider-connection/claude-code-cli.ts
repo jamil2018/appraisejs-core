@@ -2,7 +2,7 @@ import { execFile } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { constants, createReadStream } from 'node:fs'
 import type { Stats } from 'node:fs'
-import { chmod, copyFile, lstat, mkdir, mkdtemp, realpath, rm, stat } from 'node:fs/promises'
+import { chmod, copyFile, lstat, mkdir, mkdtemp, realpath, rm, stat, unlink } from 'node:fs/promises'
 import { homedir, platform, tmpdir } from 'node:os'
 import path from 'node:path'
 import { z } from 'zod'
@@ -12,6 +12,29 @@ import { openClaudeCodeLookupEgress } from './claude-code-egress'
 const sandboxExecutable = '/usr/bin/sandbox-exec'
 const maxImageBytes = 512 * 1024 * 1024
 const maxOutputBytes = 256 * 1024
+const credentialsFile = '.credentials.json'
+// Claude Code falls back to a private but plaintext file when Keychain
+// refuses a save. Reject the credential path, including atomic-write siblings.
+const keychainOnly = String.raw`(deny file-read-data file-write* (regex #"/\.credentials\.json"))`
+const authSandbox = `(version 1)
+(allow default)
+${keychainOnly}`
+
+export class ClaudeCodeLegacyCredentialError extends Error {}
+
+async function rejectPlaintextCredentials(profile: string, command: ClaudeCodeCommand) {
+  const filename = path.join(profile, credentialsFile)
+  const info = await lstat(filename).catch((error: NodeJS.ErrnoException) => {
+    if (error.code !== 'ENOENT') throw error
+    return undefined
+  })
+  if (!info) return
+  if (command === 'logout' && info.isFile() && info.uid === process.getuid?.() && info.nlink === 1) {
+    await unlink(filename)
+    return
+  }
+  throw new ClaudeCodeLegacyCredentialError('The Claude Code profile has a legacy plaintext credential.')
+}
 
 // The signed-in CLI may use the macOS Keychain helper. A lookup cannot start a
 // shell, read workspace files, or launch a configured hook or MCP subprocess.
@@ -38,7 +61,8 @@ const lookupSandbox = `(version 1)
 (allow file-write*
   (literal "/dev/null")
   (subpath (param "PROFILE")) (subpath (param "SCRATCH")))
-(deny file-write* (literal (param "EXECUTABLE")))`
+(deny file-write* (literal (param "EXECUTABLE")))
+${keychainOnly}`
 
 export type ClaudeCodeCommand = 'status' | 'login' | 'logout' | 'lookup'
 export type ClaudeCodeRunOptions = { input?: string; signal?: AbortSignal; lookupArgs?: readonly string[] }
@@ -133,6 +157,7 @@ export async function resolveClaudeCodeCli(): Promise<ClaudeCodeCli | undefined>
     async run(command, options = {}) {
       options.signal?.throwIfAborted()
       const profile = await profileDirectory()
+      await rejectPlaintextCredentials(profile, command)
       const scratch = await mkdtemp(path.join(await realpath(tmpdir()), 'appraise-claude-'))
       const environment = {
         HOME: homedir(),
@@ -153,8 +178,8 @@ export async function resolveClaudeCodeCli(): Promise<ClaudeCodeCli | undefined>
         const common = { cwd: scratch, env: environment, signal: options.signal }
         if (command !== 'lookup') {
           const reply = await runCommand(
-            executable,
-            ['auth', command],
+            sandboxExecutable,
+            ['-p', authSandbox, executable, 'auth', command],
             { ...common, timeout: command === 'login' ? 5 * 60_000 : 5_000 },
             undefined,
           )

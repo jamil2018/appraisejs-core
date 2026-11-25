@@ -51,6 +51,10 @@ const claudeMigration = path.join(
   process.cwd(),
   'prisma/migrations/20261125010000_add_claude_conversation_reads/migration.sql',
 )
+const cursorMigration = path.join(
+  process.cwd(),
+  'prisma/migrations/20261125020000_add_cursor_conversation_reads/migration.sql',
+)
 const projectA = 'project-a'
 const projectB = 'project-b'
 let directory: string
@@ -91,6 +95,7 @@ beforeEach(() => {
   execFileSync('sqlite3', [file, readFileSync(providerMigration, 'utf8')])
   execFileSync('sqlite3', [file, readFileSync(engineMigration, 'utf8')])
   execFileSync('sqlite3', [file, readFileSync(claudeMigration, 'utf8')])
+  execFileSync('sqlite3', [file, readFileSync(cursorMigration, 'utf8')])
   execFileSync('sqlite3', [file, `INSERT INTO "TargetProject" ("id") VALUES ('${projectA}'), ('${projectB}');`])
   client = new PrismaClient({ datasources: { db: { url: `file:${file}` } } })
 })
@@ -465,6 +470,35 @@ describe('durable provider reads', () => {
       priorConversation,
     )
     expect(execFileSync('sqlite3', [file, 'PRAGMA foreign_key_check;'], { encoding: 'utf8' })).toBe('')
+    execFileSync('sqlite3', [
+      file,
+      `
+      INSERT INTO "ProjectConversationMessage" ("id", "conversationId", "ordinal", "role", "content", "turnId")
+        VALUES ('claude-unknown', 'legacy', 3, 'USER', 'Find test case named Checkout', 'turn-3');
+      INSERT INTO "ProjectConversationRead" ("id", "conversationId", "messageId", "provider", "engine", "state", "expiresAt", "settledAt", "releasedAt")
+        VALUES ('released-claude', 'legacy', 'claude-unknown', 'CLAUDE', 'CLAUDE_CODE', 'UNKNOWN', 1767225600000, 1767225600000, 1767225600000);
+    `,
+    ])
+    const beforeCursorAttempts = execFileSync(
+      'sqlite3',
+      [file, 'SELECT * FROM "ProjectConversationRead" ORDER BY "id";'],
+      {
+        encoding: 'utf8',
+      },
+    )
+    const beforeCursorConversation = execFileSync('sqlite3', [file, 'SELECT * FROM "ProjectConversation";'], {
+      encoding: 'utf8',
+    })
+    execFileSync('sqlite3', [file, readFileSync(cursorMigration, 'utf8')])
+    expect(
+      execFileSync('sqlite3', [file, 'SELECT * FROM "ProjectConversationRead" ORDER BY "id";'], {
+        encoding: 'utf8',
+      }),
+    ).toBe(beforeCursorAttempts)
+    expect(execFileSync('sqlite3', [file, 'SELECT * FROM "ProjectConversation";'], { encoding: 'utf8' })).toBe(
+      beforeCursorConversation,
+    )
+    expect(execFileSync('sqlite3', [file, 'PRAGMA foreign_key_check;'], { encoding: 'utf8' })).toBe('')
     const upgraded = new PrismaClient({ datasources: { db: { url: `file:${file}` } } })
     try {
       const scope = { targetProjectId: projectA, conversationId: 'legacy' }
@@ -679,6 +713,103 @@ describe('durable provider reads', () => {
     })
     expect(claude).toHaveBeenCalledTimes(1)
     expect(chatGpt).not.toHaveBeenCalled()
+    expect(read).not.toHaveBeenCalled()
+  })
+
+  it('binds Cursor CLI to Cursor and keeps one saved-message attempt across providers', async () => {
+    const input = await savedLookup()
+    const search = vi.fn().mockResolvedValue(records)
+    const provider = vi.fn<ConversationLookupProvider>(async ({ lookup }) => {
+      await lookup()
+      return 'completed'
+    })
+    await setConversationReadProvider(input, 'CHATGPT', client, 'CODEX')
+    const original = await verifyConversationLookup({ ...input, expectedEngine: 'CODEX' }, provider, client, search)
+
+    await setConversationReadProvider(input, 'CURSOR', client)
+    const cursor = vi.fn<ConversationLookupProvider>(async ({ lookup }) => {
+      await lookup()
+      return 'completed'
+    })
+    expect(await verifyConversationLookup({ ...input, expectedEngine: 'CURSOR_CLI' }, cursor, client, search)).toEqual(
+      original,
+    )
+    expect(cursor).not.toHaveBeenCalled()
+
+    const next = await appendConversationTurn(
+      {
+        targetProjectId: projectA,
+        conversationId: input.conversationId,
+        idempotencyKey: 'cursor-next',
+        content: 'Find test case named Checkout',
+      },
+      client,
+    )
+    const fresh = { ...input, messageId: next.messages[0].id }
+    await expect(
+      verifyConversationLookup({ ...fresh, expectedEngine: 'CLAUDE_CODE' }, cursor, client, search),
+    ).rejects.toThrow('engine changed')
+    await expect(
+      verifyConversationLookup({ ...fresh, expectedEngine: 'CODEX' }, cursor, client, search),
+    ).rejects.toThrow('engine changed')
+    expect(cursor).not.toHaveBeenCalled()
+    const receipt = await verifyConversationLookup({ ...fresh, expectedEngine: 'CURSOR_CLI' }, cursor, client, search)
+    expect(receipt).toMatchObject({ engine: 'CURSOR_CLI', state: 'COMPLETED', records })
+    expect(cursor).toHaveBeenCalledTimes(1)
+    expect(await readConversationProviderState(input, [input.messageId, fresh.messageId], client)).toMatchObject({
+      readProvider: 'CURSOR',
+      chatGptEngine: 'CODEX',
+      attempts: expect.arrayContaining([original, receipt]),
+    })
+    await setConversationReadProvider(input, 'CLAUDE', client)
+    expect(
+      await verifyConversationLookup({ ...fresh, expectedEngine: 'CLAUDE_CODE' }, provider, client, search),
+    ).toEqual(receipt)
+    expect(provider).toHaveBeenCalledTimes(1)
+    expect(await client.projectConversationRead.count({ where: { messageId: fresh.messageId } })).toBe(1)
+
+    const invalid = await appendConversationTurn(
+      {
+        targetProjectId: projectA,
+        conversationId: input.conversationId,
+        idempotencyKey: 'cursor-invalid',
+        content: 'Find test case named Checkout',
+      },
+      client,
+    )
+    await expect(
+      client.projectConversationRead.create({
+        data: {
+          id: 'invalid-cursor-engine',
+          conversationId: input.conversationId,
+          messageId: invalid.messages[0].id,
+          provider: 'CURSOR',
+          engine: 'CODEX',
+          state: 'FAILED',
+          expiresAt: new Date(),
+          settledAt: new Date(),
+        },
+      }),
+    ).rejects.toThrow()
+  })
+
+  it('keeps a Cursor outcome uncertain across restart and does not replay it after acknowledgement', async () => {
+    const input = await savedLookup()
+    await setConversationReadProvider(input, 'CURSOR', client)
+    const cursor = vi.fn<ConversationLookupProvider>().mockRejectedValue(new Error('lost reply after send'))
+    const read = vi.fn()
+    const attempt = await verifyConversationLookup({ ...input, expectedEngine: 'CURSOR_CLI' }, cursor, client, read)
+    expect(attempt).toMatchObject({ engine: 'CURSOR_CLI', state: 'UNKNOWN', released: false })
+    await client.$disconnect()
+    client = new PrismaClient({ datasources: { db: { url: `file:${path.join(directory, 'scratch.db')}` } } })
+    expect((await readConversationProviderState(input, [], client)).blocked).toEqual(attempt)
+    await expect(setConversationReadProvider(input, 'CLAUDE', client)).rejects.toThrow('outstanding read')
+    await releaseUnconfirmedConversationRead({ ...input, attemptId: attempt.id }, client)
+    await setConversationReadProvider(input, 'CLAUDE', client)
+    expect(
+      await verifyConversationLookup({ ...input, expectedEngine: 'CLAUDE_CODE' }, cursor, client, read),
+    ).toMatchObject({ id: attempt.id, engine: 'CURSOR_CLI', state: 'UNKNOWN', released: true })
+    expect(cursor).toHaveBeenCalledTimes(1)
     expect(read).not.toHaveBeenCalled()
   })
 

@@ -8,6 +8,7 @@ import { requireActiveProjectForMutation } from '@/lib/active-project'
 import { qualityJourneyIdentifierSchema } from '@/lib/quality-journey/contracts'
 import { createChatGptReadProvider } from '@/services/conversation/chatgpt-read-provider'
 import { createClaudeCodeReadProvider } from '@/services/conversation/claude-code-read-provider'
+import { createCursorReadProvider } from '@/services/conversation/cursor-read-provider'
 import { configuredMacCodexReadExecutable } from '@/services/conversation/codex-read-launcher'
 import { createConfiguredCodexReadProvider } from '@/services/conversation/codex-read-runtime'
 import {
@@ -20,6 +21,7 @@ import {
   isChatGptConnectionSupported,
 } from '@/services/provider-connection/chatgpt-connection-service'
 import { getClaudeCodeConnection } from '@/services/provider-connection/claude-code-connection-service'
+import { getCursorConnection } from '@/services/provider-connection/cursor-connection-service'
 import { ServiceError } from '@/services/shared/errors'
 
 const scope = z.object({ projectId: qualityJourneyIdentifierSchema, conversationId: z.string().uuid() })
@@ -28,11 +30,13 @@ const mode = z.discriminatedUnion('provider', [
   scope.extend({ provider: z.literal('LOCAL'), engine }).strict(),
   scope.extend({ provider: z.literal('CHATGPT'), engine }).strict(),
   scope.extend({ provider: z.literal('CLAUDE'), engine: z.literal('CLAUDE_CODE') }).strict(),
+  scope.extend({ provider: z.literal('CURSOR'), engine: z.literal('CURSOR_CLI') }).strict(),
 ])
 const verify = scope
   .extend({ messageId: z.string().uuid(), profileKey: z.string().regex(/^[0-9a-f]{64}$/), engine })
   .strict()
 const verifyClaude = scope.extend({ messageId: z.string().uuid(), engine: z.literal('CLAUDE_CODE') }).strict()
+const verifyCursor = scope.extend({ messageId: z.string().uuid(), engine: z.literal('CURSOR_CLI') }).strict()
 const release = scope.extend({ attemptId: z.string().uuid() }).strict()
 
 function requireNativeCodexConfiguration() {
@@ -72,11 +76,17 @@ export async function selectConversationReadProvider(input: unknown) {
         throw new ServiceError('Claude Code is unavailable in this app session.', 'CONFLICT')
       }
     }
+    if (value.provider === 'CURSOR') {
+      const connection = await getCursorConnection()
+      if (connection.state === 'unavailable') {
+        throw new ServiceError('Cursor is unavailable in this app session.', 'CONFLICT')
+      }
+    }
     return setConversationReadProvider(
       value,
       value.provider,
       undefined,
-      value.provider === 'CLAUDE' ? 'RESPONSES' : value.engine,
+      value.provider === 'CLAUDE' || value.provider === 'CURSOR' ? 'RESPONSES' : value.engine,
     )
   })
 }
@@ -102,6 +112,17 @@ export async function runConversationClaudeCodeLookup(input: unknown) {
     }
     const provider = await createClaudeCodeReadProvider()
     await verifyConversationLookup({ ...value, expectedEngine: 'CLAUDE_CODE' }, provider)
+  })
+}
+
+export async function runConversationCursorLookup(input: unknown) {
+  return scopedReadAction(verifyCursor, input, async value => {
+    const connection = await getCursorConnection()
+    if (connection.state !== 'connected') {
+      throw new ServiceError('Connect Cursor in Settings, then review this lookup again.', 'CONFLICT')
+    }
+    const provider = await createCursorReadProvider()
+    await verifyConversationLookup({ ...value, expectedEngine: 'CURSOR_CLI' }, provider)
   })
 }
 

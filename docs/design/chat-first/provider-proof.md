@@ -6,8 +6,13 @@ Appraise has internal Codex provider intent, process supervision, and recovery b
 M13 evidence covers specific native observations and leaves historical provider outcomes unresolved. Appraise's current
 Journey setup exposes a Codex diagnostic and Settings links to it. **Settings → Agent setup → Connect ChatGPT**
 prepares an expiring loopback authorization for a local macOS or Linux installation. Appraise verifies the signed
-account identity and granted scopes before storing credentials in the operating-system user's private directory.
-The local disconnect clears usable credentials. Synthetic tests exercise the callback and credential storage.
+account identity and granted scopes before storing credentials. Appraise encrypts ChatGPT tokens with AES-256-GCM
+and keeps the encryption key in macOS Keychain or Linux Secret Service. Linux requires the desktop Secret Service
+and the `secret-tool` client. Node 20 hosts also need the SQLite command-line tool for cross-process locking.
+Existing account records are encrypted in place when Appraise opens them. If the
+vault is unavailable, Appraise leaves the original record in place and refuses to use it. Earlier backups may
+still contain copies of the former plaintext records. Local disconnect removes the account's local credential
+record. Synthetic tests exercise the callback, credential storage, and migration.
 Saved chats offer local lookup, ChatGPT Responses, and native Codex on a configured macOS host. ChatGPT receives
 the record type and search terms after the user reviews them. Appraise checks the account's model catalog before
 inference. The direct Responses route makes one stateless, streamed request with one Appraise read function.
@@ -60,7 +65,9 @@ before starting Claude Code and leaves the provider unavailable without this con
 
 In **Settings → Agent setup**, select **Connect Claude Code** and complete Anthropic's sign-in as prompted.
 Claude Code manages sign-in and sign-out through its own commands, using a private `CLAUDE_CONFIG_DIR` under the
-current OS user's home. **Disconnect locally** asks Claude Code to sign out of that profile. The local Appraise
+current OS user's home. Appraise requires macOS Keychain and blocks Claude Code's plaintext credential-file
+fallback during sign-in and lookups. If Settings identifies a legacy plaintext profile, use **Disconnect locally**
+to clear that sign-in before reconnecting. The local Appraise
 installation should run on loopback and under that user account.
 
 In a project chat, choose **Use Claude Code for lookups**, save a lookup, and review its record type and search
@@ -84,14 +91,52 @@ The corrected launcher completed a fresh Appraise checkout lookup and returned e
 an order number**. The result persisted after reload and the other project's matching checkout case stayed out of
 the result. The two earlier unresolved attempts retained their recorded state.
 
+## Enable Cursor lookups on macOS
+
+Obtain the matching macOS CLI archive via the [official Cursor installer](https://cursor.com/docs/cli/installation).
+Pin the archive from a trusted source in `APPRAISE_CURSOR_CLI_ARCHIVE` (absolute path) and
+`APPRAISE_CURSOR_CLI_SHA256` (lowercase SHA-256 digest) and restart Appraise. Appraise verifies the private
+staged bundle before using it. An ordinary Cursor desktop or CLI installation uses its own profile.
+
+In **Settings → Agent setup**, select **Connect Cursor** and complete Cursor's browser sign-in. Cursor owns
+the account session in an isolated AES-256 encrypted macOS profile. The volume passphrase is held in
+Keychain. Settings reports the account connection without returning tokens, account identifiers, or raw CLI
+output. Cursor's account status does not expose billing tier. Usage remains on the user's Cursor account.
+The account launcher is scoped to the private profile, scratch files, and system browser handoff. Appraise
+supervises the Cursor process group and detaches the encrypted volume after use. A macOS fixture killed
+the Appraise parent while a synthetic child held the mount, then verified that the volume detached and its
+test data reopened.
+
+In chat, select **Use Cursor for lookups**, save a lookup, and review it. Appraise asks Cursor for a fixed
+confirmation over ACP in Ask mode with tool permissions denied. Search terms, matching records, and Appraise
+project files stay local. A verified reply triggers the same Appraise project-scoped lookup and durable
+attempt tracking as the other providers. **Disconnect locally** signs out the isolated Cursor profile.
+
+Synthetic tests exercise the connection and ACP protocol, permission denial, and durable lookup boundaries.
+On macOS, the pinned Cursor CLI completed browser sign-in and returned a numeric account ID. Appraise recognized
+the existing encrypted session after accepting that ID format.
+
+The first checkout attempt settled as unresolved. Startup probes reproduced two launcher problems before the model
+prompt. Cursor needed more concurrent tunnels to load its model catalog and needed to save its selected model in the
+private global config. Appraise raises the connection cap for the Cursor relay and keeps duplicate deny rules in an
+immutable workspace config. The pinned Cursor CLI then opened an authenticated Ask session over the same restricted
+relay.
+
+On a fresh saved checkout message, the local preview completed a live Cursor lookup with pinned CLI
+`2026.11.22-e9042b2`. The UI and SQLite showed exactly **Guest checkout returns an order number** in the selected
+project. The result persisted after a browser reload and opened the matching case. A separately seeded matching case
+in another project stayed out of the result. The earlier unresolved attempt kept its recorded state. The browser
+test used Playwright because the in-app browser host was unavailable.
+
 | Provider    | Starting path                                                                                                                                                                                                                  | Evidence still needed                                                                                                                                                                                                                                                        |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | ChatGPT     | Use Settings to start browser consent for the local open-source preview. In a saved project chat, select **Use ChatGPT for lookups**, open **Review ChatGPT lookup** on a saved search, and choose **Send lookup to ChatGPT**. | One live lookup matched the expected project record on macOS. Live disconnect, expiration, interrupted requests, and other installations still need coverage. [OpenAI Responses guidance](https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference) |
 | Claude Code | Use **Connect Claude Code** in Settings and complete Anthropic's own sign-in. Choose Claude Code in chat and review a saved lookup before sending it.                                                                          | One live subscription lookup matched the expected project record on macOS. Live disconnect, expiration, and other installations still need coverage. [Anthropic legal and compliance](https://code.claude.com/docs/en/legal-and-compliance)                                  |
+| Cursor      | Use **Connect Cursor** in Settings, complete Cursor's browser sign-in, then review a new saved lookup in chat.                                                                                                                 | Browser sign-in and one live project lookup were verified on macOS. Live disconnect, expiration, and other installations still need coverage. [Cursor ACP documentation](https://cursor.com/docs/cli/acp)                                                                    |
 
 ## Qualification sequence
 
-Use separate fresh Appraise installations and provider profiles for the two runs. Each installation has the selected
+Use separate fresh Appraise installations and provider profiles for provider qualification. Each installation has the selected
 provider as its only available engine. Record Appraise, OS, package, and runtime versions.
 
 1. In Appraise, choose the provider in Settings. Show detected runtime or show provisioning progress and actionable

@@ -174,15 +174,28 @@ function existingAttempt(db: ReadDatabase, input: ReadInput) {
   })
 }
 
+function providerEngine(
+  provider: Exclude<ProjectConversationReadProvider, 'LOCAL'>,
+  chatGptEngine: ProjectConversationChatGptEngine,
+): ProjectConversationReadEngine {
+  if (provider === 'CLAUDE') return 'CLAUDE_CODE'
+  if (provider === 'CURSOR') return 'CURSOR_CLI'
+  return chatGptEngine
+}
+
+function expectedEngine(input: ReadInput, provider: Exclude<ProjectConversationReadProvider, 'LOCAL'>) {
+  if (input.expectedEngine) return input.expectedEngine
+  return providerEngine(provider, 'RESPONSES')
+}
+
 async function reserveRead(input: ReadInput, client: PrismaClient) {
   return client.$transaction(async tx => {
     const { readProvider, chatGptEngine } = await scopedConversation(tx, input)
     const existing = await existingAttempt(tx, input)
     if (existing) return { row: existing }
     if (readProvider === 'LOCAL') throw new ServiceError('Choose a provider for this chat first.', 'CONFLICT')
-    const selectedEngine = readProvider === 'CLAUDE' ? 'CLAUDE_CODE' : chatGptEngine
-    const expectedEngine = input.expectedEngine ?? (readProvider === 'CLAUDE' ? 'CLAUDE_CODE' : 'RESPONSES')
-    if (selectedEngine !== expectedEngine) {
+    const selectedEngine = providerEngine(readProvider, chatGptEngine)
+    if (selectedEngine !== expectedEngine(input, readProvider)) {
       throw new ServiceError('The selected provider engine changed before this read started.', 'CONFLICT')
     }
     const blocker = await tx.projectConversationRead.findUnique({

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   runConversationChatGptLookup,
   runConversationClaudeCodeLookup,
+  runConversationCursorLookup,
   selectConversationReadProvider,
 } from './conversation-read-actions'
 
@@ -14,6 +15,8 @@ const mocks = vi.hoisted(() => ({
   nativeImage: vi.fn(),
   claudeConnection: vi.fn(),
   claudeProvider: vi.fn(),
+  cursorConnection: vi.fn(),
+  cursorProvider: vi.fn(),
   platform: vi.fn(),
   select: vi.fn(),
   verify: vi.fn(),
@@ -30,6 +33,7 @@ vi.mock('@/services/conversation/chatgpt-read-provider', () => ({ createChatGptR
 vi.mock('@/services/conversation/claude-code-read-provider', () => ({
   createClaudeCodeReadProvider: mocks.claudeProvider,
 }))
+vi.mock('@/services/conversation/cursor-read-provider', () => ({ createCursorReadProvider: mocks.cursorProvider }))
 vi.mock('@/services/conversation/codex-read-runtime', () => ({
   createConfiguredCodexReadProvider: mocks.nativeProvider,
 }))
@@ -44,6 +48,9 @@ vi.mock('@/services/provider-connection/chatgpt-connection-service', () => ({
 }))
 vi.mock('@/services/provider-connection/claude-code-connection-service', () => ({
   getClaudeCodeConnection: mocks.claudeConnection,
+}))
+vi.mock('@/services/provider-connection/cursor-connection-service', () => ({
+  getCursorConnection: mocks.cursorConnection,
 }))
 
 const input = {
@@ -61,6 +68,7 @@ describe('ChatGPT lookup action', () => {
     mocks.nativeImage.mockReturnValue({ executable: '/pinned/codex', sha256: 'a'.repeat(64) })
     mocks.token.mockResolvedValue('secret')
     mocks.claudeConnection.mockResolvedValue({ state: 'connected' })
+    mocks.cursorConnection.mockResolvedValue({ state: 'connected' })
   })
 
   it('rejects a changed project or credential before attempting the read', async () => {
@@ -214,5 +222,70 @@ describe('ChatGPT lookup action', () => {
       'RESPONSES',
     )
     expect(mocks.token).not.toHaveBeenCalled()
+  })
+
+  it('routes a Cursor lookup through its own connection and provider', async () => {
+    const provider = vi.fn()
+    mocks.cursorProvider.mockResolvedValue(provider)
+    expect(
+      await runConversationCursorLookup({
+        projectId: input.projectId,
+        conversationId: input.conversationId,
+        messageId: input.messageId,
+        engine: 'CURSOR_CLI',
+      }),
+    ).toEqual({ success: true })
+    expect(mocks.verify).toHaveBeenCalledWith(
+      expect.objectContaining({ targetProjectId: input.projectId, expectedEngine: 'CURSOR_CLI' }),
+      provider,
+    )
+    expect(mocks.token).not.toHaveBeenCalled()
+    expect(mocks.claudeProvider).not.toHaveBeenCalled()
+  })
+
+  it('requires a connected Cursor session before reserving a read', async () => {
+    mocks.cursorConnection.mockResolvedValueOnce({ state: 'disconnected' })
+    expect(
+      await runConversationCursorLookup({
+        projectId: input.projectId,
+        conversationId: input.conversationId,
+        messageId: input.messageId,
+        engine: 'CURSOR_CLI',
+      }),
+    ).toMatchObject({ success: false, error: /Connect Cursor/ })
+    expect(mocks.cursorProvider).not.toHaveBeenCalled()
+    expect(mocks.verify).not.toHaveBeenCalled()
+  })
+
+  it('selects Cursor without reading another provider credential', async () => {
+    expect(
+      await selectConversationReadProvider({
+        projectId: input.projectId,
+        conversationId: input.conversationId,
+        provider: 'CURSOR',
+        engine: 'CURSOR_CLI',
+      }),
+    ).toEqual({ success: true })
+    expect(mocks.select).toHaveBeenCalledWith(
+      expect.objectContaining({ targetProjectId: input.projectId }),
+      'CURSOR',
+      undefined,
+      'RESPONSES',
+    )
+    expect(mocks.token).not.toHaveBeenCalled()
+    expect(mocks.claudeConnection).not.toHaveBeenCalled()
+  })
+
+  it('rejects Cursor when the local CLI is unavailable', async () => {
+    mocks.cursorConnection.mockResolvedValueOnce({ state: 'unavailable' })
+    expect(
+      await selectConversationReadProvider({
+        projectId: input.projectId,
+        conversationId: input.conversationId,
+        provider: 'CURSOR',
+        engine: 'CURSOR_CLI',
+      }),
+    ).toMatchObject({ success: false, error: /Cursor is unavailable/ })
+    expect(mocks.select).not.toHaveBeenCalled()
   })
 })

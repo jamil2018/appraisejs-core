@@ -408,6 +408,10 @@
     {
       "name": "20261125010000_add_claude_conversation_reads",
       "checksum": "9c7011772e916a75a7147a5a212674385121079c6fed84eb2a3a0324e7094c70"
+    },
+    {
+      "name": "20261125020000_add_cursor_conversation_reads",
+      "checksum": "54338bd8c6cd76239db413cf10acd2e7a43c0b2209194bea0831ed5380f45d86"
     }
   ]
 }

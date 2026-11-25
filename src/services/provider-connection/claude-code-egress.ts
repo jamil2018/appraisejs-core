@@ -6,14 +6,18 @@ import type { Duplex } from 'node:stream'
 const host = '127.0.0.1'
 const destinations = new Set(['api.anthropic.com', 'platform.claude.com'])
 
-export async function openClaudeCodeLookupEgress() {
+export function openClaudeCodeLookupEgress() {
+  return openProviderLookupEgress(destinations)
+}
+
+export async function openProviderLookupEgress(destinations: ReadonlySet<string>, maxConnections = 8) {
   const password = randomBytes(24).toString('hex')
   const authorization = `Basic ${Buffer.from(`appraise:${password}`).toString('base64')}`
   const connections = new Set<Duplex>()
   const server = createServer({ maxHeaderSize: 8192, headersTimeout: 5000, requestTimeout: 5000 }, (_, response) => {
     response.writeHead(405, { Connection: 'close' }).end()
   })
-  server.maxConnections = 8
+  server.maxConnections = maxConnections
   server.on('connection', connection => {
     connections.add(connection)
     connection.once('close', () => connections.delete(connection))
@@ -49,7 +53,7 @@ export async function openClaudeCodeLookupEgress() {
     server.listen(0, host, () => {
       const address = server.address()
       if (address && typeof address !== 'string') resolve(address.port)
-      else reject(new Error('Claude Code egress could not bind its local socket.'))
+      else reject(new Error('Provider egress could not bind its local socket.'))
     })
   })
   return {

@@ -8,6 +8,7 @@ import {
   acknowledgeUnconfirmedRead,
   runConversationChatGptLookup,
   runConversationClaudeCodeLookup,
+  runConversationCursorLookup,
   selectConversationReadProvider,
 } from '@/actions/conversation/conversation-read-actions'
 import { Button } from '@/components/ui/button'
@@ -86,33 +87,75 @@ const lookupProviders = {
     send: 'Send lookup to Claude Code',
     disclosure: 'Claude Code will receive the record type and search terms. Matching records stay in Appraise.',
   },
+  CURSOR_CLI: {
+    label: 'Cursor',
+    review: 'Review Cursor lookup',
+    send: 'Send lookup to Cursor',
+    disclosure:
+      'Cursor will receive a request to confirm the lookup. Search terms and matching records stay in Appraise.',
+  },
 } as const
 
 type Engine = keyof typeof lookupProviders
 type ProviderMode = 'LOCAL' | Engine
-type ProviderChoice = { label: string; provider: 'LOCAL' | 'CHATGPT' | 'CLAUDE'; engine: Engine }
+type ProviderChoice = { label: string; provider: 'LOCAL' | 'CHATGPT' | 'CLAUDE' | 'CURSOR'; engine: Engine }
 
 const providerChoices: Record<ProviderMode, ProviderChoice[]> = {
   LOCAL: [
     { label: 'Use ChatGPT for lookups', provider: 'CHATGPT', engine: 'RESPONSES' },
     { label: 'Use native Codex for lookups', provider: 'CHATGPT', engine: 'CODEX' },
     { label: 'Use Claude Code for lookups', provider: 'CLAUDE', engine: 'CLAUDE_CODE' },
+    { label: 'Use Cursor for lookups', provider: 'CURSOR', engine: 'CURSOR_CLI' },
   ],
   RESPONSES: [
     { label: 'Use local lookups', provider: 'LOCAL', engine: 'RESPONSES' },
     { label: 'Use native Codex for lookups', provider: 'CHATGPT', engine: 'CODEX' },
     { label: 'Use Claude Code for lookups', provider: 'CLAUDE', engine: 'CLAUDE_CODE' },
+    { label: 'Use Cursor for lookups', provider: 'CURSOR', engine: 'CURSOR_CLI' },
   ],
   CODEX: [
     { label: 'Use local lookups', provider: 'LOCAL', engine: 'RESPONSES' },
     { label: 'Use ChatGPT for lookups', provider: 'CHATGPT', engine: 'RESPONSES' },
     { label: 'Use Claude Code for lookups', provider: 'CLAUDE', engine: 'CLAUDE_CODE' },
+    { label: 'Use Cursor for lookups', provider: 'CURSOR', engine: 'CURSOR_CLI' },
   ],
   CLAUDE_CODE: [
     { label: 'Use local lookups', provider: 'LOCAL', engine: 'RESPONSES' },
     { label: 'Use ChatGPT for lookups', provider: 'CHATGPT', engine: 'RESPONSES' },
     { label: 'Use native Codex for lookups', provider: 'CHATGPT', engine: 'CODEX' },
+    { label: 'Use Cursor for lookups', provider: 'CURSOR', engine: 'CURSOR_CLI' },
   ],
+  CURSOR_CLI: [
+    { label: 'Use local lookups', provider: 'LOCAL', engine: 'RESPONSES' },
+    { label: 'Use ChatGPT for lookups', provider: 'CHATGPT', engine: 'RESPONSES' },
+    { label: 'Use native Codex for lookups', provider: 'CHATGPT', engine: 'CODEX' },
+    { label: 'Use Claude Code for lookups', provider: 'CLAUDE', engine: 'CLAUDE_CODE' },
+  ],
+}
+
+function selectedMode(provider: 'LOCAL' | 'CHATGPT' | 'CLAUDE' | 'CURSOR', engine: Engine): Engine | 'LOCAL' {
+  if (provider === 'LOCAL') return 'LOCAL'
+  if (provider === 'CLAUDE') return 'CLAUDE_CODE'
+  if (provider === 'CURSOR') return 'CURSOR_CLI'
+  return engine
+}
+
+function providerConnected(
+  engine: Engine,
+  profile: Profile | undefined,
+  claudeConnected: boolean,
+  cursorConnected: boolean,
+) {
+  if (engine === 'CLAUDE_CODE') return claudeConnected
+  if (engine === 'CURSOR_CLI') return cursorConnected
+  return !!profile
+}
+
+const accountNames: Record<Engine, string> = {
+  RESPONSES: 'ChatGPT',
+  CODEX: 'ChatGPT',
+  CLAUDE_CODE: 'Claude Code',
+  CURSOR_CLI: 'Cursor',
 }
 
 function ProviderChoices({
@@ -123,12 +166,12 @@ function ProviderChoices({
   blocked,
 }: {
   scope: Scope
-  provider: 'LOCAL' | 'CHATGPT' | 'CLAUDE'
+  provider: 'LOCAL' | 'CHATGPT' | 'CLAUDE' | 'CURSOR'
   engine: Engine
   nativeAvailable: boolean
   blocked: boolean
 }) {
-  const mode = provider === 'LOCAL' ? 'LOCAL' : provider === 'CLAUDE' ? 'CLAUDE_CODE' : engine
+  const mode = selectedMode(provider, engine)
   const choices = providerChoices[mode].filter(choice => choice.engine !== 'CODEX' || nativeAvailable)
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -151,14 +194,16 @@ function ProviderAvailability({
   nativeAvailable,
   profile,
   claudeConnected,
+  cursorConnected,
 }: {
   engine: Engine
   nativeAvailable: boolean
   profile?: Profile
   claudeConnected: boolean
+  cursorConnected: boolean
 }) {
-  const connectionNeeded = engine === 'CLAUDE_CODE' ? !claudeConnected : !profile
-  const connectionName = engine === 'CLAUDE_CODE' ? 'Claude Code' : 'ChatGPT'
+  const connectionNeeded = !providerConnected(engine, profile, claudeConnected, cursorConnected)
+  const connectionName = accountNames[engine]
   return (
     <>
       {connectionNeeded && (
@@ -187,14 +232,16 @@ export function ConversationProviderControls({
   nativeAvailable,
   profile,
   claudeConnected,
+  cursorConnected,
   blocked,
 }: {
   scope: Scope
-  provider: 'LOCAL' | 'CHATGPT' | 'CLAUDE'
+  provider: 'LOCAL' | 'CHATGPT' | 'CLAUDE' | 'CURSOR'
   engine: Engine
   nativeAvailable: boolean
   profile?: Profile
   claudeConnected: boolean
+  cursorConnected: boolean
   blocked?: ConversationReadAttempt
 }) {
   return (
@@ -212,6 +259,7 @@ export function ConversationProviderControls({
           nativeAvailable={nativeAvailable}
           profile={profile}
           claudeConnected={claudeConnected}
+          cursorConnected={cursorConnected}
         />
       )}
       {blocked && <OutstandingProviderRead scope={scope} attempt={blocked} />}
@@ -302,6 +350,7 @@ export function VerifyWithProvider({
   query,
   profile,
   claudeConnected,
+  cursorConnected,
   blocked,
   engine,
 }: {
@@ -310,11 +359,12 @@ export function VerifyWithProvider({
   query: WorkspaceRequest
   profile?: Profile
   claudeConnected: boolean
+  cursorConnected: boolean
   blocked: boolean
   engine: Engine
 }) {
   const labels = lookupProviders[engine]
-  const canSend = engine === 'CLAUDE_CODE' ? claudeConnected : !!profile
+  const canSend = providerConnected(engine, profile, claudeConnected, cursorConnected)
   return (
     <details className="max-w-sm space-y-2 self-start rounded-lg border border-border px-3 py-2 text-xs">
       <summary className="app-focus cursor-pointer rounded-sm font-medium">{labels.review}</summary>
@@ -344,5 +394,6 @@ function LookupDetails({ query, account }: { query: WorkspaceRequest; account?: 
 
 function sendProviderLookup(scope: Scope, messageId: string, engine: Engine, profileKey?: string) {
   if (engine === 'CLAUDE_CODE') return runConversationClaudeCodeLookup({ ...scope, messageId, engine })
+  if (engine === 'CURSOR_CLI') return runConversationCursorLookup({ ...scope, messageId, engine })
   return runConversationChatGptLookup({ ...scope, messageId, profileKey, engine })
 }
