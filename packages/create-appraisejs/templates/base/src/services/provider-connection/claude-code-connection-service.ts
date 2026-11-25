@@ -20,14 +20,33 @@ const authStatus = z.object({
   email: z.string().optional(),
   orgId: z.string().optional(),
   apiProvider: z.string().optional(),
+  subscriptionType: z.string().nullish(),
 })
+
+const subscriptionAuth = z.object({
+  authMethod: z.literal('claude.ai'),
+  apiProvider: z.literal('firstParty'),
+  subscriptionType: z.enum(['free', 'pro', 'max', 'ultra', 'team', 'enterprise']),
+})
+
+const subscriptionRequired: ClaudeCodeConnectionStatus = {
+  state: 'failed',
+  message:
+    'Claude Code could not verify an eligible Claude subscription. Connect your Claude subscription to continue.',
+}
+
+function identifySubscription(auth: z.infer<typeof authStatus>) {
+  const subscription = subscriptionAuth.safeParse(auth)
+  if (!auth.loggedIn || !subscription.success) return undefined
+  return JSON.stringify([auth.email, auth.orgId, subscription.data.subscriptionType])
+}
 
 async function readSession(cli: ClaudeCodeCli, signal?: AbortSignal) {
   const reply = await cli.run('status', { signal })
   if (reply.exitCode !== 0 && reply.exitCode !== 1) throw new Error('Claude Code status unavailable.')
   const auth = authStatus.parse(JSON.parse(reply.output))
   if (auth.loggedIn !== (reply.exitCode === 0)) throw new Error('Claude Code returned inconsistent status.')
-  return auth.loggedIn ? JSON.stringify([auth.authMethod, auth.email, auth.orgId, auth.apiProvider]) : undefined
+  return auth
 }
 
 export function createClaudeCodeConnection(resolveCli: () => Promise<ClaudeCodeCli | undefined>) {
@@ -46,7 +65,8 @@ export function createClaudeCodeConnection(resolveCli: () => Promise<ClaudeCodeC
     try {
       const session = await readSession(cli)
       if (startedAt !== revision) return status()
-      return { state: session ? 'connected' : 'disconnected' }
+      if (!session.loggedIn) return { state: 'disconnected' }
+      return identifySubscription(session) ? { state: 'connected' } : subscriptionRequired
     } catch {
       return { state: 'failed', message: 'Claude Code could not check your sign-in.' }
     }
@@ -70,9 +90,10 @@ export function createClaudeCodeConnection(resolveCli: () => Promise<ClaudeCodeC
         const result = await cli.run(command)
         if (result.exitCode !== 0) throw new Error('Claude Code did not confirm the requested session change.')
         const session = await readSession(cli)
-        if (Boolean(session) !== (command === 'login')) {
+        if (session.loggedIn !== (command === 'login')) {
           throw new Error('Claude Code did not confirm the requested session change.')
         }
+        if (session.loggedIn && !identifySubscription(session)) failure = subscriptionRequired
       } catch {
         failure = {
           state: 'failed',
@@ -97,7 +118,10 @@ export function createClaudeCodeConnection(resolveCli: () => Promise<ClaudeCodeC
     if (operation) throw unavailableSession()
     const boundRevision = revision
     const cli = await resolveCli()
-    const session = await (cli && readSession(cli).catch(() => undefined))
+    const session = await (cli &&
+      readSession(cli)
+        .then(identifySubscription)
+        .catch(() => undefined))
     if (!cli || !session || operation || boundRevision !== revision) throw unavailableSession()
 
     return async (
@@ -107,7 +131,10 @@ export function createClaudeCodeConnection(resolveCli: () => Promise<ClaudeCodeC
       if (operation || boundRevision !== revision || signal.aborted) return undefined
       activeReads += 1
       try {
-        if ((await readSession(cli, signal).catch(() => undefined)) !== session) return undefined
+        const current = await readSession(cli, signal)
+          .then(identifySubscription)
+          .catch(() => undefined)
+        if (current !== session) return undefined
         signal.throwIfAborted()
         return await run(cli)
       } finally {

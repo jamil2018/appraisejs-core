@@ -64,7 +64,8 @@ current OS user's home. **Disconnect locally** asks Claude Code to sign out of t
 installation should run on loopback and under that user account.
 
 In a project chat, choose **Use Claude Code for lookups**, save a lookup, and review its record type and search
-text. The restricted print-mode process receives only those reviewed fields. Its loopback HTTPS relay limits
+text. Appraise checks that the CLI reports a recognized Claude subscription before starting the lookup and rechecks
+that session immediately before launch. The restricted print-mode process receives only those reviewed fields. Its loopback HTTPS relay limits
 egress to the documented Anthropic API and token refresh hosts. A successful structured result must request the
 one fixed action before Appraise searches the active project. Appraise keeps the resulting records locally and
 saves the attempt as `CLAUDE_CODE`. This integration is limited to saved project lookups in chat.
@@ -72,12 +73,19 @@ saves the attempt as `CLAUDE_CODE`. This integration is limited to saved project
 An offline rehearsal on a fresh Next.js 16.4.6 scaffold applied all 102 migrations. A synthetic CLI exercised
 Settings connect and disconnect, the reviewed checkout lookup, project isolation, and result persistence after
 reload. The pinned Claude Code 2.1.332 binary reported the isolated profile as disconnected and loaded inside
-the lookup sandbox. Live Anthropic sign-in and inference still require an eligible account and operator coverage.
+the lookup sandbox.
+
+On macOS 27.2.1, a user signed in through Claude Code 2.1.332 with their own Claude subscription. The lookup
+sandbox needed Claude Code's private temp override, read access to the macOS login Keychain, and access to system
+timezone data during TLS startup. An offline TLS fixture confirmed the CLI still rejected an untrusted certificate.
+The corrected launcher completed a fresh Appraise checkout lookup and returned exactly **Guest checkout returns
+an order number**. The result persisted after reload and the other project's matching checkout case stayed out of
+the result. The two earlier unresolved attempts retained their recorded state.
 
 | Provider    | Starting path                                                                                                                                                                                                                  | Evidence still needed                                                                                                                                                                                                                                                        |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | ChatGPT     | Use Settings to start browser consent for the local open-source preview. In a saved project chat, select **Use ChatGPT for lookups**, open **Review ChatGPT lookup** on a saved search, and choose **Send lookup to ChatGPT**. | One live lookup matched the expected project record on macOS. Live disconnect, expiration, interrupted requests, and other installations still need coverage. [OpenAI Responses guidance](https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference) |
-| Claude Code | Use **Connect Claude Code** in Settings and complete Anthropic's own sign-in. Choose Claude Code in chat and review a saved lookup before sending it.                                                                          | Live sign-in, lookup, and lifecycle checks still need an eligible test account. [Anthropic legal and compliance](https://code.claude.com/docs/en/legal-and-compliance)                                                                                                       |
+| Claude Code | Use **Connect Claude Code** in Settings and complete Anthropic's own sign-in. Choose Claude Code in chat and review a saved lookup before sending it.                                                                          | One live subscription lookup matched the expected project record on macOS. Live disconnect, expiration, and other installations still need coverage. [Anthropic legal and compliance](https://code.claude.com/docs/en/legal-and-compliance)                                  |
 
 ## Qualification sequence
 

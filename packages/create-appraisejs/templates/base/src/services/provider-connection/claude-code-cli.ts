@@ -26,9 +26,11 @@ const lookupSandbox = `(version 1)
   (literal "/")
   (literal (param "EXECUTABLE"))
   (literal "/usr/bin/security")
+  (literal (param "LOGIN_KEYCHAIN"))
   (subpath "/System") (subpath "/usr/lib") (subpath "/usr/share/icu")
   (subpath "/Library/Apple/System/Library") (subpath "/private/var/db/dyld")
   (literal "/private/etc/hosts") (literal "/private/etc/resolv.conf")
+  (literal "/private/etc/localtime") (subpath "/private/var/db/timezone")
   (literal "/dev/null") (literal "/dev/random") (literal "/dev/urandom")
   (subpath "/Library/Application Support/ClaudeCode")
   (subpath "/Library/Managed Preferences")
@@ -140,6 +142,7 @@ export async function resolveClaudeCodeCli(): Promise<ClaudeCodeCli | undefined>
         LANG: 'en_US.UTF-8',
         PATH: '/usr/bin:/bin:/usr/sbin:/sbin',
         TMPDIR: scratch,
+        CLAUDE_CODE_TMPDIR: scratch,
         CLAUDE_CONFIG_DIR: profile,
         DISABLE_AUTOUPDATER: '1',
         CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1',
@@ -169,6 +172,8 @@ export async function resolveClaudeCodeCli(): Promise<ClaudeCodeCli | undefined>
               `EXECUTABLE=${executable}`,
               '-D',
               `PROFILE=${profile}`,
+              '-D',
+              `LOGIN_KEYCHAIN=${path.join(path.dirname(profile), 'Library', 'Keychains', 'login.keychain-db')}`,
               '-D',
               `SCRATCH=${scratch}`,
               '-D',

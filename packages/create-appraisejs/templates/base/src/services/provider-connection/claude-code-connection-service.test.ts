@@ -4,7 +4,16 @@ import { type ClaudeCodeCli, type ClaudeCodeReply } from './claude-code-cli'
 import { createClaudeCodeConnection } from './claude-code-connection-service'
 
 function statusReply(email?: string) {
-  return { exitCode: email ? 0 : 1, output: JSON.stringify({ loggedIn: Boolean(email), email }) }
+  return {
+    exitCode: email ? 0 : 1,
+    output: JSON.stringify({
+      loggedIn: Boolean(email),
+      email,
+      authMethod: email ? 'claude.ai' : 'none',
+      apiProvider: 'firstParty',
+      subscriptionType: email ? 'pro' : null,
+    }),
+  }
 }
 
 describe('Claude Code connection', () => {
@@ -67,5 +76,21 @@ describe('Claude Code connection', () => {
         message: 'Claude Code could not complete sign-in.',
       }),
     )
+  })
+
+  it.each([
+    { authMethod: 'api_key', apiProvider: 'firstParty', subscriptionType: null },
+    { authMethod: 'claude.ai', apiProvider: 'firstParty', subscriptionType: null },
+    { authMethod: 'claude.ai', apiProvider: 'bedrock', subscriptionType: 'pro' },
+    { authMethod: 'claude.ai', apiProvider: 'firstParty', subscriptionType: 'api' },
+  ])('keeps an unverified subscription from starting a lookup', async auth => {
+    const run = vi.fn<ClaudeCodeCli['run']>().mockResolvedValue({
+      exitCode: 0,
+      output: JSON.stringify({ loggedIn: true, ...auth }),
+    })
+    const connection = createClaudeCodeConnection(async () => ({ run }))
+    expect(await connection.status()).toMatchObject({ state: 'failed' })
+    await expect(connection.bindLookup()).rejects.toThrow('Connect Claude Code')
+    expect(run.mock.calls.every(([command]) => command === 'status')).toBe(true)
   })
 })
