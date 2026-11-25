@@ -86,11 +86,22 @@ describe('Claude Code connection', () => {
   ])('keeps an unverified subscription from starting a lookup', async auth => {
     const run = vi.fn<ClaudeCodeCli['run']>().mockResolvedValue({
       exitCode: 0,
-      output: JSON.stringify({ loggedIn: true, ...auth }),
+      output: JSON.stringify({ loggedIn: true, email: 'fixture@example.test', ...auth }),
     })
     const connection = createClaudeCodeConnection(async () => ({ run }))
     expect(await connection.status()).toMatchObject({ state: 'failed' })
     await expect(connection.bindLookup()).rejects.toThrow('Connect Claude Code')
     expect(run.mock.calls.every(([command]) => command === 'status')).toBe(true)
   })
+
+  it.each([undefined, null, '   '])(
+    'requires a user identity even when the organization and plan are known',
+    async email => {
+      const active = JSON.parse(statusReply('fixture@example.test').output)
+      const output = JSON.stringify({ ...active, email, orgId: 'shared-fixture-org' })
+      const connection = createClaudeCodeConnection(async () => ({ run: async () => ({ exitCode: 0, output }) }))
+      expect(await connection.status()).toMatchObject({ state: 'failed' })
+      await expect(connection.bindLookup()).rejects.toThrow('Connect Claude Code')
+    },
+  )
 })

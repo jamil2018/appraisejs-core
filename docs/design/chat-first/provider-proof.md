@@ -78,6 +78,8 @@ the lookup sandbox.
 On macOS 27.2.1, a user signed in through Claude Code 2.1.332 with their own Claude subscription. The lookup
 sandbox needed Claude Code's private temp override, read access to the macOS login Keychain, and access to system
 timezone data during TLS startup. An offline TLS fixture confirmed the CLI still rejected an untrusted certificate.
+Separate launcher fixtures confirmed that macOS denied file reads and writes outside the allowed paths, an
+unrelated subprocess, and a sibling loopback listener. The relay rejected an unlisted destination.
 The corrected launcher completed a fresh Appraise checkout lookup and returned exactly **Guest checkout returns
 an order number**. The result persisted after reload and the other project's matching checkout case stayed out of
 the result. The two earlier unresolved attempts retained their recorded state.

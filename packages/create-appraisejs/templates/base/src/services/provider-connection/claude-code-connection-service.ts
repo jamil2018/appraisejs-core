@@ -17,7 +17,7 @@ const unavailable: ClaudeCodeConnectionStatus = {
 const authStatus = z.object({
   loggedIn: z.boolean(),
   authMethod: z.string().optional(),
-  email: z.string().optional(),
+  email: z.string().nullish(),
   orgId: z.string().optional(),
   apiProvider: z.string().optional(),
   subscriptionType: z.string().nullish(),
@@ -26,6 +26,7 @@ const authStatus = z.object({
 const subscriptionAuth = z.object({
   authMethod: z.literal('claude.ai'),
   apiProvider: z.literal('firstParty'),
+  email: z.string().trim().min(1),
   subscriptionType: z.enum(['free', 'pro', 'max', 'ultra', 'team', 'enterprise']),
 })
 
@@ -38,7 +39,7 @@ const subscriptionRequired: ClaudeCodeConnectionStatus = {
 function identifySubscription(auth: z.infer<typeof authStatus>) {
   const subscription = subscriptionAuth.safeParse(auth)
   if (!auth.loggedIn || !subscription.success) return undefined
-  return JSON.stringify([auth.email, auth.orgId, subscription.data.subscriptionType])
+  return JSON.stringify([subscription.data.email, auth.orgId, subscription.data.subscriptionType])
 }
 
 async function readSession(cli: ClaudeCodeCli, signal?: AbortSignal) {
