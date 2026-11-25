@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { runConversationChatGptLookup, selectConversationReadProvider } from './conversation-read-actions'
+import {
+  runConversationChatGptLookup,
+  runConversationClaudeCodeLookup,
+  selectConversationReadProvider,
+} from './conversation-read-actions'
 
 const mocks = vi.hoisted(() => ({
   activeProject: vi.fn(),
@@ -8,6 +12,8 @@ const mocks = vi.hoisted(() => ({
   provider: vi.fn(),
   nativeProvider: vi.fn(),
   nativeImage: vi.fn(),
+  claudeConnection: vi.fn(),
+  claudeProvider: vi.fn(),
   platform: vi.fn(),
   select: vi.fn(),
   verify: vi.fn(),
@@ -21,6 +27,9 @@ vi.mock('node:os', async importOriginal => ({
 vi.mock('next/cache', () => ({ revalidatePath: mocks.revalidate }))
 vi.mock('@/lib/active-project', () => ({ requireActiveProjectForMutation: mocks.activeProject }))
 vi.mock('@/services/conversation/chatgpt-read-provider', () => ({ createChatGptReadProvider: mocks.provider }))
+vi.mock('@/services/conversation/claude-code-read-provider', () => ({
+  createClaudeCodeReadProvider: mocks.claudeProvider,
+}))
 vi.mock('@/services/conversation/codex-read-runtime', () => ({
   createConfiguredCodexReadProvider: mocks.nativeProvider,
 }))
@@ -32,6 +41,9 @@ vi.mock('@/services/conversation/conversation-read-service', () => ({
 vi.mock('@/services/provider-connection/chatgpt-connection-service', () => ({
   chatGptConnection: { readLookupAccessToken: mocks.token },
   isChatGptConnectionSupported: () => true,
+}))
+vi.mock('@/services/provider-connection/claude-code-connection-service', () => ({
+  getClaudeCodeConnection: mocks.claudeConnection,
 }))
 
 const input = {
@@ -48,6 +60,7 @@ describe('ChatGPT lookup action', () => {
     mocks.activeProject.mockResolvedValue({ id: input.projectId })
     mocks.nativeImage.mockReturnValue({ executable: '/pinned/codex', sha256: 'a'.repeat(64) })
     mocks.token.mockResolvedValue('secret')
+    mocks.claudeConnection.mockResolvedValue({ state: 'connected' })
   })
 
   it('rejects a changed project or credential before attempting the read', async () => {
@@ -147,5 +160,59 @@ describe('ChatGPT lookup action', () => {
       error: 'Could not update the provider read. Reload this chat.',
     })
     expect(mocks.verify).not.toHaveBeenCalled()
+  })
+
+  it('routes a Claude Code lookup through its own connection and provider', async () => {
+    const provider = vi.fn()
+    mocks.claudeProvider.mockResolvedValue(provider)
+    expect(await runConversationClaudeCodeLookup({ ...input, profileKey: undefined, engine: 'CLAUDE_CODE' })).toEqual({
+      success: false,
+      error: 'Choose a valid conversation and read.',
+    })
+    expect(
+      await runConversationClaudeCodeLookup({
+        projectId: input.projectId,
+        conversationId: input.conversationId,
+        messageId: input.messageId,
+        engine: 'CLAUDE_CODE',
+      }),
+    ).toEqual({ success: true })
+    expect(mocks.verify).toHaveBeenCalledWith(
+      expect.objectContaining({ targetProjectId: input.projectId, expectedEngine: 'CLAUDE_CODE' }),
+      provider,
+    )
+    expect(mocks.token).not.toHaveBeenCalled()
+  })
+
+  it('requires a connected Claude Code session before reserving a read', async () => {
+    mocks.claudeConnection.mockResolvedValueOnce({ state: 'disconnected' })
+    expect(
+      await runConversationClaudeCodeLookup({
+        projectId: input.projectId,
+        conversationId: input.conversationId,
+        messageId: input.messageId,
+        engine: 'CLAUDE_CODE',
+      }),
+    ).toMatchObject({ success: false, error: /Connect Claude Code/ })
+    expect(mocks.claudeProvider).not.toHaveBeenCalled()
+    expect(mocks.verify).not.toHaveBeenCalled()
+  })
+
+  it('selects Claude Code without reading ChatGPT credentials', async () => {
+    expect(
+      await selectConversationReadProvider({
+        projectId: input.projectId,
+        conversationId: input.conversationId,
+        provider: 'CLAUDE',
+        engine: 'CLAUDE_CODE',
+      }),
+    ).toEqual({ success: true })
+    expect(mocks.select).toHaveBeenCalledWith(
+      expect.objectContaining({ targetProjectId: input.projectId }),
+      'CLAUDE',
+      undefined,
+      'RESPONSES',
+    )
+    expect(mocks.token).not.toHaveBeenCalled()
   })
 })

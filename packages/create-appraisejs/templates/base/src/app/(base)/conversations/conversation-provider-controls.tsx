@@ -7,6 +7,7 @@ import { useState, useTransition, type ReactNode } from 'react'
 import {
   acknowledgeUnconfirmedRead,
   runConversationChatGptLookup,
+  runConversationClaudeCodeLookup,
   selectConversationReadProvider,
 } from '@/actions/conversation/conversation-read-actions'
 import { Button } from '@/components/ui/button'
@@ -79,24 +80,38 @@ const lookupProviders = {
     send: 'Send lookup to Codex',
     disclosure: 'Codex will receive the record type and search terms. Matching records stay in Appraise.',
   },
+  CLAUDE_CODE: {
+    label: 'Claude Code',
+    review: 'Review Claude Code lookup',
+    send: 'Send lookup to Claude Code',
+    disclosure: 'Claude Code will receive the record type and search terms. Matching records stay in Appraise.',
+  },
 } as const
 
 type Engine = keyof typeof lookupProviders
 type ProviderMode = 'LOCAL' | Engine
-type ProviderChoice = { label: string; provider: 'LOCAL' | 'CHATGPT'; engine: Engine }
+type ProviderChoice = { label: string; provider: 'LOCAL' | 'CHATGPT' | 'CLAUDE'; engine: Engine }
 
 const providerChoices: Record<ProviderMode, ProviderChoice[]> = {
   LOCAL: [
     { label: 'Use ChatGPT for lookups', provider: 'CHATGPT', engine: 'RESPONSES' },
     { label: 'Use native Codex for lookups', provider: 'CHATGPT', engine: 'CODEX' },
+    { label: 'Use Claude Code for lookups', provider: 'CLAUDE', engine: 'CLAUDE_CODE' },
   ],
   RESPONSES: [
     { label: 'Use local lookups', provider: 'LOCAL', engine: 'RESPONSES' },
     { label: 'Use native Codex for lookups', provider: 'CHATGPT', engine: 'CODEX' },
+    { label: 'Use Claude Code for lookups', provider: 'CLAUDE', engine: 'CLAUDE_CODE' },
   ],
   CODEX: [
     { label: 'Use local lookups', provider: 'LOCAL', engine: 'RESPONSES' },
     { label: 'Use ChatGPT for lookups', provider: 'CHATGPT', engine: 'RESPONSES' },
+    { label: 'Use Claude Code for lookups', provider: 'CLAUDE', engine: 'CLAUDE_CODE' },
+  ],
+  CLAUDE_CODE: [
+    { label: 'Use local lookups', provider: 'LOCAL', engine: 'RESPONSES' },
+    { label: 'Use ChatGPT for lookups', provider: 'CHATGPT', engine: 'RESPONSES' },
+    { label: 'Use native Codex for lookups', provider: 'CHATGPT', engine: 'CODEX' },
   ],
 }
 
@@ -108,12 +123,12 @@ function ProviderChoices({
   blocked,
 }: {
   scope: Scope
-  provider: 'LOCAL' | 'CHATGPT'
+  provider: 'LOCAL' | 'CHATGPT' | 'CLAUDE'
   engine: Engine
   nativeAvailable: boolean
   blocked: boolean
 }) {
-  const mode = provider === 'LOCAL' ? 'LOCAL' : engine
+  const mode = provider === 'LOCAL' ? 'LOCAL' : provider === 'CLAUDE' ? 'CLAUDE_CODE' : engine
   const choices = providerChoices[mode].filter(choice => choice.engine !== 'CODEX' || nativeAvailable)
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -135,24 +150,33 @@ function ProviderAvailability({
   engine,
   nativeAvailable,
   profile,
+  claudeConnected,
 }: {
   engine: Engine
   nativeAvailable: boolean
   profile?: Profile
+  claudeConnected: boolean
 }) {
+  const connectionNeeded = engine === 'CLAUDE_CODE' ? !claudeConnected : !profile
+  const connectionName = engine === 'CLAUDE_CODE' ? 'Claude Code' : 'ChatGPT'
   return (
     <>
-      {!profile && (
+      {connectionNeeded && (
         <Link href="/settings" className="app-focus inline-flex rounded-sm text-xs text-primary underline">
-          Connect ChatGPT in Settings
+          Connect {connectionName} in Settings
         </Link>
       )}
-      {engine === 'CODEX' && !nativeAvailable && (
-        <p role="alert" className="text-xs text-destructive">
-          Native Codex is unavailable in this app session.
-        </p>
-      )}
+      <NativeCodexAvailability engine={engine} available={nativeAvailable} />
     </>
+  )
+}
+
+function NativeCodexAvailability({ engine, available }: { engine: Engine; available: boolean }) {
+  if (engine !== 'CODEX' || available) return null
+  return (
+    <p role="alert" className="text-xs text-destructive">
+      Native Codex is unavailable in this app session.
+    </p>
   )
 }
 
@@ -162,13 +186,15 @@ export function ConversationProviderControls({
   engine,
   nativeAvailable,
   profile,
+  claudeConnected,
   blocked,
 }: {
   scope: Scope
-  provider: 'LOCAL' | 'CHATGPT'
+  provider: 'LOCAL' | 'CHATGPT' | 'CLAUDE'
   engine: Engine
   nativeAvailable: boolean
   profile?: Profile
+  claudeConnected: boolean
   blocked?: ConversationReadAttempt
 }) {
   return (
@@ -180,10 +206,15 @@ export function ConversationProviderControls({
         nativeAvailable={nativeAvailable}
         blocked={!!blocked}
       />
-      {provider === 'CHATGPT' && (
-        <ProviderAvailability engine={engine} nativeAvailable={nativeAvailable} profile={profile} />
+      {provider !== 'LOCAL' && (
+        <ProviderAvailability
+          engine={engine}
+          nativeAvailable={nativeAvailable}
+          profile={profile}
+          claudeConnected={claudeConnected}
+        />
       )}
-      {blocked && <OutstandingChatGptRead scope={scope} attempt={blocked} />}
+      {blocked && <OutstandingProviderRead scope={scope} attempt={blocked} />}
     </section>
   )
 }
@@ -199,7 +230,7 @@ function readStatus(attempt: ConversationReadAttempt) {
   }`
 }
 
-function OutstandingChatGptRead({ scope, attempt }: { scope: Scope; attempt: ConversationReadAttempt }) {
+function OutstandingProviderRead({ scope, attempt }: { scope: Scope; attempt: ConversationReadAttempt }) {
   return (
     <div className="space-y-2 rounded-lg border border-border bg-card px-3 py-2 text-xs">
       <p role="status">{readStatus(attempt)}</p>
@@ -270,32 +301,48 @@ export function VerifyWithProvider({
   messageId,
   query,
   profile,
+  claudeConnected,
   blocked,
   engine,
 }: {
   scope: Scope
   messageId: string
   query: WorkspaceRequest
-  profile: Profile
+  profile?: Profile
+  claudeConnected: boolean
   blocked: boolean
   engine: Engine
 }) {
   const labels = lookupProviders[engine]
+  const canSend = engine === 'CLAUDE_CODE' ? claudeConnected : !!profile
   return (
     <details className="max-w-sm space-y-2 self-start rounded-lg border border-border px-3 py-2 text-xs">
       <summary className="app-focus cursor-pointer rounded-sm font-medium">{labels.review}</summary>
       <p className="break-words">{labels.disclosure}</p>
-      {profile.account && <p className="break-all text-muted-foreground">{profile.account}</p>}
-      <p className="break-words text-muted-foreground">
-        {workspaceRecordLabel(query.kind)} · {query.query || 'All names'}
-      </p>
+      <LookupDetails query={query} account={profile?.account} />
       <ReadAction
-        disabled={blocked}
+        disabled={blocked || !canSend}
         variant="default"
-        action={() => runConversationChatGptLookup({ ...scope, messageId, profileKey: profile.key, engine })}
+        action={() => sendProviderLookup(scope, messageId, engine, profile?.key)}
       >
         {labels.send}
       </ReadAction>
     </details>
   )
+}
+
+function LookupDetails({ query, account }: { query: WorkspaceRequest; account?: string }) {
+  return (
+    <>
+      {account && <p className="break-all text-muted-foreground">{account}</p>}
+      <p className="break-words text-muted-foreground">
+        {workspaceRecordLabel(query.kind)} · {query.query || 'All names'}
+      </p>
+    </>
+  )
+}
+
+function sendProviderLookup(scope: Scope, messageId: string, engine: Engine, profileKey?: string) {
+  if (engine === 'CLAUDE_CODE') return runConversationClaudeCodeLookup({ ...scope, messageId, engine })
+  return runConversationChatGptLookup({ ...scope, messageId, profileKey, engine })
 }

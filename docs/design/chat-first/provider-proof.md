@@ -49,10 +49,35 @@ and update the configured digest when upgrading. Connect ChatGPT in Settings, op
 and select **Use native Codex for lookups**. Save a fresh lookup message and review the search before sending it.
 The preview keeps earlier attempts attached to their original messages and engines.
 
-| Provider    | Starting path                                                                                                                                                                                                                  | Evidence still needed                                                                                                                                                                                                                                                                                                                   |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ChatGPT     | Use Settings to start browser consent for the local open-source preview. In a saved project chat, select **Use ChatGPT for lookups**, open **Review ChatGPT lookup** on a saved search, and choose **Send lookup to ChatGPT**. | One live lookup matched the expected project record on macOS. Live disconnect, expiration, interrupted requests, and other installations still need coverage. [OpenAI Responses guidance](https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference)                                                            |
-| Claude Code | Evaluate hosting the official, unmodified Claude Code binary with provider-owned sign-in under Anthropic's published conditions. Review the commercial terms for this integration shape.                                       | A clean Appraise install guides the user into Claude Code's sign-in flow and completes the same Appraise read. Claude.ai sign-in inside Appraise and Appraise handling Claude subscription credentials fall outside the published provider path. [Anthropic legal and compliance](https://code.claude.com/docs/en/legal-and-compliance) |
+## Enable Claude Code lookups on macOS
+
+Confirm coverage under [Anthropic's terms for running Claude Code in your product](https://code.claude.com/docs/en/legal-and-compliance#can-customers-offer-claude-code-in-their-products).
+Use [Anthropic's native release verification instructions](https://code.claude.com/docs/en/setup) to verify an
+unmodified macOS binary that supports `--safe-mode` and structured print output. Set
+`APPRAISE_CLAUDE_CODE_EXECUTABLE` to its absolute path and `APPRAISE_CLAUDE_CODE_SHA256` to the lowercase digest
+from the verified release manifest. Reverify and update the pin when upgrading. Appraise checks the installed image
+before starting Claude Code and leaves the provider unavailable without this configuration.
+
+In **Settings → Agent setup**, select **Connect Claude Code** and complete Anthropic's sign-in as prompted.
+Claude Code manages sign-in and sign-out through its own commands, using a private `CLAUDE_CONFIG_DIR` under the
+current OS user's home. **Disconnect locally** asks Claude Code to sign out of that profile. The local Appraise
+installation should run on loopback and under that user account.
+
+In a project chat, choose **Use Claude Code for lookups**, save a lookup, and review its record type and search
+text. The restricted print-mode process receives only those reviewed fields. Its loopback HTTPS relay limits
+egress to the documented Anthropic API and token refresh hosts. A successful structured result must request the
+one fixed action before Appraise searches the active project. Appraise keeps the resulting records locally and
+saves the attempt as `CLAUDE_CODE`. This integration is limited to saved project lookups in chat.
+
+An offline rehearsal on a fresh Next.js 16.4.6 scaffold applied all 102 migrations. A synthetic CLI exercised
+Settings connect and disconnect, the reviewed checkout lookup, project isolation, and result persistence after
+reload. The pinned Claude Code 2.1.332 binary reported the isolated profile as disconnected and loaded inside
+the lookup sandbox. Live Anthropic sign-in and inference still require an eligible account and operator coverage.
+
+| Provider    | Starting path                                                                                                                                                                                                                  | Evidence still needed                                                                                                                                                                                                                                                        |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ChatGPT     | Use Settings to start browser consent for the local open-source preview. In a saved project chat, select **Use ChatGPT for lookups**, open **Review ChatGPT lookup** on a saved search, and choose **Send lookup to ChatGPT**. | One live lookup matched the expected project record on macOS. Live disconnect, expiration, interrupted requests, and other installations still need coverage. [OpenAI Responses guidance](https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference) |
+| Claude Code | Use **Connect Claude Code** in Settings and complete Anthropic's own sign-in. Choose Claude Code in chat and review a saved lookup before sending it.                                                                          | Live sign-in, lookup, and lifecycle checks still need an eligible test account. [Anthropic legal and compliance](https://code.claude.com/docs/en/legal-and-compliance)                                                                                                       |
 
 ## Qualification sequence
 
