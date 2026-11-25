@@ -7,6 +7,26 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { createChatGptConnection } from './chatgpt-connection-service'
 import { createChatGptCredentialStore } from './chatgpt-credential-store'
+import type { ProviderSecretVault } from './provider-secret-vault'
+
+const secrets = new Map<string, Buffer>()
+const fixtureVault: ProviderSecretVault = {
+  async read(id) {
+    const secret = secrets.get(id)
+    return secret && Buffer.from(secret)
+  },
+  async create(id, secret) {
+    if (secrets.has(id)) throw new Error('existing key')
+    secrets.set(id, Buffer.from(secret))
+  },
+  async remove(id) {
+    secrets.delete(id)
+  },
+}
+
+function createFixtureStore(directory: string, vault: ProviderSecretVault = fixtureVault) {
+  return createChatGptCredentialStore(directory, vault)
+}
 
 const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 })
 const jwks = { keys: [{ ...publicKey.export({ format: 'jwk' }), kid: 'synthetic', alg: 'RS256', use: 'sig' }] }
@@ -29,7 +49,7 @@ function signedIdToken(nonce: string) {
 
 async function setup() {
   const directory = await mkdtemp(path.join(await realpath(tmpdir()), 'appraise-oauth-test-'))
-  const store = createChatGptCredentialStore(directory)
+  const store = createFixtureStore(directory)
   const fetchProvider = vi.fn<typeof fetch>()
   const connection = createChatGptConnection(store, fetchProvider)
   const dispose = async () => {
@@ -86,7 +106,7 @@ describe.skipIf(process.platform === 'win32')('ChatGPT loopback sign-in', () => 
       expect(fetchProvider.mock.calls[0][1]?.body).toContain('code=synthetic-code')
       expect(fetchProvider.mock.calls[1][0]).toBe('https://auth.openai.com/.well-known/jwks.json')
 
-      const restarted = createChatGptConnection(createChatGptCredentialStore(directory), fetchProvider)
+      const restarted = createChatGptConnection(createFixtureStore(directory), fetchProvider)
       expect(await restarted.status()).toEqual({ state: 'connected' })
       expect(await restarted.disconnect()).toEqual({ state: 'disconnected' })
       expect(await connection.status()).toEqual({ state: 'disconnected' })

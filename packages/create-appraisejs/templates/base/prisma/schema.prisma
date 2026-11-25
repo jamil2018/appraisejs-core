@@ -531,6 +531,7 @@ enum ProjectConversationReadProvider {
   LOCAL
   CHATGPT
   CLAUDE
+  CURSOR
 }
 
 enum ProjectConversationChatGptEngine {
@@ -542,6 +543,7 @@ enum ProjectConversationReadEngine {
   RESPONSES
   CODEX
   CLAUDE_CODE
+  CURSOR_CLI
 }
 
 enum ProjectConversationReadState {

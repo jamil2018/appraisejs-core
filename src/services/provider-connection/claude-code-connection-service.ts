@@ -2,11 +2,18 @@ import { z } from 'zod'
 
 import { ServiceError } from '@/services/shared/errors'
 
-import { type ClaudeCodeCli, type ClaudeCodeReply, resolveClaudeCodeCli } from './claude-code-cli'
+import {
+  type ClaudeCodeCli,
+  ClaudeCodeLegacyCredentialError,
+  type ClaudeCodeReply,
+  resolveClaudeCodeCli,
+} from './claude-code-cli'
+import { bindVerifiedNativeLookup } from './native-lookup-binding'
 
 export type ClaudeCodeConnectionStatus = {
   state: 'unavailable' | 'disconnected' | 'authorizing' | 'connected' | 'failed'
   message?: string
+  requiresDisconnect?: true
 }
 
 const unavailable: ClaudeCodeConnectionStatus = {
@@ -36,6 +43,12 @@ const subscriptionRequired: ClaudeCodeConnectionStatus = {
     'Claude Code could not verify an eligible Claude subscription. Connect your Claude subscription to continue.',
 }
 
+const legacyCredential: ClaudeCodeConnectionStatus = {
+  state: 'failed',
+  message: 'Clear the previous Claude Code sign-in, then reconnect to store credentials in Keychain.',
+  requiresDisconnect: true,
+}
+
 function identifySubscription(auth: z.infer<typeof authStatus>) {
   const subscription = subscriptionAuth.safeParse(auth)
   if (!auth.loggedIn || !subscription.success) return undefined
@@ -48,6 +61,17 @@ async function readSession(cli: ClaudeCodeCli, signal?: AbortSignal) {
   const auth = authStatus.parse(JSON.parse(reply.output))
   if (auth.loggedIn !== (reply.exitCode === 0)) throw new Error('Claude Code returned inconsistent status.')
   return auth
+}
+
+async function observedSubscription(cli: ClaudeCodeCli): Promise<ClaudeCodeConnectionStatus> {
+  try {
+    const session = await readSession(cli)
+    if (!session.loggedIn) return { state: 'disconnected' }
+    return identifySubscription(session) ? { state: 'connected' } : subscriptionRequired
+  } catch (error) {
+    if (error instanceof ClaudeCodeLegacyCredentialError) return legacyCredential
+    return { state: 'failed', message: 'Claude Code could not check your sign-in.' }
+  }
 }
 
 export function createClaudeCodeConnection(resolveCli: () => Promise<ClaudeCodeCli | undefined>) {
@@ -63,14 +87,9 @@ export function createClaudeCodeConnection(resolveCli: () => Promise<ClaudeCodeC
     if (startedAt !== revision) return status()
     if (!cli) return unavailable
     if (failure) return failure
-    try {
-      const session = await readSession(cli)
-      if (startedAt !== revision) return status()
-      if (!session.loggedIn) return { state: 'disconnected' }
-      return identifySubscription(session) ? { state: 'connected' } : subscriptionRequired
-    } catch {
-      return { state: 'failed', message: 'Claude Code could not check your sign-in.' }
-    }
+    const observed = await observedSubscription(cli)
+    if (startedAt !== revision) return status()
+    return observed
   }
 
   async function changeSession(command: 'login' | 'logout'): Promise<ClaudeCodeConnectionStatus> {
@@ -95,11 +114,15 @@ export function createClaudeCodeConnection(resolveCli: () => Promise<ClaudeCodeC
           throw new Error('Claude Code did not confirm the requested session change.')
         }
         if (session.loggedIn && !identifySubscription(session)) failure = subscriptionRequired
-      } catch {
-        failure = {
-          state: 'failed',
-          message: command === 'login' ? 'Claude Code could not complete sign-in.' : 'Claude Code could not sign out.',
-        }
+      } catch (error) {
+        failure =
+          error instanceof ClaudeCodeLegacyCredentialError
+            ? legacyCredential
+            : {
+                state: 'failed',
+                message:
+                  command === 'login' ? 'Claude Code could not complete sign-in.' : 'Claude Code could not sign out.',
+              }
       } finally {
         operation = undefined
       }
@@ -116,32 +139,17 @@ export function createClaudeCodeConnection(resolveCli: () => Promise<ClaudeCodeC
   async function bindLookup() {
     const unavailableSession = () =>
       new ServiceError('Connect Claude Code in Settings before sending a lookup.', 'CONFLICT')
-    if (operation) throw unavailableSession()
     const boundRevision = revision
-    const cli = await resolveCli()
-    const session = await (cli &&
-      readSession(cli)
-        .then(identifySubscription)
-        .catch(() => undefined))
-    if (!cli || !session || operation || boundRevision !== revision) throw unavailableSession()
-
-    return async (
-      run: (cli: ClaudeCodeCli) => Promise<ClaudeCodeReply>,
-      signal: AbortSignal,
-    ): Promise<ClaudeCodeReply | undefined> => {
-      if (operation || boundRevision !== revision || signal.aborted) return undefined
-      activeReads += 1
-      try {
-        const current = await readSession(cli, signal)
-          .then(identifySubscription)
-          .catch(() => undefined)
-        if (current !== session) return undefined
-        signal.throwIfAborted()
-        return await run(cli)
-      } finally {
-        activeReads -= 1
-      }
-    }
+    return bindVerifiedNativeLookup<ClaudeCodeCli, ClaudeCodeReply, undefined>({
+      resolveCli,
+      identify: (cli, signal) => readSession(cli, signal).then(identifySubscription),
+      current: () => !operation && boundRevision === revision,
+      active: delta => {
+        activeReads += delta
+      },
+      unavailable: unavailableSession,
+      failed: undefined,
+    })
   }
 
   return { status, signIn: () => changeSession('login'), signOut: () => changeSession('logout'), bindLookup }

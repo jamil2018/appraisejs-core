@@ -1,17 +1,17 @@
 # Graph Report - prisma
 
 ## Corpus Check
-- 103 files from prisma/schema.prisma and migrations
+- 104 files from prisma/schema.prisma and migrations
 - Verdict: schema-aware graph generated because Graphify AST extraction does not currently produce Prisma/SQL nodes.
 
 ## Summary
-- 2770 nodes · 6491 edges · 362 communities
+- 2773 nodes · 6498 edges · 363 communities
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## God Nodes (most connected - your core abstractions)
 1. `String` - 1179 edges
-2. `schema.prisma` - 287 edges
+2. `schema.prisma` - 288 edges
 3. `QualityJourney` - 279 edges
 4. `DateTime` - 274 edges
 5. `Int` - 170 edges
@@ -42,7 +42,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (362 total)
+## Communities (363 total)
 ### Community 0 - "schema.prisma"
 Nodes (3): schema.prisma, datasource db (sqlite), Prisma client generator
 
@@ -143,13 +143,13 @@ Nodes (41): TargetProject, TargetProject.id, TargetProject.kind, TargetProject.c
 Nodes (3): ProjectConversationRole, ProjectConversationRole.USER, ProjectConversationRole.APPRAISE
 
 ### Community 33 - "ProjectConversationReadProvider"
-Nodes (4): ProjectConversationReadProvider, ProjectConversationReadProvider.LOCAL, ProjectConversationReadProvider.CHATGPT, ProjectConversationReadProvider.CLAUDE
+Nodes (5): ProjectConversationReadProvider, ProjectConversationReadProvider.LOCAL, ProjectConversationReadProvider.CHATGPT, ProjectConversationReadProvider.CLAUDE, ProjectConversationReadProvider.CURSOR
 
 ### Community 34 - "ProjectConversationChatGptEngine"
 Nodes (3): ProjectConversationChatGptEngine, ProjectConversationChatGptEngine.RESPONSES, ProjectConversationChatGptEngine.CODEX
 
 ### Community 35 - "ProjectConversationReadEngine"
-Nodes (4): ProjectConversationReadEngine, ProjectConversationReadEngine.RESPONSES, ProjectConversationReadEngine.CODEX, ProjectConversationReadEngine.CLAUDE_CODE
+Nodes (5): ProjectConversationReadEngine, ProjectConversationReadEngine.RESPONSES, ProjectConversationReadEngine.CODEX, ProjectConversationReadEngine.CLAUDE_CODE, ProjectConversationReadEngine.CURSOR_CLI
 
 ### Community 36 - "ProjectConversationReadState"
 Nodes (5): ProjectConversationReadState, ProjectConversationReadState.RUNNING, ProjectConversationReadState.COMPLETED, ProjectConversationReadState.FAILED, ProjectConversationReadState.UNKNOWN
@@ -1128,6 +1128,9 @@ Nodes (1): new_ProjectConversation
 
 ### Community 361 - "new_ProjectConversationRead"
 Nodes (1): new_ProjectConversationRead
+
+### Community 362 - "20261125020000_add_cursor_conversation_reads"
+Nodes (1): 20261125020000_add_cursor_conversation_reads
 
 ## Suggested Questions
 - Which models connect a Quality Journey to its execution and evidence records?

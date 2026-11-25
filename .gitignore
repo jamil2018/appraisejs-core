@@ -39,6 +39,13 @@ yarn-error.log*
 !.env.example
 !**/.env.example
 
+# Local provider account stores, including copies made for troubleshooting
+.appraisejs-chatgpt/
+.appraise-claude-code/
+.appraise-cursor/
+**/.claude/.credentials.json
+**/.cursor/auth.json
+
 # database files
 *.db
 *.sqlite

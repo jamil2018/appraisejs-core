@@ -24,6 +24,7 @@ import {
   isChatGptConnectionSupported,
 } from '@/services/provider-connection/chatgpt-connection-service'
 import { getClaudeCodeConnection } from '@/services/provider-connection/claude-code-connection-service'
+import { getCursorConnection } from '@/services/provider-connection/cursor-connection-service'
 import { ServiceError } from '@/services/shared/errors'
 
 import { JourneyChatFocus } from '../../quality-journeys/[journeyId]/journey-chat-focus'
@@ -166,7 +167,13 @@ export default async function ConversationPage({
       ? await chatGptConnection.readLookupProfile()
       : undefined
   const claudeConnected = readState.readProvider === 'CLAUDE' && (await getClaudeCodeConnection()).state === 'connected'
-  const selectedEngine = readState.readProvider === 'CLAUDE' ? 'CLAUDE_CODE' : readState.chatGptEngine
+  const cursorConnected = readState.readProvider === 'CURSOR' && (await getCursorConnection()).state === 'connected'
+  const selectedEngine =
+    readState.readProvider === 'CLAUDE'
+      ? 'CLAUDE_CODE'
+      : readState.readProvider === 'CURSOR'
+        ? 'CURSOR_CLI'
+        : readState.chatGptEngine
   const attempts = new Map(readState.attempts.map(attempt => [attempt.messageId, attempt]))
   const path = `/conversations/${conversation.id}`
   const first = messages[0]?.ordinal ?? 1
@@ -187,6 +194,7 @@ export default async function ConversationPage({
           nativeAvailable={nativeAvailable}
           profile={profile}
           claudeConnected={claudeConnected}
+          cursorConnected={cursorConnected}
           blocked={readState.blocked}
         />
       </header>
@@ -220,6 +228,7 @@ export default async function ConversationPage({
                   profile={profile}
                   engine={readState.readProvider === 'LOCAL' ? undefined : selectedEngine}
                   claudeConnected={claudeConnected}
+                  cursorConnected={cursorConnected}
                   nativeAvailable={nativeAvailable}
                   blocked={!!readState.blocked}
                 />
@@ -244,8 +253,9 @@ type MessageLookupProps = {
   message: ConversationMessage
   scope: { projectId: string; conversationId: string }
   profile?: { key: string; account?: string }
-  engine?: 'RESPONSES' | 'CODEX' | 'CLAUDE_CODE'
+  engine?: 'RESPONSES' | 'CODEX' | 'CLAUDE_CODE' | 'CURSOR_CLI'
   claudeConnected: boolean
+  cursorConnected: boolean
   nativeAvailable: boolean
   blocked: boolean
 }
@@ -260,6 +270,7 @@ function MessageLookupCandidate({
   scope,
   profile,
   claudeConnected,
+  cursorConnected,
   blocked,
   engine,
   nativeAvailable,
@@ -274,6 +285,7 @@ function MessageLookupCandidate({
       query={query}
       profile={profile}
       claudeConnected={claudeConnected}
+      cursorConnected={cursorConnected}
       engine={engine}
       blocked={blocked}
     />
@@ -282,7 +294,7 @@ function MessageLookupCandidate({
 
 function eligibleWorkspaceRequest(
   message: ConversationMessage,
-  engine: 'RESPONSES' | 'CODEX' | 'CLAUDE_CODE',
+  engine: 'RESPONSES' | 'CODEX' | 'CLAUDE_CODE' | 'CURSOR_CLI',
   nativeAvailable: boolean,
 ) {
   if (message.role !== 'USER') return null

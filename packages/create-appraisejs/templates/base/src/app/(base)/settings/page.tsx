@@ -4,6 +4,7 @@ import Link from 'next/link'
 
 import { readChatGptConnection, readChatGptProfiles } from '@/actions/provider-connection/chatgpt-actions'
 import { readClaudeCodeConnection } from '@/actions/provider-connection/claude-actions'
+import { readCursorConnection } from '@/actions/provider-connection/cursor-actions'
 import PageHeader from '@/components/typography/page-header'
 import { readActiveProjectCookie } from '@/lib/active-project'
 import { withProjectScope } from '@/lib/project-scope'
@@ -11,6 +12,7 @@ import { withProjectScope } from '@/lib/project-scope'
 import { AppearanceSettings } from './appearance-settings'
 import { ChatGptSettings } from './chatgpt-settings'
 import { ClaudeCodeSettings } from './claude-code-settings'
+import { CursorSettings } from './cursor-settings'
 
 export const metadata: Metadata = {
   title: 'Appraise | Settings',
@@ -18,11 +20,12 @@ export const metadata: Metadata = {
 }
 
 export default async function SettingsPage() {
-  const [project, chatGptStatus, chatGptProfiles, claudeCodeStatus] = await Promise.all([
+  const [project, chatGptStatus, chatGptProfiles, claudeCodeStatus, cursorStatus] = await Promise.all([
     readActiveProjectCookie(),
     readChatGptConnection(),
     readChatGptProfiles(),
     readClaudeCodeConnection(),
+    readCursorConnection(),
   ])
   const scoped = (href: string) => (project ? withProjectScope(href, project) : href)
 
@@ -50,6 +53,7 @@ export default async function SettingsPage() {
           <ChatGptSettings initialStatus={chatGptStatus} profiles={chatGptProfiles} />
           <SettingsLink href={scoped('/projects?agentSetup=codex')} title="Codex diagnostic" />
           <ClaudeCodeSettings initialStatus={claudeCodeStatus} />
+          <CursorSettings initialStatus={cursorStatus} />
         </div>
       </section>
     </div>

@@ -52,11 +52,11 @@ saved conversation. The card opens the scoped canonical control. Appraise still 
 and exact run consent when the user acts there.
 
 Appraise can verify a saved lookup after the user reviews the exact search terms. A conversation can use Local,
-ChatGPT Responses, native Codex with a configured macOS app-server, or Claude Code with a configured official macOS
-binary. The engine, attempt status, and verified records remain with the message. Unresolved attempts stay visible
+ChatGPT Responses, native Codex with a configured macOS app-server, Claude Code with a configured official macOS
+binary, or Cursor with a pinned official macOS CLI bundle. The engine, attempt status, and verified records remain with the message. Unresolved attempts stay visible
 after restart.
 
-The local macOS preview completed live ChatGPT Responses and native Codex lookups for the disposable checkout
-case. An uncoached first-use walkthrough, broader provider lifecycle coverage, and full action parity remain open.
+The local macOS preview completed live ChatGPT Responses, native Codex, Claude Code, and Cursor lookups for the
+disposable checkout case. An uncoached first-use walkthrough, broader provider lifecycle coverage, and full action parity remain open.
 The [provider proof](provider-proof.md) records the evidence and remaining checks. The
 [action inventory](action-inventory.md) maps effects to current Appraise services.
