@@ -107,6 +107,10 @@ supervises the Cursor process group and detaches the encrypted volume after use.
 the Appraise parent while a synthetic child held the mount, then verified that the volume detached and its
 test data reopened.
 
+On Node.js 26.13.1, closing IPC from Appraise could suppress the supervisor’s `close` event even after the
+Cursor process exited. An explicit stop now sends a message so the supervisor can close IPC after the Cursor
+process exits. The regression tests cover both explicit stop and Appraise process death.
+
 In chat, select **Use Cursor for lookups**, save a lookup, and review it. Appraise asks Cursor for a fixed
 confirmation over ACP in Ask mode with tool permissions denied. Search terms, matching records, and Appraise
 project files stay local. A verified reply triggers the same Appraise project-scoped lookup and durable
