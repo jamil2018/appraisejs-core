@@ -107,6 +107,13 @@ supervises the Cursor process group and detaches the encrypted volume after use.
 the Appraise parent while a synthetic child held the mount, then verified that the volume detached and its
 test data reopened.
 
+Appraise holds a private SQLite lock across each encrypted-profile lease. On macOS 27.2.1 an interrupted
+lease could leave its encrypted disk image attached after the volume was unmounted, causing the next process to
+fail the encryption check. Appraise now checks the exact private image path, owner, and disk identity before
+ejecting an unmounted attachment without force. Mounted and ambiguous attachments
+are refused. Disposable APFS tests reopened the original marker after interrupted leases, confirmed a concurrent
+Appraise process could not enter an active lease, and verified an unrelated attached image stayed in place.
+
 On Node.js 26.13.1, closing IPC from Appraise could suppress the supervisor’s `close` event even after the
 Cursor process exited. An explicit stop now sends a message so the supervisor can close IPC after the Cursor
 process exits. The regression tests cover both explicit stop and Appraise process death.
@@ -132,11 +139,19 @@ project. The result persisted after a browser reload and opened the matching cas
 in another project stayed out of the result. The earlier unresolved attempt kept its recorded state. The browser
 test used Playwright because the in-app browser host was unavailable.
 
+The clean macOS install with the supervisor fix also completed a fresh Cursor checkout lookup and returned only
+the case in the selected project. Its result survived browser reload, Appraise restart, and local disconnect.
+Restarting after the original stalled request showed an unknown outcome and preserved the single attempt.
+Local disconnect disabled future Cursor sends. After targeted provider-side revocation, the CLI still reported
+`authenticated` but returned no verifiable account identity. Appraise offered **Connect Cursor** and rejected a
+fresh checkout through its server action before starting a provider attempt. These checks cover the Appraise
+lookup path and leave direct provider token acceptance unverified.
+
 | Provider    | Starting path                                                                                                                                                                                                                  | Evidence still needed                                                                                                                                                                                                                                                        |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | ChatGPT     | Use Settings to start browser consent for the local open-source preview. In a saved project chat, select **Use ChatGPT for lookups**, open **Review ChatGPT lookup** on a saved search, and choose **Send lookup to ChatGPT**. | One live lookup matched the expected project record on macOS. Live disconnect, expiration, interrupted requests, and other installations still need coverage. [OpenAI Responses guidance](https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference) |
 | Claude Code | Use **Connect Claude Code** in Settings and complete Anthropic's own sign-in. Choose Claude Code in chat and review a saved lookup before sending it.                                                                          | One live subscription lookup matched the expected project record on macOS. Live disconnect, expiration, and other installations still need coverage. [Anthropic legal and compliance](https://code.claude.com/docs/en/legal-and-compliance)                                  |
-| Cursor      | Use **Connect Cursor** in Settings, complete Cursor's browser sign-in, then review a new saved lookup in chat.                                                                                                                 | Browser sign-in and one live project lookup were verified on macOS. Live disconnect, expiration, and other installations still need coverage. [Cursor ACP documentation](https://cursor.com/docs/cli/acp)                                                                    |
+| Cursor      | Use **Connect Cursor** in Settings, complete Cursor's browser sign-in, then review a new saved lookup in chat.                                                                                                                 | Clean macOS sign-in, scoped lookup, reload, restart, local disconnect, and refusal after targeted revocation were verified. Other installations still need coverage. [Cursor ACP documentation](https://cursor.com/docs/cli/acp)                                             |
 
 ## Qualification sequence
 
