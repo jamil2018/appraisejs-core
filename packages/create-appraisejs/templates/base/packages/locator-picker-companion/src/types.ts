@@ -26,6 +26,8 @@ export interface CompanionPickedLocatorPayload {
 
 export interface CompanionSessionFile {
   sessionId: string
+  /** Appraise ownership. Older files without this field are inaccessible to scoped app operations. */
+  targetProjectId?: string
   status: CompanionSessionStatus
   launchSource: CompanionLaunchSource
   currentUrl: string

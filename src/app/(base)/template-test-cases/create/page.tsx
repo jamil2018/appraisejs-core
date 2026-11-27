@@ -8,6 +8,8 @@ import { Metadata } from 'next'
 import { presentationVocabulary } from '@/lib/presentation-vocabulary'
 
 import { loadCreateTemplateTestCasePageData } from '../create-template-test-case-page-data'
+import { requireActiveProjectForMutation } from '@/lib/active-project'
+import { withProjectScope } from '@/lib/project-scope'
 
 export const metadata: Metadata = {
   title: `Appraise | ${presentationVocabulary.caseTemplate.create}`,
@@ -15,6 +17,7 @@ export const metadata: Metadata = {
 }
 
 const CreateTemplateTestCase = async () => {
+  const project = await requireActiveProjectForMutation()
   const pageData = await loadCreateTemplateTestCasePageData()
 
   if (pageData.status === 'error') {
@@ -40,6 +43,7 @@ const CreateTemplateTestCase = async () => {
         environments={pageData.environments}
         modules={pageData.modules}
         onSubmitAction={createTemplateTestCaseAction}
+        returnPath={withProjectScope('/template-test-cases', project.id)}
         defaultValueInput={true}
       />
     </>

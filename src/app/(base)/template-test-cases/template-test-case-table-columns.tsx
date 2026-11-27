@@ -8,6 +8,7 @@ import { createDataTableSelectionColumn } from '@/components/ui/data-table-selec
 import TableActions from '@/components/table/table-actions'
 import { deleteTemplateTestCaseAction } from '@/actions/template-test-case/template-test-case-actions'
 import { formatDateTime } from '@/lib/utils'
+import { withProjectScope } from '@/lib/project-scope'
 
 export const templateTestCaseTableCols: ColumnDef<TemplateTestCase & { steps: TemplateTestCaseStep[] }>[] = [
   createDataTableSelectionColumn<TemplateTestCase & { steps: TemplateTestCaseStep[] }>(row => row.name),
@@ -48,7 +49,10 @@ export const templateTestCaseTableCols: ColumnDef<TemplateTestCase & { steps: Te
       return (
         <TableActions
           rowName={templateTestCase.name}
-          modifyLink={`/template-test-cases/modify/${templateTestCase.id}`}
+          modifyLink={withProjectScope(
+            `/template-test-cases/modify/${templateTestCase.id}`,
+            templateTestCase.targetProjectId,
+          )}
           deleteHandler={() => deleteTemplateTestCaseAction([templateTestCase.id])}
         />
       )

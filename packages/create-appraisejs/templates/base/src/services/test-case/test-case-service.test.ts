@@ -40,7 +40,8 @@ const definition: StepDefinition = {
   agent: { summary: 'Fixture', usageGuidance: 'Unit metadata only', examples: [{ intent: 'Fixture', inputs: { payload: { retained: true } } }] },
   execution: { kind: 'operation', handlerId: 'fixture.case', handlerVersion: '1', runtime: 'node' }, lifecycle: {},
 }
-const caseRow = (id = 'case-1', extra: Row = {}) => ({ id, targetProjectId: project, archivedAt: null, collaborationManaged: false, ...extra })
+const caseRow = (id = 'case-1', extra: Row = {}) => ({ id, targetProjectId: project, archivedAt: null, collaborationManaged: false,
+  updatedAt: new Date('2026-01-01T00:00:00.000Z'), ...extra })
 const suiteRow = (id = 'suite-1', extra: Row = {}) => ({ id, targetProjectId: project, moduleId: 'module-1', archivedAt: null, ...extra })
 const tagRow = (id = 'tag-1', extra: Row = {}) => ({ id, targetProjectId: project, name: 'filter', tagExpression: '@filter', type: 'FILTER', archivedAt: null, ...extra })
 const input = () => ({ title: 'Authored case', description: 'Description', testSuiteIds: ['suite-1'], tagIds: ['tag-1'],
@@ -206,6 +207,24 @@ describe('createTestCaseFromInput mutation boundary', () => {
 })
 
 describe('updateTestCaseFromInput', () => {
+  it('rejects a stale scoped edit before replacing any step or flow-block child', async () => {
+    const stale = '2026-01-01T00:00:00.000Z'
+    cases = [caseRow('case-1', { updatedAt: new Date('2026-01-01T00:00:00.001Z') })]
+    await expect(updateTestCaseFromInput(input(), 'case-1', project, stale)).rejects.toMatchObject({
+      code: 'CONFLICT', statusCode: 409,
+    })
+    noWrites()
+  })
+
+  it('advances a matching edit version and uses it in the final scoped update', async () => {
+    const expected = '2099-01-01T00:00:00.000Z'
+    cases = [caseRow('case-1', { updatedAt: new Date(expected) })]
+    await updateTestCaseFromInput(input(), 'case-1', project, expected)
+    const call = tx.testCase.update.mock.calls[0][0]
+    expect(call.where).toEqual({ id: 'case-1', targetProjectId: project, archivedAt: null, updatedAt: new Date(expected) })
+    expect(call.data.updatedAt.getTime()).toBeGreaterThan(new Date(expected).getTime())
+  })
+
   it('guards only the Case before exact child replacement and retains validation-only Suite membership', async () => {
     await updateTestCaseFromInput(input(), 'case-1', project)
     expect(prepare).toHaveBeenCalledExactlyOnceWith(tx, project, { existing: [{ kind: 'TEST_CASE', resourceId: 'case-1' }], newRoots: [], deleted: [] })

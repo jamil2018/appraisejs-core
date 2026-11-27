@@ -5,7 +5,7 @@ import path from 'node:path'
 import { PrismaClient } from '@prisma/client'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const guard = vi.hoisted(() => ({ prepare: vi.fn(async () => undefined) }))
+const guard = vi.hoisted(() => ({ prepare: vi.fn(async () => undefined), requestAnalysisRevision: vi.fn() }))
 vi.mock('@/config/db-config', () => ({
   default: new Proxy(
     {},
@@ -19,6 +19,9 @@ vi.mock('@/config/db-config', () => ({
 vi.mock('@/services/coordinator/quality-journey-shared-resource-guard-service', () => ({
   prepareSharedResourceMutationInTransaction: guard.prepare,
 }))
+vi.mock('./conversation-analysis-review', () => ({
+  requestConversationAnalysisRevision: guard.requestAnalysisRevision,
+}))
 
 import {
   appendConversationTurn,
@@ -30,6 +33,7 @@ import {
 } from './conversation-service'
 import { deleteTargetProject } from '@/services/target-project/target-project-service'
 import { copyMigratedTestDatabase, prepareMigratedTestDatabase } from '@/test/migrated-test-database'
+import { ServiceError } from '@/services/shared/errors'
 import {
   readConversationProviderState,
   releaseUnconfirmedConversationRead,
@@ -84,6 +88,7 @@ beforeAll(async () => {
 beforeEach(() => {
   guard.prepare.mockReset()
   guard.prepare.mockResolvedValue(undefined)
+  guard.requestAnalysisRevision.mockReset()
   directory = mkdtempSync(path.join(tmpdir(), 'appraise-conversation-'))
   const file = path.join(directory, 'scratch.db')
   // Begin from an existing project table, then apply the additive migration.
@@ -105,6 +110,47 @@ afterEach(async () => {
 })
 
 describe('durable project conversations', () => {
+  it('pins review requests to the saved Journey and rolls back a stale turn', async () => {
+    const context = { kind: 'QUALITY_JOURNEY' as const, id: 'journey-a', title: 'Guest checkout' }
+    const { conversation } = await appendConversationTurn(
+      { targetProjectId: projectA, idempotencyKey: 'attach', content: 'Keep this review', context },
+      client,
+    )
+    const scope = { targetProjectId: projectA, conversationId: conversation.id }
+    const hash = `sha256:${'ab'.repeat(32)}`
+    const analysisReview = { journeyId: context.id, revisionId: 'analysis-1', reviewHash: hash, stateHash: hash }
+    const request = {
+      ...scope,
+      idempotencyKey: 'order-number',
+      content: 'Also check that I get an order number.',
+      analysisReview,
+    }
+    await expect(
+      appendConversationTurn({ ...request, analysisReview: { ...analysisReview, journeyId: 'other' } }, client),
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
+    expect(guard.requestAnalysisRevision).not.toHaveBeenCalled()
+
+    guard.requestAnalysisRevision.mockRejectedValueOnce(new ServiceError('Review is stale', 'CONFLICT'))
+    await expect(appendConversationTurn(request, client)).rejects.toMatchObject({ code: 'CONFLICT' })
+    expect((await getProjectConversation(scope, client)).messages.map(message => message.content)).toEqual([
+      'Keep this review',
+    ])
+
+    guard.requestAnalysisRevision.mockResolvedValueOnce({
+      journeyId: context.id,
+      targetProjectId: projectA,
+      expectedStateHash: hash,
+    })
+    const committed = await appendConversationTurn(request, client)
+    expect(committed.messages.map(message => message.ordinal)).toEqual([2, 3])
+    expect((await appendConversationTurn(request, client)).replayed).toBe(true)
+    expect((await replayConversationTurn(request, client))?.messages).toEqual(committed.messages)
+    expect(guard.requestAnalysisRevision).toHaveBeenCalledTimes(2)
+    await expect(
+      appendConversationTurn({ ...request, analysisReview: { ...analysisReview, revisionId: 'analysis-2' } }, client),
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
+  })
+
   it('retains the latest exact Journey attachment and recognizes its message replay', async () => {
     const context = { kind: 'QUALITY_JOURNEY' as const, id: 'qjy_123', title: 'Guest checkout' }
     const input = {

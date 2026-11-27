@@ -43,3 +43,22 @@ it('stops the supervised Cursor process group when Appraise is killed', async ()
     lines.close()
   }
 }, 10_000)
+
+it('closes the supervisor and its stdio after an explicit stop', async () => {
+  const { startCursorCommand } = await import('./cursor-process')
+  const vendor = "console.log('ready'); setInterval(() => {}, 1000)"
+  const { child, stop } = startCursorCommand(process.execPath, process.execPath, ['-e', vendor], {})
+  const timeout = AbortSignal.timeout(3000)
+  const closed = once(child, 'close', { signal: timeout })
+  void closed.catch(() => undefined)
+  child.stderr.resume()
+  try {
+    await once(child.stdout, 'data', { signal: timeout })
+    stop()
+    await expect(closed).resolves.toEqual([1, null])
+  } finally {
+    if (child.connected) child.disconnect()
+    child.stdout.destroy()
+    child.stderr.destroy()
+  }
+}, 5_000)

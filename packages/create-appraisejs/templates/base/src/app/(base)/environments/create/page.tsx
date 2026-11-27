@@ -3,13 +3,15 @@ import EnvironmentForm from '../environment-form'
 import PageHeader from '@/components/typography/page-header'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import { Metadata } from 'next'
+import { requireActiveProject } from '@/lib/active-project'
 
 export const metadata: Metadata = {
   title: 'Appraise | Create Environment',
   description: 'Create a new environment configuration for your test runs',
 }
 
-const CreateEnvironment = async () => {
+const CreateEnvironment = async ({ searchParams }: { searchParams?: Promise<{ project?: string }> }) => {
+  const project = await requireActiveProject((await searchParams)?.project)
   return (
     <div className="min-w-0 space-y-4">
       <div className="min-w-0">
@@ -17,6 +19,7 @@ const CreateEnvironment = async () => {
         <HeaderSubtitle>Create a new environment configuration for your test runs.</HeaderSubtitle>
       </div>
       <EnvironmentForm
+        projectId={project.id}
         successTitle="Environment created"
         successMessage="Environment created successfully"
         onSubmitAction={createEnvironmentAction}

@@ -32,6 +32,7 @@ const ACTIVE_SESSION_STALE_MS = 2 * 60 * 1000
 const COMPANION_EXIT_POLL_MS = 100
 const COMPANION_EXIT_TIMEOUT_MS = 5 * 1000
 const TERMINAL_SESSION_RETENTION_MS = 30 * 60 * 1000
+const SESSION_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/
 
 function safeUrlParts(url: string): { currentUrl: string; pathname: string } {
   if (!url) {
@@ -246,17 +247,26 @@ class LocatorPickerSessionManager {
     return globalForLocatorPicker.locatorPickerSessionManager
   }
 
-  async startSession(request: StartLocatorPickerSessionRequest): Promise<LocatorPickerSession> {
-    await clearLocatorPickerCrashLogs()
-    await cleanupLingeringCompanionSessions()
-
+  async startSession(
+    request: StartLocatorPickerSessionRequest,
+    targetProjectId: string,
+  ): Promise<LocatorPickerSession> {
     const environment = request.environmentId
-      ? await prisma.environment.findUnique({
+      ? await prisma.environment.findFirst({
           where: {
             id: request.environmentId,
+            targetProjectId,
+            archivedAt: null,
           },
         })
       : null
+
+    if (request.environmentId && !environment) {
+      throw new Error('The selected environment is unavailable in this project.')
+    }
+
+    await clearLocatorPickerCrashLogs()
+    await cleanupLingeringCompanionSessions()
 
     const launchUrl = request.url?.trim() || environment?.baseUrl || ''
     if (!launchUrl) {
@@ -273,6 +283,7 @@ class LocatorPickerSessionManager {
 
     const initialRecord: CompanionSessionFile = {
       sessionId,
+      targetProjectId,
       status: 'starting',
       launchSource: {
         environmentId: environment?.id,
@@ -403,31 +414,45 @@ class LocatorPickerSessionManager {
     return toSessionSnapshot(record)
   }
 
-  async getSession(sessionId: string): Promise<LocatorPickerSession | null> {
+  async getSession(sessionId: string, targetProjectId: string): Promise<LocatorPickerSession | null> {
+    if (!SESSION_ID_PATTERN.test(sessionId)) return null
     const record = await readLocatorPickerSessionFile(getLocatorPickerSessionFilePath(sessionId))
-    return record ? toSessionSnapshot(record) : null
+    return record?.targetProjectId === targetProjectId ? toSessionSnapshot(record) : null
   }
 
-  async markSaving(sessionId?: string): Promise<void> {
-    if (!sessionId) {
+  async closeSession(sessionId: string, targetProjectId: string): Promise<LocatorPickerSession | null> {
+    if (!SESSION_ID_PATTERN.test(sessionId)) return null
+    const sessionFilePath = getLocatorPickerSessionFilePath(sessionId)
+    const record = await readLocatorPickerSessionFile(sessionFilePath)
+    if (!record || record.targetProjectId !== targetProjectId) return null
+    if (record.companionPid) await shutdownCompanionProcess(record.companionPid)
+    const closed = await patchLocatorPickerSessionFile(sessionFilePath, current =>
+      current.targetProjectId === targetProjectId ? { status: 'closed', companionPid: null } : current,
+    )
+    await removeLocatorPickerProfileDir(sessionId).catch(() => undefined)
+    return closed?.targetProjectId === targetProjectId ? toSessionSnapshot(closed) : null
+  }
+
+  async markSaving(sessionId: string | undefined, targetProjectId: string): Promise<void> {
+    if (!sessionId || !SESSION_ID_PATTERN.test(sessionId)) {
       return
     }
 
-    await patchLocatorPickerSessionFile(getLocatorPickerSessionFilePath(sessionId), {
-      status: 'saving',
-      error: undefined,
-    })
+    await patchLocatorPickerSessionFile(getLocatorPickerSessionFilePath(sessionId), current =>
+      current.targetProjectId === targetProjectId ? { status: 'saving', error: undefined } : current,
+    )
   }
 
-  async markReadyAfterSave(sessionId?: string): Promise<void> {
-    if (!sessionId) {
+  async markReadyAfterSave(sessionId: string | undefined, targetProjectId: string): Promise<void> {
+    if (!sessionId || !SESSION_ID_PATTERN.test(sessionId)) {
       return
     }
 
-    await patchLocatorPickerSessionFile(getLocatorPickerSessionFilePath(sessionId), current => ({
-      status: current.pickedLocator ? 'picked' : current.companionPid ? 'ready' : 'closed',
-      error: undefined,
-    }))
+    await patchLocatorPickerSessionFile(getLocatorPickerSessionFilePath(sessionId), current =>
+      current.targetProjectId === targetProjectId
+        ? { status: current.pickedLocator ? 'picked' : current.companionPid ? 'ready' : 'closed', error: undefined }
+        : current,
+    )
   }
 }
 

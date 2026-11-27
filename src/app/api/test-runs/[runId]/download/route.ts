@@ -100,7 +100,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const { runId } = await params
   try {
     const targetProjectId =
-      request.cookies.get(ACTIVE_PROJECT_COOKIE)?.value ?? request.nextUrl.searchParams.get('targetProjectId')
+      request.nextUrl.searchParams.get('targetProjectId') ?? request.cookies.get(ACTIVE_PROJECT_COOKIE)?.value
     if (!targetProjectId) return NextResponse.json({ error: 'Test run not found' }, { status: 404 })
     const testRun = await getDownloadTestRun(runId, targetProjectId)
     if (!testRun) return NextResponse.json({ error: 'Test run not found' }, { status: 404 })

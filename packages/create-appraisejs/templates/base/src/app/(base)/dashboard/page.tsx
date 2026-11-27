@@ -16,6 +16,7 @@ import { LayoutDashboard } from 'lucide-react'
 import { requireActiveProject } from '@/lib/active-project'
 import { listLatestAgentPreflightReceipts } from '@/services/agent-preflight/agent-preflight-service'
 import { DashboardStartPanel } from '../../(dashboard-components)/dashboard-start-panel'
+import { withProjectScope } from '@/lib/project-scope'
 
 export const metadata: Metadata = {
   title: 'Appraise | Dashboard',
@@ -54,23 +55,36 @@ const Dashboard = async ({ searchParams }: { searchParams: Promise<{ project?: s
         <div className="grid min-w-0 gap-4">
           <div className="grid min-w-0 items-start gap-4 [grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr))]">
             <AppDrawer
+              projectId={activeProject.id}
               metrics={metrics}
               title="Attention Needed"
               hasExecutionEvidence={entityMetrics.completedTestRunsCount > 0}
             />
             <DataCardGrid>
-              <DataCard title="Test Cases" value={testCasesCount} link="/test-cases" />
-              <DataCard title="Test Suites" value={testSuitesCount} link="/test-suites" />
-              <DataCard title="Step Definitions" value={stepDefinitionsCount} link="/step-definitions" />
+              <DataCard
+                title="Test Cases"
+                value={testCasesCount}
+                link={withProjectScope('/test-cases', activeProject.id)}
+              />
+              <DataCard
+                title="Test Suites"
+                value={testSuitesCount}
+                link={withProjectScope('/test-suites', activeProject.id)}
+              />
+              <DataCard
+                title="Step Definitions"
+                value={stepDefinitionsCount}
+                link={withProjectScope('/step-definitions', activeProject.id)}
+              />
               <OngoingTestRunsCard
                 key={activeProject.id}
                 initialCount={runningTestRunsCount}
-                link="/test-runs"
+                link={withProjectScope('/test-runs', activeProject.id)}
                 projectId={activeProject.id}
               />
             </DataCardGrid>
           </div>
-          <QuickActionsDrawer />
+          <QuickActionsDrawer projectId={activeProject.id} />
         </div>
         <ExecutionHealthPanel featureData={testSuiteExecutionData} />
       </div>

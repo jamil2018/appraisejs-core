@@ -19,6 +19,12 @@ vi.mock('@/actions/environments/environment-actions', () => ({
   deleteEnvironmentAction: vi.fn(),
 }))
 
+vi.mock('@/components/table/table-actions', () => ({
+  default: ({ rowName, modifyLink }: { rowName: string; modifyLink: string }) => (
+    <a href={modifyLink}>Edit {rowName}</a>
+  ),
+}))
+
 const environments = [
   {
     id: 'local',
@@ -77,5 +83,14 @@ describe('EnvironmentRegistry', () => {
     await user.type(search, 'production')
 
     expect(screen.getByRole('heading', { name: 'No matching environments' })).toBeVisible()
+  })
+
+  it('keeps the displayed project on environment edit links', () => {
+    render(<EnvironmentRegistry environments={environments} projectId="project-a" />)
+
+    expect(screen.getByRole('link', { name: 'Edit Local' })).toHaveAttribute(
+      'href',
+      '/environments/modify/local?project=project-a',
+    )
   })
 })

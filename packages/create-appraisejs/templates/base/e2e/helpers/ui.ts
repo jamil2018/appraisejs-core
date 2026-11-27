@@ -19,7 +19,7 @@ export async function completeNamedCreate(
   saveButton: string | RegExp = /^Save$/,
 ): Promise<void> {
   await page.getByRole('button', { name: saveButton }).click()
-  await expect(page).toHaveURL(destination)
+  await expect.poll(() => new URL(page.url()).pathname).toMatch(destination)
   await expect(page.getByText(name, { exact: true }).filter({ visible: true }).first()).toBeVisible()
 }
 

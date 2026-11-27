@@ -18,6 +18,7 @@ export default function TagTable({ rows }: { rows: Tag[] }) {
       filterColumn="name"
       filterPlaceholder="Search tags"
       modifyLink="/tags/modify"
+      modifyLinkProjectId={projectId}
       deleteAction={deleteTagAction}
       density="compact"
       initialColumnVisibility={{ createdAt: false }}

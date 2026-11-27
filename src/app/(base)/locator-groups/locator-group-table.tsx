@@ -13,6 +13,7 @@ export default function LocatorGroupTable({ rows }: { rows: (LocatorGroup & { mo
       filterColumn="name"
       filterPlaceholder="Search locator groups"
       modifyLink="/locator-groups/modify"
+      modifyLinkProjectId={rows[0].targetProjectId}
       deleteAction={deleteLocatorGroupAction}
       density="compact"
       initialColumnVisibility={{ createdAt: false }}

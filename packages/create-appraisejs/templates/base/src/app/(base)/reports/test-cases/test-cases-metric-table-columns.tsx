@@ -7,6 +7,7 @@ import { Tag, TestCase, TestCaseMetrics } from '@prisma/client'
 import { deleteTestCaseAction } from '@/actions/test-case/test-case-actions'
 import { formatDateTime } from '@/lib/utils'
 import { createDataTableSelectionColumn } from '@/components/ui/data-table-selection-column'
+import { withProjectScope } from '@/lib/project-scope'
 
 export const testCasesMetricTableCols: ColumnDef<TestCaseMetrics & { testCase: TestCase & { tags: Tag[] } }>[] = [
   createDataTableSelectionColumn<TestCaseMetrics & { testCase: TestCase & { tags: Tag[] } }>(row => row.testCase.title),
@@ -86,7 +87,7 @@ export const testCasesMetricTableCols: ColumnDef<TestCaseMetrics & { testCase: T
       return (
         <TableActions
           rowName={row.original.testCase.title}
-          modifyLink={`/test-cases/modify/${testCaseId}`}
+          modifyLink={withProjectScope(`/test-cases/modify/${encodeURIComponent(testCaseId)}`, row.original.testCase.targetProjectId)}
           deleteHandler={() => deleteTestCaseAction([testCaseId])}
         />
       )

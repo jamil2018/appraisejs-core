@@ -6,6 +6,7 @@ import { isSharedResourceId, sharedResourceBounds } from '@/lib/quality-journey/
 import { TagType, type Prisma } from '@prisma/client'
 import type { z } from 'zod'
 import { ServiceError } from '@/services/shared/errors'
+import { authoringEditVersion, throwIfStaleAuthoringUpdate } from '@/services/shared/authoring-edit-version'
 import { flowBlockCreates, testCaseStepCreates } from '@/services/shared/authored-step-persistence'
 import { resolveReadyExactStepDefinitions } from '@/services/shared/step-invocation-validation'
 import {
@@ -18,7 +19,7 @@ type TestCaseInput = z.input<typeof testCaseSchema>
 type Examined = { count: number }
 const rowLimit = 65_536
 const compare = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0
-const caseSelect = { id: true, targetProjectId: true, archivedAt: true, collaborationManaged: true } as const
+const caseSelect = { id: true, targetProjectId: true, archivedAt: true, collaborationManaged: true, updatedAt: true } as const
 const tagSelect = { id: true, targetProjectId: true, name: true, tagExpression: true, type: true, archivedAt: true } as const
 const refuse: (reason: string) => never = reason => {
   throw new ServiceError('Test case mutation requires exact bounded shared-resource effects.', 'CONFLICT', 409, {
@@ -229,12 +230,13 @@ export async function createTestCaseFromInput(value: TestCaseInput, targetProjec
   })
 }
 
-export async function updateTestCaseFromInput(value: TestCaseInput, id: string, targetProjectId: string) {
+export async function updateTestCaseFromInput(value: TestCaseInput, id: string, targetProjectId: string, expectedUpdatedAt?: string) {
   const input = snapshot(value, targetProjectId)
   if (!isSharedResourceId(id)) missing()
   return prisma.$transaction(async tx => {
     const current = await tx.testCase.findFirst({ where: { id }, select: caseSelect })
     if (!current || current.id !== id || current.targetProjectId !== targetProjectId || current.archivedAt !== null) missing()
+    const editVersion = authoringEditVersion(current.updatedAt, expectedUpdatedAt)
     const budget = { count: 0 }
     examined([current], budget)
     const definitions = await validateTestCaseRelationships(tx, input, targetProjectId, budget)
@@ -246,10 +248,16 @@ export async function updateTestCaseFromInput(value: TestCaseInput, id: string, 
     // testSuiteIds remain validation-only on update; this writer does not change membership.
     await prepareSharedResourceMutationInTransaction(tx, targetProjectId, { existing: keys([id], []), newRoots: [], deleted: [] })
     await removeChildren(tx, [id], owned)
-    return tx.testCase.update({ where: { id }, data: { title: input.title, description: input.description ?? '',
-      tags: { set: tagIds.map(tagId => ({ id: tagId })) },
-      steps: { create: prepared.steps }, flowBlocks: { create: prepared.flowBlocks },
-    }, include: { steps: true } })
+    try {
+      return await tx.testCase.update({
+        where: { id, ...(editVersion ? { targetProjectId, archivedAt: null, updatedAt: editVersion.expected } : {}) },
+        data: { title: input.title, description: input.description ?? '',
+          tags: { set: tagIds.map(tagId => ({ id: tagId })) },
+          steps: { create: prepared.steps }, flowBlocks: { create: prepared.flowBlocks },
+          ...(editVersion ? { updatedAt: editVersion.next } : {}),
+        }, include: { steps: true },
+      })
+    } catch (error) { throwIfStaleAuthoringUpdate(error) }
   })
 }
 

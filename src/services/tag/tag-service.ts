@@ -1,6 +1,7 @@
 import prisma from '@/config/db-config'
 import type { tagSchema } from '@/constants/form-opts/tag-form-opts'
 import { ServiceError } from '@/services/shared/errors'
+import { authoringEditVersion, throwIfStaleAuthoringUpdate } from '@/services/shared/authoring-edit-version'
 import { isSharedResourceId, sharedResourceBounds } from '@/lib/quality-journey/shared-resource-contract'
 import {
   prepareSharedResourceMutationInTransaction,
@@ -162,6 +163,7 @@ export async function updateTag(
   id: string | undefined,
   value: z.infer<typeof tagSchema>,
   targetProjectId: string,
+  expectedUpdatedAt?: string,
 ): Promise<Tag> {
   if (!id) {
     throw new ServiceError('Tag id is required', 'VALIDATION', 400)
@@ -169,9 +171,10 @@ export async function updateTag(
   const input = snapshot(value, targetProjectId)
   if (!isSharedResourceId(id)) throw new ServiceError('Tag not found', 'NOT_FOUND', 404)
   return prisma.$transaction(async tx => {
-    const currentTag = await tx.tag.findFirst({ where: { id }, select: tagSelect })
+    const currentTag = await tx.tag.findFirst({ where: { id }, select: { ...tagSelect, updatedAt: true } })
     if (!currentTag || currentTag.id !== id || currentTag.targetProjectId !== targetProjectId || currentTag.archivedAt !== null)
       throw new ServiceError('Tag not found', 'NOT_FOUND', 404)
+    const editVersion = authoringEditVersion(currentTag.updatedAt, expectedUpdatedAt)
     const budget = { count: 0 }
     scoped([currentTag], targetProjectId, budget)
     if (currentTag.name !== input.name) {
@@ -199,6 +202,11 @@ export async function updateTag(
     await prepareSharedResourceMutationInTransaction(tx, targetProjectId, {
       existing: closure.existing, newRoots: [], deleted: [],
     })
-    return tx.tag.update({ where: { id }, data: input })
+    try {
+      return await tx.tag.update({
+        where: { id, ...(editVersion ? { targetProjectId, archivedAt: null, updatedAt: editVersion.expected } : {}) },
+        data: { ...input, ...(editVersion ? { updatedAt: editVersion.next } : {}) },
+      })
+    } catch (error) { throwIfStaleAuthoringUpdate(error) }
   })
 }

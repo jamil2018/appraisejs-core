@@ -6,6 +6,7 @@ import {
   JourneyExecutionCommand,
   JourneyExecutionStartForm,
   JourneyRerunProposalForm,
+  JourneyRunObservationControls,
 } from './journey-execution-controls'
 
 type Execution = Awaited<ReturnType<typeof getQualityJourneyExecution>>
@@ -53,48 +54,11 @@ export function JourneyExecutionStatus({
           />
         ) : null}
 
-        {execution.consents
-          .filter(consent => ['REQUESTED', 'GRANTED'].includes(consent.status))
-          .map(consent => (
-            <div
-              key={consent.id}
-              className={`space-y-2 rounded-lg border p-3 ${consent.status === 'GRANTED' ? 'border-success-border bg-success-surface' : 'border-warning-border bg-warning-surface'}`}
-            >
-              <h3 className={`text-sm font-medium ${consent.status === 'GRANTED' ? 'text-success' : 'text-warning'}`}>
-                {consent.status === 'GRANTED' ? 'Permission granted' : 'Allow these tests to run?'}
-              </h3>
-              <p className="text-sm">{consent.reason}</p>
-              <dl className="space-y-1 text-xs">
-                <dt className="font-medium">Target</dt>
-                <dd className="break-all">{permissionTarget(consent.scope.checkpoint, environments)}</dd>
-                <dt className="font-medium">Prepared scenarios</dt>
-                <dd>{consent.scope.preparedRuntimeCapsuleIds.length}</dd>
-                <dt className="font-medium">Effects</dt>
-                <dd>{consent.scope.actions.map(readable).join(', ')}</dd>
-              </dl>
-              <details>
-                <summary className="cursor-pointer text-xs">Permission details</summary>
-                <p className="break-all font-mono text-xs">{consent.scopeHash}</p>
-                <p className="break-all text-xs">{consent.scope.preparedRuntimeCapsuleIds.join(', ')}</p>
-              </details>
-              <div className="flex flex-wrap gap-2">
-                {consent.status === 'REQUESTED' ? (
-                  <JourneyExecutionCommand
-                    action="consent"
-                    input={{ journeyId, executionConsentId: consent.id, expectedScopeHash: consent.scopeHash }}
-                  >
-                    Allow these tests
-                  </JourneyExecutionCommand>
-                ) : null}
-                <JourneyExecutionCommand
-                  action="revokeConsent"
-                  input={{ journeyId, executionConsentId: consent.id, expectedScopeHash: consent.scopeHash }}
-                >
-                  {consent.status === 'GRANTED' ? 'Revoke this consent' : 'Decline'}
-                </JourneyExecutionCommand>
-              </div>
-            </div>
-          ))}
+        <JourneyExecutionConsentControls
+          consents={execution.consents}
+          environments={environments}
+          journeyId={journeyId}
+        />
         {execution.cycles.map(cycle => (
           <section
             key={cycle.id}
@@ -151,24 +115,7 @@ export function JourneyExecutionStatus({
                 ))}
               </details>
             ) : null}
-            <div className="flex flex-wrap gap-2">
-              <JourneyExecutionCommand action="reconcile" input={{ journeyId, cycleId: cycle.id }}>
-                Check for results
-              </JourneyExecutionCommand>
-              {['RESERVED', 'RUNNING', 'CANCELLING'].includes(cycle.status) ? (
-                <JourneyExecutionCommand
-                  action="cancel"
-                  input={{
-                    journeyId,
-                    cycleId: cycle.id,
-                    expectedStateHash: stateHash,
-                    reason: 'User requested cancellation from Journey overview.',
-                  }}
-                >
-                  Cancel run
-                </JourneyExecutionCommand>
-              ) : null}
-            </div>
+            <JourneyRunObservationControls journeyId={journeyId} cycle={cycle} stateHash={stateHash} />
             <JourneyRerunProposalForm
               journeyId={journeyId}
               cycleId={cycle.id}
@@ -179,36 +126,116 @@ export function JourneyExecutionStatus({
             />
           </section>
         ))}
-        {execution.proposals.map(proposal => (
-          <div key={proposal.id} className="space-y-2 rounded-lg border p-3">
-            <h3 className="text-sm font-medium">Selective rerun · {proposal.status}</h3>
-            <p className="text-sm">{proposal.reason}</p>
-            <p className="text-xs">{(proposal.selectedScenarioRevisionIds as string[]).length} scenarios selected</p>
-            <details>
-              <summary className="cursor-pointer text-xs">Rerun details</summary>
-              <p className="break-all text-xs">{(proposal.selectedScenarioRevisionIds as string[]).join(', ')}</p>
-              <p className="break-all font-mono text-xs text-muted-foreground">Scope: {proposal.proposalHash}</p>
-            </details>
-            {proposal.status === 'PROPOSED' ? (
-              <JourneyExecutionCommand
-                action="approve"
-                input={{ journeyId, proposalId: proposal.id, expectedProposalHash: proposal.proposalHash }}
-              >
-                Approve this rerun scope
-              </JourneyExecutionCommand>
-            ) : null}
-            {proposal.status === 'APPROVED' ? (
-              <JourneyExecutionStartForm
-                journeyId={journeyId}
-                stateHash={stateHash}
-                capsuleIds={[]}
-                environments={environments}
-                proposalId={proposal.id}
-              />
-            ) : null}
-          </div>
-        ))}
+        <JourneyRerunProgress
+          proposals={execution.proposals}
+          environments={environments}
+          journeyId={journeyId}
+          stateHash={stateHash}
+        />
       </CardContent>
     </Card>
+  )
+}
+
+export function JourneyExecutionConsentControls({
+  consents,
+  environments,
+  journeyId,
+}: {
+  consents: Execution['consents']
+  environments: Array<{ id: string; name: string }>
+  journeyId: string
+}) {
+  return (
+    <>
+      {consents
+        .filter(consent => ['REQUESTED', 'GRANTED'].includes(consent.status))
+        .map(consent => (
+          <div
+            key={consent.id}
+            className={`space-y-2 rounded-lg border p-3 ${consent.status === 'GRANTED' ? 'border-success-border bg-success-surface' : 'border-warning-border bg-warning-surface'}`}
+          >
+            <h3 className={`text-sm font-medium ${consent.status === 'GRANTED' ? 'text-success' : 'text-warning'}`}>
+              {consent.status === 'GRANTED' ? 'Permission granted' : 'Allow these tests to run?'}
+            </h3>
+            <p className="text-sm">{consent.reason}</p>
+            <dl className="space-y-1 text-xs">
+              <dt className="font-medium">Target</dt>
+              <dd className="break-all">{permissionTarget(consent.scope.checkpoint, environments)}</dd>
+              <dt className="font-medium">Prepared scenarios</dt>
+              <dd>{consent.scope.preparedRuntimeCapsuleIds.length}</dd>
+              <dt className="font-medium">Effects</dt>
+              <dd>{consent.scope.actions.map(readable).join(', ')}</dd>
+            </dl>
+            <details>
+              <summary className="cursor-pointer text-xs">Permission details</summary>
+              <p className="break-all font-mono text-xs">{consent.scopeHash}</p>
+              <p className="break-all text-xs">{consent.scope.preparedRuntimeCapsuleIds.join(', ')}</p>
+            </details>
+            <div className="flex flex-wrap gap-2">
+              {consent.status === 'REQUESTED' ? (
+                <JourneyExecutionCommand
+                  action="consent"
+                  input={{ journeyId, executionConsentId: consent.id, expectedScopeHash: consent.scopeHash }}
+                >
+                  Allow these tests
+                </JourneyExecutionCommand>
+              ) : null}
+              <JourneyExecutionCommand
+                action="revokeConsent"
+                input={{ journeyId, executionConsentId: consent.id, expectedScopeHash: consent.scopeHash }}
+              >
+                {consent.status === 'GRANTED' ? 'Revoke this consent' : 'Decline'}
+              </JourneyExecutionCommand>
+            </div>
+          </div>
+        ))}
+    </>
+  )
+}
+
+export function JourneyRerunProgress({
+  proposals,
+  environments,
+  journeyId,
+  stateHash,
+}: {
+  proposals: Execution['proposals']
+  environments: Array<{ id: string; name: string }>
+  journeyId: string
+  stateHash: string
+}) {
+  return (
+    <>
+      {proposals.map(proposal => (
+        <div key={proposal.id} className="space-y-2 rounded-lg border p-3">
+          <h3 className="text-sm font-medium">Selective rerun · {proposal.status}</h3>
+          <p className="text-sm">{proposal.reason}</p>
+          <p className="text-xs">{(proposal.selectedScenarioRevisionIds as string[]).length} scenarios selected</p>
+          <details>
+            <summary className="cursor-pointer text-xs">Rerun details</summary>
+            <p className="break-all text-xs">{(proposal.selectedScenarioRevisionIds as string[]).join(', ')}</p>
+            <p className="break-all font-mono text-xs text-muted-foreground">Scope: {proposal.proposalHash}</p>
+          </details>
+          {proposal.status === 'PROPOSED' ? (
+            <JourneyExecutionCommand
+              action="approve"
+              input={{ journeyId, proposalId: proposal.id, expectedProposalHash: proposal.proposalHash }}
+            >
+              Approve this rerun scope
+            </JourneyExecutionCommand>
+          ) : null}
+          {proposal.status === 'APPROVED' ? (
+            <JourneyExecutionStartForm
+              journeyId={journeyId}
+              stateHash={stateHash}
+              capsuleIds={[]}
+              environments={environments}
+              proposalId={proposal.id}
+            />
+          ) : null}
+        </div>
+      ))}
+    </>
   )
 }

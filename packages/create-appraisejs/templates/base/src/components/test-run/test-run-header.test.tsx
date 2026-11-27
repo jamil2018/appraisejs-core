@@ -97,7 +97,7 @@ describe('TestRunHeader', () => {
       await vi.advanceTimersByTimeAsync(2000)
     })
 
-    expect(screen.getByRole('button', { name: /view report/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /view report/i })).toBeInTheDocument()
   })
 
   it('shows recorded failure and scopes the Journey action to the run', () => {

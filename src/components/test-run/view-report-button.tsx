@@ -7,6 +7,7 @@ import { FileText, LoaderCircle, XCircle } from 'lucide-react'
 import { AnimatePresence, LazyMotion, domAnimation } from 'motion/react'
 import * as motion from 'motion/react-m'
 import Link from 'next/link'
+import { withProjectScope } from '@/lib/project-scope'
 
 interface ViewReportButtonProps {
   testRunStatus: TestRunStatus
@@ -81,18 +82,22 @@ export function ViewReportButton({ testRunStatus, reports, className }: ViewRepo
     return null
   }
 
-  const reportId = reports[0].id
+  const report = reports[0]
 
   return (
     <AnimatedReportShell>
-      <Link href={`/reports/${reportId}`}>
-        <Button variant="outline" size="sm" className={className}>
-          <AnimatedButtonContent>
-            <FileText className="size-4" />
-            View Report
-          </AnimatedButtonContent>
-        </Button>
-      </Link>
+      <Button
+        variant="outline"
+        size="sm"
+        className={className}
+        nativeButton={false}
+        render={<Link href={withProjectScope(`/reports/${encodeURIComponent(report.id)}`, report.targetProjectId)} />}
+      >
+        <AnimatedButtonContent>
+          <FileText className="size-4" />
+          View Report
+        </AnimatedButtonContent>
+      </Button>
     </AnimatedReportShell>
   )
 }

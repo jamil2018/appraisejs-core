@@ -141,7 +141,7 @@ test.describe('Guarded chat editing', () => {
     await page.getByRole('textbox', { name: 'Title' }).fill('Checkout account is verified')
     await page.getByRole('button', { name: /Continue/ }).click()
     await page.getByRole('button', { name: 'Save test case' }).click()
-    await expect(page).toHaveURL(/\/test-cases$/)
+    await expect(page).toHaveURL(new RegExp(`/test-cases\\?project=${seededIds.targetProject}$`))
 
     await page.goto(chatUrl)
     await input.fill('Find test cases for Checkout account is verified')

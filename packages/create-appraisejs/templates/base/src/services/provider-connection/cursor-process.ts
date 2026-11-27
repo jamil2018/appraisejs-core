@@ -16,6 +16,9 @@ function finish(code) {
   process.exitCode = code ?? 1
   if (process.connected) process.disconnect()
 }
+process.on('message', message => {
+  if (message === 'stop') stop()
+})
 process.on('disconnect', stop)
 process.on('SIGTERM', stop)
 process.on('SIGINT', stop)
@@ -43,7 +46,8 @@ export function startCursorCommand(
     stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
   })
   const stop = () => {
-    if (child.connected) child.disconnect()
+    // Let the supervisor close IPC after the vendor exits so Node emits close.
+    if (child.connected) child.send('stop', () => undefined)
   }
   if (!hasPipes(child)) {
     child.once('error', () => undefined)

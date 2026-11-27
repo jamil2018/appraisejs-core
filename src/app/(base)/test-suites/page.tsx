@@ -6,6 +6,8 @@ import InfoGrid from '@/components/data-visualization/info-grid'
 import { Button } from '@/components/ui/button'
 import { Plus, Tag } from 'lucide-react'
 import Link from 'next/link'
+import { requireActiveProjectForMutation } from '@/lib/active-project'
+import { withProjectScope } from '@/lib/project-scope'
 import type { Metadata } from 'next'
 
 import { buildTestSuiteInfoCards, getTestSuiteTableRows } from './test-suite-helpers'
@@ -17,6 +19,7 @@ export const metadata: Metadata = {
 }
 
 export default async function TestSuites() {
+  const project = await requireActiveProjectForMutation()
   const { data, error } = await getAllTestSuitesAction()
   const rows = getTestSuiteTableRows(data)
 
@@ -37,7 +40,7 @@ export default async function TestSuites() {
   return (
     <div className="min-w-0 space-y-4">
       <CollectionHeader title="Test Suites">
-        <Button render={<Link href="/test-suites/create" />} nativeButton={false}>
+        <Button render={<Link href={withProjectScope('/test-suites/create', project.id)} />} nativeButton={false}>
           <Plus aria-hidden="true" /> New test suite
         </Button>
       </CollectionHeader>

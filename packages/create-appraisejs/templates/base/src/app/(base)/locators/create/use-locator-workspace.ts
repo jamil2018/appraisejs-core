@@ -4,11 +4,13 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 import {
+  closeLocatorPickerSessionAction,
   getLocatorPickerSessionAction,
   savePickedLocatorAction,
   startLocatorPickerSessionAction,
 } from '@/actions/locator-picker/locator-picker-actions'
 import { toast } from '@/hooks/use-toast'
+import { withProjectScope } from '@/lib/project-scope'
 import type { LocatorPickerSession } from '@/types/locator-picker'
 
 import {
@@ -32,6 +34,7 @@ export function useLocatorWorkspace({
   mode = 'create',
   displayMode = 'page',
   locatorId,
+  projectId,
   initialValues,
   onSaveSuccess,
   onClose,
@@ -127,6 +130,21 @@ export function useLocatorWorkspace({
     })
   }
 
+  const handleCancel = async () => {
+    if (!session) return
+    const response = await closeLocatorPickerSessionAction(session.sessionId)
+    const closed = getLocatorPickerSession(response.data)
+    if (response.status === 200 && closed) {
+      setSession(closed)
+      toast({
+        title: 'Picker closed',
+        description: 'No new selector was saved. You can continue manual entry or launch again.',
+      })
+    } else {
+      toast({ title: 'Unable to close picker', description: response.error || 'Try again.', variant: 'destructive' })
+    }
+  }
+
   const handleSave = async () => {
     setIsSaving(true)
 
@@ -155,7 +173,7 @@ export function useLocatorWorkspace({
         await onSaveSuccess?.(saveResult)
         onClose?.()
       } else {
-        router.push('/locators')
+        router.push(projectId ? withProjectScope('/locators', projectId) : '/locators')
         router.refresh()
       }
       return
@@ -195,6 +213,7 @@ export function useLocatorWorkspace({
     setRoute: (route: string) => setState(current => ({ ...current, route })),
     setModuleId: (moduleId: string) => setState(current => ({ ...current, moduleId })),
     handleStart,
+    handleCancel,
     handleSave,
     ...derivedState,
   }

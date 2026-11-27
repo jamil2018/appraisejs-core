@@ -87,4 +87,36 @@ describe('EnvironmentForm', () => {
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
     expect(onSubmitAction).not.toHaveBeenCalled()
   })
+
+  it('keeps the draft on a service validation error and returns to the displayed project after a successful retry', async () => {
+    const user = userEvent.setup()
+    const onSubmitAction = vi
+      .fn()
+      .mockResolvedValueOnce({ status: 400, error: 'An environment with this name already exists.' })
+      .mockResolvedValueOnce({ status: 200 })
+
+    render(
+      <EnvironmentForm
+        projectId="project-a"
+        successTitle="Environment created"
+        successMessage="Environment created successfully"
+        onSubmitAction={onSubmitAction}
+      />,
+    )
+
+    await user.type(screen.getByLabelText('Name'), 'Staging')
+    await user.type(screen.getByLabelText('Base URL'), 'https://staging.example.test')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(onSubmitAction).toHaveBeenCalledTimes(1))
+    expect(screen.getByLabelText('Name')).toHaveValue('Staging')
+    expect(screen.getByLabelText('Base URL')).toHaveValue('https://staging.example.test')
+    expect(push).not.toHaveBeenCalled()
+
+    await user.clear(screen.getByLabelText('Name'))
+    await user.type(screen.getByLabelText('Name'), 'Staging 2')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/environments?project=project-a'))
+  })
 })

@@ -4,6 +4,8 @@ import PageHeader from '@/components/typography/page-header'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import { Metadata } from 'next'
 import { getModuleParentOptions, getModuleTableRows } from '../module-helpers'
+import { requireActiveProjectForMutation } from '@/lib/active-project'
+import { withProjectScope } from '@/lib/project-scope'
 
 export const metadata: Metadata = {
   title: 'Appraise | Create Module',
@@ -11,6 +13,7 @@ export const metadata: Metadata = {
 }
 
 const CreateModule = async () => {
+  const project = await requireActiveProjectForMutation()
   const { data: modules } = await getAllModulesAction()
   const parentOptions = getModuleParentOptions(getModuleTableRows(modules))
 
@@ -25,6 +28,7 @@ const CreateModule = async () => {
         successTitle="Module created"
         successMessage="Module created successfully"
         onSubmitAction={createModuleAction}
+        redirectPath={withProjectScope('/modules', project.id)}
       />
     </div>
   )

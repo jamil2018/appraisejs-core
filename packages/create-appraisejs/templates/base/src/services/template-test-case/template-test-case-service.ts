@@ -1,6 +1,7 @@
 import prisma from '@/config/db-config'
 import { templateTestCaseSchema } from '@/constants/form-opts/template-test-case-form-opts'
 import { ServiceError } from '@/services/shared/errors'
+import { authoringEditVersion, throwIfStaleAuthoringUpdate } from '@/services/shared/authoring-edit-version'
 import { flowBlockCreates, templateTestCaseStepCreates } from '@/services/shared/authored-step-persistence'
 import { resolveReadyExactStepDefinitions } from '@/services/shared/step-invocation-validation'
 import { Prisma } from '@prisma/client'
@@ -109,6 +110,7 @@ export async function updateTemplateTestCase(
   id: string | undefined,
   value: TemplateTestCaseInput,
   targetProjectId: string,
+  expectedUpdatedAt?: string,
 ): Promise<TemplateTestCase> {
   if (!id) {
     throw new ServiceError(
@@ -117,17 +119,18 @@ export async function updateTemplateTestCase(
       400,
     )
   }
-  await getTemplateTestCaseByIdOrThrow(id, targetProjectId)
   const definitions = await validateStepInvocations(value)
   const prepared = prepareTemplateTestCaseWrites(value, definitions)
 
-  const steps = await prisma.templateTestCaseStep.findMany({
-    where: { templateTestCaseId: id },
-    select: { id: true },
-  })
-  const stepIds = steps.map(step => step.id)
-
   return prisma.$transaction(async tx => {
+    const current = await tx.templateTestCase.findFirst({
+      where: { id, targetProjectId, archivedAt: null },
+      select: { updatedAt: true },
+    })
+    if (!current) throw new ServiceError('Template test case not found', 'NOT_FOUND', 404)
+    const editVersion = authoringEditVersion(current.updatedAt, expectedUpdatedAt)
+    const steps = await tx.templateTestCaseStep.findMany({ where: { templateTestCaseId: id }, select: { id: true } })
+    const stepIds = steps.map(step => step.id)
     if (stepIds.length > 0) {
       await tx.templateTestCaseStepParameter.deleteMany({
         where: { templateTestCaseStep: { id: { in: stepIds } } },
@@ -136,15 +139,20 @@ export async function updateTemplateTestCase(
     await tx.templateTestCaseStep.deleteMany({ where: { templateTestCaseId: id } })
     await tx.templateTestCaseFlowBlock.deleteMany({ where: { templateTestCaseId: id } })
 
-    return tx.templateTestCase.update({
-      where: { id },
-      data: {
-        name: value.title,
-        description: value.description ?? '',
-        steps: { create: prepared.steps },
-        flowBlocks: { create: prepared.flowBlocks },
-      },
-      include: { steps: true },
-    })
+    try {
+      return await tx.templateTestCase.update({
+        where: { id, ...(editVersion ? { targetProjectId, archivedAt: null, updatedAt: editVersion.expected } : {}) },
+        data: {
+          name: value.title,
+          description: value.description ?? '',
+          steps: { create: prepared.steps },
+          flowBlocks: { create: prepared.flowBlocks },
+          ...(editVersion ? { updatedAt: editVersion.next } : {}),
+        },
+        include: { steps: true },
+      })
+    } catch (error) {
+      throwIfStaleAuthoringUpdate(error)
+    }
   })
 }

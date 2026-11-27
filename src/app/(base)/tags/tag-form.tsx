@@ -18,6 +18,7 @@ type TagFormProps = {
   onSubmitAction: TagFormSubmitAction
   onSuccess?: (tag: PrismaTag) => void | Promise<void>
   redirectPath?: string | null
+  expectedUpdatedAt?: string
 }
 
 const TagForm = ({
@@ -28,13 +29,17 @@ const TagForm = ({
   onSubmitAction,
   onSuccess,
   redirectPath = '/tags',
+  expectedUpdatedAt,
 }: TagFormProps) => {
   const { push } = useRouter()
   const form = useForm({
     defaultValues: defaultValues ?? tagFormOpts.defaultValues,
     validators: tagFormOpts.validators,
     onSubmit: async ({ value }) => {
-      const res = await onSubmitAction(undefined, value, id)
+      const res =
+        expectedUpdatedAt === undefined
+          ? await onSubmitAction(undefined, value, id)
+          : await onSubmitAction(undefined, value, id, expectedUpdatedAt)
       if (res.status === 200) {
         if (onSuccess) {
           const createdTag = getCreatedTag(res.data)
@@ -59,7 +64,7 @@ const TagForm = ({
           push(redirectPath)
         }
       }
-      if (res.status === 400) {
+      if (res.status === 400 || res.status === 409) {
         toast({
           title: 'Error',
           description: getActionErrorMessage(res),
@@ -105,7 +110,9 @@ const TagForm = ({
       </form.Field>
       <div className="flex border-t border-border pt-4 lg:col-span-2">
         <form.Subscribe selector={formState => [formState.canSubmit, formState.isSubmitting]}>
-          {([canSubmit, isSubmitting]) => <FormSubmitButton canSubmit={canSubmit} isSubmitting={isSubmitting} />}
+          {([canSubmit, isSubmitting]) => (
+            <FormSubmitButton canSubmit={canSubmit && !isSubmitting} isSubmitting={isSubmitting} />
+          )}
         </form.Subscribe>
       </div>
     </TanStackForm>

@@ -28,7 +28,8 @@ const targetProjectId = 'project-1'
 const collect = vi.mocked(collectSharedModuleMutationEffectsInTransaction)
 const prepare = vi.mocked(prepareSharedResourceMutationInTransaction)
 const moduleRow = (id: string, parentId: string | null = null, extra = {}) => ({
-  id, parentId, targetProjectId, archivedAt: null as Date | null, collaborationManaged: false, ...extra,
+  id, parentId, targetProjectId, archivedAt: null as Date | null, collaborationManaged: false,
+  updatedAt: new Date('2026-01-01T00:00:00.000Z'), ...extra,
 })
 type ModuleRow = ReturnType<typeof moduleRow>
 let rows: Map<string, ModuleRow>
@@ -142,6 +143,13 @@ describe('createModule', () => {
 })
 
 describe('updateModule', () => {
+  it('rejects a stale module edit before collecting related effects', async () => {
+    rows.set('module-1', moduleRow('module-1', null, { updatedAt: new Date('2026-01-01T00:00:00.001Z') }))
+    await expect(updateModule('module-1', { name: 'Checkout' }, targetProjectId, '2026-01-01T00:00:00.000Z'))
+      .rejects.toMatchObject({ code: 'CONFLICT', statusCode: 409 })
+    expect(collect).not.toHaveBeenCalled(); expectNoPreparationOrWrite()
+  })
+
   it('preserves missing-id validation without opening a transaction', async () => {
     await expect(updateModule(undefined, { name: 'Checkout' }, targetProjectId)).rejects.toMatchObject({
       code: 'VALIDATION', statusCode: 400,

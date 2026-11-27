@@ -82,14 +82,18 @@ export async function acquireCollaborationGitMutationLock(
   }
   const locked = await transaction.collaborationMutationLock.findUnique({ where: { lockKey } })
   if (!locked || locked.leaseExpiresAt > now) {
-    throw new ServiceError('A collaboration mutation is already active for this Git repository.', 'CONFLICT', 409)
+    throw new ServiceError('A collaboration mutation is already active for this Git repository.', 'CONFLICT', 409, {
+      kind: 'COLLABORATION_MUTATION_LOCK_BUSY',
+    })
   }
   const claimed = await transaction.collaborationMutationLock.updateMany({
     where: { lockKey, fencingToken: locked.fencingToken, leaseExpiresAt: { lte: now } },
     data: { ownerId, leaseExpiresAt, fencingToken: { increment: 1 } },
   })
   if (claimed.count !== 1)
-    throw new ServiceError('Collaboration mutation lock changed during acquisition.', 'CONFLICT', 409)
+    throw new ServiceError('Collaboration mutation lock changed during acquisition.', 'CONFLICT', 409, {
+      kind: 'COLLABORATION_MUTATION_LOCK_BUSY',
+    })
   return transaction.collaborationMutationLock.findUniqueOrThrow({ where: { lockKey } })
 }
 

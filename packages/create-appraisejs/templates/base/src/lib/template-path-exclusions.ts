@@ -37,6 +37,14 @@ const REPOSITORY_ONLY_TEMPLATE_PREFIXES = [
   'tests/p0-',
 ]
 const REPOSITORY_ONLY_TEMPLATE_PATHS = new Set([
+  'chat-first-checkout-pilot.spec.ts',
+  'e2e/chat-first-checkout-pilot.spec.ts',
+  'helpers/chat-first-checkout-pilot-fixture.ts',
+  'e2e/helpers/chat-first-checkout-pilot-fixture.ts',
+  'chat-first-reports-collaboration.spec.ts',
+  'e2e/chat-first-reports-collaboration.spec.ts',
+  'test/chat-first-collaboration-fixture.ts',
+  'src/test/chat-first-collaboration-fixture.ts',
   'scripts/lib/agent-setup-capabilities.test.ts',
   'lib/agent-setup-capabilities.test.ts',
   'src/lib/quality-journey/managed-worker-gateway.test.ts',

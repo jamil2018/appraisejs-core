@@ -4,7 +4,7 @@ import { TestCaseMetrics, TestCase, Tag } from '@prisma/client'
 import { getAllTestCaseMetricsAction } from '@/actions/reports/report-actions'
 import { deleteTestCaseAction } from '@/actions/test-case/test-case-actions'
 
-const TestCasesMetricTable = async ({ filter }: { filter: 'repeatedlyFailing' | 'flaky' }) => {
+const TestCasesMetricTable = async ({ filter, projectId }: { filter: 'repeatedlyFailing' | 'flaky'; projectId: string }) => {
   const { data: testCaseMetrics, error: testCaseMetricsError } = await getAllTestCaseMetricsAction(filter)
 
   if (testCaseMetricsError) {
@@ -20,6 +20,8 @@ const TestCasesMetricTable = async ({ filter }: { filter: 'repeatedlyFailing' | 
         filterColumn="testCase.title"
         filterPlaceholder="Filter by name..."
         deleteAction={deleteTestCaseAction}
+        density="compact"
+        viewKey={`report-cases:${projectId}:${filter}`}
       />
     </>
   )

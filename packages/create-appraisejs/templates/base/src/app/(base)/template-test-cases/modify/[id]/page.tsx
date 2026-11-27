@@ -124,6 +124,8 @@ const ModifyTemplateTestCase = async ({ params }: { params: Promise<{ id: string
       </div>
       <TemplateTestCaseForm
         onSubmitAction={updateTemplateTestCaseAction}
+        expectedUpdatedAt={templateTestCase.updatedAt.toISOString()}
+        returnPath={withProjectScope('/template-test-cases', templateTestCase.targetProjectId)}
         id={id}
         defaultTitle={templateTestCase.name}
         defaultDescription={templateTestCase.description || ''}
@@ -149,3 +151,4 @@ const ModifyTemplateTestCase = async ({ params }: { params: Promise<{ id: string
 }
 
 export default ModifyTemplateTestCase
+import { withProjectScope } from '@/lib/project-scope'

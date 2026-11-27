@@ -5,6 +5,7 @@ import { collectSharedModuleMutationEffectsInTransaction } from '@/services/coor
 import { isSharedResourceId, sharedResourceBounds } from '@/lib/quality-journey/shared-resource-contract'
 import { moduleSchema, ROOT_MODULE_UUID } from '@/constants/form-opts/module-form-opts'
 import { ServiceError } from '@/services/shared/errors'
+import { authoringEditVersion, throwIfStaleAuthoringUpdate } from '@/services/shared/authoring-edit-version'
 import type { Module } from '@prisma/client'
 import { Prisma } from '@prisma/client'
 import type { z } from 'zod'
@@ -168,6 +169,7 @@ export async function updateModule(
   id: string | undefined,
   value: z.infer<typeof moduleSchema>,
   targetProjectId: string,
+  expectedUpdatedAt?: string,
 ): Promise<Module> {
   if (!id) {
     throw new ServiceError('Module id is required', 'VALIDATION', 400)
@@ -175,10 +177,11 @@ export async function updateModule(
   const requested = Object.freeze({ ...value })
   return prisma.$transaction(async tx => {
     const existing = await tx.module.findFirst({
-      where: { id, targetProjectId, archivedAt: null }, select: moduleOwnerSelect,
+      where: { id, targetProjectId, archivedAt: null }, select: { ...moduleOwnerSelect, updatedAt: true },
     })
     if (!existing || existing.id !== id || existing.targetProjectId !== targetProjectId || existing.archivedAt !== null)
       throw new ServiceError('Module not found', 'NOT_FOUND', 404)
+    const editVersion = authoringEditVersion(existing.updatedAt, expectedUpdatedAt)
     const effects = await collectSharedModuleMutationEffectsInTransaction(tx, targetProjectId, [id])
     const parentId = requested.parentId === ROOT_MODULE_UUID ? null : requested.parentId ?? existing.parentId
     if (requested.parentId !== undefined && parentId !== null)
@@ -186,6 +189,11 @@ export async function updateModule(
     await prepareSharedResourceMutationInTransaction(tx, targetProjectId, {
       existing: effects.existing, newRoots: [], deleted: [],
     })
-    return tx.module.update({ where: { id }, data: { ...requested, parentId } })
+    try {
+      return await tx.module.update({
+        where: { id, ...(editVersion ? { targetProjectId, archivedAt: null, updatedAt: editVersion.expected } : {}) },
+        data: { ...requested, parentId, ...(editVersion ? { updatedAt: editVersion.next } : {}) },
+      })
+    } catch (error) { throwIfStaleAuthoringUpdate(error) }
   })
 }

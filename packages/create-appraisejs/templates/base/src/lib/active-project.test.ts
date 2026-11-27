@@ -30,6 +30,27 @@ it.each(['', 'other'])('binds a Journey action to its displayed project with coo
   await expect(requireActiveProjectForMutation()).resolves.toMatchObject({ id: 'blogen' })
 })
 
+it.each([
+  '/modules/modify/module-a',
+  '/tags/create',
+  '/environments/modify/staging',
+  '/locator-groups/create',
+  '/locators/picker',
+  '/step-definitions',
+  '/collaboration',
+])('uses the displayed project on %s while another project is active', async path => {
+  state.target = `${path}?project=blogen`
+  state.cookie = 'other'
+  await expect(requireActiveProjectForMutation()).resolves.toMatchObject({ id: 'blogen' })
+  await expect(requireActiveProjectForMutation('other')).rejects.toThrow(/conflicts/)
+})
+
+it('does not treat a global settings or project highlight query as mutation scope', async () => {
+  state.target = '/projects?project=blogen'
+  state.cookie = 'other'
+  await expect(requireActiveProjectForMutation()).resolves.toMatchObject({ id: 'other' })
+})
+
 it('refuses mismatched caller scope and unregistered link projects', async () => {
   await expect(requireActiveProjectForMutation('other')).rejects.toThrow(/conflicts/)
   state.cookie = 'other'

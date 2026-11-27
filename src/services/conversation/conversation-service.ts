@@ -1,14 +1,43 @@
 import { createHash, randomUUID } from 'node:crypto'
-import type { PrismaClient, ProjectConversation, ProjectConversationMessage } from '@prisma/client'
+import type { Prisma, PrismaClient, ProjectConversation, ProjectConversationMessage } from '@prisma/client'
 
 import prisma from '@/config/db-config'
+import {
+  chatAnalysisQuestionSchema,
+  chatAnalysisReviewSchema,
+  type ChatAnalysisQuestion,
+  type ChatAnalysisReview,
+} from '@/lib/conversation/analysis-review'
 import { chatContextKinds, type ChatContext } from '@/lib/conversation/chat-context'
-import { workspaceRecordKinds, type WorkspaceRecord } from '@/lib/conversation/workspace-records'
+import {
+  conversationCollaborationReviewSchema,
+  parseConversationCollaborationRequest,
+  type ConversationCollaborationReview,
+} from '@/lib/conversation/collaboration-review'
+import {
+  chatScenarioReviewSchema,
+  isScenarioApprovalRequest,
+  type ChatScenarioReview,
+} from '@/lib/conversation/scenario-review'
+import {
+  conversationRecordKinds,
+  isCreatableRecordKind,
+  type ConversationRecord,
+} from '@/lib/conversation/workspace-records'
+import { isAnalysisApprovalRequest, parseAnalysisAnswerReply } from '@/lib/conversation/workspace-request'
 import { isSharedResourceId } from '@/lib/quality-journey/shared-resource-contract'
 import { ServiceError } from '@/services/shared/errors'
 import { renameTestCaseTitleInTransaction } from '@/services/test-case/test-case-service'
 
-export type ConversationRecord = WorkspaceRecord
+import {
+  answerConversationAnalysisQuestion,
+  approveConversationAnalysis,
+  requestConversationAnalysisRevision,
+} from './conversation-analysis-review'
+import { approveConversationScenarios } from './conversation-scenario-review'
+import { decideConversationCollaborationInTransaction } from './conversation-collaboration-review'
+
+export type { ConversationRecord } from '@/lib/conversation/workspace-records'
 export type ConversationContext = ChatContext
 export type AppendConversationTurnInput = {
   targetProjectId: string
@@ -20,6 +49,11 @@ export type AppendConversationTurnInput = {
   reply?: { content: string; records?: readonly ConversationRecord[] }
   /** Exact attached TEST_CASE rename; mutually exclusive with a precomputed reply. */
   renameAttachedCaseTo?: string
+  /** Exact published review shown in this saved conversation. */
+  analysisReview?: ChatAnalysisReview
+  analysisQuestion?: ChatAnalysisQuestion
+  scenarioReview?: ChatScenarioReview
+  collaborationReview?: ConversationCollaborationReview
 }
 export type ConversationSummary = {
   id: string
@@ -38,7 +72,14 @@ export type ConversationMessage = {
   records: ConversationRecord[]
   createdAt: number
 }
-export type ConversationTurn = { conversation: ConversationSummary; messages: ConversationMessage[]; replayed: boolean }
+export type ConversationTurn = {
+  conversation: ConversationSummary
+  messages: ConversationMessage[]
+  replayed: boolean
+  analysisWake?: Awaited<ReturnType<typeof requestConversationAnalysisRevision>>
+  scenarioWake?: Awaited<ReturnType<typeof approveConversationScenarios>>['wake']
+  collaborationDecision?: Awaited<ReturnType<typeof decideConversationCollaborationInTransaction>>
+}
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const bad = (message: string): never => {
@@ -71,18 +112,29 @@ const attachment = (value: ConversationContext | undefined): ConversationContext
   if (!value || !chatContextKinds.includes(value.kind)) return bad('Context kind is invalid.')
   return { kind: value.kind, id: sourceId(value.id, 'Context id'), title: sourceTitle(value.title, 'Context title') }
 }
-const replyRecords = (records: readonly ConversationRecord[] | undefined): ConversationRecord[] => {
+const replyRecords = (
+  records: readonly ConversationRecord[] | undefined,
+  targetProjectId: string,
+): ConversationRecord[] => {
   if (records === undefined) return []
   if (!Array.isArray(records) || records.length > 8) return bad('Reply records exceed the bound.')
   const seen = new Set<string>()
   return records.map(record => {
-    if (!record || !workspaceRecordKinds.includes(record.kind)) return bad('Reply record kind is invalid.')
-    const result = {
+    if (!record || !conversationRecordKinds.includes(record.kind)) return bad('Reply record kind is invalid.')
+    if (record.reportStepId !== undefined && record.kind !== 'REPORT') return bad('Step evidence needs a report.')
+    if (
+      record.destination !== undefined &&
+      (record.destination !== 'create' || !isCreatableRecordKind(record.kind) || record.id !== targetProjectId)
+    )
+      return bad('The setup destination does not belong to this project.')
+    const result: ConversationRecord = {
       kind: record.kind,
       id: sourceId(record.id, 'Reply record id'),
       title: sourceTitle(record.title, 'Reply record title'),
+      ...(record.reportStepId === undefined ? {} : { reportStepId: sourceId(record.reportStepId, 'Report step id') }),
+      ...(record.destination === 'create' ? { destination: record.destination } : {}),
     }
-    const key = `${result.kind}:${result.id}`
+    const key = JSON.stringify([result.kind, result.id, result.reportStepId, result.destination])
     if (seen.has(key)) return bad('Duplicate reply record.')
     seen.add(key)
     return result
@@ -105,9 +157,25 @@ const message = (row: ProjectConversationMessage): ConversationMessage => ({
   records: row.recordsJson ? (JSON.parse(row.recordsJson) as ConversationRecord[]) : [],
   createdAt: row.createdAt.getTime(),
 })
-const requestDigest = (content: string, context: { kind: ConversationContext['kind']; id: string } | undefined) =>
+const requestDigest = (
+  content: string,
+  context: { kind: ConversationContext['kind']; id: string } | undefined,
+  analysisReview?: ChatAnalysisReview,
+  analysisQuestion?: ChatAnalysisQuestion,
+  scenarioReview?: ChatScenarioReview,
+  collaborationReview?: ConversationCollaborationReview,
+) =>
   createHash('sha256')
-    .update(JSON.stringify({ content, context: context ? { kind: context.kind, id: context.id } : null }))
+    .update(
+      JSON.stringify({
+        content,
+        context: context ? { kind: context.kind, id: context.id } : null,
+        analysisReview,
+        analysisQuestion,
+        scenarioReview,
+        collaborationReview,
+      }),
+    )
     .digest('hex')
 const isUniqueConflict = (error: unknown) =>
   typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2002'
@@ -148,6 +216,10 @@ export async function replayConversationTurn(
     idempotencyKey: string
     content: string
     context?: { kind: ConversationContext['kind']; id: string }
+    analysisReview?: ChatAnalysisReview
+    analysisQuestion?: ChatAnalysisQuestion
+    scenarioReview?: ChatScenarioReview
+    collaborationReview?: ConversationCollaborationReview
   },
   client: PrismaClient = prisma,
 ): Promise<ConversationTurn | undefined> {
@@ -156,11 +228,48 @@ export async function replayConversationTurn(
   const key = bounded(input.idempotencyKey, 'Idempotency key', 128)
   const content = chatContent(input.content, 'Message')
   const context = input.context
+  const analysisReview = input.analysisReview && chatAnalysisReviewSchema.parse(input.analysisReview)
+  const analysisQuestion = input.analysisQuestion && chatAnalysisQuestionSchema.parse(input.analysisQuestion)
+  const scenarioReview = input.scenarioReview && chatScenarioReviewSchema.parse(input.scenarioReview)
+  const collaborationReview =
+    input.collaborationReview && conversationCollaborationReviewSchema.parse(input.collaborationReview)
   if (context && (!chatContextKinds.includes(context.kind) || !/^[\x20-\x7e]{1,200}$/.test(context.id)))
     return bad('Context identity is invalid.')
   return (
-    (await lookupReplay(client, targetProjectId, conversationId, key, requestDigest(content, context))) ?? undefined
+    (await lookupReplay(
+      client,
+      targetProjectId,
+      conversationId,
+      key,
+      requestDigest(content, context, analysisReview, analysisQuestion, scenarioReview, collaborationReview),
+    )) ?? undefined
   )
+}
+
+async function applyAnalysisTurn(
+  tx: Prisma.TransactionClient,
+  scope: { targetProjectId: string; conversationId: string; key: string },
+  content: string,
+  analysisReview?: ChatAnalysisReview,
+  analysisQuestion?: ChatAnalysisQuestion,
+) {
+  const journeyId = analysisQuestion?.journeyId ?? analysisReview?.journeyId
+  if (!journeyId) return undefined
+  if ((await getLatestConversationJourney(scope, tx)) !== journeyId)
+    return conflict('This Journey is no longer linked to the saved chat.')
+  if (analysisQuestion) {
+    const answer = parseAnalysisAnswerReply(content)
+    if (!answer) return bad('Reply with Answer: followed by your choice.')
+    const wake = await answerConversationAnalysisQuestion(tx, { ...scope, ...analysisQuestion, answer })
+    return { wake, message: 'Answer recorded for this Journey.' }
+  }
+  if (!analysisReview) return undefined
+  if (isAnalysisApprovalRequest(content)) {
+    const { wake, revision } = await approveConversationAnalysis(tx, { ...scope, ...analysisReview })
+    return { wake, message: `Test approach revision ${revision} approved.` }
+  }
+  const wake = await requestConversationAnalysisRevision(tx, { ...scope, ...analysisReview, feedback: content })
+  return { wake, message: 'Revision requested. The updated checks will appear here when they’re ready for review.' }
 }
 
 /** Append one user message and its optional verified local answer as a single SQLite transaction. */
@@ -176,11 +285,40 @@ export async function appendConversationTurn(
   const isRename = input.renameAttachedCaseTo !== undefined
   if (isRename && (input.reply !== undefined || context?.kind !== 'TEST_CASE'))
     return bad('A case rename requires a test case attachment and no separate reply.')
+  const analysisReview = input.analysisReview && chatAnalysisReviewSchema.parse(input.analysisReview)
+  const analysisQuestion = input.analysisQuestion && chatAnalysisQuestionSchema.parse(input.analysisQuestion)
+  const scenarioReview = input.scenarioReview && chatScenarioReviewSchema.parse(input.scenarioReview)
+  const collaborationReview =
+    input.collaborationReview && conversationCollaborationReviewSchema.parse(input.collaborationReview)
+  const collaboration = collaborationReview ? parseConversationCollaborationRequest(content) : null
+  const reviewTarget = analysisReview ?? analysisQuestion ?? scenarioReview
+  const reviewCount = [analysisReview, analysisQuestion, scenarioReview].filter(Boolean).length
+  if (
+    reviewTarget &&
+    (!conversationId ||
+      input.reply ||
+      isRename ||
+      reviewCount > 1 ||
+      (context && (context.kind !== 'QUALITY_JOURNEY' || context.id !== reviewTarget.journeyId)))
+  )
+    return bad('Use the Journey question or review linked to this saved chat.')
+  if (scenarioReview && !isScenarioApprovalRequest(content))
+    return bad('Use “Approve pending scenarios” to approve the displayed portfolio.')
+  if (
+    collaborationReview &&
+    (!conversationId ||
+      reviewTarget ||
+      input.reply ||
+      isRename ||
+      collaboration?.kind !== 'DECIDE' ||
+      collaborationReview.targetProjectId !== targetProjectId)
+  )
+    return bad('Use the exact collaboration review linked to this saved chat.')
   const response = input.reply && {
     content: chatContent(input.reply.content, 'Reply'),
-    records: replyRecords(input.reply.records),
+    records: replyRecords(input.reply.records, targetProjectId),
   }
-  const digest = requestDigest(content, context)
+  const digest = requestDigest(content, context, analysisReview, analysisQuestion, scenarioReview, collaborationReview)
   const prior = await lookupReplay(client, targetProjectId, conversationId, idempotencyKey, digest)
   if (prior) return prior
   try {
@@ -219,13 +357,37 @@ export async function appendConversationTurn(
         })
         return { conversation: summary(conversation), messages: rows.map(message), replayed: true }
       }
-      const count = response || isRename ? 2 : 1
+      const scope = { targetProjectId, conversationId: conversation.id, key: idempotencyKey }
+      if (scenarioReview && (await getLatestConversationJourney(scope, tx)) !== scenarioReview.journeyId)
+        return conflict('This Journey is no longer linked to the saved chat.')
+      const effect = scenarioReview
+        ? await approveConversationScenarios(tx, { ...scope, ...scenarioReview })
+        : await applyAnalysisTurn(tx, scope, content, analysisReview, analysisQuestion)
+      if (
+        collaborationReview &&
+        (await getLatestConversationCollaborationOperation(scope, tx)) !== collaborationReview.operationId
+      )
+        return conflict('This collaboration operation is no longer linked to the saved chat.')
+      const collaborationDecision =
+        collaborationReview && collaboration?.kind === 'DECIDE'
+          ? await decideConversationCollaborationInTransaction(tx, {
+              targetProjectId,
+              review: collaborationReview,
+              decision: collaboration.decision,
+            })
+          : undefined
+      const count = response || isRename || effect || collaborationDecision ? 2 : 1
       const allocated = await tx.projectConversation.update({
         where: { id: conversation.id },
         data: { nextOrdinal: { increment: count } },
       })
       const first = allocated.nextOrdinal - count
-      let finalResponse = response
+      let finalResponse = effect ? { content: effect.message, records: [] } : response
+      if (collaborationDecision)
+        finalResponse = {
+          content: 'Collaboration decision recorded. Open the operation to see its latest status.',
+          records: [{ kind: 'COLLABORATION', id: collaborationDecision.operationId, title: 'Collaboration operation' }],
+        }
       if (isRename && context) {
         const renamed = await renameTestCaseTitleInTransaction(tx, {
           targetProjectId,
@@ -265,7 +427,13 @@ export async function appendConversationTurn(
             },
           }),
         )
-      return { conversation: summary(allocated), messages: rows.map(message), replayed: false }
+      return {
+        conversation: summary(allocated),
+        messages: rows.map(message),
+        replayed: false,
+        ...(scenarioReview ? { scenarioWake: effect?.wake } : { analysisWake: effect?.wake }),
+        ...(collaborationDecision ? { collaborationDecision } : {}),
+      }
     })
   } catch (error) {
     if (isUniqueConflict(error)) {
@@ -323,7 +491,7 @@ export async function getProjectConversation(
 
 export async function getLatestConversationJourney(
   scope: { targetProjectId: string; conversationId: string },
-  client: PrismaClient = prisma,
+  client: PrismaClient | Prisma.TransactionClient = prisma,
 ) {
   const message = await client.projectConversationMessage.findFirst({
     where: {
@@ -338,6 +506,25 @@ export async function getLatestConversationJourney(
   if (!message?.contextJson) return undefined
   const context = JSON.parse(message.contextJson) as ConversationContext
   return context.kind === 'QUALITY_JOURNEY' ? context.id : undefined
+}
+
+export async function getLatestConversationCollaborationOperation(
+  scope: { targetProjectId: string; conversationId: string },
+  client: PrismaClient | Prisma.TransactionClient = prisma,
+) {
+  const row = await client.projectConversationMessage.findFirst({
+    where: {
+      conversationId: scope.conversationId,
+      conversation: { targetProjectId: scope.targetProjectId },
+      role: 'APPRAISE',
+      recordsJson: { contains: '"kind":"COLLABORATION"' },
+    },
+    select: { recordsJson: true },
+    orderBy: { ordinal: 'desc' },
+  })
+  if (!row?.recordsJson) return undefined
+  const records = JSON.parse(row.recordsJson) as ConversationRecord[]
+  return records.find(record => record.kind === 'COLLABORATION')?.id
 }
 
 /** Bounded per-project relation reads for the workspace sidebar. */

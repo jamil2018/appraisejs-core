@@ -55,6 +55,7 @@ export default function CreateLocatorWorkspace({
   mode = 'create',
   displayMode = 'page',
   locatorId,
+  projectId,
   initialValues,
   onSaveSuccess,
   onClose,
@@ -76,6 +77,7 @@ export default function CreateLocatorWorkspace({
     setRoute,
     setModuleId,
     handleStart,
+    handleCancel,
     handleSave,
     canLaunch,
     canSave,
@@ -86,6 +88,7 @@ export default function CreateLocatorWorkspace({
     mode,
     displayMode,
     locatorId,
+    projectId,
     initialValues,
     onSaveSuccess,
     onClose,
@@ -167,6 +170,11 @@ export default function CreateLocatorWorkspace({
               {isStarting ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Target className="mr-2 size-4" />}
               Launch Chromium
             </Button>
+            {session && !['closed', 'error', 'picked'].includes(session.status) ? (
+              <Button type="button" variant="outline" onClick={handleCancel} className="w-full">
+                Cancel picker
+              </Button>
+            ) : null}
 
             <Alert>
               <AlertTitle>Inside Chromium</AlertTitle>
@@ -226,6 +234,13 @@ export default function CreateLocatorWorkspace({
           <CardContent className="min-w-0 space-y-4 p-4 pt-0">
             {session?.pickedLocator ? (
               <PickedLocatorObservation pickedLocator={session.pickedLocator} />
+            ) : session?.status === 'closed' ? (
+              <Alert>
+                <AlertTitle>No target picked</AlertTitle>
+                <AlertDescription>
+                  The picker closed without a selector. Launch it again or enter a selector manually.
+                </AlertDescription>
+              </Alert>
             ) : (
               <Alert>
                 <AlertTitle>Waiting for a picked selector</AlertTitle>

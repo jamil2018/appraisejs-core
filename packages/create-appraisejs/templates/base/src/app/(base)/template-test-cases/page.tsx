@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button'
 import { presentationVocabulary } from '@/lib/presentation-vocabulary'
 import { Plus } from 'lucide-react'
 import Link from 'next/link'
+import { requireActiveProjectForMutation } from '@/lib/active-project'
+import { withProjectScope } from '@/lib/project-scope'
 import type { Metadata } from 'next'
 
 import TemplateTestCaseTable from './template-test-case-table'
@@ -25,6 +27,7 @@ export const metadata: Metadata = {
 }
 
 export default async function TemplateTestCasesPage() {
+  const project = await requireActiveProjectForMutation()
   const { data, error } = await getAllTemplateTestCasesAction()
   const rows = Array.isArray(data) ? data.filter(isTemplateTestCaseWithSteps) : []
 
@@ -33,7 +36,10 @@ export default async function TemplateTestCasesPage() {
   return (
     <div className="min-w-0 space-y-4">
       <CollectionHeader title={presentationVocabulary.caseTemplate.plural}>
-        <Button render={<Link href="/template-test-cases/create" />} nativeButton={false}>
+        <Button
+          render={<Link href={withProjectScope('/template-test-cases/create', project.id)} />}
+          nativeButton={false}
+        >
           <Plus aria-hidden="true" /> New case template
         </Button>
       </CollectionHeader>

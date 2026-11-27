@@ -84,11 +84,12 @@ export async function updateModuleAction(
   _prev: unknown,
   value: z.infer<typeof moduleSchema>,
   id?: string,
+  expectedUpdatedAt?: string,
 ): Promise<ActionResponse> {
   try {
     moduleSchema.parse(value)
     const project = await requireActiveProjectForMutation()
-    const updatedModule = await updateModule(id, value, project.id)
+    const updatedModule = await updateModule(id, value, project.id, expectedUpdatedAt)
     revalidatePath('/modules')
     return {
       status: 200,

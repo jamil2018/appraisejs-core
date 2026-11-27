@@ -3,6 +3,9 @@
   "version": "0.4.0",
   "private": true,
   "type": "module",
+  "scarfSettings": {
+    "enabled": false
+  },
   "engines": {
     "node": ">=20.19"
   },
@@ -76,10 +79,12 @@
     "appraisejs:sync": "npm run sync-step-definitions"
   },
   "dependencies": {
+    "@ag-ui/core": "1.0.5",
     "@babel/parser": "^7.29.0",
     "@babel/types": "^7.27.0",
     "@base-ui/react": "^1.9.0",
     "@codemirror/lang-jinja": "^6.0.0",
+    "@copilotkit/react-core": "1.90.2",
     "@cucumber/tag-expressions": "9.1.0",
     "@faker-js/faker": "^10.5.0",
     "@monaco-editor/react": "^4.7.0",

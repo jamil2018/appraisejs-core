@@ -42,14 +42,51 @@ the new brief. An edited brief autosaves its record reference alongside the obje
 results and failed checks. Settings offers persistent Dark and Light appearances, the Codex diagnostic, and a local
 ChatGPT authorization flow on macOS and Linux.
 
-**New chat** opens a saved project conversation. Appraise can find cases, suites, templates, runs, and reports locally.
+**New chat** opens a saved project conversation. Appraise can find cases, suites, templates, modules, tags,
+environments, locators, locator groups, runs, and reports locally. Creation requests open the scoped editor for
+review and save. Provider setup opens protected Settings with a return link to the saved chat.
 Use **Attach** on a case result and send “Rename this case to …” to update its title in the same conversation. The
 saved reply links to the actual editor. Cases, runs, and reports also offer **Discuss in chat**, which starts with the
 exact record attached. Ordinary messages are saved as notes in the conversation.
 
-Use **Discuss in chat** on a Journey to keep its current question, review, permission, or evidence card with the
-saved conversation. The card opens the scoped canonical control. Appraise still checks the active review revision
-and exact run consent when the user acts there.
+Use **Discuss in chat** on a Journey to keep its current question, review, permission, or activity with the saved
+conversation. Each card uses the same scoped Appraise records as the Journey page.
+
+When a saved chat is attached to a Journey with a published test approach under review, **Proposed checks** lists
+the acceptance signals for that revision. Reopening the chat reads the saved attachment and the active published
+revision from Appraise. **Review this version** opens the Journey's requirements review.
+
+With a published checkout review open in a saved chat, send “Also check that I get an order number.” Appraise saves
+the message and requests a revision through the same Journey transition as the manual review. **Review changes**
+appears when Appraise publishes the successor. It compares the successor with its immediate published predecessor
+and shows the criteria added, changed, or removed. The exact review is required when submitting feedback.
+
+A saved chat reloads the current Journey snapshot on reconnect or when the tab becomes visible. A newer snapshot
+replaces a superseded review without clearing the draft message. The lookup provider picker continues to show the
+original attempt and requires acknowledgement of an unknown outcome before it permits switching.
+
+When Analysis needs a consequential choice, **Question** shows the saved prompt and any suggested answers. In
+the saved Journey chat, reply with `Answer: Staging checkout` to record the choice. Once the current review is
+published and Discovery setup is ready, type **Approve criteria** or use the button on the card. Both save the
+decision through the same Appraise review as the Journey page. Appraise displays the approved revision in both views.
+
+When the approved tests are prepared, choose the execution environment and select **Review run permission**.
+The **Run permission** card shows the prepared tests, browser, and effects for that exact target. Select **Allow
+and run these tests** to grant the separate permission and start the Appraise runner. **Activity** shows recorded
+run status and links to the TestRun. Reopening the chat or changing the lookup provider restores the same attempt,
+including any interruption that Appraise cannot yet reconcile.
+
+After the run, **Result and evidence** distinguishes passing and failing checks, skipped steps, and runs whose
+evidence Appraise could not verify. Select **Show me where** or type it in the saved chat to open the report at
+the recorded step. The report opens with its test case, step status, and screenshot when available. The typed
+reply retains the original step link in the transcript.
+
+The chat renders this card through the pinned CopilotKit React headless renderer and a validated AG-UI tool-call
+event. The renderer runs in the local Appraise page and needs neither a CopilotKit runtime server nor an account.
+Appraise generates the event from its own scoped records. The event selects a renderer and carries the review
+identity and check text. CopilotKit and AG-UI use the MIT license at the pinned versions, and the app manifest
+disables Scarf installation analytics. [CopilotKit headless API](https://docs.copilotkit.ai/reference/v2/index) ·
+[AG-UI events](https://docs.ag-ui.com/concepts/events) · [Scarf configuration](https://github.com/scarf-sh/scarf-js)
 
 Appraise can verify a saved lookup after the user reviews the exact search terms. A conversation can use Local,
 ChatGPT Responses, native Codex with a configured macOS app-server, Claude Code with a configured official macOS

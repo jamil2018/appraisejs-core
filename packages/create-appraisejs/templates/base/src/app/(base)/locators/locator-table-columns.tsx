@@ -7,6 +7,7 @@ import { createDataTableSelectionColumn } from '@/components/ui/data-table-selec
 import TableActions from '@/components/table/table-actions'
 import { deleteLocatorAction } from '@/actions/locator/locator-actions'
 import { formatDateTime } from '@/lib/utils'
+import { withProjectScope } from '@/lib/project-scope'
 import type { LocatorTableRow } from './locator-helpers'
 
 export const locatorTableCols: ColumnDef<LocatorTableRow>[] = [
@@ -45,7 +46,7 @@ export const locatorTableCols: ColumnDef<LocatorTableRow>[] = [
       return (
         <TableActions
           rowName={locator.name}
-          modifyLink={`/locators/modify/${locator.id}`}
+          modifyLink={withProjectScope(`/locators/modify/${locator.id}`, locator.targetProjectId)}
           deleteHandler={() => deleteLocatorAction([locator.id])}
         />
       )

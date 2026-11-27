@@ -32,6 +32,7 @@ import {
   DropdownMenuTrigger,
 } from './dropdown-menu'
 import { useDataTableView } from './use-data-table-view'
+import { withProjectScope } from '@/lib/project-scope'
 
 type DataTableRowLike = {
   id?: string
@@ -52,6 +53,7 @@ export type DataTableProps<TData, TValue> = {
   tableLabel: string
   createLink?: string
   modifyLink?: string
+  modifyLinkProjectId?: string
   deleteAction?: (id: string[]) => Promise<ActionResponse>
   multiOptionCreateButton?: boolean
   createButtonOptions?: DataTableCreateButtonOption[]
@@ -155,6 +157,7 @@ export function DataTable<TData, TValue>({
   multiOptionCreateButton,
   createButtonOptions,
   modifyLink,
+  modifyLinkProjectId,
   viewLink,
   deleteAction,
   showSelectedRows = true,
@@ -164,7 +167,11 @@ export function DataTable<TData, TValue>({
   createMenuLabel = 'Create item',
   getRowId,
 }: DataTableProps<TData, TValue>) {
-  const { state, update, scrollRef } = useDataTableView(viewKey, initialColumnVisibility)
+  const { state, update, scrollRef } = useDataTableView(
+    viewKey,
+    initialColumnVisibility,
+    density === 'compact' ? 20 : 10,
+  )
 
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table's useReactTable returns unstable refs; React Compiler skips memoization
   const table = useReactTable({
@@ -267,7 +274,15 @@ export function DataTable<TData, TValue>({
                   variant="outline"
                   size="icon"
                   aria-label="Edit selected item"
-                  render={<Link href={`${modifyLink}/${singleSelectedId}`} />}
+                  render={
+                    <Link
+                      href={
+                        modifyLinkProjectId
+                          ? withProjectScope(`${modifyLink}/${singleSelectedId}`, modifyLinkProjectId)
+                          : `${modifyLink}/${singleSelectedId}`
+                      }
+                    />
+                  }
                   nativeButton={false}
                 >
                   <Pencil className="size-4" aria-hidden="true" />

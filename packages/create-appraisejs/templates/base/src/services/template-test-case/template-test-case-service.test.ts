@@ -3,6 +3,7 @@ import {
   createTemplateTestCase,
   deleteTemplateTestCases,
   getTemplateTestCaseByIdOrThrow,
+  updateTemplateTestCase,
 } from './template-test-case-service'
 
 vi.mock('@/config/db-config', () => ({
@@ -62,5 +63,32 @@ describe('createTemplateTestCase mutation boundary', () => {
 
     expect(prisma.templateTestCase.create).not.toHaveBeenCalled()
     expect(prisma.$transaction).not.toHaveBeenCalled()
+  })
+})
+
+describe('case-template edit version', () => {
+  it('leaves child steps untouched when the displayed edit version is stale', async () => {
+    const tx = {
+      templateTestCase: {
+        findFirst: vi.fn().mockResolvedValue({ updatedAt: new Date('2026-01-01T00:00:00.001Z') }),
+        update: vi.fn(),
+      },
+      templateTestCaseStep: { findMany: vi.fn(), deleteMany: vi.fn() },
+      templateTestCaseStepParameter: { deleteMany: vi.fn() },
+      templateTestCaseFlowBlock: { deleteMany: vi.fn() },
+    }
+    vi.mocked(prisma.stepDefinition.findMany).mockResolvedValueOnce([])
+    vi.mocked(prisma.$transaction).mockImplementationOnce(async callback => callback(tx as never) as never)
+    await expect(
+      updateTemplateTestCase(
+        'template-1',
+        { title: 'Changed', steps: [], flowBlocks: [] },
+        'project-1',
+        '2026-01-01T00:00:00.000Z',
+      ),
+    ).rejects.toMatchObject({ code: 'CONFLICT', statusCode: 409 })
+    expect(tx.templateTestCaseStep.findMany).not.toHaveBeenCalled()
+    expect(tx.templateTestCaseStep.deleteMany).not.toHaveBeenCalled()
+    expect(tx.templateTestCase.update).not.toHaveBeenCalled()
   })
 })

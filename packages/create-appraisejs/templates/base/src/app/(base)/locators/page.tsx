@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { requireActiveProject } from '@/lib/active-project'
+import { withProjectScope } from '@/lib/project-scope'
 
 import { getLocatorTableRows } from './locator-helpers'
 import LocatorTable from './locator-table'
@@ -13,14 +15,19 @@ export const metadata: Metadata = {
   description: 'Manage locators for identifying elements on pages',
 }
 
-export default async function Locators() {
+export default async function Locators({ searchParams }: { searchParams?: Promise<{ project?: string }> }) {
+  const project = await requireActiveProject((await searchParams)?.project)
   const response = await getAllLocatorsAction()
   const rows = getLocatorTableRows(response.data)
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
       <CollectionHeader title="Locators">
-        <Button render={<Link href="/locators/create" />} nativeButton={false} className="rounded-xl">
+        <Button
+          render={<Link href={withProjectScope('/locators/create', project.id)} />}
+          nativeButton={false}
+          className="rounded-xl"
+        >
           <Plus aria-hidden="true" data-icon="inline-start" />
           New locator
         </Button>

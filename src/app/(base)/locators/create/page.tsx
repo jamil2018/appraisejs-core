@@ -7,13 +7,15 @@ import { Crosshair } from 'lucide-react'
 import type { Metadata } from 'next'
 import { getEnvironmentRows, getLocatorGroupRows, getModuleRows } from './create-locator-workspace-helpers'
 import CreateLocatorWorkspace from './create-locator-workspace'
+import { requireActiveProject } from '@/lib/active-project'
 
 export const metadata: Metadata = {
   title: 'Appraise | Create Locator',
   description: 'Create a new locator manually or by picking a single selector from Chromium with the local companion.',
 }
 
-const CreateLocatorPage = async () => {
+const CreateLocatorPage = async ({ searchParams }: { searchParams?: Promise<{ project?: string }> }) => {
+  const project = await requireActiveProject((await searchParams)?.project)
   const [
     { data: environments, error: environmentsError },
     { data: locatorGroups, error: locatorGroupsError },
@@ -43,7 +45,12 @@ const CreateLocatorPage = async () => {
           and group details here.
         </HeaderSubtitle>
       </div>
-      <CreateLocatorWorkspace environments={environmentRows} locatorGroups={locatorGroupRows} modules={moduleRows} />
+      <CreateLocatorWorkspace
+        environments={environmentRows}
+        locatorGroups={locatorGroupRows}
+        modules={moduleRows}
+        projectId={project.id}
+      />
     </div>
   )
 }

@@ -20,6 +20,7 @@ export default function TemplateTestCaseTable({ rows }: { rows: TemplateTestCase
       filterColumn="name"
       filterPlaceholder="Search case templates"
       modifyLink="/template-test-cases/modify"
+      modifyLinkProjectId={projectId}
       deleteAction={deleteTemplateTestCaseAction}
       density="compact"
       initialColumnVisibility={{ description: false, createdAt: false }}

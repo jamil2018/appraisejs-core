@@ -105,6 +105,7 @@ export async function getReportByIdOrThrow(
         include: {
           environment: true,
           tags: true,
+          runtimeCapsule: { select: { id: true } },
         },
       },
       features: {

@@ -10,6 +10,7 @@ import {
   type SharedResourceMutationKey,
 } from '@/services/coordinator/quality-journey-shared-resource-guard-service'
 import { ServiceError } from '@/services/shared/errors'
+import { authoringEditVersion, throwIfStaleAuthoringUpdate } from '@/services/shared/authoring-edit-version'
 import { TagType, type Prisma } from '@prisma/client'
 import type { z } from 'zod'
 
@@ -218,12 +219,14 @@ export async function updateTestSuiteFromInput(
   value: z.infer<typeof testSuiteSchema>,
   id: string,
   targetProjectId: string,
+  expectedUpdatedAt?: string,
 ): Promise<void> {
   const input = snapshot(value)
   if (!isSharedResourceId(id)) missing()
   await prisma.$transaction(async tx => {
-    const suite = await tx.testSuite.findFirst({ where: { id }, select: suiteSelect })
+    const suite = await tx.testSuite.findFirst({ where: { id }, select: { ...suiteSelect, updatedAt: true } })
     if (!suite || suite.id !== id || suite.targetProjectId !== targetProjectId || suite.archivedAt !== null) missing()
+    const editVersion = authoringEditVersion(suite.updatedAt, expectedUpdatedAt)
     await validateOldModule(tx, suite.moduleId, targetProjectId)
     await suppliedRelationships(tx, input, targetProjectId)
     const tags = await suiteTags(tx, [id], targetProjectId)
@@ -235,16 +238,19 @@ export async function updateTestSuiteFromInput(
     const identifier = getIdentifierTagByPrefix(tags, 'ts_')
     await prepareSharedResourceMutationInTransaction(tx, targetProjectId, { existing, newRoots: [], deleted: [] })
     const identifierId = identifier?.id ?? (await createIdentifier(tx, targetProjectId)).id
-    await tx.testSuite.update({
-      where: { id },
-      data: {
-        name: input.name,
-        description: input.description,
-        testCases: { set: input.testCases?.map(testCaseId => ({ id: testCaseId })) },
-        tags: { set: [...new Set([identifierId, ...(input.tagIds ?? [])])].map(tagId => ({ id: tagId })) },
-        module: { connect: { id: input.moduleId } },
-      },
-    })
+    try {
+      await tx.testSuite.update({
+        where: { id, ...(editVersion ? { targetProjectId, archivedAt: null, updatedAt: editVersion.expected } : {}) },
+        data: {
+          name: input.name,
+          description: input.description,
+          testCases: { set: input.testCases?.map(testCaseId => ({ id: testCaseId })) },
+          tags: { set: [...new Set([identifierId, ...(input.tagIds ?? [])])].map(tagId => ({ id: tagId })) },
+          module: { connect: { id: input.moduleId } },
+          ...(editVersion ? { updatedAt: editVersion.next } : {}),
+        },
+      })
+    } catch (error) { throwIfStaleAuthoringUpdate(error) }
   })
 }
 

@@ -7,6 +7,7 @@ import { getAllTagsAction } from '@/actions/tags/tag-actions'
 import { Metadata } from 'next'
 import AuthoringLoadError from '@/components/data-state/authoring-load-error'
 import PageHeader from '@/components/typography/page-header'
+import { withProjectScope } from '@/lib/project-scope'
 
 import { getEditableTestSuite, getModuleRows, getTagRows, getTestCasePickerRows } from '../../test-suite-helpers'
 
@@ -56,6 +57,8 @@ const ModifyTestSuite = async ({ params }: { params: Promise<{ id: string }> }) 
         successMessage="Test suite updated successfully"
         onSubmitAction={updateTestSuiteAction}
         id={id}
+        expectedUpdatedAt={testSuiteData.updatedAt.toISOString()}
+        redirectPath={withProjectScope('/test-suites', testSuiteData.targetProjectId)}
         testCases={testCases}
         moduleList={moduleList}
         tags={tags}

@@ -172,7 +172,11 @@ function verifyCompatibilityFailsClosed(appraiseCli, marketplaceRoot, runTag) {
   assert.equal(readiness.lifecycleAuthority, false)
 }
 
-function seedPredecessorDatabase(project, databasePath = path.join(project, 'prisma/predecessor-upgrade.db')) {
+function seedPredecessorDatabase(
+  project,
+  databasePath = path.join(project, 'prisma/predecessor-upgrade.db'),
+  { includeLatest = false } = {},
+) {
   const db = sqlite(databasePath)
   try {
     db.exec('PRAGMA foreign_keys=ON')
@@ -187,7 +191,7 @@ function seedPredecessorDatabase(project, databasePath = path.join(project, 'pri
       )
     `)
     const inventory = JSON.parse(readFileSync(path.join(project, 'prisma/migration-inventory.json'), 'utf8')).migrations
-    for (const migration of inventory.slice(0, -1)) {
+    for (const migration of includeLatest ? inventory : inventory.slice(0, -1)) {
       db.exec('BEGIN')
       try {
         db.exec(readFileSync(path.join(project, 'prisma/migrations', migration.name, 'migration.sql'), 'utf8'))
@@ -271,9 +275,13 @@ function createModernExternalOwnershipFixture(project, databasePath) {
   assert.equal(journey.coordinatorSessions.length, 2)
 }
 
-function materializeM11Application(databasePath, installedDependencies) {
-  const legacyRoot = path.join(runRoot, 'm11-legacy-app')
-  const archive = path.join(runRoot, 'm11-base-8d8d8254.tar')
+function materializeM11Application(
+  databasePath,
+  installedDependencies,
+  { tag = 'm11-legacy-app', copyDatabase = true } = {},
+) {
+  const legacyRoot = path.join(runRoot, tag)
+  const archive = path.join(runRoot, `${tag}-base-8d8d8254.tar`)
   const archivePaths = [
     'package.json',
     'scripts/migrate-compatible.mjs',
@@ -296,9 +304,10 @@ function materializeM11Application(databasePath, installedDependencies) {
   symlinkSync(installedDependencies, path.join(legacyRoot, 'node_modules'), 'dir')
   const oldInventory = JSON.parse(readFileSync(path.join(legacyRoot, 'prisma/migration-inventory.json'), 'utf8'))
   assert.equal(oldInventory.migrations.length, 97)
-  copyFileSync(databasePath, path.join(legacyRoot, 'prisma/m12-modern-external.db'))
+  if (copyDatabase) copyFileSync(databasePath, path.join(legacyRoot, 'prisma/m12-modern-external.db'))
   return {
     legacyRoot,
+    sourceArchive: archive,
     databasePath: path.join(legacyRoot, 'prisma/m12-modern-external.db'),
     env: { DATABASE_URL: 'file:m12-modern-external.db' },
   }
@@ -309,14 +318,15 @@ function verifyM11RefusesM12ExternalDatabase(project, databasePath) {
   const legacyInventory = JSON.parse(
     readFileSync(path.join(legacy.legacyRoot, 'prisma/migration-inventory.json'), 'utf8'),
   )
+  const candidateInventory = JSON.parse(readFileSync(path.join(project, 'prisma/migration-inventory.json'), 'utf8'))
   const modernDb = sqlite(legacy.databasePath)
   try {
     const migrationRows = modernDb
       .prepare('SELECT migration_name FROM _prisma_migrations ORDER BY migration_name')
       .all()
       .map(row => row.migration_name)
-    assert.equal(migrationRows.length, 98)
-    assert.equal(migrationRows.length, legacyInventory.migrations.length + 1)
+    assert.equal(migrationRows.length, candidateInventory.migrations.length)
+    assert.ok(migrationRows.length > legacyInventory.migrations.length)
     const external = modernDb
       .prepare(
         `SELECT journey.hostingMode, journey.hostingContractVersion, session.ownerPrincipalId
@@ -350,6 +360,310 @@ function verifyM11RefusesM12ExternalDatabase(project, databasePath) {
     })
     assert.match(`${result.stdout}\n${result.stderr}`, /unknown or changed migration.*Downgrade refused/)
     assert.equal(hashFile(legacy.databasePath), bytesBefore, `${name} must not modify the M12 database`)
+  }
+}
+
+function assertForeignKeys(databasePath, phase) {
+  const db = sqlite(databasePath)
+  try {
+    db.exec('PRAGMA foreign_keys=ON')
+    assert.equal(db.prepare('PRAGMA foreign_keys').get().foreign_keys, 1, `${phase} must enforce foreign keys`)
+    assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(), [], `${phase} must have no broken foreign keys`)
+  } finally {
+    db.close()
+  }
+}
+
+function seedM11HistoricalEvidence(databasePath) {
+  const db = sqlite(databasePath)
+  try {
+    db.exec('PRAGMA foreign_keys=ON')
+    db.exec('BEGIN')
+    const timestamp = '2026-11-12T00:00:00.000Z'
+    const h = character => `sha256:${character.repeat(64)}`
+    try {
+      db.prepare(
+        `INSERT INTO TargetProject
+        (id, kind, canonicalIdentity, canonicalPath, displayName, fingerprint, updatedAt)
+        VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      ).run(
+        'm11-rollback-target',
+        'LOCAL_WORKSPACE',
+        'path:/m11-rollback-target',
+        '/m11-rollback-target',
+        'Historical checkout',
+        h('a'),
+        timestamp,
+      )
+      db.prepare(
+        `INSERT INTO Environment (id, name, baseUrl, targetProjectId, updatedAt)
+        VALUES (?, ?, ?, ?, ?)`,
+      ).run('m11-rollback-environment', 'local', 'http://127.0.0.1:1', 'm11-rollback-target', timestamp)
+      db.prepare(
+        `INSERT INTO TestRun
+        (id, name, runId, status, result, environmentId, targetProjectId, updatedAt, completedAt, reportPath)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).run(
+        'm11-rollback-run',
+        'Historical checkout run',
+        'm11-rollback-run-key',
+        'COMPLETED',
+        'FAILED',
+        'm11-rollback-environment',
+        'm11-rollback-target',
+        timestamp,
+        timestamp,
+        'reports/historical-checkout.json',
+      )
+      db.prepare(
+        `INSERT INTO Report (id, name, reportPath, testRunId, targetProjectId, updatedAt)
+        VALUES (?, ?, ?, ?, ?, ?)`,
+      ).run(
+        'm11-rollback-report',
+        'Historical checkout report',
+        'reports/historical-checkout.json',
+        'm11-rollback-run',
+        'm11-rollback-target',
+        timestamp,
+      )
+      db.prepare(
+        `INSERT INTO QualityJourney
+        (id, targetProjectId, rootIdempotencyKey, rootRequestHash, activeCycleId, stateHash, updatedAt)
+        VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      ).run(
+        'm11-rollback-journey',
+        'm11-rollback-target',
+        'm11-rollback-root',
+        h('b'),
+        'm11-rollback-cycle',
+        h('c'),
+        timestamp,
+      )
+      db.prepare(
+        `INSERT INTO QualityJourneyCycle (id, journeyId, sequence)
+        VALUES (?, ?, ?)`,
+      ).run('m11-rollback-cycle', 'm11-rollback-journey', 1)
+      db.prepare(
+        `INSERT INTO QualityJourneyWorkItem
+        (id, journeyId, targetProjectId, cycleId, role, status, inputHash, roleContractDigest, currentAttempt, updatedAt)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).run(
+        'm11-rollback-work',
+        'm11-rollback-journey',
+        'm11-rollback-target',
+        'm11-rollback-cycle',
+        'ANALYZER',
+        'COMPLETED',
+        h('d'),
+        h('e'),
+        1,
+        timestamp,
+      )
+      db.prepare(
+        `INSERT INTO QualityJourneyWorkAuthorization
+        (id, journeyId, targetProjectId, workItemId, role, roleContractDigest, capabilityProfileId,
+         capabilityProfileHash, authorizationJson, authorizationHash)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).run(
+        'm11-rollback-authorization',
+        'm11-rollback-journey',
+        'm11-rollback-target',
+        'm11-rollback-work',
+        'ANALYZER',
+        h('e'),
+        'historical-profile',
+        h('f'),
+        '{}',
+        h('1'),
+      )
+      db.prepare(
+        `INSERT INTO QualityJourneyWorkAttempt
+        (id, workItemId, attempt, status, leaseId, ownerTokenHash, leaseExpiresAt,
+         heartbeatSeconds, authorizationId, completedAt)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).run(
+        'm11-rollback-attempt',
+        'm11-rollback-work',
+        1,
+        'COMPLETED',
+        'm11-rollback-lease',
+        h('2'),
+        timestamp,
+        30,
+        'm11-rollback-authorization',
+        timestamp,
+      )
+      for (const [id, kind, identityKey, artifactId, contentHash] of [
+        ['m11-rollback-analysis-artifact', 'ANALYSIS_REVISION', 'analysis-r1', 'analysis', h('3')],
+        ['m11-rollback-decision-artifact', 'ANALYSIS_DECISION', 'analysis-decision', 'decision', h('4')],
+      ]) {
+        db.prepare(
+          `INSERT INTO QualityJourneyArtifact
+          (id, identityKey, journeyId, targetProjectId, cycleId, kind, artifactId, contentHash, artifactJson)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ).run(
+          id,
+          identityKey,
+          'm11-rollback-journey',
+          'm11-rollback-target',
+          'm11-rollback-cycle',
+          kind,
+          artifactId,
+          contentHash,
+          '{}',
+        )
+      }
+      db.prepare(
+        `INSERT INTO QualityJourneyAnalysisRevision
+        (id, journeyId, targetProjectId, cycleId, artifactRecordId, artifactId, artifactRevisionId,
+         revision, contentHash, submissionIdempotencyKey, submissionHash, submittedWorkItemId,
+         submittedAttemptId, inputHash)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).run(
+        'm11-rollback-analysis',
+        'm11-rollback-journey',
+        'm11-rollback-target',
+        'm11-rollback-cycle',
+        'm11-rollback-analysis-artifact',
+        'analysis',
+        'analysis-r1',
+        1,
+        h('3'),
+        'analysis-submit',
+        h('5'),
+        'm11-rollback-work',
+        'm11-rollback-attempt',
+        h('d'),
+      )
+      db.prepare(
+        `INSERT INTO QualityJourneyAnalysisDecision
+        (id, journeyId, analysisRevisionId, artifactRecordId, commandId, contentHash, reviewHash, decision, actor)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).run(
+        'm11-rollback-decision',
+        'm11-rollback-journey',
+        'm11-rollback-analysis',
+        'm11-rollback-decision-artifact',
+        'm11-rollback-decision-command',
+        h('4'),
+        h('6'),
+        'APPROVED',
+        'USER',
+      )
+      db.exec('COMMIT')
+    } catch (error) {
+      db.exec('ROLLBACK')
+      throw error
+    }
+  } finally {
+    db.close()
+  }
+  assertForeignKeys(databasePath, 'M11 historical fixture')
+}
+
+function historicalEvidence(databasePath) {
+  const db = sqlite(databasePath)
+  try {
+    return {
+      run: db
+        .prepare(
+          `SELECT id, name, runId, status, result, reportPath
+        FROM TestRun WHERE id = 'm11-rollback-run'`,
+        )
+        .get(),
+      report: db
+        .prepare(
+          `SELECT id, name, reportPath, testRunId
+        FROM Report WHERE id = 'm11-rollback-report'`,
+        )
+        .get(),
+      attempt: db
+        .prepare(
+          `SELECT id, workItemId, attempt, status, leaseId, authorizationId
+        FROM QualityJourneyWorkAttempt WHERE id = 'm11-rollback-attempt'`,
+        )
+        .get(),
+      decision: db
+        .prepare(
+          `SELECT id, journeyId, analysisRevisionId, artifactRecordId, contentHash, decision, actor
+        FROM QualityJourneyAnalysisDecision WHERE id = 'm11-rollback-decision'`,
+        )
+        .get(),
+    }
+  } finally {
+    db.close()
+  }
+}
+
+function verifyRollbackRehearsal(project, appraiseTarball) {
+  const legacy = materializeM11Application(null, path.join(project, 'node_modules'), {
+    tag: 'm11-rollback-app',
+    copyDatabase: false,
+  })
+  const oldDatabase = legacy.databasePath
+  const backup = path.join(runRoot, 'm11-pre-upgrade-backup.db')
+  const upgraded = path.join(project, 'prisma/m11-rollback-upgrade.db')
+  const restored = path.join(legacy.legacyRoot, 'prisma/m11-rollback-restored.db')
+  seedPredecessorDatabase(legacy.legacyRoot, oldDatabase, { includeLatest: true })
+  seedM11HistoricalEvidence(oldDatabase)
+  assertCompletedMigrationHistory(legacy.legacyRoot, { databasePath: oldDatabase })
+  const before = historicalEvidence(oldDatabase)
+  assert.ok(Object.values(before).every(Boolean), 'historical run, report, attempt and decision must exist')
+  const beforeBytes = hashFile(oldDatabase)
+  copyFileSync(oldDatabase, backup)
+  copyFileSync(oldDatabase, upgraded)
+  assert.equal(hashFile(backup), beforeBytes, 'pre-upgrade backup must preserve exact SQLite bytes')
+  const predecessorInventory = path.join(legacy.legacyRoot, 'prisma/migration-inventory.json')
+  const candidateInventory = path.join(project, 'prisma/migration-inventory.json')
+  const predecessorVersion = JSON.parse(readFileSync(path.join(legacy.legacyRoot, 'package.json'), 'utf8')).version
+  const candidateVersion = JSON.parse(readFileSync(path.join(project, 'package.json'), 'utf8')).version
+  assert.notEqual(
+    hashFile(predecessorInventory),
+    hashFile(candidateInventory),
+    'upgrade must change migration inventory',
+  )
+  run('npm', ['run', 'migrate-db'], {
+    cwd: project,
+    env: { DATABASE_URL: 'file:m11-rollback-upgrade.db' },
+    name: 'rollback-rehearsal-upgrade',
+  })
+  assertCompletedMigrationHistory(project, { databasePath: upgraded, sentinel: true })
+  assertForeignKeys(upgraded, 'upgraded candidate')
+  assert.deepEqual(historicalEvidence(upgraded), before, 'upgrade must retain historical run/decision/attempt records')
+  assert.notEqual(hashFile(upgraded), beforeBytes, 'upgraded database must differ from pre-upgrade backup')
+
+  copyFileSync(backup, restored)
+  assert.equal(hashFile(restored), beforeBytes, 'rollback must restore exact pre-upgrade SQLite bytes')
+  assertForeignKeys(restored, 'restored predecessor')
+  assert.deepEqual(historicalEvidence(restored), before, 'rollback must retain historical evidence identities')
+  assertCompletedMigrationHistory(legacy.legacyRoot, { databasePath: restored })
+  run('npm', ['run', 'migrate-db'], {
+    cwd: legacy.legacyRoot,
+    env: { DATABASE_URL: 'file:m11-rollback-restored.db' },
+    name: 'rollback-rehearsal-predecessor-accepts-restore',
+  })
+  assert.equal(hashFile(restored), beforeBytes, 'predecessor validation must leave restored bytes unchanged')
+  return {
+    predecessor: {
+      version: predecessorVersion,
+      sourceArchiveSha256: hashFile(legacy.sourceArchive),
+      inventorySha256: hashFile(predecessorInventory),
+      databaseSha256: beforeBytes,
+    },
+    candidate: {
+      version: candidateVersion,
+      packageSha256: hashFile(appraiseTarball),
+      scaffoldPackageSha256: hashFile(path.join(project, 'package.json')),
+      inventorySha256: hashFile(candidateInventory),
+      databaseSha256: hashFile(upgraded),
+    },
+    restored: {
+      version: predecessorVersion,
+      sourceArchiveSha256: hashFile(legacy.sourceArchive),
+      inventorySha256: hashFile(predecessorInventory),
+      databaseSha256: hashFile(restored),
+    },
+    historicalEvidence: before,
   }
 }
 
@@ -487,6 +801,7 @@ try {
   seedPredecessorDatabase(blank, upgradeDbPath)
   run('npm', ['run', 'migrate-db'], { cwd: blank, env: upgradeEnv, name: 'generated-database-upgrade' })
   assertCompletedMigrationHistory(blank, { databasePath: upgradeDbPath })
+  const rollbackRehearsal = verifyRollbackRehearsal(blank, appraiseTarball)
   const futureDb = sqlite(upgradeDbPath)
   try {
     futureDb
@@ -565,6 +880,7 @@ try {
     installedPrefix: prefix,
     foreignCwd: scaffoldCwd,
     scaffoldProjects: [blank, starter],
+    rollbackRehearsal,
     claims: [
       'Both npm tarballs were installed into a fresh local prefix without global installation.',
       'Installed compatibility CLI refused an unknown Codex version and disabled MCP config using a fixed local stub only.',
@@ -572,8 +888,9 @@ try {
       'Packed create-appraisejs compiled scaffold composer created blank and starter outputs from a foreign cwd; the installed CLI entrypoint was separately smoke-checked.',
       'Scaffold migration inventory matches source and migration directories; both seeds have complete history and no Journey or run records.',
       'A predecessor schema created from genuine migration SQL upgraded through the generated guarded command with its sentinel record and prior history retained.',
+      'An exact M11 database with historical run, report, analysis decision and work attempt records upgraded through the packed candidate, then a byte-for-byte backup restored under M11 with foreign keys, migration identity and evidence records intact.',
       'The generated guarded command initialized a truly missing SQLite file and applied all genuine migrations after local Prisma generation.',
-      'Exact M11 source from base 8d8d8254 refused its own migrate-db and start-local startup against a genuinely migrated 98-entry M12 database with explicitly synthetic ownership-shape rows; no canonical transfer or valid authority is claimed for those rows. Both commands preserved database bytes.',
+      'Exact M11 source from base 8d8d8254 refused its own migrate-db and start-local startup against the candidate migration inventory with explicitly synthetic ownership-shape rows; no canonical transfer or valid authority is claimed for those rows. Both commands preserved database bytes.',
       'An explicit synthetic future-version fixture was refused with SQLite bytes and records preserved.',
       'Installed app runtime receipt resolved bundled Cucumber/runtime/hooks and ignored decoy target/output node_modules.',
       'Installed CLI disconnect/reconnect rotated the disposable scaffold credential while preserving the database bytes.',
@@ -582,6 +899,7 @@ try {
       'This does not execute a production mode transfer or Codex/provider/auth flow.',
       'This does not prove real host MCP task readiness or OS containment.',
       'No production mode transfer is exercised; this script proves packaging, runtime resolution, and local compatibility/storage refusal only.',
+      'Rollback rehearsal restores a disposable pre-upgrade SQLite backup; it does not replace an active installation or exercise OS-level app binary swapping.',
     ],
   }
   writeFileSync(path.join(runRoot, 'result.json'), JSON.stringify(outcome, null, 2))

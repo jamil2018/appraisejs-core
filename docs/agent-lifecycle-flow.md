@@ -74,6 +74,27 @@ scope or an older lifecycle version cannot replace the current observation. On a
 status is marked as outdated, and polling backs off to at most sixty seconds. **Check for updates** uses the same
 read-only boundary. Polling stops after closure.
 
+A saved chat with a Journey attachment uses that scoped snapshot when a visible tab reconnects. The chat updates
+its displayed review while retaining the transcript and composer draft. Supported checkout feedback binds the
+published revision, review hash, and lifecycle state shown in chat. The feedback and chat turn are saved in one
+transaction through the existing Analysis revision request. Chat answers address the exact current unanswered
+question and bind the displayed lifecycle state. Typed approval and the optional button enter the same
+transactional Analysis decision used by the manual Journey, with the same publication and Discovery prerequisites.
+Appraise saves the chat turn atomically with each accepted answer or decision.
+
+After preparation, **Review run permission** records the exact execution scope for the saved Journey chat. The
+**Run permission** card shows the prepared tests, target environment, browser, and effects before the user selects
+**Allow and run these tests**. Appraise grants and consumes that exact consent through the Journey execution service
+before the runner receives the reservation. A superseded scope or expired grant requires a fresh review.
+
+The **Activity** card reads the execution cycle, bound TestRuns, and recorded statuses from Appraise. It restores
+the original attempt after pause, reload, reconnect, or a lookup-provider switch. An interrupted launch with
+unconfirmed ownership stays visible, and repeating the chat action observes the original reservation.
+
+For a completed run, **Result and evidence** reads the sealed receipt, matching TestRun, and project-scoped
+report. Appraise distinguishes skipped steps and incomplete evidence from an observed failure. **Show me where**
+uses the exact recorded report and step. A typed request saves that link in the chat turn before opening it.
+
 M07 presentation is available for disposable/internal managed Journeys. Runtime and provider qualification and the
 M11 recovery gate remain prerequisites for user-facing managed opt-in.
 
@@ -248,13 +269,14 @@ complete revisioned Test Report Analysis through the specialized operation. Each
 requires one finding linked to the exact TestRun, scenario revision, and evidence receipt; requirement coverage must
 account for every accepted requirement. A generic work completion or agent final message cannot publish a report.
 
-The local Journey UI reviews the active report and current state hash. A full-report revision records feedback and
+The manual Journey and saved Journey chat review the active report and current state hash. A full-report revision records feedback and
 issues a successor Triager assignment with the preceding report attached. Approval of a bounded automation
 correction records the reviewed report and creates a successor remediation cycle; the Automator can prepare only the
 approved scenario revisions. A selective rerun needs a proposal naming the complete predecessor receipt set and a
-local UI approval. Its execution reservation binds the predecessor cycle and frozen prepared capsules. Operations
-that require execution consent request a fresh, exact-scope local UI grant; a previous grant does not carry into a
-changed or successor run. Reconcile and seal the successor's actual runtime evidence before the next triage review.
+local UI approval. The local chat and manual controls request execution consent for each rerun, including read-only capsules. The reservation binds
+the predecessor cycle, frozen capsules, and environment. When a response is interrupted, the existing proposal and
+successor identify the original run. Review its status and reconcile it before taking another execution action.
+Reconcile and seal the successor's actual runtime evidence before the next triage review.
 
 Terminal closure is a local UI decision over the exact current report revision, hash, and Journey state. Appraise
 rechecks the published and approved Analysis revision, report source and evidence lineage, active work, execution,
@@ -263,6 +285,11 @@ Risk acceptance requires a rationale and an exact set of every unresolved findin
 risk ID; the sealed closure receipt retains their artifact provenance. Exact replay is read-only, while a changed or
 stale decision is rejected. The UI records local user possession as `USER`; it does not establish natural-person
 identity or an independent reviewer.
+
+In a saved Journey chat, **Approve pending scenarios** uses the displayed portfolio revision, review hash, Journey
+state hash, and complete pending scenario set. Appraise records the decision and chat turn in the same transaction.
+The manual controls on the same card retain individual scenario decisions and review comments. Target inspection
+opens the scoped Discovery control for the current Journey, including any protected sign-in or exact return.
 
 The removed Quality Plan and Assessment routes, operations, resources, and aliases are unavailable. Requests receive
 ordinary not-found behavior; there are no redirects, compatibility projections, imports, or data-preservation paths.

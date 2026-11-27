@@ -239,7 +239,7 @@ export async function getQualityJourneyAnalysis(
     include: {
       artifact: true,
       questions: {
-        orderBy: { createdAt: 'asc' },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
         include: {
           artifact: true,
           answers: { orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], include: { artifact: true } },
@@ -1176,14 +1176,20 @@ export async function answerQualityJourneyAnalysisQuestion(
   client: PrismaClient = prisma,
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
+  return client.$transaction(tx => recordQualityJourneyAnalysisAnswerInTransaction(input, tx, coordinatorSession))
+}
+
+export async function recordQualityJourneyAnalysisAnswerInTransaction(
+  input: unknown,
+  tx: Prisma.TransactionClient,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
   const request = analysisAnswerRequestSchema.parse(input)
   const requestHash = hash(request)
-  return client.$transaction(async tx => {
-    await assertCoordinatorMutationSession(coordinatorSession, request.answer, tx)
-    return withJourneyBusinessWriteJoinInTransaction(tx, request.answer, coordinatorSession, beforeWrite =>
-      answerQualityJourneyAnalysisQuestionInTransaction(request, requestHash, tx, beforeWrite),
-    )
-  })
+  await assertCoordinatorMutationSession(coordinatorSession, request.answer, tx)
+  return withJourneyBusinessWriteJoinInTransaction(tx, request.answer, coordinatorSession, beforeWrite =>
+    answerQualityJourneyAnalysisQuestionInTransaction(request, requestHash, tx, beforeWrite),
+  )
 }
 
 function assertExactCommandArtifact(
@@ -1484,15 +1490,21 @@ export async function decideQualityJourneyAnalysis(
   client: PrismaClient = prisma,
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
+  return client.$transaction(tx => submitQualityJourneyAnalysisDecisionInTransaction(value, tx, coordinatorSession))
+}
+
+export async function submitQualityJourneyAnalysisDecisionInTransaction(
+  value: unknown,
+  tx: Prisma.TransactionClient,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
   const command = journeyCommandSchema.parse(value)
   if (command.command !== 'DECIDE_ANALYSIS' || command.actor !== 'USER')
     throw new ServiceError('Only a user may approve an Analysis Charter.', 'UNAUTHORIZED')
-  return client.$transaction(async tx => {
-    await assertCoordinatorMutationSession(coordinatorSession, command, tx)
-    return withJourneyBusinessWriteJoinInTransaction(tx, command, coordinatorSession, beforeWrite =>
-      decideQualityJourneyAnalysisInTransaction(command, tx, beforeWrite, coordinatorSession),
-    )
-  })
+  await assertCoordinatorMutationSession(coordinatorSession, command, tx)
+  return withJourneyBusinessWriteJoinInTransaction(tx, command, coordinatorSession, beforeWrite =>
+    decideQualityJourneyAnalysisInTransaction(command, tx, beforeWrite, coordinatorSession),
+  )
 }
 
 const qualityJourneyAnalysisRevisionRequestSchema = z
@@ -1506,45 +1518,48 @@ export async function requestQualityJourneyAnalysisRevision(
   client: PrismaClient = prisma,
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
+  return client.$transaction(tx => requestQualityJourneyAnalysisRevisionInTransaction(value, tx, coordinatorSession))
+}
+
+export async function requestQualityJourneyAnalysisRevisionInTransaction(
+  value: unknown,
+  tx: Prisma.TransactionClient,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
   const request = qualityJourneyAnalysisRevisionRequestSchema.parse(value)
   const command = request.command
   if (command.command !== 'REQUEST_ANALYSIS_REVISION' || command.actor !== 'USER')
     throw new ServiceError('Only a user may request an Analysis Charter revision.', 'UNAUTHORIZED')
-  return client.$transaction(async tx => {
-    await assertCoordinatorMutationSession(coordinatorSession, command, tx)
-    return withJourneyBusinessWriteJoinInTransaction(tx, command, coordinatorSession, async beforeWrite => {
-      const journey = await journeyOrThrow(command.journeyId, command.targetProjectId, tx)
-      const revision = await tx.qualityJourneyAnalysisRevision.findFirst({
-        where: { journeyId: journey.id, artifactRevisionId: command.payload.reviewedRevisionId },
-      })
-      if (!revision || revision.contentHash !== command.payload.reviewedHash)
-        throw new ServiceError(
-          'Analysis revision request does not bind an exact immutable charter revision.',
-          'CONFLICT',
-        )
-      assertExactCommandArtifact(command, revision)
-      const activeIds = JSON.parse(journey.activeRevisionIdsJson) as Record<string, string>
-      if (activeIds.analysis !== revision.artifactRevisionId)
-        throw new ServiceError('Analysis revision request does not bind the active analysis revision.', 'CONFLICT')
-      const publication = await tx.qualityJourneyAnalysisPublication.findUnique({
-        where: { analysisRevisionId: revision.id },
-      })
-      if (!publication || publication.artifactHash !== revision.contentHash)
-        throw new ServiceError('Analysis revision request requires an exact published analysis revision.', 'CONFLICT')
-      const reviewHash = await currentAnalysisReviewHash(revision.id, tx)
-      if (request.expectedReviewHash !== reviewHash)
-        throw new ServiceError(
-          'Analysis revision request review identity is stale; refresh the current charter and Q&A.',
-          'CONFLICT',
-        )
-      return submitDurableQualityJourneyCommandWithBusinessJoinInTransaction(
-        command,
-        tx,
-        beforeWrite,
-        true,
-        true,
-        coordinatorSession,
-      )
+  await assertCoordinatorMutationSession(coordinatorSession, command, tx)
+  return withJourneyBusinessWriteJoinInTransaction(tx, command, coordinatorSession, async beforeWrite => {
+    const journey = await journeyOrThrow(command.journeyId, command.targetProjectId, tx)
+    const revision = await tx.qualityJourneyAnalysisRevision.findFirst({
+      where: { journeyId: journey.id, artifactRevisionId: command.payload.reviewedRevisionId },
     })
+    if (!revision || revision.contentHash !== command.payload.reviewedHash)
+      throw new ServiceError('Analysis revision request does not bind an exact immutable charter revision.', 'CONFLICT')
+    assertExactCommandArtifact(command, revision)
+    const activeIds = JSON.parse(journey.activeRevisionIdsJson) as Record<string, string>
+    if (activeIds.analysis !== revision.artifactRevisionId)
+      throw new ServiceError('Analysis revision request does not bind the active analysis revision.', 'CONFLICT')
+    const publication = await tx.qualityJourneyAnalysisPublication.findUnique({
+      where: { analysisRevisionId: revision.id },
+    })
+    if (!publication || publication.artifactHash !== revision.contentHash)
+      throw new ServiceError('Analysis revision request requires an exact published analysis revision.', 'CONFLICT')
+    const reviewHash = await currentAnalysisReviewHash(revision.id, tx)
+    if (request.expectedReviewHash !== reviewHash)
+      throw new ServiceError(
+        'Analysis revision request review identity is stale; refresh the current charter and Q&A.',
+        'CONFLICT',
+      )
+    return submitDurableQualityJourneyCommandWithBusinessJoinInTransaction(
+      command,
+      tx,
+      beforeWrite,
+      true,
+      true,
+      coordinatorSession,
+    )
   })
 }

@@ -125,7 +125,12 @@ export const reportViewTableCols: ColumnDef<ReportTestCaseWithRelations>[] = [
     id: 'actions',
     cell: ({ row }) => {
       const reportTestCase = row.original
-      return <ViewLogsButton reportScenario={reportTestCase.reportScenario} />
+      return (
+        <ViewLogsButton
+          reportScenario={reportTestCase.reportScenario}
+          targetProjectId={reportTestCase.testRunTestCase.testCase.targetProjectId}
+        />
+      )
     },
   },
 ]

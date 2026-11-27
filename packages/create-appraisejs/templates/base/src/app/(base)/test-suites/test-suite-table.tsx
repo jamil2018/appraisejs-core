@@ -18,6 +18,7 @@ export default function TestSuiteTable({ rows }: { rows: TestSuiteTableRow[] }) 
       filterColumn="name"
       filterPlaceholder="Search test suites"
       modifyLink="/test-suites/modify"
+      modifyLinkProjectId={projectId}
       deleteAction={deleteTestSuiteAction}
       density="compact"
       initialColumnVisibility={{ description: false, createdAt: false }}

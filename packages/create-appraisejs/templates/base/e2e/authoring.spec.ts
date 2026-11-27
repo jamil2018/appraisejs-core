@@ -164,7 +164,7 @@ test.describe('Test authoring @authoring', () => {
     await page.getByRole('tab', { name: 'Graph' }).click()
     await expect(page.getByLabel('Graph step editor')).toBeVisible()
     await page.getByRole('button', { name: 'Save test case' }).click()
-    await expect(page).toHaveURL(/\/test-cases$/)
+    await expect.poll(() => new URL(page.url()).pathname).toBe('/test-cases')
     await expect(page.getByText('E2E Invalid Typed Input Case', { exact: true }).first()).toBeVisible()
   })
 
@@ -268,7 +268,7 @@ test.describe('Test authoring @authoring', () => {
     await expect(page.getByLabel('Graph step editor')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Remove Navigate to URL' })).toBeVisible()
     await page.getByRole('button', { name: 'Save', exact: true }).click()
-    await expect(page).toHaveURL(/\/template-test-cases$/)
+    await expect.poll(() => new URL(page.url()).pathname).toBe('/template-test-cases')
 
     const row = page.getByRole('row', { name: /E2E Template Dual View Case/ })
     await row.getByRole('button', { name: 'Actions for E2E Template Dual View Case', exact: true }).click()

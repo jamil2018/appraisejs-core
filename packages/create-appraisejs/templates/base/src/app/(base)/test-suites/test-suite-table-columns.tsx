@@ -8,6 +8,7 @@ import { createDataTableSelectionColumn } from '@/components/ui/data-table-selec
 import TableActions from '@/components/table/table-actions'
 import { deleteTestSuiteAction } from '@/actions/test-suite/test-suite-actions'
 import { formatDateTime } from '@/lib/utils'
+import { withProjectScope } from '@/lib/project-scope'
 import { Badge } from '@/components/ui/badge'
 import { getFilterTags } from '@/lib/tag-filters'
 export const testSuiteTableCols: ColumnDef<TestSuite & { tags?: Tag[]; module: Module; testCases: TestCase[] }>[] = [
@@ -70,7 +71,7 @@ export const testSuiteTableCols: ColumnDef<TestSuite & { tags?: Tag[]; module: M
       return (
         <TableActions
           rowName={testSuite.name}
-          modifyLink={`/test-suites/modify/${testSuite.id}`}
+          modifyLink={withProjectScope(`/test-suites/modify/${testSuite.id}`, testSuite.targetProjectId)}
           deleteHandler={() => deleteTestSuiteAction([testSuite.id])}
         />
       )

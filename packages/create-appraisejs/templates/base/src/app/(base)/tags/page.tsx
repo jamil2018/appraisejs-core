@@ -6,6 +6,8 @@ import { CollectionEmpty, CollectionHeader } from '@/components/data-state/colle
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
 import Link from 'next/link'
+import { requireActiveProjectForMutation } from '@/lib/active-project'
+import { withProjectScope } from '@/lib/project-scope'
 import type { Metadata } from 'next'
 
 import TagTable from './tag-table'
@@ -22,6 +24,7 @@ function isTag(value: unknown): value is Tag {
 }
 
 export default async function Tags() {
+  const project = await requireActiveProjectForMutation()
   const { data, error } = await getAllTagsAction()
   const rows = Array.isArray(data) ? data.filter(isTag) : []
 
@@ -30,7 +33,7 @@ export default async function Tags() {
   return (
     <div className="min-w-0 space-y-4">
       <CollectionHeader title="Tags">
-        <Button render={<Link href="/tags/create" />} nativeButton={false}>
+        <Button render={<Link href={withProjectScope('/tags/create', project.id)} />} nativeButton={false}>
           <Plus aria-hidden="true" /> New tag
         </Button>
       </CollectionHeader>

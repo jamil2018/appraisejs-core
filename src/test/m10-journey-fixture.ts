@@ -2,8 +2,10 @@
  * The provider fixture is positively legacy/no-invalidation. This does not admit E2 dispatch.
  * No Vitest dependency: runtime qualification scripts can reuse this preparation.
  */
+import { randomBytes } from 'node:crypto'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
+import type { PrismaClient } from '@prisma/client'
 import { createAttemptScopedWorkerMcpServer } from '../../packages/appraisejs/src/mcp/managed-worker-server'
 import { registerAppraiseOperations } from '../../packages/appraisejs/src/mcp/registry'
 import {
@@ -29,6 +31,10 @@ import {
 } from '@/services/coordinator/quality-journey-analysis-service'
 import { createQualityJourneyInternalDiscoveryGateway } from '@/services/coordinator/quality-journey-internal-discovery-gateway'
 import { createQualityJourneyInternalScenarioAutomationGateway } from '@/services/coordinator/quality-journey-internal-scenario-automation-gateway'
+import { createQualityJourneyInternalTriageGateway } from '@/services/coordinator/quality-journey-internal-triage-gateway'
+import { prepareQualityJourneyTriage } from '@/services/coordinator/quality-journey-triage-service'
+import type { TriageInput } from '@/services/coordinator/quality-journey-triage-input'
+import { composeOperatorReport, reviewSealedRuns } from '@/services/coordinator/app-managed-operator-triage'
 import {
   startQualityJourneyScenarioDesign,
   getQualityJourneyScenarioPortfolio,
@@ -129,7 +135,143 @@ export type M10OfflineDispatchEvent = Readonly<{
   directInvoke: () => Promise<unknown>
 }>
 export type M10OfflineDispatch = (event: M10OfflineDispatchEvent) => Promise<unknown>
-export async function prepareM10AutomationFixture(
+type ExistingApprovedJourney = {
+  client: PrismaClient
+  workspace: string
+  databasePath: string
+  journeyId: string
+  targetProjectId: string
+  requirementId: string
+  expectedPageTitle: string
+  reviewScenario?: () => Promise<void>
+}
+
+async function existingApprovedJourney(input: ExistingApprovedJourney) {
+  const scope = { journeyId: input.journeyId, targetProjectId: input.targetProjectId }
+  const journey = await input.client.qualityJourney.findFirst({
+    where: { id: scope.journeyId, targetProjectId: scope.targetProjectId },
+  })
+  if (
+    !journey ||
+    journey.hostingMode !== 'APP_SERVER_LOCAL_V1' ||
+    journey.stage !== 'DISCOVERY' ||
+    !journey.currentCoordinatorSessionId ||
+    !journey.activeDiscoveryRevisionId
+  )
+    throw new Error('M10 continuation requires the exact approved local Journey in Discovery.')
+  const [session, discovery] = await Promise.all([
+    input.client.qualityJourneyCoordinatorSession.findFirst({
+      where: {
+        id: journey.currentCoordinatorSessionId,
+        journeyId: scope.journeyId,
+        targetProjectId: scope.targetProjectId,
+      },
+    }),
+    input.client.qualityJourneyDiscoveryRevision.findFirst({
+      where: {
+        id: journey.activeDiscoveryRevisionId,
+        journeyId: scope.journeyId,
+        targetProjectId: scope.targetProjectId,
+        cycleId: journey.activeCycleId,
+      },
+      select: { analysisDecision: { select: { decision: true, journeyId: true } } },
+    }),
+  ])
+  if (
+    !discovery ||
+    discovery.analysisDecision.decision !== 'APPROVED' ||
+    discovery.analysisDecision.journeyId !== journey.id
+  )
+    throw new Error('M10 continuation requires the exact approved Analysis decision.')
+  if (
+    !session ||
+    session.status !== 'ACTIVE' ||
+    session.fencedAt ||
+    session.hostKind !== 'APP_SERVER_LOCAL_V1' ||
+    !session.generation
+  )
+    throw new Error('M10 continuation requires the active durable local owner generation.')
+  const credentials = {
+    ...scope,
+    coordinatorPrincipalId: session.ownerPrincipalId,
+    coordinatorSessionId: session.id,
+    coordinatorGeneration: session.generation,
+  }
+  return {
+    ...input,
+    scope,
+    credentials,
+    principal: { principalId: session.ownerPrincipalId, assurance: 'PROJECT_CREDENTIAL_ONLY' as const },
+    cleanup: async () => undefined,
+  }
+}
+
+function m10Operations(includeOrderNumber: boolean) {
+  return [
+    'browser.navigation.navigate.to.environment.base.url',
+    'browser.navigation.reload',
+    'browser.navigation.assertion.assert.url.route.equals',
+    ...(includeOrderNumber ? ['browser.browser.assertion.assert.page.title'] : []),
+  ].map(id => {
+    const operation = defaultOperationDefinitions.find(candidate => candidate.id === id)!
+    const definition = builtInStepDefinitions.find(
+      candidate => candidate.execution.kind === 'operation' && candidate.execution.handlerId === operation.handler.id,
+    )!
+    return { operation, definition, hashes: computeStepDefinitionHashes(definition) }
+  })
+}
+
+async function publishM10FixtureDefinitions(client: PrismaClient, includeOrderNumber: boolean) {
+  for (const { definition, hashes } of m10Operations(includeOrderNumber)) {
+    const registryManifestHash = stepDefinitionContentHash({ step: definition.identity })
+    const conformanceRunId = 'm10-disposable-runtime-fixture'
+    const publicationReceipt = {
+      step: { id: definition.identity.id, version: definition.identity.version },
+      ...hashes,
+      registryManifestHash,
+      executableReadiness: computeStepExecutableReadiness(definition, registryManifestHash, conformanceRunId),
+      conformanceRunId,
+      reviewAuthority: 'disposable-fixture-reviewer',
+      publishedAt: '2026-11-11T00:00:00.000Z',
+    }
+    await client.stepDefinition.create({
+      data: {
+        id: definition.identity.id,
+        version: definition.identity.version,
+        status: 'ready',
+        title: definition.intent.title,
+        description: definition.intent.description,
+        definitionJson: canonicalContractJson(definition),
+        ...hashes,
+        // Isolated fixture publication metadata; it is not provider or production qualification.
+        publicationReceipt: {
+          create: {
+            receiptJson: canonicalContractJson(publicationReceipt),
+            receiptHash: stepDefinitionContentHash(publicationReceipt),
+            registryManifestHash,
+            conformanceRunId,
+            reviewAuthority: publicationReceipt.reviewAuthority,
+          },
+        },
+        provenanceJson: canonicalContractJson(definition.provenance),
+        executionBinding: {
+          create: {
+            kind: 'operation',
+            bindingJson: canonicalContractJson(definition.execution),
+            bindingHash: hashes.executionHash,
+          },
+        },
+      },
+    })
+  }
+}
+
+/** Seed the reviewed operation registry before Analysis approval freezes Discovery authority. */
+export async function prepareM10ExistingRegistry(client: PrismaClient) {
+  await publishM10FixtureDefinitions(client, true)
+}
+
+async function prepareM10AutomationFixtureInternal(
   baseUrl = 'http://127.0.0.1:44081/checkout',
   offline?: {
     dispatch: M10OfflineDispatch
@@ -154,9 +296,13 @@ export async function prepareM10AutomationFixture(
     workspaceParent?: string
     qualificationLeaseSeconds?: 900
   },
+  existing?: ExistingApprovedJourney,
 ) {
   const qualificationLeaseSeconds = offline?.qualificationLeaseSeconds
-  const f = await createProviderFixture({ workspaceParent: offline?.workspaceParent, qualificationLeaseSeconds })
+  const seeded = existing
+    ? null
+    : await createProviderFixture({ workspaceParent: offline?.workspaceParent, qualificationLeaseSeconds })
+  const f = seeded ?? (await existingApprovedJourney(existing!))
   try {
     offline?.onFixtureOwned?.({ client: f.client, workspace: f.workspace, databasePath: f.databasePath })
     const { client, scope, credentials, principal } = f
@@ -195,74 +341,37 @@ export async function prepareM10AutomationFixture(
         : invoke()
     }
 
-    const operations = [
-      'browser.navigation.navigate.to.environment.base.url',
-      'browser.navigation.reload',
-      'browser.navigation.assertion.assert.url.route.equals',
-    ].map(id => {
-      const operation = defaultOperationDefinitions.find(candidate => candidate.id === id)!
-      const definition = builtInStepDefinitions.find(
-        candidate => candidate.execution.kind === 'operation' && candidate.execution.handlerId === operation.handler.id,
-      )!
-      return { operation, definition, hashes: computeStepDefinitionHashes(definition) }
-    })
-    for (const { definition, hashes } of operations) {
-      const registryManifestHash = stepDefinitionContentHash({ step: definition.identity })
-      const conformanceRunId = 'm10-disposable-runtime-fixture'
-      const publicationReceipt = {
-        step: { id: definition.identity.id, version: definition.identity.version },
-        ...hashes,
-        registryManifestHash,
-        executableReadiness: computeStepExecutableReadiness(definition, registryManifestHash, conformanceRunId),
-        conformanceRunId,
-        reviewAuthority: 'disposable-fixture-reviewer',
-        publishedAt: '2026-11-11T00:00:00.000Z',
-      }
-      await client.stepDefinition.create({
+    const operations = m10Operations(Boolean(existing))
+    if (!existing) await publishM10FixtureDefinitions(client, false)
+    const environmentId = 'm10-environment'
+    const moduleId = 'm10-module'
+    if (existing) {
+      const [environment, module, locators] = await Promise.all([
+        client.environment.findFirst({ where: { id: environmentId, targetProjectId: scope.targetProjectId } }),
+        client.module.findFirst({ where: { id: moduleId, targetProjectId: scope.targetProjectId } }),
+        client.locatorGroup.findFirst({
+          where: { id: 'm10-locators', moduleId, targetProjectId: scope.targetProjectId },
+        }),
+      ])
+      if (!environment || environment.baseUrl !== baseUrl || !module || !locators || locators.route !== '/checkout')
+        throw new Error('M10 continuation requires the reviewed local checkout environment and route.')
+    } else {
+      await client.environment.create({
+        data: { id: environmentId, name: 'M10 disposable', baseUrl, targetProjectId: scope.targetProjectId },
+      })
+      await client.module.create({
+        data: { id: moduleId, name: 'M10 checkout', targetProjectId: scope.targetProjectId },
+      })
+      await client.locatorGroup.create({
         data: {
-          id: definition.identity.id,
-          version: definition.identity.version,
-          status: 'ready',
-          title: definition.intent.title,
-          description: definition.intent.description,
-          definitionJson: canonicalContractJson(definition),
-          ...hashes,
-          // Isolated fixture publication metadata; it is not provider or production qualification.
-          publicationReceipt: {
-            create: {
-              receiptJson: canonicalContractJson(publicationReceipt),
-              receiptHash: stepDefinitionContentHash(publicationReceipt),
-              registryManifestHash,
-              conformanceRunId,
-              reviewAuthority: publicationReceipt.reviewAuthority,
-            },
-          },
-          provenanceJson: canonicalContractJson(definition.provenance),
-          executionBinding: {
-            create: {
-              kind: 'operation',
-              bindingJson: canonicalContractJson(definition.execution),
-              bindingHash: hashes.executionHash,
-            },
-          },
+          id: 'm10-locators',
+          name: 'M10 checkout',
+          route: '/checkout',
+          moduleId,
+          targetProjectId: scope.targetProjectId,
         },
       })
     }
-    const environmentId = 'm10-environment'
-    const moduleId = 'm10-module'
-    await client.environment.create({
-      data: { id: environmentId, name: 'M10 disposable', baseUrl, targetProjectId: scope.targetProjectId },
-    })
-    await client.module.create({ data: { id: moduleId, name: 'M10 checkout', targetProjectId: scope.targetProjectId } })
-    await client.locatorGroup.create({
-      data: {
-        id: 'm10-locators',
-        name: 'M10 checkout',
-        route: '/checkout',
-        moduleId,
-        targetProjectId: scope.targetProjectId,
-      },
-    })
     const command = async (key: string, actor: 'USER' | 'RUNNER') => ({
       ...scope,
       schemaVersion: qualityJourneyContractVersion,
@@ -271,87 +380,90 @@ export async function prepareM10AutomationFixture(
       actor,
       expectedStateHash: (await getQualityJourney(scope, client)).journey.stateHash,
     })
-    const charter = {
-      schemaVersion: qualityJourneyContractVersion,
-      charterId: 'm10-charter',
-      analysisRevisionId: 'm10-analysis',
-      ...scope,
-      cycleId: f.created.journey.activeCycleId,
-      requirementRevisionId: f.created.journey.activeRevisionIds.journey,
-      objectives: ['Allow checkout.'],
-      scope: { included: ['Checkout'], excluded: [] },
-      actors: ['Shopper'],
-      requirements: [
-        { requirementId: 'REQ-M10-CHECKOUT', statement: 'A shopper opens checkout.', sourceRefs: ['brief:1'] },
-      ],
-      obligations: [
+    const requirementId = existing?.requirementId ?? 'REQ-M10-CHECKOUT'
+    if (seeded) {
+      const charter = {
+        schemaVersion: qualityJourneyContractVersion,
+        charterId: 'm10-charter',
+        analysisRevisionId: 'm10-analysis',
+        ...scope,
+        cycleId: seeded.created.journey.activeCycleId,
+        requirementRevisionId: seeded.created.journey.activeRevisionIds.journey,
+        objectives: ['Allow checkout.'],
+        scope: { included: ['Checkout'], excluded: [] },
+        actors: ['Shopper'],
+        requirements: [
+          { requirementId: 'REQ-M10-CHECKOUT', statement: 'A shopper opens checkout.', sourceRefs: ['brief:1'] },
+        ],
+        obligations: [
+          {
+            obligationId: 'OBL-M10-CHECKOUT',
+            requirementId: 'REQ-M10-CHECKOUT',
+            statement: 'The checkout route is displayed.',
+            acceptanceSignals: ['Checkout route'],
+          },
+        ],
+        constraints: [],
+        assumptions: [],
+        risks: [],
+        acceptanceSignals: ['Checkout route'],
+        retiredRequirementIds: [],
+        questions: [],
+        resolvedQuestionAnswerIds: [],
+      }
+      const submitAnalysis = () =>
+        submitExternalQualityJourneyAnalysisSuccessor(
+          {
+            ...scope,
+            workItemId: seeded.binding.workItemId,
+            attemptId: seeded.binding.attemptId,
+            assignmentId: seeded.binding.assignmentId,
+            assignmentGeneration: seeded.binding.assignmentGeneration,
+            assignmentSecret: seeded.binding.assignmentSecret,
+            leaseId: seeded.binding.leaseId,
+            idempotencyKey: 'm10-submit-analysis',
+            charter,
+          },
+          principal,
+          client,
+          credentials,
+        )
+      const submitted = await dispatch(
+        seeded.binding,
+        'quality_journey_analysis_submit',
+        { idempotencyKey: 'm10-submit-analysis', charter },
+        submitAnalysis,
+      )
+      const analysis = submitted.analysisRevision
+      const analysisRefs = [
         {
-          obligationId: 'OBL-M10-CHECKOUT',
-          requirementId: 'REQ-M10-CHECKOUT',
-          statement: 'The checkout route is displayed.',
-          acceptanceSignals: ['Checkout route'],
+          kind: 'ANALYSIS_CHARTER_REVISION',
+          artifactId: charter.charterId,
+          revisionId: analysis.id,
+          contentHash: analysis.contentHash,
         },
-      ],
-      constraints: [],
-      assumptions: [],
-      risks: [],
-      acceptanceSignals: ['Checkout route'],
-      retiredRequirementIds: [],
-      questions: [],
-      resolvedQuestionAnswerIds: [],
-    }
-    const submitAnalysis = () =>
-      submitExternalQualityJourneyAnalysisSuccessor(
+      ]
+      await publishQualityJourneyAnalysis(
         {
-          ...scope,
-          workItemId: f.binding.workItemId,
-          attemptId: f.binding.attemptId,
-          assignmentId: f.binding.assignmentId,
-          assignmentGeneration: f.binding.assignmentGeneration,
-          assignmentSecret: f.binding.assignmentSecret,
-          leaseId: f.binding.leaseId,
-          idempotencyKey: 'm10-submit-analysis',
-          charter,
+          ...(await command('m10-publish-analysis', 'RUNNER')),
+          command: 'PUBLISH_ANALYSIS',
+          inputArtifactRefs: analysisRefs,
+          payload: { artifactRevisionId: analysis.id, artifactHash: analysis.contentHash },
         },
-        principal,
         client,
         credentials,
       )
-    const submitted = await dispatch(
-      f.binding,
-      'quality_journey_analysis_submit',
-      { idempotencyKey: 'm10-submit-analysis', charter },
-      submitAnalysis,
-    )
-    const analysis = submitted.analysisRevision
-    const analysisRefs = [
-      {
-        kind: 'ANALYSIS_CHARTER_REVISION',
-        artifactId: charter.charterId,
-        revisionId: analysis.id,
-        contentHash: analysis.contentHash,
-      },
-    ]
-    await publishQualityJourneyAnalysis(
-      {
-        ...(await command('m10-publish-analysis', 'RUNNER')),
-        command: 'PUBLISH_ANALYSIS',
-        inputArtifactRefs: analysisRefs,
-        payload: { artifactRevisionId: analysis.id, artifactHash: analysis.contentHash },
-      },
-      client,
-      credentials,
-    )
-    await decideQualityJourneyAnalysis(
-      {
-        ...(await command('m10-approve-analysis', 'USER')),
-        command: 'DECIDE_ANALYSIS',
-        inputArtifactRefs: analysisRefs,
-        payload: { revisionId: analysis.id, contentHash: analysis.contentHash, decision: 'APPROVED' },
-      },
-      client,
-      trustedHumanCoordinatorSession,
-    )
+      await decideQualityJourneyAnalysis(
+        {
+          ...(await command('m10-approve-analysis', 'USER')),
+          command: 'DECIDE_ANALYSIS',
+          inputArtifactRefs: analysisRefs,
+          payload: { revisionId: analysis.id, contentHash: analysis.contentHash, decision: 'APPROVED' },
+        },
+        client,
+        trustedHumanCoordinatorSession,
+      )
+    }
 
     let claimSequence = 0
     const admit = async (role: QualityJourneyRole) => {
@@ -507,11 +619,11 @@ export async function prepareM10AutomationFixture(
         inputArtifacts: JSON.parse(explorer.worker.workItem.inputArtifactRefsJson),
         resolvedAt: receipt.capturedAt,
         destinationModuleId: moduleId,
-        approvedRequirementIds: ['REQ-M10-CHECKOUT'],
+        approvedRequirementIds: [requirementId],
         evidenceReceipts: [{ artifactId: analysisRevision.artifactId, contentHash: analysisRevision.contentHash }],
         reusable: resources.map((resource, index) => ({
           ...resource,
-          requirementId: 'REQ-M10-CHECKOUT',
+          requirementId,
           rank: index + 1,
           explanation: 'Use the frozen compatible mapping.',
           reasonCode: 'COMPATIBLE',
@@ -558,14 +670,20 @@ export async function prepareM10AutomationFixture(
           stableScenarioId: 'm10-checkout',
           scenarioRevisionId,
           behavioralIntent: {
-            title: 'Verify checkout route',
+            title: existing ? 'Verify checkout order number' : 'Verify checkout route',
             narrative: 'A shopper opens checkout.',
-            requirementIds: ['REQ-M10-CHECKOUT'],
-            expectedSignals: ['Checkout route'],
+            requirementIds: [requirementId],
+            expectedSignals: existing ? ['An order ID is shown'] : ['Checkout route'],
             steps: operations.map(({ definition }, index) => ({
               stepId: `m10-step-${index}`,
               action: `${index === 0 ? 'Given' : 'Then'} ${definition.intent.title}`,
-              expected: index === 0 ? 'Environment is open' : '/checkout',
+              expected:
+                index === 0
+                  ? 'Environment is open'
+                  : definition.execution.kind === 'operation' &&
+                      definition.execution.handlerId === 'browser.browser.assertion.assert.page.title'
+                    ? existing!.expectedPageTitle
+                    : '/checkout',
             })),
           },
           enrichment: {
@@ -616,24 +734,26 @@ export async function prepareM10AutomationFixture(
     )
     const reviewed = await getQualityJourneyScenarioPortfolio(scope, client)
     const decision = { approvedScenarioRevisionIds: [scenarioRevisionId], rejectedScenarioRevisionIds: [] }
-    await decideQualityJourneyScenarios(
-      {
-        ...decision,
-        expectedReviewHash: reviewed.portfolio.reviewHash,
-        command: {
-          ...(await command('m10-human-review', 'USER')),
-          command: 'DECIDE_SCENARIOS',
-          inputArtifactRefs: portfolioRefs,
-          payload: {
-            ...decision,
-            portfolioRevisionId: design.portfolioRevisionId,
-            portfolioHash: candidate.portfolio.contentHash,
+    if (existing?.reviewScenario) await existing.reviewScenario()
+    else
+      await decideQualityJourneyScenarios(
+        {
+          ...decision,
+          expectedReviewHash: reviewed.portfolio.reviewHash,
+          command: {
+            ...(await command('m10-human-review', 'USER')),
+            command: 'DECIDE_SCENARIOS',
+            inputArtifactRefs: portfolioRefs,
+            payload: {
+              ...decision,
+              portfolioRevisionId: design.portfolioRevisionId,
+              portfolioHash: candidate.portfolio.contentHash,
+            },
           },
         },
-      },
-      client,
-      trustedHumanCoordinatorSession,
-    )
+        client,
+        trustedHumanCoordinatorSession,
+      )
     const automator = await admit('AUTOMATOR')
     const automatorGateway = await createQualityJourneyInternalScenarioAutomationGateway(
       automator.workerBinding,
@@ -653,7 +773,12 @@ export async function prepareM10AutomationFixture(
           .definitionHash,
       },
       operation: { id: operation.id, version: operation.version, handler: operation.handler },
-      parameters: index < operations.length - 1 ? [] : [{ name: 'route', type: 'string', value: '/checkout' }],
+      parameters:
+        operation.id === 'browser.navigation.assertion.assert.url.route.equals'
+          ? [{ name: 'route', type: 'string', value: '/checkout' }]
+          : operation.id === 'browser.browser.assertion.assert.page.title'
+            ? [{ name: 'expected', type: 'string', value: existing!.expectedPageTitle }]
+            : [],
       testData: [],
       locatorRequirements: [],
     }))
@@ -671,4 +796,95 @@ export async function prepareM10AutomationFixture(
     if (!offline?.preserveOnFailure) await f.cleanup()
     throw error
   }
+}
+
+/** Original self-contained disposable M10 fixture. */
+export async function prepareM10AutomationFixture(
+  baseUrl = 'http://127.0.0.1:44081/checkout',
+  offline?: Parameters<typeof prepareM10AutomationFixtureInternal>[1],
+) {
+  const result = await prepareM10AutomationFixtureInternal(baseUrl, offline)
+  return result as typeof result & Awaited<ReturnType<typeof createProviderFixture>>
+}
+
+/** Continue a UI-created Journey after its exact Analysis revision was approved. */
+export async function continueM10AutomationFixture(input: ExistingApprovedJourney, baseUrl: string) {
+  return prepareM10AutomationFixtureInternal(baseUrl, undefined, input)
+}
+
+/** Synthetic Triager on the pilot's real sealed checkout result. */
+export async function publishM10CheckoutReportFixture(
+  scope: { journeyId: string; targetProjectId: string; executionCycleId: string },
+  client: PrismaClient,
+) {
+  const journey = await client.qualityJourney.findFirstOrThrow({
+    where: { id: scope.journeyId, targetProjectId: scope.targetProjectId, stage: 'TRIAGE', status: 'ACTIVE' },
+  })
+  const owner = await client.qualityJourneyCoordinatorSession.findFirstOrThrow({
+    where: {
+      id: journey.currentCoordinatorSessionId ?? '',
+      journeyId: journey.id,
+      targetProjectId: scope.targetProjectId,
+      status: 'ACTIVE',
+    },
+  })
+  if (!owner.generation) throw new Error('The fixture Journey needs its durable local coordinator generation.')
+  const credentials = {
+    journeyId: scope.journeyId,
+    targetProjectId: scope.targetProjectId,
+    coordinatorPrincipalId: owner.ownerPrincipalId,
+    coordinatorSessionId: owner.id,
+    coordinatorGeneration: owner.generation,
+  }
+  await prepareQualityJourneyTriage(scope, client, credentials)
+  const claim = {
+    ...credentials,
+    role: 'TRIAGER' as const,
+    principal: { principalId: owner.ownerPrincipalId, assurance: 'PROJECT_CREDENTIAL_ONLY' as const },
+    assignmentSecret: randomBytes(32).toString('hex'),
+  }
+  const worker = await claimExternalQualityJourneyWork(
+    { ...claim, idempotencyKey: 'm10-checkout-triage-claim' },
+    client,
+  )
+  const binding = {
+    ...claim,
+    workItemId: worker.workItem.id,
+    attemptId: worker.attempt.id,
+    assignmentId: worker.assignment.assignmentId,
+    assignmentGeneration: worker.assignmentGeneration,
+    leaseId: worker.attempt.leaseId,
+  }
+  await admitExternalQualityJourneyWork({ ...binding, idempotencyKey: 'm10-checkout-triage-admit' }, client)
+  const definitions = registerAppraiseOperations({
+    server: { registerTool: () => ({}), registerResource: () => ({}) } as never,
+    api: {} as never,
+    options: { baseUrl: 'http://127.0.0.1:3000', cwd: process.cwd(), coordinatorId: 'm10-disposable' },
+  })
+  const gateway = await createQualityJourneyInternalTriageGateway(binding, definitions, client)
+  const { result: assignment } = await callM10WorkerMcp<TriageInput & { reportRevisionId: string }>(
+    gateway,
+    'quality_journey_triage_get',
+  )
+  const runs = reviewSealedRuns(assignment, [])
+  const notes = runs
+    .filter(run => !run.passed)
+    .map(run => ({
+      testRunId: run.testRunId,
+      kind: 'INCONCLUSIVE' as const,
+      observation: 'The sealed fixture run did not establish the required order number.',
+      expectation: 'The checkout confirmation includes an order number.',
+      nextAction: 'Inspect the original checkout run and exact report step.',
+    }))
+  await callM10WorkerMcp(gateway, 'quality_journey_triage_submit', {
+    idempotencyKey: 'm10-checkout-triage-report',
+    report: {
+      schemaVersion: qualityJourneyContractVersion,
+      reportRevisionId: assignment.reportRevisionId,
+      executionCycleId: assignment.executionCycleId,
+      cycleId: assignment.cycleId,
+      ...composeOperatorReport(assignment, runs, notes),
+    },
+  })
+  return { reportRevisionId: assignment.reportRevisionId }
 }

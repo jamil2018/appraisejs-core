@@ -9,6 +9,10 @@ import { ServiceError } from '@/services/shared/errors'
 import { requireCollaborationPermission } from './binding-service'
 import { getCollaborationGitStatus } from './git-operation-service'
 import { continueAcceptedCollaborationOperation } from './operation-service'
+import {
+  cleanupRejectedDivergentCollaborationWorktree,
+  divergentDecisionRecordKey,
+} from './divergent-reconciliation-service'
 
 type Transaction = Prisma.TransactionClient
 type Clock = Date
@@ -569,7 +573,16 @@ export async function runCollaborationSchedulerTick(
   // durable boundaries. A process crash after READY must therefore be picked
   // up by the next scheduler process, without callers naming a step.
   const readyOperations = await client.collaborationOperation.findMany({
-    where: { state: 'READY', cancelledAt: null, binding: { enabled: true } },
+    where: {
+      state: 'READY',
+      cancelledAt: null,
+      binding: { enabled: true },
+      OR: [
+        { trigger: { not: 'local-ui-chat-preparation' } },
+        { decisions: { some: {} } },
+        { steps: { some: { state: { not: 'PENDING' } } } },
+      ],
+    },
     select: { id: true },
     take: 50,
     orderBy: { updatedAt: 'asc' },
@@ -589,6 +602,32 @@ export async function runCollaborationSchedulerTick(
       continuations.push({ operationId: operation.id, outcome: 'deferred' })
     }
   }
+  // A rejected divergent decision is committed before its worktree cleanup.
+  // Reconnect must recover that exact operation when the response callback was
+  // lost; a completed cleanup receipt excludes it from further filesystem work.
+  const rejected = await client.collaborationOperation.findMany({
+    where: {
+      intent: 'RECONCILE',
+      state: 'CANCELLED',
+      cancelledAt: { not: null },
+      decisions: { some: { recordKey: divergentDecisionRecordKey, kind: 'REJECT' } },
+      journalEntries: { none: { boundary: 'DIVERGENT_PROPOSAL_REJECT_CLEANUP', status: 'COMPLETED' } },
+    },
+    select: { id: true },
+    take: 50,
+    orderBy: { updatedAt: 'asc' },
+  })
+  const rejectedCleanups = [] as Array<{ operationId: string; outcome: 'completed' | 'deferred' }>
+  for (const operation of rejected) {
+    try {
+      await cleanupRejectedDivergentCollaborationWorktree(operation.id, client)
+      rejectedCleanups.push({ operationId: operation.id, outcome: 'completed' })
+    } catch {
+      // Lock contention and an ambiguous filesystem state remain durable and
+      // must not be treated as a second cleanup dispatch in this pass.
+      rejectedCleanups.push({ operationId: operation.id, outcome: 'deferred' })
+    }
+  }
   const dueBindings = await client.collaborationBinding.findMany({
     where: {
       enabled: true,
@@ -603,7 +642,7 @@ export async function runCollaborationSchedulerTick(
     await recordRemoteCollaborationCheck({ bindingId: binding.id, outcome, now }, client)
     remoteChecks.push({ bindingId: binding.id, outcome })
   }
-  return { recovered: recovered.filter(Boolean), continuations, remoteChecks }
+  return { recovered: recovered.filter(Boolean), continuations, rejectedCleanups, remoteChecks }
 }
 
 /**

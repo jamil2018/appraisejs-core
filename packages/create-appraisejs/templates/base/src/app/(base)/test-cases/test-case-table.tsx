@@ -16,6 +16,7 @@ export default function TestCaseTable({ rows }: { rows: TestCasePickerRow[] }) {
       filterColumn="title"
       filterPlaceholder="Search test cases"
       modifyLink="/test-cases/modify"
+      modifyLinkProjectId={rows[0].targetProjectId}
       deleteAction={deleteTestCaseAction}
       density="compact"
       initialColumnVisibility={{ description: false, createdAt: false }}

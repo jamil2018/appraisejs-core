@@ -22,6 +22,8 @@ type ModuleFormProps = {
   parentOptions?: ModuleParentOption[]
   id?: string
   onSubmitAction: ModuleFormSubmitAction
+  redirectPath?: string
+  expectedUpdatedAt?: string
 }
 
 const EMPTY_PARENT_OPTIONS: ModuleParentOption[] = []
@@ -33,19 +35,24 @@ const ModuleForm = ({
   parentOptions = EMPTY_PARENT_OPTIONS,
   id,
   onSubmitAction,
+  redirectPath = '/modules',
+  expectedUpdatedAt,
 }: ModuleFormProps) => {
   const { push } = useRouter()
   const form = useForm({
     defaultValues: defaultValues ?? moduleFormOpts.defaultValues,
     validators: moduleFormOpts.validators,
     onSubmit: async ({ value }) => {
-      const res = await onSubmitAction(undefined, value, id)
+      const res =
+        expectedUpdatedAt === undefined
+          ? await onSubmitAction(undefined, value, id)
+          : await onSubmitAction(undefined, value, id, expectedUpdatedAt)
       handleStandardFormResult({
         status: res.status,
         successTitle,
         successMessage,
         errorMessage: getActionErrorMessage(res),
-        onSuccess: () => push('/modules'),
+        onSuccess: () => push(redirectPath),
       })
     },
   })
@@ -97,7 +104,9 @@ const ModuleForm = ({
       </form.Field>
       <div className="flex border-t border-border pt-4 lg:col-span-2">
         <form.Subscribe selector={formState => [formState.canSubmit, formState.isSubmitting]}>
-          {([canSubmit, isSubmitting]) => <FormSubmitButton canSubmit={canSubmit} isSubmitting={isSubmitting} />}
+          {([canSubmit, isSubmitting]) => (
+            <FormSubmitButton canSubmit={canSubmit && !isSubmitting} isSubmitting={isSubmitting} />
+          )}
         </form.Subscribe>
       </div>
     </TanStackForm>

@@ -85,6 +85,7 @@ export async function getTestCaseByIdAction(id: string): Promise<ActionResponse>
 export async function updateTestCaseAction(
   value: z.infer<typeof testCaseSchema>,
   id?: string,
+  expectedUpdatedAt?: string,
 ): Promise<ActionResponse> {
   if (!id) {
     return {
@@ -96,7 +97,7 @@ export async function updateTestCaseAction(
   try {
     testCaseSchema.parse(value)
     const project = await requireActiveProjectForMutation()
-    const testCase = await updateTestCaseFromInput(value, id, project.id)
+    const testCase = await updateTestCaseFromInput(value, id, project.id, expectedUpdatedAt)
 
     revalidatePath('/test-cases')
     return {

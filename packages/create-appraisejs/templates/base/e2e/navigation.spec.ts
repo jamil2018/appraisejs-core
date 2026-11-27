@@ -88,10 +88,13 @@ test.describe('Navigation @navigation', () => {
     const create = page.getByRole('button', { name: 'New test case', exact: true })
     await expect(create).toHaveCount(1)
     await create.press('ArrowDown')
-    await expect(page.getByRole('menuitem', { name: 'From scratch' })).toHaveAttribute('href', '/test-cases/create')
+    await expect(page.getByRole('menuitem', { name: 'From scratch' })).toHaveAttribute(
+      'href',
+      `/test-cases/create?project=${seededIds.targetProject}`,
+    )
     await expect(page.getByRole('menuitem', { name: 'From template' })).toHaveAttribute(
       'href',
-      '/test-cases/create-from-template',
+      `/test-cases/create-from-template?project=${seededIds.targetProject}`,
     )
     await page.keyboard.press('Escape')
     await expect(create).toBeFocused()
@@ -116,7 +119,7 @@ test.describe('Navigation @navigation', () => {
     await expect(remove).toBeVisible()
     await expect(page.getByRole('link', { name: 'Edit selected item' })).toHaveAttribute(
       'href',
-      `/test-cases/modify/${seededIds.testCase}`,
+      `/test-cases/modify/${seededIds.testCase}?project=${seededIds.targetProject}`,
     )
   })
 

@@ -52,8 +52,8 @@ function OperationHistory({
   operations: NonNullable<Awaited<ReturnType<typeof getCollaborationStatus>>>['operations']
 }) {
   return (
-    <section className="space-y-3" aria-labelledby="history-heading">
-      <h2 className="text-lg font-semibold" id="history-heading">
+    <section className="space-y-3" aria-labelledby="operation-history">
+      <h2 className="text-lg font-semibold" id="operation-history">
         Recent operations
       </h2>
       <div className="rounded-lg border">
@@ -69,7 +69,7 @@ function OperationHistory({
           </TableHeader>
           <TableBody>
             {operations.map(operation => (
-              <TableRow key={operation.id}>
+              <TableRow id={`operation-${operation.id}`} key={operation.id}>
                 <TableCell className="font-medium">{operation.intent}</TableCell>
                 <TableCell>{operation.state}</TableCell>
                 <TableCell>{operation.changeCount}</TableCell>

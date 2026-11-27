@@ -4,7 +4,7 @@ import { TestCase, Tag, TestSuiteMetrics, TestSuite } from '@prisma/client'
 import { getAllTestSuiteMetricsAction } from '@/actions/reports/report-actions'
 import { testSuitesMetricTableCols } from './test-suites-metric-table-columns'
 
-const TestSuitesMetricTable = async ({ filter }: { filter: 'notExecutedRecently' }) => {
+const TestSuitesMetricTable = async ({ filter, projectId }: { filter: 'notExecutedRecently'; projectId: string }) => {
   const { data: testSuiteMetrics, error: testSuiteMetricsError } = await getAllTestSuiteMetricsAction(filter)
 
   if (testSuiteMetricsError) {
@@ -22,6 +22,8 @@ const TestSuitesMetricTable = async ({ filter }: { filter: 'notExecutedRecently'
         filterColumn="testSuite.name"
         filterPlaceholder="Filter by name..."
         deleteAction={deleteTestSuiteAction}
+        density="compact"
+        viewKey={`report-suites:${projectId}:${filter}`}
       />
     </>
   )

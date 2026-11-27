@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button'
 import { Braces, KeyRound, Plus, Server } from 'lucide-react'
 import { Metadata } from 'next'
 import Link from 'next/link'
+import { requireActiveProject } from '@/lib/active-project'
+import { withProjectScope } from '@/lib/project-scope'
 
 import { getEnvironmentTableRows } from './environment-helpers'
 import EnvironmentRegistry from './environment-registry'
@@ -43,14 +45,19 @@ function EnvironmentOverview({ environments }: { environments: ReturnType<typeof
   )
 }
 
-export default async function Environments() {
+export default async function Environments({ searchParams }: { searchParams?: Promise<{ project?: string }> }) {
+  const project = await requireActiveProject((await searchParams)?.project)
   const response = await getAllEnvironmentsAction()
   const environments = getEnvironmentTableRows(response.data)
   const error = collectionLoadError(response)
   return (
     <div className="min-w-0 space-y-4">
       <CollectionHeader title="Environments">
-        <Button render={<Link href="/environments/create" />} nativeButton={false} className="rounded-xl">
+        <Button
+          render={<Link href={withProjectScope('/environments/create', project.id)} />}
+          nativeButton={false}
+          className="rounded-xl"
+        >
           <Plus aria-hidden="true" data-icon="inline-start" />
           New environment
         </Button>
@@ -59,7 +66,7 @@ export default async function Environments() {
         {environments.length > 0 ? (
           <>
             <EnvironmentOverview environments={environments} />
-            <EnvironmentRegistry environments={environments} />
+            <EnvironmentRegistry environments={environments} projectId={project.id} />
           </>
         ) : null}
       </CollectionResults>

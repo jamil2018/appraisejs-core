@@ -2,6 +2,27 @@ import type { WorkspaceRecordKind } from './workspace-records'
 
 export type WorkspaceRequest = { kind: WorkspaceRecordKind; query: string }
 
+export const chatApprovalText = 'Approve criteria'
+export const chatComposerFormId = 'conversation-composer'
+
+export function isJourneyEvidenceRequest(text: string): boolean {
+  return /^(?:please\s+)?show me where[.!?]?$/i.test(text.trim())
+}
+
+export function isAnalysisApprovalRequest(text: string): boolean {
+  return /^(?:i\s+)?approve(?:\s+(?:criteria|(?:this|the)\s+(?:review|revision|criteria)))?[.!]?$/i.test(text.trim())
+}
+
+export function parseAnalysisAnswerReply(text: string): string | undefined {
+  return /^answer:\s*([\s\S]+)$/i.exec(text.trim())?.[1]?.trim() || undefined
+}
+
+export function isCheckoutOrderNumberRequest(text: string): boolean {
+  return /^(?:please\s+)?(?:also\s+)?(?:check|verify)\s+that\s+(?:i\s+(?:get|receive)|(?:the\s+)?(?:order\s+)?confirmation\s+(?:shows|includes))\s+(?:an?|the)\s+order\s+(?:number|id)[.!?]?$/i.test(
+    text.trim(),
+  )
+}
+
 export function parseAttachedCaseRename(body: string): string | undefined {
   const request = /^(?:please\s+)?rename (?:this|the attached) (?:test )?case to (.+)$/i.exec(body.trim())
   if (!request) return undefined

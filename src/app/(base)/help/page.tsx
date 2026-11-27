@@ -6,13 +6,19 @@ import PageHeader from '@/components/typography/page-header'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { readActiveProjectCookie } from '@/lib/active-project'
+import { withProjectScope } from '@/lib/project-scope'
+import { resolveActiveProject } from '@/services/target-project/target-project-service'
 
 export const metadata: Metadata = {
   title: 'Help | AppraiseJS',
   description: 'Understand Quality Journeys, manual test design, approvals, setup, and recovery.',
 }
 
-export default function HelpPage() {
+export default async function HelpPage({ searchParams }: { searchParams?: Promise<{ project?: string }> }) {
+  const [params, cookieProjectId] = await Promise.all([searchParams, readActiveProjectCookie()])
+  const project = await resolveActiveProject({ urlProjectId: params?.project, cookieProjectId })
+  const scoped = (href: string) => (project ? withProjectScope(href, project.id) : href)
   return (
     <div className="space-y-4">
       <div>
@@ -56,7 +62,7 @@ export default function HelpPage() {
           </CardHeader>
           <CardContent className="space-y-3 p-4 pt-0 text-sm text-muted-foreground">
             <p>The guided path from requirement intake through analysis, approvals, execution evidence, and closure.</p>
-            <Button size="sm" render={<Link href="/quality-journeys/new" />} nativeButton={false}>
+            <Button size="sm" render={<Link href={scoped('/quality-journeys/new')} />} nativeButton={false}>
               Start a Journey <ArrowRight aria-hidden="true" className="ml-2 size-4" />
             </Button>
           </CardContent>
@@ -71,7 +77,7 @@ export default function HelpPage() {
               Expert tools for reusable steps, Case Templates, test cases, suites, and independent runs. They do not
               bypass Journey approvals.
             </p>
-            <Button size="sm" variant="outline" render={<Link href="/test-cases" />} nativeButton={false}>
+            <Button size="sm" variant="outline" render={<Link href={scoped('/test-cases')} />} nativeButton={false}>
               Open test design
             </Button>
           </CardContent>
@@ -89,7 +95,7 @@ export default function HelpPage() {
             <Button
               size="sm"
               variant="outline"
-              render={<Link href="/projects?agentSetup=codex" />}
+              render={<Link href={scoped('/projects?agentSetup=codex')} />}
               nativeButton={false}
             >
               Open Codex setup

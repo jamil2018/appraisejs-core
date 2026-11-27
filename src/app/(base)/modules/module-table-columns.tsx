@@ -6,6 +6,7 @@ import { createDataTableSelectionColumn } from '@/components/ui/data-table-selec
 import { deleteModuleAction } from '@/actions/modules/module-actions'
 import { buildModulePath } from '@/lib/path-helpers/module-path'
 import { formatDateTime } from '@/lib/utils'
+import { withProjectScope } from '@/lib/project-scope'
 import { ColumnDef } from '@tanstack/react-table'
 
 import { type ModuleTableRow } from './module-helpers'
@@ -53,7 +54,7 @@ export const moduleTableCols: ColumnDef<ModuleTableRow>[] = [
       return (
         <TableActions
           rowName={moduleData.name}
-          modifyLink={`/modules/modify/${moduleData.id}`}
+          modifyLink={withProjectScope(`/modules/modify/${moduleData.id}`, moduleData.targetProjectId)}
           deleteHandler={() => deleteModuleAction([moduleData.id])}
         />
       )

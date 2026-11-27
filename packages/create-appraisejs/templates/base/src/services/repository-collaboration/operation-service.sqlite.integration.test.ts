@@ -12,6 +12,7 @@ import {
   buildCollaborationSnapshotFiles,
   collaborationHash,
   inspectRepository,
+  managedDivergentWorktreePath,
   readCollaborationSnapshot,
   type CollaborationRecord,
 } from '@/lib/repository-collaboration'
@@ -20,6 +21,7 @@ import { connectCollaboration, updateCollaborationPolicy } from './binding-servi
 import { completeCollaborationFixtureCoverage } from './collaboration-coverage.test-fixture'
 import {
   assertDivergentCollaborationReadyForIntegration,
+  cleanupRejectedDivergentCollaborationWorktree,
   decideDivergentCollaborationProposal,
   prepareDivergentCollaborationReconciliation,
   proposeDivergentCollaborationReconciliation,
@@ -32,6 +34,7 @@ import {
   recoverCollaborationOperationFilesystem,
 } from './operation-service'
 import { acquireCollaborationGitMutationLock, releaseCollaborationGitMutationLock } from './git-mutation-lock-service'
+import { runCollaborationSchedulerTick } from './queue-service'
 
 const workspaces: string[] = []
 const execFile = promisify(execFileCallback)
@@ -159,6 +162,102 @@ async function prepareReceive(
 }
 
 describe('durable collaboration operations', () => {
+  it('recovers a committed divergent rejection after interruption and defers safely behind another mutation lease', async () => {
+    const { client, binding } = await fixture({ git: true })
+    const repositoryRoot = (await client.collaborationBinding.findUniqueOrThrow({ where: { id: binding.id } }))
+      .repositoryRoot
+    const remote = path.join(repositoryRoot, 'remote.git')
+    const incomingRoot = path.join(path.dirname(repositoryRoot), `incoming-${path.basename(repositoryRoot)}`)
+    workspaces.push(incomingRoot)
+    try {
+      const baseline = [moduleRecord('base', 'Base')]
+      await writeSnapshot(repositoryRoot, baseline)
+      await commitSnapshot(repositoryRoot, 'baseline snapshot')
+      await git(repositoryRoot, 'push', 'origin', 'appraise-0.5')
+      const localRecords = [...baseline, moduleRecord('local', 'Local only')]
+      await writeSnapshot(repositoryRoot, localRecords)
+      const targetRevision = await commitSnapshot(repositoryRoot, 'local change')
+      await execFile('git', ['clone', remote, incomingRoot])
+      await git(incomingRoot, 'config', 'user.email', 'collaboration@example.test')
+      await git(incomingRoot, 'config', 'user.name', 'Collaboration Test')
+      const sourceRecords = [...baseline, moduleRecord('source', 'Incoming only')]
+      await writeSnapshot(incomingRoot, sourceRecords)
+      const sourceRevision = await commitSnapshot(incomingRoot, 'incoming change')
+      await git(incomingRoot, 'push', 'origin', 'appraise-0.5')
+      await git(repositoryRoot, 'fetch', 'origin', 'appraise-0.5')
+
+      const prepared = await prepareCollaborationOperation(
+        {
+          bindingId: binding.id,
+          intent: 'RECONCILE',
+          idempotencyKey: 'rejected-interruption',
+          expectedPolicyVersion: binding.policyVersion,
+          incomingRecords: sourceRecords,
+          sourceRevision,
+          targetRevision,
+        },
+        client,
+      )
+      await prepareDivergentCollaborationReconciliation(
+        { operationId: prepared.id, expectedVersion: prepared.version, preparedDigest: prepared.preparedDigest! },
+        client,
+      )
+      const proposal = await proposeDivergentCollaborationReconciliation(
+        {
+          operationId: prepared.id,
+          expectedVersion: prepared.version,
+          preparedDigest: prepared.preparedDigest!,
+          records: [...baseline, localRecords[1]!, sourceRecords[1]!],
+        },
+        client,
+      )
+      const worktreePath = managedDivergentWorktreePath(prepared.id)
+      workspaces.push(worktreePath)
+      // Commit the exact decision in the chat-style authority transaction,
+      // then lose the response before the post-commit cleanup callback.
+      const rejected = await client.$transaction(tx =>
+        decideDivergentCollaborationProposal(
+          {
+            operationId: prepared.id,
+            expectedVersion: proposal.operationVersion,
+            preparedDigest: prepared.preparedDigest!,
+            reviewDigest: `sha256:${proposal.review.reviewDigest}`,
+            decision: 'REJECT',
+            trustedPrincipalId: 'local-user',
+            provenance: 'local-ui',
+          },
+          tx,
+        ),
+      )
+      expect(rejected.state).toBe('CANCELLED')
+      await expect(fs.stat(worktreePath)).resolves.toBeTruthy()
+      const commonDirectory = (await inspectRepository(repositoryRoot)).commonDirectory
+      const lease = await client.$transaction(tx =>
+        acquireCollaborationGitMutationLock(tx, commonDirectory, 'other-owned-mutation'),
+      )
+      const deferred = await runCollaborationSchedulerTick({ observeRemote: async () => undefined }, client)
+      expect(deferred.rejectedCleanups).toContainEqual({ operationId: prepared.id, outcome: 'deferred' })
+      expect(await client.collaborationOperation.findUnique({ where: { id: prepared.id } })).toMatchObject({
+        state: 'CANCELLED',
+      })
+      await client.$transaction(tx => releaseCollaborationGitMutationLock(tx, lease))
+
+      const recovered = await runCollaborationSchedulerTick({ observeRemote: async () => undefined }, client)
+      expect(recovered.rejectedCleanups).toContainEqual({ operationId: prepared.id, outcome: 'completed' })
+      await expect(fs.stat(worktreePath)).rejects.toMatchObject({ code: 'ENOENT' })
+      const receipt = { operationId: prepared.id, boundary: 'DIVERGENT_PROPOSAL_REJECT_CLEANUP', status: 'COMPLETED' }
+      expect(await client.collaborationJournalEntry.count({ where: receipt })).toBe(1)
+      expect(await cleanupRejectedDivergentCollaborationWorktree(prepared.id, client)).toMatchObject({
+        status: 'REMOVED',
+      })
+      const replay = await runCollaborationSchedulerTick({ observeRemote: async () => undefined }, client)
+      expect(replay.rejectedCleanups).toEqual([])
+      expect(await client.collaborationJournalEntry.count({ where: receipt })).toBe(1)
+    } finally {
+      await client.$disconnect()
+    }
+  })
+
   it('continues every persisted authorized receive step from an accepted ready operation', async () => {
     const { client, binding, target } = await fixture()
     try {

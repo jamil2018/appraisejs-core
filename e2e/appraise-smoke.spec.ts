@@ -39,7 +39,7 @@ test.describe('Smoke @smoke', () => {
     await page.goto(`/modules/modify/${createdModule?.id}`)
     await page.getByLabel('Name').fill(editedModuleName)
     await page.getByRole('button', { name: /^Save$/ }).click()
-    await expect(page).toHaveURL(/\/modules$/)
+    await expect.poll(() => new URL(page.url()).pathname).toBe('/modules')
     await expect(page.getByText(editedModuleName, { exact: true }).first()).toBeVisible()
   })
 

@@ -17,6 +17,7 @@ import {
   updateCollaborationPolicyAction,
 } from '@/actions/repository-collaboration/collaboration-actions'
 import { Button } from '@/components/ui/button'
+import { CollaborationReviewCard } from '@/components/collaboration/collaboration-review-card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -256,6 +257,17 @@ function DecisionButtons({
   mutation: Mutation
 }) {
   const [receipt, setReceipt] = useState<{ token: string; request: unknown; expiresAt: string }>()
+  if (operation.state !== 'WAITING_FOR_DECISION' || !operation.preparedDigest || !operation.reviewItems.length)
+    return null
+  const review = {
+    kind: 'RECORDS' as const,
+    targetProjectId: projectId,
+    operationId: operation.id,
+    intent: operation.intent,
+    expectedVersion: operation.version,
+    preparedDigest: operation.preparedDigest,
+    reviewItems: operation.reviewItems,
+  }
   const issue = (decision: 'KEEP_LOCAL' | 'USE_INCOMING') =>
     mutation.run(
       () =>
@@ -271,29 +283,22 @@ function DecisionButtons({
     )
   return (
     <div className="space-y-2">
-      <p className="text-sm">{operation.reviewItems.length} records require one exact whole-record decision.</p>
-      <div className="flex flex-wrap gap-2">
-        {(['KEEP_LOCAL', 'USE_INCOMING'] as const).map(decision => (
-          <Button
-            key={decision}
-            disabled={mutation.pending}
-            variant="outline"
-            onClick={() =>
-              mutation.run(() =>
-                decideCollaborationAction({
-                  targetProjectId: projectId,
-                  operationId: operation.id,
-                  expectedVersion: operation.version,
-                  preparedDigest: operation.preparedDigest,
-                  decisions: operation.reviewItems.map(item => ({ recordKey: item.recordKey, decision })),
-                }),
-              )
-            }
-          >
-            {decision === 'KEEP_LOCAL' ? 'Keep all local' : 'Use all incoming'}
-          </Button>
-        ))}
-      </div>
+      <CollaborationReviewCard
+        pending={mutation.pending}
+        review={review}
+        onDecision={decision => {
+          if (decision !== 'KEEP_LOCAL' && decision !== 'USE_INCOMING') return
+          mutation.run(() =>
+            decideCollaborationAction({
+              targetProjectId: projectId,
+              operationId: operation.id,
+              expectedVersion: operation.version,
+              preparedDigest: operation.preparedDigest,
+              decisions: operation.reviewItems.map(item => ({ recordKey: item.recordKey, decision })),
+            }),
+          )
+        }}
+      />
       <div className="flex flex-wrap gap-2">
         {(['KEEP_LOCAL', 'USE_INCOMING'] as const).map(decision => (
           <Button
@@ -343,6 +348,7 @@ function DivergentProposalDecisionButtons({
   if (
     operation.intent !== 'RECONCILE' ||
     operation.state !== 'WAITING_FOR_DECISION' ||
+    !operation.preparedDigest ||
     !operation.divergentReviewDigest
   )
     return null
@@ -362,15 +368,22 @@ function DivergentProposalDecisionButtons({
       <p className="text-sm text-muted-foreground">
         A worker proposal is waiting for review. Nothing can execute until you accept its exact review digest.
       </p>
-      <code className="block break-all text-xs">{operation.divergentReviewDigest}</code>
-      <div className="flex flex-wrap gap-2">
-        <Button disabled={mutation.pending} onClick={() => decide('ACCEPT')}>
-          Accept proposal
-        </Button>
-        <Button disabled={mutation.pending} onClick={() => decide('REJECT')} variant="outline">
-          Reject proposal
-        </Button>
-      </div>
+      <CollaborationReviewCard
+        pending={mutation.pending}
+        review={{
+          kind: 'DIVERGENT',
+          targetProjectId: projectId,
+          operationId: operation.id,
+          intent: 'RECONCILE',
+          expectedVersion: operation.version,
+          preparedDigest: operation.preparedDigest,
+          reviewDigest: operation.divergentReviewDigest,
+          reviewItems: [],
+        }}
+        onDecision={decision => {
+          if (decision === 'ACCEPT' || decision === 'REJECT') decide(decision)
+        }}
+      />
     </div>
   )
 }

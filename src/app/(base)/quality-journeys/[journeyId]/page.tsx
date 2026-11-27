@@ -41,6 +41,7 @@ import { JourneyRecoveryPanel } from './journey-recovery-panel'
 import { ServiceError } from '@/services/shared/errors'
 
 import { AnalysisReviewControls } from './analysis-review-controls'
+import { AnalysisApprovalReceipt } from './analysis-approval-receipt'
 import { AutomationMaterializationStatus } from './automation-materialization-status'
 import { AnalysisRecoveryControl } from './analysis-recovery-control'
 import { getQualityJourneyStatusSnapshot } from '@/services/coordinator/quality-journey-query-service'
@@ -347,7 +348,7 @@ function JourneyHistory({ detail, projectId, closed }: { detail: Detail; project
   const { journey, activeAnalysis, requirementSummary } = detail
   const journeyId = journey.journey.journeyId
   return (
-    <details className="border-t pt-3">
+    <details id="history" className="border-t pt-3">
       <summary className="cursor-pointer text-sm font-medium">History</summary>
       <div className="mt-4 space-y-4">
         <section>
@@ -543,8 +544,10 @@ function JourneyCurrentWork({ detail, presentation, projectId, closure }: Curren
               />
             </section>
           }
-          {presentation.requestedExecutionConsentCount > 0 ||
-          execution.proposals.some(p => ['PROPOSED', 'APPROVED'].includes(p.status))
+          {stage !== 'CLOSED' &&
+          (execution.cycles.length > 0 ||
+            presentation.requestedExecutionConsentCount > 0 ||
+            execution.proposals.some(p => ['PROPOSED', 'APPROVED'].includes(p.status)))
             ? run
             : null}
           {stage === 'TRIAGE' ? null : (
@@ -653,6 +656,10 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
           </div>
         </header>
         <JourneyStages stage={stage} />
+        {activeAnalysis?.decision?.decision === 'APPROVED' &&
+          activeAnalysis.analysisRevisionId === journey.journey.activeRevisionIds.analysis && (
+            <AnalysisApprovalReceipt revision={activeAnalysis.revision} />
+          )}
         {managedActive ? (
           <ManagedJourneyProgression
             journeyId={journeyId}

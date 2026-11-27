@@ -104,10 +104,24 @@ operation definitions are step execution primitives, not substitutes for authori
   before sending it. Cursor receives a fixed confirmation request and Appraise keeps the search and results
   local. Appraise owns every scoped search result and retains interrupted attempts for explicit acknowledgement.
   Live lookups through ChatGPT Responses, native Codex, Claude Code, and Cursor returned the expected checkout case
-  on macOS. Broader provider lifecycle coverage and full action parity remain open. The production Journey dispatch
-  path retains its refusal.
+  on macOS. Broader provider lifecycle coverage and full action parity remain open. The opt-in local Codex Journey
+  uses the separate managed-worker path described in the [operator guide](../../quality-journey-operator-guide.md).
 - **Journey cards:** Attached Journeys show the current question, proposed checks, change review, activity, run
-  permission, or result and evidence. Decisions stay on the current canonical Journey control.
+  permission, or result and evidence. In the working stack, a saved chat can record an exact Analysis decision and
+  separate run consent through the canonical services. The local checkout covers one original runner attempt after
+  a dropped reply, scoped failed-step evidence, and reopening that step by typing **Show me where**. Live-provider
+  parity follows the integrated candidate.
+
+## Domain qualification checkpoint
+
+| Domain                    | Saved chat and manual entry                                                                                                                                 | Current evidence                                                                                                                                           |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Collections               | Scoped module and tag lookups, case rename with an exact attachment, and manual create, edit, and exact selection                                           | CF-06 case identity round trip passed. Collection Chromium verifies cross-tab routing and bulk scope separately.                                           |
+| Projects and setup        | Project lookup opens the selector. Environment, locator, and group requests open the scoped record or form. Provider setup opens protected Settings.        | Chromium verified cross-tab environment edits, protected Settings return, real locator capture and save, and cancellation.                                 |
+| Journey reviews           | Analysis and the exact pending scenario set are approved from saved chat. Manual review uses the same services. Discovery access opens the current Journey. | CF-06 real checkout and CF-12 typed approval with stale second tab passed.                                                                                 |
+| Execution and recovery    | Activity opens the recorded run, checks results, and requests cancellation. Rerun review retains the original evidence and requests fresh consent.          | SQLite tests cover immutable predecessors and interrupted execution. Browser coverage of the shared recovery controls is pending.                          |
+| Reports and collaboration | Local requests read scoped reports and link the exact collaboration operation. Decisions bind the operation, version, digest, and displayed record set.     | Chromium verified comparison, report export, saved report facts, and a reviewed local Git operation. SQLite and Git verified interrupted rejected cleanup. |
+
 - **Next parity evidence:** enumerate state-dependent row and bulk controls, disclosures, keyboard actions, template
   instantiation (if actually present), report export (if actually present), project import (if actually present),
   exact approval scope, and test IDs from the rendered UI and live providers. Keep absent controls absent in the

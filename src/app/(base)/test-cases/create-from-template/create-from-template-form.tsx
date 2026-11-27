@@ -12,6 +12,7 @@ type CreateFromTemplateFormProps = {
   templateTestCases: TemplateTestCaseWithSteps[]
   selectedTemplateTestCase: TemplateTestCaseWithSteps | null
   convertedTemplateData: ReturnType<typeof getConvertedTemplateTestCaseData>['convertedData'] | null
+  returnPath: string
 }
 
 export function CreateFromTemplateForm({
@@ -19,12 +20,14 @@ export function CreateFromTemplateForm({
   templateTestCases,
   selectedTemplateTestCase,
   convertedTemplateData,
+  returnPath,
 }: CreateFromTemplateFormProps) {
   return (
     <TestCaseForm
       defaultNodesOrder={convertedTemplateData?.nodesOrder ?? {}}
       {...resources}
       onSubmitAction={createTestCaseAction}
+      returnPath={returnPath}
       onCreateTestSuiteAction={createTestSuiteAction}
       onCreateTagAction={createTagAction}
       templateTestCases={templateTestCases}

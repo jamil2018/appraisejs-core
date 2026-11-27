@@ -6,6 +6,8 @@ import { createTestCaseAction } from '@/actions/test-case/test-case-actions'
 import { createTagAction } from '@/actions/tags/tag-actions'
 import { createTestSuiteAction } from '@/actions/test-suite/test-suite-actions'
 import { Metadata } from 'next'
+import { requireActiveProjectForMutation } from '@/lib/active-project'
+import { withProjectScope } from '@/lib/project-scope'
 
 import {
   getTestCaseFormRouteResources,
@@ -19,6 +21,7 @@ export const metadata: Metadata = {
 }
 
 const CreateTestCase = async () => {
+  const project = await requireActiveProjectForMutation()
   const resourceResponses = await loadTestCaseFormResourceResponses()
   const loadError = getTestCaseRouteLoadError(Object.values(resourceResponses))
 
@@ -44,6 +47,7 @@ const CreateTestCase = async () => {
         defaultNodesOrder={{}}
         {...resources}
         onSubmitAction={createTestCaseAction}
+        returnPath={withProjectScope('/test-cases', project.id)}
         onCreateTestSuiteAction={createTestSuiteAction}
         onCreateTagAction={createTagAction}
       />

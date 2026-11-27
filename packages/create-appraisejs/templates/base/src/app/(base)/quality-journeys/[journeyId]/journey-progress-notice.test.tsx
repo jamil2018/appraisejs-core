@@ -43,7 +43,7 @@ describe('JourneyProgressNotice', () => {
     Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' })
   })
 
-  function view(projectId = 'project-1', version = 2) {
+  function view(projectId = 'project-1', version = 2, refreshChatSnapshot = false) {
     return (
       <JourneyStatusObservationProvider
         journeyId="journey-1"
@@ -51,6 +51,7 @@ describe('JourneyProgressNotice', () => {
         stage="SCENARIO_REVIEW"
         stateHash="sha256:state"
         version={version}
+        refreshChatSnapshot={refreshChatSnapshot}
       >
         <JourneyRuntimeStatus />
         <JourneyProgressNotice eventCount={2} stateHash="sha256:state" stage="SCENARIO_REVIEW" />
@@ -145,6 +146,30 @@ describe('JourneyProgressNotice', () => {
     expect(screen.getByText(/A newer version is available/i)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Load newer version' }))
     expect(mocks.refresh).toHaveBeenCalledOnce()
+  })
+
+  it('refreshes a saved chat once on reconnect and ignores repeated or late snapshots', async () => {
+    const current = snapshot({ lifecycle: { ...snapshot().lifecycle, version: 3, stateHash: 'sha256:revised' } })
+    mocks.status
+      .mockResolvedValueOnce({ success: false })
+      .mockResolvedValueOnce({ success: true, data: current })
+      .mockResolvedValueOnce({ success: true, data: snapshot() })
+      .mockResolvedValueOnce({ success: true, data: current })
+    render(view('project-1', 2, true))
+    await act(async () => {})
+    expect(mocks.refresh).not.toHaveBeenCalled()
+    fireEvent.change(screen.getByRole('textbox', { name: 'Pending feedback' }), {
+      target: { value: 'Keep this draft' },
+    })
+
+    const reconnect = () => act(async () => window.dispatchEvent(new Event('online')))
+    await reconnect()
+    expect(mocks.refresh).toHaveBeenCalledOnce()
+    await reconnect()
+    await reconnect()
+    expect(mocks.status).toHaveBeenCalledTimes(4)
+    expect(mocks.refresh).toHaveBeenCalledOnce()
+    expect(screen.getByRole('textbox', { name: 'Pending feedback' })).toHaveValue('Keep this draft')
   })
 
   it('refreshes runtime independently while preserving pending feedback and pinned content', async () => {

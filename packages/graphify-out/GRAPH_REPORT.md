@@ -1,4 +1,4 @@
-# Graph Report - packages  (2026-11-24)
+# Graph Report - packages  (2026-11-28)
 
 ## Corpus Check
 - cluster-only mode — file stats not available
@@ -9,7 +9,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `2fa60211`
+- Built from commit: `d0024552`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -90,8 +90,8 @@
 6. `createAppraiseMcpServer()` - 17 edges
 7. `compilerOptions` - 17 edges
 8. `LocatorPickerCompanion` - 16 edges
-9. `createBaseTemplate()` - 15 edges
-10. `buildOfflineComposition()` - 15 edges
+9. `buildOfflineComposition()` - 15 edges
+10. `scripts` - 15 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `fn()` --calls--> `retry()`  [INFERRED]
@@ -144,7 +144,7 @@ Nodes (36): CliOptions, program, LocatorCache, LocatorMapCache, toGlobPath(), BR
 
 ### Community 8 - "Community 8"
 Cohesion: 0.10
-Nodes (26): boundedOperationValueSchema, operationValueSchema, computeStepDefinitionHashes(), computeStepExecutableReadiness(), STEP_DEFINITION_SCHEMA_VERSION, stepDefinitionContentHash(), StepDefinitionDraft, stepDefinitionDraftAuthoringSchema (+18 more)
+Nodes (27): boundedOperationValueSchema, operationValueSchema, canonicalStepDefinitionJson(), computeStepDefinitionHashes(), computeStepExecutableReadiness(), STEP_DEFINITION_SCHEMA_VERSION, stepDefinitionContentHash(), StepDefinitionDraft (+19 more)
 
 ### Community 9 - "Community 9"
 Cohesion: 0.12
@@ -163,12 +163,12 @@ Cohesion: 0.10
 Nodes (22): acceptanceSchema, assertSafeProjection(), bindingSchema, CapturedTool, createExternalWorkerGateway(), digest, ExternalWorkerBinding, ExternalWorkerCallError (+14 more)
 
 ### Community 13 - "Community 13"
-Cohesion: 0.10
-Nodes (23): agentOperationProjectionSchema, humanOperationProjectionSchema, identifierSchema, OPERATION_CONTRACT_VERSION, operationAliasSchema, operationContentHash(), OperationDefinition, operationDefinitionSchema (+15 more)
+Cohesion: 0.11
+Nodes (22): agentOperationProjectionSchema, humanOperationProjectionSchema, identifierSchema, OPERATION_CONTRACT_VERSION, operationAliasSchema, operationContentHash(), OperationDefinition, operationDefinitionSchema (+14 more)
 
 ### Community 14 - "Community 14"
 Cohesion: 0.11
-Nodes (25): baseTemplateDir, composedVerifyDir, computeTemplateInputHash(), copyFallbackSeedDatabase(), __dirname, flavorsDir, getPrismaCliPath(), getSeedDatabaseCandidates() (+17 more)
+Nodes (28): baseTemplateDir, composedVerifyDir, computeTemplateInputHash(), copyFallbackSeedDatabase(), __dirname, flavorsDir, getPrismaCliPath(), getSeedDatabaseCandidates() (+20 more)
 
 ### Community 15 - "Community 15"
 Cohesion: 0.14
@@ -207,8 +207,8 @@ Cohesion: 0.10
 Nodes (20): compilerOptions, baseUrl, declaration, declarationMap, esModuleInterop, forceConsistentCasingInFileNames, lib, module (+12 more)
 
 ### Community 24 - "Community 24"
-Cohesion: 0.10
-Nodes (23): genericQualityJourneyCommandSchema, scenarioPortfolioSchema, canonicalMcpResourceAnnotations, canonicalMcpResourceNames, canonicalMcpResourceUris, canonicalMcpToolAnnotations, canonicalMcpToolNames, durableLifecycleMutation (+15 more)
+Cohesion: 0.09
+Nodes (30): genericQualityJourneyCommandSchema, scenarioPortfolioSchema, canonicalMcpResourceAnnotations, canonicalMcpResourceNames, canonicalMcpResourceUris, canonicalMcpToolAnnotations, canonicalMcpToolNames, durableLifecycleMutation (+22 more)
 
 ### Community 25 - "Community 25"
 Cohesion: 0.13
@@ -219,8 +219,8 @@ Cohesion: 0.13
 Nodes (17): canonicalJson(), createExternalWorkerMcpServer(), deepFreeze(), ExternalWorkerAdvertisedProfile, hash(), actions, canonicalJson(), copyBounded() (+9 more)
 
 ### Community 27 - "Community 27"
-Cohesion: 0.15
-Nodes (18): nullableOptionalPositiveInteger(), nullableOptionalString(), operationSearchInputSchema, registerProjectOperations(), identifier, registerQualityJourneyLibraryOperations(), scope, registerStepDefinitionOperations() (+10 more)
+Cohesion: 0.19
+Nodes (11): nullableOptionalPositiveInteger(), nullableOptionalString(), operationSearchInputSchema, registerProjectOperations(), identifier, registerQualityJourneyLibraryOperations(), scope, registerStepDefinitionOperations() (+3 more)
 
 ### Community 28 - "Community 28"
 Cohesion: 0.11
@@ -251,8 +251,8 @@ Cohesion: 0.12
 Nodes (15): author, bin, create-appraisejs, bugs, url, description, exports, files (+7 more)
 
 ### Community 35 - "Community 35"
-Cohesion: 0.20
-Nodes (12): removeLegacyTemplateTargetProject(), seedTemplateDatabases(), assertSharedTemplateDatabaseInputs(), BLANK_TEMPLATE_PREP_SYNC_SCRIPTS, getTemplatePrepSyncScripts(), shouldAbortOnFallbackSeed(), StepDefinitionDataCounts, TEMPLATE_PREP_SYNC_SCRIPTS (+4 more)
+Cohesion: 0.24
+Nodes (9): assertSharedTemplateDatabaseInputs(), BLANK_TEMPLATE_PREP_SYNC_SCRIPTS, getTemplatePrepSyncScripts(), StepDefinitionDataCounts, TEMPLATE_PREP_SYNC_SCRIPTS, TemplateMetadata, createPreparedTemplateFixture(), createTempTemplateDir() (+1 more)
 
 ### Community 36 - "Community 36"
 Cohesion: 0.13
@@ -363,7 +363,7 @@ Cohesion: 0.47
 Nodes (4): contractFields(), contractRuntime(), generateStepDefinitionContract(), StepContractValue
 
 ## Knowledge Gaps
-- **490 isolated node(s):** `readOnly`, `localMutation`, `durableLifecycleMutation`, `externalExecution`, `externalStop` (+485 more)
+- **490 isolated node(s):** `name`, `version`, `description`, `license`, `author` (+485 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **3 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -371,12 +371,12 @@ Nodes (4): contractFields(), contractRuntime(), generateStepDefinitionContract()
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `fn()` connect `Community 47` to `Community 0`?**
-  _High betweenness centrality (0.170) - this node is a cross-community bridge._
+  _High betweenness centrality (0.176) - this node is a cross-community bridge._
 - **Why does `retry()` connect `Community 0` to `Community 47`?**
-  _High betweenness centrality (0.170) - this node is a cross-community bridge._
-- **Why does `writeTemplateQualityOsCertificationReceipt()` connect `Community 58` to `Community 11`, `Community 14`?**
-  _High betweenness centrality (0.102) - this node is a cross-community bridge._
-- **What connects `readOnly`, `localMutation`, `durableLifecycleMutation` to the rest of the system?**
+  _High betweenness centrality (0.175) - this node is a cross-community bridge._
+- **Why does `canonicalContractJson()` connect `Community 11` to `Community 58`?**
+  _High betweenness centrality (0.109) - this node is a cross-community bridge._
+- **What connects `name`, `version`, `description` to the rest of the system?**
   _490 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.08169262415515721 - nodes in this community are weakly interconnected._

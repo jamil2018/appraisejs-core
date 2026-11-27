@@ -9,6 +9,7 @@ import TableActions from '@/components/table/table-actions'
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { conversationContextHref } from '@/lib/conversation/chat-context'
 import { journeyRecordBriefHref } from '@/lib/quality-journey/record-context'
+import { withProjectScope } from '@/lib/project-scope'
 import { TestCasePickerRow } from '@/types/test-case-picker'
 import { ColumnDef } from '@tanstack/react-table'
 
@@ -23,7 +24,7 @@ export const testCaseTableCols: ColumnDef<TestCasePickerRow>[] = [
       return (
         <TableActions
           rowName={testCase.title}
-          modifyLink={`/test-cases/modify/${testCase.id}`}
+          modifyLink={withProjectScope(`/test-cases/modify/${testCase.id}`, testCase.targetProjectId)}
           deleteHandler={() => deleteTestCaseAction([testCase.id])}
         >
           {testCase.targetProjectId && (

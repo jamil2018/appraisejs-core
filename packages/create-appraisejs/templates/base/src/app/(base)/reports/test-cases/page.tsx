@@ -5,15 +5,17 @@ import { Suspense } from 'react'
 import DataTableSkeleton from '@/components/loading-skeleton/data-table/data-table-skeleton'
 import { Metadata } from 'next'
 import TestCasesMetricTable from './test-cases-metric-table'
+import { requireActiveProject } from '@/lib/active-project'
 
 export const metadata: Metadata = {
   title: 'Appraise | Failing Test Cases Report',
   description: 'Manage failing test cases report for identifying elements on pages',
 }
 
-const TestCasesMetricsReport = async ({ searchParams }: { searchParams: Promise<{ filter?: string }> }) => {
+const TestCasesMetricsReport = async ({ searchParams }: { searchParams: Promise<{ filter?: string; project?: string }> }) => {
   const resolvedSearchParams = await searchParams
   const filter = resolvedSearchParams?.filter as 'repeatedlyFailing' | 'flaky' | undefined
+  const project = await requireActiveProject(resolvedSearchParams.project)
 
   return (
     <>
@@ -27,7 +29,7 @@ const TestCasesMetricsReport = async ({ searchParams }: { searchParams: Promise<
         <HeaderSubtitle>Report of test cases that have been failing repeatedly or are flaky</HeaderSubtitle>
       </div>
       <Suspense fallback={<DataTableSkeleton />}>
-        <TestCasesMetricTable filter={filter || 'repeatedlyFailing'} />
+        <TestCasesMetricTable filter={filter || 'repeatedlyFailing'} projectId={project.id} />
       </Suspense>
     </>
   )

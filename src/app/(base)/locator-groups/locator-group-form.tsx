@@ -12,6 +12,7 @@ import { TanStackForm } from '@/lib/form/tanstack-form'
 import React, { useCallback, useRef } from 'react'
 import { z } from 'zod'
 import { useRouter } from 'next/navigation'
+import { withProjectScope } from '@/lib/project-scope'
 import { Module } from '@prisma/client'
 import { checkLocatorGroupNameUniqueAction } from '@/actions/locator-groups/locator-group-actions'
 
@@ -24,11 +25,13 @@ const LocatorGroupForm = ({
   id,
   onSubmitAction,
   moduleList,
+  projectId,
 }: {
   defaultValues?: LocatorGroup
   successTitle: string
   successMessage: string
   moduleList: Module[]
+  projectId?: string
   id?: string
   onSubmitAction: (_prev: unknown, value: LocatorGroup, id?: string) => Promise<ActionResponse>
 }) => {
@@ -78,7 +81,7 @@ const LocatorGroupForm = ({
           title: successTitle,
           description: successMessage,
         })
-        push('/locator-groups')
+        push(projectId ? withProjectScope('/locator-groups', projectId) : '/locator-groups')
       }
       if (res.status === 400) {
         toast({

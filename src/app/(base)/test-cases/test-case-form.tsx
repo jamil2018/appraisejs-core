@@ -91,7 +91,11 @@ type TestCaseFormProps = {
   testCases: TestCasePickerRow[]
   moduleList: Module[]
   tags: Tag[]
-  onSubmitAction: (value: z.infer<typeof testCaseSchema>, id?: string) => Promise<ActionResponse>
+  onSubmitAction: (
+    value: z.infer<typeof testCaseSchema>,
+    id?: string,
+    expectedUpdatedAt?: string,
+  ) => Promise<ActionResponse>
   onCreateTestSuiteAction: TestSuiteFormSubmitAction
   onCreateTagAction: TagFormSubmitAction
   id?: string
@@ -102,6 +106,8 @@ type TestCaseFormProps = {
   templateTestCases?: TemplateTestCaseWithSteps[]
   defaultTemplateTestCaseId?: string
   defaultFlowBlocks?: FlowBlock[]
+  returnPath?: string
+  expectedUpdatedAt?: string
 }
 
 const EMPTY_FLOW_BLOCKS: FlowBlock[] = []
@@ -1054,9 +1060,9 @@ function useReusableStepNavigation({
   }, [appliedTemplateId, detailsStepIndex, dispatch, hasTemplateSelectionStep, selectedTemplateId, templateTestCases])
 }
 
-function showTestCaseSaveResult(response: ActionResponse, push: (path: string) => void) {
+function showTestCaseSaveResult(response: ActionResponse, push: (path: string) => void, returnPath: string) {
   if (response.status === 500 || (response.status === 200 && response.success !== false)) {
-    handleTestCaseSaveResponse({ response, redirectPath: '/test-cases', push, toast })
+    handleTestCaseSaveResponse({ response, redirectPath: returnPath, push, toast })
     return
   }
   toast({
@@ -1074,6 +1080,8 @@ function useTestCaseSubmitHandler({
   nodesOrder,
   onSubmitAction,
   push,
+  returnPath,
+  expectedUpdatedAt,
   selectedTags,
   selectedTestSuites,
   title,
@@ -1086,6 +1094,8 @@ function useTestCaseSubmitHandler({
   nodesOrder: NodeOrderMap
   onSubmitAction: TestCaseFormProps['onSubmitAction']
   push: (path: string) => void
+  returnPath: string
+  expectedUpdatedAt?: string
   selectedTags: string[]
   selectedTestSuites: string[]
   title: string
@@ -1132,8 +1142,11 @@ function useTestCaseSubmitHandler({
     pendingRef.current = true
     setIsSaving(true)
     try {
-      const response = await onSubmitAction(result.data, id)
-      showTestCaseSaveResult(response, push)
+      const response =
+        expectedUpdatedAt === undefined
+          ? await onSubmitAction(result.data, id)
+          : await onSubmitAction(result.data, id, expectedUpdatedAt)
+      showTestCaseSaveResult(response, push, returnPath)
     } catch {
       toast({
         title: 'Error',
@@ -1152,6 +1165,8 @@ function useTestCaseSubmitHandler({
     nodesOrder,
     onSubmitAction,
     push,
+    returnPath,
+    expectedUpdatedAt,
     selectedTags,
     selectedTestSuites,
     dispatch,
@@ -1261,6 +1276,8 @@ const TestCaseForm = ({
   onSubmitAction,
   onCreateTestSuiteAction,
   onCreateTagAction,
+  returnPath = '/test-cases',
+  expectedUpdatedAt,
 }: TestCaseFormProps) => {
   const { push } = useRouter()
   const hasTemplateSelectionStep = Array.isArray(templateTestCases)
@@ -1421,6 +1438,8 @@ const TestCaseForm = ({
   })
 
   const { handleSubmit, isSaving } = useTestCaseSubmitHandler({
+    returnPath,
+    expectedUpdatedAt,
     description,
     detailsStepIndex,
     dispatch,

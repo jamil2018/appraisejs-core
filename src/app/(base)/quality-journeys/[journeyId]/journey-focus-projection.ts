@@ -19,7 +19,7 @@ export type JourneyFocus = {
   title: string
   summary: string
   details: string[]
-  destination: 'analysis' | 'scenarios' | 'automation' | 'execution' | 'triage' | 'current-work'
+  destination: 'analysis' | 'discovery' | 'scenarios' | 'automation' | 'execution' | 'triage' | 'current-work'
   action: string
 }
 
@@ -51,11 +51,12 @@ function questionFocus(question: string, revision?: number): JourneyFocus {
 }
 
 function approachFocus(analysis: NonNullable<JourneyFocusInput['analysis']>): JourneyFocus {
+  const signalCount = analysis.acceptanceSignals.length
+  const signals = signalCount === 1 ? 'acceptance signal' : 'acceptance signals'
   return {
     kind: 'proposed-checks',
     title: 'Proposed checks',
-    summary:
-      analysis.acceptanceSignals.length + ' acceptance signals in test approach revision ' + analysis.revision + '.',
+    summary: `${signalCount} ${signals} in test approach revision ${analysis.revision}.`,
     details: [
       ...analysis.scope.map(item => 'In scope ' + item),
       ...(analysis.reviewHash ? ['Review hash ' + analysis.reviewHash] : []),
@@ -91,13 +92,15 @@ function reportFocus(report?: JourneyFocusInput['report']): JourneyFocus {
 
 function activityFocus(stage: string): JourneyFocus {
   const destination =
-    stage === 'DISCOVERY' || stage === 'SCENARIO_DESIGN'
-      ? 'scenarios'
-      : stage === 'AUTOMATION'
-        ? 'automation'
-        : stage === 'EXECUTION'
-          ? 'execution'
-          : 'current-work'
+    stage === 'DISCOVERY'
+      ? 'discovery'
+      : stage === 'SCENARIO_DESIGN'
+        ? 'scenarios'
+        : stage === 'AUTOMATION'
+          ? 'automation'
+          : stage === 'EXECUTION'
+            ? 'execution'
+            : 'current-work'
   return {
     kind: 'activity',
     title: 'Activity',

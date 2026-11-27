@@ -170,26 +170,337 @@ type FixtureQuestion = {
   required: boolean
   suggestedAnswers?: string[]
 }
-async function analysisFixture(questions: FixtureQuestion[] = []) {
-  const targetProjectId = await projectFixture()
+function runAnalysisFixtureCommand<T>(input: unknown): T {
   // The tsx child loads canonical JSON-backed operation contracts that Playwright's TS loader cannot load.
   const output = execFileSync(
     process.execPath,
-    [
-      '--import',
-      'tsx',
-      'e2e/helpers/quality-journey-analysis-fixture.ts',
-      JSON.stringify({ targetProjectId, questions }),
-    ],
+    ['--import', 'tsx', 'e2e/helpers/quality-journey-analysis-fixture.ts', JSON.stringify(input)],
     { cwd: process.cwd(), env: process.env, encoding: 'utf8' },
   )
   const line = output.split('\n').find(value => value.startsWith('APPRAISE_E2E_FIXTURE='))
   if (!line) throw new Error('Canonical Analysis fixture did not return its durable identity.')
-  return JSON.parse(line.slice('APPRAISE_E2E_FIXTURE='.length)) as {
+  return JSON.parse(line.slice('APPRAISE_E2E_FIXTURE='.length)) as T
+}
+
+function runAnalysisFixture(input: {
+  targetProjectId: string
+  questions: FixtureQuestion[]
+  orderNumberPilot?: { journeyId: string; predecessorRevisionId: string } | true
+  successor?: { journeyId: string; predecessorRevisionId: string }
+}) {
+  return runAnalysisFixtureCommand<{
     targetProjectId: string
     journey: { journeyId: string }
     revisionId: string
-  }
+  }>(input)
+}
+
+async function analysisFixture(questions: FixtureQuestion[] = []) {
+  return runAnalysisFixture({ targetProjectId: await projectFixture(), questions })
+}
+
+test('a saved checkout chat renders the published checks once and restores them on reload', async ({
+  page,
+  context,
+  baseURL,
+}) => {
+  const { targetProjectId, journey, revisionId } = await analysisFixture()
+  await context.addCookies([{ name: 'appraise-active-project', value: targetProjectId, url: baseURL! }])
+  const where = { id: journey.journeyId }
+  const before = await prisma.qualityJourney.findUniqueOrThrow({ where })
+  const revision = await prisma.qualityJourneyAnalysisRevision.findUniqueOrThrow({ where: { id: revisionId } })
+  expect(JSON.parse(before.activeRevisionIdsJson).analysis).toBe(revision.artifactRevisionId)
+  expect(before.analysisReviewHash).toMatch(/^sha256:[0-9a-f]{64}$/)
+
+  const errors: string[] = []
+  const externalRequests: string[] = []
+  page.on('pageerror', error => errors.push(error.message))
+  page.on('request', request => {
+    const url = new URL(request.url())
+    if (/^https?:$/.test(url.protocol) && url.origin !== new URL(baseURL!).origin) externalRequests.push(url.origin)
+  })
+  await page.goto(`/quality-journeys/${journey.journeyId}?project=${targetProjectId}`)
+  await page.getByRole('link', { name: 'Discuss in chat' }).click()
+  const composer = page.getByRole('textbox', { name: 'Message' })
+  await composer.fill('Keep these checkout checks in this chat.')
+  await composer.press('Enter')
+  await expect(page).toHaveURL(/\/conversations\/[0-9a-f-]+\?project=/)
+  const savedPath = new URL(page.url())
+  const savedId = savedPath.pathname.split('/').at(-1)!
+  const saved = await prisma.projectConversation.findUniqueOrThrow({
+    where: { id: savedId },
+    include: { messages: true },
+  })
+  expect(saved.targetProjectId).toBe(targetProjectId)
+  expect(JSON.parse(saved.messages[0].contextJson!)).toMatchObject({ kind: 'QUALITY_JOURNEY', id: journey.journeyId })
+
+  const card = page.getByRole('article', { name: 'Proposed checks' })
+  const checks = card.getByRole('list', { name: 'Proposed checks' }).getByRole('listitem')
+  const link = card.getByRole('link', { name: 'Review this version' })
+  await expect(card).toHaveCount(1)
+  await expect(checks).toHaveText(['An order ID is shown'])
+  await expect(card.getByText(new RegExp(`test approach revision ${revision.revision}\\.`))).toBeVisible()
+
+  await page.reload()
+  await expect(page).toHaveURL(savedPath.href)
+  await expect(card).toHaveCount(1)
+  await expect(checks).toHaveText(['An order ID is shown'])
+  await expect(link).toHaveAttribute(
+    'href',
+    `/quality-journeys/${journey.journeyId}?project=${targetProjectId}#analysis`,
+  )
+  await expect(
+    page.getByRole('list', { name: 'Messages' }).getByText('Keep these checkout checks in this chat.'),
+  ).toBeVisible()
+  expect(await prisma.qualityJourney.findUniqueOrThrow({ where })).toMatchObject({
+    stateHash: before.stateHash,
+    version: before.version,
+  })
+  expect(await prisma.projectConversationMessage.count({ where: { conversationId: savedId } })).toBe(
+    saved.messages.length,
+  )
+  expect(errors).toEqual([])
+  expect(externalRequests).toEqual([])
+})
+
+test('checkout chat recovers the changed criterion after a missed update and fences the old review', async ({
+  page,
+  context,
+  baseURL,
+}) => {
+  const targetProjectId = await projectFixture()
+  const { journey, revisionId } = runAnalysisFixture({ targetProjectId, questions: [], orderNumberPilot: true })
+  await context.addCookies([{ name: 'appraise-active-project', value: targetProjectId, url: baseURL! }])
+  const journeyPath = `/quality-journeys/${journey.journeyId}?project=${targetProjectId}`
+  const request = 'Also check that I get an order number.'
+  const requestEvents = { journeyId: journey.journeyId, eventType: 'COMMAND_REQUEST_ANALYSIS_REVISION' }
+  await page.goto(journeyPath)
+  await page.getByRole('link', { name: 'Discuss in chat' }).click()
+  const composer = page.getByRole('textbox', { name: 'Message' })
+  await composer.fill('Keep the checkout review in this chat.')
+  await composer.press('Enter')
+  await expect(page).toHaveURL(/\/conversations\/[0-9a-f-]+\?project=/)
+  const path = new URL(page.url())
+  const conversationId = path.pathname.split('/').at(-1)!
+  const initial = page.getByRole('article', { name: 'Proposed checks' })
+  await expect(initial).toContainText('The confirmation page is shown')
+  await expect(initial).toContainText('Only the selected item is purchased')
+  await composer.fill(request)
+  await composer.press('Enter')
+  const transcript = page.getByRole('list', { name: 'Messages' })
+  await expect(transcript.getByText('Revision requested.', { exact: false })).toBeVisible()
+  await expect(initial).toHaveCount(0)
+  const feedback = await prisma.qualityJourneyArtifact.findFirstOrThrow({
+    where: { journeyId: journey.journeyId, kind: 'ANALYSIS_REVISION_FEEDBACK' },
+  })
+  expect(JSON.parse(feedback.artifactJson)).toMatchObject({ reviewedRevisionId: revisionId, feedback: request })
+  expect(await prisma.qualityJourneyEvent.count({ where: requestEvents })).toBe(1)
+
+  await context.setOffline(true)
+  const successor = runAnalysisFixture({
+    targetProjectId,
+    questions: [],
+    orderNumberPilot: { journeyId: journey.journeyId, predecessorRevisionId: revisionId },
+  })
+  const changes = page.getByRole('article', { name: 'Review changes' })
+  await expect(changes).toHaveCount(0)
+  await context.setOffline(false)
+  await page.evaluate(() => window.dispatchEvent(new Event('online')))
+  await expect(changes).toHaveCount(1)
+  await expect(changes).toContainText('Test approach revision 2.')
+  await expect(changes).toContainText('The order confirmation includes an order number.')
+  await expect(changes).toContainText('An order ID is shown')
+  await expect(changes).not.toContainText(/selected item/)
+  await page.reload()
+  await expect(changes).toContainText('Test approach revision 2.')
+  await expect(transcript.getByText(request, { exact: true })).toHaveCount(1)
+
+  await composer.fill('Find test cases for checkout')
+  await composer.press('Enter')
+  await expect(transcript.getByText('Find test cases for checkout', { exact: true })).toBeVisible()
+  const lookup = await prisma.projectConversationMessage.findFirstOrThrow({
+    where: { conversationId, role: 'USER', content: 'Find test cases for checkout' },
+  })
+  const providers = page.getByRole('region', { name: 'Lookup provider' })
+  await providers.getByRole('button', { name: 'Use ChatGPT for lookups' }).click()
+  await expect(providers.getByText('Lookup provider · ChatGPT')).toBeVisible()
+  const original = await prisma.projectConversationRead.create({
+    data: {
+      conversationId,
+      messageId: lookup.id,
+      provider: 'CHATGPT',
+      state: 'RUNNING',
+      blockedConversationId: conversationId,
+      expiresAt: new Date(0),
+    },
+  })
+  await page.reload()
+  await expect(changes).toHaveCount(1)
+  await expect(providers.getByRole('button', { name: 'Use local lookups' })).toBeDisabled()
+  await providers.getByRole('button', { name: 'Acknowledge unresolved lookup' }).click()
+  await providers.getByRole('button', { name: 'Use local lookups' }).click()
+  await expect(providers.getByText('Lookup provider · Local')).toBeVisible()
+  await expect(transcript.getByText('ChatGPT lookup outcome unknown · Acknowledged')).toBeVisible()
+  await expect(changes).toContainText('Test approach revision 2.')
+  expect(await prisma.projectConversationRead.findUniqueOrThrow({ where: { id: original.id } })).toMatchObject({
+    state: 'UNKNOWN',
+    blockedConversationId: null,
+  })
+  expect(await prisma.projectConversationRead.count({ where: { conversationId } })).toBe(1)
+
+  const manual = await context.newPage()
+  await manual.goto(journeyPath)
+  await manual.getByRole('button', { name: 'Request change: The order confirmation includes an order number.' }).click()
+  await manual.getByRole('textbox', { name: 'Your requested change' }).fill('Show where the order number is visible.')
+  await manual.getByRole('button', { name: 'Send change', exact: true }).click()
+  await expect.poll(() => prisma.qualityJourneyEvent.count({ where: requestEvents })).toBe(2)
+  await manual.close()
+  await page.evaluate(() => window.dispatchEvent(new Event('online')))
+  await expect(changes).toHaveCount(0)
+  await expect(transcript.getByText(request, { exact: true })).toHaveCount(1)
+  expect(
+    await prisma.qualityJourneyAnalysisRevision.count({
+      where: { journeyId: journey.journeyId, id: successor.revisionId },
+    }),
+  ).toBe(1)
+})
+
+for (const approvalMethod of ['typed reply', 'button'] as const) {
+  test(`checkout chat approves the exact Analysis revision by ${approvalMethod}`, async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    const targetProjectId = await projectFixture()
+    const question = {
+      questionId: 'CHECKOUT-TARGET',
+      prompt: 'Which environment should guest checkout use?',
+      rationale: 'The target determines where the checks will be prepared.',
+      required: true,
+      suggestedAnswers: ['Staging checkout', 'Test sandbox'],
+    }
+    const fixture = runAnalysisFixture({
+      targetProjectId,
+      questions: approvalMethod === 'typed reply' ? [question] : [],
+    })
+    const { journeyId } = fixture.journey
+    await context.addCookies([{ name: 'appraise-active-project', value: targetProjectId, url: baseURL! }])
+    const path = `/quality-journeys/${journeyId}?project=${targetProjectId}`
+    await page.goto(path)
+    await page.getByRole('link', { name: 'Discuss in chat' }).click()
+    const composer = page.getByRole('textbox', { name: 'Message' })
+    await composer.fill('Keep the scoped checkout review here.')
+    await composer.press('Enter')
+    await expect(page).toHaveURL(/\/conversations\/[0-9a-f-]+\?project=/)
+    const chatUrl = new URL(page.url())
+    const conversationId = chatUrl.pathname.split('/').at(-1)!
+    const transcript = page.getByRole('list', { name: 'Messages' })
+
+    let revisionId = fixture.revisionId
+    if (approvalMethod === 'typed reply') {
+      const card = page.getByRole('article', { name: 'Question' })
+      await expect(card).toContainText(question.prompt)
+      await expect(card.getByRole('list', { name: 'Suggested answers' })).toContainText('Staging checkout')
+      await composer.fill('Answer: Staging checkout')
+      await composer.press('Enter')
+      await expect(transcript.getByText('Answer recorded for this Journey.')).toBeVisible()
+      await expect(card).toHaveCount(0)
+      const answer = await prisma.qualityJourneyAnalysisAnswer.findFirstOrThrow({
+        where: { journeyId },
+        include: { question: true, artifact: true },
+      })
+      expect(answer.question).toMatchObject({ analysisRevisionId: revisionId, questionId: question.questionId })
+      expect(JSON.parse(answer.artifact.artifactJson)).toMatchObject({ targetProjectId, answer: 'Staging checkout' })
+      revisionId = runAnalysisFixture({
+        targetProjectId,
+        questions: [],
+        successor: { journeyId, predecessorRevisionId: revisionId },
+      }).revisionId
+      await page.reload()
+    }
+    const review = page.getByRole('article', { name: 'Proposed checks' })
+    await expect(review).toBeVisible()
+    await expect(review.getByRole('button', { name: 'Approve criteria' })).toHaveCount(0)
+    if (approvalMethod === 'typed reply') {
+      await composer.fill('Approve criteria')
+      await composer.press('Enter')
+      await expect(page.locator('#conversation-composer').getByRole('alert')).toContainText(
+        'Discovery setup is incomplete',
+      )
+      await expect(transcript.getByText('Approve criteria', { exact: true })).toHaveCount(0)
+      await composer.fill('')
+    }
+    await prisma.environment.create({
+      data: { name: 'Staging checkout', baseUrl: 'https://checkout.example.test', targetProjectId },
+    })
+    const checkoutModule = await prisma.module.create({ data: { name: 'Checkout', targetProjectId } })
+    await prisma.locatorGroup.create({
+      data: { name: 'Checkout', route: '/checkout', moduleId: checkoutModule.id, targetProjectId },
+    })
+    await page.reload()
+    const approve = review.getByRole('button', { name: 'Approve criteria' })
+    await expect(approve).toBeVisible()
+    const current = await prisma.qualityJourney.findUniqueOrThrow({ where: { id: journeyId } })
+    const analysis = await prisma.qualityJourneyAnalysisRevision.findUniqueOrThrow({ where: { id: revisionId } })
+    const analysisReview = {
+      journeyId,
+      revisionId: analysis.artifactRevisionId,
+      reviewHash: current.analysisReviewHash,
+      stateHash: current.stateHash,
+    }
+    const idempotencyKey: string = randomUUID()
+    const request = {
+      targetProjectId,
+      conversationId,
+      idempotencyKey,
+      content: 'Approve criteria',
+      analysisReview,
+    }
+    const probe = (approvalProbe: typeof request) =>
+      runAnalysisFixtureCommand<{ outcome: string; replayed?: boolean }>({ approvalProbe })
+    expect(probe({ ...request, targetProjectId: await projectFixture() })).toEqual({ outcome: 'NOT_FOUND' })
+    const staleRevisionId = approvalMethod === 'typed reply' ? fixture.revisionId : 'unreviewed'
+    expect(probe({ ...request, analysisReview: { ...analysisReview, revisionId: staleRevisionId } })).toEqual({
+      outcome: 'CONFLICT',
+    })
+    expect(await prisma.qualityJourneyAnalysisDecision.count({ where: { journeyId } })).toBe(0)
+
+    if (approvalMethod === 'typed reply') {
+      await composer.fill(request.content)
+      await composer.press('Enter')
+    } else {
+      await composer.fill('Keep this unsent draft')
+      await approve.click()
+      await expect(composer).toHaveValue('Keep this unsent draft')
+    }
+    const label = `Test approach revision ${analysis.revision} approved.`
+    await expect(transcript.getByText(label)).toBeVisible()
+    await expect(review).toHaveCount(0)
+    const saved = await prisma.projectConversationMessage.findFirstOrThrow({
+      where: { conversationId, role: 'USER', content: request.content },
+    })
+    expect(probe({ ...request, idempotencyKey: saved.idempotencyKey! })).toEqual({
+      outcome: 'COMMITTED',
+      replayed: true,
+    })
+    expect(probe(request)).toEqual({ outcome: 'CONFLICT' })
+    const decisions = await prisma.qualityJourneyAnalysisDecision.findMany({ where: { journeyId } })
+    expect(decisions).toHaveLength(1)
+    expect(decisions[0]).toMatchObject({
+      analysisRevisionId: revisionId,
+      reviewHash: analysisReview.reviewHash,
+      decision: 'APPROVED',
+    })
+    expect(
+      await prisma.qualityJourneyEvent.count({
+        where: { journeyId, eventType: 'COMMAND_DECIDE_ANALYSIS' },
+      }),
+    ).toBe(1)
+    await page.reload()
+    await expect(transcript.getByText(label)).toHaveCount(1)
+    await page.goto(path)
+    await expect(page.getByText(label, { exact: true })).toBeVisible()
+  })
 }
 
 test('Journey acceptance criteria show item feedback and retain drafts through reload @smoke', async ({

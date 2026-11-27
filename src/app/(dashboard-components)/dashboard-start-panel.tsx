@@ -4,6 +4,7 @@ import { ArrowRight, CheckCircle2, CircleDashed, Wrench } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import type { EntityMetrics } from '@/services/dashboard/dashboard-service'
+import { withProjectScope } from '@/lib/project-scope'
 
 export type DashboardExperienceState = 'empty' | 'untested' | 'populated'
 
@@ -82,7 +83,7 @@ export function DashboardStartPanel({
           {agentReady ? 'Start a Quality Journey' : 'Set up Codex'}
           <ArrowRight aria-hidden="true" />
         </Button>
-        <Button render={<Link href="/test-cases/create" />} nativeButton={false} variant="outline">
+        <Button render={<Link href={withProjectScope('/test-cases/create', projectId)} />} nativeButton={false} variant="outline">
           <Wrench aria-hidden="true" /> Manual test design
         </Button>
       </CardContent>

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { parseAttachedCaseRename, parseWorkspaceRequest } from './workspace-request'
+import {
+  isAnalysisApprovalRequest,
+  parseAnalysisAnswerReply,
+  parseAttachedCaseRename,
+  parseWorkspaceRequest,
+} from './workspace-request'
 
 describe('workspace requests', () => {
   it.each([
@@ -21,5 +26,15 @@ describe('workspace requests', () => {
     expect(parseAttachedCaseRename('Please rename this test case to “Express checkout”')).toBe('Express checkout')
     expect(parseAttachedCaseRename('Rename the attached case to "Express checkout"')).toBe('Express checkout')
     expect(parseAttachedCaseRename('Rename case Checkout to express checkout')).toBeUndefined()
+  })
+
+  it('keeps approvals and question replies explicit', () => {
+    expect(isAnalysisApprovalRequest('I approve this revision.')).toBe(true)
+    expect(isAnalysisApprovalRequest('Approve criteria')).toBe(true)
+    expect(isAnalysisApprovalRequest('Can I approve this review?')).toBe(false)
+    expect(isAnalysisApprovalRequest('Approve and run the tests.')).toBe(false)
+    expect(parseAnalysisAnswerReply('Answer: Staging checkout')).toBe('Staging checkout')
+    expect(parseAnalysisAnswerReply('Answer: ')).toBeUndefined()
+    expect(parseAnalysisAnswerReply('Staging checkout')).toBeUndefined()
   })
 })
