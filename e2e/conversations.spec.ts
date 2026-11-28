@@ -231,7 +231,9 @@ test.describe('Guarded chat editing', () => {
 
     test(`creates a scoped suite from text with a saved ${provider} lookup preference`, async ({ page }) => {
       const projectId = seededIds.targetProject
-      const module = await prisma.module.create({ data: { name: `${title} suite module`, targetProjectId: projectId } })
+      const moduleRecord = await prisma.module.create({
+        data: { name: `${title} suite module`, targetProjectId: projectId },
+      })
       const name = `${title} smoke suite`
       await page.goto(`/conversations/new?project=${projectId}`)
       const input = page.getByRole('textbox', { name: 'Message' })
@@ -244,7 +246,7 @@ test.describe('Guarded chat editing', () => {
       await page.reload()
       await expect(page.getByRole('region', { name: 'Lookup provider' })).toContainText(`Lookup provider · ${provider}`)
 
-      await input.fill(`Create a test suite named “${name}” in module “${module.name}”`)
+      await input.fill(`Create a test suite named “${name}” in module “${moduleRecord.name}”`)
       await input.press('Enter')
       const created = page.getByRole('list', { name: 'Matching project records' }).getByRole('link', {
         name: `Test suite ${name}`,
@@ -254,13 +256,13 @@ test.describe('Guarded chat editing', () => {
         where: { name, targetProjectId: projectId },
         include: { tags: true },
       })
-      expect(suite.moduleId).toBe(module.id)
+      expect(suite.moduleId).toBe(moduleRecord.id)
       expect(suite.tags).toHaveLength(1)
       await expect(created).toHaveAttribute('href', `/test-suites/modify/${suite.id}?project=${projectId}`)
       await page.reload()
       await created.click()
       await expect(page.getByRole('textbox', { name: 'Name', exact: true })).toHaveValue(name)
-      await expect(page.getByRole('combobox', { name: 'Module', exact: true })).toContainText(module.name)
+      await expect(page.getByRole('combobox', { name: 'Module', exact: true })).toContainText(moduleRecord.name)
 
       await page.goto(chatPath)
       await expect(created).toBeVisible()
@@ -270,8 +272,10 @@ test.describe('Guarded chat editing', () => {
 
     test(`updates exact suite membership and names with a saved ${provider} lookup preference`, async ({ page }) => {
       const projectId = seededIds.targetProject
-      const module = await prisma.module.create({ data: { name: `${title} membership`, targetProjectId: projectId } })
-      const suite = await createTestSuiteFromInput({ name: `${title} original`, moduleId: module.id }, projectId)
+      const moduleRecord = await prisma.module.create({
+        data: { name: `${title} membership`, targetProjectId: projectId },
+      })
+      const suite = await createTestSuiteFromInput({ name: `${title} original`, moduleId: moduleRecord.id }, projectId)
       const expression = choice === 'CLAUDE' ? '@claude_guest_tag' : '@codex_guest_tag'
       const tag = await prisma.tag.create({
         data: {
@@ -293,14 +297,14 @@ test.describe('Guarded chat editing', () => {
       await page.reload()
       await page.getByRole('link', { name: 'Attach E2E seeded login works' }).click()
       await expect(page.locator('form')).toContainText('E2E seeded login works')
-      await input.fill(`Add this case to suite “${suite.name}” in module “${module.name}”`)
+      await input.fill(`Add this case to suite “${suite.name}” in module “${moduleRecord.name}”`)
       await input.press('Enter')
       await expect(
         page.getByText(`Added the attached case to the test suite “${suite.name}”.`, { exact: true }),
       ).toBeVisible()
 
       const renamedSuite = `${title} guest smoke`
-      await input.fill(`Rename test suite “${suite.name}” in module “${module.name}” to “${renamedSuite}”`)
+      await input.fill(`Rename test suite “${suite.name}” in module “${moduleRecord.name}” to “${renamedSuite}”`)
       await input.press('Enter')
       const suiteLink = page.getByRole('link', { name: `Test suite ${renamedSuite}` })
       await expect(suiteLink).toHaveAttribute('href', `/test-suites/modify/${suite.id}?project=${projectId}`)
