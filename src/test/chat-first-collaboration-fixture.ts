@@ -1,4 +1,3 @@
-// fallow-ignore-file unused-file -- Invoked by the Chromium collaboration test as a standalone TSX process.
 import { randomUUID } from 'node:crypto'
 
 import prisma from '@/config/db-config'
