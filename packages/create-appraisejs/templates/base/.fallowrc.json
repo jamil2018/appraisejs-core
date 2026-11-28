@@ -7,7 +7,8 @@
     "src/lib/action-catalog/index.ts",
     "src/lib/catalog-contracts/index.ts",
     "src/lib/locator-graph/index.ts",
-    "src/lib/validation-ast/index.ts"
+    "src/lib/validation-ast/index.ts",
+    "src/test/chat-first-collaboration-fixture.ts"
   ],
   "ignorePatterns": [
     ".next/**",

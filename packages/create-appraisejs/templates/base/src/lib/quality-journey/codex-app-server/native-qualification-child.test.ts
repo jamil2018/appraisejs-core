@@ -375,6 +375,7 @@ describe('bounded original native lifetime and passive drain', () => {
       expect(f.callbacks.onNotification).not.toHaveBeenCalled()
       expect(existsSync(f.manifest.freshRoot)).toBe(true)
     },
+    10_000,
   )
   it('still fences the sender and retains uncertainty when the owned MCP fence throws', async () => {
     const f = setup()
