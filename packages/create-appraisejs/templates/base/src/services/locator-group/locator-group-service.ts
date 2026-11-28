@@ -311,32 +311,49 @@ export async function createLocatorGroup(
 ): Promise<LocatorGroup> {
   const requested = snapshot(value)
   const id = randomUUID()
-  return prisma.$transaction(async tx => {
-    await validateModule(tx, requested.moduleId, targetProjectId)
-    if (await checkUniqueName(tx, requested.name, targetProjectId)) throw duplicateName()
-    const effects = await collectEffects(tx, targetProjectId, [], requested.locators ?? [])
-    if (effects.existing.length + 1 > sharedResourceBounds.keys) refuse('KEYS_UNBOUNDED')
-    await prepareSharedResourceMutationInTransaction(tx, targetProjectId, {
-      existing: effects.existing,
-      newRoots: [{ kind: 'LOCATOR_GROUP', resourceId: id }],
-      deleted: [],
-    })
-    try {
-      return await tx.locatorGroup.create({
-        data: {
-          id,
-          name: requested.name,
-          moduleId: requested.moduleId,
-          route: requested.route ?? '/',
-          targetProjectId,
-          locators: { connect: requested.locators?.map(locator => ({ id: locator })) ?? [] },
-        },
-      })
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') throw duplicateName()
-      throw error
-    }
+  return prisma.$transaction(tx => createLocatorGroupPreparedInTransaction(tx, requested, targetProjectId, id))
+}
+
+export async function createLocatorGroupInTransaction(
+  tx: Tx,
+  value: z.infer<typeof locatorGroupSchema>,
+  targetProjectId: string,
+): Promise<LocatorGroup> {
+  const requested = snapshot(value)
+  const id = randomUUID()
+  return createLocatorGroupPreparedInTransaction(tx, requested, targetProjectId, id)
+}
+
+async function createLocatorGroupPreparedInTransaction(
+  tx: Tx,
+  requested: ReturnType<typeof snapshot>,
+  targetProjectId: string,
+  id: string,
+): Promise<LocatorGroup> {
+  await validateModule(tx, requested.moduleId, targetProjectId)
+  if (await checkUniqueName(tx, requested.name, targetProjectId)) throw duplicateName()
+  const effects = await collectEffects(tx, targetProjectId, [], requested.locators ?? [])
+  if (effects.existing.length + 1 > sharedResourceBounds.keys) refuse('KEYS_UNBOUNDED')
+  await prepareSharedResourceMutationInTransaction(tx, targetProjectId, {
+    existing: effects.existing,
+    newRoots: [{ kind: 'LOCATOR_GROUP', resourceId: id }],
+    deleted: [],
   })
+  try {
+    return await tx.locatorGroup.create({
+      data: {
+        id,
+        name: requested.name,
+        moduleId: requested.moduleId,
+        route: requested.route ?? '/',
+        targetProjectId,
+        locators: { connect: requested.locators?.map(locator => ({ id: locator })) ?? [] },
+      },
+    })
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') throw duplicateName()
+    throw error
+  }
 }
 
 export async function updateLocatorGroup(
@@ -349,43 +366,101 @@ export async function updateLocatorGroup(
   }
 
   const requested = snapshot(value)
-  return prisma.$transaction(async tx => {
-    const current = await tx.locatorGroup.findFirst({
-      where: { id, targetProjectId, archivedAt: null },
-      select: groupSelect,
-    })
-    if (!current || current.id !== id || current.targetProjectId !== targetProjectId || current.archivedAt !== null) {
-      throw new ServiceError('Locator group not found', 'NOT_FOUND', 404)
-    }
-    if (current.name !== requested.name && (await checkUniqueName(tx, requested.name, targetProjectId, id)))
-      throw duplicateName()
-    await validateModule(tx, requested.moduleId, targetProjectId)
-    const effects = await collectEffects(tx, targetProjectId, [current], requested.locators ?? [])
-    await prepareSharedResourceMutationInTransaction(tx, targetProjectId, {
-      existing: effects.existing,
-      newRoots: [],
-      deleted: [],
-    })
-    try {
-      return await tx.locatorGroup.update({
-        where: { id },
-        data: {
-          name: requested.name,
-          moduleId: requested.moduleId,
-          route: requested.route,
-          ...(requested.locators !== undefined && {
-            locators: {
-              set: requested.locators.map(locator => ({ id: locator })),
-            },
-          }),
-        },
-        include: locatorGroupInclude,
-      })
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') throw duplicateName()
-      throw error
-    }
+  return prisma.$transaction(tx => updateLocatorGroupPreparedInTransaction(tx, id, requested, targetProjectId))
+}
+
+type ExactGroupSnapshot = { name: string; moduleId: string; route: string; updatedAt: Date }
+
+async function updateLocatorGroupPreparedInTransaction(
+  tx: Tx,
+  id: string,
+  requested: ReturnType<typeof snapshot>,
+  targetProjectId: string,
+  exact?: ExactGroupSnapshot,
+): Promise<LocatorGroupWithModule> {
+  const scoped = { id, targetProjectId, archivedAt: null, ...exact }
+  const current = await tx.locatorGroup.findFirst({
+    where: scoped,
+    select: groupSelect,
   })
+  if (!current || current.id !== id || current.targetProjectId !== targetProjectId || current.archivedAt !== null) {
+    if (exact) throw new ServiceError('The locator group changed. Review it again before renaming.', 'CONFLICT', 409)
+    throw new ServiceError('Locator group not found', 'NOT_FOUND', 404)
+  }
+  if (current.name !== requested.name && (await checkUniqueName(tx, requested.name, targetProjectId, id)))
+    throw duplicateName()
+  await validateModule(tx, requested.moduleId, targetProjectId)
+  const effects = await collectEffects(tx, targetProjectId, [current], requested.locators ?? [])
+  await prepareSharedResourceMutationInTransaction(tx, targetProjectId, {
+    existing: effects.existing,
+    newRoots: [],
+    deleted: [],
+  })
+  try {
+    return await tx.locatorGroup.update({
+      where: exact ? scoped : { id },
+      data: {
+        name: requested.name,
+        moduleId: requested.moduleId,
+        route: requested.route,
+        ...(exact ? { updatedAt: new Date(Math.max(Date.now(), exact.updatedAt.getTime() + 1)) } : {}),
+        ...(requested.locators !== undefined && {
+          locators: {
+            set: requested.locators.map(locator => ({ id: locator })),
+          },
+        }),
+      },
+      include: locatorGroupInclude,
+    })
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') throw duplicateName()
+    if (exact && error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025')
+      throw new ServiceError('The locator group changed. Review it again before renaming.', 'CONFLICT', 409)
+    throw error
+  }
+}
+
+/** Rename one exact group without changing its route, module, or locator membership. */
+export async function renameExactLocatorGroupInTransaction(
+  tx: Tx,
+  input: { targetProjectId: string; currentName: string; moduleName: string; route: string; nextName: string },
+): Promise<{ id: string; name: string }> {
+  const { targetProjectId, currentName, moduleName, route, nextName } = input
+  if (!isSharedResourceId(targetProjectId) || currentName === nextName) relationships()
+  const groups = await tx.locatorGroup.findMany({
+    where: { targetProjectId, name: currentName, archivedAt: null },
+    select: { ...groupSelect, route: true, updatedAt: true },
+    take: 2,
+  })
+  if (groups.length !== 1) refuse('GROUP_NAME_AMBIGUOUS_OR_MISSING')
+  const selected = groups[0]!
+  if (
+    !isSharedResourceId(selected.id) ||
+    selected.targetProjectId !== targetProjectId ||
+    selected.archivedAt !== null ||
+    selected.route !== route
+  )
+    refuse('GROUP_DISPLAYED_SCOPE_CHANGED')
+  const selectedModule = await tx.module.findFirst({
+    where: { id: selected.moduleId, targetProjectId, archivedAt: null },
+    select: { id: true, name: true, targetProjectId: true, archivedAt: true },
+  })
+  if (
+    !selectedModule ||
+    selectedModule.id !== selected.moduleId ||
+    selectedModule.targetProjectId !== targetProjectId ||
+    selectedModule.archivedAt !== null ||
+    selectedModule.name !== moduleName
+  )
+    refuse('GROUP_MODULE_DISPLAYED_SCOPE_CHANGED')
+  const renamed = await updateLocatorGroupPreparedInTransaction(
+    tx,
+    selected.id,
+    snapshot(locatorGroupSchema.parse({ name: nextName, moduleId: selected.moduleId, route })),
+    targetProjectId,
+    { name: currentName, moduleId: selected.moduleId, route, updatedAt: selected.updatedAt },
+  )
+  return { id: renamed.id, name: renamed.name }
 }
 
 export async function deleteLocatorGroups(ids: string[], targetProjectId: string): Promise<string[]> {

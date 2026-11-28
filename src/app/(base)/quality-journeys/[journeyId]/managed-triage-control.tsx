@@ -12,10 +12,17 @@ type ManagedTriageControlProps = {
   journeyId: string
   stateHash: string
   enabled: boolean
+  provider?: 'CODEX' | 'CLAUDE_CODE'
   recovery?: { attemptId: string; candidateHash: string } | null
 }
 
-export function ManagedTriageControl({ journeyId, stateHash, enabled, recovery }: ManagedTriageControlProps) {
+export function ManagedTriageControl({
+  journeyId,
+  stateHash,
+  enabled,
+  recovery,
+  provider = 'CODEX',
+}: ManagedTriageControlProps) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [message, setMessage] = useState<string | null>(null)
@@ -56,13 +63,17 @@ export function ManagedTriageControl({ journeyId, stateHash, enabled, recovery }
           ? 'Reviewing sealed evidence…'
           : recovery
             ? 'Recover the saved report without another AI request'
-            : 'Analyze sealed run evidence with local Codex'}
+            : `Analyze sealed run evidence with local ${provider === 'CLAUDE_CODE' ? 'Claude Code' : 'Codex'}`}
       </Button>
       {!enabled && !recovery ? (
-        <p className="text-sm text-muted-foreground">The Appraise server owner must enable local Codex triage.</p>
+        <p className="text-sm text-muted-foreground">
+          {provider === 'CLAUDE_CODE' ? 'Claude Code' : 'Codex'} is unavailable for this step. Check assistant setup on
+          the Journey page.
+        </p>
       ) : null}
       <p className="text-sm text-muted-foreground">
-        Codex proposes a report from sealed run evidence. Report review and Journey closure remain your decisions.
+        {provider === 'CLAUDE_CODE' ? 'Claude Code' : 'Codex'} proposes a report from sealed run evidence. Report review
+        and Journey closure remain your decisions.
       </p>
       {message ? (
         <p role="status" className="text-sm">

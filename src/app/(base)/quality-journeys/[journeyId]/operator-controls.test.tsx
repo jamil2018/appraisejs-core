@@ -39,7 +39,7 @@ describe('operator preparation and evidence review', () => {
     )
     expect(mocks.request).not.toHaveBeenCalled()
     expect(mocks.submit).not.toHaveBeenCalled()
-    expect(screen.getByText(/earlier Codex request remains UNKNOWN/)).toBeInTheDocument()
+    expect(screen.getByText(/earlier managed worker request remains UNKNOWN/)).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Create manual preparation recovery' }))
     await userEvent.click(screen.getByText('Operator preparation'))
     expect(mocks.request).toHaveBeenCalledWith({

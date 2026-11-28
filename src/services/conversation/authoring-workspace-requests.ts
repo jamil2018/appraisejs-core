@@ -1,5 +1,7 @@
 import type { ConversationRecord } from './conversation-service'
+import { z } from 'zod'
 import { parseWorkspaceRequest } from '@/lib/conversation/workspace-request'
+import { coordinatorStepDefinitionService } from '@/services/coordinator/coordinator-step-definition-service'
 import { listModules } from '@/services/module/module-service'
 import { listFilterTags } from '@/services/tag/tag-service'
 import { answerWorkspaceRequest } from '@/services/workspace-search/workspace-record-search'
@@ -9,6 +11,58 @@ type AuthoringRequest = { kind: AuthoringKind; query: string }
 
 const lookupVerb = /^(?:please\s+)?(?:find|show|list|search for|look up)\s+/i
 const subject = /^(?:(?:me|my|the|recent)\s+)*(modules?|tags?)\b/i
+const readySearch = /^(?:please\s+)?find\s+ready\s+step\s+definitions\s+for\s+(.+?)\??$/i
+const readyResultSchema = z
+  .object({
+    matches: z
+      .array(
+        z
+          .object({
+            step: z.object({ id: z.string().min(1).max(200), version: z.string().min(1).max(40) }),
+            title: z.string().min(1),
+            hashes: z.object({ definition: z.string().regex(/^sha256:[a-f0-9]{64}$/) }),
+          })
+          .passthrough(),
+      )
+      .max(25),
+  })
+  .passthrough()
+
+function parseReadyStepSearch(content: string) {
+  const match = readySearch.exec(content.trim())
+  if (!match) return undefined
+  const query = match[1]!
+    .trim()
+    .replace(/^(?:"(.*)"|“(.*)”)$/, '$1$2')
+    .trim()
+  return query && query.length <= 200 ? query : undefined
+}
+
+async function answerReadyStepSearch(query: string) {
+  const search = new URLSearchParams({ query, limit: '8', surface: 'human' })
+  const body = (await coordinatorStepDefinitionService.read(['step-definitions', 'search'], search)).body
+  const result = readyResultSchema.parse(body)
+  const seen = new Set<string>()
+  const records: ConversationRecord[] = []
+  for (const match of result.matches) {
+    const { id, version } = match.step
+    if (seen.has(id) || !match.title.trim() || !/^[\x20-\x7e]{1,200}$/.test(id) || !/^[\x21-\x7e]{1,40}$/.test(version))
+      continue
+    seen.add(id)
+    records.push({
+      kind: 'STEP_DEFINITION',
+      id,
+      title: Array.from(match.title.trim()).slice(0, 256).join(''),
+      stepReference: { version, definitionHash: match.hashes.definition },
+    })
+  }
+  return {
+    content: records.length
+      ? `Found ${records.length} ready step definition${records.length === 1 ? '' : 's'}. Open a result to review its exact published version.`
+      : 'No ready step definitions matched this request.',
+    records,
+  }
+}
 
 const creations = {
   'test case': 'TEST_CASE',
@@ -51,6 +105,8 @@ export async function answerAuthoringWorkspaceRequest(input: {
   targetProjectId: string
   content: string
 }): Promise<{ content: string; records: readonly ConversationRecord[] } | undefined> {
+  const readyQuery = parseReadyStepSearch(input.content)
+  if (readyQuery) return answerReadyStepSearch(readyQuery)
   const continuation = parseAuthoringContinuation(input.content)
   if (continuation?.create) {
     return {

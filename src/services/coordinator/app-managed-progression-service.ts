@@ -17,6 +17,7 @@ import {
 } from './app-managed-discovery-capture'
 import { readInternalDiscoveryAssignment } from './quality-journey-discovery-service'
 import { observeQualityJourneyAnalysisFollowupInTransaction } from './quality-journey-service'
+import { managedJourneyProvider } from './app-managed-provider-sender'
 
 type Input = { journeyId: string; targetProjectId: string; expectedStateHash: string }
 type Role =
@@ -36,6 +37,7 @@ export async function readAppManagedJourneyContinuation(input: Input, client: Pr
       include: { workItems: true, activeDiscoveryRevision: true, currentCoordinatorSession: true },
     })
     if (!journey) throw new ServiceError('Quality Journey was not found in the active project.', 'NOT_FOUND')
+    const provider = managedJourneyProvider(journey)
     if (
       journey.hostingMode !== 'APP_SERVER_LOCAL_V1' ||
       journey.status !== 'ACTIVE' ||
@@ -56,7 +58,7 @@ export async function readAppManagedJourneyContinuation(input: Input, client: Pr
     const eligible = (role: Role) =>
       work.find(item => item.role === role && item.status === 'ELIGIBLE' && item.currentAttempt === 0)
     let role: Role | null = null
-    if (journey.stage === 'ANALYSIS' && appManagedAnalysisEnabled()) {
+    if (journey.stage === 'ANALYSIS' && appManagedAnalysisEnabled(provider)) {
       if (eligible('REQUIREMENT_ANALYZER')) role = 'REQUIREMENT_ANALYZER'
       else {
         const followup = await observeQualityJourneyAnalysisFollowupInTransaction(input, tx)
@@ -68,8 +70,9 @@ export async function readAppManagedJourneyContinuation(input: Input, client: Pr
       }
     } else if (journey.stage === 'DISCOVERY' && session) {
       const discovery = journey.activeDiscoveryRevision
-      if (discovery?.status === 'COMPLETED' && appManagedScenarioAutomationEnabled()) role = 'TEST_SCENARIO_DESIGNER'
-      else if (appManagedDiscoveryEnabled()) {
+      if (discovery?.status === 'COMPLETED' && appManagedScenarioAutomationEnabled(provider))
+        role = 'TEST_SCENARIO_DESIGNER'
+      else if (appManagedDiscoveryEnabled(provider)) {
         const capture = await readAppManagedAnonymousDiscoveryCapture(input, tx)
         if (capture.status === 'READY') role = 'DISCOVERY_CAPTURE'
         // Authenticated access and ambiguous targets still wait for human input.
@@ -89,7 +92,7 @@ export async function readAppManagedJourneyContinuation(input: Input, client: Pr
     } else if (
       journey.stage === 'SCENARIO_DESIGN' &&
       session &&
-      appManagedScenarioAutomationEnabled() &&
+      appManagedScenarioAutomationEnabled(provider) &&
       work.some(item => item.role === 'TEST_SCENARIO_DESIGNER')
     ) {
       if (eligible('TEST_SCENARIO_DESIGNER')) role = 'TEST_SCENARIO_DESIGNER'
@@ -104,14 +107,14 @@ export async function readAppManagedJourneyContinuation(input: Input, client: Pr
     } else if (
       journey.stage === 'AUTOMATION' &&
       session &&
-      appManagedScenarioAutomationEnabled() &&
+      appManagedScenarioAutomationEnabled(provider) &&
       eligible('AUTOMATOR')
     )
       role = 'AUTOMATOR'
     else if (
       journey.stage === 'TRIAGE' &&
       session &&
-      appManagedTriageEnabled() &&
+      appManagedTriageEnabled(provider) &&
       !work.some(item => item.role === 'TRIAGER' && item.currentAttempt > 0)
     )
       role = 'TRIAGER'

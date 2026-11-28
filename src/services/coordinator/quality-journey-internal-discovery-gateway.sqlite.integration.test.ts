@@ -51,11 +51,16 @@ import {
   type DiscoveryBrowserRuntime,
 } from './quality-journey-discovery-browser-service'
 
-const localSender = vi.hoisted(() => ({ run: vi.fn(), cleanup: vi.fn() }))
+const localSender = vi.hoisted(() => ({ run: vi.fn(), cleanup: vi.fn(), claudeRun: vi.fn(), claudeBind: vi.fn() }))
 vi.mock('@/lib/quality-journey/codex-app-server/managed-analysis-sender', () => ({
   runManagedAnalysis: localSender.run,
+  inspectManagedCodexPrerequisites: async () => ({ usableForDispatch: true, state: 'candidate' }),
   classifyManagedAnalysisFailure: () => 'Native send UNKNOWN',
   observeManagedAnalysisCleanup: localSender.cleanup,
+}))
+vi.mock(import('@/services/provider-connection/claude-code-journey-sender'), async importOriginal => ({
+  ...(await importOriginal()),
+  bindClaudeCodeJourneySender: localSender.claudeBind,
 }))
 const fixtures: Awaited<ReturnType<typeof createProviderFixture>>[] = []
 const digest = (character: string) => `sha256:${character.repeat(64)}`
@@ -63,6 +68,8 @@ afterEach(async () => {
   vi.unstubAllEnvs()
   localSender.run.mockReset()
   localSender.cleanup.mockReset()
+  localSender.claudeRun.mockReset()
+  localSender.claudeBind.mockReset()
   await Promise.all(fixtures.splice(0).map(fixture => fixture.cleanup()))
 })
 
@@ -899,7 +906,7 @@ describe('app-managed Scenario Designer and Automator dispatch', () => {
     })
     return { ...f, operation, definition, input }
   }
-  function scenarioOutput(prompt: string) {
+  function scenarioOutput(prompt: string, scenarioCount = 1) {
     const context = JSON.parse(prompt.split('\n\n').find(part => part.startsWith('{'))!)
     return JSON.stringify({
       toolName: context.toolName,
@@ -908,19 +915,17 @@ describe('app-managed Scenario Designer and Automator dispatch', () => {
         portfolio: {
           coverageRationale: 'Verify anonymous checkout routing.',
           graph: { edges: [], sharedSetup: [] },
-          scenarios: [
-            {
-              scenarioKey: 'checkout',
-              behavioralIntent: {
-                title: 'Checkout route',
-                narrative: 'A shopper opens checkout.',
-                requirementIds: ['REQ-CHECKOUT-1'],
-                expectedSignals: ['Checkout route'],
-                steps: [{ action: 'Then the checkout route is open', expected: '/checkout' }],
-              },
-              enrichment: { observationIds: ['m08-observation'], resourceAssumptionIds: [], feasibilityNotes: [] },
+          scenarios: Array.from({ length: scenarioCount }, (_, index) => ({
+            scenarioKey: index === 0 ? 'checkout' : `checkout-${index + 1}`,
+            behavioralIntent: {
+              title: index === 0 ? 'Checkout route' : `Checkout route ${index + 1}`,
+              narrative: 'A shopper opens checkout.',
+              requirementIds: ['REQ-CHECKOUT-1'],
+              expectedSignals: ['Checkout route'],
+              steps: [{ action: 'Then the checkout route is open', expected: '/checkout' }],
             },
-          ],
+            enrichment: { observationIds: ['m08-observation'], resourceAssumptionIds: [], feasibilityNotes: [] },
+          })),
         },
       },
     })
@@ -1026,6 +1031,107 @@ describe('app-managed Scenario Designer and Automator dispatch', () => {
     expect(attempts.every(attempt => !attempt.dispatchStartedAt && !attempt.failureJson)).toBe(true)
     await expect(startAppManagedScenarioAutomation(await f.input('AUTOMATOR'), f.connect())).rejects.toThrow()
     expect(localSender.run).toHaveBeenCalledTimes(2)
+  }, 30_000)
+
+  it('dispatches Scenario Designer and Automator through Claude with opaque identity and no Codex send', async () => {
+    const f = await localFixture()
+    await f.client.qualityJourney.update({
+      where: { id: f.scope.journeyId },
+      data: { managedWorkerProvider: 'CLAUDE_CODE' },
+    })
+    vi.stubEnv('APPRAISE_LOCAL_CODEX_SCENARIO_AUTOMATION_ENABLED', 'false')
+    vi.stubEnv('APPRAISE_LOCAL_CLAUDE_JOURNEY_ENABLED', 'true')
+    localSender.claudeBind.mockImplementation(async () => ({
+      identity: {
+        executableSha256: 'a'.repeat(64),
+        accountFingerprint: 'b'.repeat(64),
+        protocol: 'claude-code-print/v1',
+      },
+      run: localSender.claudeRun,
+    }))
+    localSender.claudeRun.mockImplementation(async (prompt: string, sentSchema: unknown) => {
+      const context = JSON.parse(prompt.split('\n\n').find(part => part.startsWith('{'))!)
+      if (localSender.claudeRun.mock.calls.length === 1) return scenarioOutput(prompt, 2)
+      expect(sentSchema).toEqual(context.outputSchema)
+      expect(context.outputSchema.properties.arguments.properties.scenarios).toMatchObject({
+        type: 'object',
+        required: ['scenario-1', 'scenario-2'],
+        additionalProperties: false,
+      })
+      return JSON.stringify({
+        toolName: context.toolName,
+        arguments: {
+          idempotencyKey: context.submissionIdempotencyKey,
+          scenarios: Object.fromEntries(
+            context.permissibleChoices.scenarios.map(({ scenarioKey }: { scenarioKey: string }) => [
+              scenarioKey,
+              [
+                {
+                  bindingId: context.permissibleChoices.bindings[0].bindingId,
+                  parameters: [{ name: 'route', type: 'string', value: { json: '"/checkout"' } }],
+                  testData: [],
+                  locatorRequirements: [],
+                },
+              ],
+            ]),
+          ),
+        },
+      })
+    })
+    await expect(
+      startAppManagedScenarioAutomation(await f.input('TEST_SCENARIO_DESIGNER'), f.client),
+    ).resolves.toMatchObject({ accepted: true })
+    const current = await getQualityJourney(f.scope, f.client)
+    const { portfolio } = await getQualityJourneyScenarioPortfolio(f.scope, f.client)
+    const approval = {
+      approvedScenarioRevisionIds: portfolio.scenarios.map(row => row.scenarioRevisionId),
+      rejectedScenarioRevisionIds: [],
+    }
+    await decideQualityJourneyScenarios(
+      {
+        ...approval,
+        expectedReviewHash: portfolio.reviewHash,
+        command: {
+          ...f.scope,
+          schemaVersion: qualityJourneyContractVersion,
+          actor: 'USER',
+          command: 'DECIDE_SCENARIOS',
+          commandId: 'claude-human-review',
+          idempotencyKey: 'claude-human-review',
+          expectedStateHash: current.journey.stateHash,
+          inputArtifactRefs: [
+            {
+              kind: 'SCENARIO_PORTFOLIO_REVISION',
+              artifactId: portfolio.artifactId,
+              revisionId: portfolio.artifactRevisionId,
+              contentHash: portfolio.contentHash,
+            },
+          ],
+          payload: {
+            ...approval,
+            portfolioRevisionId: portfolio.artifactRevisionId,
+            portfolioHash: portfolio.contentHash,
+          },
+        },
+      },
+      f.client,
+      trustedHumanCoordinatorSession,
+    )
+    await expect(startAppManagedScenarioAutomation(await f.input('AUTOMATOR'), f.client)).resolves.toMatchObject({
+      accepted: true,
+    })
+    const attempts = await f.client.qualityJourneyWorkAttempt.findMany({
+      where: { dispatchAdapterId: { startsWith: 'APP_SERVER_LOCAL_V1_PREPARATION_' } },
+    })
+    expect(attempts).toHaveLength(2)
+    for (const attempt of attempts)
+      expect(JSON.parse(attempt.managedDispatchIdentityJson!)).toMatchObject({ provider: 'CLAUDE_CODE' })
+    expect(localSender.claudeRun).toHaveBeenCalledTimes(2)
+    expect(await f.client.testCase.count()).toBe(2)
+    expect(await f.client.qualityJourneyExecutionConsent.count()).toBe(0)
+    expect(await f.client.testRun.count()).toBe(0)
+    expect(localSender.run).not.toHaveBeenCalled()
+    expect(localSender.cleanup).not.toHaveBeenCalled()
   }, 30_000)
 
   it.each([false, true])(

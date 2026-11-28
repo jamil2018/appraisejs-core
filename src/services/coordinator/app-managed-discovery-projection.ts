@@ -6,10 +6,27 @@ import {
 } from '@/lib/quality-journey'
 import type { prepareAppManagedDiscoveryTask } from './app-managed-discovery-task'
 import type { ManagedDiscoveryRole } from './app-managed-discovery-contract'
+import type { readInternalScoutEvidence } from './quality-journey-discovery-browser-service'
 import { builtInStepDefinitions } from '../../../packages/cucumber-runtime/src/step-definitions'
 import { computeStepDefinitionHashes } from '../../../packages/cucumber-runtime/src/step-definitions/contracts'
 import { defaultOperationDefinitions } from '@/lib/operation-catalog'
 import { hashAutomationMaterialization } from '@/lib/quality-journey/automation-contracts'
+import { reviewedScoutSnapshot } from '@/lib/quality-journey/managed-scout-snapshot'
+
+type DiscoveryTask = Awaited<ReturnType<typeof prepareAppManagedDiscoveryTask>>
+type ScoutData = {
+  evidence: Awaited<ReturnType<typeof readInternalScoutEvidence>>
+  reviewedPageSet: boolean
+}
+
+/** Fact indices stay stable across prompting, validation and restart. */
+export function indexAppManagedScoutFacts(data: ScoutData) {
+  let nextIndex = 0
+  return (data.reviewedPageSet ? data.evidence : data.evidence.slice(0, 1)).map(page => ({
+    page,
+    facts: page.facts.map(fact => ({ factIndex: nextIndex++, fact })),
+  }))
+}
 
 /** Freeze the executable dependency of a selected built-in before any Automator work is issued. */
 export function pinnedDiscoveryOperation(resourceId: string, resources: Array<{ id: string; contentHash: string }>) {
@@ -86,10 +103,7 @@ export function managedDiscoveryNativeOutputSchema(role: ManagedDiscoveryRole) {
 }
 
 /** Model chooses only bounded public indices; Appraise supplies every canonical identity, fact and evidence reference. */
-export function projectAppManagedDiscoverySelection(
-  task: Awaited<ReturnType<typeof prepareAppManagedDiscoveryTask>>,
-  value: unknown,
-) {
+export function projectAppManagedDiscoverySelection(task: DiscoveryTask, value: unknown) {
   const data = task.data
   const common = {
     cycleId: data.cycleId,
@@ -103,21 +117,24 @@ export function projectAppManagedDiscoverySelection(
   if (task.binding.role === 'SCOUT') {
     const selection = scoutSelection.parse(value)
     if (!('evidence' in data) || !data.evidence[0]) throw new Error('No selected captured snapshot.')
-    const snapshot = data.evidence[0]
+    const pages = indexAppManagedScoutFacts(data)
+    const facts = pages.flatMap(({ page, facts }) => facts.map(({ fact }) => ({ page, fact })))
+    const targetSnapshot = reviewedScoutSnapshot(pages.map(({ page }) => page))
     if (new Set(selection.factIndexes).size !== selection.factIndexes.length)
       throw new Error('Duplicate captured fact selection.')
     const observations = [...selection.factIndexes]
       .sort((a, b) => a - b)
       .map((factIndex, ordinal) => {
-        const fact = snapshot.facts[factIndex]
-        if (fact === undefined) throw new Error('Captured fact index is outside the selected snapshot.')
+        const captured = facts[factIndex]
+        if (!captured) throw new Error('Captured fact index is outside the selected snapshot.')
+        const { page, fact } = captured
         return {
           observationId: `app-scout-${ordinal.toString().padStart(4, '0')}`,
-          snapshotId: snapshot.snapshotId,
-          routeId: snapshot.routeId,
-          environmentId: snapshot.environmentId,
+          snapshotId: page.snapshotId,
+          routeId: page.routeId,
+          environmentId: page.environmentId,
           fact,
-          evidenceReceiptIds: [snapshot.artifactId],
+          evidenceReceiptIds: [page.artifactId],
           confidence: 'HIGH',
           confidenceRationale: 'Exact fact captured by the scoped Appraise Discovery browser.',
           stability: 'CONDITIONAL',
@@ -125,16 +142,14 @@ export function projectAppManagedDiscoverySelection(
           revalidationPolicy: { triggers: ['target_changed'] },
         }
       })
+    if (new Set(observations.flatMap(observation => observation.evidenceReceiptIds)).size !== pages.length)
+      throw new Error('Select at least one captured fact from every reviewed page.')
     bundle = {
       ...common,
       bundleId: `app-scout:${task.binding.attemptId}`,
-      observedAt: snapshot.capturedAt,
-      targetSnapshot: {
-        snapshotId: snapshot.snapshotId,
-        capturedAt: snapshot.capturedAt,
-        contentHash: snapshot.contentHash,
-      },
-      evidenceReceipts: [{ artifactId: snapshot.artifactId, contentHash: snapshot.contentHash }],
+      observedAt: targetSnapshot.capturedAt,
+      targetSnapshot,
+      evidenceReceipts: pages.map(({ page: { artifactId, contentHash } }) => ({ artifactId, contentHash })),
       observations,
     }
   } else {

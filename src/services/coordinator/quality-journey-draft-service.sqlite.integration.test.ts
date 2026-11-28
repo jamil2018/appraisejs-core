@@ -14,7 +14,7 @@ import {
   saveQualityJourneyDraft,
   restoreQualityJourneyDraft,
 } from './quality-journey-draft-service'
-import { createQualityJourney } from './quality-journey-service'
+import { createAppManagedJourney, createQualityJourney } from './quality-journey-service'
 
 const workspaces: string[] = []
 
@@ -48,6 +48,227 @@ async function fixture() {
 }
 
 describe('Quality Journey drafts', () => {
+  it('restores model and effort through draft review, confirmation, copy, and explicit reset', async () => {
+    const client = await fixture()
+    try {
+      const targetProjectId = 'draft-project'
+      const requirement = { objective: 'Check guest checkout' }
+      const original = await createQualityJourneyDraft(
+        {
+          targetProjectId,
+          idempotencyKey: 'selected-worker',
+          requirement,
+          managedWorkerProvider: 'CLAUDE_CODE',
+          managedWorkerModel: 'sonnet',
+          managedWorkerEffort: 'high',
+        },
+        client,
+      )
+      expect(original.draft).toMatchObject({ managedWorkerModel: 'sonnet', managedWorkerEffort: 'high' })
+      await expect(
+        createQualityJourneyDraft(
+          {
+            targetProjectId,
+            idempotencyKey: 'selected-worker',
+            requirement,
+            managedWorkerProvider: 'CLAUDE_CODE',
+            managedWorkerModel: 'opus',
+            managedWorkerEffort: 'high',
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      const changed = await saveQualityJourneyDraft(
+        {
+          draftId: original.draft.id,
+          targetProjectId,
+          expectedVersion: original.draft.version,
+          requirement,
+          currentStep: 0,
+          managedWorkerModel: 'opus',
+          managedWorkerEffort: 'low',
+        },
+        client,
+      )
+      expect(changed.draftHash).not.toBe(original.draft.draftHash)
+      expect(await getQualityJourneyDraft({ draftId: changed.id, targetProjectId }, client)).toMatchObject({
+        managedWorkerModel: 'opus',
+        managedWorkerEffort: 'low',
+      })
+      const confirmed = await confirmQualityJourneyDraft(
+        {
+          draftId: changed.id,
+          targetProjectId,
+          expectedVersion: changed.version,
+          expectedDraftHash: changed.draftHash,
+          requirementHash: hashQualityJourneyRequirement(requirement),
+        },
+        client,
+      )
+      expect(await client.qualityJourney.findUniqueOrThrow({ where: { id: confirmed.journeyId } })).toMatchObject({
+        managedWorkerProvider: 'CLAUDE_CODE',
+        managedWorkerModel: 'opus',
+        managedWorkerEffort: 'low',
+      })
+      const copied = await copyQualityJourneyBriefToDraft(
+        {
+          journeyId: confirmed.journeyId,
+          targetProjectId,
+          idempotencyKey: 'copy-selected',
+        },
+        client,
+      )
+      expect(copied.draft).toMatchObject({ managedWorkerModel: 'opus', managedWorkerEffort: 'low' })
+      const reset = await saveQualityJourneyDraft(
+        {
+          draftId: copied.draft.id,
+          targetProjectId,
+          expectedVersion: copied.draft.version,
+          requirement,
+          currentStep: 0,
+          managedWorkerModel: null,
+          managedWorkerEffort: null,
+        },
+        client,
+      )
+      expect(reset).toMatchObject({ managedWorkerModel: undefined, managedWorkerEffort: undefined })
+      await expect(
+        createQualityJourneyDraft(
+          {
+            targetProjectId,
+            idempotencyKey: 'invalid-model',
+            requirement,
+            managedWorkerProvider: 'CODEX',
+            managedWorkerModel: 'opus',
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'VALIDATION' })
+    } finally {
+      await client.$disconnect()
+    }
+  })
+
+  it('binds the selected Claude Code worker to one confirmed Journey and rejects stale provider choices', async () => {
+    const client = await fixture()
+    try {
+      const requirement = { objective: 'Check checkout' }
+      const created = await createQualityJourneyDraft(
+        {
+          targetProjectId: 'draft-project',
+          idempotencyKey: 'claude-worker',
+          requirement,
+          managedWorkerProvider: 'CLAUDE_CODE',
+        },
+        client,
+      )
+      expect(created.draft.managedWorkerProvider).toBe('CLAUDE_CODE')
+      await expect(
+        createQualityJourneyDraft(
+          {
+            targetProjectId: 'draft-project',
+            idempotencyKey: 'claude-worker',
+            requirement,
+            managedWorkerProvider: 'CODEX',
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      const changed = await saveQualityJourneyDraft(
+        {
+          draftId: created.draft.id,
+          targetProjectId: 'draft-project',
+          expectedVersion: created.draft.version,
+          requirement,
+          currentStep: 0,
+          managedWorkerProvider: 'CODEX',
+        },
+        client,
+      )
+      expect(changed.draftHash).not.toBe(created.draft.draftHash)
+      await expect(
+        confirmQualityJourneyDraft(
+          {
+            draftId: created.draft.id,
+            targetProjectId: 'draft-project',
+            expectedVersion: created.draft.version,
+            expectedDraftHash: created.draft.draftHash,
+            requirementHash: hashQualityJourneyRequirement(requirement),
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      const selected = await saveQualityJourneyDraft(
+        {
+          draftId: changed.id,
+          targetProjectId: 'draft-project',
+          expectedVersion: changed.version,
+          requirement,
+          currentStep: 0,
+          managedWorkerProvider: 'CLAUDE_CODE',
+        },
+        client,
+      )
+      const confirmation = {
+        draftId: selected.id,
+        targetProjectId: 'draft-project',
+        expectedVersion: selected.version,
+        expectedDraftHash: selected.draftHash,
+        requirementHash: hashQualityJourneyRequirement(requirement),
+      }
+      const confirmed = await confirmQualityJourneyDraft(confirmation, client)
+      expect(await confirmQualityJourneyDraft(confirmation, client)).toEqual({
+        replayed: true,
+        journeyId: confirmed.journeyId,
+      })
+      expect(await client.qualityJourney.findUniqueOrThrow({ where: { id: confirmed.journeyId } })).toMatchObject({
+        managedWorkerProvider: 'CLAUDE_CODE',
+      })
+      expect(await client.qualityJourney.count()).toBe(1)
+    } finally {
+      await client.$disconnect()
+    }
+  })
+
+  it('refuses to adopt a preexisting Codex Journey with the same confirmation key', async () => {
+    const client = await fixture()
+    try {
+      const targetProjectId = 'draft-project'
+      const requirement = { objective: 'Check checkout' }
+      const { draft } = await createQualityJourneyDraft(
+        { targetProjectId, requirement, idempotencyKey: 'claude-draft', managedWorkerProvider: 'CLAUDE_CODE' },
+        client,
+      )
+      const existing = await createAppManagedJourney(
+        { targetProjectId, requirement, idempotencyKey: `draft-confirm:${draft.id}` },
+        client,
+      )
+      await expect(
+        confirmQualityJourneyDraft(
+          {
+            targetProjectId,
+            draftId: draft.id,
+            expectedVersion: draft.version,
+            expectedDraftHash: draft.draftHash,
+            requirementHash: hashQualityJourneyRequirement(requirement),
+          },
+          client,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      expect(
+        await client.qualityJourney.findUniqueOrThrow({ where: { id: existing.journey.journeyId } }),
+      ).toMatchObject({
+        managedWorkerProvider: 'CODEX',
+        stage: 'INTAKE',
+      })
+      expect(await getQualityJourneyDraft({ draftId: draft.id, targetProjectId }, client)).toMatchObject({
+        status: 'ACTIVE',
+      })
+    } finally {
+      await client.$disconnect()
+    }
+  })
+
   it('uses scoped optimistic saves and confirms the exact saved brief only once', async () => {
     const client = await fixture()
     try {

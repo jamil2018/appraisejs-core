@@ -22,6 +22,7 @@ const PROJECT_SCOPED_ROUTE_SEGMENTS = new Set([
 
 export function isProjectScopedPath(pathname: string) {
   if (pathname === '/') return true
+  if (pathname === '/settings/agent-setup') return true
   const [segment] = pathname.split('/').filter(Boolean)
   return Boolean(segment && PROJECT_SCOPED_ROUTE_SEGMENTS.has(segment))
 }

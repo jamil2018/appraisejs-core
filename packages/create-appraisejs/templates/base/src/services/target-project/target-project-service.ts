@@ -8,7 +8,10 @@ import type { PrismaClient, TargetProject } from '@prisma/client'
 
 import prisma from '@/config/db-config'
 import { ServiceError } from '@/services/shared/errors'
-import { initializeNewTargetSharedResourceCoverage, prepareSharedResourceMutationInTransaction } from '@/services/coordinator/quality-journey-shared-resource-guard-service'
+import {
+  initializeNewTargetSharedResourceCoverage,
+  prepareSharedResourceMutationInTransaction,
+} from '@/services/coordinator/quality-journey-shared-resource-guard-service'
 import { isSharedResourceId } from '@/lib/quality-journey/shared-resource-contract'
 import { collectTargetProjectDeletionEffects } from './target-project-deletion-effects'
 
@@ -220,18 +223,20 @@ export async function registerTargetProject(
       if (existing) return tx.targetProject.update({ where: { id: existing.id }, data: metadataUpdate })
       const id = randomUUID()
       await initializeNewTargetSharedResourceCoverage(tx, id)
-      return tx.targetProject.create({ data: {
-        id,
-        kind: 'LOCAL_WORKSPACE',
-        canonicalIdentity,
-        canonicalPath,
-        displayName,
-        description: input.description?.trim() || null,
-        packageName: metadata.name,
-        packageManager,
-        packageJson,
-        fingerprint: fingerprintTargetProject(canonicalIdentity, metadata.name),
-      } })
+      return tx.targetProject.create({
+        data: {
+          id,
+          kind: 'LOCAL_WORKSPACE',
+          canonicalIdentity,
+          canonicalPath,
+          displayName,
+          description: input.description?.trim() || null,
+          packageName: metadata.name,
+          packageManager,
+          packageJson,
+          fingerprint: fingerprintTargetProject(canonicalIdentity, metadata.name),
+        },
+      })
     })
   }
 
@@ -242,25 +247,29 @@ export async function registerTargetProject(
     const existing = await tx.targetProject.findUnique({ where: { canonicalIdentity } })
     const id = existing?.id ?? randomUUID()
     if (!existing) await initializeNewTargetSharedResourceCoverage(tx, id)
-    const targetProject = existing ? await tx.targetProject.update({
-      where: { id },
-      data: { displayName, description: input.description?.trim() || null, lastDetectedAt: new Date() },
-    }) : await tx.targetProject.create({ data: {
-      id,
-      kind: 'REMOTE_BLACK_BOX',
-      canonicalIdentity,
-      normalizedRemoteOrigin,
-      displayName,
-      description: input.description?.trim() || null,
-      fingerprint: fingerprintTargetProject(canonicalIdentity),
-    } })
+    const targetProject = existing
+      ? await tx.targetProject.update({
+          where: { id },
+          data: { displayName, description: input.description?.trim() || null, lastDetectedAt: new Date() },
+        })
+      : await tx.targetProject.create({
+          data: {
+            id,
+            kind: 'REMOTE_BLACK_BOX',
+            canonicalIdentity,
+            normalizedRemoteOrigin,
+            displayName,
+            description: input.description?.trim() || null,
+            fingerprint: fingerprintTargetProject(canonicalIdentity),
+          },
+        })
     await tx.environment.upsert({
-    where: { targetProjectId_name: { targetProjectId: targetProject.id, name: 'default' } },
-    create: { targetProjectId: targetProject.id, name: 'default', baseUrl: normalizedRemoteOrigin },
-    // Registration refresh is an Environment write too. Preserve the remote
-    // scope invariant even when the origin happens to be unchanged: callers
-    // must issue a new scope after a target registration refresh.
-    update: { baseUrl: normalizedRemoteOrigin, scopeVersion: { increment: 1 } },
+      where: { targetProjectId_name: { targetProjectId: targetProject.id, name: 'default' } },
+      create: { targetProjectId: targetProject.id, name: 'default', baseUrl: normalizedRemoteOrigin },
+      // Registration refresh is an Environment write too. Preserve the remote
+      // scope invariant even when the origin happens to be unchanged: callers
+      // must issue a new scope after a target registration refresh.
+      update: { baseUrl: normalizedRemoteOrigin, scopeVersion: { increment: 1 } },
     })
     return targetProject
   })
@@ -310,6 +319,25 @@ export async function listTargetProjects(client: PrismaClient = prisma): Promise
   return client.targetProject.findMany({ orderBy: [{ displayName: 'asc' }, { canonicalIdentity: 'asc' }] })
 }
 
+/** Resolve a quoted chat target only among registered projects, without path discovery. */
+export async function resolveRegisteredTargetProjectByName(
+  displayName: string,
+  client: PrismaClient = prisma,
+): Promise<Pick<TargetProject, 'id' | 'displayName'>> {
+  const matches = await client.targetProject.findMany({
+    where: { displayName },
+    select: { id: true, displayName: true },
+    take: 2,
+  })
+  if (matches.length !== 1)
+    throw new ServiceError(
+      matches.length ? 'That project name identifies more than one registered project.' : 'Project not found.',
+      matches.length ? 'CONFLICT' : 'NOT_FOUND',
+      matches.length ? 409 : 404,
+    )
+  return matches[0]!
+}
+
 export async function resolveActiveProject(
   input: { urlProjectId?: string | null; cookieProjectId?: string | null },
   client: PrismaClient = prisma,
@@ -356,7 +384,8 @@ export async function renameTargetProject(
 function assertTargetDeletionCount(result: { count: number }, expected: number) {
   if (result.count !== expected)
     throw new ServiceError('Target deletion count changed inside its owning transaction.', 'CONFLICT', 409, {
-      protocol: 'M06_TARGET_DELETION_EFFECTS_V1', reason: 'DELETE_COUNT',
+      protocol: 'M06_TARGET_DELETION_EFFECTS_V1',
+      reason: 'DELETE_COUNT',
     })
 }
 
@@ -373,84 +402,184 @@ export async function deleteTargetProject(
     if (!existing) throw new ServiceError('Target project not found.', 'NOT_FOUND', 404)
     if (existing.id !== id) throw new ServiceError('Target project scope changed.', 'CONFLICT', 409)
     const plan = await collectTargetProjectDeletionEffects(tx, id)
-    await prepareSharedResourceMutationInTransaction(tx, id, { existing: plan.roots, newRoots: [], deleted: plan.roots })
+    await prepareSharedResourceMutationInTransaction(tx, id, {
+      existing: plan.roots,
+      newRoots: [],
+      deleted: plan.roots,
+    })
     // Every deletion below is a precomputed finite effect in this exact owner.
     // Retained runtime/history/lineage, coverage, guards, Uses and Claims have no
     // deletion or reset path here. Preparation tombstones each actual root once.
-    if (plan.imports.length) assertTargetDeletionCount(await tx.projectResourceImport.deleteMany({
-      where: { id: { in: [...plan.imports] } },
-    }), plan.imports.length)
-    if (plan.conversationReads.length) assertTargetDeletionCount(await tx.projectConversationRead.deleteMany({
-      where: { id: { in: [...plan.conversationReads] }, conversationId: { in: [...plan.conversations] } },
-    }), plan.conversationReads.length)
-    if (plan.conversationMessages.length) assertTargetDeletionCount(await tx.projectConversationMessage.deleteMany({
-      where: { id: { in: [...plan.conversationMessages] }, conversationId: { in: [...plan.conversations] } },
-    }), plan.conversationMessages.length)
-    if (plan.conversations.length) assertTargetDeletionCount(await tx.projectConversation.deleteMany({
-      where: { id: { in: [...plan.conversations] }, targetProjectId: id },
-    }), plan.conversations.length)
-    if (plan.ownerships.length) assertTargetDeletionCount(await tx.projectResourceOwnership.deleteMany({
-      where: { id: { in: [...plan.ownerships] }, targetProjectId: id },
-    }), plan.ownerships.length)
-    if (plan.parameters.length) assertTargetDeletionCount(await tx.testCaseStepParameter.deleteMany({
-      where: { id: { in: [...plan.parameters] } },
-    }), plan.parameters.length)
-    if (plan.templateParameters.length) assertTargetDeletionCount(await tx.templateTestCaseStepParameter.deleteMany({
-      where: { id: { in: [...plan.templateParameters] } },
-    }), plan.templateParameters.length)
-    if (plan.nodes.length) assertTargetDeletionCount(await tx.testCaseFlowBlockNode.deleteMany({
-      where: { id: { in: [...plan.nodes] } },
-    }), plan.nodes.length)
-    if (plan.templateNodes.length) assertTargetDeletionCount(await tx.templateTestCaseFlowBlockNode.deleteMany({
-      where: { id: { in: [...plan.templateNodes] } },
-    }), plan.templateNodes.length)
-    if (plan.steps.length) assertTargetDeletionCount(await tx.testCaseStep.deleteMany({
-      where: { id: { in: [...plan.steps] } },
-    }), plan.steps.length)
-    if (plan.templateSteps.length) assertTargetDeletionCount(await tx.templateTestCaseStep.deleteMany({
-      where: { id: { in: [...plan.templateSteps] } },
-    }), plan.templateSteps.length)
-    if (plan.blocks.length) assertTargetDeletionCount(await tx.testCaseFlowBlock.deleteMany({
-      where: { id: { in: [...plan.blocks] } },
-    }), plan.blocks.length)
-    if (plan.templateBlocks.length) assertTargetDeletionCount(await tx.templateTestCaseFlowBlock.deleteMany({
-      where: { id: { in: [...plan.templateBlocks] } },
-    }), plan.templateBlocks.length)
-    if (plan.caseMetrics.length) assertTargetDeletionCount(await tx.testCaseMetrics.deleteMany({
-      where: { id: { in: [...plan.caseMetrics] }, targetProjectId: id },
-    }), plan.caseMetrics.length)
-    if (plan.suiteMetrics.length) assertTargetDeletionCount(await tx.testSuiteMetrics.deleteMany({
-      where: { id: { in: [...plan.suiteMetrics] }, targetProjectId: id },
-    }), plan.suiteMetrics.length)
-    if (plan.dashboardMetrics.length) assertTargetDeletionCount(await tx.dashboardMetrics.deleteMany({
-      where: { id: { in: [...plan.dashboardMetrics] }, targetProjectId: id },
-    }), plan.dashboardMetrics.length)
-    if (plan.cases.length) assertTargetDeletionCount(await tx.testCase.deleteMany({
-      where: { id: { in: [...plan.cases] }, targetProjectId: id },
-    }), plan.cases.length)
-    if (plan.templates.length) assertTargetDeletionCount(await tx.templateTestCase.deleteMany({
-      where: { id: { in: [...plan.templates] }, targetProjectId: id },
-    }), plan.templates.length)
-    if (plan.suites.length) assertTargetDeletionCount(await tx.testSuite.deleteMany({
-      where: { id: { in: [...plan.suites] }, targetProjectId: id },
-    }), plan.suites.length)
-    if (plan.conflicts.length) assertTargetDeletionCount(await tx.conflictResolution.deleteMany({
-      where: { id: { in: [...plan.conflicts] } },
-    }), plan.conflicts.length)
-    if (plan.locators.length) assertTargetDeletionCount(await tx.locator.deleteMany({
-      where: { id: { in: [...plan.locators] }, targetProjectId: id },
-    }), plan.locators.length)
-    if (plan.groups.length) assertTargetDeletionCount(await tx.locatorGroup.deleteMany({
-      where: { id: { in: [...plan.groups] }, targetProjectId: id },
-    }), plan.groups.length)
+    if (plan.imports.length)
+      assertTargetDeletionCount(
+        await tx.projectResourceImport.deleteMany({
+          where: { id: { in: [...plan.imports] } },
+        }),
+        plan.imports.length,
+      )
+    if (plan.conversationReads.length)
+      assertTargetDeletionCount(
+        await tx.projectConversationRead.deleteMany({
+          where: { id: { in: [...plan.conversationReads] }, conversationId: { in: [...plan.conversations] } },
+        }),
+        plan.conversationReads.length,
+      )
+    if (plan.conversationMessages.length)
+      assertTargetDeletionCount(
+        await tx.projectConversationMessage.deleteMany({
+          where: { id: { in: [...plan.conversationMessages] }, conversationId: { in: [...plan.conversations] } },
+        }),
+        plan.conversationMessages.length,
+      )
+    if (plan.conversations.length)
+      assertTargetDeletionCount(
+        await tx.projectConversation.deleteMany({
+          where: { id: { in: [...plan.conversations] }, targetProjectId: id },
+        }),
+        plan.conversations.length,
+      )
+    if (plan.ownerships.length)
+      assertTargetDeletionCount(
+        await tx.projectResourceOwnership.deleteMany({
+          where: { id: { in: [...plan.ownerships] }, targetProjectId: id },
+        }),
+        plan.ownerships.length,
+      )
+    if (plan.parameters.length)
+      assertTargetDeletionCount(
+        await tx.testCaseStepParameter.deleteMany({
+          where: { id: { in: [...plan.parameters] } },
+        }),
+        plan.parameters.length,
+      )
+    if (plan.templateParameters.length)
+      assertTargetDeletionCount(
+        await tx.templateTestCaseStepParameter.deleteMany({
+          where: { id: { in: [...plan.templateParameters] } },
+        }),
+        plan.templateParameters.length,
+      )
+    if (plan.nodes.length)
+      assertTargetDeletionCount(
+        await tx.testCaseFlowBlockNode.deleteMany({
+          where: { id: { in: [...plan.nodes] } },
+        }),
+        plan.nodes.length,
+      )
+    if (plan.templateNodes.length)
+      assertTargetDeletionCount(
+        await tx.templateTestCaseFlowBlockNode.deleteMany({
+          where: { id: { in: [...plan.templateNodes] } },
+        }),
+        plan.templateNodes.length,
+      )
+    if (plan.steps.length)
+      assertTargetDeletionCount(
+        await tx.testCaseStep.deleteMany({
+          where: { id: { in: [...plan.steps] } },
+        }),
+        plan.steps.length,
+      )
+    if (plan.templateSteps.length)
+      assertTargetDeletionCount(
+        await tx.templateTestCaseStep.deleteMany({
+          where: { id: { in: [...plan.templateSteps] } },
+        }),
+        plan.templateSteps.length,
+      )
+    if (plan.blocks.length)
+      assertTargetDeletionCount(
+        await tx.testCaseFlowBlock.deleteMany({
+          where: { id: { in: [...plan.blocks] } },
+        }),
+        plan.blocks.length,
+      )
+    if (plan.templateBlocks.length)
+      assertTargetDeletionCount(
+        await tx.templateTestCaseFlowBlock.deleteMany({
+          where: { id: { in: [...plan.templateBlocks] } },
+        }),
+        plan.templateBlocks.length,
+      )
+    if (plan.caseMetrics.length)
+      assertTargetDeletionCount(
+        await tx.testCaseMetrics.deleteMany({
+          where: { id: { in: [...plan.caseMetrics] }, targetProjectId: id },
+        }),
+        plan.caseMetrics.length,
+      )
+    if (plan.suiteMetrics.length)
+      assertTargetDeletionCount(
+        await tx.testSuiteMetrics.deleteMany({
+          where: { id: { in: [...plan.suiteMetrics] }, targetProjectId: id },
+        }),
+        plan.suiteMetrics.length,
+      )
+    if (plan.dashboardMetrics.length)
+      assertTargetDeletionCount(
+        await tx.dashboardMetrics.deleteMany({
+          where: { id: { in: [...plan.dashboardMetrics] }, targetProjectId: id },
+        }),
+        plan.dashboardMetrics.length,
+      )
+    if (plan.cases.length)
+      assertTargetDeletionCount(
+        await tx.testCase.deleteMany({
+          where: { id: { in: [...plan.cases] }, targetProjectId: id },
+        }),
+        plan.cases.length,
+      )
+    if (plan.templates.length)
+      assertTargetDeletionCount(
+        await tx.templateTestCase.deleteMany({
+          where: { id: { in: [...plan.templates] }, targetProjectId: id },
+        }),
+        plan.templates.length,
+      )
+    if (plan.suites.length)
+      assertTargetDeletionCount(
+        await tx.testSuite.deleteMany({
+          where: { id: { in: [...plan.suites] }, targetProjectId: id },
+        }),
+        plan.suites.length,
+      )
+    if (plan.conflicts.length)
+      assertTargetDeletionCount(
+        await tx.conflictResolution.deleteMany({
+          where: { id: { in: [...plan.conflicts] } },
+        }),
+        plan.conflicts.length,
+      )
+    if (plan.locators.length)
+      assertTargetDeletionCount(
+        await tx.locator.deleteMany({
+          where: { id: { in: [...plan.locators] }, targetProjectId: id },
+        }),
+        plan.locators.length,
+      )
+    if (plan.groups.length)
+      assertTargetDeletionCount(
+        await tx.locatorGroup.deleteMany({
+          where: { id: { in: [...plan.groups] }, targetProjectId: id },
+        }),
+        plan.groups.length,
+      )
     for (const moduleId of plan.moduleDeleteOrder)
       assertTargetDeletionCount(await tx.module.deleteMany({ where: { id: moduleId, targetProjectId: id } }), 1)
-    if (plan.environments.length) assertTargetDeletionCount(await tx.environment.deleteMany({
-      where: { id: { in: [...plan.environments] }, targetProjectId: id },
-    }), plan.environments.length)
-    if (plan.tags.length) assertTargetDeletionCount(await tx.tag.deleteMany({
-      where: { id: { in: [...plan.tags] }, targetProjectId: id },
-    }), plan.tags.length)
+    if (plan.environments.length)
+      assertTargetDeletionCount(
+        await tx.environment.deleteMany({
+          where: { id: { in: [...plan.environments] }, targetProjectId: id },
+        }),
+        plan.environments.length,
+      )
+    if (plan.tags.length)
+      assertTargetDeletionCount(
+        await tx.tag.deleteMany({
+          where: { id: { in: [...plan.tags] }, targetProjectId: id },
+        }),
+        plan.tags.length,
+      )
     assertTargetDeletionCount(await tx.targetProject.deleteMany({ where: { id } }), 1)
     return existing
   })

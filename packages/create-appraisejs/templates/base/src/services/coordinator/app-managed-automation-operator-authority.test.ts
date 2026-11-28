@@ -5,7 +5,13 @@ import { assertOperatorAutomationLocatorAuthority } from './app-managed-automati
 
 function fixture() {
   const now = new Date('2026-11-20T00:00:00Z')
-  const failureJson = JSON.stringify({ state: 'UNKNOWN', stage: 'NATIVE_SEND' })
+  const failureJson = JSON.stringify({
+    state: 'UNKNOWN',
+    stage: 'NATIVE_SEND',
+    senderCleanupVerified: false,
+    canonicalSubmissionStarted: false,
+    recoveryEligible: false,
+  })
   const prior = {
     id: 'prior',
     workItemId: 'work',

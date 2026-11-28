@@ -1,6 +1,8 @@
+import { createHash } from 'node:crypto'
 import { z } from 'zod'
 
 import { ServiceError } from '@/services/shared/errors'
+import type { ManagedWorkerPreferences } from '@/lib/quality-journey/managed-worker-preferences'
 
 import {
   type ClaudeCodeCli,
@@ -152,7 +154,65 @@ export function createClaudeCodeConnection(resolveCli: () => Promise<ClaudeCodeC
     })
   }
 
-  return { status, signIn: () => changeSession('login'), signOut: () => changeSession('logout'), bindLookup }
+  async function bindJourney() {
+    const unavailableSession = () =>
+      new ServiceError('Connect Claude Code in Settings before starting a Journey role.', 'CONFLICT')
+    const boundRevision = revision
+    if (operation) throw unavailableSession()
+    const cli = await resolveCli()
+    if (!cli?.executableSha256 || !/^[a-f0-9]{64}$/.test(cli.executableSha256)) throw unavailableSession()
+    const subscription = await readSession(cli)
+      .then(identifySubscription)
+      .catch(() => undefined)
+    if (!subscription || operation || revision !== boundRevision) throw unavailableSession()
+    const identity = {
+      executableSha256: cli.executableSha256,
+      accountFingerprint: createHash('sha256')
+        .update('appraise.claude-code.account.v1\0')
+        .update(subscription)
+        .digest('hex'),
+      protocol: 'claude-code-print/v1' as const,
+    }
+    let consumed = false
+    return {
+      identity,
+      async run(
+        prompt: string,
+        outputSchema?: object,
+        preferences: ManagedWorkerPreferences = {},
+      ): Promise<ClaudeCodeReply> {
+        if (consumed || operation || revision !== boundRevision) throw unavailableSession()
+        consumed = true
+        activeReads += 1
+        try {
+          const current = await resolveCli()
+          if (!current || current.executableSha256 !== identity.executableSha256) throw unavailableSession()
+          const currentSubscription = await readSession(current)
+            .then(identifySubscription)
+            .catch(() => undefined)
+          if (!currentSubscription || currentSubscription !== subscription || operation || revision !== boundRevision) {
+            throw unavailableSession()
+          }
+          return await current.run('journey', {
+            input: prompt,
+            journeySchema: outputSchema,
+            ...(preferences.managedWorkerModel ? { journeyModel: preferences.managedWorkerModel } : {}),
+            ...(preferences.managedWorkerEffort ? { journeyEffort: preferences.managedWorkerEffort } : {}),
+          })
+        } finally {
+          activeReads -= 1
+        }
+      },
+    }
+  }
+
+  return {
+    status,
+    signIn: () => changeSession('login'),
+    signOut: () => changeSession('logout'),
+    bindLookup,
+    bindJourney,
+  }
 }
 
 const processState = globalThis as typeof globalThis & {
@@ -164,3 +224,4 @@ export const getClaudeCodeConnection = connection.status
 export const startClaudeCodeSignIn = connection.signIn
 export const disconnectClaudeCode = connection.signOut
 export const bindClaudeCodeLookup = connection.bindLookup
+export const bindClaudeCodeJourney = connection.bindJourney

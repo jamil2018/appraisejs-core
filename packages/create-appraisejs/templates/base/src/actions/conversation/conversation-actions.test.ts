@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   latestJourney: vi.fn(),
   evidence: vi.fn(),
   execution: vi.fn(),
+  approveWithTurn: vi.fn(),
   prepareCollaboration: vi.fn(),
   getConversation: vi.fn(),
   after: vi.fn(),
@@ -42,6 +43,7 @@ vi.mock('@/services/conversation/conversation-journey-evidence', () => ({
 }))
 vi.mock('@/services/conversation/conversation-execution-service', () => ({
   readConversationExecution: mocks.execution,
+  approveConversationExecutionWithTurn: mocks.approveWithTurn,
 }))
 vi.mock('@/services/coordinator/quality-journey-record-context', () => ({
   loadJourneyRecordContext: mocks.loadContext,
@@ -142,6 +144,54 @@ describe('conversation action boundaries', () => {
     expect(mocks.schedule).not.toHaveBeenCalled()
   })
 
+  it('routes only an exact displayed Run permission to the atomic consent service', async () => {
+    const conversationId = '00000000-0000-4000-8000-000000000001'
+    const review = {
+      journeyId: 'journey-a',
+      executionConsentId: 'consent-a',
+      expectedScopeHash: `sha256:${'a'.repeat(64)}`,
+    }
+    mocks.approveWithTurn.mockResolvedValue({ conversation: { id: conversationId }, messages: [] })
+    expect(
+      await submitConversationMessage({
+        projectId: order.projectId,
+        conversationId,
+        idempotencyKey: order.idempotencyKey,
+        content: 'Allow and run these tests',
+        runPermissionReview: review,
+      }),
+    ).toEqual({ success: true, conversationId })
+    expect(mocks.approveWithTurn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        targetProjectId: order.projectId,
+        conversationId,
+        ...review,
+      }),
+    )
+    expect(mocks.append).not.toHaveBeenCalled()
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/quality-journeys/journey-a')
+  })
+
+  it('keeps typed Run permission text review-only when no current card is bound', async () => {
+    const conversationId = '00000000-0000-4000-8000-000000000001'
+    mocks.latestJourney.mockResolvedValue('journey-a')
+    mocks.append.mockResolvedValue({ conversation: { id: conversationId }, messages: [] })
+    expect(
+      await submitConversationMessage({
+        projectId: order.projectId,
+        conversationId,
+        idempotencyKey: order.idempotencyKey,
+        content: 'Allow and run these tests',
+      }),
+    ).toEqual({ success: true, conversationId })
+    expect(mocks.approveWithTurn).not.toHaveBeenCalled()
+    expect(mocks.append).toHaveBeenCalledWith(
+      expect.objectContaining({
+        reply: expect.objectContaining({ content: expect.stringContaining('Review the current Run permission') }),
+      }),
+    )
+  })
+
   it('recovers the same committed turn before loading the old attachment', async () => {
     mocks.replay.mockResolvedValue({ conversation: { id: 'saved' } })
     expect(await submitConversationMessage(order)).toEqual({ success: true, conversationId: 'saved' })
@@ -230,6 +280,210 @@ describe('conversation action boundaries', () => {
       }),
     )
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/test-cases')
+  })
+
+  it('binds an exact suite membership request to the shown case title and project', async () => {
+    const request = {
+      ...order,
+      content: 'Add this case to suite “Checkout smoke” in module “Checkout”',
+    }
+    mocks.loadContext.mockResolvedValue({ kind: 'test-case', id: 'case-a', title: 'Changed elsewhere' })
+    expect(await submitConversationMessage(request)).toMatchObject({ success: false, status: 409 })
+    expect(mocks.append).not.toHaveBeenCalled()
+    mocks.loadContext.mockResolvedValue({ kind: 'test-case', id: 'case-a', title: 'Old checkout' })
+    mocks.append.mockResolvedValue({ conversation: { id: 'saved' }, messages: [] })
+    expect(await submitConversationMessage(request)).toEqual({ success: true, conversationId: 'saved' })
+    expect(mocks.append).toHaveBeenCalledWith(
+      expect.objectContaining({
+        targetProjectId: 'project-a',
+        addAttachedCaseToSuite: { suiteName: 'Checkout smoke', moduleName: 'Checkout' },
+        context: { kind: 'TEST_CASE', id: 'case-a', title: 'Old checkout' },
+        reply: undefined,
+      }),
+    )
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/test-suites')
+  })
+
+  it('routes an exact uniquely scoped suite rename through the saved turn', async () => {
+    mocks.append.mockResolvedValue({ conversation: { id: 'saved' }, messages: [] })
+    expect(
+      await submitConversationMessage({
+        projectId: 'project-a',
+        idempotencyKey: order.idempotencyKey,
+        content: 'Rename test suite “Checkout smoke” in module “Checkout” to “Guest smoke”',
+      }),
+    ).toEqual({ success: true, conversationId: 'saved' })
+    expect(mocks.append).toHaveBeenCalledWith(
+      expect.objectContaining({
+        targetProjectId: 'project-a',
+        renameExactSuite: { currentName: 'Checkout smoke', moduleName: 'Checkout', nextName: 'Guest smoke' },
+        context: undefined,
+        reply: undefined,
+      }),
+    )
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/test-suites')
+  })
+
+  it('routes an exact filter tag rename through the saved turn', async () => {
+    mocks.append.mockResolvedValue({ conversation: { id: 'saved' }, messages: [] })
+    expect(
+      await submitConversationMessage({
+        projectId: 'project-a',
+        idempotencyKey: order.idempotencyKey,
+        content: 'Rename tag “Smoke” with expression @smoke to “Release smoke”',
+      }),
+    ).toEqual({ success: true, conversationId: 'saved' })
+    expect(mocks.append).toHaveBeenCalledWith(
+      expect.objectContaining({
+        targetProjectId: 'project-a',
+        renameExactTag: { currentName: 'Smoke', tagExpression: '@smoke', nextName: 'Release smoke' },
+        context: undefined,
+        reply: undefined,
+      }),
+    )
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/tags')
+  })
+
+  it('routes an explicit module creation through the saved turn and invalidates modules', async () => {
+    mocks.append.mockResolvedValue({ conversation: { id: 'saved' } })
+    expect(
+      await submitConversationMessage({
+        projectId: order.projectId,
+        idempotencyKey: order.idempotencyKey,
+        content: 'Create a module named Checkout',
+      }),
+    ).toEqual({ success: true, conversationId: 'saved' })
+    expect(mocks.append).toHaveBeenCalledWith(
+      expect.objectContaining({
+        targetProjectId: order.projectId,
+        createRootModuleName: 'Checkout',
+        reply: undefined,
+      }),
+    )
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/modules')
+    expect(mocks.answer).not.toHaveBeenCalled()
+  })
+
+  it('recovers a committed module request after a lost response before attempting another write', async () => {
+    mocks.replay.mockResolvedValue({ conversation: { id: 'saved' }, messages: [] })
+    expect(
+      await submitConversationMessage({
+        projectId: order.projectId,
+        idempotencyKey: order.idempotencyKey,
+        content: 'Add a checkout module',
+      }),
+    ).toEqual({ success: true, conversationId: 'saved' })
+    expect(mocks.append).not.toHaveBeenCalled()
+    expect(mocks.revalidatePath).not.toHaveBeenCalled()
+  })
+
+  it('routes an exact tag create to the saved turn and invalidates tags', async () => {
+    mocks.append.mockResolvedValue({ conversation: { id: 'saved' } })
+    expect(
+      await submitConversationMessage({
+        projectId: order.projectId,
+        idempotencyKey: order.idempotencyKey,
+        content: 'Create a tag named Smoke with expression @smoke',
+      }),
+    ).toEqual({ success: true, conversationId: 'saved' })
+    expect(mocks.append).toHaveBeenCalledWith(
+      expect.objectContaining({ createExactTag: { name: 'Smoke', tagExpression: '@smoke' }, reply: undefined }),
+    )
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/tags')
+  })
+
+  it('recovers an exact tag create before another mutation', async () => {
+    mocks.replay.mockResolvedValue({ conversation: { id: 'saved' }, messages: [] })
+    expect(
+      await submitConversationMessage({
+        projectId: order.projectId,
+        idempotencyKey: order.idempotencyKey,
+        content: 'Create a tag named Smoke with expression @smoke',
+      }),
+    ).toEqual({ success: true, conversationId: 'saved' })
+    expect(mocks.append).not.toHaveBeenCalled()
+  })
+
+  it('routes an exact environment create through the saved turn and invalidates environments', async () => {
+    mocks.append.mockResolvedValue({ conversation: { id: 'saved' } })
+    expect(
+      await submitConversationMessage({
+        projectId: order.projectId,
+        idempotencyKey: order.idempotencyKey,
+        content: 'Create an environment named Staging with base URL https://staging.example.test',
+      }),
+    ).toEqual({ success: true, conversationId: 'saved' })
+    expect(mocks.append).toHaveBeenCalledWith(
+      expect.objectContaining({
+        createExactEnvironment: { name: 'Staging', baseUrl: 'https://staging.example.test' },
+        reply: undefined,
+      }),
+    )
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/environments')
+  })
+
+  it.each([
+    'https://fixture-user:fixture-password@staging.example.test',
+    'https://staging.example.test?token=fixture-token',
+    'https://staging.example.test#fixture-fragment',
+  ])('rejects sensitive environment URLs before reading or writing a saved turn', async baseUrl => {
+    const result = await submitConversationMessage({
+      projectId: order.projectId,
+      idempotencyKey: order.idempotencyKey,
+      content: `Create an environment named Staging with base URL ${baseUrl}`,
+    })
+
+    expect(result).toMatchObject({ success: false, status: 400 })
+    expect(JSON.stringify(result)).not.toContain(baseUrl)
+    expect(mocks.replay).not.toHaveBeenCalled()
+    expect(mocks.append).not.toHaveBeenCalled()
+  })
+
+  it('recovers a committed environment create before another mutation', async () => {
+    mocks.replay.mockResolvedValue({ conversation: { id: 'saved' }, messages: [] })
+    expect(
+      await submitConversationMessage({
+        projectId: order.projectId,
+        idempotencyKey: order.idempotencyKey,
+        content: 'Create an environment named Staging with base URL https://staging.example.test',
+      }),
+    ).toEqual({ success: true, conversationId: 'saved' })
+    expect(mocks.append).not.toHaveBeenCalled()
+  })
+
+  it('routes an exact suite create through the saved turn and invalidates suites', async () => {
+    mocks.append.mockResolvedValue({ conversation: { id: 'saved' } })
+    expect(
+      await submitConversationMessage({
+        projectId: order.projectId,
+        idempotencyKey: order.idempotencyKey,
+        content: 'Create a test suite named “Checkout smoke” in module “Checkout”',
+      }),
+    ).toEqual({ success: true, conversationId: 'saved' })
+    expect(mocks.append).toHaveBeenCalledWith(
+      expect.objectContaining({
+        createExactSuite: { name: 'Checkout smoke', moduleName: 'Checkout' },
+        reply: undefined,
+      }),
+    )
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/test-suites')
+    expect(mocks.answer).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    'Create a test suite named Checkout smoke in module Checkout and run it',
+    'Create a test suite named “https://fixture:fixture-password@example.test” in module “Checkout”',
+    'Create a test suite named “Checkout smoke” in module “Check\u0000out”',
+  ])('refuses an invalid suite create before replay or persistence', async content => {
+    const result = await submitConversationMessage({
+      projectId: order.projectId,
+      idempotencyKey: order.idempotencyKey,
+      content,
+    })
+    expect(result).toMatchObject({ success: false, status: 400 })
+    expect(JSON.stringify(result)).not.toContain(content)
+    expect(mocks.replay).not.toHaveBeenCalled()
+    expect(mocks.append).not.toHaveBeenCalled()
   })
 
   it('uses the exact chat review and schedules Analysis only for a newly committed request', async () => {

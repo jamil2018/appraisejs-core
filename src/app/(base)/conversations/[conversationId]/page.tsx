@@ -6,12 +6,14 @@ import { z } from 'zod'
 
 import PageHeader from '@/components/typography/page-header'
 import { requireActiveProject } from '@/lib/active-project'
+import { runStopReviewSchema } from '@/lib/conversation/run-stop-review'
 import {
   workspaceRecordHref,
   workspaceRecordLabel,
   type ConversationRecord,
 } from '@/lib/conversation/workspace-records'
 import { parseWorkspaceRequest } from '@/lib/conversation/workspace-request'
+import type { RunPermissionReview } from '@/lib/conversation/workspace-request'
 import { withProjectScope } from '@/lib/project-scope'
 import { readConversationCollaborationReview } from '@/services/conversation/conversation-collaboration-review'
 import {
@@ -36,6 +38,7 @@ import { ServiceError } from '@/services/shared/errors'
 import { readJourneyChatFocus } from '../../quality-journeys/[journeyId]/journey-chat-focus'
 import { JourneyStatusObservationProvider } from '../../quality-journeys/[journeyId]/journey-status-observation'
 import { loadChatAttachment, type ContextParams } from '../chat-attachment'
+import { CaseDeletionReviewCard } from '../case-deletion-review-card'
 import { ConversationComposer } from '../conversation-composer'
 import {
   ConversationProviderControls,
@@ -47,10 +50,12 @@ export const metadata: Metadata = { title: 'Chat' }
 
 function MessageRecord({
   projectId,
+  conversationId,
   conversationPath,
   record,
 }: {
   projectId: string
+  conversationId: string
   conversationPath: string
   record: ConversationRecord
 }) {
@@ -59,7 +64,9 @@ function MessageRecord({
   const href =
     record.kind === 'SETTINGS'
       ? `${recordHref}&${new URLSearchParams({ returnTo: withProjectScope(conversationPath, projectId) })}`
-      : recordHref
+      : record.kind === 'LOCATOR' && record.destination === 'create'
+        ? `${recordHref}&${new URLSearchParams({ fromChat: conversationId })}`
+        : recordHref
   return (
     <div className="flex min-w-0 gap-1">
       <Link
@@ -116,10 +123,24 @@ function Message({
           <ul aria-label="Matching project records" className="space-y-1">
             {message.records.map(record => (
               <li key={`${record.kind}:${record.id}:${record.reportStepId ?? ''}:${record.destination ?? ''}`}>
-                <MessageRecord record={record} projectId={projectId} conversationPath={conversationPath} />
+                <MessageRecord
+                  record={record}
+                  projectId={projectId}
+                  conversationId={message.conversationId}
+                  conversationPath={conversationPath}
+                />
               </li>
             ))}
           </ul>
+        )}
+        {message.role === 'APPRAISE' && message.caseDeletionReview && (
+          <CaseDeletionReviewCard
+            key={message.caseDeletionReview.hash}
+            review={message.caseDeletionReview}
+            projectId={projectId}
+            conversationId={message.conversationId}
+            messageId={message.id}
+          />
         )}
       </div>
       {providerRead}
@@ -175,6 +196,14 @@ export default async function ConversationPage({
   const journeyFocus = journeyId
     ? await readJourneyChatFocus({ projectId: scope.id, journeyId, savedConversationId })
     : null
+  const runPermissionReview =
+    journeyFocus && 'runPermissionReview' in journeyFocus
+      ? (journeyFocus.runPermissionReview as RunPermissionReview)
+      : undefined
+  const runStopReview =
+    journeyFocus && 'runStopReview' in journeyFocus
+      ? runStopReviewSchema.safeParse(journeyFocus.runStopReview).data
+      : undefined
   let nativeAvailable = false
   try {
     nativeAvailable = process.platform === 'darwin' && !!configuredMacCodexReadExecutable()
@@ -266,6 +295,8 @@ export default async function ConversationPage({
           scenarioReview={journeyFocus?.scenarioReview}
           collaborationReview={collaborationReview ?? undefined}
           analysisQuestion={journeyFocus?.analysisQuestion}
+          runPermissionReview={runPermissionReview}
+          runStopReview={runStopReview}
         />
       </div>
     </div>

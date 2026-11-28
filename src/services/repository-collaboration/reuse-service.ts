@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 
-import { Prisma, type PrismaClient } from '@prisma/client'
+import { Prisma, type PrismaClient, type QualityJourneyDraft } from '@prisma/client'
 import { z } from 'zod'
 
 import prisma from '@/config/db-config'
@@ -247,13 +247,14 @@ async function resolveSelectedSeed(
 type SelectedSeed = Awaited<ReturnType<typeof resolveSelectedSeed>>
 
 function hashDraftWithSelectedSeeds(
-  draft: { requirementJson: string; predecessorJourneyId: string | null; version: number },
+  draft: Pick<QualityJourneyDraft, 'requirementJson' | 'predecessorJourneyId' | 'version' | 'managedWorkerProvider'>,
   selected: readonly SelectedSeed[],
 ) {
   return hashQualityJourneyDraft({
     requirement: parseQualityJourneyDraftRequirement(JSON.parse(draft.requirementJson)),
     predecessorJourneyId: draft.predecessorJourneyId ?? undefined,
     version: draft.version + 1,
+    managedWorkerProvider: draft.managedWorkerProvider,
     advisorySeedDigest: selected.length
       ? hashQualityJourneyDraftReuseSeeds(
           selected.map(item => ({

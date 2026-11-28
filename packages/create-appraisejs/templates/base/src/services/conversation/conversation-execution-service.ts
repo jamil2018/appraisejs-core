@@ -3,15 +3,26 @@ import type { Prisma, PrismaClient } from '@prisma/client'
 
 import prisma from '@/config/db-config'
 import { qualityJourneyExecutionConsentScopeSchema, qualityJourneyIdentifierSchema } from '@/lib/quality-journey'
+import type { ConversationContext } from '@/services/conversation/conversation-service'
+import type { RunPermissionReview } from '@/lib/conversation/workspace-request'
+import { isRunStopRequest, runStopReviewSchema, type RunStopReview } from '@/lib/conversation/run-stop-review'
 import { freezeJourneyExecutionEnvironment } from '@/lib/quality-journey/execution-environment'
 import { trustedHumanCoordinatorSession } from '@/services/coordinator/quality-journey-coordinator-session'
 import {
+  cancelQualityJourneyExecution,
+  executionConsentOrder,
   getQualityJourneyExecution,
   startQualityJourneyExecution,
 } from '@/services/coordinator/quality-journey-execution-service'
 import { ServiceError } from '@/services/shared/errors'
 
-import { getLatestConversationJourney } from './conversation-service'
+import {
+  getLatestConversationJourney,
+  recordRunPermissionTurnInTransaction,
+  recordRunStopTurnInTransaction,
+  replayConversationTurn,
+  type ConversationTurn,
+} from './conversation-service'
 
 type ChatExecutionScope = {
   targetProjectId: string
@@ -30,15 +41,104 @@ type ApproveChatExecution = ChatExecutionScope & {
   expectedScopeHash: string
 }
 
-function chatOptions(input: ChatExecutionScope, requestConsentOnly?: true, approvalScopeHash?: string) {
+/** Save the exact human request with the cancellation receipt before the adapter is called. */
+export async function stopConversationExecutionWithTurn(
+  input: {
+    targetProjectId: string
+    conversationId: string
+    idempotencyKey: string
+    content: string
+    context?: ConversationContext
+    runStopReview: RunStopReview
+  },
+  client: PrismaClient = prisma,
+) {
+  const { targetProjectId, conversationId, idempotencyKey, content } = input
+  const runStopReview = runStopReviewSchema.parse(input.runStopReview)
+  const { journeyId, executionCycleId, expectedStateHash } = runStopReview
+  const context = input.context ? { ...input.context } : undefined
+  if (!isRunStopRequest(content) || (context && (context.kind !== 'QUALITY_JOURNEY' || context.id !== journeyId)))
+    throw new ServiceError('Open the current run activity in this saved Journey chat.', 'CONFLICT')
+  const turn = { targetProjectId, conversationId, idempotencyKey, content, context, runStopReview }
+  const original = await replayConversationTurn(turn, client)
+  if (original) return original
+  const receiptKey = createHash('sha256')
+    .update(JSON.stringify([conversationId, idempotencyKey]))
+    .digest('hex')
+  try {
+    await cancelQualityJourneyExecution(
+      {
+        targetProjectId,
+        journeyId,
+        cycleId: executionCycleId,
+        expectedStateHash,
+        idempotencyKey: `chat-stop:${receiptKey}`,
+        reason: 'User requested cancellation in the saved Journey chat.',
+      },
+      client,
+      trustedHumanCoordinatorSession,
+      {
+        conversationId,
+        assertLinked: async tx => {
+          const linked = await getLatestConversationJourney({ targetProjectId, conversationId }, tx)
+          if (linked !== journeyId)
+            throw new ServiceError('This Journey is no longer linked to the saved chat.', 'CONFLICT')
+        },
+        recordHumanReply: async (tx, cancellation) => {
+          if (cancellation.executionCycleId !== executionCycleId)
+            throw new ServiceError('The stop request belongs to a different run.', 'CONFLICT')
+          await recordRunStopTurnInTransaction(tx, turn)
+        },
+      },
+    )
+  } catch (error) {
+    const committed = await replayConversationTurn(turn, client)
+    if (committed) return committed
+    throw error
+  }
+  const saved = await replayConversationTurn(turn, client)
+  if (!saved) throw new ServiceError('Appraise could not confirm the saved stop request. Check Activity.', 'CONFLICT')
+  return saved
+}
+
+function chatOptions(
+  input: ChatExecutionScope,
+  requestConsentOnly?: true,
+  approval?: Pick<ApproveChatExecution, 'executionConsentId' | 'expectedScopeHash'>,
+  recordHumanReply?: (
+    tx: Prisma.TransactionClient,
+    reservation: { replayed: boolean; executionCycleId: string },
+  ) => Promise<void>,
+) {
   return {
     conversationId: input.conversationId,
     requestConsentOnly,
-    approvalScopeHash,
+    approvalScopeHash: approval?.expectedScopeHash,
+    recordHumanReply,
     assertLinked: async (tx: Prisma.TransactionClient) => {
       if ((await getLatestConversationJourney(input, tx)) !== input.journeyId)
         throw new ServiceError('This Journey is no longer linked to the saved chat.', 'CONFLICT', 409)
     },
+    assertCurrentApproval: approval
+      ? async (tx: Prisma.TransactionClient) => {
+          const permissions = await tx.qualityJourneyExecutionConsent.findMany({
+            where: {
+              journeyId: input.journeyId,
+              targetProjectId: input.targetProjectId,
+              status: { in: ['REQUESTED', 'GRANTED'] },
+            },
+            select: { id: true, scopeHash: true, scopeJson: true },
+            orderBy: executionConsentOrder(),
+          })
+          const latest = permissions.findLast(
+            permission =>
+              qualityJourneyExecutionConsentScopeSchema.parse(JSON.parse(permission.scopeJson)).chatConversationId ===
+              input.conversationId,
+          )
+          if (latest?.id !== approval.executionConsentId || latest.scopeHash !== approval.expectedScopeHash)
+            throw new ServiceError('Run permission changed. Load the current scope.', 'CONFLICT', 409)
+        }
+      : undefined,
   }
 }
 
@@ -108,7 +208,14 @@ export async function requestConversationExecution(input: RequestChatExecution, 
 }
 
 /** Recover a saved request, grant it through Appraise, then reserve its one runner attempt. */
-export async function approveConversationExecution(input: ApproveChatExecution, client: PrismaClient = prisma) {
+export async function approveConversationExecution(
+  input: ApproveChatExecution,
+  client: PrismaClient = prisma,
+  recordHumanReply?: (
+    tx: Prisma.TransactionClient,
+    reservation: { replayed: boolean; executionCycleId: string },
+  ) => Promise<void>,
+) {
   await assertSavedJourney(input, client)
   const consent = await client.qualityJourneyExecutionConsent.findFirst({
     where: {
@@ -155,14 +262,56 @@ export async function approveConversationExecution(input: ApproveChatExecution, 
       },
       client,
       trustedHumanCoordinatorSession,
-      chatOptions(input, undefined, input.expectedScopeHash),
+      chatOptions(input, undefined, input, recordHumanReply),
     )
   } catch (error) {
+    if (recordHumanReply) throw error
     const latest = await client.qualityJourneyExecutionConsent.findUnique({ where: { id: consent.id } })
     if (latest?.status !== 'CONSUMED' || !latest.executionCycleId) throw error
     // Reservation committed before the reply was lost. Observe it without dispatching again.
   }
   return readConversationExecution(input, client)
+}
+
+/** Typed consent joins the human chat turn to Appraise's canonical reservation before runner dispatch. */
+export async function approveConversationExecutionWithTurn(
+  input: ApproveChatExecution & {
+    idempotencyKey: string
+    content: string
+    context?: ConversationContext
+  },
+  client: PrismaClient = prisma,
+): Promise<ConversationTurn> {
+  const runPermissionReview: RunPermissionReview = {
+    journeyId: input.journeyId,
+    executionConsentId: input.executionConsentId,
+    expectedScopeHash: input.expectedScopeHash,
+  }
+  const recoverTurn = () => replayConversationTurn({ ...input, runPermissionReview }, client)
+  const replay = await recoverTurn()
+  if (replay) return replay
+  let turn: ConversationTurn | undefined
+  try {
+    await approveConversationExecution(input, client, async (tx, reservation) => {
+      if (reservation.replayed)
+        throw new ServiceError('The original run already has a recorded permission decision.', 'CONFLICT', 409)
+      turn = await recordRunPermissionTurnInTransaction(tx, { ...input, runPermissionReview })
+    })
+  } catch (error) {
+    // A competing identical submission may have committed after our first read.
+    // Preserve a lost native response from this caller's own committed turn.
+    if (!turn) {
+      const committed = await recoverTurn()
+      if (committed) return committed
+    }
+    throw error
+  }
+  if (!turn) {
+    const committed = await recoverTurn()
+    if (committed) return committed
+  }
+  if (!turn) throw new ServiceError('Run permission changed. Load the current scope.', 'CONFLICT', 409)
+  return turn
 }
 
 /** Render only persisted Appraise consent and runner observations after reconnect. */

@@ -14,34 +14,20 @@ export function ChatRunPermissionCard({
   projectId,
   journeyId,
   action,
+  replacement,
 }: {
   permission: Permission
   projectId: string
   journeyId: string
   action?: ReactNode
+  replacement?: ReactNode
 }) {
   const checkpoint = /^START_EXECUTION:(.+):(CHROMIUM|FIREFOX|WEBKIT)$/.exec(permission.scope.checkpoint)
   const journeyHref = `/quality-journeys/${encodeURIComponent(journeyId)}?project=${encodeURIComponent(projectId)}#execution`
 
-  return (
-    <article
-      aria-label="Run permission"
-      data-journey-focus="run-permission"
-      className="space-y-3 rounded-xl border border-border bg-card px-4 py-3"
-    >
-      <h2 className="text-sm font-semibold">Run permission</h2>
-      <p className="text-sm">{permission.reason}</p>
-      {permission.status === 'GRANTED' && (
-        <p role="status" className="text-sm text-info">
-          Permission is recorded for the original attempt. Appraise is checking its run state.
-        </p>
-      )}
-      {(permission.stale || permission.expired) && (
-        <p role="alert" className="text-sm text-warning">
-          {permission.expired ? 'This permission expired.' : 'The reviewed run scope changed.'} Refresh the Journey
-          before requesting permission again.
-        </p>
-      )}
+  const stale = permission.stale || permission.expired
+  const reviewedScope = (
+    <>
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
         <dt className="text-muted-foreground">Target</dt>
         <dd className="break-words">{permission.target ?? 'Selected project'}</dd>
@@ -78,6 +64,43 @@ export function ChatRunPermissionCard({
           <dd className="break-all font-mono">{permission.scope.executionInputsHash}</dd>
         </dl>
       </details>
+    </>
+  )
+
+  return (
+    <article
+      aria-label="Run permission"
+      data-journey-focus="run-permission"
+      className="space-y-3 rounded-xl border border-border bg-card px-4 py-3"
+    >
+      <h2 className="text-sm font-semibold">Run permission</h2>
+      <p className="text-sm">{permission.reason}</p>
+      {permission.status === 'GRANTED' && !stale && (
+        <p role="status" className="text-sm text-info">
+          Permission is recorded for the original attempt. Appraise is checking its run state.
+        </p>
+      )}
+      {stale && (
+        <p role="alert" className="text-sm text-warning">
+          {permission.expired ? 'This permission expired.' : 'The reviewed run scope changed.'}{' '}
+          {replacement
+            ? 'Review the current scope before running the tests.'
+            : 'Refresh the Journey before requesting permission again.'}
+        </p>
+      )}
+      {replacement ? (
+        <>
+          {replacement}
+          <details className="space-y-3">
+            <summary className="app-focus w-fit cursor-pointer rounded-md text-sm text-muted-foreground">
+              Previous reviewed scope
+            </summary>
+            {reviewedScope}
+          </details>
+        </>
+      ) : (
+        reviewedScope
+      )}
       <div className="flex flex-wrap items-center gap-3">
         {action}
         <Link

@@ -55,7 +55,7 @@ export default async function SettingsPage({
             href={returnTo}
           >
             <ArrowLeft aria-hidden="true" className="size-4" />
-            Return to chat
+            {returnTo.startsWith('/quality-journeys/') ? 'Return to Journey' : 'Return to chat'}
           </Link>
         ) : null}
       </div>

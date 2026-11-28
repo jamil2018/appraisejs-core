@@ -13,6 +13,7 @@ function ManagedScenarioAutomationControlContent({
   journeyId,
   stateHash,
   enabled,
+  provider = 'CODEX',
   role,
   recovery,
   correction,
@@ -20,6 +21,7 @@ function ManagedScenarioAutomationControlContent({
   journeyId: string
   stateHash: string
   enabled: boolean
+  provider?: 'CODEX' | 'CLAUDE_CODE'
   role: 'TEST_SCENARIO_DESIGNER' | 'AUTOMATOR'
   recovery?: { attemptId: string; candidateHash: string; detail: string } | null
   correction?: { attemptId: string; failureHash: string; detail: string } | null
@@ -61,7 +63,7 @@ function ManagedScenarioAutomationControlContent({
                     })
               setMessage(
                 result.success && correction
-                  ? 'A distinct design assignment is ready. Start it with local Codex; the rejected attempt remains preserved.'
+                  ? `A distinct design assignment is ready. Start it with local ${provider === 'CLAUDE_CODE' ? 'Claude Code' : 'Codex'}; the rejected attempt remains preserved.`
                   : result.success
                     ? role === 'TEST_SCENARIO_DESIGNER'
                       ? 'Scenarios received. Review and approve the exact scenarios below.'
@@ -84,8 +86,8 @@ function ManagedScenarioAutomationControlContent({
             : recovery
               ? 'Recover retained proposal'
               : role === 'TEST_SCENARIO_DESIGNER'
-                ? 'Design scenarios with local Codex'
-                : 'Prepare approved tests with local Codex'}
+                ? `Design scenarios with local ${provider === 'CLAUDE_CODE' ? 'Claude Code' : 'Codex'}`
+                : `Prepare approved tests with local ${provider === 'CLAUDE_CODE' ? 'Claude Code' : 'Codex'}`}
       </Button>
       {correction ? (
         <p className="text-sm text-muted-foreground">
@@ -95,12 +97,13 @@ function ManagedScenarioAutomationControlContent({
       ) : null}
       {recovery ? (
         <p className="text-sm text-muted-foreground">
-          {recovery.detail} Recovery uses the retained proposal without another Codex request.
+          {recovery.detail} Recovery uses the retained proposal without another{' '}
+          {provider === 'CLAUDE_CODE' ? 'Claude Code' : 'Codex'} request.
         </p>
       ) : null}
       {!enabled ? (
         <p className="text-sm text-muted-foreground">
-          The Appraise server owner must enable local scenario design and preparation.
+          This assistant is unavailable for this step. Check assistant setup on the Journey page.
         </p>
       ) : null}
       <p className="text-sm text-muted-foreground">

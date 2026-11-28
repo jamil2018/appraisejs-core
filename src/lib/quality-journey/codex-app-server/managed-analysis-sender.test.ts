@@ -170,6 +170,26 @@ describe('managed native Analysis sender without model execution', () => {
     expect(mocks.rm).toHaveBeenCalledWith(root, { recursive: true, force: true })
   })
 
+  it('writes the selected effort into the isolated Codex configuration', async () => {
+    onPrompt(() =>
+      reply([
+        { type: 'thread.started', thread_id: 'native-thread' },
+        { type: 'turn.started' },
+        { type: 'item.completed', item: { type: 'agent_message', text: '{}' } },
+        { type: 'turn.completed', usage: {} },
+      ]),
+    )
+    await expect(
+      runManagedAnalysis('prompt', undefined, undefined, {
+        managedWorkerModel: 'gpt-6.1-sol',
+        managedWorkerEffort: 'high',
+      }),
+    ).resolves.toBe('{}')
+    const config = mocks.writeFile.mock.calls[0][1]
+    expect(config).toContain('model = "gpt-6.1-sol"\n')
+    expect(config).toContain('model_reasoning_effort = "high"\n')
+  })
+
   it('refuses a changed executable before credential access or launch', async () => {
     mocks.digest.mockReturnValue('untrusted')
     await expect(runManagedAnalysis('analysis')).rejects.toThrow(/supported Codex executable/)

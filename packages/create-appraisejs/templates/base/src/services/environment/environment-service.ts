@@ -1,17 +1,23 @@
 import prisma from '@/config/db-config'
 import { environmentSchema } from '@/constants/form-opts/environment-form-opts'
 import { ServiceError } from '@/services/shared/errors'
-import type { Environment } from '@prisma/client'
+import type { Environment, Prisma } from '@prisma/client'
 import type { z } from 'zod'
 import { assertLoopbackOriginReservation } from './environment-origin-reservation'
 import { createHash } from 'node:crypto'
+import { isSharedResourceId } from '@/lib/quality-journey/shared-resource-contract'
 import {
   discoveryAuthTransitPolicyHash,
   normalizeDiscoveryAuthTransitPolicyJson,
 } from '@/lib/quality-journey/discovery-auth-transit-policy'
 
-async function checkUniqueName(name: string, targetProjectId: string, excludeId?: string): Promise<boolean> {
-  const existing = await prisma.environment.findFirst({
+async function checkUniqueName(
+  name: string,
+  targetProjectId: string,
+  excludeId?: string,
+  client: Pick<Prisma.TransactionClient, 'environment'> = prisma,
+): Promise<boolean> {
+  const existing = await client.environment.findFirst({
     where: {
       name,
       targetProjectId,
@@ -66,7 +72,17 @@ export async function createEnvironment(
   value: z.infer<typeof environmentSchema>,
   targetProjectId: string,
 ): Promise<Environment> {
-  const nameExists = await checkUniqueName(value.name, targetProjectId)
+  return prisma.$transaction(tx => createEnvironmentInTransaction(tx, value, targetProjectId))
+}
+
+/** The manual form and exact saved-chat effect share this guarded create. */
+export async function createEnvironmentInTransaction(
+  tx: Prisma.TransactionClient,
+  value: z.infer<typeof environmentSchema>,
+  targetProjectId: string,
+): Promise<Environment> {
+  const proposal = environmentSchema.parse(value)
+  const nameExists = await checkUniqueName(proposal.name, targetProjectId, undefined, tx)
   if (nameExists) {
     throw new ServiceError(
       'An environment with this name already exists. Please choose a different name.',
@@ -74,9 +90,9 @@ export async function createEnvironment(
       400,
     )
   }
-  await assertLoopbackOriginReservation({ baseUrl: value.baseUrl, targetProjectId }, prisma)
-  const newEnvironment = await prisma.environment.create({
-    data: { ...normalizeEnvironmentPayload(value), targetProjectId },
+  await assertLoopbackOriginReservation({ baseUrl: proposal.baseUrl, targetProjectId }, tx)
+  const newEnvironment = await tx.environment.create({
+    data: { ...normalizeEnvironmentPayload(proposal), targetProjectId },
   })
   return newEnvironment
 }
@@ -195,30 +211,124 @@ export async function updateEnvironment(
   if (!id) {
     throw new ServiceError('Environment id is required', 'VALIDATION', 400)
   }
-  const currentEnvironment = await prisma.environment.findFirst({
-    where: { id, targetProjectId, archivedAt: null },
-    select: { name: true },
-  })
-  if (!currentEnvironment) {
-    throw new ServiceError('Environment not found', 'NOT_FOUND', 404)
-  }
-
-  if (currentEnvironment.name !== value.name) {
-    const nameExists = await checkUniqueName(value.name, targetProjectId, id)
-    if (nameExists) {
-      throw new ServiceError(
-        'An environment with this name already exists. Please choose a different name.',
-        'VALIDATION',
-        400,
-      )
-    }
-  }
-
-  await assertLoopbackOriginReservation({ baseUrl: value.baseUrl, targetProjectId, excludeEnvironmentId: id }, prisma)
+  await prepareEnvironmentUpdate(prisma, { id, targetProjectId, nextName: value.name, baseUrl: value.baseUrl })
 
   const updatedEnvironment = await prisma.environment.update({
     where: { id },
     data: { ...normalizeEnvironmentPayload(value), scopeVersion: { increment: 1 } },
   })
   return updatedEnvironment
+}
+
+/** Shared manual/chat checks; the caller chooses its exact update fields and transaction owner. */
+async function prepareEnvironmentUpdate(
+  client: Pick<Prisma.TransactionClient, 'environment'>,
+  input: {
+    id: string
+    targetProjectId: string
+    nextName: string
+    baseUrl: string
+    expected?: { name: string; baseUrl: string; scopeVersion: number }
+  },
+) {
+  const current = await client.environment.findFirst({
+    where: { id: input.id, targetProjectId: input.targetProjectId, archivedAt: null, ...input.expected },
+    select: { name: true },
+  })
+  if (!current) {
+    if (input.expected)
+      throw new ServiceError('The environment changed. Review its current details before renaming.', 'CONFLICT', 409)
+    throw new ServiceError('Environment not found', 'NOT_FOUND', 404)
+  }
+  if (
+    current.name !== input.nextName &&
+    (await checkUniqueName(input.nextName, input.targetProjectId, input.id, client))
+  )
+    throw new ServiceError(
+      'An environment with this name already exists. Please choose a different name.',
+      'VALIDATION',
+      400,
+    )
+  await assertLoopbackOriginReservation(
+    {
+      baseUrl: input.baseUrl,
+      targetProjectId: input.targetProjectId,
+      excludeEnvironmentId: input.id,
+    },
+    client,
+  )
+}
+
+/** Exact same-project name-only rename; chat and the record update commit in the caller's transaction. */
+export async function renameExactEnvironmentInTransaction(
+  tx: Prisma.TransactionClient,
+  input: { targetProjectId: string; currentName: string; baseUrl: string; nextName: string },
+): Promise<{ id: string; name: string }> {
+  const { targetProjectId, currentName, baseUrl, nextName } = input
+  if (
+    !isSharedResourceId(targetProjectId) ||
+    ![currentName, nextName].every(
+      name =>
+        typeof name === 'string' &&
+        name.trim() === name &&
+        name.length > 0 &&
+        name.length <= 160 &&
+        Buffer.byteLength(name, 'utf8') <= 640,
+    ) ||
+    currentName === nextName ||
+    typeof baseUrl !== 'string' ||
+    baseUrl.trim() !== baseUrl ||
+    baseUrl.length > 2_048
+  ) {
+    throw new ServiceError('Name one exact current environment and a different new name.', 'VALIDATION', 400)
+  }
+  let parsedUrl: URL
+  try {
+    parsedUrl = new URL(baseUrl)
+  } catch {
+    throw new ServiceError('Environment URL is invalid.', 'VALIDATION', 400)
+  }
+  if (
+    !['http:', 'https:'].includes(parsedUrl.protocol) ||
+    parsedUrl.username ||
+    parsedUrl.password ||
+    parsedUrl.search ||
+    parsedUrl.hash
+  )
+    throw new ServiceError('Use the environment URL without credentials, query, or fragment.', 'VALIDATION', 400)
+  const matches = await tx.environment.findMany({
+    where: { targetProjectId, name: currentName, baseUrl, archivedAt: null },
+    select: { id: true, scopeVersion: true },
+    take: 2,
+  })
+  if (matches.length !== 1)
+    throw new ServiceError(
+      'The named environment and URL must identify one active environment in this project.',
+      'CONFLICT',
+      409,
+    )
+  const { id, scopeVersion } = matches[0]
+  if (!Number.isSafeInteger(scopeVersion) || scopeVersion < 1 || scopeVersion >= 2_147_483_647)
+    throw new ServiceError('Environment scope version is invalid. Refresh it before renaming.', 'CONFLICT', 409)
+  await prepareEnvironmentUpdate(tx, {
+    id,
+    targetProjectId,
+    nextName,
+    baseUrl,
+    expected: { name: currentName, baseUrl, scopeVersion },
+  })
+  const updated = await tx.environment.updateMany({
+    where: {
+      id,
+      targetProjectId,
+      name: currentName,
+      baseUrl,
+      archivedAt: null,
+      scopeVersion,
+    },
+    data: { name: nextName, scopeVersion: { increment: 1 } },
+  })
+  if (updated.count !== 1)
+    throw new ServiceError('The environment changed. Review its current details before renaming.', 'CONFLICT', 409)
+  return { id, name: nextName }
 }

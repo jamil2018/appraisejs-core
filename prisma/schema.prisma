@@ -579,6 +579,7 @@ model ProjectConversationMessage {
   content        String
   contextJson    String?
   recordsJson    String?
+  caseDeletionReviewJson String?
   turnId         String
   idempotencyKey String?
   requestHash    String?
@@ -620,6 +621,9 @@ model QualityJourney {
   targetProjectId                   String
   rootIdempotencyKey                String
   rootRequestHash                   String
+  managedWorkerProvider             QualityJourneyManagedWorkerProvider          @default(CODEX)
+  managedWorkerModel                String?
+  managedWorkerEffort               String?
   hostingMode                       String                                       @default("LEGACY_UNRESOLVED")
   hostingContractVersion            Int                                          @default(1)
   hostingProvenance                 String                                       @default("M03_SQL_V1:CLASSIFICATION_PENDING")
@@ -719,6 +723,11 @@ enum QualityJourneyDraftStatus {
   CONFIRMED
 }
 
+enum QualityJourneyManagedWorkerProvider {
+  CODEX
+  CLAUDE_CODE
+}
+
 /// Mutable, project-scoped workspace intake. It is deliberately separate from
 /// immutable Journey revisions, and only becomes lifecycle input on confirm.
 model QualityJourneyDraft {
@@ -726,6 +735,9 @@ model QualityJourneyDraft {
   targetProjectId          String
   createIdempotencyKey     String
   createRequestHash        String
+  managedWorkerProvider    QualityJourneyManagedWorkerProvider @default(CODEX)
+  managedWorkerModel       String?
+  managedWorkerEffort      String?
   status                   QualityJourneyDraftStatus           @default(ACTIVE)
   requirementJson          String                              @default("{}")
   currentStep              Int                                 @default(0)
@@ -1699,6 +1711,7 @@ model QualityJourneyWorkAttempt {
   spawnRequestHash           String?
   dispatchKey                String?                                   @unique
   dispatchAdapterId          String?
+  managedDispatchIdentityJson String?
   dispatchReservedAt         DateTime?
   dispatchStartedAt          DateTime?
   spawnReceiptId             String?

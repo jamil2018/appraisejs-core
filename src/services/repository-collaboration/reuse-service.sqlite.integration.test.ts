@@ -7,7 +7,10 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { collaborationHash } from '@/lib/repository-collaboration'
 import { hashQualityJourneyRequirement } from '@/lib/quality-journey'
-import { confirmQualityJourneyDraft } from '@/services/coordinator/quality-journey-draft-service'
+import {
+  confirmQualityJourneyDraft,
+  saveQualityJourneyDraft,
+} from '@/services/coordinator/quality-journey-draft-service'
 import { claimQualityJourneyWork } from '@/services/coordinator/quality-journey-service'
 import { copyMigratedTestDatabase, createTargetProjectFixture } from '@/test/migrated-test-database'
 import {
@@ -222,6 +225,72 @@ describe('Journey reuse service', () => {
         }),
       ).toEqual([{ role: 'REQUIREMENT_ANALYZER' }])
       expect(await client.qualityJourneyWorkAuthorization.count({ where: { journeyId: confirmed.journeyId } })).toBe(1)
+    } finally {
+      await client.$disconnect()
+    }
+  })
+
+  it.each([true, false])('confirms a Claude brief after a seed selection (keep seed: %s)', async keepSeed => {
+    const client = await fixture()
+    try {
+      const targetProjectId = 'reuse-project'
+      await addAsset(client, { portableId: 'brief_checkout', sourceVersion: 1, kind: 'brief', content: requirement })
+      await addAsset(client, {
+        portableId: 'analysis_checkout',
+        sourceVersion: 1,
+        kind: 'analysis',
+        content: { observation: 'Informational only' },
+      })
+      const copied = await createQualityJourneyDraftFromReuseBrief(
+        {
+          targetProjectId,
+          bindingId: 'reuse-binding',
+          assetPortableId: 'brief_checkout',
+          sourceVersion: 1,
+          idempotencyKey: 'claude-reuse',
+        },
+        client,
+      )
+      const draft = await saveQualityJourneyDraft(
+        {
+          targetProjectId,
+          draftId: copied.draft.id,
+          expectedVersion: copied.draft.version,
+          requirement,
+          currentStep: 0,
+          managedWorkerProvider: 'CLAUDE_CODE',
+        },
+        client,
+      )
+      const selection = { bindingId: 'reuse-binding', targetProjectId, draftId: draft.id }
+      const seeded = await selectQualityJourneyReuseSeeds(
+        {
+          ...selection,
+          expectedVersion: draft.version,
+          expectedDraftHash: draft.draftHash,
+          assets: [{ kind: 'ANALYSIS', assetPortableId: 'analysis_checkout', sourceVersion: 1 }],
+        },
+        client,
+      )
+      const latest = keepSeed
+        ? seeded
+        : await selectQualityJourneyReuseSeeds(
+            { ...selection, expectedVersion: seeded.version, expectedDraftHash: seeded.draftHash, assets: [] },
+            client,
+          )
+      const confirmed = await confirmQualityJourneyDraft(
+        {
+          targetProjectId,
+          draftId: draft.id,
+          expectedVersion: latest.version,
+          expectedDraftHash: latest.draftHash,
+          requirementHash: hashQualityJourneyRequirement(requirement),
+        },
+        client,
+      )
+      expect(await client.qualityJourney.findUniqueOrThrow({ where: { id: confirmed.journeyId } })).toMatchObject({
+        managedWorkerProvider: 'CLAUDE_CODE',
+      })
     } finally {
       await client.$disconnect()
     }

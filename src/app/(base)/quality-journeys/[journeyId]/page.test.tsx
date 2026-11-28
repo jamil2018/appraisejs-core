@@ -23,6 +23,8 @@ const mocks = vi.hoisted(() => ({
   triageRecovery: vi.fn(),
   attempts: vi.fn(),
   discoveryCaptureStatus: vi.fn(),
+  managedScoutEvidenceReview: vi.fn(),
+  managedReadiness: vi.fn(),
   manualRecovery: vi.fn(),
   manualIssued: vi.fn(),
   manualChoices: vi.fn(),
@@ -68,6 +70,15 @@ vi.mock('@/services/coordinator/app-managed-triage-service', () => ({
 }))
 vi.mock('@/services/coordinator/app-managed-discovery-capture', () => ({
   getAppManagedAnonymousDiscoveryCaptureStatus: mocks.discoveryCaptureStatus,
+}))
+vi.mock('@/services/coordinator/app-managed-discovery-evidence', () => ({
+  getManagedScoutEvidenceReview: mocks.managedScoutEvidenceReview,
+}))
+vi.mock('@/services/coordinator/app-managed-journey-readiness', () => ({
+  getManagedJourneyReadinessForProvider: mocks.managedReadiness,
+  managedJourneyFullyEnabled: () => true,
+  managedJourneyReadinessStage: (stage: string, status?: string | null) =>
+    stage === 'DISCOVERY' && status === 'COMPLETED' ? 'SCENARIO_DESIGN' : stage,
 }))
 vi.mock('@/services/coordinator/app-managed-triage-recovery', () => ({
   getAppManagedTriageRecovery: mocks.triageRecovery,
@@ -228,6 +239,21 @@ async function renderPage() {
 beforeEach(() => {
   vi.clearAllMocks()
   mocks.discoveryCaptureStatus.mockResolvedValue('MANUAL_REQUIRED')
+  mocks.managedScoutEvidenceReview.mockResolvedValue(null)
+  const readiness = {
+    CODEX: { provider: 'CODEX', ready: true, state: 'ready', reason: null, actionLabel: null, settingsHref: '' },
+    CLAUDE_CODE: {
+      provider: 'CLAUDE_CODE',
+      ready: true,
+      state: 'ready',
+      reason: null,
+      actionLabel: null,
+      settingsHref: '',
+    },
+  }
+  mocks.managedReadiness.mockImplementation((_: unknown, provider: 'CODEX' | 'CLAUDE_CODE') =>
+    Promise.resolve(readiness[provider]),
+  )
   mocks.readStatus.mockResolvedValue(null)
   mocks.project.mockResolvedValue(project)
   mocks.discoverySetup.mockResolvedValue({ ready: true, missing: [] })
@@ -359,6 +385,33 @@ describe('QualityJourneyDetailPage', () => {
       expect(screen.queryByText(/Preparation controls for|Managed triage controls/)).not.toBeInTheDocument()
     },
   )
+  it('restores the managed inspected-page review from durable Journey state', async () => {
+    mocks.getJourney.mockResolvedValue(journey({ stage: 'DISCOVERY', status: 'ACTIVE', unresolvedQuestionIds: [] }))
+    mocks.getDiscovery.mockResolvedValue({
+      activeDiscoveryRevisionId: 'discovery-1',
+      revisions: [
+        {
+          id: 'discovery-1',
+          scoutWorkItemId: 'scout-1',
+          scoutScopeJson: JSON.stringify({ environmentIds: ['environment-1'], routes: ['/account', '/checkout'] }),
+        },
+      ],
+    })
+    mocks.managedScoutEvidenceReview.mockResolvedValue({
+      discoveryRevisionId: 'discovery-1',
+      pages: [{ artifactId: 'receipt-1', routeId: '/account', environmentId: 'environment-1' }],
+      reviewHash: `sha256:${'a'.repeat(64)}`,
+    })
+
+    await renderPage()
+
+    expect(mocks.managedScoutEvidenceReview).toHaveBeenCalledWith({
+      journeyId: 'journey-1',
+      targetProjectId: 'project-1',
+    })
+    expect(screen.getByRole('region', { name: 'Inspected pages review' })).toHaveTextContent('/account')
+    expect(screen.getByRole('button', { name: 'Continue with inspected pages' })).toBeEnabled()
+  })
   it('offers exact retained report recovery inside Appraise', async () => {
     mocks.getJourney.mockResolvedValue(journey({ stage: 'TRIAGE', status: 'ACTIVE', unresolvedQuestionIds: [] }))
     mocks.triageRecovery.mockResolvedValue({ attemptId: 'triage-attempt', candidateHash: digest('c') })
@@ -368,7 +421,13 @@ describe('QualityJourneyDetailPage', () => {
   })
   it('distinguishes an unavailable report proposal from ordinary waiting', async () => {
     mocks.getJourney.mockResolvedValue({
-      ...journey({ stage: 'TRIAGE', status: 'ACTIVE', activeCycleId: 'cycle-1', unresolvedQuestionIds: [] }),
+      ...journey({
+        stage: 'TRIAGE',
+        status: 'ACTIVE',
+        activeCycleId: 'cycle-1',
+        activeWorkItemIds: ['triage-work'],
+        unresolvedQuestionIds: [],
+      }),
       workItems: [{ id: 'triage-work', role: 'TRIAGER', status: 'IN_PROGRESS', cycleId: 'cycle-1', currentAttempt: 1 }],
     })
     mocks.attempts.mockResolvedValue([
@@ -380,7 +439,7 @@ describe('QualityJourneyDetailPage', () => {
       },
     ])
     await renderPage()
-    expect(screen.getByText('Appraise couldn’t save the report. Your test results are in History.')).toBeInTheDocument()
+    expect(screen.getByText('The recorded outcomes and evidence are available under Test results.')).toBeInTheDocument()
     expect(screen.queryByText('Managed triage controls')).not.toBeInTheDocument()
   })
   it('hides the old Scout recovery action while fresh discovery is underway', async () => {
@@ -587,6 +646,50 @@ it('shows managed runtime inside the current focus and omits desktop handoff', a
   expect(screen.queryByRole('region', { name: 'Managed hosting ownership' })).not.toBeInTheDocument()
   expect(screen.queryByText(/Prepare a Codex prompt/)).not.toBeInTheDocument()
   expect(screen.queryByRole('button', { name: /Codex/ })).not.toBeInTheDocument()
+})
+
+it('keeps the exact Journey return link when Claude Code needs sign-in', async () => {
+  mocks.getJourney.mockResolvedValue(
+    journey({
+      stage: 'ANALYSIS',
+      status: 'ACTIVE',
+      managedWorkerProvider: 'CLAUDE_CODE',
+      unresolvedQuestionIds: [],
+    }),
+  )
+  const settingsHref =
+    '/settings/agent-setup?provider=CLAUDE_CODE&project=project-1&returnTo=%2Fquality-journeys%2Fjourney-1%3Fproject%3Dproject-1%23current-work'
+  const readiness = {
+    CODEX: { provider: 'CODEX', ready: true, state: 'ready', reason: null, actionLabel: null, settingsHref: '' },
+    CLAUDE_CODE: {
+      provider: 'CLAUDE_CODE',
+      ready: false,
+      state: 'sign_in',
+      reason: 'Claude Code needs your sign-in.',
+      actionLabel: 'Sign in to Claude Code',
+      settingsHref,
+    },
+  }
+  mocks.managedReadiness.mockImplementation((_: unknown, provider: 'CODEX' | 'CLAUDE_CODE') =>
+    Promise.resolve(readiness[provider]),
+  )
+  render(
+    await QualityJourneyDetailPage({
+      params: Promise.resolve({ journeyId: 'journey-1' }),
+      searchParams: Promise.resolve({ project: 'project-1' }),
+    }),
+  )
+  expect(screen.getByRole('status')).toHaveTextContent('The selected assistant needs setup')
+  expect(screen.getByRole('link', { name: 'Sign in to Claude Code' })).toHaveAttribute('href', settingsHref)
+  expect(screen.queryByText(/APPRAISE_|server owner|SHA-256/)).not.toBeInTheDocument()
+  expect(mocks.managedReadiness).toHaveBeenCalledWith(
+    {
+      targetProjectId: 'project-1',
+      returnTo: '/quality-journeys/journey-1?project=project-1#current-work',
+      stage: 'ANALYSIS',
+    },
+    'CLAUDE_CODE',
+  )
 })
 
 it('shows legacy migration ownership without desktop controls and retains history', async () => {

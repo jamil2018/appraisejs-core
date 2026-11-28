@@ -81,7 +81,13 @@ function AssignmentEvidence({ assignments }: { assignments: Triage['assignments'
   )
 }
 
-function FindingList({ report, projectId }: { report: QualityJourneyTriageReport; projectId?: string }) {
+function FindingList({
+  report,
+  projectId,
+}: {
+  report: Pick<QualityJourneyTriageReport, 'findings'>
+  projectId?: string
+}) {
   if (!report.findings.length) return null
   return (
     <section className="space-y-3" aria-label="Attributed findings">
@@ -304,12 +310,14 @@ export function TriageReportPanel({
   stage,
   stateHash,
   triage,
+  retainedNotes,
 }: {
   journeyId: string
   stage: string
   stateHash: string
   projectId?: string
   triage: Triage | null
+  retainedNotes?: Pick<QualityJourneyTriageReport, 'summary' | 'findings' | 'recommendations'> | null
 }) {
   if (!triage || (!triage.assignments.length && !triage.reports.length)) return null
   return (
@@ -317,7 +325,25 @@ export function TriageReportPanel({
       <CardHeader>
         <CardTitle>Results</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-6 [overflow-wrap:anywhere]">
+        {retainedNotes ? (
+          <section className="space-y-3 text-sm" aria-label="Assistant’s evidence notes">
+            <h3 className="font-semibold">Assistant’s evidence notes</h3>
+            <p className="text-muted-foreground">
+              Appraise saved these notes with the attempt. Report review is unavailable.
+            </p>
+            <p>{retainedNotes.summary}</p>
+            <details className="space-y-3">
+              <summary className="cursor-pointer font-medium">Findings and suggested next steps</summary>
+              <FindingList report={retainedNotes} projectId={projectId} />
+              <ul className="list-disc space-y-1 pl-5">
+                {retainedNotes.recommendations.map((note, index) => (
+                  <li key={index}>{note}</li>
+                ))}
+              </ul>
+            </details>
+          </section>
+        ) : null}
         {triage.reports
           .filter(item => item.report.reportRevisionId === triage.activeReportRevisionId)
           .map(item => (

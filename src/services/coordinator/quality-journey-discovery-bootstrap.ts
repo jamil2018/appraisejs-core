@@ -9,7 +9,7 @@ type DiscoveryBootstrap = (
 
 type InternalDiscoveryReadiness = (
   journey: QualityJourney,
-  item: Pick<QualityJourneyWorkItem, 'id' | 'inputHash'> & { role: 'SCOUT' | 'RESOURCE_EXPLORER' },
+  item: Pick<QualityJourneyWorkItem, 'id' | 'inputHash' | 'currentAttempt'> & { role: 'SCOUT' | 'RESOURCE_EXPLORER' },
   tx: Prisma.TransactionClient,
 ) => Promise<unknown>
 

@@ -9,6 +9,7 @@ import { setTimeout as delay } from 'node:timers/promises'
 import { describeNativeCredential, linkNativeCredential, unlinkNativeCredential } from './native-credential-topology'
 import { nativeQualificationFeatures, nativeQualificationModel } from './native-qualification-configuration'
 import schemaOrigin from './native-qualification-schemas/origin.json'
+import type { ManagedWorkerPreferences } from '../managed-worker-preferences'
 
 const executable = '/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex'
 const timeoutMs = 180_000
@@ -144,7 +145,7 @@ const managedExecDigests = new Set([
   '3b6d00deea5fabc50ad34be1872b8e4ead1638d23c68fabb7837edc07f0cf1e0', // OpenAI-signed macOS 0.171.0-alpha.13
 ])
 
-export async function verifyManagedAnalysisExecutable() {
+async function verifyManagedAnalysisExecutable() {
   const metadata = await lstat(executable)
   if (!metadata.isFile() || metadata.isSymbolicLink() || !(metadata.mode & 0o111)) throw refused('executable refused')
   if ((await realpath(executable)) !== executable) throw refused('executable refused')
@@ -153,11 +154,40 @@ export async function verifyManagedAnalysisExecutable() {
   if (!managedExecDigests.has(hash.digest('hex'))) throw refused('requires a supported Codex executable')
 }
 
-function configuration() {
+function describeManagedCodexCredential() {
+  const credential = describeNativeCredential(
+    path.join(process.env.CODEX_HOME ?? path.join(homedir(), '.codex'), 'auth.json'),
+  )
+  if (credential.size === '0') throw refused('credential unavailable')
+  return credential
+}
+
+/** Read-only local prerequisites. A present credential does not prove a live provider session. */
+export async function inspectManagedCodexPrerequisites(): Promise<{
+  usableForDispatch: boolean
+  state: 'candidate' | 'executable_unavailable' | 'credential_missing' | 'credential_unusable'
+}> {
+  try {
+    await verifyManagedAnalysisExecutable()
+  } catch {
+    return { usableForDispatch: false, state: 'executable_unavailable' }
+  }
+  try {
+    describeManagedCodexCredential()
+    return { usableForDispatch: true, state: 'candidate' }
+  } catch (error) {
+    return {
+      usableForDispatch: false,
+      state: (error as NodeJS.ErrnoException).code === 'ENOENT' ? 'credential_missing' : 'credential_unusable',
+    }
+  }
+}
+
+function configuration(preferences: ManagedWorkerPreferences = {}) {
   return {
-    model: JSON.stringify(managedAnalysisModel),
+    model: JSON.stringify(preferences.managedWorkerModel ?? managedAnalysisModel),
     model_provider: '"openai"',
-    model_reasoning_effort: '"medium"',
+    model_reasoning_effort: JSON.stringify(preferences.managedWorkerEffort ?? 'medium'),
     cli_auth_credentials_store: '"file"',
     mcp_oauth_credentials_store: '"file"',
     approval_policy: '"never"',
@@ -378,6 +408,7 @@ export async function runManagedAnalysis(
   prompt: string,
   outputSchema?: Record<string, unknown>,
   binding?: { attemptId: string },
+  preferences: ManagedWorkerPreferences = {},
 ): Promise<string> {
   if (typeof prompt !== 'string' || !prompt.trim() || Buffer.byteLength(prompt) > maxBytes)
     throw refused('prompt refused')
@@ -386,9 +417,7 @@ export async function runManagedAnalysis(
     throw refused('attempt custody already consumed or invalid')
   if (binding) consumedAttempts.add(binding.attemptId)
   await verifyManagedAnalysisExecutable()
-  const credential = describeNativeCredential(
-    path.join(process.env.CODEX_HOME ?? path.join(homedir(), '.codex'), 'auth.json'),
-  )
+  const credential = describeManagedCodexCredential()
   const root = await mkdtemp(path.join(tmpdir(), 'appraise-managed-analysis-'))
   const metadata = await lstat(root)
   const custody: Custody = {
@@ -409,7 +438,7 @@ export async function runManagedAnalysis(
     for (const directory of [home, codexHome, temporary, cwd]) await mkdir(directory, { mode: 0o700 })
     await writeFile(
       path.join(codexHome, 'config.toml'),
-      Object.entries(configuration())
+      Object.entries(configuration(preferences))
         .map(([key, value]) => `${key} = ${value}`)
         .join('\n') + '\n',
       { mode: 0o600, flag: 'wx' },

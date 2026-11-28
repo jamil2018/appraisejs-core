@@ -22,6 +22,7 @@ import {
   manualAutomationRecoveryEventType as eventType,
   observePendingManualAutomationRecovery,
   readFailedManualAutomationAttempt,
+  readManualAutomationFailure,
 } from './app-managed-automation-manual-recovery-observation'
 export {
   getAppManagedAutomatorManualRecovery,
@@ -90,22 +91,10 @@ export async function requestAppManagedAutomatorManualRecovery(
   return client.$transaction(tx =>
     withJourneyBusinessWriteJoinInTransaction(tx, owner, input, async beforeWrite => {
       await assertCoordinatorRecoverySession(owner, input, tx)
-      const { journey, attempt, failureHash } = await readFailedManualAutomationAttempt(input, tx)
+      const { journey, attempt, failure, failureHash } = await readFailedManualAutomationAttempt(input, tx)
       if (journey.stateHash !== input.expectedStateHash || failureHash !== input.expectedFailureHash)
         conflict('The Journey or original failure changed before manual recovery.')
       await assertCoordinatorAttemptSession({ ...owner, attemptId: attempt.id }, tx)
-      const authorization = await tx.qualityJourneyWorkAuthorization.findFirst({
-        where: { workItemId: attempt.workItemId, successorAuthorization: { is: null } },
-      })
-      if (
-        !authorization ||
-        authorization.id !== attempt.authorizationId ||
-        authorization.revokedAt ||
-        authorization.cancelledAt ||
-        (await tx.qualityJourneyWorkAttempt.count({ where: { authorizationId: authorization.id } })) >=
-          authorization.maxAttempts
-      )
-        conflict('Manual recovery requires remaining authority under the original hard attempt budget.')
       await readInternalAutomatorAssignment(journey, attempt.workItem, tx)
       await assertJourneyBusinessGroupSupportsNoInvalidationInTransaction(tx, input)
       await beforeWrite(tx, input)
@@ -153,14 +142,14 @@ export async function requestAppManagedAutomatorManualRecovery(
             workItemId: attempt.workItemId,
             predecessorAttemptId: attempt.id,
             predecessorAssignmentId: attempt.assignmentId,
-            authorizationId: authorization.id,
+            authorizationId: attempt.authorizationId,
             successorAttempt: attempt.attempt + 1,
             failureJson: attempt.failureJson,
             failureHash,
             dispatchReservedAt: attempt.dispatchReservedAt!.toISOString(),
             dispatchStartedAt: attempt.dispatchStartedAt!.toISOString(),
             nativeOutcome: 'UNKNOWN',
-            senderCleanupVerified: false,
+            senderCleanupVerified: failure.senderCleanupVerified,
             canonicalSubmissionStarted: false,
             acceptedSubmissionCount: 0,
             nativeSend: false,
@@ -206,8 +195,10 @@ export async function prepareAppManagedManualAutomationTask(
     where: { id: payload.predecessorAttemptId },
     include: { workItem: true },
   })
+  const failure = readManualAutomationFailure(prior?.failureJson ?? null)
   if (
     !prior ||
+    !failure ||
     prior.status !== 'CANCELLED' ||
     prior.workItem.role !== 'AUTOMATOR' ||
     prior.workItem.journeyId !== journey.id ||
@@ -225,7 +216,7 @@ export async function prepareAppManagedManualAutomationTask(
     payload.dispatchReservedAt !== prior.dispatchReservedAt?.toISOString() ||
     payload.dispatchStartedAt !== prior.dispatchStartedAt?.toISOString() ||
     payload.nativeOutcome !== 'UNKNOWN' ||
-    payload.senderCleanupVerified !== false ||
+    payload.senderCleanupVerified !== failure.senderCleanupVerified ||
     payload.canonicalSubmissionStarted !== false ||
     payload.acceptedSubmissionCount !== 0 ||
     payload.nativeSend !== false ||

@@ -34,6 +34,7 @@ import {
 import { deleteTargetProject } from '@/services/target-project/target-project-service'
 import { copyMigratedTestDatabase, prepareMigratedTestDatabase } from '@/test/migrated-test-database'
 import { ServiceError } from '@/services/shared/errors'
+import { workspaceRecordHref } from '@/lib/conversation/workspace-records'
 import {
   readConversationProviderState,
   releaseUnconfirmedConversationRead,
@@ -58,6 +59,10 @@ const claudeMigration = path.join(
 const cursorMigration = path.join(
   process.cwd(),
   'prisma/migrations/20261125020000_add_cursor_conversation_reads/migration.sql',
+)
+const caseDeletionMigration = path.join(
+  process.cwd(),
+  'prisma/migrations/20261128030000_add_conversation_case_deletion_review/migration.sql',
 )
 const projectA = 'project-a'
 const projectB = 'project-b'
@@ -101,6 +106,7 @@ beforeEach(() => {
   execFileSync('sqlite3', [file, readFileSync(engineMigration, 'utf8')])
   execFileSync('sqlite3', [file, readFileSync(claudeMigration, 'utf8')])
   execFileSync('sqlite3', [file, readFileSync(cursorMigration, 'utf8')])
+  execFileSync('sqlite3', [file, readFileSync(caseDeletionMigration, 'utf8')])
   execFileSync('sqlite3', [file, `INSERT INTO "TargetProject" ("id") VALUES ('${projectA}'), ('${projectB}');`])
   client = new PrismaClient({ datasources: { db: { url: `file:${file}` } } })
 })
@@ -340,6 +346,670 @@ describe('durable project conversations', () => {
     }
   })
 
+  it('commits a root module, exact reply, and request key once with a scoped editor link', async () => {
+    const full = await fullProjectDatabase('module-project')
+    try {
+      const request = {
+        targetProjectId: 'module-project',
+        idempotencyKey: 'module-once',
+        content: 'Create a module named Checkout',
+        createRootModuleName: 'Checkout',
+      }
+      const committed = await appendConversationTurn(request, full)
+      const record = committed.messages[1].records[0]
+      expect(committed.messages.map(row => row.role)).toEqual(['USER', 'APPRAISE'])
+      expect(record).toEqual({ kind: 'MODULE', id: expect.any(String), title: 'Checkout' })
+      expect(workspaceRecordHref(request.targetProjectId, record)).toBe(
+        `/modules/modify/${record.id}?project=module-project`,
+      )
+      expect(await full.module.findUniqueOrThrow({ where: { id: record.id } })).toMatchObject({
+        name: 'Checkout',
+        parentId: null,
+        targetProjectId: 'module-project',
+      })
+      expect(guard.prepare).toHaveBeenCalledExactlyOnceWith(expect.anything(), 'module-project', {
+        existing: [],
+        newRoots: [{ kind: 'MODULE', resourceId: record.id }],
+        deleted: [],
+      })
+      guard.prepare.mockClear()
+      const replay = await appendConversationTurn(request, full)
+      expect(replay.replayed).toBe(true)
+      expect(replay.messages.map(row => row.id)).toEqual(committed.messages.map(row => row.id))
+      expect(await full.module.count({ where: { targetProjectId: 'module-project' } })).toBe(1)
+      expect(guard.prepare).not.toHaveBeenCalled()
+      expect((await replayConversationTurn(request, full))?.messages[1].records).toEqual([record])
+    } finally {
+      await full.$disconnect()
+    }
+  })
+
+  it('commits an exact project tag and reply once, with rollback on duplicate or refused guard', async () => {
+    const full = await fullProjectDatabase('tag-project')
+    try {
+      const request = {
+        targetProjectId: 'tag-project',
+        idempotencyKey: 'tag-once',
+        content: 'Create a tag named Smoke with expression @smoke',
+        createExactTag: { name: 'Smoke', tagExpression: '@smoke' },
+      }
+      const committed = await appendConversationTurn(request, full)
+      const record = committed.messages[1].records[0]
+      expect(record).toEqual({ kind: 'TAG', id: expect.any(String), title: 'Smoke' })
+      expect(workspaceRecordHref('tag-project', record)).toBe(`/tags/modify/${record.id}?project=tag-project`)
+      expect(await full.tag.findUniqueOrThrow({ where: { id: record.id } })).toMatchObject({
+        name: 'Smoke',
+        tagExpression: '@smoke',
+        targetProjectId: 'tag-project',
+      })
+      expect(guard.prepare).toHaveBeenCalledExactlyOnceWith(expect.anything(), 'tag-project', {
+        existing: [],
+        newRoots: [],
+        deleted: [],
+      })
+      guard.prepare.mockClear()
+      const replay = await appendConversationTurn(request, full)
+      expect(replay.replayed).toBe(true)
+      expect(replay.messages.map(row => row.id)).toEqual(committed.messages.map(row => row.id))
+      expect(await full.tag.count({ where: { targetProjectId: 'tag-project' } })).toBe(1)
+      expect(guard.prepare).not.toHaveBeenCalled()
+      await expect(appendConversationTurn({ ...request, idempotencyKey: 'tag-duplicate' }, full)).rejects.toMatchObject(
+        { code: 'VALIDATION' },
+      )
+      await expect(
+        appendConversationTurn(
+          { ...request, idempotencyKey: 'tag-forged', createExactTag: { name: 'Other', tagExpression: '@smoke' } },
+          full,
+        ),
+      ).rejects.toMatchObject({ code: 'VALIDATION' })
+      guard.prepare.mockRejectedValueOnce(new Error('guard refused'))
+      await expect(
+        appendConversationTurn(
+          {
+            ...request,
+            idempotencyKey: 'tag-refused',
+            content: 'Create a tag named Other with expression @other',
+            createExactTag: { name: 'Other', tagExpression: '@other' },
+          },
+          full,
+        ),
+      ).rejects.toThrow('guard refused')
+      expect(await full.tag.count({ where: { targetProjectId: 'tag-project' } })).toBe(1)
+      expect(await full.projectConversation.count({ where: { targetProjectId: 'tag-project' } })).toBe(1)
+      expect(
+        await full.projectConversationMessage.count({ where: { conversation: { targetProjectId: 'tag-project' } } }),
+      ).toBe(2)
+    } finally {
+      await full.$disconnect()
+    }
+  })
+
+  it('commits an exact environment and chat reply once, preserving project and loopback scope', async () => {
+    const full = await fullProjectDatabase('environment-project')
+    try {
+      const request = {
+        targetProjectId: 'environment-project',
+        idempotencyKey: 'environment-once',
+        content: 'Create an environment named Staging with base URL https://staging.example.test',
+        createExactEnvironment: { name: 'Staging', baseUrl: 'https://staging.example.test' },
+      }
+      const committed = await appendConversationTurn(request, full)
+      const record = committed.messages[1].records[0]
+      expect(record).toEqual({ kind: 'ENVIRONMENT', id: expect.any(String), title: 'Staging' })
+      expect(workspaceRecordHref('environment-project', record)).toBe(
+        `/environments/modify/${record.id}?project=environment-project`,
+      )
+      expect(await full.environment.findUniqueOrThrow({ where: { id: record.id } })).toMatchObject({
+        targetProjectId: 'environment-project',
+        name: 'Staging',
+        baseUrl: 'https://staging.example.test',
+        username: null,
+        passwordEnvironmentVariable: null,
+        credentialState: 'NONE',
+      })
+      const replay = await appendConversationTurn(request, full)
+      expect(replay.replayed).toBe(true)
+      expect(replay.messages.map(row => row.id)).toEqual(committed.messages.map(row => row.id))
+      expect(await full.environment.count({ where: { targetProjectId: 'environment-project' } })).toBe(1)
+      await expect(
+        appendConversationTurn({ ...request, idempotencyKey: 'environment-duplicate' }, full),
+      ).rejects.toMatchObject({ code: 'VALIDATION' })
+      await expect(
+        appendConversationTurn(
+          {
+            ...request,
+            idempotencyKey: 'environment-forged',
+            createExactEnvironment: { name: 'Other', baseUrl: 'https://staging.example.test' },
+          },
+          full,
+        ),
+      ).rejects.toMatchObject({ code: 'VALIDATION' })
+      await full.targetProject.create({
+        data: {
+          id: 'other-environment-project',
+          kind: 'LOCAL_WORKSPACE',
+          canonicalIdentity: 'path:/other-environment-project',
+          canonicalPath: '/other-environment-project',
+          displayName: 'Other environment project',
+          fingerprint: 'other-environment-project',
+        },
+      })
+      await full.environment.create({
+        data: {
+          targetProjectId: 'other-environment-project',
+          name: 'Existing local',
+          baseUrl: 'http://127.0.0.1:4173',
+        },
+      })
+      await expect(
+        appendConversationTurn(
+          {
+            ...request,
+            idempotencyKey: 'environment-reserved',
+            content: 'Create an environment named Local with base URL http://localhost:4173',
+            createExactEnvironment: { name: 'Local', baseUrl: 'http://localhost:4173' },
+          },
+          full,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT', details: { code: 'ENVIRONMENT_ORIGIN_RESERVED' } })
+      await expect(
+        appendConversationTurn(
+          {
+            targetProjectId: request.targetProjectId,
+            idempotencyKey: 'environment-sensitive-url',
+            content: 'Create an environment named Local with base URL https://example.test?token=fixture-token',
+          },
+          full,
+        ),
+      ).rejects.toMatchObject({ code: 'VALIDATION' })
+      expect(await full.environment.count({ where: { targetProjectId: 'environment-project' } })).toBe(1)
+      expect(await full.projectConversation.count({ where: { targetProjectId: 'environment-project' } })).toBe(1)
+      expect(
+        await full.projectConversationMessage.count({
+          where: { conversation: { targetProjectId: 'environment-project' } },
+        }),
+      ).toBe(2)
+    } finally {
+      await full.$disconnect()
+    }
+  })
+
+  it('commits a suite and chat reply through the guarded manual service in one scoped transaction', async () => {
+    const full = await fullProjectDatabase('suite-project')
+    try {
+      const selectedModule = await full.module.create({ data: { targetProjectId: 'suite-project', name: 'Checkout' } })
+      await full.targetProject.create({
+        data: {
+          id: 'other-suite-project',
+          kind: 'LOCAL_WORKSPACE',
+          canonicalIdentity: 'path:/other-suite-project',
+          canonicalPath: '/other-suite-project',
+          displayName: 'Other suite project',
+          fingerprint: 'other-suite-project',
+        },
+      })
+      await full.module.create({ data: { targetProjectId: 'other-suite-project', name: 'Checkout' } })
+      const request = {
+        targetProjectId: 'suite-project',
+        idempotencyKey: 'suite-once',
+        content: 'Create a test suite named “Checkout smoke” in module “Checkout”',
+        createExactSuite: { name: 'Checkout smoke', moduleName: 'Checkout' },
+      }
+      const callerPayload = { moduleName: request.createExactSuite.moduleName, name: request.createExactSuite.name }
+      const committing = appendConversationTurn({ ...request, createExactSuite: callerPayload }, full)
+      callerPayload.name = 'Changed after submit'
+      callerPayload.moduleName = 'Missing'
+      const committed = await committing
+      const record = committed.messages[1].records[0]
+      expect(record).toEqual({ kind: 'TEST_SUITE', id: expect.any(String), title: 'Checkout smoke' })
+      expect(workspaceRecordHref(request.targetProjectId, record)).toBe(
+        `/test-suites/modify/${record.id}?project=suite-project`,
+      )
+      expect(await full.testSuite.findUniqueOrThrow({ where: { id: record.id } })).toMatchObject({
+        name: 'Checkout smoke',
+        moduleId: selectedModule.id,
+        targetProjectId: 'suite-project',
+      })
+      expect(await full.tag.count({ where: { targetProjectId: 'suite-project', type: 'IDENTIFIER' } })).toBe(1)
+      expect(guard.prepare).toHaveBeenCalledExactlyOnceWith(expect.anything(), 'suite-project', {
+        existing: [],
+        newRoots: [{ kind: 'TEST_SUITE', resourceId: record.id }],
+        deleted: [],
+      })
+      guard.prepare.mockClear()
+      const replay = await appendConversationTurn(request, full)
+      expect(replay.replayed).toBe(true)
+      expect(replay.messages.map(row => row.id)).toEqual(committed.messages.map(row => row.id))
+      expect(guard.prepare).not.toHaveBeenCalled()
+
+      await expect(
+        appendConversationTurn(
+          { ...request, idempotencyKey: 'suite-forged', createExactSuite: { name: 'Other', moduleName: 'Checkout' } },
+          full,
+        ),
+      ).rejects.toMatchObject({ code: 'VALIDATION' })
+      await expect(
+        appendConversationTurn(
+          {
+            ...request,
+            idempotencyKey: 'suite-missing',
+            content: 'Create a test suite named “Other smoke” in module “Missing”',
+            createExactSuite: { name: 'Other smoke', moduleName: 'Missing' },
+          },
+          full,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      await full.module.create({ data: { targetProjectId: 'suite-project', name: 'Archived', archivedAt: new Date() } })
+      await expect(
+        appendConversationTurn(
+          {
+            ...request,
+            idempotencyKey: 'suite-archived',
+            content: 'Create a test suite named “Other smoke” in module “Archived”',
+            createExactSuite: { name: 'Other smoke', moduleName: 'Archived' },
+          },
+          full,
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+      guard.prepare.mockRejectedValueOnce(new Error('guard refused'))
+      await expect(
+        appendConversationTurn(
+          {
+            ...request,
+            idempotencyKey: 'suite-refused',
+            content: 'Create a test suite named “Other smoke” in module “Checkout”',
+            createExactSuite: { name: 'Other smoke', moduleName: 'Checkout' },
+          },
+          full,
+        ),
+      ).rejects.toThrow('guard refused')
+      await full.module.create({ data: { targetProjectId: 'suite-project', name: 'Checkout' } })
+      await expect(
+        appendConversationTurn({ ...request, idempotencyKey: 'suite-ambiguous' }, full),
+      ).rejects.toMatchObject({ code: 'CONFLICT' })
+
+      expect(await full.testSuite.count({ where: { targetProjectId: 'suite-project' } })).toBe(1)
+      expect(await full.tag.count({ where: { targetProjectId: 'suite-project', type: 'IDENTIFIER' } })).toBe(1)
+      expect(await full.projectConversation.count({ where: { targetProjectId: 'suite-project' } })).toBe(1)
+      expect(
+        await full.projectConversationMessage.count({ where: { conversation: { targetProjectId: 'suite-project' } } }),
+      ).toBe(2)
+    } finally {
+      await full.$disconnect()
+    }
+  })
+
+  it('rolls back the suite, identifier tag, and turn if saving the reply fails', async () => {
+    const targetProjectId = 'suite-reply-failure-project'
+    const full = await fullProjectDatabase(targetProjectId)
+    try {
+      await full.module.create({ data: { targetProjectId, name: 'Checkout' } })
+      const request = {
+        targetProjectId,
+        idempotencyKey: 'suite-reply-failure',
+        content: 'Create a test suite named “Checkout smoke” in module “Checkout”',
+        createExactSuite: { name: 'Checkout smoke', moduleName: 'Checkout' },
+      }
+      await full.$executeRaw`CREATE TRIGGER reject_chat_reply
+        BEFORE INSERT ON ProjectConversationMessage WHEN NEW.role = 'APPRAISE'
+        BEGIN SELECT RAISE(ABORT, 'fixture reply failure'); END`
+      await expect(appendConversationTurn(request, full)).rejects.toThrow()
+      expect(await full.testSuite.count({ where: { targetProjectId } })).toBe(0)
+      expect(await full.tag.count({ where: { targetProjectId, type: 'IDENTIFIER' } })).toBe(0)
+      expect(await full.projectConversation.count({ where: { targetProjectId } })).toBe(0)
+      expect(await full.projectConversationMessage.count({ where: { conversation: { targetProjectId } } })).toBe(0)
+
+      await full.$executeRaw`DROP TRIGGER reject_chat_reply`
+      const saved = await appendConversationTurn(request, full)
+      expect(saved.messages).toHaveLength(2)
+      expect(await full.testSuite.count({ where: { targetProjectId } })).toBe(1)
+      expect(await full.tag.count({ where: { targetProjectId, type: 'IDENTIFIER' } })).toBe(1)
+    } finally {
+      await full.$disconnect()
+    }
+  })
+
+  it('treats distinct module submissions as distinct writes even with the same name', async () => {
+    const full = await fullProjectDatabase('module-project')
+    try {
+      const first = await appendConversationTurn(
+        {
+          targetProjectId: 'module-project',
+          idempotencyKey: 'module-first',
+          content: 'Create a module named Checkout',
+          createRootModuleName: 'Checkout',
+        },
+        full,
+      )
+      const second = await appendConversationTurn(
+        {
+          targetProjectId: 'module-project',
+          conversationId: first.conversation.id,
+          idempotencyKey: 'module-second',
+          content: 'Create a module named Checkout',
+          createRootModuleName: 'Checkout',
+        },
+        full,
+      )
+      expect(second.messages[1].records[0].id).not.toBe(first.messages[1].records[0].id)
+      expect(await full.module.count({ where: { targetProjectId: 'module-project', name: 'Checkout' } })).toBe(2)
+    } finally {
+      await full.$disconnect()
+    }
+  })
+
+  it('rejects forged, attached, foreign scope, and guard-refused module requests without a write', async () => {
+    const full = await fullProjectDatabase('module-project')
+    try {
+      const base = {
+        targetProjectId: 'module-project',
+        content: 'Add a checkout module',
+        createRootModuleName: 'checkout',
+      }
+      await expect(
+        appendConversationTurn({ ...base, idempotencyKey: 'forged', createRootModuleName: 'Payments' }, full),
+      ).rejects.toMatchObject({ code: 'VALIDATION' })
+      await expect(
+        appendConversationTurn(
+          {
+            ...base,
+            idempotencyKey: 'attached',
+            context: {
+              kind: 'TEST_CASE',
+              id: 'case-a',
+              title: 'Case',
+            },
+          },
+          full,
+        ),
+      ).rejects.toMatchObject({ code: 'VALIDATION' })
+      await expect(
+        appendConversationTurn({ ...base, targetProjectId: 'other-project', idempotencyKey: 'foreign' }, full),
+      ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+      guard.prepare.mockRejectedValueOnce(new Error('guard refused'))
+      await expect(appendConversationTurn({ ...base, idempotencyKey: 'guard' }, full)).rejects.toThrow('guard refused')
+      expect(await full.module.count()).toBe(0)
+      expect(await full.projectConversation.count()).toBe(0)
+      expect(await full.projectConversationMessage.count()).toBe(0)
+    } finally {
+      await full.$disconnect()
+    }
+  })
+
+  it('renames one exact filter tag while retaining expression and relationships, with replay and stale refusal', async () => {
+    const full = await fullProjectDatabase('tag-rename-project')
+    try {
+      const tag = await full.tag.create({
+        data: { targetProjectId: 'tag-rename-project', type: 'FILTER', name: 'Smoke', tagExpression: '@smoke' },
+      })
+      await full.testCase.create({
+        data: {
+          id: 'tagged-case',
+          targetProjectId: 'tag-rename-project',
+          title: 'Guest checkout',
+          description: 'Keep',
+          tags: { connect: { id: tag.id } },
+        },
+      })
+      const request = {
+        targetProjectId: 'tag-rename-project',
+        idempotencyKey: 'tag-rename-once',
+        content: 'Rename tag “Smoke” with expression @smoke to “Release smoke”',
+        renameExactTag: { currentName: 'Smoke', tagExpression: '@smoke', nextName: 'Release smoke' },
+      }
+      await expect(
+        appendConversationTurn(
+          { ...request, idempotencyKey: 'forged', renameExactTag: { ...request.renameExactTag, nextName: 'Wrong' } },
+          full,
+        ),
+      ).rejects.toMatchObject({ statusCode: 400 })
+      const collidingTag = await full.tag.create({
+        data: {
+          targetProjectId: 'tag-rename-project',
+          type: 'FILTER',
+          name: 'Release smoke',
+          tagExpression: '@release-smoke',
+        },
+      })
+      await expect(appendConversationTurn({ ...request, idempotencyKey: 'collision' }, full)).rejects.toMatchObject({
+        statusCode: 400,
+      })
+      await full.tag.delete({ where: { id: collidingTag.id } })
+      guard.prepare.mockRejectedValueOnce(new Error('guard refused'))
+      await expect(appendConversationTurn({ ...request, idempotencyKey: 'guard' }, full)).rejects.toThrow(
+        'guard refused',
+      )
+      expect(await full.projectConversationMessage.count()).toBe(0)
+      guard.prepare.mockClear()
+      const committed = await appendConversationTurn(request, full)
+      expect(committed.messages[1].records).toEqual([{ kind: 'TAG', id: tag.id, title: 'Release smoke' }])
+      expect(await full.tag.findUniqueOrThrow({ where: { id: tag.id } })).toMatchObject({
+        name: 'Release smoke',
+        tagExpression: '@smoke',
+      })
+      expect(
+        (await full.testCase.findUniqueOrThrow({ where: { id: 'tagged-case' }, include: { tags: true } })).tags.map(
+          row => row.id,
+        ),
+      ).toEqual([tag.id])
+      expect(guard.prepare).toHaveBeenCalledExactlyOnceWith(expect.anything(), 'tag-rename-project', {
+        existing: [{ kind: 'TEST_CASE', resourceId: 'tagged-case' }],
+        newRoots: [],
+        deleted: [],
+      })
+      guard.prepare.mockClear()
+      const replay = await appendConversationTurn(request, full)
+      expect(replay.replayed).toBe(true)
+      expect(replay.messages.map(row => row.id)).toEqual(committed.messages.map(row => row.id))
+      await expect(appendConversationTurn({ ...request, idempotencyKey: 'stale' }, full)).rejects.toMatchObject({
+        statusCode: 409,
+      })
+      expect(guard.prepare).not.toHaveBeenCalled()
+    } finally {
+      await full.$disconnect()
+    }
+  })
+
+  it('renames one exact suite while preserving members and history, and refuses ambiguous or stale requests', async () => {
+    const full = await fullProjectDatabase('suite-rename-project')
+    try {
+      const moduleRow = await full.module.create({
+        data: { targetProjectId: 'suite-rename-project', name: 'Checkout' },
+      })
+      await full.testCase.create({
+        data: {
+          id: 'suite-member',
+          targetProjectId: 'suite-rename-project',
+          title: 'Guest checkout',
+          description: 'Keep',
+        },
+      })
+      const suite = await full.testSuite.create({
+        data: {
+          targetProjectId: 'suite-rename-project',
+          moduleId: moduleRow.id,
+          name: 'Checkout smoke',
+          description: 'Keep',
+          testCases: { connect: { id: 'suite-member' } },
+        },
+      })
+      const request = {
+        targetProjectId: 'suite-rename-project',
+        idempotencyKey: 'suite-rename-once',
+        content: 'Rename test suite “Checkout smoke” in module “Checkout” to “Guest smoke”',
+        renameExactSuite: { currentName: 'Checkout smoke', moduleName: 'Checkout', nextName: 'Guest smoke' },
+      }
+      await expect(
+        appendConversationTurn(
+          {
+            ...request,
+            idempotencyKey: 'forged',
+            renameExactSuite: { ...request.renameExactSuite, nextName: 'Other smoke' },
+          },
+          full,
+        ),
+      ).rejects.toMatchObject({ statusCode: 400 })
+      const duplicate = await full.testSuite.create({
+        data: { targetProjectId: 'suite-rename-project', moduleId: moduleRow.id, name: 'Checkout smoke' },
+      })
+      await expect(appendConversationTurn({ ...request, idempotencyKey: 'ambiguous' }, full)).rejects.toMatchObject({
+        statusCode: 409,
+      })
+      await full.testSuite.delete({ where: { id: duplicate.id } })
+      const collision = await full.testSuite.create({
+        data: { targetProjectId: 'suite-rename-project', moduleId: moduleRow.id, name: 'Guest smoke' },
+      })
+      await expect(appendConversationTurn({ ...request, idempotencyKey: 'collision' }, full)).rejects.toMatchObject({
+        statusCode: 409,
+      })
+      await full.testSuite.delete({ where: { id: collision.id } })
+      guard.prepare.mockRejectedValueOnce(new Error('guard refused'))
+      await expect(appendConversationTurn({ ...request, idempotencyKey: 'guard' }, full)).rejects.toThrow(
+        'guard refused',
+      )
+      expect(await full.projectConversationMessage.count()).toBe(0)
+      guard.prepare.mockClear()
+      const committed = await appendConversationTurn(request, full)
+      expect(committed.messages[1].records).toEqual([{ kind: 'TEST_SUITE', id: suite.id, title: 'Guest smoke' }])
+      const saved = await full.testSuite.findUniqueOrThrow({ where: { id: suite.id }, include: { testCases: true } })
+      expect(saved).toMatchObject({ name: 'Guest smoke', description: 'Keep', moduleId: moduleRow.id })
+      expect(saved.testCases.map(row => row.id)).toEqual(['suite-member'])
+      expect(guard.prepare).toHaveBeenCalledExactlyOnceWith(expect.anything(), 'suite-rename-project', {
+        existing: [
+          { kind: 'TEST_CASE', resourceId: 'suite-member' },
+          { kind: 'TEST_SUITE', resourceId: suite.id },
+        ],
+        newRoots: [],
+        deleted: [],
+      })
+      guard.prepare.mockClear()
+      const replay = await appendConversationTurn(request, full)
+      expect(replay.replayed).toBe(true)
+      expect(replay.messages.map(row => row.id)).toEqual(committed.messages.map(row => row.id))
+      await expect(appendConversationTurn({ ...request, idempotencyKey: 'stale' }, full)).rejects.toMatchObject({
+        statusCode: 409,
+      })
+      expect(guard.prepare).not.toHaveBeenCalled()
+      expect(await full.projectConversationMessage.count()).toBe(2)
+    } finally {
+      await full.$disconnect()
+    }
+  })
+
+  it('adds only the attached case to an exact suite, preserves membership, and replays without another write', async () => {
+    const full = await fullProjectDatabase('membership-project')
+    try {
+      const moduleRow = await full.module.create({ data: { targetProjectId: 'membership-project', name: 'Checkout' } })
+      await full.testCase.createMany({
+        data: [
+          { id: 'attached-case', targetProjectId: 'membership-project', title: 'Guest checkout', description: 'Keep' },
+          { id: 'existing-case', targetProjectId: 'membership-project', title: 'Member already', description: 'Keep' },
+        ],
+      })
+      const suite = await full.testSuite.create({
+        data: {
+          targetProjectId: 'membership-project',
+          moduleId: moduleRow.id,
+          name: 'Checkout smoke',
+          description: 'Preserve',
+          testCases: { connect: { id: 'existing-case' } },
+        },
+      })
+      const request = {
+        targetProjectId: 'membership-project',
+        idempotencyKey: 'membership-once',
+        content: 'Add this case to suite “Checkout smoke” in module “Checkout”',
+        context: { kind: 'TEST_CASE' as const, id: 'attached-case', title: 'Guest checkout' },
+        addAttachedCaseToSuite: { suiteName: 'Checkout smoke', moduleName: 'Checkout' },
+      }
+      const committed = await appendConversationTurn(request, full)
+      expect(committed.messages[1].records).toEqual([{ kind: 'TEST_SUITE', id: suite.id, title: 'Checkout smoke' }])
+      expect(
+        (await full.testSuite.findUniqueOrThrow({ where: { id: suite.id }, include: { testCases: true } })).testCases
+          .map(row => row.id)
+          .sort(),
+      ).toEqual(['attached-case', 'existing-case'])
+      expect(guard.prepare).toHaveBeenCalledExactlyOnceWith(expect.anything(), 'membership-project', {
+        existing: [
+          { kind: 'TEST_CASE', resourceId: 'attached-case' },
+          { kind: 'TEST_CASE', resourceId: 'existing-case' },
+          { kind: 'TEST_SUITE', resourceId: suite.id },
+        ],
+        newRoots: [],
+        deleted: [],
+      })
+      guard.prepare.mockClear()
+      const replay = await appendConversationTurn(request, full)
+      expect(replay.replayed).toBe(true)
+      expect(replay.messages.map(row => row.id)).toEqual(committed.messages.map(row => row.id))
+      expect(guard.prepare).not.toHaveBeenCalled()
+      const second = await appendConversationTurn({ ...request, idempotencyKey: 'membership-again' }, full)
+      expect(second.messages[1].content).toContain('already in')
+      expect(
+        (await full.testSuite.findUniqueOrThrow({ where: { id: suite.id }, include: { testCases: true } })).testCases,
+      ).toHaveLength(2)
+    } finally {
+      await full.$disconnect()
+    }
+  })
+
+  it('refuses stale, ambiguous, foreign, and guard-blocked suite membership without a saved turn', async () => {
+    const full = await fullProjectDatabase('membership-refusal-project')
+    try {
+      const moduleRow = await full.module.create({
+        data: { targetProjectId: 'membership-refusal-project', name: 'Checkout' },
+      })
+      await full.testSuite.create({
+        data: { targetProjectId: 'membership-refusal-project', moduleId: moduleRow.id, name: 'Checkout smoke' },
+      })
+      await full.testCase.create({
+        data: {
+          id: 'attached-case',
+          targetProjectId: 'membership-refusal-project',
+          title: 'Guest checkout',
+          description: 'Keep',
+        },
+      })
+      const request = {
+        targetProjectId: 'membership-refusal-project',
+        content: 'Add this case to suite “Checkout smoke” in module “Checkout”',
+        context: { kind: 'TEST_CASE' as const, id: 'attached-case', title: 'Guest checkout' },
+        addAttachedCaseToSuite: { suiteName: 'Checkout smoke', moduleName: 'Checkout' },
+      }
+      await expect(
+        appendConversationTurn(
+          { ...request, idempotencyKey: 'stale', context: { ...request.context, title: 'Old checkout' } },
+          full,
+        ),
+      ).rejects.toMatchObject({ statusCode: 409 })
+      await expect(
+        appendConversationTurn(
+          { ...request, idempotencyKey: 'foreign', context: { ...request.context, id: 'foreign-case' } },
+          full,
+        ),
+      ).rejects.toMatchObject({ statusCode: 400 })
+      await full.testSuite.create({
+        data: { targetProjectId: 'membership-refusal-project', moduleId: moduleRow.id, name: 'Checkout smoke' },
+      })
+      await expect(appendConversationTurn({ ...request, idempotencyKey: 'ambiguous' }, full)).rejects.toMatchObject({
+        statusCode: 409,
+      })
+      await full.testSuite.deleteMany({ where: { targetProjectId: 'membership-refusal-project' } })
+      await full.testSuite.create({
+        data: { targetProjectId: 'membership-refusal-project', moduleId: moduleRow.id, name: 'Checkout smoke' },
+      })
+      guard.prepare.mockRejectedValueOnce(new Error('guard refused'))
+      await expect(appendConversationTurn({ ...request, idempotencyKey: 'guard' }, full)).rejects.toThrow(
+        'guard refused',
+      )
+      expect(await full.projectConversation.count()).toBe(0)
+      expect(await full.projectConversationMessage.count()).toBe(0)
+      expect(await full.testSuite.count({ where: { testCases: { some: { id: 'attached-case' } } } })).toBe(0)
+    } finally {
+      await full.$disconnect()
+    }
+  })
+
   it('rolls back stale, foreign, and guard-refused renames without a message or title change', async () => {
     const full = await fullProjectDatabase('rename-project')
     try {
@@ -545,6 +1215,7 @@ describe('durable provider reads', () => {
       beforeCursorConversation,
     )
     expect(execFileSync('sqlite3', [file, 'PRAGMA foreign_key_check;'], { encoding: 'utf8' })).toBe('')
+    execFileSync('sqlite3', [file, readFileSync(caseDeletionMigration, 'utf8')])
     const upgraded = new PrismaClient({ datasources: { db: { url: `file:${file}` } } })
     try {
       const scope = { targetProjectId: projectA, conversationId: 'legacy' }

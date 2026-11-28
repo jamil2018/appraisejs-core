@@ -217,7 +217,7 @@ test('saved checkout chat restores one authorized failing attempt and its scoped
   }
 })
 
-test('saved checkout chat physically passes one independently authorized checkout attempt', async ({
+test('typed run permission starts one passing checkout only after the exact card is reviewed', async ({
   page,
   context,
   baseURL,
@@ -253,12 +253,21 @@ test('saved checkout chat physically passes one independently authorized checkou
     const where = { targetProjectId, journeyId }
     await context.addCookies([{ name: 'appraise-active-project', value: targetProjectId, url: baseURL! }])
     await page.goto(`/conversations/${conversationId}?project=${targetProjectId}`)
+    const composer = page.getByRole('textbox', { name: 'Message' })
+    const transcript = page.getByRole('list', { name: 'Messages' })
+    await composer.fill('Allow and run these tests')
+    await composer.press('Enter')
+    await expect(transcript.getByText(/Review the current Run permission card before allowing tests/)).toBeVisible()
+    expect(await client.qualityJourneyExecutionConsent.count({ where })).toBe(0)
     await page.getByRole('button', { name: 'Review run permission' }).click()
     const permission = page.getByRole('article', { name: 'Run permission' })
     await expect(permission).toContainText(prepared.preparedRuntimeCapsuleIds[0]!)
     expect(await client.qualityJourneyExecutionCycle.count({ where })).toBe(0)
     expect(checkoutVisits).toBe(0)
-    await permission.getByRole('button', { name: 'Allow and run these tests' }).click()
+    await composer.fill('Allow and run these tests')
+    await composer.press('Enter')
+    const receipt = transcript.getByText(/Run permission recorded\. Check the saved Journey activity/)
+    await expect(receipt).toBeVisible()
     await expect.poll(() => checkoutVisits).toBe(1)
     const cycle = await client.qualityJourneyExecutionCycle.findFirstOrThrow({ where, include: { testRuns: true } })
     expect(cycle.testRuns).toHaveLength(1)
@@ -270,8 +279,12 @@ test('saved checkout chat physically passes one independently authorized checkou
         result: 'PASSED',
       })
     await expect(page.getByRole('article', { name: 'Activity' })).toContainText('Passed', { timeout: 20_000 })
+    await page.getByRole('button', { name: 'Use ChatGPT for lookups' }).click()
+    await expect(page.getByRole('region', { name: 'Lookup provider' })).toContainText('Lookup provider · ChatGPT')
     await page.reload()
     await expect(page.getByRole('article', { name: 'Activity' })).toContainText('Passed')
+    await expect(receipt).toHaveCount(1)
+    expect(await client.qualityJourneyExecutionConsent.count({ where })).toBe(1)
     expect(await client.qualityJourneyExecutionCycle.count({ where })).toBe(1)
     expect(await client.runtimeCapsuleExecutionAttempt.count({ where: { testRunId: run.testRunId } })).toBe(1)
     expect(checkoutVisits).toBe(1)

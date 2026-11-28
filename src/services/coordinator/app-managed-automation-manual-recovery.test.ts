@@ -275,6 +275,35 @@ describe('manual Automator recovery retains uncertain native effects', () => {
     expect(mocks.beforeWrite).not.toHaveBeenCalled()
   })
 
+  it('keeps a stopped validation attempt fenced and only offers manual preparation within the original budget', async () => {
+    const f = fixture()
+    const failure = {
+      ...f.failure,
+      stage: 'OUTPUT_VALIDATION',
+      reason: 'OUTPUT_VALIDATION_DID_NOT_COMPLETE',
+      senderCleanupVerified: true,
+    }
+    f.attempt.failureJson = canonicalContractJson(failure)
+    f.input.expectedFailureHash = hashCanonical(failure)
+    f.attempt.leaseExpiresAt = new Date(Date.now() + 60_000)
+    const observation = { ...f.scope, includeWaiting: true }
+    expect(await getAppManagedAutomatorManualRecovery(observation, f.db)).toMatchObject({
+      availableAt: f.attempt.leaseExpiresAt.toISOString(),
+      senderCleanupVerified: true,
+    })
+    await expect(requestAppManagedAutomatorManualRecovery(f.input, f.db)).rejects.toThrow('expired')
+    f.authorization.maxAttempts = 1
+    expect(await getAppManagedAutomatorManualRecovery(observation, f.db)).toBeNull()
+    f.authorization.maxAttempts = 3
+    f.attempt.failureJson = canonicalContractJson({ ...failure, canonicalRecoveryCall: {} })
+    expect(await getAppManagedAutomatorManualRecovery(observation, f.db)).toBeNull()
+    f.attempt.failureJson = canonicalContractJson(failure)
+    f.attempt.leaseExpiresAt = new Date(1)
+    await expect(requestAppManagedAutomatorManualRecovery(f.input, f.db)).resolves.toMatchObject({ nativeSend: false })
+    const event = JSON.parse(f.client.qualityJourneyEvent.create.mock.calls[0][0].data.payloadJson)
+    expect(event).toMatchObject({ failureJson: f.attempt.failureJson, senderCleanupVerified: true, nativeSend: false })
+  })
+
   it('does not offer recovery before expiry or after canonical acceptance', async () => {
     const f = fixture()
     expect(await getAppManagedAutomatorManualRecovery(f.scope, f.db)).toMatchObject({

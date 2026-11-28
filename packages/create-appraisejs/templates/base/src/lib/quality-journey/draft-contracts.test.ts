@@ -11,6 +11,14 @@ it('binds a draft hash to its version and predecessor', () => {
   )
 })
 
+it('binds Claude Code to the draft while retaining the legacy Codex digest', () => {
+  const input = { requirement: { objective: 'Check checkout' }, version: 1 }
+  expect(hashQualityJourneyDraft({ ...input, managedWorkerProvider: 'CODEX' })).toBe(hashQualityJourneyDraft(input))
+  expect(hashQualityJourneyDraft({ ...input, managedWorkerProvider: 'CLAUDE_CODE' })).not.toBe(
+    hashQualityJourneyDraft(input),
+  )
+})
+
 it('keeps guided completeness stricter than canonical objective-only ingress', () => {
   expect(() => parseGuidedQualityJourneyRequirement({ objective: 'Check checkout' })).toThrow('Complete')
 })

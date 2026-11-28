@@ -14,7 +14,7 @@ import {
 type Props = {
   journeyId: string
   stateHash: string
-  recovery: { attemptId: string; failureHash: string } | null
+  recovery: { attemptId: string; failureHash: string; availableAt?: string } | null
   issued: { eventId: string } | null
   choices: unknown
 }
@@ -43,6 +43,24 @@ export function ManualAutomationControl({ journeyId, stateHash, recovery, issued
   const currentEventId = issued?.eventId ?? eventId
   function changeDraft(text: string) {
     setProposal({ draft: text, reviewed: false })
+  }
+  if (recovery?.availableAt && !issued) {
+    return (
+      <section
+        className="flex flex-col items-start gap-3 rounded-lg border p-4"
+        aria-labelledby="manual-preparation-title"
+      >
+        <h2 id="manual-preparation-title" className="font-semibold">
+          Manual preparation
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          The approved checks are saved. Manual preparation becomes available when the previous attempt expires.
+        </p>
+        <Button variant="outline" onClick={() => refresh()}>
+          Check availability
+        </Button>
+      </section>
+    )
   }
   return (
     <section className="flex flex-col gap-3 rounded-lg border p-4" aria-labelledby="manual-preparation-title">
@@ -183,8 +201,8 @@ export function ManualAutomationControl({ journeyId, stateHash, recovery, issued
       <details>
         <summary className="cursor-pointer text-sm">Original request evidence</summary>
         <p className="mt-2 text-sm">
-          The earlier Codex request remains UNKNOWN and its evidence is preserved. Manual recovery uses a distinct
-          assignment and makes no further Codex request.
+          The earlier managed worker request remains UNKNOWN and its evidence is preserved. Manual recovery uses a
+          distinct assignment and makes no further AI request.
         </p>
       </details>
       {message ? (

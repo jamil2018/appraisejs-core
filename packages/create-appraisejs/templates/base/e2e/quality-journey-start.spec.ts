@@ -3,7 +3,8 @@ import { execFileSync } from 'node:child_process'
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import prisma from '../src/config/db-config'
 import { createTargetProjectFixture } from '../src/test/migrated-test-database'
-import { hashQualityJourneyExecutionValue as hash } from '../src/lib/quality-journey'
+import { hashQualityJourneyExecutionValue as hash, hashQualityJourneyRequirement } from '../src/lib/quality-journey'
+import { confirmQualityJourneyDraft } from '../src/services/coordinator/quality-journey-draft-service'
 import { createAppManagedJourney } from '../src/services/coordinator/quality-journey-service'
 
 async function projectFixture() {
@@ -41,11 +42,32 @@ async function expectWorkspaceAlignment(panel: Locator, width: 'compact' | 'full
     .toMatchObject({ centered: true, [width]: true })
 }
 
-test('Journey starts from one autosaved brief using keyboard at a narrow viewport @smoke', async ({
+async function confirmFixtureDraft(draft: {
+  id: string
+  targetProjectId: string
+  version: number
+  draftHash: string
+  requirementJson: string
+}) {
+  return confirmQualityJourneyDraft(
+    {
+      draftId: draft.id,
+      targetProjectId: draft.targetProjectId,
+      expectedVersion: draft.version,
+      expectedDraftHash: draft.draftHash,
+      requirementHash: hashQualityJourneyRequirement(JSON.parse(draft.requirementJson)),
+      hostingMode: 'APP_SERVER_LOCAL_V1',
+    },
+    prisma,
+  )
+}
+
+test('Journey saves one brief and returns from guided setup by keyboard at a narrow viewport @smoke', async ({
   page,
   context,
   baseURL,
 }) => {
+  test.skip(process.env.APPRAISE_LOCAL_CODEX_ANALYSIS_ENABLED === 'true', 'This fixture uses an unavailable Codex.')
   const targetProjectId = await projectFixture()
   await context.addCookies([{ name: 'appraise-active-project', value: targetProjectId, url: baseURL! }])
   const errors: string[] = []
@@ -70,10 +92,26 @@ test('Journey starts from one autosaved brief using keyboard at a narrow viewpor
   expect(JSON.parse(saved.requirementJson)).toEqual({ objective: await brief.inputValue() })
   expect(await prisma.qualityJourney.count({ where: { targetProjectId } })).toBe(0)
   await brief.focus()
+  for (const name of ['Provider', 'Model', 'Effort']) {
+    await page.keyboard.press('Tab')
+    await expect(page.getByRole('combobox', { name, exact: true })).toBeFocused()
+  }
+  await expect(page.getByRole('button', { name: 'Start journey', exact: true })).toBeDisabled()
+  const setup = page.getByRole('link', { name: 'See options', exact: true })
   await page.keyboard.press('Tab')
-  await expect(page.getByRole('button', { name: 'Start journey', exact: true })).toBeFocused()
+  await expect(setup).toBeFocused()
   await page.keyboard.press('Enter')
-  await expect(page).toHaveURL(/quality-journeys\/qjy_[^/?]+\?project=/)
+  await expect(page.getByText('Set up Codex', { exact: true })).toBeVisible()
+  const draftPath = `/quality-journeys/drafts/${saved.id}?project=${targetProjectId}`
+  const returnLink = page.getByRole('link', { name: 'Return to your brief' }).first()
+  await expect(returnLink).toHaveAttribute('href', draftPath)
+  await returnLink.focus()
+  await page.keyboard.press('Enter')
+  await expect(brief).toHaveValue('Check guest checkout.')
+  expect(await prisma.qualityJourney.count({ where: { targetProjectId } })).toBe(0)
+  // The canonical fixture keeps the existing Journey surface checks independent of native sign-in.
+  const { journeyId } = await confirmFixtureDraft(saved)
+  await page.goto(`/quality-journeys/${journeyId}?project=${targetProjectId}`)
   const journey = await prisma.qualityJourney.findFirstOrThrow({ where: { targetProjectId } })
   expect(journey).toMatchObject({ hostingMode: 'APP_SERVER_LOCAL_V1', stage: 'ANALYSIS' })
   await expect(page.getByRole('heading', { name: 'Check guest checkout.' })).toBeVisible()
@@ -81,10 +119,7 @@ test('Journey starts from one autosaved brief using keyboard at a narrow viewpor
     'Requirements',
   )
   const currentFocus = page.getByRole('region', { name: 'Current journey focus' })
-  await expect(currentFocus.getByText('Agent setup needed', { exact: true })).toBeVisible()
-  await currentFocus.getByText('How to connect the agent', { exact: true }).focus()
-  await page.keyboard.press('Enter')
-  await expect(currentFocus.getByText('Your brief stays saved here.', { exact: false })).toBeVisible()
+  await expect(currentFocus.locator('a[href^="/settings/agent-setup?"]')).toBeVisible()
   await expect(page.locator('#execution')).toHaveCount(0)
   await page.getByText('History', { exact: true }).focus()
   await page.keyboard.press('Enter')
@@ -114,6 +149,51 @@ test('Journey starts from one autosaved brief using keyboard at a narrow viewpor
   await expect(reopened.getByRole('list', { name: 'Messages' }).getByText('Check guest checkout.')).toBeVisible()
   const unchanged = await prisma.qualityJourney.findUniqueOrThrow({ where: { id: journey.id } })
   expect(unchanged.stateHash).toBe(journey.stateHash)
+})
+
+test('Claude stays selected after reopening the brief and cannot fall back to Codex', async ({
+  page,
+  context,
+  baseURL,
+}) => {
+  test.skip(process.env.APPRAISE_LOCAL_CLAUDE_JOURNEY_ENABLED === 'true', 'This fixture uses unavailable Claude Code.')
+  const targetProjectId = await projectFixture()
+  await context.addCookies([{ name: 'appraise-active-project', value: targetProjectId, url: baseURL! }])
+  await page.goto(`/quality-journeys/new?project=${targetProjectId}`)
+  await page.getByRole('textbox', { name: 'What do you want to validate?' }).fill('Verify the disposable checkout.')
+  await page.getByRole('combobox', { name: 'Provider', exact: true }).selectOption('CLAUDE_CODE')
+  await expect
+    .poll(() => prisma.qualityJourneyDraft.findFirst({ where: { targetProjectId, status: 'ACTIVE' } }))
+    .toMatchObject({ managedWorkerProvider: 'CLAUDE_CODE' })
+  const draft = await prisma.qualityJourneyDraft.findFirstOrThrow({ where: { targetProjectId, status: 'ACTIVE' } })
+  await page.goto(`/quality-journeys/drafts/${draft.id}?project=${targetProjectId}`)
+  const selector = page.getByRole('combobox', { name: 'Provider', exact: true })
+  await expect(selector).toHaveValue('CLAUDE_CODE')
+  await expect(page.getByRole('button', { name: 'Start journey', exact: true })).toBeDisabled()
+  const { journeyId } = await confirmFixtureDraft(draft)
+  await page.goto(`/quality-journeys/${journeyId}?project=${targetProjectId}`)
+  const journey = await prisma.qualityJourney.findFirstOrThrow({ where: { targetProjectId } })
+  expect(journey).toMatchObject({ managedWorkerProvider: 'CLAUDE_CODE', stage: 'ANALYSIS' })
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Verify the disposable checkout.' })).toBeVisible()
+  const focus = page.getByRole('region', { name: 'Current journey focus' })
+  const journeyPath = `/quality-journeys/${journey.id}?project=${targetProjectId}`
+  const settings = focus.locator('a[href^="/settings/agent-setup?"]')
+  const params = new URLSearchParams({
+    provider: 'CLAUDE_CODE',
+    project: targetProjectId,
+    returnTo: journeyPath + '#current-work',
+  })
+  await expect(settings).toHaveAttribute('href', `/settings/agent-setup?${params.toString()}`)
+  const otherProjectId = await projectFixture()
+  await context.addCookies([{ name: 'appraise-active-project', value: otherProjectId, url: baseURL! }])
+  await settings.click()
+  await expect(page.getByText('Set up Claude Code', { exact: true })).toBeVisible()
+  const goBack = page.getByRole('link', { name: 'Return to your brief' }).first()
+  await expect(goBack).toHaveAttribute('href', journeyPath + '#current-work')
+  await goBack.click()
+  await expect(page.getByRole('heading', { name: 'Verify the disposable checkout.' })).toBeVisible()
+  expect(await prisma.qualityJourneyWorkAttempt.count({ where: { workItem: { journeyId: journey.id } } })).toBe(0)
 })
 
 test('Journey stage map remains readable for incomplete lifecycle snapshots @smoke', async ({
@@ -594,7 +674,7 @@ test('Journey suggested answers support keyboard selection and survive refresh a
   const firstAnswer = first.suggestedAnswers[0]
   const secondAnswer = second.suggestedAnswers[0]
   await expect(page.getByRole('heading', { name: first.prompt })).toBeVisible()
-  await expect(page.getByText('How to connect the agent', { exact: true })).toHaveCount(0)
+  await expect(page.locator('a[href^="/settings/agent-setup?"]')).toHaveCount(0)
   const recommendation = page.getByRole('button', { name: `${firstAnswer} · Recommended`, exact: true })
   await recommendation.focus()
   await page.keyboard.press('Space')

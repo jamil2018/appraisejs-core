@@ -3,7 +3,9 @@ import { z } from 'zod'
 import prisma from '@/config/db-config'
 import { hashCanonical } from '@/lib/quality-journey/analysis-contracts'
 import { ServiceError } from '@/services/shared/errors'
-import { assertCurrentCoordinatorSession } from './quality-journey-coordinator-session'
+import { assertCurrentCoordinatorSession, readScopedQualityJourney } from './quality-journey-coordinator-session'
+import { managedJourneyProvider } from './app-managed-provider-sender'
+import { appManagedDiscoveryEnabled } from './app-managed-discovery-service'
 import { readInternalDiscoveryAssignment } from './quality-journey-discovery-service'
 import {
   captureQualityJourneyDiscoveryBrowserReceipt,
@@ -123,7 +125,8 @@ export async function captureAppManagedAnonymousDiscovery(
   client: PrismaClient = prisma,
   runtime?: DiscoveryBrowserRuntime,
 ) {
-  if (process.env.APPRAISE_LOCAL_CODEX_DISCOVERY_ENABLED !== 'true')
+  const provider = managedJourneyProvider(await readScopedQualityJourney(input, client))
+  if (!appManagedDiscoveryEnabled(provider))
     throw new ServiceError(
       'Automatic target inspection has not been enabled by this Appraise server owner.',
       'CONFLICT',
@@ -167,10 +170,9 @@ export async function getAppManagedAnonymousDiscoveryCaptureStatus(
   client: PrismaClient = prisma,
 ): Promise<AnonymousDiscoveryCaptureStatus> {
   try {
+    const provider = managedJourneyProvider(await readScopedQualityJourney(input, client))
     const status = (await client.$transaction(tx => readAppManagedAnonymousDiscoveryCapture(input, tx))).status
-    return status === 'READY' && process.env.APPRAISE_LOCAL_CODEX_DISCOVERY_ENABLED !== 'true'
-      ? 'MANUAL_REQUIRED'
-      : status
+    return status === 'READY' && !appManagedDiscoveryEnabled(provider) ? 'MANUAL_REQUIRED' : status
   } catch (error) {
     if (error instanceof ServiceError && error.code === 'CONFLICT') return 'RECOVERY_REQUIRED'
     throw error

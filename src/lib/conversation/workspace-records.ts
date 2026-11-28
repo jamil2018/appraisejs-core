@@ -28,6 +28,8 @@ type ConversationRecordKind = (typeof conversationRecordKinds)[number]
 export type ConversationRecord = Omit<WorkspaceRecord, 'kind'> & {
   kind: ConversationRecordKind
   destination?: 'create'
+  /** Exact published definition link; absent on older saved list links. */
+  stepReference?: { version: string; definitionHash: string }
 }
 
 const creationRoutes = {
@@ -80,7 +82,17 @@ export function workspaceRecordHref(projectId: string, record: ConversationRecor
     return withProjectScope(creationRoutes[record.kind], projectId)
   if (record.kind === 'PROJECT') return withProjectScope(records.PROJECT.route, record.id)
   if (record.kind === 'SETTINGS') return withProjectScope(records.SETTINGS.route, projectId)
-  if (record.kind === 'STEP_DEFINITION') return withProjectScope(records.STEP_DEFINITION.route, projectId)
+  if (record.kind === 'STEP_DEFINITION') {
+    if (record.stepReference) {
+      const search = new URLSearchParams({
+        id: record.id,
+        version: record.stepReference.version,
+        definitionHash: record.stepReference.definitionHash,
+      })
+      return withProjectScope(`/step-definitions/published?${search}`, projectId)
+    }
+    return withProjectScope(records.STEP_DEFINITION.route, projectId)
+  }
   if (record.kind === 'COLLABORATION')
     return `${withProjectScope(`${records.COLLABORATION.route}?${new URLSearchParams({ operation: record.id })}`, projectId)}#operation-history`
   return withProjectScope(`${records[record.kind].route}/${encodeURIComponent(record.id)}`, projectId)

@@ -1,4 +1,11 @@
 import { getAppManagedAnonymousDiscoveryCaptureStatus } from '@/services/coordinator/app-managed-discovery-capture'
+import { getManagedScoutEvidenceReview } from '@/services/coordinator/app-managed-discovery-evidence'
+import {
+  getManagedJourneyReadinessForProvider,
+  managedJourneyReadinessStage,
+  managedJourneyFullyEnabled,
+} from '@/services/coordinator/app-managed-journey-readiness'
+import { managedJourneyProvider } from '@/services/coordinator/app-managed-provider-sender'
 import { ClosurePanel } from './closure-panel'
 import { ManagedJourneyOwnershipControl } from './managed-journey-ownership-control'
 import { ManagedJourneyProgression } from './managed-journey-progression'
@@ -11,7 +18,10 @@ import {
   observePendingManualAutomationRecovery,
   getAppManagedManualAutomationDraftContext,
 } from '@/services/coordinator/app-managed-automation-manual-recovery'
-import { getAppManagedTriageRecovery } from '@/services/coordinator/app-managed-triage-recovery'
+import {
+  getAppManagedTriageRecovery,
+  readRetainedTriageNotes,
+} from '@/services/coordinator/app-managed-triage-recovery'
 import { getQualityJourneyClosure } from '@/services/coordinator/quality-journey-closure-service'
 import type { Metadata } from 'next'
 import Link from 'next/link'
@@ -48,6 +58,7 @@ import { getQualityJourneyStatusSnapshot } from '@/services/coordinator/quality-
 import { JourneyStatusObservationProvider } from './journey-status-observation'
 import { ScenarioPortfolioReview } from './scenario-portfolio-review'
 import { DiscoveryBrowserPanel } from './discovery-browser-panel'
+import { CopyBriefWithAssistant } from './copy-brief-with-assistant'
 import { DiscoverySetupPanel } from './discovery-setup-panel'
 import { ManagedDiscoveryControl } from './managed-discovery-control'
 import { ManagedScenarioAutomationControl } from './managed-scenario-automation-control'
@@ -128,7 +139,13 @@ async function loadDesignStageContext(journeyId: string, projectId: string, stag
 }
 
 async function loadRunStageContext(journeyId: string, projectId: string, stage: string, stateHash: string) {
-  const [triageRecovery, discoveryCaptureStatus, manualPreparation, operatorTriageAvailable] = await Promise.all([
+  const [
+    triageRecovery,
+    discoveryCaptureStatus,
+    managedScoutEvidenceReview,
+    manualPreparation,
+    operatorTriageAvailable,
+  ] = await Promise.all([
     ['TRIAGE', 'REPORT_REVIEW'].includes(stage)
       ? getAppManagedTriageRecovery({ journeyId, targetProjectId: projectId })
       : null,
@@ -139,10 +156,17 @@ async function loadRunStageContext(journeyId: string, projectId: string, stage: 
           expectedStateHash: stateHash,
         })
       : null,
+    stage === 'DISCOVERY' ? getManagedScoutEvidenceReview({ journeyId, targetProjectId: projectId }) : null,
     stage === 'AUTOMATION' ? loadManualPreparation(journeyId, projectId) : null,
     stage === 'TRIAGE' ? getOperatorTriageAvailable({ journeyId, targetProjectId: projectId }) : false,
   ])
-  return { triageRecovery, discoveryCaptureStatus, manualPreparation, operatorTriageAvailable }
+  return {
+    triageRecovery,
+    discoveryCaptureStatus,
+    managedScoutEvidenceReview,
+    manualPreparation,
+    operatorTriageAvailable,
+  }
 }
 
 async function loadJourneyDetail(journeyId: string, projectId: string) {
@@ -169,7 +193,7 @@ async function loadJourneyDetail(journeyId: string, projectId: string) {
     attempts,
     requirement,
     { discoverySetup, preparationRecovery, designCorrection },
-    { triageRecovery, discoveryCaptureStatus, manualPreparation, operatorTriageAvailable },
+    { triageRecovery, discoveryCaptureStatus, managedScoutEvidenceReview, manualPreparation, operatorTriageAvailable },
   ] = await Promise.all([
     loadJourneySupplementalArtifacts(journeyId, projectId, journey.journey.stage),
     loadActiveDiscovery(journey.journey.stage, journeyId, projectId),
@@ -215,6 +239,7 @@ async function loadJourneyDetail(journeyId: string, projectId: string) {
     designCorrection,
     triageRecovery,
     discoveryCaptureStatus,
+    managedScoutEvidenceReview,
     manualPreparation,
     operatorTriageAvailable,
     scenarios,
@@ -232,11 +257,11 @@ async function loadJourneyDetail(journeyId: string, projectId: string) {
 async function loadManualPreparation(journeyId: string, targetProjectId: string) {
   const scope = { journeyId, targetProjectId }
   const [recovery, issued] = await Promise.all([
-    getAppManagedAutomatorManualRecovery(scope),
+    getAppManagedAutomatorManualRecovery({ ...scope, includeWaiting: true }),
     observePendingManualAutomationRecovery(scope),
   ])
   if (!recovery && !issued) return null
-  const context = await getAppManagedManualAutomationDraftContext(scope)
+  const context = issued || !recovery?.availableAt ? await getAppManagedManualAutomationDraftContext(scope) : null
   return { recovery, issued, choices: context?.choices }
 }
 
@@ -403,6 +428,31 @@ function JourneyCurrentWork({ detail, presentation, projectId, closure }: Curren
     environments,
   } = detail
   const { stage, journeyId, stateHash } = journey.journey
+  const workerProvider = journey.journey.managedWorkerProvider
+  const triageWork =
+    stage === 'TRIAGE' && !triage.activeReportRevisionId
+      ? journey.workItems.find(item => item.role === 'TRIAGER' && journey.journey.activeWorkItemIds.includes(item.id))
+      : null
+  const failedReport =
+    triageWork &&
+    detail.attempts.find(
+      attempt =>
+        attempt.workItemId === triageWork.id &&
+        attempt.attempt === triageWork.currentAttempt &&
+        attempt.dispatchAdapterId === 'APP_SERVER_LOCAL_V1_TRIAGE',
+    )
+  const triageAssignment = triageWork && triage.assignments.find(assignment => assignment.workItemId === triageWork.id)
+  const retainedNotes =
+    failedReport?.failureJson && triageAssignment
+      ? readRetainedTriageNotes(failedReport.failureJson, triageAssignment)
+      : null
+  const scenarioTitles = Object.fromEntries(
+    triage?.assignments.flatMap(({ input }) =>
+      input.scenarios.flatMap(({ revisionId, intent }) =>
+        typeof intent.title === 'string' ? [[revisionId, intent.title]] : [],
+      ),
+    ) ?? [],
+  )
   const run = (
     <section id="execution" tabIndex={-1}>
       <JourneyExecutionStatus
@@ -413,6 +463,7 @@ function JourneyCurrentWork({ detail, presentation, projectId, closure }: Curren
         stage={stage}
         environments={environments}
         capsuleIds={presentation.capsuleIds}
+        scenarioTitles={scenarioTitles}
       />
     </section>
   )
@@ -445,6 +496,7 @@ function JourneyCurrentWork({ detail, presentation, projectId, closure }: Curren
             journeyId={journeyId}
             discovery={discoveryBrowserView(discovery, environments)}
             automaticStatus={detail.discoveryCaptureStatus ?? undefined}
+            managedReview={detail.managedScoutEvidenceReview}
           />
           {presentation.scoutFailed || presentation.explorerFailed || presentation.discoveryCorrectionReady ? (
             <ManagedDiscoveryControl
@@ -453,7 +505,12 @@ function JourneyCurrentWork({ detail, presentation, projectId, closure }: Curren
               resourceAccepted={!presentation.explorerFailed}
               journeyId={journeyId}
               stateHash={stateHash}
-              enabled={process.env.APPRAISE_LOCAL_CODEX_DISCOVERY_ENABLED === 'true'}
+              enabled={
+                workerProvider === 'CLAUDE_CODE'
+                  ? process.env.APPRAISE_LOCAL_CLAUDE_JOURNEY_ENABLED === 'true'
+                  : process.env.APPRAISE_LOCAL_CODEX_DISCOVERY_ENABLED === 'true'
+              }
+              provider={workerProvider}
             />
           ) : null}
         </section>
@@ -469,7 +526,12 @@ function JourneyCurrentWork({ detail, presentation, projectId, closure }: Curren
               recovery={preparationRecovery}
               journeyId={journeyId}
               stateHash={stateHash}
-              enabled={process.env.APPRAISE_LOCAL_CODEX_SCENARIO_AUTOMATION_ENABLED === 'true'}
+              enabled={
+                workerProvider === 'CLAUDE_CODE'
+                  ? process.env.APPRAISE_LOCAL_CLAUDE_JOURNEY_ENABLED === 'true'
+                  : process.env.APPRAISE_LOCAL_CODEX_SCENARIO_AUTOMATION_ENABLED === 'true'
+              }
+              provider={workerProvider}
               role="TEST_SCENARIO_DESIGNER"
             />
           ) : null}
@@ -501,7 +563,12 @@ function JourneyCurrentWork({ detail, presentation, projectId, closure }: Curren
                   recovery={preparationRecovery}
                   journeyId={journeyId}
                   stateHash={stateHash}
-                  enabled={process.env.APPRAISE_LOCAL_CODEX_SCENARIO_AUTOMATION_ENABLED === 'true'}
+                  enabled={
+                    workerProvider === 'CLAUDE_CODE'
+                      ? process.env.APPRAISE_LOCAL_CLAUDE_JOURNEY_ENABLED === 'true'
+                      : process.env.APPRAISE_LOCAL_CODEX_SCENARIO_AUTOMATION_ENABLED === 'true'
+                  }
+                  provider={workerProvider}
                   role="AUTOMATOR"
                 />
               ) : null}
@@ -519,7 +586,13 @@ function JourneyCurrentWork({ detail, presentation, projectId, closure }: Curren
       return (
         <>
           {
-            <section id="triage" tabIndex={-1}>
+            <section className="space-y-3" id="triage" tabIndex={-1}>
+              {stage !== 'CLOSED' &&
+              (execution.cycles.length > 0 ||
+                presentation.requestedExecutionConsentCount > 0 ||
+                execution.proposals.some(p => ['PROPOSED', 'APPROVED'].includes(p.status)))
+                ? run
+                : null}
               {stage === 'TRIAGE' && detail.operatorTriageAvailable ? (
                 <OperatorTriageControl journeyId={journeyId} stateHash={stateHash} />
               ) : null}
@@ -528,28 +601,24 @@ function JourneyCurrentWork({ detail, presentation, projectId, closure }: Curren
                   journeyId={journeyId}
                   stateHash={stateHash}
                   enabled={false}
+                  provider={workerProvider}
                   recovery={detail.triageRecovery}
                 />
               ) : stage === 'TRIAGE' && presentation.triageFailed ? (
-                <p role="alert" className="text-sm">
-                  Appraise couldn’t save the report. Your test results are in History.
+                <p className="text-sm text-muted-foreground">
+                  The recorded outcomes and evidence are available under Test results.
                 </p>
               ) : null}
               <TriageReportPanel
                 projectId={projectId}
                 journeyId={journeyId}
+                retainedNotes={retainedNotes}
                 stage={stage}
                 stateHash={stateHash}
                 triage={triage}
               />
             </section>
           }
-          {stage !== 'CLOSED' &&
-          (execution.cycles.length > 0 ||
-            presentation.requestedExecutionConsentCount > 0 ||
-            execution.proposals.some(p => ['PROPOSED', 'APPROVED'].includes(p.status)))
-            ? run
-            : null}
           {stage === 'TRIAGE' ? null : (
             <ClosurePanel
               key={closure.reportHash ?? journeyId}
@@ -576,17 +645,23 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
   const { activeAnalysis, answerable, journey, execution, requirementSummary } = detail
   const presentation = detailPresentation(detail, closure)
   const managedActive = journey.journey.hostingMode === 'APP_SERVER_LOCAL_V1' && journey.journey.status === 'ACTIVE'
+  const journeyReturnTo = `/quality-journeys/${encodeURIComponent(journeyId)}?project=${encodeURIComponent(project.id)}#current-work`
 
   const stage = journey.journey.stage
-  const workerSetting: Partial<Record<string, string>> = {
-    ANALYSIS: 'APPRAISE_LOCAL_CODEX_ANALYSIS_ENABLED',
-    DISCOVERY: 'APPRAISE_LOCAL_CODEX_DISCOVERY_ENABLED',
-    SCENARIO_DESIGN: 'APPRAISE_LOCAL_CODEX_SCENARIO_AUTOMATION_ENABLED',
-    AUTOMATION: 'APPRAISE_LOCAL_CODEX_SCENARIO_AUTOMATION_ENABLED',
-    TRIAGE: 'APPRAISE_LOCAL_CODEX_TRIAGE_ENABLED',
-  }
-  const setting = workerSetting[stage]
-  const agentEnabled = Boolean(setting && process.env[setting] === 'true')
+  const discoveryStatus = detail.discovery?.revisions.find(
+    revision => revision.id === detail.discovery?.activeDiscoveryRevisionId,
+  )?.status
+  const readinessStage = managedJourneyReadinessStage(stage, discoveryStatus)
+  const assistantStage = ['ANALYSIS', 'DISCOVERY', 'SCENARIO_DESIGN', 'AUTOMATION', 'TRIAGE'].includes(stage)
+  const selectedProvider = managedJourneyProvider(journey.journey)
+  const selectedReadiness =
+    managedActive && assistantStage
+      ? await getManagedJourneyReadinessForProvider(
+          { targetProjectId: project.id, returnTo: journeyReturnTo, stage: readinessStage },
+          selectedProvider,
+        )
+      : null
+  const agentEnabled = selectedReadiness?.ready ?? false
   const activeRunStates = new Set(execution.cycles.map(cycle => cycle.status))
   let executionActivity: string | undefined
   if (stage === 'EXECUTION') {
@@ -603,7 +678,7 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
   const focus = currentJourneyFocus(detail)
   const showAgentSetup =
     managedActive &&
-    setting &&
+    assistantStage &&
     !agentEnabled &&
     !hasQuestion &&
     !journey.blockers.length &&
@@ -612,7 +687,19 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
     !detail.operatorTriageAvailable &&
     !detail.manualPreparation &&
     !['MANUAL_REQUIRED', 'RECOVERY_REQUIRED', 'INSPECTING'].includes(detail.discoveryCaptureStatus ?? '') &&
-    initialSnapshot?.runtimeStatus !== 'RECOVERY'
+    initialSnapshot?.runtimeStatus !== 'RECOVERY' &&
+    initialSnapshot?.runtimeStatus !== 'RUNNING' &&
+    !initialSnapshot?.activity?.running
+  const alternativeProvider = selectedProvider === 'CODEX' ? 'CLAUDE_CODE' : 'CODEX'
+  const alternativeReadiness =
+    showAgentSetup && detail.attempts.length === 0
+      ? await getManagedJourneyReadinessForProvider(
+          { targetProjectId: project.id, returnTo: journeyReturnTo, stage: readinessStage },
+          alternativeProvider,
+        )
+      : null
+  const availableAlternative =
+    alternativeReadiness?.ready && managedJourneyFullyEnabled(alternativeProvider) ? alternativeProvider : null
 
   return (
     <JourneyStatusObservationProvider
@@ -695,15 +782,24 @@ export default async function QualityJourneyDetailPage({ params, searchParams }:
               lastEventAt={journey.events.at(-1)?.createdAt.toISOString()}
             />
             {showAgentSetup ? (
-              <details className="text-sm">
-                <summary className="app-focus w-fit cursor-pointer rounded-sm font-medium text-warning underline-offset-4 hover:underline">
-                  How to connect the agent
-                </summary>
-                <p className="mt-2 max-w-prose leading-6 text-muted-foreground">
-                  Ask your workspace owner to enable <code className="break-all text-foreground">{setting}</code> on the
-                  Appraise server. Your brief stays saved here.
+              <div className="space-y-2 text-sm">
+                <p className="max-w-prose text-muted-foreground">
+                  {selectedReadiness?.reason} Your Journey and brief are saved. The setup page will check what you can
+                  do next.
                 </p>
-              </details>
+                {selectedReadiness ? (
+                  <Button nativeButton={false} size="sm" render={<Link href={selectedReadiness.settingsHref} />}>
+                    {selectedReadiness.actionLabel ?? 'Check assistant setup'}
+                  </Button>
+                ) : null}
+                {availableAlternative ? (
+                  <CopyBriefWithAssistant
+                    journeyId={journeyId}
+                    projectId={project.id}
+                    provider={availableAlternative}
+                  />
+                ) : null}
+              </div>
             ) : null}
           </div>
           {managedActive && ['ANALYSIS', 'ANALYSIS_REVIEW'].includes(stage) ? (

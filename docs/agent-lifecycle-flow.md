@@ -40,8 +40,11 @@ The UI and canonical requirement contract accept an objective alone. Starting co
 records rather than private per-user records. Confirmed drafts are immutable, and archive is recoverable rather than
 destructive.
 
-New public Journeys use app-managed hosting. The local Journey page supports migration for eligible unowned legacy
-Journeys. Accepted artifacts and human decisions remain the lifecycle authority.
+New public Journeys use app-managed hosting. Confirmation carries the selected managed worker from the exact saved
+draft into the Journey. Existing records default to Codex. The project chat lookup provider can change independently.
+The worker can return structured proposals through its assigned role gateway. Appraise owns accepted artifacts, human
+decisions, and execution consent. An interrupted dispatch stays attached to the original attempt.
+The local Journey page supports migration for eligible unowned legacy Journeys.
 See [the operator guide](quality-journey-operator-guide.md) for worker availability and recovery.
 
 ## Approved app-server host design (M00; not enabled)

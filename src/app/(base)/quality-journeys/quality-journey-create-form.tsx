@@ -3,18 +3,45 @@
 import { ArrowLeft, ArrowUp, Check, Paperclip } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import {
+  defaultManagedWorkerModel,
+  managedWorkerEfforts,
+  managedWorkerOptions,
+  type ManagedWorkerEffort,
+  type ManagedWorkerModel,
+} from '@/lib/quality-journey/managed-worker-preferences'
+import {
   getBriefRecordContext,
   journeyRecordLabels,
+  withBriefFileContext,
+  withoutBriefFileContext,
   type JourneyRecordContext,
 } from '@/lib/quality-journey/record-context'
+import type { ManagedJourneyProviderReadiness } from '@/services/coordinator/app-managed-journey-readiness'
 
 import type { DraftSnapshot } from './quality-journey-create-form-shared'
 import { useQualityJourneyCreateIntake } from './use-quality-journey-create-intake'
+
+async function readBriefFile(file: File) {
+  if (!/\.(txt|md|json)$/i.test(file.name)) throw new Error('Choose a .txt, .md, or .json file.')
+  if (!file.size || file.size > 6_000 || file.name.length > 128)
+    throw new Error('Choose a text file under 6 KB with a short name.')
+  const content = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result ?? ''))
+    reader.onerror = () => reject(new Error('The selected file could not be read.'))
+    reader.onabort = () => reject(new Error('The selected file could not be read.'))
+    reader.readAsText(file, 'utf-8')
+  })
+  if (!content.trim() || content.length > 6_000 || /[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(content))
+    throw new Error('Choose a readable text file under 6 KB.')
+  return { name: file.name, content }
+}
 
 function DraftSaveStatus({
   saveConflict,
@@ -76,29 +103,42 @@ function BriefContext({ draft, recordContext }: { draft?: DraftSnapshot; recordC
       </p>
     )
   }
-  if (!draft || !Object.keys(draft.requirement).some(key => key !== 'objective' && key !== 'schemaVersion')) return null
+  if (!draft) return null
+  const hasOtherDetails = Object.keys(draft.requirement).some(
+    key => key !== 'objective' && key !== 'schemaVersion' && key !== 'context',
+  )
+  if (!withoutBriefFileContext(draft.requirement.context) && !hasOtherDetails) return null
   return <p className="px-2 text-xs text-muted-foreground">Details from your saved brief are retained.</p>
 }
 
 export function QualityJourneyCreateForm({
   projectId,
   predecessorJourneyId,
+  preferredProvider,
   draft,
   recordContext,
+  providerReadiness,
 }: {
   projectId: string
   predecessorJourneyId?: string
+  preferredProvider?: 'CODEX' | 'CLAUDE_CODE'
   draft?: DraftSnapshot
   recordContext?: JourneyRecordContext
+  providerReadiness?: Record<'CODEX' | 'CLAUDE_CODE', ManagedJourneyProviderReadiness>
 }) {
   const { push } = useRouter()
-  const { actions, isPending, requirement, saveConflict, saveStatus, state, update } = useQualityJourneyCreateIntake({
-    draft,
-    predecessorJourneyId,
-    projectId,
-    push,
-    recordContext,
-  })
+  const fileInput = useRef<HTMLInputElement>(null)
+  const [readingFile, setReadingFile] = useState(false)
+  const { actions, isPending, requirement, saveConflict, saveStatus, state, update, updateView } =
+    useQualityJourneyCreateIntake({
+      draft,
+      predecessorJourneyId,
+      preferredProvider,
+      projectId,
+      push,
+      recordContext,
+    })
+  const selectedReadiness = providerReadiness?.[state.managedWorkerProvider]
   if (draft?.status === 'ARCHIVED')
     return (
       <section className="rounded-xl border border-border bg-card p-6">
@@ -123,6 +163,11 @@ export function QualityJourneyCreateForm({
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
           {draft ? 'Continue your Journey brief' : 'What would you like to check?'}
         </h1>
+        {!draft ? (
+          <p className="text-sm text-muted-foreground">
+            Describe what should happen. Appraise will suggest tests for you to review.
+          </p>
+        ) : null}
         {predecessorJourneyId ? (
           <p className="text-sm text-muted-foreground">
             Follow-up to{' '}
@@ -161,13 +206,168 @@ export function QualityJourneyCreateForm({
             Include the expected behavior and any risks or constraints that matter.
           </p>
           <BriefContext draft={draft} recordContext={recordContext} />
+          {state.attachedFile ? (
+            <div className="mx-1 flex max-w-full items-center gap-2 text-sm">
+              <span className="flex min-w-0 items-center gap-1.5 rounded-lg bg-muted px-2 py-1">
+                <Paperclip aria-hidden="true" className="size-3.5 shrink-0" />
+                <span className="truncate" title={state.attachedFile.name}>
+                  {state.attachedFile.name}
+                </span>
+              </span>
+              <Button
+                disabled={isPending}
+                onClick={() => update({ attachedFile: null, error: null })}
+                size="sm"
+                type="button"
+                variant="ghost"
+              >
+                Remove file
+              </Button>
+            </div>
+          ) : null}
         </div>
+        <input
+          accept=".txt,.md,.json,text/plain,text/markdown,application/json"
+          aria-hidden="true"
+          aria-label="Text file"
+          className="sr-only"
+          disabled={isPending}
+          id="quality-journey-file"
+          onChange={async event => {
+            const file = event.target.files?.[0]
+            event.target.value = ''
+            if (!file) return
+            setReadingFile(true)
+            try {
+              const attachment = await readBriefFile(file)
+              const sourceContext =
+                draft?.requirement.context ?? (recordContext ? JSON.stringify(recordContext) : undefined)
+              withBriefFileContext(withoutBriefFileContext(sourceContext), attachment)
+              update({ attachedFile: attachment, error: null })
+            } catch (error) {
+              updateView({ error: error instanceof Error ? error.message : 'Unable to attach this file.' })
+            } finally {
+              setReadingFile(false)
+            }
+          }}
+          ref={fileInput}
+          tabIndex={-1}
+          type="file"
+        />
+        <div className="grid gap-2 px-2 pb-1 sm:grid-cols-3">
+          <div className="space-y-1">
+            <Label htmlFor="quality-journey-provider" className="text-xs text-muted-foreground">
+              Provider
+            </Label>
+            <select
+              className="app-focus block min-h-9 w-full min-w-0 rounded-md border border-input bg-background px-2 text-sm text-foreground"
+              disabled={isPending}
+              id="quality-journey-provider"
+              onChange={event =>
+                update({
+                  managedWorkerProvider: event.target.value as 'CODEX' | 'CLAUDE_CODE',
+                  managedWorkerModel: null,
+                  error: null,
+                })
+              }
+              value={state.managedWorkerProvider}
+            >
+              <option value="CODEX">Codex</option>
+              <option value="CLAUDE_CODE">Claude Code</option>
+            </select>
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="quality-journey-model" className="text-xs text-muted-foreground">
+              Model
+            </Label>
+            <select
+              className="app-focus block min-h-9 w-full min-w-0 rounded-md border border-input bg-background px-2 text-sm text-foreground"
+              disabled={isPending}
+              id="quality-journey-model"
+              onChange={event =>
+                update({
+                  managedWorkerModel:
+                    event.target.value === 'default' ? null : (event.target.value as ManagedWorkerModel),
+                  error: null,
+                })
+              }
+              value={state.managedWorkerModel ?? 'default'}
+            >
+              <option value="default">
+                {defaultManagedWorkerModel[state.managedWorkerProvider]
+                  ? `Default (${defaultManagedWorkerModel[state.managedWorkerProvider]})`
+                  : 'Provider default'}
+              </option>
+              {managedWorkerOptions[state.managedWorkerProvider].map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="quality-journey-effort" className="text-xs text-muted-foreground">
+              Effort
+            </Label>
+            <select
+              className="app-focus block min-h-9 w-full min-w-0 rounded-md border border-input bg-background px-2 text-sm text-foreground"
+              disabled={isPending}
+              id="quality-journey-effort"
+              onChange={event =>
+                update({
+                  managedWorkerEffort:
+                    event.target.value === 'default' ? null : (event.target.value as ManagedWorkerEffort),
+                  error: null,
+                })
+              }
+              value={state.managedWorkerEffort ?? 'default'}
+            >
+              <option value="default">Default</option>
+              {managedWorkerEfforts.map(effort => (
+                <option key={effort} value={effort}>
+                  {effort.charAt(0).toUpperCase() + effort.slice(1)}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        {selectedReadiness && !selectedReadiness.ready ? (
+          <p className="flex flex-wrap items-center gap-x-2 px-2 text-xs text-warning" role="status">
+            {selectedReadiness.reason}
+            {selectedReadiness.actionLabel ? (
+              <Link
+                aria-disabled={isPending || readingFile || saveConflict}
+                className="app-focus font-medium underline underline-offset-2"
+                href={selectedReadiness.settingsHref}
+                onNavigate={event => {
+                  event.preventDefault()
+                  if (!isPending && !readingFile && !saveConflict)
+                    actions.openProviderSetup(selectedReadiness.settingsHref)
+                }}
+              >
+                {selectedReadiness.actionLabel}
+              </Link>
+            ) : null}
+          </p>
+        ) : null}
         {state.error ? (
           <p className="text-sm text-destructive" role="alert">
             {state.error}
           </p>
         ) : null}
         <div className="flex flex-wrap items-center justify-between gap-2 px-1 pb-1">
+          <Button
+            aria-label="Attach a text file"
+            disabled={isPending}
+            onClick={() => fileInput.current?.click()}
+            size="sm"
+            title="Attach a text file (.txt, .md, or .json, up to 6 KB)"
+            type="button"
+            variant="ghost"
+          >
+            <Paperclip aria-hidden="true" className="size-4" />
+            Attach file
+          </Button>
           <DraftSaveStatus
             onRetry={() => void actions.enqueueSave()}
             onSaveAsNewDraft={actions.saveAsNewDraft}
@@ -176,7 +376,13 @@ export function QualityJourneyCreateForm({
           />
           <Button
             className="ml-auto rounded-full"
-            disabled={isPending || saveConflict || !requirement.objective}
+            disabled={
+              isPending ||
+              readingFile ||
+              saveConflict ||
+              !requirement.objective ||
+              Boolean(selectedReadiness && !selectedReadiness.ready)
+            }
             size="sm"
             type="submit"
           >

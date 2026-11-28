@@ -24,6 +24,8 @@ import { ServiceError } from '@/services/shared/errors'
 
 const sender = vi.hoisted(() => ({
   run: vi.fn(),
+  claudeRun: vi.fn(),
+  claudeBind: vi.fn(),
   handoffFault: '' as '' | 'BEFORE' | 'AFTER',
   publicationFault: false,
   holdSubmission: false,
@@ -83,12 +85,26 @@ vi.mock('./quality-journey-analysis-service', async importOriginal => {
 })
 vi.mock('@/lib/quality-journey/codex-app-server/managed-analysis-sender', () => ({
   runManagedAnalysis: sender.run,
+  inspectManagedCodexPrerequisites: async () => ({ usableForDispatch: true, state: 'candidate' }),
   classifyManagedAnalysisFailure: () => 'Managed Analysis failed; outcome UNKNOWN',
+}))
+vi.mock(import('@/services/provider-connection/claude-code-journey-sender'), async importOriginal => ({
+  ...(await importOriginal()),
+  bindClaudeCodeJourneySender: sender.claudeBind,
 }))
 const fixtures: Awaited<ReturnType<typeof createProviderFixture>>[] = []
 beforeEach(() => {
   vi.stubEnv('APPRAISE_LOCAL_CODEX_ANALYSIS_ENABLED', 'true')
   sender.run.mockReset()
+  sender.claudeRun.mockReset()
+  sender.claudeBind.mockReset().mockImplementation(async () => ({
+    identity: {
+      executableSha256: 'a'.repeat(64),
+      accountFingerprint: 'b'.repeat(64),
+      protocol: 'claude-code-print/v1',
+    },
+    run: sender.claudeRun,
+  }))
   sender.handoffFault = ''
   sender.publicationFault = false
   sender.holdSubmission = false
@@ -194,6 +210,55 @@ function output(prompt: string, requiredQuestion = false) {
 }
 
 describe('local managed Analysis dispatch', () => {
+  it('binds Claude before claim and records its immutable sender identity with the role marker', async () => {
+    const f = await ready()
+    vi.stubEnv('APPRAISE_LOCAL_CLAUDE_JOURNEY_ENABLED', 'true')
+    await f.client.qualityJourney.update({
+      where: { id: f.scope.journeyId },
+      data: { managedWorkerProvider: 'CLAUDE_CODE' },
+    })
+    sender.claudeRun.mockImplementation((prompt: string) => output(prompt))
+    await expect(startAppManagedAnalysis(f.input, f.client)).resolves.toMatchObject({ awaitingAnswers: false })
+    const attempt = await f.client.qualityJourneyWorkAttempt.findFirstOrThrow({
+      where: { dispatchAdapterId: 'APP_SERVER_LOCAL_V1_ANALYSIS', workItem: f.scope },
+    })
+    expect(JSON.parse(attempt.managedDispatchIdentityJson!)).toEqual({
+      provider: 'CLAUDE_CODE',
+      executableSha256: 'a'.repeat(64),
+      accountFingerprint: 'b'.repeat(64),
+      protocol: 'claude-code-print/v1',
+    })
+    expect(sender.claudeBind).toHaveBeenCalledOnce()
+    expect(sender.claudeRun).toHaveBeenCalledOnce()
+    expect(sender.run).not.toHaveBeenCalled()
+  })
+
+  it('never claims on failed Claude binding or re-dispatches an UNKNOWN Claude attempt after reconnect and provider change', async () => {
+    const f = await ready()
+    vi.stubEnv('APPRAISE_LOCAL_CLAUDE_JOURNEY_ENABLED', 'true')
+    await f.client.qualityJourney.update({
+      where: { id: f.scope.journeyId },
+      data: { managedWorkerProvider: 'CLAUDE_CODE' },
+    })
+    sender.claudeBind.mockRejectedValueOnce(new ServiceError('Connect Claude Code in Settings.', 'CONFLICT'))
+    await expect(startAppManagedAnalysis(f.input, f.client)).rejects.toThrow('Connect Claude Code')
+    expect(await f.client.qualityJourneyWorkAttempt.count({ where: { workItem: f.scope } })).toBe(0)
+    sender.claudeRun.mockRejectedValueOnce(new Error('private provider output'))
+    await expect(startAppManagedAnalysis(f.input, f.client)).rejects.toThrow('UNKNOWN')
+    const attempt = await f.client.qualityJourneyWorkAttempt.findFirstOrThrow({ where: { workItem: f.scope } })
+    expect(attempt.dispatchAdapterId).toBe('APP_SERVER_LOCAL_V1_ANALYSIS')
+    expect(JSON.parse(attempt.managedDispatchIdentityJson!)).toMatchObject({ provider: 'CLAUDE_CODE' })
+    expect(attempt.failureJson).not.toContain('private provider output')
+    const reopened = f.connect()
+    await f.client.qualityJourney.update({
+      where: { id: f.scope.journeyId },
+      data: { managedWorkerProvider: 'CODEX' },
+    })
+    await expect(startAppManagedAnalysis(f.input, reopened)).rejects.toThrow()
+    expect(sender.claudeRun).toHaveBeenCalledOnce()
+    expect(sender.run).not.toHaveBeenCalled()
+  })
+
   it('does not offer expired pre-acceptance delivery and preserves its proposal for separate correction authority', async () => {
     const f = await ready()
     sender.run.mockImplementation(output)

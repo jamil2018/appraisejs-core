@@ -44,6 +44,7 @@ export type CreateLocatorWorkspaceProps = {
   displayMode?: LocatorWorkspaceDisplayMode
   locatorId?: string
   projectId?: string
+  returnToChat?: string
   initialValues?: LocatorWorkspaceInitialValues
   onSaveSuccess?: (result: InlineLocatorSaveResult) => void | Promise<void>
   onClose?: () => void

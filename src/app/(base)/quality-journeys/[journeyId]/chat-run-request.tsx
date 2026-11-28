@@ -7,17 +7,27 @@ import { requestChatJourneyExecutionPermission } from '@/actions/conversation/ch
 import { Button } from '@/components/ui/button'
 import { useJourneyStatusFreshness } from './journey-status-observation'
 
-export function ChatRunRequest({
-  conversationId,
-  journeyId,
-  expectedStateHash,
-  environments,
-}: {
+type RunRequestProps = {
   conversationId: string
   journeyId: string
   expectedStateHash: string
   environments: Array<{ id: string; name: string }>
-}) {
+}
+
+export function ChatRunRequest(props: RunRequestProps) {
+  return (
+    <article
+      aria-label="Run permission"
+      data-journey-focus="run-permission"
+      className="space-y-3 rounded-xl border border-border bg-card px-4 py-3"
+    >
+      <h2 className="text-sm font-semibold">Run permission</h2>
+      <ChatRunRequestForm {...props} />
+    </article>
+  )
+}
+
+export function ChatRunRequestForm({ conversationId, journeyId, expectedStateHash, environments }: RunRequestProps) {
   const controlId = useId()
   const [environmentId, setEnvironmentId] = useState(environments[0]?.id ?? '')
   const [pending, startTransition] = useTransition()
@@ -26,12 +36,7 @@ export function ChatRunRequest({
   const { newerVersionAvailable, loadNewerVersion } = useJourneyStatusFreshness()
 
   return (
-    <article
-      aria-label="Run permission"
-      data-journey-focus="run-permission"
-      className="space-y-3 rounded-xl border border-border bg-card px-4 py-3"
-    >
-      <h2 className="text-sm font-semibold">Run permission</h2>
+    <div className="space-y-3">
       <p className="text-sm">
         Choose where the approved tests will run. Appraise will show the exact scope for permission before starting
         them.
@@ -89,6 +94,6 @@ export function ChatRunRequest({
           {pending ? 'Checking scope…' : 'Review run permission'}
         </Button>
       )}
-    </article>
+    </div>
   )
 }

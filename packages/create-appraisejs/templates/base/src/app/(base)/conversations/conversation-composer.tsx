@@ -2,7 +2,7 @@
 
 import { ArrowUp, Paperclip, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useRef, useState, useTransition, type FormEvent } from 'react'
+import { useEffect, useRef, useState, useTransition, type FormEvent } from 'react'
 
 import { submitConversationMessage } from '@/actions/conversation/conversation-actions'
 import { CollaborationReviewCard } from '@/components/collaboration/collaboration-review-card'
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import type { ChatAnalysisQuestion, ChatAnalysisReview } from '@/lib/conversation/analysis-review'
 import type { ChatContext } from '@/lib/conversation/chat-context'
+import { isRunStopRequest, type RunStopReview } from '@/lib/conversation/run-stop-review'
 import {
   parseConversationCollaborationRequest,
   type ConversationCollaborationReview,
@@ -21,7 +22,10 @@ import {
   chatComposerFormId,
   isAnalysisApprovalRequest,
   isCheckoutOrderNumberRequest,
+  isProjectSwitchRequest,
+  isRunPermissionApprovalRequest,
   parseAnalysisAnswerReply,
+  type RunPermissionReview,
 } from '@/lib/conversation/workspace-request'
 import { withProjectScope } from '@/lib/project-scope'
 
@@ -32,6 +36,8 @@ type ReviewBinding = {
   analysisQuestion?: ChatAnalysisQuestion
   scenarioReview?: ChatScenarioReview
   collaborationReview?: ConversationCollaborationReview
+  runPermissionReview?: RunPermissionReview
+  runStopReview?: RunStopReview
 }
 
 const collaborationDecisionText = {
@@ -73,6 +79,8 @@ export function ConversationComposer({
   analysisQuestion,
   scenarioReview,
   collaborationReview,
+  runPermissionReview,
+  runStopReview,
 }: {
   projectId: string
   conversationId?: string
@@ -85,6 +93,7 @@ export function ConversationComposer({
   const [error, setError] = useState('')
   const [pending, startTransition] = useTransition()
   const inFlight = useRef(false)
+  const mounted = useRef(true)
   const retry = useRef<
     | ({
         request: string
@@ -93,8 +102,21 @@ export function ConversationComposer({
     | null
   >(null)
   const draft = useRef<ReviewBinding | null>(null)
-  const currentReview = { analysisReview, analysisQuestion, scenarioReview, collaborationReview }
+  const currentReview = {
+    analysisReview,
+    analysisQuestion,
+    scenarioReview,
+    collaborationReview,
+    runPermissionReview,
+    runStopReview,
+  }
   const { newerVersionAvailable } = useJourneyStatusFreshness()
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+    }
+  }, [])
 
   function send(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -106,6 +128,7 @@ export function ConversationComposer({
 
   function submit(message: string, source: 'typed' | 'analysis' | 'collaboration') {
     if (inFlight.current || !message) return
+    const switchOrigin = isProjectSwitchRequest(message) ? window.location.href : undefined
     const attachment = context && { kind: context.kind, id: context.id, shownTitle: context.title }
     const request = JSON.stringify({ message, attachment, source })
     const original = retry.current?.request === request ? retry.current : null
@@ -119,8 +142,10 @@ export function ConversationComposer({
     const scenarios = isScenarioApprovalRequest(message) ? binding.scenarioReview : undefined
     const collaboration =
       parseConversationCollaborationRequest(message)?.kind === 'DECIDE' ? binding.collaborationReview : undefined
+    const permission = isRunPermissionApprovalRequest(message) ? binding.runPermissionReview : undefined
+    const stop = isRunStopRequest(message) ? binding.runStopReview : undefined
     if ((source === 'analysis' && !review) || (source === 'collaboration' && !collaboration)) return
-    if (!original && (review || question || scenarios) && newerVersionAvailable) {
+    if (!original && (review || question || scenarios || permission || stop) && newerVersionAvailable) {
       setError('The Journey changed. Load the latest question or review before sending this request.')
       return
     }
@@ -131,6 +156,8 @@ export function ConversationComposer({
       analysisQuestion: question,
       scenarioReview: scenarios,
       collaborationReview: collaboration,
+      runPermissionReview: permission,
+      runStopReview: stop,
     }
     retry.current = attempt
     inFlight.current = true
@@ -148,6 +175,8 @@ export function ConversationComposer({
           analysisQuestion: attempt.analysisQuestion,
           scenarioReview: attempt.scenarioReview,
           collaborationReview: attempt.collaborationReview,
+          runPermissionReview: attempt.runPermissionReview,
+          ...(attempt.runStopReview ? { runStopReview: attempt.runStopReview } : {}),
         })
         if (!response.success) {
           if (
@@ -156,7 +185,9 @@ export function ConversationComposer({
             (attempt.analysisReview ||
               attempt.analysisQuestion ||
               attempt.scenarioReview ||
-              attempt.collaborationReview)
+              attempt.collaborationReview ||
+              attempt.runPermissionReview ||
+              attempt.runStopReview)
           ) {
             retry.current = null
             refresh()
@@ -166,6 +197,7 @@ export function ConversationComposer({
         }
         retry.current = null
         if (source === 'typed') {
+          if (switchOrigin && (!mounted.current || window.location.href !== switchOrigin)) return
           setContent('')
           draft.current = null
           setAttachmentRemoved(true)
@@ -173,6 +205,12 @@ export function ConversationComposer({
             push(response.evidenceHref)
             return
           }
+          if ('destinationHref' in response && typeof response.destinationHref === 'string') {
+            push(response.destinationHref)
+            return
+          }
+          if ('projectSwitchNotice' in response && typeof response.projectSwitchNotice === 'string')
+            setError(response.projectSwitchNotice)
           replace(withProjectScope(`/conversations/${response.conversationId}`, projectId))
         }
         refresh()
@@ -221,7 +259,7 @@ export function ConversationComposer({
             event.preventDefault()
             event.currentTarget.form?.requestSubmit()
           }}
-          disabled={pending}
+          readOnly={pending}
         />
         {error && (
           <p role="alert" className="px-2 text-sm text-destructive">
@@ -236,6 +274,9 @@ export function ConversationComposer({
           </Button>
         </div>
       </form>
+      <p role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+        {pending ? 'Saving message…' : ''}
+      </p>
     </div>
   )
 }

@@ -28,6 +28,6 @@ describe('managed Analysis control', () => {
   it('does not offer native dispatch until the server owner enables it', () => {
     render(<ManagedAnalysisControl {...props} enabled={false} />)
     expect(screen.getByRole('button')).toBeDisabled()
-    expect(screen.getByText(/server owner must enable/)).toBeVisible()
+    expect(screen.getByText(/unavailable for this step/)).toBeVisible()
   })
 })

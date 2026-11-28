@@ -21,7 +21,7 @@ import { ChatRunActivityCard } from './chat-run-activity-card'
 import { ChatRunActivityRefresh } from './chat-run-activity-refresh'
 import { ChatRunApproval } from './chat-run-approval'
 import { ChatRunPermissionCard } from './chat-run-permission-card'
-import { ChatRunRequest } from './chat-run-request'
+import { ChatRunRequest, ChatRunRequestForm } from './chat-run-request'
 import { ClosurePanel } from './closure-panel'
 import { JourneyExecutionConsentControls, JourneyRerunProgress } from './journey-execution-status'
 import { JourneyFocusCard } from './journey-focus-card'
@@ -126,6 +126,7 @@ export async function readJourneyChatFocus({
   const href = `/quality-journeys/${encodeURIComponent(journeyId)}?project=${encodeURIComponent(projectId)}#${focus.destination}`
   const permission = chatExecution?.permission
   if (savedConversationId && permission && (stage === 'AUTOMATION' || !latestCycle)) {
+    const actionablePermission = permission.status === 'REQUESTED' && !permission.stale && !permission.expired
     const replacementEnvironments =
       stage === 'AUTOMATION' && (permission.stale || permission.expired)
         ? await prisma.environment.findMany({
@@ -136,46 +137,70 @@ export async function readJourneyChatFocus({
         : null
     return {
       observation,
+      ...(actionablePermission
+        ? {
+            runPermissionReview: {
+              journeyId,
+              executionConsentId: permission.id,
+              expectedScopeHash: permission.scopeHash,
+            },
+          }
+        : {}),
       card: (
-        <>
-          <ChatRunPermissionCard
-            permission={permission}
-            projectId={projectId}
-            journeyId={journeyId}
-            action={
-              ['REQUESTED', 'GRANTED'].includes(permission.status) && !permission.stale && !permission.expired ? (
-                <ChatRunApproval
-                  conversationId={savedConversationId}
-                  journeyId={journeyId}
-                  executionConsentId={permission.id}
-                  expectedScopeHash={permission.scopeHash}
-                  resumeGrantedAttempt={permission.status === 'GRANTED'}
-                />
-              ) : null
-            }
-          />
-          {replacementEnvironments && (
-            <ChatRunRequest
-              conversationId={savedConversationId}
-              journeyId={journeyId}
-              expectedStateHash={journey.journey.stateHash}
-              environments={replacementEnvironments}
-            />
-          )}
-        </>
+        <ChatRunPermissionCard
+          permission={permission}
+          projectId={projectId}
+          journeyId={journeyId}
+          action={
+            ['REQUESTED', 'GRANTED'].includes(permission.status) && !permission.stale && !permission.expired ? (
+              <ChatRunApproval
+                conversationId={savedConversationId}
+                journeyId={journeyId}
+                executionConsentId={permission.id}
+                expectedScopeHash={permission.scopeHash}
+                resumeGrantedAttempt={permission.status === 'GRANTED'}
+              />
+            ) : null
+          }
+          replacement={
+            replacementEnvironments && (
+              <ChatRunRequestForm
+                conversationId={savedConversationId}
+                journeyId={journeyId}
+                expectedStateHash={journey.journey.stateHash}
+                environments={replacementEnvironments}
+              />
+            )
+          }
+        />
       ),
     }
   }
-  if (savedConversationId && latestCycle && journey.journey.stage === 'EXECUTION')
+  if (savedConversationId && latestCycle && journey.journey.stage === 'EXECUTION') {
+    const stopAvailable =
+      journey.journey.status === 'ACTIVE' &&
+      ['RESERVED', 'RUNNING'].includes(latestCycle.status) &&
+      latestCycle.testRuns.every(run => !run.diagnostic)
     return {
       observation,
+      ...(stopAvailable
+        ? {
+            runStopReview: { journeyId, executionCycleId: latestCycle.id, expectedStateHash: observation.stateHash },
+          }
+        : {}),
       card: (
         <>
           {activity}
+          {stopAvailable ? (
+            <p className="text-sm text-muted-foreground">
+              Type <strong>Stop this run</strong> to request a stop for all tests in this activity.
+            </p>
+          ) : null}
           {result}
         </>
       ),
     }
+  }
   if (savedConversationId && journey.journey.stage === 'AUTOMATION') {
     const portfolio = scenarios?.portfolio
     const [materializations, environments, remediation] = await Promise.all([

@@ -1,19 +1,38 @@
 import { randomBytes } from 'node:crypto'
 import { createServer } from 'node:http'
-import { connect } from 'node:net'
+import { connect, type Socket } from 'node:net'
 import type { Duplex } from 'node:stream'
 
 const host = '127.0.0.1'
 const destinations = new Set(['api.anthropic.com', 'platform.claude.com'])
+const lookupIdleTimeoutMs = 40_000
+export const claudeCodeJourneyDeadlineMs = 180_000
+export const claudeCodeJourneyIdleTimeoutMs = claudeCodeJourneyDeadlineMs + 15_000
 
 export function openClaudeCodeLookupEgress() {
   return openProviderLookupEgress(destinations)
 }
 
-export async function openProviderLookupEgress(destinations: ReadonlySet<string>, maxConnections = 8) {
+export function openClaudeCodeJourneyEgress() {
+  return openProviderLookupEgress(destinations, 8, claudeCodeJourneyIdleTimeoutMs)
+}
+
+export function armProviderUpstreamIdleTimeout(upstream: Socket, idleTimeoutMs: number, onIdle: () => void) {
+  upstream.setTimeout(idleTimeoutMs, () => {
+    onIdle()
+    upstream.destroy()
+  })
+}
+
+export async function openProviderLookupEgress(
+  destinations: ReadonlySet<string>,
+  maxConnections = 8,
+  idleTimeoutMs = lookupIdleTimeoutMs,
+) {
   const password = randomBytes(24).toString('hex')
   const authorization = `Basic ${Buffer.from(`appraise:${password}`).toString('base64')}`
   const connections = new Set<Duplex>()
+  let idleTimedOut = false
   const server = createServer({ maxHeaderSize: 8192, headersTimeout: 5000, requestTimeout: 5000 }, (_, response) => {
     response.writeHead(405, { Connection: 'close' }).end()
   })
@@ -38,7 +57,9 @@ export async function openProviderLookupEgress(destinations: ReadonlySet<string>
     connections.add(upstream)
     upstream.once('close', () => connections.delete(upstream))
     upstream.on('error', () => client.destroy())
-    upstream.setTimeout(40_000, () => upstream.destroy())
+    armProviderUpstreamIdleTimeout(upstream, idleTimeoutMs, () => {
+      idleTimedOut = true
+    })
     client.once('close', () => upstream.destroy())
     upstream.once('close', () => client.destroy())
     upstream.once('connect', () => {
@@ -59,6 +80,9 @@ export async function openProviderLookupEgress(destinations: ReadonlySet<string>
   return {
     port,
     proxy: `http://appraise:${password}@${host}:${port}`,
+    get idleTimedOut() {
+      return idleTimedOut
+    },
     close() {
       for (const connection of connections) connection.destroy()
       server.close()

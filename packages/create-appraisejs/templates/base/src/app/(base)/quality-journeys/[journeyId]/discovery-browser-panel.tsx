@@ -1,7 +1,9 @@
 'use client'
 
 import type { AnonymousDiscoveryCaptureStatus } from '@/services/coordinator/app-managed-discovery-capture'
+import type { ManagedScoutEvidenceReviewView } from '@/services/coordinator/app-managed-discovery-evidence'
 import { ExternalLink, LoaderCircle, ShieldCheck } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 
 import { StatusBadge } from '@/components/ui/status-badge'
@@ -13,12 +15,14 @@ import { toast } from '@/hooks/use-toast'
 import {
   authorizeQualityJourneyDiscoveryBrowserExactReturnAction,
   captureQualityJourneyDiscoveryBrowserReceiptAction,
+  closeQualityJourneyDiscoveryBrowserAction,
   confirmQualityJourneyDiscoveryBrowserAccessAction,
   logoutQualityJourneyDiscoveryBrowserAction,
   markQualityJourneyDiscoveryBrowserMissingAccessAction,
   replaceQualityJourneyDiscoveryBrowserContextAction,
   revokeQualityJourneyDiscoveryBrowserAction,
   reconnectQualityJourneyDiscoveryBrowserAction,
+  sealManagedScoutEvidenceReviewAction,
   startQualityJourneyDiscoveryBrowserAction,
 } from '../quality-journey-discovery-browser-actions'
 
@@ -51,9 +55,11 @@ export function DiscoveryBrowserPanel({
   journeyId,
   discovery,
   automaticStatus,
+  managedReview,
 }: {
   journeyId: string
   automaticStatus?: AnonymousDiscoveryCaptureStatus
+  managedReview?: ManagedScoutEvidenceReviewView | null
   discovery: {
     id: string
     workItemId: string
@@ -62,6 +68,7 @@ export function DiscoveryBrowserPanel({
     authFlows?: Array<{ environmentId: string; flowId: string }>
   } | null
 }) {
+  const router = useRouter()
   const [session, setSession] = useState<SessionView | null>(null)
   const [receipt, setReceipt] = useState<ReceiptView | null>(null)
   const [returnCommitted, setReturnCommitted] = useState(false)
@@ -83,6 +90,38 @@ export function DiscoveryBrowserPanel({
     )
   const binding = session ? { sessionId: session.id, journeyId, discoveryRevisionId: discovery.id } : null
   const terminal = session && ['MISSING_ACCESS', 'EXPIRED', 'LOGGED_OUT', 'REVOKED', 'CLOSED'].includes(session.state)
+
+  const closeInspectedBrowser = () =>
+    startTransition(async () => {
+      if (session && !terminal) {
+        const response = await closeQualityJourneyDiscoveryBrowserAction(binding!)
+        if (!response.success) {
+          toast({ title: 'Browser could not be closed', description: response.error, variant: 'destructive' })
+          return
+        }
+      }
+      setSession(null)
+      setReceipt(null)
+      setReturnCommitted(false)
+      router.refresh()
+    })
+
+  const continueWithInspectedPages = () =>
+    startTransition(async () => {
+      if (!managedReview?.reviewHash) return
+      const response = await sealManagedScoutEvidenceReviewAction({
+        journeyId,
+        discoveryRevisionId: managedReview.discoveryRevisionId,
+        reviewHash: managedReview.reviewHash,
+      })
+      if (response.success) router.refresh()
+      else
+        toast({
+          title: 'Inspected pages could not be continued',
+          description: response.error,
+          variant: 'destructive',
+        })
+    })
 
   const run = (effect: () => Promise<{ success?: boolean; error?: string; data?: unknown }>) =>
     startTransition(async () => {
@@ -125,8 +164,9 @@ export function DiscoveryBrowserPanel({
           Inspect the target app
         </CardTitle>
         <CardDescription>
-          Choose the page to inspect, or complete the authorized sign-in in the target browser. Appraise continues
-          automatically after the page is captured.
+          {managedReview
+            ? 'Inspect each page in the target browser, then review the saved pages before Appraise continues.'
+            : 'Choose the page to inspect, or complete the authorized sign-in in the target browser. Appraise continues automatically after the page is captured.'}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -309,13 +349,14 @@ export function DiscoveryBrowserPanel({
                         recorded &&
                         typeof recorded === 'object' &&
                         Array.isArray((recorded as Record<string, unknown>).observationFacts)
-                      )
+                      ) {
                         setReceipt({
                           artifactId: value.artifactId,
                           contentHash: value.contentHash,
                           observationFacts: (recorded as { observationFacts: string[] }).observationFacts,
                         })
-                      else
+                        if (managedReview) router.refresh()
+                      } else
                         toast({
                           title: 'Receipt was not recorded',
                           description: response.error,
@@ -375,6 +416,55 @@ export function DiscoveryBrowserPanel({
             ) : null}
           </section>
         )}
+        {managedReview ? (
+          <section className="space-y-3 rounded-lg border border-border p-4" aria-label="Inspected pages review">
+            <div className="space-y-1">
+              <h3 className="font-medium">Inspected pages</h3>
+              <p className="text-sm text-muted-foreground">
+                {managedReview.pages.length
+                  ? 'These saved page inspections are the exact evidence Appraise will use to continue Discovery.'
+                  : 'No page inspections have been saved for this Discovery revision.'}
+              </p>
+            </div>
+            {managedReview.pages.length ? (
+              <ol className="space-y-2">
+                {managedReview.pages.map(page => {
+                  const environment = discovery.environments.find(item => item.id === page.environmentId)
+                  return (
+                    <li key={page.artifactId} className="rounded-md bg-muted/40 px-3 py-2 text-sm">
+                      <span className="block break-all font-mono">{page.routeId}</span>
+                      <span className="text-muted-foreground">
+                        Environment: {environment ? `${environment.name} (${page.environmentId})` : page.environmentId}
+                      </span>
+                      <span className="block break-all text-xs text-muted-foreground">Receipt: {page.artifactId}</span>
+                    </li>
+                  )
+                })}
+              </ol>
+            ) : null}
+            <div className="flex flex-wrap gap-2">
+              {managedReview.reviewHash ? (
+                <Button disabled={pending || Boolean(session && !terminal)} onClick={continueWithInspectedPages}>
+                  Continue with inspected pages
+                </Button>
+              ) : null}
+              {session && (
+                <Button variant="outline" disabled={pending} onClick={closeInspectedBrowser}>
+                  {session && !terminal ? 'Close browser and inspect another page' : 'Inspect another page'}
+                </Button>
+              )}
+            </div>
+            {!session && managedReview.pages.length ? (
+              <p className="text-xs text-muted-foreground">
+                Choose another page above and open the target app. Reconnect to an open browser before starting a new
+                session.
+              </p>
+            ) : null}
+            {session && !terminal && managedReview.reviewHash ? (
+              <p className="text-xs text-muted-foreground">Close the inspected browser before continuing.</p>
+            ) : null}
+          </section>
+        ) : null}
         {receipt ? (
           <section className="rounded-lg border border-success-border bg-success-surface p-3 text-sm" role="status">
             <p className="font-medium text-success">Page inspection saved</p>

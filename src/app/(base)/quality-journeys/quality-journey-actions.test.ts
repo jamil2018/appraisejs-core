@@ -5,6 +5,8 @@ const mocks = vi.hoisted(() => ({
   revalidatePath: vi.fn(),
   scheduleContinuation: vi.fn(),
   confirmDraft: vi.fn(),
+  getDraft: vi.fn(),
+  providerReadiness: vi.fn(),
   requireActiveProjectForMutation: vi.fn(),
   createAppManagedJourney: vi.fn(),
   getQualityJourney: vi.fn(),
@@ -20,6 +22,10 @@ vi.mock('@/services/coordinator/app-managed-progression-service', () => ({
 }))
 vi.mock('@/services/coordinator/quality-journey-draft-service', () => ({
   confirmQualityJourneyDraft: mocks.confirmDraft,
+  getQualityJourneyDraft: mocks.getDraft,
+}))
+vi.mock('@/services/coordinator/app-managed-journey-readiness', () => ({
+  getManagedJourneyReadinessForProvider: mocks.providerReadiness,
 }))
 vi.mock('next/cache', () => ({ revalidatePath: mocks.revalidatePath }))
 vi.mock('@/lib/active-project', () => ({ requireActiveProjectForMutation: mocks.requireActiveProjectForMutation }))
@@ -65,6 +71,8 @@ beforeEach(() => {
   mocks.submitDurableQualityJourneyCommand.mockResolvedValue({ outcome: 'COMMITTED' })
   mocks.getQualityJourney.mockResolvedValue({ journey: { journeyId: 'journey-1', stateHash: digest('b') } })
   mocks.confirmDraft.mockResolvedValue({ replayed: false, journeyId: 'journey-1' })
+  mocks.getDraft.mockResolvedValue({ status: 'ACTIVE', managedWorkerProvider: 'CODEX' })
+  mocks.providerReadiness.mockResolvedValue({ ready: true })
   mocks.scheduleContinuation.mockReset()
   mocks.answerQualityJourneyAnalysisQuestion.mockResolvedValue({ replayed: false, answer: { answerId: 'answer-1' } })
   mocks.decideQualityJourneyAnalysis.mockResolvedValue({ outcome: 'COMMITTED' })
@@ -143,6 +151,7 @@ describe('Quality Journey route actions', () => {
   })
 
   it('returns a confirmed replay without creating another Journey', async () => {
+    mocks.getDraft.mockResolvedValue({ status: 'CONFIRMED', managedWorkerProvider: 'CODEX' })
     mocks.confirmDraft.mockResolvedValue({ replayed: true, journeyId: 'journey-1' })
     await expect(
       confirmQualityJourneyDraftAction({
@@ -153,6 +162,7 @@ describe('Quality Journey route actions', () => {
       }),
     ).resolves.toMatchObject({ success: true, status: 200, data: { journeyId: 'journey-1', replayed: true } })
     expect(mocks.createAppManagedJourney).not.toHaveBeenCalled()
+    expect(mocks.providerReadiness).not.toHaveBeenCalled()
   })
 
   it('answers an exact analysis question within the active project scope', async () => {

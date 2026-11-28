@@ -35,6 +35,7 @@ export function useLocatorWorkspace({
   displayMode = 'page',
   locatorId,
   projectId,
+  returnToChat,
   initialValues,
   onSaveSuccess,
   onClose,
@@ -48,6 +49,7 @@ export function useLocatorWorkspace({
   const [session, setSession] = useState<LocatorPickerSession | null>(null)
   const [isStarting, setIsStarting] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [isReturning, setIsReturning] = useState(false)
 
   const loadSession = async (sessionId: string, silent = false) => {
     const response = await getLocatorPickerSessionAction(sessionId)
@@ -130,18 +132,34 @@ export function useLocatorWorkspace({
     })
   }
 
-  const handleCancel = async () => {
-    if (!session) return
+  const closePicker = async () => {
+    if (!session || session.status === 'closed') return true
     const response = await closeLocatorPickerSessionAction(session.sessionId)
     const closed = getLocatorPickerSession(response.data)
     if (response.status === 200 && closed) {
       setSession(closed)
+      return true
+    }
+    toast({ title: 'Unable to close picker', description: response.error || 'Try again.', variant: 'destructive' })
+    return false
+  }
+
+  const handleCancel = async () => {
+    if (await closePicker()) {
       toast({
         title: 'Picker closed',
         description: 'No new selector was saved. You can continue manual entry or launch again.',
       })
-    } else {
-      toast({ title: 'Unable to close picker', description: response.error || 'Try again.', variant: 'destructive' })
+    }
+  }
+
+  const handleReturnToChat = async () => {
+    if (!returnToChat) return
+    setIsReturning(true)
+    try {
+      if (await closePicker()) router.push(returnToChat)
+    } finally {
+      setIsReturning(false)
     }
   }
 
@@ -172,6 +190,8 @@ export function useLocatorWorkspace({
       if (isInlineMode && saveResult) {
         await onSaveSuccess?.(saveResult)
         onClose?.()
+      } else if (returnToChat) {
+        await handleReturnToChat()
       } else {
         router.push(projectId ? withProjectScope('/locators', projectId) : '/locators')
         router.refresh()
@@ -201,6 +221,7 @@ export function useLocatorWorkspace({
     state,
     isStarting,
     isSaving,
+    isReturning,
     setSourceType: (sourceType: LocatorSourceType) => setState(current => ({ ...current, sourceType })),
     setEnvironmentId: (environmentId: string) => setState(current => ({ ...current, environmentId })),
     setUrl: (url: string) => setState(current => ({ ...current, url })),
@@ -215,6 +236,7 @@ export function useLocatorWorkspace({
     handleStart,
     handleCancel,
     handleSave,
+    handleReturnToChat,
     ...derivedState,
   }
 }

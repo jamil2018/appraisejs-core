@@ -30,6 +30,7 @@ export function JourneyExecutionStatus({
   stage,
   capsuleIds,
   environments,
+  scenarioTitles = {},
 }: {
   execution: Execution
   journeyId: string
@@ -38,11 +39,14 @@ export function JourneyExecutionStatus({
   stage: string
   capsuleIds: string[]
   environments: Array<{ id: string; name: string }>
+  scenarioTitles?: Record<string, string>
 }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Run tests</CardTitle>
+        <CardTitle className="text-base">
+          {stage === 'TRIAGE' || stage === 'REPORT_REVIEW' ? 'Test results' : 'Run tests'}
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
         {stage === 'AUTOMATION' ? (
@@ -86,6 +90,15 @@ export function JourneyExecutionStatus({
               {environments.find(environment => environment.id === cycle.environmentId)?.name ?? 'Selected environment'}{' '}
               · {cycle.browserEngine}
             </p>
+            {cycle.status === 'COMPLETED' && cycle.testRuns.length > 0 ? (
+              <p className="text-sm font-medium">
+                {cycle.testRuns.filter(run => run.result === 'PASSED').length} passed ·{' '}
+                {cycle.testRuns.filter(run => run.result === 'FAILED').length} failed
+                {cycle.testRuns.some(run => run.result !== 'PASSED' && run.result !== 'FAILED')
+                  ? ` · ${cycle.testRuns.filter(run => run.result !== 'PASSED' && run.result !== 'FAILED').length} other outcomes`
+                  : ''}
+              </p>
+            ) : null}
             <ul className="space-y-2">
               {cycle.testRuns.map((run, index) => (
                 <li key={run.testRunId} className="flex flex-wrap items-center justify-between gap-2 text-sm">
@@ -93,7 +106,7 @@ export function JourneyExecutionStatus({
                     className="app-focus break-all rounded-sm text-info underline underline-offset-4 hover:text-foreground"
                     href={`/test-runs/${encodeURIComponent(run.testRunId)}?project=${encodeURIComponent(targetProjectId)}`}
                   >
-                    View test run {cycle.testRuns.length > 1 ? index + 1 : ''} and evidence
+                    {scenarioTitles[run.scenarioRevisionId ?? ''] ?? `View test run ${index + 1} and evidence`}
                   </Link>
                   <span>{readable(run.result && run.result !== 'PENDING' ? run.result : run.status)}</span>
                   {run.diagnostic ? (
@@ -115,15 +128,26 @@ export function JourneyExecutionStatus({
                 ))}
               </details>
             ) : null}
-            <JourneyRunObservationControls journeyId={journeyId} cycle={cycle} stateHash={stateHash} />
-            <JourneyRerunProposalForm
-              journeyId={journeyId}
-              cycleId={cycle.id}
-              evidenceIds={cycle.evidence.map(receipt => receipt.id)}
-              scenarioRevisionIds={[
-                ...new Set(cycle.testRuns.flatMap(run => (run.scenarioRevisionId ? [run.scenarioRevisionId] : []))),
-              ].sort()}
-            />
+            {!(cycle.status === 'COMPLETED' && cycle.evidence.length === cycle.testRuns.length) ? (
+              <JourneyRunObservationControls journeyId={journeyId} cycle={cycle} stateHash={stateHash} />
+            ) : null}
+            {['COMPLETED', 'CANCELLED'].includes(cycle.status) &&
+              !cycle.testRuns.some(run => run.diagnostic?.duplicateLaunchPrevented) && (
+                <details className="border-t pt-3">
+                  <summary className="cursor-pointer text-sm font-medium">Propose a rerun</summary>
+                  <JourneyRerunProposalForm
+                    journeyId={journeyId}
+                    cycleId={cycle.id}
+                    evidenceIds={cycle.evidence.map(receipt => receipt.id)}
+                    scenarioRevisionIds={[
+                      ...new Set(
+                        cycle.testRuns.flatMap(run => (run.scenarioRevisionId ? [run.scenarioRevisionId] : [])),
+                      ),
+                    ].sort()}
+                    scenarioTitles={scenarioTitles}
+                  />
+                </details>
+              )}
           </section>
         ))}
         <JourneyRerunProgress

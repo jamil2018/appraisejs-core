@@ -2,12 +2,15 @@ import { createHash, randomUUID } from 'node:crypto'
 import type { Prisma, PrismaClient, ProjectConversation, ProjectConversationMessage } from '@prisma/client'
 
 import prisma from '@/config/db-config'
+import { ROOT_MODULE_UUID } from '@/constants/form-opts/module-form-opts'
 import {
   chatAnalysisQuestionSchema,
   chatAnalysisReviewSchema,
   type ChatAnalysisQuestion,
   type ChatAnalysisReview,
 } from '@/lib/conversation/analysis-review'
+import { parseCaseDeletionRequest, type CaseDeletionReview } from '@/lib/conversation/case-deletion-review'
+import { isRunStopRequest, runStopReviewSchema, type RunStopReview } from '@/lib/conversation/run-stop-review'
 import { chatContextKinds, type ChatContext } from '@/lib/conversation/chat-context'
 import {
   conversationCollaborationReviewSchema,
@@ -24,10 +27,50 @@ import {
   isCreatableRecordKind,
   type ConversationRecord,
 } from '@/lib/conversation/workspace-records'
-import { isAnalysisApprovalRequest, parseAnalysisAnswerReply } from '@/lib/conversation/workspace-request'
+import {
+  isAnalysisApprovalRequest,
+  isEnvironmentCreateRequest,
+  isEnvironmentRenameRequest,
+  isCaseFromTemplateRequest,
+  isNamedCasesSuiteAddRequest,
+  isSuiteCreateRequest,
+  isRunPermissionApprovalRequest,
+  parseAnalysisAnswerReply,
+  parseAttachedCaseSuiteAdd,
+  parseNamedCasesSuiteAdd,
+  parseExactEnvironmentCreate,
+  parseExactEnvironmentRename,
+  parseExactCaseFromTemplate,
+  parseExactLocatorGroupCreate,
+  parseExactLocatorGroupRename,
+  parseExactModuleRename,
+  parseExactSuiteCreate,
+  parseExactSuiteRename,
+  parseExactTagCreate,
+  parseExactTagRename,
+  parseRootModuleCreate,
+  type RunPermissionReview,
+} from '@/lib/conversation/workspace-request'
 import { isSharedResourceId } from '@/lib/quality-journey/shared-resource-contract'
+import { createModuleInTransaction, renameExactModuleInTransaction } from '@/services/module/module-service'
+import { createEnvironmentInTransaction, renameExactEnvironmentInTransaction } from '@/services/environment/environment-service'
+import {
+  createLocatorGroupInTransaction,
+  renameExactLocatorGroupInTransaction,
+} from '@/services/locator-group/locator-group-service'
+import { createTagInTransaction, renameExactFilterTagInTransaction } from '@/services/tag/tag-service'
+import {
+  addAttachedCaseToTestSuiteInTransaction,
+  addNamedCasesToTestSuiteInTransaction,
+  createTestSuiteInTransaction,
+  renameExactTestSuiteInTransaction,
+} from '@/services/test-suite/test-suite-service'
 import { ServiceError } from '@/services/shared/errors'
-import { renameTestCaseTitleInTransaction } from '@/services/test-case/test-case-service'
+import {
+  renameTestCaseTitleInTransaction,
+  resolveReviewedTestCaseDeletionInTransaction,
+  createTestCaseFromExactTemplateInTransaction,
+} from '@/services/test-case/test-case-service'
 
 import {
   answerConversationAnalysisQuestion,
@@ -36,6 +79,7 @@ import {
 } from './conversation-analysis-review'
 import { approveConversationScenarios } from './conversation-scenario-review'
 import { decideConversationCollaborationInTransaction } from './conversation-collaboration-review'
+import { buildCaseDeletionReview, readCaseDeletionReview } from './conversation-case-deletion-service'
 
 export type { ConversationRecord } from '@/lib/conversation/workspace-records'
 export type ConversationContext = ChatContext
@@ -47,8 +91,40 @@ export type AppendConversationTurnInput = {
   context?: ConversationContext
   /** Only a trusted app boundary may supply a locally verified, read-only reply. */
   reply?: { content: string; records?: readonly ConversationRecord[] }
+  previewCaseDeletion?: boolean
   /** Exact attached TEST_CASE rename; mutually exclusive with a precomputed reply. */
   renameAttachedCaseTo?: string
+  /** One attached case into one uniquely named active suite in one named module. */
+  addAttachedCaseToSuite?: { suiteName: string; moduleName: string }
+  /** Two to eight named live cases added to one exact suite without removal. */
+  addNamedCasesToSuite?: { caseTitles: string[]; suiteName: string; moduleName: string }
+  /** Exact old and new suite names inside one named module. */
+  renameExactSuite?: { currentName: string; moduleName: string; nextName: string }
+  /** Rename one active filter tag identified by current name and expression. */
+  renameExactTag?: { currentName: string; tagExpression: string; nextName: string }
+  /** Rename one active module from an exact displayed name and optional parent. */
+  renameExactModule?: {
+    currentName: string
+    nextName: string
+    scope: 'UNIQUE' | 'ROOT' | 'PARENT'
+    parentName?: string
+  }
+  /** One empty locator group in one uniquely named active module at a literal route. */
+  createExactLocatorGroup?: { name: string; moduleName: string; route: string }
+  /** Exact displayed group, module, and route; only the group name changes. */
+  renameExactLocatorGroup?: { currentName: string; moduleName: string; route: string; nextName: string }
+  /** Explicit root module creation recognized at the trusted app boundary. */
+  createRootModuleName?: string
+  /** Explicit name and expression for one project tag. */
+  createExactTag?: { name: string; tagExpression: string }
+  /** Explicit name and base URL for one project environment without credential fields. */
+  createExactEnvironment?: { name: string; baseUrl: string }
+  /** Rename only the name of the exact environment shown with its stored URL. */
+  renameExactEnvironment?: { currentName: string; baseUrl: string; nextName: string }
+  /** One suite in exactly one active module named in the current project. */
+  createExactSuite?: { name: string; moduleName: string }
+  /** One self-contained active template with exact title and name. */
+  createCaseFromTemplate?: { title: string; templateName: string }
   /** Exact published review shown in this saved conversation. */
   analysisReview?: ChatAnalysisReview
   analysisQuestion?: ChatAnalysisQuestion
@@ -70,6 +146,7 @@ export type ConversationMessage = {
   content: string
   context: ConversationContext | null
   records: ConversationRecord[]
+  caseDeletionReview?: CaseDeletionReview
   createdAt: number
 }
 export type ConversationTurn = {
@@ -122,6 +199,22 @@ const replyRecords = (
   return records.map(record => {
     if (!record || !conversationRecordKinds.includes(record.kind)) return bad('Reply record kind is invalid.')
     if (record.reportStepId !== undefined && record.kind !== 'REPORT') return bad('Step evidence needs a report.')
+    if (record.stepReference !== undefined) {
+      const reference = record.stepReference
+      if (
+        record.kind !== 'STEP_DEFINITION' ||
+        record.destination !== undefined ||
+        !reference ||
+        typeof reference !== 'object' ||
+        Array.isArray(reference) ||
+        Object.keys(reference).length !== 2 ||
+        typeof reference.version !== 'string' ||
+        !/^[\x21-\x7e]{1,40}$/.test(reference.version) ||
+        typeof reference.definitionHash !== 'string' ||
+        !/^sha256:[a-f0-9]{64}$/.test(reference.definitionHash)
+      )
+        return bad('Exact step reference is invalid.')
+    }
     if (
       record.destination !== undefined &&
       (record.destination !== 'create' || !isCreatableRecordKind(record.kind) || record.id !== targetProjectId)
@@ -132,9 +225,10 @@ const replyRecords = (
       id: sourceId(record.id, 'Reply record id'),
       title: sourceTitle(record.title, 'Reply record title'),
       ...(record.reportStepId === undefined ? {} : { reportStepId: sourceId(record.reportStepId, 'Report step id') }),
+      ...(record.stepReference === undefined ? {} : { stepReference: { ...record.stepReference } }),
       ...(record.destination === 'create' ? { destination: record.destination } : {}),
     }
-    const key = JSON.stringify([result.kind, result.id, result.reportStepId, result.destination])
+    const key = JSON.stringify([result.kind, result.id, result.reportStepId, result.destination, result.stepReference])
     if (seen.has(key)) return bad('Duplicate reply record.')
     seen.add(key)
     return result
@@ -147,16 +241,20 @@ const summary = (row: ProjectConversation): ConversationSummary => ({
   createdAt: row.createdAt.getTime(),
   updatedAt: row.updatedAt.getTime(),
 })
-const message = (row: ProjectConversationMessage): ConversationMessage => ({
-  id: row.id,
-  conversationId: row.conversationId,
-  ordinal: row.ordinal,
-  role: row.role,
-  content: row.content,
-  context: row.contextJson ? (JSON.parse(row.contextJson) as ConversationContext) : null,
-  records: row.recordsJson ? (JSON.parse(row.recordsJson) as ConversationRecord[]) : [],
-  createdAt: row.createdAt.getTime(),
-})
+const message = (row: ProjectConversationMessage): ConversationMessage => {
+  const caseDeletionReview = readCaseDeletionReview(row.caseDeletionReviewJson)
+  return {
+    id: row.id,
+    conversationId: row.conversationId,
+    ordinal: row.ordinal,
+    role: row.role,
+    content: row.content,
+    context: row.contextJson ? (JSON.parse(row.contextJson) as ConversationContext) : null,
+    records: row.recordsJson ? (JSON.parse(row.recordsJson) as ConversationRecord[]) : [],
+    ...(caseDeletionReview ? { caseDeletionReview } : {}),
+    createdAt: row.createdAt.getTime(),
+  }
+}
 const requestDigest = (
   content: string,
   context: { kind: ConversationContext['kind']; id: string } | undefined,
@@ -164,6 +262,8 @@ const requestDigest = (
   analysisQuestion?: ChatAnalysisQuestion,
   scenarioReview?: ChatScenarioReview,
   collaborationReview?: ConversationCollaborationReview,
+  runPermissionReview?: RunPermissionReview,
+  runStopReview?: RunStopReview,
 ) =>
   createHash('sha256')
     .update(
@@ -174,6 +274,8 @@ const requestDigest = (
         analysisQuestion,
         scenarioReview,
         collaborationReview,
+        runPermissionReview,
+        runStopReview,
       }),
     )
     .digest('hex')
@@ -181,7 +283,7 @@ const isUniqueConflict = (error: unknown) =>
   typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2002'
 
 async function lookupReplay(
-  client: PrismaClient,
+  client: PrismaClient | Prisma.TransactionClient,
   targetProjectId: string,
   conversationId: string | undefined,
   key: string,
@@ -220,6 +322,8 @@ export async function replayConversationTurn(
     analysisQuestion?: ChatAnalysisQuestion
     scenarioReview?: ChatScenarioReview
     collaborationReview?: ConversationCollaborationReview
+    runPermissionReview?: RunPermissionReview
+    runStopReview?: RunStopReview
   },
   client: PrismaClient = prisma,
 ): Promise<ConversationTurn | undefined> {
@@ -233,6 +337,7 @@ export async function replayConversationTurn(
   const scenarioReview = input.scenarioReview && chatScenarioReviewSchema.parse(input.scenarioReview)
   const collaborationReview =
     input.collaborationReview && conversationCollaborationReviewSchema.parse(input.collaborationReview)
+  const runStopReview = input.runStopReview && runStopReviewSchema.parse(input.runStopReview)
   if (context && (!chatContextKinds.includes(context.kind) || !/^[\x20-\x7e]{1,200}$/.test(context.id)))
     return bad('Context identity is invalid.')
   return (
@@ -241,9 +346,119 @@ export async function replayConversationTurn(
       targetProjectId,
       conversationId,
       key,
-      requestDigest(content, context, analysisReview, analysisQuestion, scenarioReview, collaborationReview),
+      requestDigest(
+        content,
+        context,
+        analysisReview,
+        analysisQuestion,
+        scenarioReview,
+        collaborationReview,
+        input.runPermissionReview,
+        runStopReview,
+      ),
     )) ?? undefined
   )
+}
+
+type RunControlTurn = {
+  targetProjectId: string
+  conversationId: string
+  idempotencyKey: string
+  content: string
+  context?: ConversationContext
+}
+
+/** Record the exact human reply inside the canonical Run permission reservation transaction. */
+export function recordRunPermissionTurnInTransaction(
+  tx: Prisma.TransactionClient,
+  input: RunControlTurn & { runPermissionReview: RunPermissionReview },
+) {
+  return recordRunControlInTransaction(tx, input, { kind: 'permission', review: input.runPermissionReview })
+}
+
+/** Record the exact human request inside the canonical cancellation transaction. */
+export function recordRunStopTurnInTransaction(
+  tx: Prisma.TransactionClient,
+  input: RunControlTurn & { runStopReview: RunStopReview },
+) {
+  return recordRunControlInTransaction(tx, input, {
+    kind: 'stop',
+    review: runStopReviewSchema.parse(input.runStopReview),
+  })
+}
+
+async function recordRunControlInTransaction(
+  tx: Prisma.TransactionClient,
+  input: RunControlTurn,
+  control: { kind: 'permission'; review: RunPermissionReview } | { kind: 'stop'; review: RunStopReview },
+): Promise<ConversationTurn> {
+  const targetProjectId = validateProject(input.targetProjectId)
+  const conversationId = validateUuid(input.conversationId)
+  const key = bounded(input.idempotencyKey, 'Idempotency key', 128)
+  const content = chatContent(input.content, 'Message')
+  const context = attachment(input.context)
+  const validCommand =
+    control.kind === 'permission' ? isRunPermissionApprovalRequest(content) : isRunStopRequest(content)
+  if (!validCommand || (context && (context.kind !== 'QUALITY_JOURNEY' || context.id !== control.review.journeyId)))
+    return bad(
+      control.kind === 'permission'
+        ? 'Review the exact Run permission in this saved Journey chat.'
+        : 'Open the current run activity in this saved Journey chat.',
+    )
+  const conversation = await tx.projectConversation.findFirst({ where: { id: conversationId, targetProjectId } })
+  if (!conversation) throw new ServiceError('Conversation not found.', 'NOT_FOUND', 404)
+  const digest = requestDigest(
+    content,
+    context,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    control.kind === 'permission' ? control.review : undefined,
+    control.kind === 'stop' ? control.review : undefined,
+  )
+  const existing = await tx.projectConversationMessage.findUnique({
+    where: { conversationId_idempotencyKey: { conversationId, idempotencyKey: key } },
+  })
+  if (existing)
+    return conflict(
+      control.kind === 'permission'
+        ? 'Run permission turn already exists. Recover it with the same request key.'
+        : 'The stop request turn already exists. Recover it with the same request key.',
+    )
+  const allocated = await tx.projectConversation.update({
+    where: { id: conversationId },
+    data: { nextOrdinal: { increment: 2 } },
+  })
+  const turnId = randomUUID()
+  const user = await tx.projectConversationMessage.create({
+    data: {
+      conversationId,
+      ordinal: allocated.nextOrdinal - 2,
+      role: 'USER',
+      content,
+      contextJson: context ? JSON.stringify(context) : null,
+      turnId,
+      idempotencyKey: key,
+      requestHash: digest,
+    },
+  })
+  const reply = await tx.projectConversationMessage.create({
+    data: {
+      conversationId,
+      ordinal: allocated.nextOrdinal - 1,
+      role: 'APPRAISE',
+      content:
+        control.kind === 'permission'
+          ? 'Run permission recorded. Check the saved Journey activity for the original attempt.'
+          : 'Stop requested. Check Activity for the recorded outcome.',
+      recordsJson: JSON.stringify([
+        { kind: 'QUALITY_JOURNEY', id: control.review.journeyId, title: 'View run activity' },
+      ]),
+      turnId,
+    },
+  })
+  return { conversation: summary(allocated), messages: [message(user), message(reply)], replayed: false }
 }
 
 async function applyAnalysisTurn(
@@ -283,8 +498,313 @@ export async function appendConversationTurn(
   const content = chatContent(input.content, 'Message')
   const context = attachment(input.context)
   const isRename = input.renameAttachedCaseTo !== undefined
+  const submittedMembership = input.addAttachedCaseToSuite
+  const exactMembership = submittedMembership ? parseAttachedCaseSuiteAdd(content) : undefined
+  const isMembership = submittedMembership !== undefined
+  const submittedNamedMembership = input.addNamedCasesToSuite
+  const exactNamedMembership = submittedNamedMembership ? parseNamedCasesSuiteAdd(content) : undefined
+  const isNamedMembership = submittedNamedMembership !== undefined
+  const submittedSuiteRename = input.renameExactSuite
+  const exactSuiteRename = submittedSuiteRename ? parseExactSuiteRename(content) : undefined
+  const isSuiteRename = submittedSuiteRename !== undefined
+  const submittedTagRename = input.renameExactTag
+  const exactTagRename = submittedTagRename ? parseExactTagRename(content) : undefined
+  const isTagRename = submittedTagRename !== undefined
+  const submittedModuleRename = input.renameExactModule
+  const exactModuleRename = submittedModuleRename ? parseExactModuleRename(content) : undefined
+  const isModuleRename = submittedModuleRename !== undefined
+  const submittedLocatorGroup = input.createExactLocatorGroup
+  const exactLocatorGroup = submittedLocatorGroup ? parseExactLocatorGroupCreate(content) : undefined
+  const isLocatorGroupCreate = submittedLocatorGroup !== undefined
+  const submittedLocatorGroupRename = input.renameExactLocatorGroup
+  const exactLocatorGroupRename = submittedLocatorGroupRename ? parseExactLocatorGroupRename(content) : undefined
+  const isLocatorGroupRename = submittedLocatorGroupRename !== undefined
+  const isModuleCreate = input.createRootModuleName !== undefined
+  const isTagCreate = input.createExactTag !== undefined
+  const isEnvironmentCreate = input.createExactEnvironment !== undefined
+  const submittedEnvironmentRename = input.renameExactEnvironment
+  const isEnvironmentRename = submittedEnvironmentRename !== undefined
+  const exactEnvironmentRename = isEnvironmentRename ? parseExactEnvironmentRename(content) : undefined
+  const submittedSuite = input.createExactSuite
+  const isSuiteCreate = submittedSuite !== undefined
+  const exactSuite = isSuiteCreate ? parseExactSuiteCreate(content) : undefined
+  const submittedCaseCreate = input.createCaseFromTemplate
+  const isCaseCreate = submittedCaseCreate !== undefined
+  const exactCaseCreate = isCaseCreate ? parseExactCaseFromTemplate(content) : undefined
+  const caseDeletionTitles = parseCaseDeletionRequest(content)
+  if (Boolean(caseDeletionTitles) !== Boolean(input.previewCaseDeletion))
+    return bad('Review case deletion through the exact saved chat request.')
+  if (isNamedCasesSuiteAddRequest(content) && !exactNamedMembership)
+    return bad('Name two to eight distinct cases and one exact suite and module.')
+  if (
+    caseDeletionTitles &&
+    (context ||
+      input.reply ||
+      isRename ||
+      isMembership ||
+      isNamedMembership ||
+      isSuiteRename ||
+      isTagRename ||
+      isModuleRename ||
+      isLocatorGroupCreate ||
+      isLocatorGroupRename ||
+      isModuleCreate ||
+      isTagCreate ||
+      isEnvironmentCreate ||
+      isEnvironmentRename ||
+      isSuiteCreate ||
+      isCaseCreate ||
+      input.analysisReview ||
+      input.analysisQuestion ||
+      input.scenarioReview ||
+      input.collaborationReview)
+  )
+    return bad('Review case deletion without an attachment or another action in the same message.')
+  if (parseExactModuleRename(content) && !isModuleRename)
+    return bad('Rename one exact module through the trusted conversation action.')
+  if (parseExactLocatorGroupCreate(content) && !isLocatorGroupCreate)
+    return bad('Create one exact locator group through the trusted conversation action.')
+  if (parseExactLocatorGroupRename(content) && !isLocatorGroupRename)
+    return bad('Rename one exact locator group through the trusted conversation action.')
+  if (isEnvironmentCreateRequest(content) && !isEnvironmentCreate)
+    return bad(
+      'Create one environment with an exact name and an HTTP(S) base URL without credentials, query, or fragment.',
+    )
+  if (isEnvironmentRenameRequest(content) && !isEnvironmentRename)
+    return bad('Quote the current environment name, its exact URL, and the new name.')
+  if (
+    isEnvironmentRename &&
+    (input.reply !== undefined || context !== undefined || isRename || isMembership || isNamedMembership ||
+      isSuiteRename || isTagRename || isModuleRename || isLocatorGroupCreate || isLocatorGroupRename ||
+      isModuleCreate || isTagCreate || isEnvironmentCreate || isSuiteCreate || isCaseCreate ||
+      input.analysisReview || input.analysisQuestion || input.scenarioReview || input.collaborationReview ||
+      !exactEnvironmentRename ||
+      exactEnvironmentRename.currentName !== submittedEnvironmentRename.currentName ||
+      exactEnvironmentRename.baseUrl !== submittedEnvironmentRename.baseUrl ||
+      exactEnvironmentRename.nextName !== submittedEnvironmentRename.nextName)
+  )
+    return bad('Rename one exact environment without another action or attachment.')
+  if (isSuiteCreateRequest(content) && !isSuiteCreate)
+    return bad('Name one test suite and one existing module in this project.')
+  if (isCaseFromTemplateRequest(content) && !isCaseCreate)
+    return bad('Quote one new test case title and one exact template name.')
+  if (
+    isCaseCreate &&
+    (input.reply !== undefined ||
+      context !== undefined ||
+      isRename ||
+      isMembership ||
+      isNamedMembership ||
+      isSuiteRename ||
+      isTagRename ||
+      isModuleRename ||
+      isLocatorGroupCreate ||
+      isModuleCreate ||
+      isTagCreate ||
+      isEnvironmentCreate ||
+      isSuiteCreate ||
+      input.analysisReview ||
+      input.analysisQuestion ||
+      input.scenarioReview ||
+      input.collaborationReview ||
+      !exactCaseCreate ||
+      exactCaseCreate.title !== submittedCaseCreate.title ||
+      exactCaseCreate.templateName !== submittedCaseCreate.templateName)
+  )
+    return bad('Create one test case from one exact self-contained template without another action or attachment.')
   if (isRename && (input.reply !== undefined || context?.kind !== 'TEST_CASE'))
     return bad('A case rename requires a test case attachment and no separate reply.')
+  if (
+    isNamedMembership &&
+    (input.reply !== undefined ||
+      context !== undefined ||
+      isRename ||
+      isMembership ||
+      isSuiteRename ||
+      isTagRename ||
+      isModuleRename ||
+      isLocatorGroupCreate ||
+      isModuleCreate ||
+      isTagCreate ||
+      isEnvironmentCreate ||
+      isSuiteCreate ||
+      input.analysisReview ||
+      input.analysisQuestion ||
+      input.scenarioReview ||
+      input.collaborationReview ||
+      !exactNamedMembership ||
+      !Array.isArray(submittedNamedMembership.caseTitles) ||
+      exactNamedMembership.caseTitles.length !== submittedNamedMembership.caseTitles.length ||
+      exactNamedMembership.caseTitles.some((title, index) => title !== submittedNamedMembership.caseTitles[index]) ||
+      exactNamedMembership.suiteName !== submittedNamedMembership.suiteName ||
+      exactNamedMembership.moduleName !== submittedNamedMembership.moduleName)
+  )
+    return bad('Add only the named cases to one exact active suite.')
+  if (
+    isModuleRename &&
+    (input.reply !== undefined ||
+      context !== undefined ||
+      isRename ||
+      isMembership ||
+      isSuiteRename ||
+      isTagRename ||
+      isModuleCreate ||
+      isTagCreate ||
+      isEnvironmentCreate ||
+      isSuiteCreate ||
+      isLocatorGroupCreate ||
+      input.analysisReview ||
+      input.analysisQuestion ||
+      input.scenarioReview ||
+      input.collaborationReview ||
+      !exactModuleRename ||
+      exactModuleRename.currentName !== submittedModuleRename.currentName ||
+      exactModuleRename.nextName !== submittedModuleRename.nextName ||
+      exactModuleRename.scope !== submittedModuleRename.scope ||
+      exactModuleRename.parentName !== submittedModuleRename.parentName)
+  )
+    return bad('Rename one exact active module without another action or attachment.')
+  if (
+    isLocatorGroupCreate &&
+    (input.reply !== undefined ||
+      context !== undefined ||
+      isRename ||
+      isMembership ||
+      isSuiteRename ||
+      isTagRename ||
+      isModuleRename ||
+      isModuleCreate ||
+      isTagCreate ||
+      isEnvironmentCreate ||
+      isSuiteCreate ||
+      input.analysisReview ||
+      input.analysisQuestion ||
+      input.scenarioReview ||
+      input.collaborationReview ||
+      !exactLocatorGroup ||
+      exactLocatorGroup.name !== submittedLocatorGroup.name ||
+      exactLocatorGroup.moduleName !== submittedLocatorGroup.moduleName ||
+      exactLocatorGroup.route !== submittedLocatorGroup.route)
+  )
+    return bad('Create one empty locator group in one exact module for one literal route.')
+  if (
+    isLocatorGroupRename &&
+    (input.reply !== undefined ||
+      context !== undefined ||
+      isRename ||
+      isMembership ||
+      isNamedMembership ||
+      isSuiteRename ||
+      isTagRename ||
+      isModuleRename ||
+      isLocatorGroupCreate ||
+      isModuleCreate ||
+      isTagCreate ||
+      isEnvironmentCreate ||
+      isSuiteCreate ||
+      isCaseCreate ||
+      input.previewCaseDeletion ||
+      input.analysisReview ||
+      input.analysisQuestion ||
+      input.scenarioReview ||
+      input.collaborationReview ||
+      !exactLocatorGroupRename ||
+      exactLocatorGroupRename.currentName !== submittedLocatorGroupRename.currentName ||
+      exactLocatorGroupRename.moduleName !== submittedLocatorGroupRename.moduleName ||
+      exactLocatorGroupRename.route !== submittedLocatorGroupRename.route ||
+      exactLocatorGroupRename.nextName !== submittedLocatorGroupRename.nextName)
+  )
+    return bad('Rename one exact locator group in one module at its current route.')
+  if (
+    isMembership &&
+    (input.reply !== undefined ||
+      context?.kind !== 'TEST_CASE' ||
+      isRename ||
+      isSuiteRename ||
+      !exactMembership ||
+      exactMembership.suiteName !== submittedMembership.suiteName ||
+      exactMembership.moduleName !== submittedMembership.moduleName)
+  )
+    return bad('Add the attached case to one exact suite in one named module.')
+  if (
+    isSuiteRename &&
+    (input.reply !== undefined ||
+      context !== undefined ||
+      isRename ||
+      isMembership ||
+      isTagRename ||
+      !exactSuiteRename ||
+      exactSuiteRename.currentName !== submittedSuiteRename.currentName ||
+      exactSuiteRename.moduleName !== submittedSuiteRename.moduleName ||
+      exactSuiteRename.nextName !== submittedSuiteRename.nextName)
+  )
+    return bad('Rename one uniquely named test suite in one named module.')
+  if (
+    isTagRename &&
+    (input.reply !== undefined ||
+      context !== undefined ||
+      isRename ||
+      isMembership ||
+      isSuiteRename ||
+      !exactTagRename ||
+      exactTagRename.currentName !== submittedTagRename.currentName ||
+      exactTagRename.tagExpression !== submittedTagRename.tagExpression ||
+      exactTagRename.nextName !== submittedTagRename.nextName)
+  )
+    return bad('Rename one exact filter tag with its current name and expression.')
+  if (
+    isModuleCreate &&
+    (input.reply !== undefined ||
+      context !== undefined ||
+      isRename ||
+      isMembership ||
+      isSuiteRename ||
+      isTagRename ||
+      isTagCreate ||
+      isEnvironmentCreate ||
+      isSuiteCreate ||
+      parseRootModuleCreate(content) !== input.createRootModuleName)
+  )
+    return bad('Create one named root module in a project chat without an attachment.')
+  if (
+    isTagCreate &&
+    (input.reply !== undefined ||
+      context !== undefined ||
+      isRename ||
+      isMembership ||
+      isSuiteRename ||
+      isTagRename ||
+      isEnvironmentCreate ||
+      isSuiteCreate ||
+      JSON.stringify(parseExactTagCreate(content)) !== JSON.stringify(input.createExactTag))
+  )
+    return bad('Create one tag with an exact name and expression in a project chat without an attachment.')
+  if (
+    isEnvironmentCreate &&
+    (input.reply !== undefined ||
+      context !== undefined ||
+      isRename ||
+      isMembership ||
+      isSuiteRename ||
+      isTagRename ||
+      isSuiteCreate ||
+      JSON.stringify(parseExactEnvironmentCreate(content)) !== JSON.stringify(input.createExactEnvironment))
+  )
+    return bad('Create one environment with an exact name and base URL in a project chat without an attachment.')
+  if (
+    isSuiteCreate &&
+    (input.reply !== undefined ||
+      context !== undefined ||
+      isRename ||
+      isMembership ||
+      isSuiteRename ||
+      isTagRename ||
+      !submittedSuite ||
+      !exactSuite ||
+      exactSuite.name !== submittedSuite.name ||
+      exactSuite.moduleName !== submittedSuite.moduleName)
+  )
+    return bad('Create one test suite in an unambiguous existing module in a project chat without an attachment.')
   const analysisReview = input.analysisReview && chatAnalysisReviewSchema.parse(input.analysisReview)
   const analysisQuestion = input.analysisQuestion && chatAnalysisQuestionSchema.parse(input.analysisQuestion)
   const scenarioReview = input.scenarioReview && chatScenarioReviewSchema.parse(input.scenarioReview)
@@ -298,6 +818,13 @@ export async function appendConversationTurn(
     (!conversationId ||
       input.reply ||
       isRename ||
+      isMembership ||
+      isSuiteRename ||
+      isTagRename ||
+      isModuleCreate ||
+      isTagCreate ||
+      isEnvironmentCreate ||
+      isSuiteCreate ||
       reviewCount > 1 ||
       (context && (context.kind !== 'QUALITY_JOURNEY' || context.id !== reviewTarget.journeyId)))
   )
@@ -310,6 +837,13 @@ export async function appendConversationTurn(
       reviewTarget ||
       input.reply ||
       isRename ||
+      isMembership ||
+      isSuiteRename ||
+      isTagRename ||
+      isModuleCreate ||
+      isTagCreate ||
+      isEnvironmentCreate ||
+      isSuiteCreate ||
       collaboration?.kind !== 'DECIDE' ||
       collaborationReview.targetProjectId !== targetProjectId)
   )
@@ -358,6 +892,9 @@ export async function appendConversationTurn(
         return { conversation: summary(conversation), messages: rows.map(message), replayed: true }
       }
       const scope = { targetProjectId, conversationId: conversation.id, key: idempotencyKey }
+      const casesToReview = caseDeletionTitles
+        ? await resolveReviewedTestCaseDeletionInTransaction(tx, { targetProjectId, exactTitles: caseDeletionTitles })
+        : undefined
       if (scenarioReview && (await getLatestConversationJourney(scope, tx)) !== scenarioReview.journeyId)
         return conflict('This Journey is no longer linked to the saved chat.')
       const effect = scenarioReview
@@ -376,13 +913,38 @@ export async function appendConversationTurn(
               decision: collaboration.decision,
             })
           : undefined
-      const count = response || isRename || effect || collaborationDecision ? 2 : 1
+      const count =
+        response ||
+        casesToReview ||
+        isRename ||
+        isMembership ||
+        isNamedMembership ||
+        isSuiteRename ||
+        isTagRename ||
+        isModuleRename ||
+        isLocatorGroupCreate ||
+        isLocatorGroupRename ||
+        isModuleCreate ||
+        isTagCreate ||
+        isEnvironmentCreate ||
+        isEnvironmentRename ||
+        isSuiteCreate ||
+        isCaseCreate ||
+        effect ||
+        collaborationDecision
+          ? 2
+          : 1
       const allocated = await tx.projectConversation.update({
         where: { id: conversation.id },
         data: { nextOrdinal: { increment: count } },
       })
       const first = allocated.nextOrdinal - count
       let finalResponse = effect ? { content: effect.message, records: [] } : response
+      if (casesToReview)
+        finalResponse = {
+          content: `Found ${casesToReview.length} matching ${casesToReview.length === 1 ? 'case' : 'cases'}.`,
+          records: [],
+        }
       if (collaborationDecision)
         finalResponse = {
           content: 'Collaboration decision recorded. Open the operation to see its latest status.',
@@ -400,6 +962,144 @@ export async function appendConversationTurn(
           records: [{ kind: 'TEST_CASE', id: renamed.id, title: renamed.title }],
         }
       }
+      if (exactMembership && context) {
+        const membership = await addAttachedCaseToTestSuiteInTransaction(tx, {
+          targetProjectId,
+          testCaseId: context.id,
+          expectedCaseTitle: context.title,
+          suiteName: exactMembership.suiteName,
+          moduleName: exactMembership.moduleName,
+        })
+        finalResponse = {
+          content: membership.added
+            ? `Added the attached case to the test suite “${membership.name}”.`
+            : `The attached case is already in the test suite “${membership.name}”.`,
+          records: [{ kind: 'TEST_SUITE', id: membership.id, title: membership.name }],
+        }
+      }
+      if (exactNamedMembership) {
+        const membership = await addNamedCasesToTestSuiteInTransaction(tx, {
+          targetProjectId,
+          caseTitles: exactNamedMembership.caseTitles,
+          suiteName: exactNamedMembership.suiteName,
+          moduleName: exactNamedMembership.moduleName,
+        })
+        finalResponse = {
+          content: membership.addedCount
+            ? `Added ${membership.addedCount} ${membership.addedCount === 1 ? 'case' : 'cases'} to the test suite “${membership.name}”.`
+            : `All named cases are already in the test suite “${membership.name}”.`,
+          records: [{ kind: 'TEST_SUITE', id: membership.id, title: membership.name }],
+        }
+      }
+      if (exactSuiteRename) {
+        const renamed = await renameExactTestSuiteInTransaction(tx, { targetProjectId, ...exactSuiteRename })
+        finalResponse = {
+          content: `Renamed the test suite to “${renamed.name}”.`,
+          records: [{ kind: 'TEST_SUITE', id: renamed.id, title: renamed.name }],
+        }
+      }
+      if (exactTagRename) {
+        const renamed = await renameExactFilterTagInTransaction(tx, { targetProjectId, ...exactTagRename })
+        finalResponse = {
+          content: `Renamed the tag to “${renamed.name}”.`,
+          records: [{ kind: 'TAG', id: renamed.id, title: renamed.name }],
+        }
+      }
+      if (exactModuleRename) {
+        const renamed = await renameExactModuleInTransaction(tx, { targetProjectId, ...exactModuleRename })
+        finalResponse = {
+          content: `Renamed the module to “${renamed.name}”.`,
+          records: [{ kind: 'MODULE', id: renamed.id, title: renamed.name }],
+        }
+      }
+      if (exactLocatorGroup) {
+        const modules = await tx.module.findMany({
+          where: { targetProjectId, name: exactLocatorGroup.moduleName, archivedAt: null },
+          select: { id: true },
+          take: 2,
+        })
+        if (modules.length !== 1) conflict('The named module must identify one active module in this project.')
+        const created = await createLocatorGroupInTransaction(
+          tx,
+          { name: exactLocatorGroup.name, moduleId: modules[0]!.id, route: exactLocatorGroup.route, locators: [] },
+          targetProjectId,
+        )
+        finalResponse = {
+          content: `Created the locator group “${created.name}” for route ${created.route}.`,
+          records: [{ kind: 'LOCATOR_GROUP', id: created.id, title: created.name }],
+        }
+      }
+      if (exactLocatorGroupRename) {
+        const renamed = await renameExactLocatorGroupInTransaction(tx, {
+          targetProjectId,
+          ...exactLocatorGroupRename,
+        })
+        finalResponse = {
+          content: `Renamed the locator group to “${renamed.name}”.`,
+          records: [{ kind: 'LOCATOR_GROUP', id: renamed.id, title: renamed.name }],
+        }
+      }
+      if (isModuleCreate) {
+        const created = await createModuleInTransaction(
+          tx,
+          { name: input.createRootModuleName!, parentId: ROOT_MODULE_UUID },
+          targetProjectId,
+        )
+        finalResponse = {
+          content: `Created the module “${created.name}”.`,
+          records: [{ kind: 'MODULE', id: created.id, title: created.name }],
+        }
+      }
+      if (isTagCreate) {
+        const created = await createTagInTransaction(tx, input.createExactTag!, targetProjectId)
+        finalResponse = {
+          content: `Created the tag “${created.name}” with expression ${created.tagExpression}.`,
+          records: [{ kind: 'TAG', id: created.id, title: created.name }],
+        }
+      }
+      if (isEnvironmentCreate) {
+        const created = await createEnvironmentInTransaction(tx, input.createExactEnvironment!, targetProjectId)
+        finalResponse = {
+          content: `Created the environment “${created.name}” with base URL ${created.baseUrl}.`,
+          records: [{ kind: 'ENVIRONMENT', id: created.id, title: created.name }],
+        }
+      }
+      if (exactEnvironmentRename) {
+        const renamed = await renameExactEnvironmentInTransaction(tx, {
+          targetProjectId, ...exactEnvironmentRename,
+        })
+        finalResponse = {
+          content: `Renamed the environment to “${renamed.name}”. Review Run permission again if it was already requested.`,
+          records: [{ kind: 'ENVIRONMENT', id: renamed.id, title: renamed.name }],
+        }
+      }
+      if (exactSuite) {
+        const moduleRows = await tx.module.findMany({
+          where: { targetProjectId, name: exactSuite.moduleName, archivedAt: null },
+          select: { id: true },
+          take: 2,
+        })
+        if (moduleRows.length !== 1) conflict('The named module must identify one active module in this project.')
+        const created = await createTestSuiteInTransaction(
+          tx,
+          { name: exactSuite.name, moduleId: moduleRows[0]!.id },
+          targetProjectId,
+        )
+        finalResponse = {
+          content: `Created the test suite “${created.name}”.`,
+          records: [{ kind: 'TEST_SUITE', id: created.id, title: created.name }],
+        }
+      }
+      if (exactCaseCreate) {
+        const created = await createTestCaseFromExactTemplateInTransaction(tx, {
+          targetProjectId,
+          ...exactCaseCreate,
+        })
+        finalResponse = {
+          content: `Created the test case “${created.title}” from template “${created.templateName}”.`,
+          records: [{ kind: 'TEST_CASE', id: created.id, title: created.title }],
+        }
+      }
       const turnId = randomUUID()
       const user = await tx.projectConversationMessage.create({
         data: {
@@ -414,19 +1114,31 @@ export async function appendConversationTurn(
         },
       })
       const rows = [user]
-      if (finalResponse)
+      if (finalResponse) {
+        const reviewMessageId = casesToReview ? randomUUID() : undefined
         rows.push(
           await tx.projectConversationMessage.create({
             data: {
+              id: reviewMessageId,
               conversationId: conversation.id,
               ordinal: first + 1,
               role: 'APPRAISE',
               content: finalResponse.content,
               recordsJson: finalResponse.records.length ? JSON.stringify(finalResponse.records) : null,
+              caseDeletionReviewJson:
+                casesToReview && reviewMessageId
+                  ? JSON.stringify(
+                      buildCaseDeletionReview(
+                        { targetProjectId, conversationId: conversation.id, messageId: reviewMessageId },
+                        casesToReview,
+                      ),
+                    )
+                  : undefined,
               turnId,
             },
           }),
         )
+      }
       return {
         conversation: summary(allocated),
         messages: rows.map(message),

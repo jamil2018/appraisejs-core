@@ -4,12 +4,12 @@
 - cluster-only mode — file stats not available
 
 ## Summary
-- 17482 nodes · 42931 edges · 677 communities (613 shown, 64 thin omitted)
+- 17482 nodes · 42931 edges · 683 communities (618 shown, 65 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 159 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `d0024552`
+- Built from commit: `7ded6652`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -80,7 +80,7 @@
 - [[_COMMUNITY_late-case-diagnostic.mjs  git-readiness.mjs|late-case-diagnostic.mjs / git-readiness.mjs]]
 - [[_COMMUNITY_entrypoint.mjs  r54-evidence.mjs|entrypoint.mjs / r54-evidence.mjs]]
 - [[_COMMUNITY_provider-failure.mjs  script-session.mjs|provider-failure.mjs / script-session.mjs]]
-- [[_COMMUNITY_provider-failure.mjs  script-session.mjs|provider-failure.mjs / script-session.mjs]]
+- [[_COMMUNITY_Community 66|Community 66]]
 - [[_COMMUNITY_provider-failure.mjs  script-session.mjs|provider-failure.mjs / script-session.mjs]]
 - [[_COMMUNITY_provider-failure.mjs  script-session.mjs|provider-failure.mjs / script-session.mjs]]
 - [[_COMMUNITY_provider-failure.mjs  script-session.mjs|provider-failure.mjs / script-session.mjs]]
@@ -358,13 +358,15 @@
 - [[_COMMUNITY_matrix-runner.mjs  runPreparedT2Matrix|matrix-runner.mjs / runPreparedT2Matrix]]
 - [[_COMMUNITY_git-readiness.mjs  host-file.mjs|git-readiness.mjs / host-file.mjs]]
 - [[_COMMUNITY_git-readiness.mjs  host-file.mjs|git-readiness.mjs / host-file.mjs]]
-- [[_COMMUNITY_git-readiness.mjs  host-file.mjs|git-readiness.mjs / host-file.mjs]]
+- [[_COMMUNITY_Community 344|Community 344]]
 - [[_COMMUNITY_r48-evidence.mjs  verifyR48Predecessor|r48-evidence.mjs / verifyR48Predecessor]]
 - [[_COMMUNITY_r48-evidence.mjs  verifyR48Predecessor|r48-evidence.mjs / verifyR48Predecessor]]
 - [[_COMMUNITY_manifest.mjs  prepareWorkspaceManifest|manifest.mjs / prepareWorkspaceManifest]]
 - [[_COMMUNITY_dev-with-mcp.mjs  handleProcessExit|dev-with-mcp.mjs / handleProcessExit]]
+- [[_COMMUNITY_manifest.mjs  filePin|manifest.mjs / filePin]]
 - [[_COMMUNITY_policy.mjs  manifest.mjs|policy.mjs / manifest.mjs]]
 - [[_COMMUNITY_provider-failure.mjs  launcher.mjs|provider-failure.mjs / launcher.mjs]]
+- [[_COMMUNITY_Community 352|Community 352]]
 - [[_COMMUNITY_git-readiness.mjs  host-file.mjs|git-readiness.mjs / host-file.mjs]]
 - [[_COMMUNITY_git-readiness.mjs  host-file.mjs|git-readiness.mjs / host-file.mjs]]
 - [[_COMMUNITY_policy.mjs  runtime-effects.mjs|policy.mjs / runtime-effects.mjs]]
@@ -473,7 +475,7 @@
 - [[_COMMUNITY_TrustedCaseCoordinator  .check|TrustedCaseCoordinator / .#check]]
 - [[_COMMUNITY_TrustedCaseCoordinator  .check|TrustedCaseCoordinator / .#check]]
 - [[_COMMUNITY_TrustedCaseCoordinator  .check|TrustedCaseCoordinator / .#check]]
-- [[_COMMUNITY_TrustedCaseCoordinator  .check|TrustedCaseCoordinator / .#check]]
+- [[_COMMUNITY_Community 461|Community 461]]
 - [[_COMMUNITY_TrustedCaseCoordinator  .check|TrustedCaseCoordinator / .#check]]
 - [[_COMMUNITY_codex-app-server-m02-ta-phase-r10.test.mjs  PHASE_OUTER_POLICY|codex-app-server-m02-ta-phase-r10.test.mjs / PHASE_OUTER_POLICY]]
 - [[_COMMUNITY_canonical-variant-build.mjs  buildT1CanonicalVariant|canonical-variant-build.mjs / buildT1CanonicalVariant]]
@@ -482,7 +484,7 @@
 - [[_COMMUNITY_TrustedCaseCoordinator  .check|TrustedCaseCoordinator / .#check]]
 - [[_COMMUNITY_firstOrNull  codexFailure|firstOrNull / codexFailure]]
 - [[_COMMUNITY_codex-app-server-m02-ta-matrix-entrypoint-r11.test.mjs  boundArtifacts|codex-app-server-m02-ta-matrix-entrypoint-r11.test.mjs / boundArtifacts]]
-- [[_COMMUNITY_stream-fixture-probe.py  Handler|stream-fixture-probe.py / Handler]]
+- [[_COMMUNITY_Community 470|Community 470]]
 - [[_COMMUNITY_check-generic-planning-boundary.mjs  collectEntry|check-generic-planning-boundary.mjs / collectEntry]]
 - [[_COMMUNITY_p6-history-cleanup.py  main|p6-history-cleanup.py / main]]
 - [[_COMMUNITY_scoped-entry.mjs  scoped-worker-entry.mjs|scoped-entry.mjs / scoped-worker-entry.mjs]]
@@ -496,6 +498,7 @@
 - [[_COMMUNITY_scoped-entry.mjs  scoped-worker-entry.mjs|scoped-entry.mjs / scoped-worker-entry.mjs]]
 - [[_COMMUNITY_preflight-evidence.mjs  exactFile|preflight-evidence.mjs / exactFile]]
 - [[_COMMUNITY_scoped-entry.mjs  scoped-worker-entry.mjs|scoped-entry.mjs / scoped-worker-entry.mjs]]
+- [[_COMMUNITY_Community 484|Community 484]]
 - [[_COMMUNITY_scoped-entry.mjs  scoped-worker-entry.mjs|scoped-entry.mjs / scoped-worker-entry.mjs]]
 - [[_COMMUNITY_scoped-entry.mjs  scoped-worker-entry.mjs|scoped-entry.mjs / scoped-worker-entry.mjs]]
 - [[_COMMUNITY_scoped-entry.mjs  scoped-worker-entry.mjs|scoped-entry.mjs / scoped-worker-entry.mjs]]
@@ -504,14 +507,12 @@
 - [[_COMMUNITY_scoped-entry.mjs  scoped-worker-entry.mjs|scoped-entry.mjs / scoped-worker-entry.mjs]]
 - [[_COMMUNITY_scoped-entry.mjs  scoped-worker-entry.mjs|scoped-entry.mjs / scoped-worker-entry.mjs]]
 - [[_COMMUNITY_scoped-entry.mjs  scoped-worker-entry.mjs|scoped-entry.mjs / scoped-worker-entry.mjs]]
-- [[_COMMUNITY_scoped-entry.mjs  scoped-worker-entry.mjs|scoped-entry.mjs / scoped-worker-entry.mjs]]
-- [[_COMMUNITY_scoped-entry.mjs  scoped-worker-entry.mjs|scoped-entry.mjs / scoped-worker-entry.mjs]]
+- [[_COMMUNITY_Community 493|Community 493]]
 - [[_COMMUNITY_TrustedCaseCoordinator  .check|TrustedCaseCoordinator / .#check]]
 - [[_COMMUNITY_scoped-entry.mjs  scoped-worker-entry.mjs|scoped-entry.mjs / scoped-worker-entry.mjs]]
-- [[_COMMUNITY_TrustedCaseCoordinator  .check|TrustedCaseCoordinator / .#check]]
+- [[_COMMUNITY_Community 496|Community 496]]
 - [[_COMMUNITY_scoped-entry.mjs  scoped-worker-entry.mjs|scoped-entry.mjs / scoped-worker-entry.mjs]]
 - [[_COMMUNITY_TrustedCaseCoordinator  .check|TrustedCaseCoordinator / .#check]]
-- [[_COMMUNITY_scoped-entry.mjs  scoped-worker-entry.mjs|scoped-entry.mjs / scoped-worker-entry.mjs]]
 - [[_COMMUNITY_scoped-entry.mjs  scoped-worker-entry.mjs|scoped-entry.mjs / scoped-worker-entry.mjs]]
 - [[_COMMUNITY_scoped-entry.mjs  scoped-worker-entry.mjs|scoped-entry.mjs / scoped-worker-entry.mjs]]
 - [[_COMMUNITY_scoped-entry.mjs  scoped-worker-entry.mjs|scoped-entry.mjs / scoped-worker-entry.mjs]]
@@ -532,10 +533,11 @@
 - [[_COMMUNITY_preparation.mjs  writeMatrixPreparation|preparation.mjs / writeMatrixPreparation]]
 - [[_COMMUNITY_codex-app-server-m02-ta-matrix-entrypoint-r10.test.mjs  MATRIX_MANIFEST|codex-app-server-m02-ta-matrix-entrypoint-r10.test.mjs / MATRIX_MANIFEST]]
 - [[_COMMUNITY_child-path-diagnostic.mjs  validateChildPathDiagnostics|child-path-diagnostic.mjs / validateChildPathDiagnostics]]
-- [[_COMMUNITY_TrustedCaseCoordinator  .check|TrustedCaseCoordinator / .#check]]
+- [[_COMMUNITY_Community 520|Community 520]]
 - [[_COMMUNITY_TrustedCaseCoordinator  .check|TrustedCaseCoordinator / .#check]]
 - [[_COMMUNITY_TrustedCaseCoordinator  .check|TrustedCaseCoordinator / .#check]]
 - [[_COMMUNITY_notification-envelope.mjs  inspectNotificationEnvelope|notification-envelope.mjs / inspectNotificationEnvelope]]
+- [[_COMMUNITY_Community 524|Community 524]]
 - [[_COMMUNITY_native-contracts.mjs  applyNativeContractConfiguration|native-contracts.mjs / applyNativeContractConfiguration]]
 - [[_COMMUNITY_generate-operation-handler-source-hash.mjs  digest|generate-operation-handler-source-hash.mjs / digest]]
 - [[_COMMUNITY_EmptyGrant  .frame|EmptyGrant / .frame]]
@@ -564,6 +566,8 @@
 - [[_COMMUNITY_M02 owned Code Mode host observer  assertLiveHostBeforeCaseComplete|M02 owned Code Mode host observer / assertLiveHostBeforeCaseComplete]]
 - [[_COMMUNITY_environment-secret-policy.ts  environment-secret-policy.test.ts|environment-secret-policy.ts / environment-secret-policy.test.ts]]
 - [[_COMMUNITY_protect-seeded-files.ts  setSeededTemplateFilesTracked|protect-seeded-files.ts / setSeededTemplateFilesTracked]]
+- [[_COMMUNITY_Community 553|Community 553]]
+- [[_COMMUNITY_Community 554|Community 554]]
 - [[_COMMUNITY_mcp-manifest-diagnostic.py  extract_model|mcp-manifest-diagnostic.py / extract_model]]
 - [[_COMMUNITY_permission-denial-probe.py  empty_grant|permission-denial-probe.py / empty_grant]]
 - [[_COMMUNITY_evidence.mjs  evidence|evidence.mjs / evidence]]
@@ -657,11 +661,13 @@
 - [[_COMMUNITY_Community 656|Community 656]]
 - [[_COMMUNITY_Community 657|Community 657]]
 - [[_COMMUNITY_Community 658|Community 658]]
+- [[_COMMUNITY_Community 659|Community 659]]
 - [[_COMMUNITY_Community 660|Community 660]]
 - [[_COMMUNITY_Community 661|Community 661]]
 - [[_COMMUNITY_Community 662|Community 662]]
 - [[_COMMUNITY_Community 663|Community 663]]
 - [[_COMMUNITY_Community 664|Community 664]]
+- [[_COMMUNITY_Community 665|Community 665]]
 - [[_COMMUNITY_Community 666|Community 666]]
 - [[_COMMUNITY_Community 667|Community 667]]
 - [[_COMMUNITY_Community 668|Community 668]]
@@ -708,23 +714,23 @@
 ## Import Cycles
 - None detected.
 
-## Communities (677 total, 64 thin omitted)
+## Communities (683 total, 65 thin omitted)
 
 ### Community 0 - "readClaimBytes / r44-evidence.mjs"
-Cohesion: 0.01
-Nodes (256): createNativePorts(), realIo, verifyR27HistoricalClosure(), buildR28PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, ownedWrite() (+248 more)
+Cohesion: 0.02
+Nodes (253): buildR28PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, ownedWrite(), readExactOutput(), REPO, serializeR28Preparation() (+245 more)
 
 ### Community 1 - "r27-evidence.mjs / verifyR27Predecessor"
-Cohesion: 0.01
-Nodes (252): buildR29PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, ownedWrite(), readExactOutput(), REPO, serializeR29Preparation() (+244 more)
+Cohesion: 0.02
+Nodes (236): buildR29PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, ownedWrite(), readExactOutput(), REPO, serializeR29Preparation() (+228 more)
 
 ### Community 2 - "r28-success-evidence.mjs / verifyR28Predecessor"
 Cohesion: 0.02
-Nodes (197): buildR30PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite(), readExactOutput(), REPO (+189 more)
+Nodes (184): buildR30PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST, ownedWrite(), readExactOutput(), REPO (+176 more)
 
 ### Community 3 - "r30-evidence.mjs / verifyR30Predecessor"
 Cohesion: 0.02
-Nodes (237): buildR32PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, ownedWrite(), readExactOutput(), REPO, serializeR32Preparation() (+229 more)
+Nodes (220): buildR32PreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, ownedWrite(), readExactOutput(), REPO, serializeR32Preparation() (+212 more)
 
 ### Community 4 - "r29-evidence.mjs / verifyR29Predecessor"
 Cohesion: 0.12
@@ -735,8 +741,8 @@ Cohesion: 0.03
 Nodes (118): categories, classifyOutputObservation(), controlledMarkers, decodeWithDiagnostic(), DIAGNOSTIC_CATEGORIES, emitDiagnostic(), exactText(), groups (+110 more)
 
 ### Community 6 - "verifyMcpChildReceipt / mcp-readiness.mjs"
-Cohesion: 0.03
-Nodes (33): verifyRetainedP7(), realIo, createNativePorts(), realIo, realIo, bad(), classifyProviderHeaders(), COLLECTOR_REASONS (+25 more)
+Cohesion: 0.02
+Nodes (63): qualifyRootPackage(), sha(), classifyTA04ArchiveMapping(), exactFile(), FIXED, R19_MANIFEST, R20, REPO (+55 more)
 
 ### Community 7 - "policy.mjs / digest"
 Cohesion: 0.08
@@ -752,7 +758,7 @@ Nodes (121): ownDirectory(), writeMatrixCaseReceipt(), POLICY, fullT2Maximum(), 
 
 ### Community 10 - "manifest.mjs / entrypoint.mjs"
 Cohesion: 0.03
-Nodes (110): createMatrixAuditSession(), createB14PermissionEvidence(), createMatrixJournalAdapter(), canonicalOutcome(), consistentOwnedExit(), initialize(), runPreparedT2Matrix(), sha() (+102 more)
+Nodes (101): createMatrixAuditSession(), createB14PermissionEvidence(), createMatrixJournalAdapter(), canonicalOutcome(), consistentOwnedExit(), initialize(), runPreparedT2Matrix(), sha() (+93 more)
 
 ### Community 11 - "POLICY_DIGEST / entrypoint.mjs"
 Cohesion: 0.07
@@ -776,7 +782,7 @@ Nodes (21): buildR26CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), ow
 
 ### Community 16 - "entrypoint.mjs / manifest.mjs"
 Cohesion: 0.02
-Nodes (227): buildR35CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), prepareTrustedCase(), assertMinimalEnvironmentProfile(), cases (+219 more)
+Nodes (228): buildR35CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), prepareTrustedCase(), assertMinimalEnvironmentProfile(), cases (+220 more)
 
 ### Community 17 - "t1-runner.mjs / codex-app-server-m02-ta-runtime-r9.test.mjs"
 Cohesion: 0.11
@@ -784,7 +790,7 @@ Nodes (15): TrustedCaseCoordinator, ownDirectory(), writeMatrixCaseReceipt(), pr
 
 ### Community 18 - "workspace-runner.mjs / manifest.mjs"
 Cohesion: 0.02
-Nodes (228): serializeR24Preparation(), buildR27PreparationEnvelope(), serializeR27Preparation(), buildR33PreparationEnvelope(), serializeR33Preparation(), verifyR21Predecessor(), verifyRetainedP7(), verifyR22Predecessor() (+220 more)
+Nodes (238): ROOT_PACKAGE, serializeR24Preparation(), buildR27PreparationEnvelope(), serializeR27Preparation(), buildR33PreparationEnvelope(), serializeR33Preparation(), PINS, R21_ACTUAL_REVIEW (+230 more)
 
 ### Community 19 - "framing.mjs / line"
 Cohesion: 0.07
@@ -811,8 +817,8 @@ Cohesion: 0.06
 Nodes (39): createProcessStateDiagnostics(), TrustedCaseCoordinator, ownDirectory(), writeWorkspaceCaseReceipt(), prepareTrustedCase(), BUILD_BUNDLE, GENERATED_PRISMA, HERE (+31 more)
 
 ### Community 25 - "policy.mjs / entrypoint.mjs"
-Cohesion: 0.16
-Nodes (21): exact(), verifyWorkspaceMcpReceipt(), cases, closeAnchors(), createOwnedScratchProofIssuer(), exactInteger(), fail(), metadata() (+13 more)
+Cohesion: 0.07
+Nodes (43): AUTHORITY_PINS, CASES, fail(), INDEX, MANIFEST, privateDirectory(), R29_COUNTS, readPrepared() (+35 more)
 
 ### Community 26 - "harness-learning.mjs / harness-learning.test.mjs"
 Cohesion: 0.20
@@ -887,12 +893,12 @@ Cohesion: 0.14
 Nodes (19): buildR33CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), AUTHORITY, BUILD, GIT_SOURCE (+11 more)
 
 ### Community 44 - "ProtocolFixture / no-model-probe.mjs"
-Cohesion: 0.16
-Nodes (20): AUTHORITY_PINS, CASES, countsValid(), expectedNames(), fail(), INDEX, KINDS, MANIFEST (+12 more)
+Cohesion: 0.08
+Nodes (34): absent, boundedJson(), canonical(), CODEC_SOURCE, decodeCodeModeContinuation(), exact(), fail(), issuedPlans (+26 more)
 
 ### Community 45 - "package-qualification.mjs / codex-app-server-m02-ta-matrix-r23-prior.test.mjs"
 Cohesion: 0.10
-Nodes (57): absent(), assemblyResult(), captureAdditions(), captureFinalEntry(), createAncestor(), digest(), exactUtf8Text(), exclusiveFile() (+49 more)
+Nodes (52): absent(), captureAdditions(), captureFinalEntry(), createAncestor(), digest(), exactUtf8Text(), exclusiveFile(), expectedRegularHash() (+44 more)
 
 ### Community 46 - "protocol-p00.mjs / protocol.mjs"
 Cohesion: 0.07
@@ -935,8 +941,8 @@ Cohesion: 0.07
 Nodes (23): arch, area(), binary, build, children, configurationRecord(), emptySystemLayer(), here (+15 more)
 
 ### Community 56 - "record-swarm-run.mjs / harness-telemetry.mjs"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
+Cohesion: 0.06
+Nodes (58): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+50 more)
 
 ### Community 57 - "r32-evidence.mjs / r29-evidence.mjs"
 Cohesion: 0.08
@@ -974,9 +980,9 @@ Nodes (20): categories, classifyOutputObservation(), controlledMarkers, decodeWi
 Cohesion: 0.10
 Nodes (25): buildR29CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), ownDirectory(), writeMatrixCaseReceipt(), prepareTrustedCase() (+17 more)
 
-### Community 66 - "provider-failure.mjs / script-session.mjs"
-Cohesion: 0.08
-Nodes (34): absent, boundedJson(), canonical(), CODEC_SOURCE, decodeCodeModeContinuation(), exact(), fail(), issuedPlans (+26 more)
+### Community 66 - "Community 66"
+Cohesion: 0.16
+Nodes (21): exact(), verifyWorkspaceMcpReceipt(), cases, closeAnchors(), createOwnedScratchProofIssuer(), exactInteger(), fail(), metadata() (+13 more)
 
 ### Community 67 - "provider-failure.mjs / script-session.mjs"
 Cohesion: 0.07
@@ -1075,15 +1081,15 @@ Cohesion: 0.12
 Nodes (6): Fixture, owned_file(), PhaseHistoryCleanupTest, private(), Disposable, offline tests for the fixed T2/T3 retention cleanup boundary., sha()
 
 ### Community 91 - "PhaseHistoryCleanupTest / .run"
-Cohesion: 0.02
-Nodes (105): POLICY_DIGEST, buildR23CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), BUILD, HERE (+97 more)
+Cohesion: 0.03
+Nodes (71): POLICY_DIGEST, buildR23CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), BUILD, HERE (+63 more)
 
 ### Community 92 - "step-file-parser.ts / check-operation-projection-drift.ts"
 Cohesion: 0.07
 Nodes (36): CHILD_PATH_CLASSES, entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), createGitReadinessGate(), fail() (+28 more)
 
 ### Community 93 - "manifest.mjs / r21-evidence.mjs"
-Cohesion: 0.13
+Cohesion: 0.14
 Nodes (24): AUTHORITY_PINS, CASES, CHILD_PATH_OBSERVATIONS, ENVIRONMENT_PROFILE, expectedNames(), fail(), GIT_READINESS, INDEX (+16 more)
 
 ### Community 94 - "entrypoint.mjs / preparation.mjs"
@@ -1099,8 +1105,8 @@ Cohesion: 0.14
 Nodes (24): ADDON, assertCommonBindings(), assertDecision(), assertPredecessor(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, COMMON_FIELDS (+16 more)
 
 ### Community 97 - "manifest.mjs / preparation.mjs"
-Cohesion: 0.14
-Nodes (23): ownDirectory(), writeWorkspaceCaseReceipt(), exact(), verifyWorkspaceMcpReceipt(), cases, closeAnchors(), createOwnedScratchProofIssuer(), exactInteger() (+15 more)
+Cohesion: 0.33
+Nodes (10): cases, closeAnchors(), createOwnedScratchProofIssuer(), exactInteger(), fail(), metadata(), ownedDirectory(), ownedFile() (+2 more)
 
 ### Community 98 - "manifest.mjs / preparation.mjs"
 Cohesion: 0.36
@@ -1131,8 +1137,8 @@ Cohesion: 0.14
 Nodes (24): ADDON, assertCommonBindings(), assertDecision(), assertPredecessor(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, COMMON_FIELDS (+16 more)
 
 ### Community 105 - "entrypoint.mjs / preparation.mjs"
-Cohesion: 0.09
-Nodes (36): ADDON, assertCommonBindings(), assertDecision(), assertPredecessor(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, COMMON_FIELDS (+28 more)
+Cohesion: 0.14
+Nodes (24): ADDON, assertCommonBindings(), assertDecision(), assertPredecessor(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, COMMON_FIELDS (+16 more)
 
 ### Community 106 - "entrypoint.mjs / preparation.mjs"
 Cohesion: 0.13
@@ -1168,7 +1174,7 @@ Nodes (21): ADDON, assertDecision(), assertReview(), assertStandingAuthorization
 
 ### Community 114 - "protocol-p00.mjs / permission-request-diagnostic.mjs"
 Cohesion: 0.07
-Nodes (33): buildWorkspaceCanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), TrustedCaseCoordinator, prepareTrustedCase(), DEDICATED_TOOL_HELPER_SOURCE_EXPECTATIONS (+25 more)
+Nodes (44): createChildPathDiagnostics(), createR51OwnedHostObserver(), R51_INSTALLED_HOST_FILE, same(), verifyR51HostFile(), buildWorkspaceCanonicalBytes(), HISTORICAL_BUNDLE, REPO (+36 more)
 
 ### Community 115 - "protocol-p00.mjs / permission-request-diagnostic.mjs"
 Cohesion: 0.20
@@ -1199,8 +1205,8 @@ Cohesion: 0.11
 Nodes (22): CountedJsonLines, approvalFields, b14Workspace, createPermissionDiagnostic(), nullableFieldShape(), only(), PERMISSION_DIAGNOSTIC_REASONS, permissionRequestFailure() (+14 more)
 
 ### Community 122 - "policy.mjs / digest"
-Cohesion: 0.06
-Nodes (58): ADDON, assertDecision(), assertReview(), assertStandingAuthorization(), AUTHORIZATION_CONTEXT, DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT (+50 more)
+Cohesion: 0.18
+Nodes (14): assemblyResult(), expectedInventory(), intermediateScopeBytes(), prepareExactNativeBundle12(), prepareNativePatch12(), capturePhysicalPath(), expectedFixed12Identities(), fixture() (+6 more)
 
 ### Community 123 - "policy.mjs / manifest.mjs"
 Cohesion: 0.11
@@ -1323,8 +1329,8 @@ Cohesion: 0.12
 Nodes (30): absolute(), ancestors(), assertHash(), assertLauncher(), base, caseBase, copyNew(), dependencyRoot (+22 more)
 
 ### Community 153 - "protocol.mjs / TrustedMatrixAppServerPeer"
-Cohesion: 0.06
-Nodes (47): buildMatrixCanonicalBytes(), HISTORICAL_BUNDLE, REPO, sha(), ownDirectory(), writeMatrixCaseReceipt(), prepareTrustedCase(), createTrustedLauncher() (+39 more)
+Cohesion: 0.09
+Nodes (35): buildWorkspaceCanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), DEDICATED_TOOL_HELPER_SOURCE_EXPECTATIONS, BUILD, HERE (+27 more)
 
 ### Community 154 - "protocol.mjs / TrustedMatrixAppServerPeer"
 Cohesion: 0.07
@@ -1500,7 +1506,7 @@ Nodes (14): apply(), assertRoot(), blank(), copy(), DurableT1Journal, JOURNAL_RO
 
 ### Community 197 - "native-session.mjs / native-plans.mjs"
 Cohesion: 0.11
-Nodes (14): bundle13, prepareNativePatch13(), bundle15, prepareNativePatch15(), bundle21, prepareNativePatch21(), flags, formatNativePatchSummary() (+6 more)
+Nodes (15): bundle12, bundle13, prepareNativePatch13(), bundle15, prepareNativePatch15(), bundle21, prepareNativePatch21(), flags (+7 more)
 
 ### Community 198 - "entrypoint.mjs / dispatchWorkspaceEntrypoint"
 Cohesion: 0.15
@@ -1623,8 +1629,8 @@ Cohesion: 0.09
 Nodes (30): buildR43CanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), createGitReadinessGate(), fail(), failureNames (+22 more)
 
 ### Community 228 - "policy.mjs / manifest.mjs"
-Cohesion: 0.36
-Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+Cohesion: 0.17
+Nodes (19): AUTHORITY_PINS, CASES, expectedNames(), fail(), INDEX, KINDS, MANIFEST, nonnegative() (+11 more)
 
 ### Community 229 - "provider-failure.mjs / continuation-diagnostic.mjs"
 Cohesion: 0.12
@@ -1723,7 +1729,7 @@ Cohesion: 0.15
 Nodes (23): AUTHORITY_PINS, CASES, consistentOwnedExit(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX, KINDS (+15 more)
 
 ### Community 253 - "r37-evidence.mjs / verifyR37Predecessor"
-Cohesion: 0.14
+Cohesion: 0.13
 Nodes (24): AUTHORITY_PINS, CASES, CHILD_PATH_OBSERVATIONS, ENVIRONMENT_PROFILE, expectedNames(), fail(), GIT_READINESS, INDEX (+16 more)
 
 ### Community 254 - "r43-evidence.mjs / verifyR43Predecessor"
@@ -1939,8 +1945,8 @@ Cohesion: 0.15
 Nodes (23): AUTHORITY_PINS, CASES, consistentOwnedExit(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX, KINDS (+15 more)
 
 ### Community 307 - "r37-evidence.mjs / verifyFullT2Predecessor"
-Cohesion: 0.70
-Nodes (4): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt()
+Cohesion: 0.06
+Nodes (47): buildMatrixCanonicalBytes(), HISTORICAL_BUNDLE, REPO, sha(), ownDirectory(), writeMatrixCaseReceipt(), prepareTrustedCase(), createTrustedLauncher() (+39 more)
 
 ### Community 308 - "r41-evidence.mjs / verifyFullT2Predecessor"
 Cohesion: 0.12
@@ -2083,12 +2089,12 @@ Cohesion: 0.17
 Nodes (18): AUTHORITY_PINS, CONSUMED, fail(), INDEX, KINDS, MANIFEST, ownedFile(), PENDING (+10 more)
 
 ### Community 343 - "git-readiness.mjs / host-file.mjs"
-Cohesion: 0.15
-Nodes (23): AUTHORITY_PINS, CASES, consistentOwnedExit(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX, KINDS (+15 more)
+Cohesion: 0.24
+Nodes (12): createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize(), runPreparedT2Matrix(), sha(), T2, turn() (+4 more)
 
-### Community 344 - "git-readiness.mjs / host-file.mjs"
-Cohesion: 0.13
-Nodes (16): defaultBundle, bundle11, prepareNativePatch11(), bundle12, expected, root, upstreamSource, capturePhysicalPath() (+8 more)
+### Community 344 - "Community 344"
+Cohesion: 0.07
+Nodes (41): CHILD_PATH_CLASSES, createChildPathDiagnostics(), entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), R30_INSTALLED_HOST_FILE (+33 more)
 
 ### Community 345 - "r48-evidence.mjs / verifyR48Predecessor"
 Cohesion: 0.14
@@ -2106,6 +2112,10 @@ Nodes (18): ADDON, assertDecision(), assertReview(), DECISION, dispatchMatrixEnt
 Cohesion: 0.20
 Nodes (17): classifyTA04ArchiveMapping(), exactFile(), FIXED, R19_MANIFEST, R20, REPO, requireTA04Absent(), reviewedR20Tree() (+9 more)
 
+### Community 349 - "manifest.mjs / filePin"
+Cohesion: 0.15
+Nodes (23): AUTHORITY_PINS, CASES, consistentOwnedExit(), expectedNames(), fail(), FAILED_DIAGNOSTIC, INDEX, KINDS (+15 more)
+
 ### Community 350 - "policy.mjs / manifest.mjs"
 Cohesion: 0.16
 Nodes (17): ADDON, assertDecision(), assertReview(), DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT, fail(), fixedFileIdentity() (+9 more)
@@ -2113,6 +2123,10 @@ Nodes (17): ADDON, assertDecision(), assertReview(), DECISION, dispatchMatrixEnt
 ### Community 351 - "provider-failure.mjs / launcher.mjs"
 Cohesion: 0.15
 Nodes (18): ADDON, assertDecision(), assertReview(), DECISION, dispatchMatrixEntrypoint(), ENTRYPOINT, fail(), fixedFileIdentity() (+10 more)
+
+### Community 352 - "Community 352"
+Cohesion: 0.16
+Nodes (21): verifyR48HistoricalClosure(), readPrepared(), prepareR51MatrixManifest(), AUTHORITY_PINS, fail(), INDEX, MANIFEST, ownedFile() (+13 more)
 
 ### Community 353 - "git-readiness.mjs / host-file.mjs"
 Cohesion: 0.05
@@ -2227,8 +2241,8 @@ Cohesion: 0.19
 Nodes (18): AUTHORITY_PINS, fail(), INDEX, MANIFEST, ownedFile(), PENDING, privateDirectory(), R48_COUNTS (+10 more)
 
 ### Community 381 - "provider-failure.mjs / writeReceipt"
-Cohesion: 0.16
-Nodes (21): verifyR48HistoricalClosure(), readPrepared(), prepareR51MatrixManifest(), AUTHORITY_PINS, fail(), INDEX, MANIFEST, ownedFile() (+13 more)
+Cohesion: 0.24
+Nodes (12): createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize(), runPreparedT2Matrix(), sha(), T2, turn() (+4 more)
 
 ### Community 382 - "codex-app-server-m02-ta-matrix-r22-cases.test.mjs / b14-request.mjs"
 Cohesion: 0.25
@@ -2387,8 +2401,8 @@ Cohesion: 0.20
 Nodes (15): pin(), prepareWorkspaceManifest(), sha(), buildWorkspacePreparationEnvelope(), HERE, MATRIX_BUILD, MATRIX_CANONICAL, MATRIX_MANIFEST (+7 more)
 
 ### Community 421 - "owned-scratch-proof.mjs / metadata"
-Cohesion: 0.13
-Nodes (15): createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize(), runPreparedT2Matrix(), sha(), T2, turn() (+7 more)
+Cohesion: 0.23
+Nodes (13): createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize(), runPreparedT2Matrix(), sha(), T2, turn() (+5 more)
 
 ### Community 422 - "server-transport-audit.mjs / scoped-entry.mjs"
 Cohesion: 0.21
@@ -2419,8 +2433,8 @@ Cohesion: 0.22
 Nodes (14): anchorRoles, cases, closeAnchors(), componentLabels, createOwnedScratchProofIssuer(), exactInteger(), fail(), failDirectoryIdentity() (+6 more)
 
 ### Community 429 - "t1-scoped-entry.mjs / scoped-worker-entry.mjs"
-Cohesion: 0.10
-Nodes (32): createChildPathDiagnostics(), createR51OwnedHostObserver(), R51_INSTALLED_HOST_FILE, same(), verifyR51HostFile(), ownDirectory(), writeWorkspaceCaseReceipt(), exact() (+24 more)
+Cohesion: 0.23
+Nodes (13): anchorRoles, cases, closeAnchors(), componentLabels, exactInteger(), fail(), failDirectoryIdentity(), identityComponents (+5 more)
 
 ### Community 430 - "t1-module-stage.mjs / stageT1Modules"
 Cohesion: 0.25
@@ -2546,9 +2560,9 @@ Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE,
 Cohesion: 0.15
 Nodes (11): classifyNativeSessionError(), directoryErrorReasons, errorReasons, exactErrors, NATIVE_SESSION_DIAGNOSTIC_REASONS, NATIVE_SESSION_DIAGNOSTIC_STAGES, NATIVE_SESSION_ROUTE_REASONS, ownData() (+3 more)
 
-### Community 461 - "TrustedCaseCoordinator / .#check"
-Cohesion: 0.20
-Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
+### Community 461 - "Community 461"
+Cohesion: 0.36
+Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
 
 ### Community 462 - "TrustedCaseCoordinator / .#check"
 Cohesion: 0.21
@@ -2582,9 +2596,9 @@ Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE,
 Cohesion: 0.20
 Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
 
-### Community 470 - "stream-fixture-probe.py / Handler"
-Cohesion: 0.11
-Nodes (25): createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize(), runPreparedT2Matrix(), sha(), T2, turn() (+17 more)
+### Community 470 - "Community 470"
+Cohesion: 0.18
+Nodes (10): classifyNativeSessionError(), errorReasons, exactErrors, NATIVE_SESSION_DIAGNOSTIC_REASONS, NATIVE_SESSION_DIAGNOSTIC_STAGES, NATIVE_SESSION_ROUTE_REASONS, ownData(), reasons (+2 more)
 
 ### Community 471 - "check-generic-planning-boundary.mjs / collectEntry"
 Cohesion: 0.24
@@ -2638,9 +2652,9 @@ Nodes (12): checkAncestor(), checkPrivateDirectory(), clean(), ORIGINAL_BUNDLE, 
 Cohesion: 0.23
 Nodes (11): allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry(), ancestors, BOOTSTRAP, ownedDirectory(), runT1ScopedEntry(), sha() (+3 more)
 
-### Community 484 - "scoped-entry.mjs / scoped-worker-entry.mjs"
-Cohesion: 0.27
-Nodes (12): checkAncestor(), checkPrivateDirectory(), clean(), ORIGINAL_BUNDLE, PACKAGE_ROOTS, REPO, ROOT_PACKAGE, sha() (+4 more)
+### Community 484 - "Community 484"
+Cohesion: 0.70
+Nodes (4): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt()
 
 ### Community 485 - "scoped-entry.mjs / scoped-worker-entry.mjs"
 Cohesion: 0.23
@@ -2674,9 +2688,9 @@ Nodes (8): approval(), entry, manifestPath, repo, reverse(), sha(), specimen(), 
 Cohesion: 0.20
 Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
 
-### Community 493 - "scoped-entry.mjs / scoped-worker-entry.mjs"
-Cohesion: 0.21
-Nodes (14): createChildPathDiagnostics(), R29_INSTALLED_HOST_FILE, createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize(), runPreparedT2Matrix(), sha() (+6 more)
+### Community 493 - "Community 493"
+Cohesion: 0.24
+Nodes (12): createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize(), runPreparedT2Matrix(), sha(), T2, turn() (+4 more)
 
 ### Community 494 - "TrustedCaseCoordinator / .#check"
 Cohesion: 0.20
@@ -2686,9 +2700,9 @@ Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE,
 Cohesion: 0.18
 Nodes (10): classifyNativeSessionError(), errorReasons, exactErrors, NATIVE_SESSION_DIAGNOSTIC_REASONS, NATIVE_SESSION_DIAGNOSTIC_STAGES, NATIVE_SESSION_ROUTE_REASONS, ownData(), reasons (+2 more)
 
-### Community 496 - "TrustedCaseCoordinator / .#check"
-Cohesion: 0.18
-Nodes (10): classifyNativeSessionError(), errorReasons, exactErrors, NATIVE_SESSION_DIAGNOSTIC_REASONS, NATIVE_SESSION_DIAGNOSTIC_STAGES, NATIVE_SESSION_ROUTE_REASONS, ownData(), reasons (+2 more)
+### Community 496 - "Community 496"
+Cohesion: 0.24
+Nodes (6): defaultBundle, bundle11, prepareNativePatch11(), expected, root, upstreamSource
 
 ### Community 497 - "scoped-entry.mjs / scoped-worker-entry.mjs"
 Cohesion: 0.18
@@ -2734,10 +2748,6 @@ Nodes (31): ownDirectory(), writeMatrixCaseReceipt(), readMatrixChildReceipt(), 
 Cohesion: 0.25
 Nodes (10): caseIds, privateRegular(), REPO, safeCopy(), safeSource(), sha(), T2_ACTUAL_REVIEW, T2_ARCHIVE (+2 more)
 
-### Community 510 - "scoped-entry.mjs / scoped-worker-entry.mjs"
-Cohesion: 0.07
-Nodes (41): CHILD_PATH_CLASSES, createChildPathDiagnostics(), entryKeys, nameClasses, NAMES, pathClasses, validateChildPathDiagnostics(), R30_INSTALLED_HOST_FILE (+33 more)
-
 ### Community 511 - "scoped-entry.mjs / scoped-worker-entry.mjs"
 Cohesion: 0.35
 Nodes (10): ensureGitInclude(), getLocalConfig(), isGitRepository(), log(), main(), quiet, repoRoot, runGit() (+2 more)
@@ -2754,9 +2764,9 @@ Nodes (13): prepareR44MatrixManifest(), sha(), buildR44PreparationEnvelope(), HE
 Cohesion: 0.20
 Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
 
-### Community 520 - "TrustedCaseCoordinator / .#check"
-Cohesion: 0.27
-Nodes (9): BRIDGE, buildT1CanonicalVariant(), FIXTURE, HERE, R4_CANONICAL_BUILD, R4_CANONICAL_BUNDLE, REPO, sha() (+1 more)
+### Community 520 - "Community 520"
+Cohesion: 0.14
+Nodes (14): createTrustedLauncher(), canonicalOutcome(), consistentOwnedExit(), initialize(), runPreparedT2Matrix(), sha(), T2, turn() (+6 more)
 
 ### Community 521 - "TrustedCaseCoordinator / .#check"
 Cohesion: 0.20
@@ -2769,6 +2779,10 @@ Nodes (17): buildWorkspaceCanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha
 ### Community 523 - "notification-envelope.mjs / inspectNotificationEnvelope"
 Cohesion: 0.38
 Nodes (4): ownDirectory(), writeWorkspaceCaseReceipt(), prepareTrustedCase(), POLICY
+
+### Community 524 - "Community 524"
+Cohesion: 0.20
+Nodes (13): BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside(), MIGRATIONS, PACKAGE, PRISMA_CLIENT, privateDir() (+5 more)
 
 ### Community 525 - "native-contracts.mjs / applyNativeContractConfiguration"
 Cohesion: 0.24
@@ -2820,7 +2834,7 @@ Nodes (8): ARCHIVE, exactFile(), exactPrivateDir(), PINS, REPO, same(), sha(), v
 
 ### Community 537 - "process-state-diagnostic.mjs / GIT_FILE_PIN"
 Cohesion: 0.07
-Nodes (34): buildWorkspaceCanonicalBytes(), HISTORICAL_BUNDLE, REPO, same(), sha(), TrustedCaseCoordinator, prepareTrustedCase(), DEDICATED_TOOL_HELPER_SOURCE_EXPECTATIONS (+26 more)
+Nodes (37): TrustedCaseCoordinator, ownDirectory(), writeWorkspaceCaseReceipt(), prepareTrustedCase(), BUILD_BUNDLE, GENERATED_PRISMA, HERE, inside() (+29 more)
 
 ### Community 538 - "prior-attempt.mjs / verifyPriorAttempt"
 Cohesion: 0.36
@@ -2881,6 +2895,10 @@ Nodes (8): createOfflineEffects(), redirectFs(), entry, observer, receipts(), re
 ### Community 552 - "protect-seeded-files.ts / setSeededTemplateFilesTracked"
 Cohesion: 0.36
 Nodes (7): owned(), runMatrixScopedEntry(), sha(), writeMatrixChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+
+### Community 553 - "Community 553"
+Cohesion: 0.27
+Nodes (12): checkAncestor(), checkPrivateDirectory(), clean(), ORIGINAL_BUNDLE, PACKAGE_ROOTS, REPO, ROOT_PACKAGE, sha() (+4 more)
 
 ### Community 555 - "mcp-manifest-diagnostic.py / extract_model"
 Cohesion: 0.36
@@ -3030,6 +3048,10 @@ Nodes (8): applyNativeContractConfiguration(), assertFixedNativePlanContract(), 
 Cohesion: 0.44
 Nodes (8): applyNativeContractConfiguration(), assertFixedNativePlanContract(), fail(), NATIVE_CONTRACT_QUALIFICATION, NATIVE_CONTRACT_SOURCE_PINS, validCase(), verifyNativeContractConfiguration(), verifyNativeContractSources()
 
+### Community 659 - "Community 659"
+Cohesion: 0.42
+Nodes (7): owned(), runWorkspaceScopedEntry(), sha(), writeWorkspaceChildReceipt(), allowedRoots, readOwnedBootstrap(), runScopedWorkerEntry()
+
 ### Community 660 - "Community 660"
 Cohesion: 0.29
 Nodes (7): ACTUAL_DECISION, checkR23GeneratedSpecimen(), ENTRYPOINT, HERE, REPO, REVIEW, sha()
@@ -3045,6 +3067,10 @@ Nodes (5): CHILD_PATH_CLASSES, entryKeys, nameClasses, NAMES, pathClasses
 ### Community 664 - "Community 664"
 Cohesion: 0.33
 Nodes (3): databasePath, db, workspace
+
+### Community 665 - "Community 665"
+Cohesion: 0.27
+Nodes (9): BRIDGE, buildT1CanonicalVariant(), FIXTURE, HERE, R4_CANONICAL_BUILD, R4_CANONICAL_BUNDLE, REPO, sha() (+1 more)
 
 ### Community 666 - "Community 666"
 Cohesion: 0.70
@@ -3121,22 +3147,22 @@ Nodes (3): allowed, fail(), writeT1PreparationReceipt()
 ## Knowledge Gaps
 - **4795 isolated node(s):** `root`, `registry`, `fixtureRoot`, `delay`, `root` (+4790 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **64 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **65 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `digest()` connect `git-readiness.mjs / host-file.mjs` to `readClaimBytes / r44-evidence.mjs`, `r27-evidence.mjs / verifyR27Predecessor`, `r28-success-evidence.mjs / verifyR28Predecessor`, `r30-evidence.mjs / verifyR30Predecessor`, `r29-evidence.mjs / verifyR29Predecessor`, `harness-review.mjs / harness-artifact.mjs`, `verifyMcpChildReceipt / mcp-readiness.mjs`, `manifest.mjs / entrypoint.mjs`, `TrustedCaseCoordinator / .#check`, `notification-envelope.mjs / inspectNotificationEnvelope`, `plans.mjs / composition.mjs`, `native-contracts.mjs / applyNativeContractConfiguration`, `matrix-runner.mjs / policy.mjs`, `codec.mjs / decodeCodeModeContinuation`, `entrypoint.mjs / manifest.mjs`, `t1-runner.mjs / codex-app-server-m02-ta-runtime-r9.test.mjs`, `workspace-runner.mjs / manifest.mjs`, `child-path-diagnostic.mjs / CHILD_PATH_CLASSES`, `policy.mjs / r35-evidence.mjs`, `process-state-diagnostic.mjs / GIT_FILE_PIN`, `script-session.mjs / finite-responses.mjs`, `p0-r2d-canonical-bridge.ts / invokeSyntheticGateway`, `p0-r2f-profiles.ts / createP0R2fProfiles`, `matrix-runner.mjs / policy.mjs`, `matrix-runner.mjs / late-case-diagnostic.mjs`, `startup-failure.mjs / writeStartupFailure`, `harness-selection.mjs / resolveModelSelection`, `startup-failure.mjs / writeStartupFailure`, `mcp-elicitation-probe.py / inspect_tool_manifest`, `R33 processState diagnostic / Frozen owned-host observer`, `M02 owned Code Mode host observer / assertLiveHostBeforeCaseComplete`, `qualify-p0-r2d-interlock.mjs / p0-r2d-interlock-experiment.mjs`, `build-prisma-graph.mjs / addLink`, `ProtocolFixture / no-model-probe.mjs`, `matrix-runner.mjs / policy.mjs`, `manifest.mjs / entrypoint.mjs`, `r32-evidence.mjs / r29-evidence.mjs`, `late-case-diagnostic.mjs / git-readiness.mjs`, `late-case-diagnostic.mjs / git-readiness.mjs`, `provider-failure.mjs / script-session.mjs`, `PRIOR_ROOT`, `provider-failure.mjs / script-session.mjs`, `PRIOR_ROOT`, `PRIOR_ROOT`, `PRIOR_ROOT`, `swarm-ledger-lock.mjs / swarm-ledger.mjs`, `createOwnedHostObserver / R23_INSTALLED_HOST_FILE`, `PhaseHistoryCleanupTest / .run`, `manifest.mjs / r21-evidence.mjs`, `matrix-runner.mjs / late-case-diagnostic.mjs`, `napi_env / napi_value`, `update-graphify-graphs.mjs / graphify-freshness.mjs`, `manifest.mjs / preparation.mjs`, `harness-pilot.mjs / assert`, `sealed-capture.mjs / provider-route-gate.mjs`, `matrix-runner.mjs / codex-app-server-m02-ta-matrix-r22-composed.test.mjs`, `entrypoint.mjs / matrix-stage.mjs`, `entrypoint.mjs / preparation.mjs`, `entrypoint.mjs / preparation.mjs`, `protocol-p00.mjs / permission-request-diagnostic.mjs`, `protocol-p00.mjs / permission-request-diagnostic.mjs`, `protocol-p00.mjs / permission-request-diagnostic.mjs`, `protocol-p00.mjs / permission-request-diagnostic.mjs`, `protocol-p00.mjs / permission-request-diagnostic.mjs`, `protocol-p00.mjs / permission-request-diagnostic.mjs`, `protocol-p00.mjs / permission-request-diagnostic.mjs`, `managed-journey-provider-qualification.mjs / managed-journey-provider-qualification.test.mjs`, `policy.mjs / digest`, `policy.mjs / manifest.mjs`, `protocol.mjs / TrustedMatrixAppServerPeer`, `canonical / script-session.mjs`, `policy.mjs / manifest.mjs`, `t1-runner.mjs / runT1`, `r29-evidence.mjs / r28-success-evidence.mjs`, `database-compatibility.mjs / database-compatibility.test.ts`, `t1-runner.mjs / runT1`, `qualify-p0-r2f-schema.mjs / runArm`, `matrix-runner.mjs / matrix-stage.mjs`, `late-case-diagnostic.mjs / writeLateCaseFailure`, `script-session.mjs / continuation-diagnostic.mjs`, `Community 656`, `script-session.mjs / continuation-diagnostic.mjs`, `protocol.mjs / TrustedMatrixAppServerPeer`, `protocol.mjs / TrustedMatrixAppServerPeer`, `protocol.mjs / TrustedMatrixAppServerPeer`, `protocol.mjs / TrustedMatrixAppServerPeer`, `runtime-effects.mjs / TrustedCaseCoordinator`, `phase-journal.mjs / DurablePhaseJournal`, `journal.mjs / DurableT1Journal`, `journal.mjs / DurableT1Journal`, `phase-journal.mjs / DurablePhaseJournal`, `phase-journal.mjs / DurablePhaseJournal`, `phase-journal.mjs / DurablePhaseJournal`, `phase-journal.mjs / DurablePhaseJournal`, `phase-journal.mjs / DurablePhaseJournal`, `phase-journal.mjs / DurablePhaseJournal`, `phase-journal.mjs / DurablePhaseJournal`, `r51-evidence.mjs / verifyFullT2Predecessor`, `r22-evidence.mjs / verifyR22Predecessor`, `codex-app-server-m02-ta-r25-composed.test.mjs / receipts.mjs`, `policy.mjs / runtime-effects.mjs`, `native-session.mjs / native-plans.mjs`, `qualify-p0-r2c-dynamic-tools.mjs / p0-r2c-dynamic-tools-experiment.mjs`, `protocol-p00.mjs / TrustedMatrixAppServerPeer`, `protocol-p00.mjs / TrustedMatrixAppServerPeer`, `protocol-p00.mjs / TrustedMatrixAppServerPeer`, `protocol-p00.mjs / TrustedMatrixAppServerPeer`, `protocol-p00.mjs / TrustedMatrixAppServerPeer`, `provider-failure.mjs / continuation-diagnostic.mjs`, `protocol-p00.mjs / TrustedMatrixAppServerPeer`, `protocol-p00.mjs / TrustedMatrixAppServerPeer`, `r37-evidence.mjs / validateProcessStateDiagnostic`, `provider-failure.mjs / continuation-diagnostic.mjs`, `r41-evidence.mjs / validateProcessStateDiagnostic`, `r36-evidence.mjs / verifyR36Predecessor`, `provider-failure.mjs / continuation-diagnostic.mjs`, `r41-evidence.mjs / verifyR41Predecessor`, `r36-evidence.mjs / verifyR36Predecessor`, `r41-evidence.mjs / verifyR41Predecessor`, `r43-evidence.mjs / verifyR43Predecessor`, `r36-evidence.mjs / verifyR36Predecessor`, `r43-evidence.mjs / verifyR43Predecessor`, `provider-failure.mjs / continuation-diagnostic.mjs`, `r36-evidence.mjs / verifyR36Predecessor`, `r43-evidence.mjs / verifyR43Predecessor`, `r36-evidence.mjs / verifyR36Predecessor`, `r37-evidence.mjs / verifyR37Predecessor`, `r43-evidence.mjs / verifyR43Predecessor`, `provider-failure.mjs / continuation-diagnostic.mjs`, `r37-evidence.mjs / verifyR37Predecessor`, `r41-evidence.mjs / verifyR41Predecessor`, `r43-evidence.mjs / verifyR43Predecessor`, `r41-evidence.mjs / verifyR41Predecessor`, `protocol.mjs / TrustedMatrixAppServerPeer`, `protocol-p00.mjs / TrustedMatrixAppServerPeer`, `protocol-p00.mjs / TrustedMatrixAppServerPeer`, `codex-app-server-m02-ta-r23-investigation-01.test.mjs / receipts.mjs`, `late-case-diagnostic.mjs / writeLateCaseFailure`, `entrypoint.mjs / dispatchMatrixEntrypoint`, `r37-evidence.mjs / verifyR37Predecessor`, `r37-evidence.mjs / verifyR37Predecessor`, `entrypoint.mjs / dispatchMatrixEntrypoint`, `r37-evidence.mjs / verifyR37Predecessor`, `r37-evidence.mjs / verifyR37Predecessor`, `r41-evidence.mjs / verifyR41Predecessor`, `r41-evidence.mjs / verifyR41Predecessor`, `r37-evidence.mjs / verifyR37Predecessor`, `codex-app-server-m02-ta-workspace-r10.test.mjs / manifest.mjs`, `DurablePhaseJournal / ._append`, `instrumentScopedServerTransport / scoped-entry.mjs`, `script-session.mjs / finite-responses.mjs`, `late-case-diagnostic.mjs / writeLateCaseFailure`, `entrypoint.mjs / dispatchMatrixEntrypoint`, `entrypoint.mjs / dispatchMatrixEntrypoint`, `entrypoint.mjs / dispatchMatrixEntrypoint`, `entrypoint.mjs / dispatchMatrixEntrypoint`, `inspectNotificationEnvelope / notification-envelope.mjs`, `phase-history-cleanup.py / cleanup_once`, `phase-history-cleanup.py / cleanup_once`, `phase-history-cleanup.py / cleanup_once`, `git-readiness.mjs / host-file.mjs`, `matrix-runner.mjs / runPreparedT2Matrix`, `native-descriptor-capture-r9.mjs / .capture`, `r41-evidence.mjs / verifyFullT2Predecessor`, `check-agent-harness.mjs / checkRootRelativeReferences`, `policy.mjs / manifest.mjs`, `script-session.mjs / finite-responses.mjs`, `entrypoint.mjs / dispatchMatrixEntrypoint`, `script-session.mjs / finite-responses.mjs`, `script-session.mjs / finite-responses.mjs`, `script-session.mjs / finite-responses.mjs`, `codex-app-server-m02-ta-runtime-r5.test.mjs / preparation-receipt.mjs`, `r34-evidence.mjs / verifyFullT2Predecessor`, `entrypoint.mjs / dispatchMatrixEntrypoint`, `r35-evidence.mjs / verifyR35Predecessor`, `r35-evidence.mjs / verifyR35Predecessor`, `r35-evidence.mjs / verifyR35Predecessor`, `r35-evidence.mjs / verifyR35Predecessor`, `r35-evidence.mjs / verifyR35Predecessor`, `prior-t2.mjs / verifyAcceptedT2Evidence`, `r52-evidence.mjs / verifyT3Predecessor`, `git-readiness.mjs / host-file.mjs`, `matrix-runner.mjs / runPreparedT2Matrix`, `git-readiness.mjs / host-file.mjs`, `git-readiness.mjs / host-file.mjs`, `manifest.mjs / prepareWorkspaceManifest`, `dev-with-mcp.mjs / handleProcessExit`, `policy.mjs / manifest.mjs`, `provider-failure.mjs / launcher.mjs`, `policy.mjs / runtime-effects.mjs`, `collect.mjs / collectOfflineSdkProfiles`, `entrypoint.mjs / dispatchWorkspaceEntrypoint`, `cucumber-runtime-fingerprint.mjs / executeValidationPlan`, `matrix-runner.mjs / runPreparedT2Matrix`, `late-case-diagnostic.mjs / writeLateCaseFailure`, `git-readiness.mjs / host-file.mjs`, `isPassiveRateLimitsParams / rate-limit-advisory.mjs`, `manifest.mjs / preparation.mjs`, `manifest.mjs / canonical-build.mjs`, `r28-success-evidence.mjs / verifyR28Predecessor`, `provider-failure.mjs / writeReceipt`, `protocol.mjs / TrustedAppServerPeer`, `quality-journey-compatibility.sqlite.integration.test.ts / SqlDatabase`, `quality-journey-integrity.ts / check-quality-journey-integrity.ts`, `provider-failure.mjs / writeReceipt`, `native-pilot-process-groups.mjs / signalProcessGroup`, `executeCodex / runCase`, `benchmark-harness-fingerprint.mjs / frozenLegacyHash`, `matrix-stage.mjs / stageMatrixModules`, `matrix-stage.mjs / stageMatrixModules`, `matrix-stage.mjs / stageMatrixModules`, `matrix-stage.mjs / stageMatrixModules`, `matrix-stage.mjs / stageMatrixModules`, `matrix-stage.mjs / stageMatrixModules`, `matrix-stage.mjs / stageMatrixModules`, `matrix-stage.mjs / stageMatrixModules`, `matrix-stage.mjs / stageMatrixModules`, `matrix-stage.mjs / stageMatrixModules`, `matrix-stage.mjs / stageMatrixModules`, `owned-scratch-proof.mjs / metadata`, `preparation.mjs / serializeR33Preparation`, `t1-scoped-entry.mjs / scoped-worker-entry.mjs`, `t1-module-stage.mjs / stageT1Modules`, `check-generic-planning-boundary.mjs / collectEntry`, `scoped-entry.mjs / scoped-worker-entry.mjs`, `scoped-entry.mjs / scoped-worker-entry.mjs`, `scoped-entry.mjs / scoped-worker-entry.mjs`?**
+- **Why does `digest()` connect `git-readiness.mjs / host-file.mjs` to `readClaimBytes / r44-evidence.mjs`, `r27-evidence.mjs / verifyR27Predecessor`, `r28-success-evidence.mjs / verifyR28Predecessor`, `r30-evidence.mjs / verifyR30Predecessor`, `r29-evidence.mjs / verifyR29Predecessor`, `harness-review.mjs / harness-artifact.mjs`, `verifyMcpChildReceipt / mcp-readiness.mjs`, `manifest.mjs / entrypoint.mjs`, `TrustedCaseCoordinator / .#check`, `notification-envelope.mjs / inspectNotificationEnvelope`, `plans.mjs / composition.mjs`, `native-contracts.mjs / applyNativeContractConfiguration`, `matrix-runner.mjs / policy.mjs`, `codec.mjs / decodeCodeModeContinuation`, `entrypoint.mjs / manifest.mjs`, `t1-runner.mjs / codex-app-server-m02-ta-runtime-r9.test.mjs`, `workspace-runner.mjs / manifest.mjs`, `child-path-diagnostic.mjs / CHILD_PATH_CLASSES`, `policy.mjs / r35-evidence.mjs`, `policy.mjs / entrypoint.mjs`, `process-state-diagnostic.mjs / GIT_FILE_PIN`, `script-session.mjs / finite-responses.mjs`, `p0-r2d-canonical-bridge.ts / invokeSyntheticGateway`, `p0-r2f-profiles.ts / createP0R2fProfiles`, `matrix-runner.mjs / policy.mjs`, `matrix-runner.mjs / late-case-diagnostic.mjs`, `startup-failure.mjs / writeStartupFailure`, `harness-selection.mjs / resolveModelSelection`, `startup-failure.mjs / writeStartupFailure`, `mcp-elicitation-probe.py / inspect_tool_manifest`, `R33 processState diagnostic / Frozen owned-host observer`, `M02 owned Code Mode host observer / assertLiveHostBeforeCaseComplete`, `qualify-p0-r2d-interlock.mjs / p0-r2d-interlock-experiment.mjs`, `build-prisma-graph.mjs / addLink`, `matrix-runner.mjs / policy.mjs`, `manifest.mjs / entrypoint.mjs`, `record-swarm-run.mjs / harness-telemetry.mjs`, `r32-evidence.mjs / r29-evidence.mjs`, `late-case-diagnostic.mjs / git-readiness.mjs`, `late-case-diagnostic.mjs / git-readiness.mjs`, `provider-failure.mjs / script-session.mjs`, `PRIOR_ROOT`, `provider-failure.mjs / script-session.mjs`, `PRIOR_ROOT`, `PRIOR_ROOT`, `PRIOR_ROOT`, `swarm-ledger-lock.mjs / swarm-ledger.mjs`, `createOwnedHostObserver / R23_INSTALLED_HOST_FILE`, `PhaseHistoryCleanupTest / .run`, `manifest.mjs / r21-evidence.mjs`, `matrix-runner.mjs / late-case-diagnostic.mjs`, `napi_env / napi_value`, `update-graphify-graphs.mjs / graphify-freshness.mjs`, `manifest.mjs / preparation.mjs`, `harness-pilot.mjs / assert`, `sealed-capture.mjs / provider-route-gate.mjs`, `matrix-runner.mjs / codex-app-server-m02-ta-matrix-r22-composed.test.mjs`, `entrypoint.mjs / matrix-stage.mjs`, `entrypoint.mjs / preparation.mjs`, `entrypoint.mjs / preparation.mjs`, `protocol-p00.mjs / permission-request-diagnostic.mjs`, `protocol-p00.mjs / permission-request-diagnostic.mjs`, `protocol-p00.mjs / permission-request-diagnostic.mjs`, `protocol-p00.mjs / permission-request-diagnostic.mjs`, `protocol-p00.mjs / permission-request-diagnostic.mjs`, `protocol-p00.mjs / permission-request-diagnostic.mjs`, `protocol-p00.mjs / permission-request-diagnostic.mjs`, `managed-journey-provider-qualification.mjs / managed-journey-provider-qualification.test.mjs`, `policy.mjs / manifest.mjs`, `protocol.mjs / TrustedMatrixAppServerPeer`, `canonical / script-session.mjs`, `policy.mjs / manifest.mjs`, `t1-runner.mjs / runT1`, `r29-evidence.mjs / r28-success-evidence.mjs`, `database-compatibility.mjs / database-compatibility.test.ts`, `t1-runner.mjs / runT1`, `qualify-p0-r2f-schema.mjs / runArm`, `matrix-runner.mjs / matrix-stage.mjs`, `late-case-diagnostic.mjs / writeLateCaseFailure`, `script-session.mjs / continuation-diagnostic.mjs`, `Community 656`, `script-session.mjs / continuation-diagnostic.mjs`, `protocol.mjs / TrustedMatrixAppServerPeer`, `protocol.mjs / TrustedMatrixAppServerPeer`, `protocol.mjs / TrustedMatrixAppServerPeer`, `protocol.mjs / TrustedMatrixAppServerPeer`, `runtime-effects.mjs / TrustedCaseCoordinator`, `phase-journal.mjs / DurablePhaseJournal`, `journal.mjs / DurableT1Journal`, `journal.mjs / DurableT1Journal`, `phase-journal.mjs / DurablePhaseJournal`, `phase-journal.mjs / DurablePhaseJournal`, `phase-journal.mjs / DurablePhaseJournal`, `phase-journal.mjs / DurablePhaseJournal`, `phase-journal.mjs / DurablePhaseJournal`, `phase-journal.mjs / DurablePhaseJournal`, `phase-journal.mjs / DurablePhaseJournal`, `r51-evidence.mjs / verifyFullT2Predecessor`, `r22-evidence.mjs / verifyR22Predecessor`, `codex-app-server-m02-ta-r25-composed.test.mjs / receipts.mjs`, `policy.mjs / runtime-effects.mjs`, `native-session.mjs / native-plans.mjs`, `qualify-p0-r2c-dynamic-tools.mjs / p0-r2c-dynamic-tools-experiment.mjs`, `protocol-p00.mjs / TrustedMatrixAppServerPeer`, `protocol-p00.mjs / TrustedMatrixAppServerPeer`, `protocol-p00.mjs / TrustedMatrixAppServerPeer`, `protocol-p00.mjs / TrustedMatrixAppServerPeer`, `protocol-p00.mjs / TrustedMatrixAppServerPeer`, `policy.mjs / manifest.mjs`, `provider-failure.mjs / continuation-diagnostic.mjs`, `protocol-p00.mjs / TrustedMatrixAppServerPeer`, `protocol-p00.mjs / TrustedMatrixAppServerPeer`, `r37-evidence.mjs / validateProcessStateDiagnostic`, `provider-failure.mjs / continuation-diagnostic.mjs`, `r41-evidence.mjs / validateProcessStateDiagnostic`, `r36-evidence.mjs / verifyR36Predecessor`, `provider-failure.mjs / continuation-diagnostic.mjs`, `r41-evidence.mjs / verifyR41Predecessor`, `r36-evidence.mjs / verifyR36Predecessor`, `r41-evidence.mjs / verifyR41Predecessor`, `r43-evidence.mjs / verifyR43Predecessor`, `r36-evidence.mjs / verifyR36Predecessor`, `r43-evidence.mjs / verifyR43Predecessor`, `provider-failure.mjs / continuation-diagnostic.mjs`, `r36-evidence.mjs / verifyR36Predecessor`, `r43-evidence.mjs / verifyR43Predecessor`, `r36-evidence.mjs / verifyR36Predecessor`, `r37-evidence.mjs / verifyR37Predecessor`, `r43-evidence.mjs / verifyR43Predecessor`, `provider-failure.mjs / continuation-diagnostic.mjs`, `r37-evidence.mjs / verifyR37Predecessor`, `r41-evidence.mjs / verifyR41Predecessor`, `r43-evidence.mjs / verifyR43Predecessor`, `r41-evidence.mjs / verifyR41Predecessor`, `protocol.mjs / TrustedMatrixAppServerPeer`, `protocol-p00.mjs / TrustedMatrixAppServerPeer`, `protocol-p00.mjs / TrustedMatrixAppServerPeer`, `codex-app-server-m02-ta-r23-investigation-01.test.mjs / receipts.mjs`, `late-case-diagnostic.mjs / writeLateCaseFailure`, `entrypoint.mjs / dispatchMatrixEntrypoint`, `r37-evidence.mjs / verifyR37Predecessor`, `r37-evidence.mjs / verifyR37Predecessor`, `entrypoint.mjs / dispatchMatrixEntrypoint`, `r37-evidence.mjs / verifyR37Predecessor`, `r37-evidence.mjs / verifyR37Predecessor`, `r41-evidence.mjs / verifyR41Predecessor`, `r41-evidence.mjs / verifyR41Predecessor`, `r37-evidence.mjs / verifyR37Predecessor`, `codex-app-server-m02-ta-workspace-r10.test.mjs / manifest.mjs`, `DurablePhaseJournal / ._append`, `instrumentScopedServerTransport / scoped-entry.mjs`, `script-session.mjs / finite-responses.mjs`, `late-case-diagnostic.mjs / writeLateCaseFailure`, `entrypoint.mjs / dispatchMatrixEntrypoint`, `entrypoint.mjs / dispatchMatrixEntrypoint`, `entrypoint.mjs / dispatchMatrixEntrypoint`, `entrypoint.mjs / dispatchMatrixEntrypoint`, `inspectNotificationEnvelope / notification-envelope.mjs`, `phase-history-cleanup.py / cleanup_once`, `phase-history-cleanup.py / cleanup_once`, `phase-history-cleanup.py / cleanup_once`, `git-readiness.mjs / host-file.mjs`, `matrix-runner.mjs / runPreparedT2Matrix`, `native-descriptor-capture-r9.mjs / .capture`, `r37-evidence.mjs / verifyFullT2Predecessor`, `r41-evidence.mjs / verifyFullT2Predecessor`, `check-agent-harness.mjs / checkRootRelativeReferences`, `policy.mjs / manifest.mjs`, `script-session.mjs / finite-responses.mjs`, `entrypoint.mjs / dispatchMatrixEntrypoint`, `script-session.mjs / finite-responses.mjs`, `script-session.mjs / finite-responses.mjs`, `script-session.mjs / finite-responses.mjs`, `codex-app-server-m02-ta-runtime-r5.test.mjs / preparation-receipt.mjs`, `r34-evidence.mjs / verifyFullT2Predecessor`, `entrypoint.mjs / dispatchMatrixEntrypoint`, `r35-evidence.mjs / verifyR35Predecessor`, `r35-evidence.mjs / verifyR35Predecessor`, `r35-evidence.mjs / verifyR35Predecessor`, `r35-evidence.mjs / verifyR35Predecessor`, `r35-evidence.mjs / verifyR35Predecessor`, `prior-t2.mjs / verifyAcceptedT2Evidence`, `r52-evidence.mjs / verifyT3Predecessor`, `git-readiness.mjs / host-file.mjs`, `matrix-runner.mjs / runPreparedT2Matrix`, `git-readiness.mjs / host-file.mjs`, `manifest.mjs / prepareWorkspaceManifest`, `dev-with-mcp.mjs / handleProcessExit`, `manifest.mjs / filePin`, `policy.mjs / manifest.mjs`, `provider-failure.mjs / launcher.mjs`, `Community 352`, `policy.mjs / runtime-effects.mjs`, `collect.mjs / collectOfflineSdkProfiles`, `entrypoint.mjs / dispatchWorkspaceEntrypoint`, `cucumber-runtime-fingerprint.mjs / executeValidationPlan`, `matrix-runner.mjs / runPreparedT2Matrix`, `late-case-diagnostic.mjs / writeLateCaseFailure`, `git-readiness.mjs / host-file.mjs`, `isPassiveRateLimitsParams / rate-limit-advisory.mjs`, `manifest.mjs / preparation.mjs`, `manifest.mjs / canonical-build.mjs`, `r28-success-evidence.mjs / verifyR28Predecessor`, `provider-failure.mjs / writeReceipt`, `protocol.mjs / TrustedAppServerPeer`, `quality-journey-compatibility.sqlite.integration.test.ts / SqlDatabase`, `quality-journey-integrity.ts / check-quality-journey-integrity.ts`, `native-pilot-process-groups.mjs / signalProcessGroup`, `executeCodex / runCase`, `benchmark-harness-fingerprint.mjs / frozenLegacyHash`, `matrix-stage.mjs / stageMatrixModules`, `matrix-stage.mjs / stageMatrixModules`, `matrix-stage.mjs / stageMatrixModules`, `matrix-stage.mjs / stageMatrixModules`, `matrix-stage.mjs / stageMatrixModules`, `matrix-stage.mjs / stageMatrixModules`, `matrix-stage.mjs / stageMatrixModules`, `matrix-stage.mjs / stageMatrixModules`, `matrix-stage.mjs / stageMatrixModules`, `matrix-stage.mjs / stageMatrixModules`, `matrix-stage.mjs / stageMatrixModules`, `owned-scratch-proof.mjs / metadata`, `preparation.mjs / serializeR33Preparation`, `t1-scoped-entry.mjs / scoped-worker-entry.mjs`, `t1-module-stage.mjs / stageT1Modules`, `check-generic-planning-boundary.mjs / collectEntry`, `scoped-entry.mjs / scoped-worker-entry.mjs`, `scoped-entry.mjs / scoped-worker-entry.mjs`, `scoped-entry.mjs / scoped-worker-entry.mjs`?**
   _High betweenness centrality (0.347) - this node is a cross-community bridge._
-- **Why does `casePolicy()` connect `sha256 / preparation.mjs` to `scoped-entry.mjs / scoped-worker-entry.mjs`, `scoped-entry.mjs / scoped-worker-entry.mjs`, `r29-evidence.mjs / verifyR29Predecessor`, `outerMaximum / auditRequestMaximum`, `TrustedCaseCoordinator / .#check`, `policy.mjs / digest`, `preparation.mjs / writeMatrixPreparation`, `manifest.mjs / entrypoint.mjs`, `manifest.mjs / entrypoint.mjs`, `codex-app-server-m02-ta-matrix-entrypoint-r10.test.mjs / MATRIX_MANIFEST`, `plans.mjs / composition.mjs`, `TrustedCaseCoordinator / .#check`, `notification-envelope.mjs / inspectNotificationEnvelope`, `codec.mjs / decodeCodeModeContinuation`, `entrypoint.mjs / manifest.mjs`, `t1-runner.mjs / codex-app-server-m02-ta-runtime-r9.test.mjs`, `setup-graphify.mjs / findCommand`, `CleanupTests / codex_app_server_m02_p6_cleanup_test.py`, `policy.mjs / r35-evidence.mjs`, `policy.mjs / entrypoint.mjs`, `process-state-diagnostic.mjs / GIT_FILE_PIN`, `prior-attempt.mjs / verifyPriorAttempt`, `harness-selection.mjs / resolveModelSelection`, `startup-failure.mjs / writeStartupFailure`, `startup-failure.mjs / writeStartupFailure`, `startup-failure.mjs / writeStartupFailure`, `startup-failure.mjs / writeStartupFailure`, `protocol-p00.mjs / storage.mjs`, `M02 owned Code Mode host observer / assertLiveHostBeforeCaseComplete`, `history-r34-evidence.mjs / history-r35-evidence.mjs`, `protect-seeded-files.ts / setSeededTemplateFilesTracked`, `mcp-manifest-diagnostic.py / extract_model`, `permission-denial-probe.py / empty_grant`, `evidence.mjs / evidence`, `Owned host native addon / Parent birth identity pin`, `harness-diagnostic.mjs / probe`, `install-playwright.ts / main`, `agent-setup-capabilities.test.ts / repoRoot`, `r32-evidence.mjs / r29-evidence.mjs`, `late-case-diagnostic.mjs / git-readiness.mjs`, `entrypoint.mjs / r54-evidence.mjs`, `provider-failure.mjs / script-session.mjs`, `PRIOR_ROOT`, `PRIOR_ROOT`, `provider-failure.mjs / script-session.mjs`, `workspace-runner.mjs / policy.mjs`, `PhaseHistoryCleanupTest / .run`, `policy.mjs / r33-evidence.mjs`, `PRIOR_ROOT`, `matrix-runner.mjs / late-case-diagnostic.mjs`, `PRIOR_ROOT`, `late-case-diagnostic.mjs / git-readiness.mjs`, `matrix-runner.mjs / policy.mjs`, `git-readiness.mjs / late-case-diagnostic.mjs`, `qualify-managed-journey-provider.mjs / managed-journey-isolated-launch.mjs`, `PhaseHistoryCleanupTest / .run`, `createOwnedHostObserver / R23_INSTALLED_HOST_FILE`, `PhaseHistoryCleanupTest / .run`, `manifest.mjs / preparation.mjs`, `harness-validation.test.mjs / run-harness-validation.mjs`, `protocol-p00.mjs / permission-request-diagnostic.mjs`, `protocol-p00.mjs / permission-request-diagnostic.mjs`, `protocol-p00.mjs / permission-request-diagnostic.mjs`, `protocol-p00.mjs / permission-request-diagnostic.mjs`, `protocol-p00.mjs / permission-request-diagnostic.mjs`, `managed-journey-provider-qualification.mjs / managed-journey-provider-qualification.test.mjs`, `policy.mjs / manifest.mjs`, `protocol.mjs / TrustedMatrixAppServerPeer`, `canonical / script-session.mjs`, `policy.mjs / manifest.mjs`, `t1-runner.mjs / runT1`, `database-compatibility.mjs / database-compatibility.test.ts`, `qualify-p0-r2f-schema.mjs / runArm`, `Community 650`, `Community 652`, `Community 653`, `Community 654`, `Community 655`, `Community 656`, `script-session.mjs / continuation-diagnostic.mjs`, `matrix-runner.mjs / matrix-stage.mjs`, `protocol.mjs / TrustedMatrixAppServerPeer`, `protocol.mjs / TrustedMatrixAppServerPeer`, `Community 666`, `protocol.mjs / TrustedMatrixAppServerPeer`, `Community 667`, `runtime-effects.mjs / TrustedCaseCoordinator`, `phase-journal.mjs / DurablePhaseJournal`, `phase-journal.mjs / DurablePhaseJournal`, `journal.mjs / DurableT1Journal`, `journal.mjs / DurableT1Journal`, `policy.mjs / digest`, `journal.mjs / DurableT1Journal`, `Community 668`, `policy.mjs / digest`, `policy.mjs / digest`, `phase-journal.mjs / DurablePhaseJournal`, `phase-journal.mjs / DurablePhaseJournal`, `phase-journal.mjs / DurablePhaseJournal`, `phase-journal.mjs / DurablePhaseJournal`, `phase-journal.mjs / DurablePhaseJournal`, `phase-journal.mjs / DurablePhaseJournal`, `r51-evidence.mjs / verifyFullT2Predecessor`, `r22-evidence.mjs / verifyR22Predecessor`, `policy.mjs / manifest.mjs`, `policy.mjs / manifest.mjs`, `protocol-p00.mjs / TrustedMatrixAppServerPeer`, `provider-failure.mjs / continuation-diagnostic.mjs`, `r36-evidence.mjs / verifyR36Predecessor`, `provider-failure.mjs / continuation-diagnostic.mjs`, `r36-evidence.mjs / verifyR36Predecessor`, `r43-evidence.mjs / verifyR43Predecessor`, `r41-evidence.mjs / verifyR41Predecessor`, `protocol-p00.mjs / TrustedMatrixAppServerPeer`, `codex-app-server-m02-ta-r23-investigation-01.test.mjs / receipts.mjs`, `late-case-diagnostic.mjs / writeLateCaseFailure`, `entrypoint.mjs / dispatchMatrixEntrypoint`, `r37-evidence.mjs / verifyR37Predecessor`, `r37-evidence.mjs / verifyR37Predecessor`, `entrypoint.mjs / dispatchMatrixEntrypoint`, `r37-evidence.mjs / verifyR37Predecessor`, `r37-evidence.mjs / verifyR37Predecessor`, `r41-evidence.mjs / verifyR41Predecessor`, `r41-evidence.mjs / verifyR41Predecessor`, `policy.mjs / manifest.mjs`, `r37-evidence.mjs / verifyR37Predecessor`, `codex-app-server-m02-ta-workspace-r10.test.mjs / manifest.mjs`, `DurablePhaseJournal / ._append`, `codex-app-server-m02-ta-runtime-r8.test.mjs / preparation-receipt.mjs`, `instrumentScopedServerTransport / scoped-entry.mjs`, `entrypoint.mjs / dispatchMatrixEntrypoint`, `entrypoint.mjs / dispatchMatrixEntrypoint`, `entrypoint.mjs / dispatchMatrixEntrypoint`, `entrypoint.mjs / dispatchMatrixEntrypoint`, `r37-evidence.mjs / verifyFullT2Predecessor`, `script-session.mjs / finite-responses.mjs`, `script-session.mjs / finite-responses.mjs`, `manifest.mjs / prepareR29MatrixManifest`, `matrix-runner.mjs / runPreparedT2Matrix`, `git-readiness.mjs / host-file.mjs`, `policy.mjs / runtime-effects.mjs`, `entrypoint.mjs / dispatchWorkspaceEntrypoint`, `r28-success-evidence.mjs / verifyR28Predecessor`, `protocol.mjs / TrustedAppServerPeer`, `protocol.mjs / TrustedAppServerPeer`, `native-pilot-process-groups.mjs / signalProcessGroup`, `executeCodex / runCase`, `matrix-stage.mjs / stageMatrixModules`, `matrix-stage.mjs / stageMatrixModules`, `matrix-stage.mjs / stageMatrixModules`, `matrix-stage.mjs / stageMatrixModules`, `matrix-stage.mjs / stageMatrixModules`, `matrix-stage.mjs / stageMatrixModules`, `native-session-diagnostic.mjs / classifyNativeSessionError`, `matrix-stage.mjs / stageMatrixModules`, `owned-scratch-proof.mjs / metadata`, `server-transport-audit.mjs / scoped-entry.mjs`, `preparation.mjs / prepareR46MatrixManifest`, `t1-module-stage.mjs / stageT1Modules`, `t1-scoped-entry.mjs / scoped-worker-entry.mjs`, `t1-scoped-entry.mjs / scoped-worker-entry.mjs`, `t1-module-stage.mjs / stageT1Modules`, `t1-scoped-entry.mjs / scoped-worker-entry.mjs`, `preparation.mjs / verifyWorkspacePreparation`, `managed-journey-recovery-qualification.mjs / managed-journey-recovery-qualification.test.mjs`, `check-capsule-only-cutover.mjs / collect`, `TrustedCaseCoordinator / .#check`, `TrustedCaseCoordinator / .#check`, `scoped-entry.mjs / scoped-worker-entry.mjs`, `scoped-entry.mjs / scoped-worker-entry.mjs`, `scoped-entry.mjs / scoped-worker-entry.mjs`?**
+- **Why does `casePolicy()` connect `sha256 / preparation.mjs` to `scoped-entry.mjs / scoped-worker-entry.mjs`, `scoped-entry.mjs / scoped-worker-entry.mjs`, `r29-evidence.mjs / verifyR29Predecessor`, `outerMaximum / auditRequestMaximum`, `TrustedCaseCoordinator / .#check`, `policy.mjs / digest`, `preparation.mjs / writeMatrixPreparation`, `manifest.mjs / entrypoint.mjs`, `manifest.mjs / entrypoint.mjs`, `codex-app-server-m02-ta-matrix-entrypoint-r10.test.mjs / MATRIX_MANIFEST`, `plans.mjs / composition.mjs`, `TrustedCaseCoordinator / .#check`, `notification-envelope.mjs / inspectNotificationEnvelope`, `codec.mjs / decodeCodeModeContinuation`, `entrypoint.mjs / manifest.mjs`, `t1-runner.mjs / codex-app-server-m02-ta-runtime-r9.test.mjs`, `setup-graphify.mjs / findCommand`, `CleanupTests / codex_app_server_m02_p6_cleanup_test.py`, `policy.mjs / r35-evidence.mjs`, `process-state-diagnostic.mjs / GIT_FILE_PIN`, `prior-attempt.mjs / verifyPriorAttempt`, `harness-selection.mjs / resolveModelSelection`, `startup-failure.mjs / writeStartupFailure`, `startup-failure.mjs / writeStartupFailure`, `startup-failure.mjs / writeStartupFailure`, `startup-failure.mjs / writeStartupFailure`, `protocol-p00.mjs / storage.mjs`, `M02 owned Code Mode host observer / assertLiveHostBeforeCaseComplete`, `history-r34-evidence.mjs / history-r35-evidence.mjs`, `protect-seeded-files.ts / setSeededTemplateFilesTracked`, `Community 554`, `mcp-manifest-diagnostic.py / extract_model`, `permission-denial-probe.py / empty_grant`, `evidence.mjs / evidence`, `Owned host native addon / Parent birth identity pin`, `harness-diagnostic.mjs / probe`, `install-playwright.ts / main`, `agent-setup-capabilities.test.ts / repoRoot`, `r32-evidence.mjs / r29-evidence.mjs`, `late-case-diagnostic.mjs / git-readiness.mjs`, `entrypoint.mjs / r54-evidence.mjs`, `provider-failure.mjs / script-session.mjs`, `Community 66`, `PRIOR_ROOT`, `PRIOR_ROOT`, `provider-failure.mjs / script-session.mjs`, `workspace-runner.mjs / policy.mjs`, `PhaseHistoryCleanupTest / .run`, `policy.mjs / r33-evidence.mjs`, `PRIOR_ROOT`, `matrix-runner.mjs / late-case-diagnostic.mjs`, `PRIOR_ROOT`, `late-case-diagnostic.mjs / git-readiness.mjs`, `matrix-runner.mjs / policy.mjs`, `git-readiness.mjs / late-case-diagnostic.mjs`, `qualify-managed-journey-provider.mjs / managed-journey-isolated-launch.mjs`, `PhaseHistoryCleanupTest / .run`, `createOwnedHostObserver / R23_INSTALLED_HOST_FILE`, `PhaseHistoryCleanupTest / .run`, `harness-validation.test.mjs / run-harness-validation.mjs`, `protocol-p00.mjs / permission-request-diagnostic.mjs`, `protocol-p00.mjs / permission-request-diagnostic.mjs`, `protocol-p00.mjs / permission-request-diagnostic.mjs`, `protocol-p00.mjs / permission-request-diagnostic.mjs`, `protocol-p00.mjs / permission-request-diagnostic.mjs`, `managed-journey-provider-qualification.mjs / managed-journey-provider-qualification.test.mjs`, `policy.mjs / manifest.mjs`, `protocol.mjs / TrustedMatrixAppServerPeer`, `canonical / script-session.mjs`, `policy.mjs / manifest.mjs`, `t1-runner.mjs / runT1`, `database-compatibility.mjs / database-compatibility.test.ts`, `qualify-p0-r2f-schema.mjs / runArm`, `Community 650`, `Community 652`, `Community 653`, `Community 654`, `Community 655`, `Community 656`, `script-session.mjs / continuation-diagnostic.mjs`, `matrix-runner.mjs / matrix-stage.mjs`, `Community 659`, `protocol.mjs / TrustedMatrixAppServerPeer`, `Community 666`, `protocol.mjs / TrustedMatrixAppServerPeer`, `Community 667`, `runtime-effects.mjs / TrustedCaseCoordinator`, `phase-journal.mjs / DurablePhaseJournal`, `phase-journal.mjs / DurablePhaseJournal`, `journal.mjs / DurableT1Journal`, `journal.mjs / DurableT1Journal`, `policy.mjs / digest`, `journal.mjs / DurableT1Journal`, `Community 668`, `policy.mjs / digest`, `policy.mjs / digest`, `phase-journal.mjs / DurablePhaseJournal`, `phase-journal.mjs / DurablePhaseJournal`, `phase-journal.mjs / DurablePhaseJournal`, `phase-journal.mjs / DurablePhaseJournal`, `phase-journal.mjs / DurablePhaseJournal`, `phase-journal.mjs / DurablePhaseJournal`, `r51-evidence.mjs / verifyFullT2Predecessor`, `r22-evidence.mjs / verifyR22Predecessor`, `policy.mjs / manifest.mjs`, `protocol-p00.mjs / TrustedMatrixAppServerPeer`, `provider-failure.mjs / continuation-diagnostic.mjs`, `r36-evidence.mjs / verifyR36Predecessor`, `provider-failure.mjs / continuation-diagnostic.mjs`, `r36-evidence.mjs / verifyR36Predecessor`, `r43-evidence.mjs / verifyR43Predecessor`, `r41-evidence.mjs / verifyR41Predecessor`, `protocol-p00.mjs / TrustedMatrixAppServerPeer`, `codex-app-server-m02-ta-r23-investigation-01.test.mjs / receipts.mjs`, `late-case-diagnostic.mjs / writeLateCaseFailure`, `entrypoint.mjs / dispatchMatrixEntrypoint`, `r37-evidence.mjs / verifyR37Predecessor`, `r37-evidence.mjs / verifyR37Predecessor`, `entrypoint.mjs / dispatchMatrixEntrypoint`, `r37-evidence.mjs / verifyR37Predecessor`, `r37-evidence.mjs / verifyR37Predecessor`, `r41-evidence.mjs / verifyR41Predecessor`, `r41-evidence.mjs / verifyR41Predecessor`, `policy.mjs / manifest.mjs`, `r37-evidence.mjs / verifyR37Predecessor`, `codex-app-server-m02-ta-workspace-r10.test.mjs / manifest.mjs`, `DurablePhaseJournal / ._append`, `codex-app-server-m02-ta-runtime-r8.test.mjs / preparation-receipt.mjs`, `instrumentScopedServerTransport / scoped-entry.mjs`, `entrypoint.mjs / dispatchMatrixEntrypoint`, `entrypoint.mjs / dispatchMatrixEntrypoint`, `entrypoint.mjs / dispatchMatrixEntrypoint`, `entrypoint.mjs / dispatchMatrixEntrypoint`, `r37-evidence.mjs / verifyFullT2Predecessor`, `script-session.mjs / finite-responses.mjs`, `script-session.mjs / finite-responses.mjs`, `manifest.mjs / prepareR29MatrixManifest`, `matrix-runner.mjs / runPreparedT2Matrix`, `Community 344`, `git-readiness.mjs / host-file.mjs`, `policy.mjs / runtime-effects.mjs`, `entrypoint.mjs / dispatchWorkspaceEntrypoint`, `r28-success-evidence.mjs / verifyR28Predecessor`, `protocol.mjs / TrustedAppServerPeer`, `protocol.mjs / TrustedAppServerPeer`, `native-pilot-process-groups.mjs / signalProcessGroup`, `executeCodex / runCase`, `matrix-stage.mjs / stageMatrixModules`, `matrix-stage.mjs / stageMatrixModules`, `matrix-stage.mjs / stageMatrixModules`, `matrix-stage.mjs / stageMatrixModules`, `matrix-stage.mjs / stageMatrixModules`, `matrix-stage.mjs / stageMatrixModules`, `native-session-diagnostic.mjs / classifyNativeSessionError`, `matrix-stage.mjs / stageMatrixModules`, `owned-scratch-proof.mjs / metadata`, `server-transport-audit.mjs / scoped-entry.mjs`, `preparation.mjs / prepareR46MatrixManifest`, `t1-module-stage.mjs / stageT1Modules`, `t1-scoped-entry.mjs / scoped-worker-entry.mjs`, `t1-module-stage.mjs / stageT1Modules`, `t1-scoped-entry.mjs / scoped-worker-entry.mjs`, `preparation.mjs / verifyWorkspacePreparation`, `managed-journey-recovery-qualification.mjs / managed-journey-recovery-qualification.test.mjs`, `check-capsule-only-cutover.mjs / collect`, `TrustedCaseCoordinator / .#check`, `Community 461`, `TrustedCaseCoordinator / .#check`, `Community 484`, `scoped-entry.mjs / scoped-worker-entry.mjs`, `scoped-entry.mjs / scoped-worker-entry.mjs`?**
   _High betweenness centrality (0.175) - this node is a cross-community bridge._
 - **Why does `readFileSync()` connect `entrypoint.mjs / preparation.mjs` to `canonical-fixture.ts / codex-app-server-m02-ta-bridge.test.ts`, `entrypoint.mjs / preparation.mjs`, `r36-evidence.mjs / verifyR36Predecessor`, `journal.mjs / DurableT1Journal`, `matrix-runner.mjs / late-case-diagnostic.mjs`, `parseStrictJson / native-route-gate.mjs`, `matrix-runner.mjs / late-case-diagnostic.mjs`, `entrypoint.mjs / dispatchMatrixEntrypoint`, `phase-journal.mjs / DurablePhaseJournal`, `git-readiness.mjs / verifyR34HostFile`, `inspectNotificationEnvelope / notification-envelope.mjs`, `policy.mjs / codex-app-server-m02-ta-composition.test.mjs`, `r29-evidence.mjs / r32-evidence.mjs`, `script-session.mjs / finite-responses.mjs`, `provider-failure.mjs / script-session.mjs`, `entrypoint.mjs / dispatchWorkspaceEntrypoint`, `run-fallow-commit.mjs / run-react-doctor-commit.mjs`, `qualify-p0-r2f-auth.mjs / runArm`, `TrustedCaseCoordinator / .#check`, `entrypoint.mjs / preparation.mjs`, `provider-failure.mjs / createProviderFailureRecorder`?**
   _High betweenness centrality (0.083) - this node is a cross-community bridge._
 - **What connects `root`, `registry`, `fixtureRoot` to the rest of the system?**
   _4827 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `readClaimBytes / r44-evidence.mjs` be split into smaller, more focused modules?**
-  _Cohesion score 0.014504088162104514 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.015143484515787082 - nodes in this community are weakly interconnected._
 - **Should `r27-evidence.mjs / verifyR27Predecessor` be split into smaller, more focused modules?**
-  _Cohesion score 0.01454320414636033 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.015655396016674386 - nodes in this community are weakly interconnected._
 - **Should `r28-success-evidence.mjs / verifyR28Predecessor` be split into smaller, more focused modules?**
-  _Cohesion score 0.01862948921772451 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.019933398996294732 - nodes in this community are weakly interconnected._

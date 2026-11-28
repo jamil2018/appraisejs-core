@@ -49,6 +49,15 @@ Use **Attach** on a case result and send “Rename this case to …” to update
 saved reply links to the actual editor. Cases, runs, and reports also offer **Discuss in chat**, which starts with the
 exact record attached. Ordinary messages are saved as notes in the conversation.
 
+Use exact quoted names to add named cases to a suite, create a case from a template whose steps need no extra
+choices, or rename a locator group in its existing module and route. Open the record linked in the reply to inspect
+the saved change. A request such as “Capture the Place order button” opens the project’s picker. Save a captured
+selector or close the picker to return to the original chat.
+
+Use `Switch to project "Project name"` to open that project’s chat list in the current tab. Open the original
+chat from its own project. After renaming a test environment, review its
+current scope before using Run permission.
+
 Use **Discuss in chat** on a Journey to keep its current question, review, permission, or activity with the saved
 conversation. Each card uses the same scoped Appraise records as the Journey page.
 
@@ -75,6 +84,8 @@ The **Run permission** card shows the prepared tests, browser, and effects for t
 and run these tests** to grant the separate permission and start the Appraise runner. **Activity** shows recorded
 run status and links to the TestRun. Reopening the chat or changing the lookup provider restores the same attempt,
 including any interruption that Appraise cannot yet reconcile.
+When Activity shows an active, confirmed cycle, type **Stop this run** to request cancellation for all its tests.
+Activity shows the recorded outcome after Appraise receives the stop request.
 
 After the run, **Result and evidence** distinguishes passing and failing checks, skipped steps, and runs whose
 evidence Appraise could not verify. Select **Show me where** or type it in the saved chat to open the report at
@@ -92,6 +103,12 @@ Appraise can verify a saved lookup after the user reviews the exact search terms
 ChatGPT Responses, native Codex with a configured macOS app-server, Claude Code with a configured official macOS
 binary, or Cursor with a pinned official macOS CLI bundle. The engine, attempt status, and verified records remain with the message. Unresolved attempts stay visible
 after restart.
+
+The Journey composer brings the brief, provider, model, effort, and one optional text attachment together.
+If the selected assistant needs attention, the composer saves the draft before opening guided setup. The guide
+checks the same Journey connection before offering to continue. Appraise validates each Codex or Claude Code
+proposal and keeps reviews, run permission, and observed results in its own records.
+[Local Journey provider setup](../../quality-journey-operator-guide.md#start-a-local-server-with-managed-workers).
 
 The local macOS preview completed live ChatGPT Responses, native Codex, Claude Code, and Cursor lookups for the
 disposable checkout case. An uncoached first-use walkthrough, broader provider lifecycle coverage, and full action parity remain open.

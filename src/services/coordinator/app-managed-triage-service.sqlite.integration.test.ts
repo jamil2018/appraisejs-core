@@ -8,7 +8,13 @@ import { startAppManagedTriage } from './app-managed-triage-service'
 import { z } from 'zod'
 import { getAppManagedTriageRecovery, recoverAppManagedTriage } from './app-managed-triage-recovery'
 
-const sender = vi.hoisted(() => ({ run: vi.fn(), rejectSubmission: false, loseAcceptedReply: false }))
+const sender = vi.hoisted(() => ({
+  run: vi.fn(),
+  claudeRun: vi.fn(),
+  claudeBind: vi.fn(),
+  rejectSubmission: false,
+  loseAcceptedReply: false,
+}))
 vi.mock('./quality-journey-managed-role-delivery', async importOriginal => {
   const actual = await importOriginal<typeof import('./quality-journey-managed-role-delivery')>()
   return {
@@ -37,12 +43,26 @@ vi.mock('./quality-journey-managed-role-delivery', async importOriginal => {
 })
 vi.mock('@/lib/quality-journey/codex-app-server/managed-analysis-sender', () => ({
   runManagedAnalysis: sender.run,
+  inspectManagedCodexPrerequisites: async () => ({ usableForDispatch: true, state: 'candidate' }),
   classifyManagedAnalysisFailure: () => 'Managed native outcome UNKNOWN',
+}))
+vi.mock(import('@/services/provider-connection/claude-code-journey-sender'), async importOriginal => ({
+  ...(await importOriginal()),
+  bindClaudeCodeJourneySender: sender.claudeBind,
 }))
 const fixtures: Awaited<ReturnType<typeof prepareM10AutomationFixture>>[] = []
 beforeEach(() => {
   vi.stubEnv('APPRAISE_LOCAL_CODEX_TRIAGE_ENABLED', 'true')
   sender.run.mockReset()
+  sender.claudeRun.mockReset()
+  sender.claudeBind.mockReset().mockImplementation(async () => ({
+    identity: {
+      executableSha256: 'a'.repeat(64),
+      accountFingerprint: 'b'.repeat(64),
+      protocol: 'claude-code-print/v1',
+    },
+    run: sender.claudeRun,
+  }))
   sender.rejectSubmission = false
   sender.loseAcceptedReply = false
 })
@@ -133,6 +153,25 @@ function output(prompt: string) {
 }
 
 describe('local managed Triager on migrated SQLite', () => {
+  it('uses Claude for the sealed report with Codex triage disabled and preserves its dispatch identity', async () => {
+    const f = await ready()
+    await f.client.qualityJourney.update({
+      where: { id: f.scope.journeyId },
+      data: { managedWorkerProvider: 'CLAUDE_CODE' },
+    })
+    vi.stubEnv('APPRAISE_LOCAL_CODEX_TRIAGE_ENABLED', 'false')
+    vi.stubEnv('APPRAISE_LOCAL_CLAUDE_JOURNEY_ENABLED', 'true')
+    sender.claudeRun.mockImplementation(output)
+    await expect(startAppManagedTriage(f.input, f.client)).resolves.toMatchObject({ accepted: true })
+    const attempt = await f.client.qualityJourneyWorkAttempt.findFirstOrThrow({
+      where: { workItem: { journeyId: f.scope.journeyId, role: 'TRIAGER' } },
+    })
+    expect(attempt.dispatchAdapterId).toBe('APP_SERVER_LOCAL_V1_TRIAGE')
+    expect(JSON.parse(attempt.managedDispatchIdentityJson!)).toMatchObject({ provider: 'CLAUDE_CODE' })
+    expect(sender.claudeRun).toHaveBeenCalledOnce()
+    expect(sender.run).not.toHaveBeenCalled()
+  }, 30_000)
+
   it('reconciles a lost acceptance response from the original receipt without resubmission or native work', async () => {
     const f = await ready()
     sender.run.mockImplementation(output)
