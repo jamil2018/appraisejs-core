@@ -36,6 +36,7 @@ export type ReportDetailWithRelations = Prisma.ReportGetPayload<{
       include: {
         environment: true
         tags: true
+        runtimeCapsule: { select: { id: true } }
       }
     }
     features: {

@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import DeletePrompt from '@/components/user-prompt/delete-prompt'
 import { toast } from '@/hooks/use-toast'
+import { withProjectScope } from '@/lib/project-scope'
 import { formatDateTime } from '@/lib/utils'
 import { identityProviderOriginsFromDiscoveryAuthTransitPolicy } from '@/lib/quality-journey/discovery-auth-transit-display'
 
@@ -16,6 +17,7 @@ import type { EnvironmentTableRow } from './environment-helpers'
 
 type EnvironmentRegistryProps = {
   environments: EnvironmentTableRow[]
+  projectId?: string
 }
 
 function includesQuery(environment: EnvironmentTableRow, query: string) {
@@ -46,7 +48,7 @@ function ExpectedPageTitle({ value }: { value: string | null }) {
   )
 }
 
-export default function EnvironmentRegistry({ environments }: EnvironmentRegistryProps) {
+export default function EnvironmentRegistry({ environments, projectId }: EnvironmentRegistryProps) {
   const [query, setQuery] = useState('')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const filteredEnvironments = useMemo(
@@ -170,7 +172,11 @@ export default function EnvironmentRegistry({ environments }: EnvironmentRegistr
                   />
                   <TableActions
                     rowName={environment.name}
-                    modifyLink={`/environments/modify/${environment.id}`}
+                    modifyLink={
+                      projectId
+                        ? withProjectScope(`/environments/modify/${environment.id}`, projectId)
+                        : `/environments/modify/${environment.id}`
+                    }
                     deleteHandler={() => deleteEnvironmentAction([environment.id])}
                     editActionText="Edit environment"
                     deleteActionText="Delete environment"

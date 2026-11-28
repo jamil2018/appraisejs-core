@@ -14,7 +14,7 @@ export function handleStandardFormResult(options: StandardFormResultOptions): vo
     options.onSuccess()
     return
   }
-  if (options.status === 400 || options.status === 500) {
+  if (options.status === 400 || options.status === 409 || options.status === 500) {
     toast({ title: 'Error', description: options.errorMessage, variant: 'destructive' })
   }
 }

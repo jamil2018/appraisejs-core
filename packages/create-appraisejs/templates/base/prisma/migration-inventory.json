@@ -412,6 +412,18 @@
     {
       "name": "20261125020000_add_cursor_conversation_reads",
       "checksum": "54338bd8c6cd76239db413cf10acd2e7a43c0b2209194bea0831ed5380f45d86"
+    },
+    {
+      "name": "20261128010000_add_journey_managed_worker_provider",
+      "checksum": "7f3579110578405959c7043d8f62d6d8ca9149ebba03c4b0e3d4f149d6073577"
+    },
+    {
+      "name": "20261128020000_add_journey_worker_preferences",
+      "checksum": "7555b9706c229b5e1413e8a020fb5cd0d1dbded953245fb20a9404a2ffd7f4d4"
+    },
+    {
+      "name": "20261128030000_add_conversation_case_deletion_review",
+      "checksum": "f45b6f43468748599e4286dfd97309c6d5469a155f8faa5006e8896096ab400a"
     }
   ]
 }

@@ -4,8 +4,11 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { requireActiveProject } from '@/lib/active-project'
+import { withProjectScope } from '@/lib/project-scope'
 
 import { isValidReportList } from './report-detail-helpers'
+import { ReportComparison } from './report-comparison'
 import ReportTable from './report-table'
 
 export const metadata: Metadata = {
@@ -13,7 +16,13 @@ export const metadata: Metadata = {
   description: 'Manage reports for test runs',
 }
 
-export default async function Reports() {
+export default async function Reports({
+  searchParams,
+}: {
+  searchParams: Promise<{ project?: string; baseline?: string | string[]; candidate?: string | string[] }>
+}) {
+  const { project, baseline, candidate } = await searchParams
+  const activeProject = await requireActiveProject(project)
   const { data, error, success, message } = await getAllReportsAction()
   const invalidData = !error && success !== false && !isValidReportList(data)
   const reports = isValidReportList(data) ? data : []
@@ -21,7 +30,11 @@ export default async function Reports() {
   return (
     <div className="flex min-w-0 flex-col gap-4">
       <CollectionHeader title="Reports">
-        <Button render={<Link href="/quality-journeys/new" />} nativeButton={false} className="rounded-xl">
+        <Button
+          render={<Link href={withProjectScope('/quality-journeys/new', activeProject.id)} />}
+          nativeButton={false}
+          className="rounded-xl"
+        >
           Start a Quality Journey
         </Button>
       </CollectionHeader>
@@ -32,12 +45,25 @@ export default async function Reports() {
         </Alert>
       ) : reports.length === 0 ? (
         <CollectionEmpty title="No completed-run reports yet">
-          <Link href="/test-runs/create" className="app-focus rounded-md text-sm text-primary hover:underline">
+          <Link
+            href={withProjectScope('/test-runs/create', activeProject.id)}
+            className="app-focus rounded-md text-sm text-primary hover:underline"
+          >
             Prepare an independent run
           </Link>
         </CollectionEmpty>
       ) : (
-        <ReportTable reports={reports} />
+        <>
+          {reports.length > 1 && (
+            <ReportComparison
+              projectId={activeProject.id}
+              reports={reports}
+              baselineReportId={typeof baseline === 'string' ? baseline : undefined}
+              candidateReportId={typeof candidate === 'string' ? candidate : undefined}
+            />
+          )}
+          <ReportTable reports={reports} />
+        </>
       )}
     </div>
   )

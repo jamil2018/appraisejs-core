@@ -1,11 +1,13 @@
 import prisma from '@/config/db-config'
 import { randomUUID } from 'node:crypto'
-import type { testCaseSchema } from '@/constants/form-opts/test-case-form-opts'
+import { testCaseSchema } from '@/constants/form-opts/test-case-form-opts'
 import { generateUniqueTestCaseIdentifier } from '@/lib/test-case-utils'
-import { isSharedResourceId, sharedResourceBounds } from '@/lib/quality-journey/shared-resource-contract'
+import { templateTestCaseToTestCaseConverter, validateConvertedTestCaseData } from '@/lib/transformers/template-test-case-converter'
+import { isSharedResourceDigest, isSharedResourceId, sharedResourceBounds } from '@/lib/quality-journey/shared-resource-contract'
 import { TagType, type Prisma } from '@prisma/client'
 import type { z } from 'zod'
 import { ServiceError } from '@/services/shared/errors'
+import { authoringEditVersion, throwIfStaleAuthoringUpdate } from '@/services/shared/authoring-edit-version'
 import { flowBlockCreates, testCaseStepCreates } from '@/services/shared/authored-step-persistence'
 import { resolveReadyExactStepDefinitions } from '@/services/shared/step-invocation-validation'
 import {
@@ -18,7 +20,10 @@ type TestCaseInput = z.input<typeof testCaseSchema>
 type Examined = { count: number }
 const rowLimit = 65_536
 const compare = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0
-const caseSelect = { id: true, targetProjectId: true, archivedAt: true, collaborationManaged: true } as const
+const caseSelect = { id: true, targetProjectId: true, archivedAt: true, collaborationManaged: true, updatedAt: true } as const
+const reviewedCaseSelect = { ...caseSelect, title: true } as const
+const reviewedCaseDeletionLimit = 32
+type ReviewedTestCaseDeletionRecord = Readonly<{ id: string; title: string; updatedAt: string; guardEpoch: number }>
 const tagSelect = { id: true, targetProjectId: true, name: true, tagExpression: true, type: true, archivedAt: true } as const
 const refuse: (reason: string) => never = reason => {
   throw new ServiceError('Test case mutation requires exact bounded shared-resource effects.', 'CONFLICT', 409, {
@@ -210,31 +215,82 @@ async function orphanIdentifiers(tx: Tx, tags: Awaited<ReturnType<typeof oldRela
   return orphanIds
 }
 
-export async function createTestCaseFromInput(value: TestCaseInput, targetProjectId: string) {
-  const input = snapshot(value, targetProjectId), id = randomUUID()
-  return prisma.$transaction(async tx => {
-    const definitions = await validateTestCaseRelationships(tx, input, targetProjectId, { count: 0 })
-    const prepared = prepareTestCaseWrites(input, definitions), existing = keys([], input.testSuiteIds)
-    if (existing.length + 1 > sharedResourceBounds.keys) refuse('RESOURCE_BOUND')
-    await prepareSharedResourceMutationInTransaction(tx, targetProjectId, {
-      existing, newRoots: [{ kind: 'TEST_CASE', resourceId: id }], deleted: [],
-    })
-    const name = generateUniqueTestCaseIdentifier()
-    const identifier = await tx.tag.create({ data: { name, type: TagType.IDENTIFIER, tagExpression: `@${name}`, targetProjectId } })
-    return tx.testCase.create({ data: { id, title: input.title, description: input.description ?? '', targetProjectId,
-      TestSuite: { connect: input.testSuiteIds.map(resourceId => ({ id: resourceId })) },
-      tags: { connect: [identifier.id, ...(input.tagIds ?? [])].map(tagId => ({ id: tagId })) },
-      steps: { create: prepared.steps }, flowBlocks: { create: prepared.flowBlocks },
-    }, include: { TestSuite: { select: { id: true } } } })
+async function createTestCaseFromSnapshotInTransaction(tx: Tx, input: TestCaseInput, targetProjectId: string, id: string) {
+  const definitions = await validateTestCaseRelationships(tx, input, targetProjectId, { count: 0 })
+  const prepared = prepareTestCaseWrites(input, definitions), existing = keys([], input.testSuiteIds)
+  if (existing.length + 1 > sharedResourceBounds.keys) refuse('RESOURCE_BOUND')
+  await prepareSharedResourceMutationInTransaction(tx, targetProjectId, {
+    existing, newRoots: [{ kind: 'TEST_CASE', resourceId: id }], deleted: [],
   })
+  const name = generateUniqueTestCaseIdentifier()
+  const identifier = await tx.tag.create({ data: { name, type: TagType.IDENTIFIER, tagExpression: `@${name}`, targetProjectId } })
+  return tx.testCase.create({ data: { id, title: input.title, description: input.description ?? '', targetProjectId,
+    TestSuite: { connect: input.testSuiteIds.map(resourceId => ({ id: resourceId })) },
+    tags: { connect: [identifier.id, ...(input.tagIds ?? [])].map(tagId => ({ id: tagId })) },
+    steps: { create: prepared.steps }, flowBlocks: { create: prepared.flowBlocks },
+  }, include: { TestSuite: { select: { id: true } } } })
 }
 
-export async function updateTestCaseFromInput(value: TestCaseInput, id: string, targetProjectId: string) {
+/** Keep the manual writer's validated input snapshot and generated identity before its first database await. */
+export async function createTestCaseFromInput(value: TestCaseInput, targetProjectId: string) {
+  const input = snapshot(value, targetProjectId), id = randomUUID()
+  return prisma.$transaction(tx => createTestCaseFromSnapshotInTransaction(tx, input, targetProjectId, id))
+}
+
+/** Create one self-contained linear case from a same-project template in the caller's saved-chat transaction. */
+export async function createTestCaseFromExactTemplateInTransaction(
+  tx: Tx, input: { targetProjectId: string; templateName: string; title: string },
+): Promise<{ id: string; title: string; templateName: string }> {
+  const { targetProjectId, templateName, title } = input
+  if (!isSharedResourceId(targetProjectId) || typeof templateName !== 'string' || !templateName ||
+    templateName.length > 160 || Buffer.byteLength(templateName, 'utf8') > 640 ||
+    typeof title !== 'string' || title.length < 3 || title.length > 512 || Buffer.byteLength(title, 'utf8') > 2_048)
+    relationships()
+  const templates = await tx.templateTestCase.findMany({
+    where: { targetProjectId, name: templateName, archivedAt: null },
+    include: { steps: { include: { parameters: { orderBy: { order: 'asc' }, take: 33 } },
+      orderBy: { order: 'asc' }, take: 33 },
+      flowBlocks: { include: { nodes: { take: 1 } }, take: 1 } },
+    take: 2,
+  })
+  if (templates.length !== 1 || templates[0].targetProjectId !== targetProjectId ||
+    templates[0].name !== templateName || templates[0].archivedAt !== null)
+    throw new ServiceError('The named template must identify one active template in this project.', 'CONFLICT', 409)
+  const template = templates[0]
+  if (template.flowBlocks.length || template.steps.length < 1 || template.steps.length > 32 ||
+    new Set(template.steps.map(step => step.order)).size !== template.steps.length ||
+    template.steps.some(step => !Number.isSafeInteger(step.order) || step.order < 0 ||
+      step.parameters.length > 32 || new Set(step.parameters.map(parameter => parameter.order)).size !== step.parameters.length ||
+      step.parameters.some(parameter => !Number.isSafeInteger(parameter.order) || parameter.order < 0 ||
+        parameter.type === 'LOCATOR' || parameter.locatorId !== null || parameter.defaultLocatorId !== null)) ||
+    new Set(template.steps.map((step, index) => step.flowNodeId ?? `node-${index}`)).size !== template.steps.length)
+    throw new ServiceError('This template needs choices in the case editor before it can be created.', 'CONFLICT', 409)
+  let saved: TestCaseInput
+  try {
+    const converted = templateTestCaseToTestCaseConverter(template)
+    if (Object.keys(converted.nodesOrder).length !== template.steps.length ||
+      !validateConvertedTestCaseData(converted).isValid)
+      throw new Error('Incomplete template conversion')
+    const parsed = testCaseSchema.safeParse({
+      title, description: converted.description, testSuiteIds: [], tagIds: [], flowBlocks: [],
+      steps: Object.values(converted.nodesOrder).sort((a, b) => a.order - b.order),
+    })
+    if (!parsed.success) throw new Error('Invalid case input')
+    saved = snapshot(parsed.data, targetProjectId)
+  } catch {
+    throw new ServiceError('This template has invalid or unresolved steps. Open it in the case editor.', 'CONFLICT', 409)
+  }
+  const created = await createTestCaseFromSnapshotInTransaction(tx, saved, targetProjectId, randomUUID())
+  return { id: created.id, title: created.title, templateName }
+}
+
+export async function updateTestCaseFromInput(value: TestCaseInput, id: string, targetProjectId: string, expectedUpdatedAt?: string) {
   const input = snapshot(value, targetProjectId)
   if (!isSharedResourceId(id)) missing()
   return prisma.$transaction(async tx => {
     const current = await tx.testCase.findFirst({ where: { id }, select: caseSelect })
     if (!current || current.id !== id || current.targetProjectId !== targetProjectId || current.archivedAt !== null) missing()
+    const editVersion = authoringEditVersion(current.updatedAt, expectedUpdatedAt)
     const budget = { count: 0 }
     examined([current], budget)
     const definitions = await validateTestCaseRelationships(tx, input, targetProjectId, budget)
@@ -246,11 +302,117 @@ export async function updateTestCaseFromInput(value: TestCaseInput, id: string, 
     // testSuiteIds remain validation-only on update; this writer does not change membership.
     await prepareSharedResourceMutationInTransaction(tx, targetProjectId, { existing: keys([id], []), newRoots: [], deleted: [] })
     await removeChildren(tx, [id], owned)
-    return tx.testCase.update({ where: { id }, data: { title: input.title, description: input.description ?? '',
-      tags: { set: tagIds.map(tagId => ({ id: tagId })) },
-      steps: { create: prepared.steps }, flowBlocks: { create: prepared.flowBlocks },
-    }, include: { steps: true } })
+    try {
+      return await tx.testCase.update({
+        where: { id, ...(editVersion ? { targetProjectId, archivedAt: null, updatedAt: editVersion.expected } : {}) },
+        data: { title: input.title, description: input.description ?? '',
+          tags: { set: tagIds.map(tagId => ({ id: tagId })) },
+          steps: { create: prepared.steps }, flowBlocks: { create: prepared.flowBlocks },
+          ...(editVersion ? { updatedAt: editVersion.next } : {}),
+        }, include: { steps: true },
+      })
+    } catch (error) { throwIfStaleAuthoringUpdate(error) }
   })
+}
+
+/** Resolve exact live titles for a destructive review. The caller owns this read transaction. */
+export async function resolveReviewedTestCaseDeletionInTransaction(
+  tx: Tx, input: { targetProjectId: string; exactTitles: string[] },
+): Promise<ReviewedTestCaseDeletionRecord[]> {
+  const { targetProjectId, exactTitles } = input
+  if (!isSharedResourceId(targetProjectId) || !Array.isArray(exactTitles) ||
+    exactTitles.length === 0 || exactTitles.length > reviewedCaseDeletionLimit ||
+    exactTitles.some(title => typeof title !== 'string' || title.length === 0 ||
+      title.length > 512 || Buffer.byteLength(title, 'utf8') > 2_048) ||
+    new Set(exactTitles).size !== exactTitles.length) refuse('REVIEWED_TITLES')
+  const titles = [...exactTitles]
+  const rows = await tx.testCase.findMany({
+    where: { targetProjectId, archivedAt: null, title: { in: titles } },
+    select: reviewedCaseSelect, take: reviewedCaseDeletionLimit + 1,
+  })
+  const budget = { count: 0 }
+  scoped(rows, targetProjectId, budget)
+  if (rows.length !== titles.length || new Set(rows.map(row => row.title)).size !== titles.length || rows.some(row =>
+    !titles.includes(row.title) || row.archivedAt !== null || row.collaborationManaged))
+    throw new ServiceError('Each name must match one active test case in this project that can be deleted.', 'CONFLICT', 409)
+  const guards = await tx.qualityJourneySharedResourceGuard.findMany({
+    where: { targetProjectId, kind: 'TEST_CASE', resourceId: { in: rows.map(row => row.id) } },
+    select: { targetProjectId: true, kind: true, resourceId: true, epoch: true, coverageState: true,
+      coverageDigest: true, resourceState: true, deletedAt: true, createdAt: true },
+    take: reviewedCaseDeletionLimit + 1,
+  })
+  const ids = new Set(rows.map(row => row.id))
+  if (guards.length !== rows.length || new Set(guards.map(guard => guard.resourceId)).size !== rows.length ||
+    guards.some(guard => guard.targetProjectId !== targetProjectId || guard.kind !== 'TEST_CASE' ||
+      !ids.has(guard.resourceId) || !Number.isSafeInteger(guard.epoch) || guard.epoch < 0 ||
+      guard.epoch >= sharedResourceBounds.epoch || guard.coverageState !== 'COMPLETE_V1' ||
+      !isSharedResourceDigest(guard.coverageDigest) || guard.resourceState !== 'LIVE' ||
+      guard.deletedAt !== null || !(guard.createdAt instanceof Date) ||
+      !Number.isFinite(guard.createdAt.getTime()))) refuse('REVIEWED_CASE_GUARD')
+  const guardById = new Map(guards.map(guard => [guard.resourceId, guard]))
+  return rows.map(row => {
+    const guard = guardById.get(row.id)
+    if (!guard) refuse('REVIEWED_CASE_GUARD')
+    return { id: row.id, title: row.title, updatedAt: row.updatedAt.toISOString(), guardEpoch: guard.epoch }
+  })
+    .sort((a, b) => compare(a.id, b.id))
+}
+
+/** Consume only the complete live selection that was shown for review, inside the caller's transaction. */
+export async function deleteReviewedTestCasesInTransaction(
+  tx: Tx, input: { targetProjectId: string; reviewedCases: ReviewedTestCaseDeletionRecord[] },
+): Promise<void> {
+  const { targetProjectId, reviewedCases } = input
+  if (!isSharedResourceId(targetProjectId) || !Array.isArray(reviewedCases) ||
+    reviewedCases.length === 0 || reviewedCases.length > reviewedCaseDeletionLimit ||
+    reviewedCases.some(row => !row || !isSharedResourceId(row.id) || typeof row.title !== 'string' ||
+      row.title.length === 0 || row.title.length > 512 || Buffer.byteLength(row.title, 'utf8') > 2_048 ||
+      typeof row.updatedAt !== 'string' || !Number.isFinite(Date.parse(row.updatedAt)) ||
+      new Date(row.updatedAt).toISOString() !== row.updatedAt ||
+      !Number.isSafeInteger(row.guardEpoch) || row.guardEpoch < 0 || row.guardEpoch >= sharedResourceBounds.epoch) ||
+    new Set(reviewedCases.map(row => row.id)).size !== reviewedCases.length ||
+    new Set(reviewedCases.map(row => row.title)).size !== reviewedCases.length)
+    refuse('REVIEWED_CASES')
+  const reviewed = reviewedCases.map(row => ({ id: row.id, title: row.title, updatedAt: row.updatedAt,
+    guardEpoch: row.guardEpoch }))
+    .sort((a, b) => compare(a.id, b.id))
+  const current = await resolveReviewedTestCaseDeletionInTransaction(tx, {
+    targetProjectId, exactTitles: reviewed.map(row => row.title),
+  })
+  if (current.length !== reviewed.length || current.some((row, index) =>
+    row.id !== reviewed[index].id || row.title !== reviewed[index].title ||
+    row.updatedAt !== reviewed[index].updatedAt || row.guardEpoch !== reviewed[index].guardEpoch))
+    throw new ServiceError('The reviewed test cases changed. Review the selection again.', 'CONFLICT', 409)
+  await deleteTestCasesInTransaction(tx, reviewed.map(row => row.id), targetProjectId)
+}
+
+async function deleteTestCasesInTransaction(tx: Tx, requested: string[], targetProjectId: string): Promise<void> {
+  const budget = { count: 0 }
+  const cases = scoped(await tx.testCase.findMany({ where: { id: { in: requested } }, select: caseSelect,
+    take: rowLimit + 1 }), targetProjectId, budget)
+  if (cases.length !== requested.length || cases.some(row => !requested.includes(row.id))) refuse('CASE_SCOPE')
+  if (cases.some(row => row.collaborationManaged))
+    throw new ServiceError('Collaboration-managed test cases must be archived, not deleted.', 'CONFLICT', 409)
+  const activeIds = cases.filter(row => row.archivedAt === null).map(row => row.id).sort(compare)
+  if (!activeIds.length) return
+  await deletionReferences(tx, activeIds, targetProjectId, budget)
+  const old = await oldRelationships(tx, activeIds, targetProjectId, budget)
+  const owned = await children(tx, activeIds, targetProjectId, budget)
+  const orphanIds = await orphanIdentifiers(tx, old.tags, activeIds, targetProjectId, budget)
+  const deleted = keys(activeIds, [])
+  await prepareSharedResourceMutationInTransaction(tx, targetProjectId, {
+    existing: keys(activeIds, old.suites.map(row => row.id)), newRoots: [], deleted,
+  })
+  await removeChildren(tx, activeIds, owned)
+  const result = await tx.testCase.deleteMany({ where: { id: { in: activeIds }, targetProjectId,
+    archivedAt: null, collaborationManaged: false } })
+  if (result.count !== activeIds.length) refuse('DELETE_COUNT')
+  if (orphanIds.length) {
+    const cleanup = await tx.tag.deleteMany({ where: { id: { in: orphanIds }, targetProjectId,
+      type: TagType.IDENTIFIER, name: { startsWith: 'tc_' },
+      testCases: { none: {} }, testSuites: { none: {} }, testRuns: { none: {} } } })
+    if (cleanup.count !== orphanIds.length) refuse('IDENTIFIER_DELETE_COUNT')
+  }
 }
 
 export async function deleteTestCasesByIds(ids: string[], targetProjectId: string): Promise<void> {
@@ -258,34 +420,7 @@ export async function deleteTestCasesByIds(ids: string[], targetProjectId: strin
     ids.some(id => !isSharedResourceId(id))) refuse('REQUESTED_IDS')
   const requested = [...new Set(ids)].sort(compare)
   if (!requested.length) return
-  await prisma.$transaction(async tx => {
-    const budget = { count: 0 }
-    const cases = scoped(await tx.testCase.findMany({ where: { id: { in: requested } }, select: caseSelect,
-      take: rowLimit + 1 }), targetProjectId, budget)
-    if (cases.length !== requested.length || cases.some(row => !requested.includes(row.id))) refuse('CASE_SCOPE')
-    if (cases.some(row => row.collaborationManaged))
-      throw new ServiceError('Collaboration-managed test cases must be archived, not deleted.', 'CONFLICT', 409)
-    const activeIds = cases.filter(row => row.archivedAt === null).map(row => row.id).sort(compare)
-    if (!activeIds.length) return
-    await deletionReferences(tx, activeIds, targetProjectId, budget)
-    const old = await oldRelationships(tx, activeIds, targetProjectId, budget)
-    const owned = await children(tx, activeIds, targetProjectId, budget)
-    const orphanIds = await orphanIdentifiers(tx, old.tags, activeIds, targetProjectId, budget)
-    const deleted = keys(activeIds, [])
-    await prepareSharedResourceMutationInTransaction(tx, targetProjectId, {
-      existing: keys(activeIds, old.suites.map(row => row.id)), newRoots: [], deleted,
-    })
-    await removeChildren(tx, activeIds, owned)
-    const result = await tx.testCase.deleteMany({ where: { id: { in: activeIds }, targetProjectId,
-      archivedAt: null, collaborationManaged: false } })
-    if (result.count !== activeIds.length) refuse('DELETE_COUNT')
-    if (orphanIds.length) {
-      const cleanup = await tx.tag.deleteMany({ where: { id: { in: orphanIds }, targetProjectId,
-        type: TagType.IDENTIFIER, name: { startsWith: 'tc_' },
-        testCases: { none: {} }, testSuites: { none: {} }, testRuns: { none: {} } } })
-      if (cleanup.count !== orphanIds.length) refuse('IDENTIFIER_DELETE_COUNT')
-    }
-  })
+  await prisma.$transaction(tx => deleteTestCasesInTransaction(tx, requested, targetProjectId))
 }
 
 export async function listTestCases(targetProjectId: string) {

@@ -126,7 +126,7 @@ export async function fillTestCaseDetails(
 
 export async function saveTestCase(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Save test case' }).click()
-  await expect(page).toHaveURL(/\/test-cases$/)
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/test-cases')
 }
 
 export async function createTestCaseWithSeededStep(page: Page, title: string): Promise<void> {
@@ -144,7 +144,7 @@ export async function editEnvironment(page: Page, id: string, nextName: string):
   await expectPageHeading(page, 'Modify Environment')
   await page.getByRole('textbox', { name: 'Name', exact: true }).fill(nextName)
   await saveForm(page)
-  await expect(page).toHaveURL(/\/environments$/)
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/environments')
 }
 
 export async function editTag(page: Page, id: string, nextName: string, expression: string): Promise<void> {
@@ -152,5 +152,5 @@ export async function editTag(page: Page, id: string, nextName: string, expressi
   await page.getByRole('textbox', { name: 'Name', exact: true }).fill(nextName)
   await page.getByRole('textbox', { name: 'Tag Expression', exact: true }).fill(expression)
   await saveForm(page)
-  await expect(page).toHaveURL(/\/tags$/)
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/tags')
 }

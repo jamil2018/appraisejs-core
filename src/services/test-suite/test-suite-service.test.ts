@@ -25,7 +25,8 @@ import { ensureTestSuiteIdentifierTags, getOrCreateTestSuiteIdentifierTagId } fr
 
 const project = 'project-1'
 const prepare = vi.mocked(prepareSharedResourceMutationInTransaction)
-const suite = (id = 'suite-1', extra = {}) => ({ id, targetProjectId: project, moduleId: 'module-1', archivedAt: null, collaborationManaged: false, ...extra })
+const suite = (id = 'suite-1', extra = {}) => ({ id, targetProjectId: project, moduleId: 'module-1', archivedAt: null,
+  collaborationManaged: false, updatedAt: new Date('2026-01-01T00:00:00.000Z'), ...extra })
 const caseRow = (id: string, extra = {}) => ({ id, targetProjectId: project, archivedAt: null, ...extra })
 const tag = (id = 'identifier-tag', extra = {}) => ({ id, targetProjectId: project, name: 'ts_old', tagExpression: '@ts_old', type: 'IDENTIFIER', archivedAt: null, ...extra })
 const value = (extra = {}) => ({ name: 'Login Suite', description: 'Covers login', moduleId: 'module-1', testCases: ['case-new'], tagIds: ['filter-tag'], ...extra })
@@ -168,6 +169,13 @@ describe('createTestSuiteFromInput', () => {
 })
 
 describe('updateTestSuiteFromInput', () => {
+  it('rejects a stale suite edit before changing membership or identifier tags', async () => {
+    suites.set('suite-1', suite('suite-1', { updatedAt: new Date('2026-01-01T00:00:00.001Z') }))
+    await expect(updateTestSuiteFromInput(value(), 'suite-1', project, '2026-01-01T00:00:00.000Z'))
+      .rejects.toMatchObject({ code: 'CONFLICT', statusCode: 409 })
+    noWrite()
+  })
+
   it('updates database relationships when the name changes and preserves the identifier tag', async () => {
     await updateTestSuiteFromInput(value({ name: 'New Name' }), 'suite-1', project)
     expect(prepare).toHaveBeenCalledWith(tx, project, { existing: expectedKeys(['case-new', 'case-old']), newRoots: [], deleted: [] })

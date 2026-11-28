@@ -3,29 +3,21 @@ import os from 'node:os'
 import path from 'node:path'
 import { createServer } from 'node:http'
 import { PrismaClient } from '@prisma/client'
-import { afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import {
   copyMigratedTestDatabase,
   createTargetProjectFixture,
   prepareMigratedTestDatabase,
 } from '@/test/migrated-test-database'
+import { seedPreparedJourneyExecution } from '@/test/prepared-journey-execution-fixture'
 import { createQualityJourneyKernelState, hashQualityJourneyExecutionValue } from '@/lib/quality-journey'
-import { preparedRuntimeCapsuleSchema } from '@/lib/quality-journey/automation-contracts'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
-import { defaultOperationDefinitions } from '@/lib/operation-catalog'
 import { processManager } from '@/lib/test-run/process-manager'
 import { hashRuntimeCapsuleBytes } from '@/lib/runtime-capsule'
 import { loadJourneyCapsuleSource } from '@/lib/runtime-capsule/journey-source'
 import { TestRunArtifactAccessService } from '@/services/test-run/test-run-artifact-access-service'
-import {
-  builtInStepDefinitions,
-  canonicalStepDefinitionJson,
-  computeStepDefinitionHashes,
-  computeStepExecutableReadiness,
-  computeStepReferenceHash,
-  stepDefinitionContentHash,
-} from '../../../packages/cucumber-runtime/src/step-definitions/index.ts'
 import { createQualityJourney } from './quality-journey-service'
+import { trustedHumanCoordinatorSession } from './quality-journey-coordinator-session'
 import {
   startQualityJourneyExecutionRuntime,
   reconcileQualityJourneyExecutionRuntime,
@@ -48,7 +40,6 @@ import { submitDurableQualityJourneyCommand } from './quality-journey-service'
 
 const workspaces: string[] = []
 const digest = (character: string) => `sha256:${character.repeat(64)}`
-const json = JSON.stringify
 
 // Build the genuine migrated template under the existing setup-hook budget.
 // Each case still copies a fresh database and retains its normal test deadline.
@@ -60,36 +51,6 @@ afterEach(async () => {
   resetQualityJourneyExecutionRuntimeAdapter()
   await Promise.all(workspaces.splice(0).map(workspace => fs.rm(workspace, { recursive: true, force: true })))
 })
-
-function executionResourceHashes(
-  realRuntime: boolean,
-  legacyResourceHashes: boolean,
-  definition: (typeof builtInStepDefinitions)[number],
-  operation: (typeof defaultOperationDefinitions)[number],
-) {
-  const definitionHashes = computeStepDefinitionHashes(definition)
-  const resourceHashes = realRuntime
-    ? [
-        {
-          id: `step:${definition.identity.id}:${definition.identity.version}`,
-          contentHash: definitionHashes.definitionHash,
-        },
-        {
-          id: `operation:${operation.id}:${operation.version}`,
-          contentHash: hashQualityJourneyExecutionValue(operation),
-        },
-      ].map(resource =>
-        legacyResourceHashes
-          ? {
-              ...resource,
-              kind: resource.id.startsWith('step:') ? ('STEP_DEFINITION' as const) : ('OPERATION' as const),
-              sourceTargetProjectId: null,
-            }
-          : resource,
-      )
-    : []
-  return resourceHashes
-}
 
 async function fixture(
   actualOperationId = 'browser.forms.fill',
@@ -107,358 +68,18 @@ async function fixture(
   // SQLite PRAGMAs are connection-local. Keep fixture setup and restoration
   // on one connection on every host, including multi-core Linux CI runners.
   const client = new PrismaClient({ datasources: { db: { url: `file:${databasePath}?connection_limit=1` } } })
-  await createTargetProjectFixture(client, {
-    id: 'target-execution',
-    kind: 'LOCAL_WORKSPACE',
-    canonicalIdentity: `path:${workspace}`,
-    canonicalPath: workspace,
-    displayName: 'execution',
-    fingerprint: digest('a'),
+  const seeded = await seedPreparedJourneyExecution(client, workspace, {
+    actualOperationId,
+    manifestOperationId,
+    capsuleCount,
+    realRuntime,
+    baseUrl,
+    legacyResourceHashes,
+    legacyBareStep,
   })
-  await client.environment.create({
-    data: {
-      id: 'environment-execution',
-      targetProjectId: 'target-execution',
-      name: 'local',
-      baseUrl,
-    },
-  })
-  await client.module.create({ data: { id: 'module-execution', targetProjectId: 'target-execution', name: 'module' } })
-  await client.testSuite.create({
-    data: { id: 'suite-execution', targetProjectId: 'target-execution', moduleId: 'module-execution', name: 'suite' },
-  })
-  await client.testCase.create({
-    data: {
-      id: 'case-execution',
-      targetProjectId: 'target-execution',
-      title: 'case',
-      description: 'case',
-      TestSuite: { connect: { id: 'suite-execution' } },
-    },
-  })
-  const created = await createQualityJourney(
-    {
-      targetProjectId: 'target-execution',
-      idempotencyKey: 'journey-create',
-      requirement: { objective: 'exercise phase seven' },
-    },
-    client,
-  )
-  const state = createQualityJourneyKernelState({
-    journeyId: created.journey.journeyId,
-    targetProjectId: 'target-execution',
-    activeCycleId: created.journey.activeCycleId,
-    stage: 'AUTOMATION',
-  })
-  // Phase 6's relational antecedents are already tested in their own suite.
-  // This uses a migrated SQLite database to seed the smallest frozen output
-  // packet consumed by the Phase 7 coordinator boundary.
-  await client.$executeRawUnsafe('PRAGMA foreign_keys=OFF')
-  await client.qualityJourney.update({
-    where: { id: created.journey.journeyId },
-    data: { stage: 'AUTOMATION', stateHash: state.stateHash, activeScenarioPortfolioRevisionId: 'portfolio-execution' },
-  })
-  await client.qualityJourneyScenarioPortfolioRevision.create({
-    data: {
-      id: 'portfolio-execution',
-      journeyId: created.journey.journeyId,
-      targetProjectId: 'target-execution',
-      cycleId: created.journey.activeCycleId,
-      discoveryRevisionId: 'discovery-missing',
-      discoveryCompletionHash: digest('b'),
-      artifactRecordId: 'artifact-portfolio',
-      artifactId: 'portfolio',
-      artifactRevisionId: 'portfolio-r1',
-      revision: 1,
-      contentHash: digest('c'),
-      behavioralIntentHash: digest('d'),
-      enrichmentHash: digest('e'),
-      layoutHash: digest('f'),
-      coverageRationale: 'scope',
-      graphJson: '{}',
-      submissionIdempotencyKey: 'portfolio-submit',
-      submissionHash: digest('1'),
-      submittedWorkItemId: 'work-missing',
-      submittedAttemptId: 'attempt-missing',
-      status: 'APPROVED',
-      approvedIntentHash: digest('2'),
-    },
-  })
-  await client.qualityJourneyScenarioRevision.create({
-    data: {
-      id: 'scenario-row',
-      portfolioRevisionId: 'portfolio-execution',
-      stableScenarioId: 'scenario-stable',
-      scenarioRevisionId: 'scenario-r1',
-      behavioralIntentJson: '{}',
-      behavioralIntentHash: digest('3'),
-      enrichmentJson: '{}',
-      enrichmentHash: digest('4'),
-      layoutJson: '{}',
-      layoutHash: digest('5'),
-      contentHash: digest('6'),
-    },
-  })
-  await client.qualityJourneyScenarioDecision.create({
-    data: {
-      id: 'decision-execution',
-      portfolioRevisionId: 'portfolio-execution',
-      scenarioRevisionId: 'scenario-r1',
-      decision: 'APPROVED',
-      actor: 'USER',
-      idempotencyKey: 'decision-execution',
-      requestHash: digest('7'),
-      contentHash: digest('8'),
-    },
-  })
-  await client.qualityJourneyAutomationMaterialization.create({
-    data: {
-      id: 'materialization-execution',
-      journeyId: created.journey.journeyId,
-      targetProjectId: 'target-execution',
-      cycleId: created.journey.activeCycleId,
-      scenarioRevisionId: 'scenario-r1',
-      scenarioContentHash: digest('6'),
-      portfolioRevisionId: 'portfolio-r1',
-      portfolioRecordId: 'portfolio-execution',
-      portfolioContentHash: digest('c'),
-      decisionId: 'decision-execution',
-      decisionHash: digest('8'),
-      workItemId: 'work-missing',
-      attemptId: 'attempt-missing',
-      leaseId: 'lease',
-      ownerTokenHash: digest('9'),
-      inputHash: digest('a'),
-      idempotencyKey: 'materialization',
-      requestHash: digest('b'),
-      materializationHash: digest('c'),
-      artifactRecordId: 'artifact-materialization',
-      artifactJson: '{}',
-    },
-  })
-  const operation = defaultOperationDefinitions.find(item => item.id === actualOperationId && item.version === '1')!
-  const definition = builtInStepDefinitions.find(
-    item =>
-      item.execution.kind === 'operation' &&
-      item.execution.handlerId === operation.handler.id &&
-      item.execution.handlerVersion === operation.handler.version,
-  )!
-  const definitionHashes = computeStepDefinitionHashes(definition)
-  const registryManifestHash = stepDefinitionContentHash({ step: definition.identity })
-  const publicationReceipt = {
-    step: { id: definition.identity.id, version: definition.identity.version },
-    ...definitionHashes,
-    registryManifestHash,
-    executableReadiness: computeStepExecutableReadiness(definition, registryManifestHash, 'c26-bounded-runtime'),
-    conformanceRunId: 'c26-bounded-runtime',
-    reviewAuthority: 'fixture-reviewer',
-    publishedAt: '2026-09-29T00:00:00.000Z',
-  }
-  await client.stepDefinition.create({
-    data: {
-      id: definition.identity.id,
-      version: definition.identity.version,
-      status: 'ready',
-      title: definition.intent.title,
-      description: definition.intent.description,
-      definitionJson: json(definition),
-      definitionHash: definitionHashes.definitionHash,
-      humanProjectionHash: definitionHashes.humanProjectionHash,
-      ...(realRuntime ? { agentContractHash: definitionHashes.agentContractHash } : {}),
-      executionHash: definitionHashes.executionHash,
-      provenanceJson: json(definition.provenance),
-      ...(realRuntime
-        ? {
-            publicationReceipt: {
-              create: {
-                receiptJson: json(publicationReceipt),
-                receiptHash: stepDefinitionContentHash(publicationReceipt),
-                registryManifestHash,
-                conformanceRunId: 'c26-bounded-runtime',
-                reviewAuthority: 'fixture-reviewer',
-              },
-            },
-          }
-        : {}),
-    },
-  })
-  const invocation = canonicalStepDefinitionJson({
-    step: {
-      id: definition.identity.id,
-      version: definition.identity.version,
-      definitionHash: computeStepReferenceHash(definition),
-    },
-    inputs: {},
-    presentation: { keyword: realRuntime ? 'Given' : 'Then', description: definition.intent.description },
-  })
-  const binding = {
-    schemaVersion: 'appraise.quality-journey/v1',
-    targetProjectId: 'target-execution',
-    moduleId: 'module-execution',
-    suite: { id: 'suite-execution', name: 'suite', description: null },
-    testCase: {
-      id: 'case-execution',
-      title: 'case',
-      description: 'case',
-      steps: [
-        {
-          ...(realRuntime
-            ? {
-                order: 0,
-                gherkinStep: legacyBareStep
-                  ? operation.humanProjections[0]!.signature
-                  : `Given ${operation.humanProjections[0]!.signature}`,
-                label: operation.title,
-                icon: 'NAVIGATION',
-              }
-            : {}),
-          invocationJson: invocation,
-        },
-      ],
-    },
-  }
-  const resourceHashes = executionResourceHashes(realRuntime, legacyResourceHashes, definition, operation)
-  await client.qualityJourneyAutomationTargetBinding.create({
-    data: {
-      id: 'binding-execution',
-      journeyId: created.journey.journeyId,
-      targetProjectId: 'target-execution',
-      semanticHash: digest('d'),
-      suiteId: 'suite-execution',
-      testCaseId: 'case-execution',
-      suiteHash: digest('e'),
-      testCaseHash: digest('f'),
-      stepHash: digest('1'),
-      bindingJson: json(binding),
-      resourceHashJson: json(resourceHashes),
-    },
-  })
-  await client.qualityJourneyAutomationMaterializationBinding.create({
-    data: { materializationId: 'materialization-execution', bindingId: 'binding-execution' },
-  })
-  const manifest = {
-    schemaVersion: 'appraise.quality-journey/v1',
-    testCaseId: 'case-execution',
-    suiteId: 'suite-execution',
-    steps: [{ operation: { id: manifestOperationId, version: '1' }, locatorRequirements: [] }],
-    // Materialized manifests have always frozen locator requirements, including
-    // legacy resource metadata; this operation needs no supplemental selectors.
-    locatorRequirements: [],
-  }
-  const manifestHash = hashQualityJourneyExecutionValue(manifest)
-  const capsuleHash = realRuntime
-    ? hashQualityJourneyExecutionValue(
-        preparedRuntimeCapsuleSchema.parse({
-          schemaVersion: 'appraise.quality-journey/v1',
-          capsuleId: 'prepared-execution',
-          journeyId: created.journey.journeyId,
-          targetProjectId: 'target-execution',
-          cycleId: created.journey.activeCycleId,
-          materializationId: 'materialization-execution',
-          inputHash: digest('a'),
-          manifestHash,
-          status: 'PREPARED',
-        }),
-      )
-    : digest('b')
-  await client.qualityJourneyPreparedRuntimeCapsule.create({
-    data: {
-      id: 'prepared-execution',
-      journeyId: created.journey.journeyId,
-      targetProjectId: 'target-execution',
-      cycleId: created.journey.activeCycleId,
-      materializationId: 'materialization-execution',
-      inputHash: digest('a'),
-      capsuleHash,
-      manifestJson: json(manifest),
-      manifestHash,
-    },
-  })
-  if (capsuleCount === 2) {
-    await seedSecondPreparedCapsule(client, created.journey.journeyId, created.journey.activeCycleId, manifest)
-  }
-  await client.$executeRawUnsafe('PRAGMA foreign_keys=ON')
   const enforcement = await client.$queryRawUnsafe<Array<{ foreign_keys: bigint }>>('PRAGMA foreign_keys')
   expect(Number(enforcement[0].foreign_keys)).toBe(1)
-  return {
-    client,
-    journeyId: created.journey.journeyId,
-    stateHash: state.stateHash,
-    cycleId: created.journey.activeCycleId,
-    preparedRuntimeCapsuleIds:
-      capsuleCount === 2 ? ['prepared-execution', 'prepared-execution-2'] : ['prepared-execution'],
-  }
-}
-
-async function seedSecondPreparedCapsule(client: PrismaClient, journeyId: string, cycleId: string, manifest: unknown) {
-  await client.qualityJourneyScenarioRevision.create({
-    data: {
-      id: 'scenario-row-2',
-      portfolioRevisionId: 'portfolio-execution',
-      stableScenarioId: 'scenario-stable-2',
-      scenarioRevisionId: 'scenario-r2',
-      behavioralIntentJson: '{}',
-      behavioralIntentHash: digest('4'),
-      enrichmentJson: '{}',
-      enrichmentHash: digest('5'),
-      layoutJson: '{}',
-      layoutHash: digest('6'),
-      contentHash: digest('7'),
-    },
-  })
-  await client.qualityJourneyScenarioDecision.create({
-    data: {
-      id: 'decision-execution-2',
-      portfolioRevisionId: 'portfolio-execution',
-      scenarioRevisionId: 'scenario-r2',
-      decision: 'APPROVED',
-      actor: 'USER',
-      idempotencyKey: 'decision-execution-2',
-      requestHash: digest('8'),
-      contentHash: digest('9'),
-    },
-  })
-  await client.qualityJourneyAutomationMaterialization.create({
-    data: {
-      id: 'materialization-execution-2',
-      journeyId,
-      targetProjectId: 'target-execution',
-      cycleId,
-      scenarioRevisionId: 'scenario-r2',
-      scenarioContentHash: digest('7'),
-      portfolioRevisionId: 'portfolio-r1',
-      portfolioRecordId: 'portfolio-execution',
-      portfolioContentHash: digest('c'),
-      decisionId: 'decision-execution-2',
-      decisionHash: digest('9'),
-      workItemId: 'work-missing-2',
-      attemptId: 'attempt-missing-2',
-      leaseId: 'lease-2',
-      ownerTokenHash: digest('a'),
-      inputHash: digest('b'),
-      idempotencyKey: 'materialization-2',
-      requestHash: digest('c'),
-      materializationHash: digest('d'),
-      artifactRecordId: 'artifact-materialization-2',
-      artifactJson: '{}',
-    },
-  })
-  await client.qualityJourneyAutomationMaterializationBinding.create({
-    data: { materializationId: 'materialization-execution-2', bindingId: 'binding-execution' },
-  })
-  await client.qualityJourneyPreparedRuntimeCapsule.create({
-    data: {
-      id: 'prepared-execution-2',
-      journeyId,
-      targetProjectId: 'target-execution',
-      cycleId,
-      materializationId: 'materialization-execution-2',
-      inputHash: digest('b'),
-      capsuleHash: digest('c'),
-      manifestJson: json(manifest),
-      manifestHash: hashQualityJourneyExecutionValue(manifest),
-    },
-  })
+  return { client, ...seeded }
 }
 
 type ExecutionFixture = {
@@ -532,73 +153,6 @@ describe('Quality Journey Phase 7 execution coordinator (SQLite)', () => {
       reconcile: async () => undefined,
     })
     try {
-      await value.client.$transaction(async tx => {
-        const materialization = await tx.qualityJourneyAutomationMaterialization.findUniqueOrThrow({
-          where: { id: 'materialization-execution' },
-        })
-        const { journeyId, targetProjectId, cycleId, workItemId, attemptId, leaseId, inputHash } = materialization
-        const role = 'AUTOMATOR'
-        const roleContractDigest = digest('d')
-        const authorizationId = 'legacy-automator-authorization'
-        await tx.qualityJourneyWorkItem.create({
-          data: {
-            id: workItemId,
-            journeyId,
-            targetProjectId,
-            cycleId,
-            role,
-            status: 'COMPLETED',
-            currentAttempt: 1,
-            inputHash,
-            roleContractDigest,
-          },
-        })
-        await tx.qualityJourneyWorkAuthorization.create({
-          data: {
-            id: authorizationId,
-            journeyId,
-            targetProjectId,
-            workItemId,
-            role,
-            roleContractDigest,
-            capabilityProfileId: 'legacy-automator-profile',
-            capabilityProfileHash: digest('e'),
-            authorizationJson: '{}',
-            authorizationHash: hashQualityJourneyExecutionValue({}),
-          },
-        })
-        const startedAt = new Date('2026-09-05T00:00:00.000Z')
-        const completedAt = new Date('2026-09-05T00:00:30.000Z')
-        await tx.qualityJourneyWorkAttempt.create({
-          data: {
-            id: attemptId,
-            workItemId,
-            attempt: 1,
-            status: 'COMPLETED',
-            leaseId,
-            ownerTokenHash: materialization.ownerTokenHash,
-            leaseExpiresAt: new Date('2026-09-05T00:01:00.000Z'),
-            heartbeatSeconds: 30,
-            authorizationId,
-            startedAt,
-            completedAt,
-          },
-        })
-        await tx.qualityJourneyWorkAttemptSessionBinding.create({
-          data: {
-            attemptId,
-            journeyId,
-            targetProjectId,
-            assignmentGeneration: 1,
-            workItemId,
-            role,
-            authorizationId,
-            leaseId,
-            inputHash,
-            provenance: 'CLAIM_EXPLICIT_LEGACY_NO_SESSION_V1',
-          },
-        })
-      })
       const started = startedExecution(
         await startQualityJourneyExecution(startInput(value, 'legacy-resources'), value.client),
       )
@@ -745,6 +299,84 @@ describe('Quality Journey Phase 7 execution coordinator (SQLite)', () => {
       expect(renewed).toMatchObject({ consentRequired: { executionConsentId: expect.any(String) } })
       if (!('consentRequired' in renewed)) throw new Error('expired grant must request a new consent')
       expect(renewed.consentRequired.executionConsentId).not.toBe(initial.id)
+    } finally {
+      await value.client.$disconnect()
+    }
+  })
+
+  it('keeps a chat permission request and uncertain runner attempt on one durable dispatch', async () => {
+    const value = await fixture('browser.forms.fill')
+    const conversationId = 'd9ddf773-1b26-4f49-939f-21778347119e'
+    const calls: string[] = []
+    registerQualityJourneyExecutionRuntimeAdapter({
+      start: async input => {
+        calls.push(input.executionCycleId)
+        throw new Error('The caller lost the runner response')
+      },
+      cancel: async () => undefined,
+      reconcile: async () => undefined,
+    })
+    try {
+      const requestInput = {
+        ...startInput(value, 'chat-uncertain'),
+      }
+      const options = { conversationId, assertLinked: async () => undefined }
+      const first = await startQualityJourneyExecution(requestInput, value.client, trustedHumanCoordinatorSession, {
+        ...options,
+        requestConsentOnly: true,
+      })
+      if (!('consentRequired' in first)) throw new Error('Chat must request separate Run permission')
+      const consent = await value.client.qualityJourneyExecutionConsent.findUniqueOrThrow({
+        where: { id: first.consentRequired.executionConsentId },
+      })
+      expect(JSON.parse(consent.scopeJson)).toMatchObject({
+        chatConversationId: conversationId,
+        journeyStateHash: value.stateHash,
+      })
+      await grantQualityJourneyExecutionConsent(
+        {
+          journeyId: value.journeyId,
+          targetProjectId: 'target-execution',
+          executionConsentId: consent.id,
+          expectedScopeHash: consent.scopeHash,
+        },
+        value.client,
+      )
+      await expect(
+        startQualityJourneyExecution({ ...requestInput, executionConsentId: consent.id }, value.client),
+      ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+      await expect(
+        startQualityJourneyExecution(requestInput, value.client, trustedHumanCoordinatorSession, {
+          ...options,
+          requestConsentOnly: true,
+        }),
+      ).resolves.toMatchObject({
+        consentRequired: { executionConsentId: consent.id },
+      })
+      expect(calls).toHaveLength(0)
+      const start = { ...requestInput, executionConsentId: consent.id }
+      await expect(
+        startQualityJourneyExecution(start, value.client, trustedHumanCoordinatorSession, {
+          ...options,
+          approvalScopeHash: consent.scopeHash,
+        }),
+      ).rejects.toThrow('lost the runner response')
+      expect(calls).toHaveLength(1)
+      const observed = await getQualityJourneyExecution(
+        { journeyId: value.journeyId, targetProjectId: 'target-execution' },
+        value.client,
+      )
+      expect(observed.cycles).toHaveLength(1)
+      expect(observed.consents[0]).toMatchObject({ status: 'CONSUMED', executionCycleId: observed.cycles[0]!.id })
+      await expect(
+        startQualityJourneyExecution(start, value.client, trustedHumanCoordinatorSession, {
+          ...options,
+          approvalScopeHash: consent.scopeHash,
+        }),
+      ).resolves.toMatchObject({
+        cycles: [{ id: observed.cycles[0]!.id }],
+      })
+      expect(calls).toHaveLength(1)
     } finally {
       await value.client.$disconnect()
     }
@@ -1301,8 +933,9 @@ describe('Quality Journey Phase 7 execution coordinator (SQLite)', () => {
 
   it('creates two selective rerun successors from immutable predecessor snapshots', async () => {
     const value = await fixture('browser.forms.fill', 'browser.forms.fill', 2)
+    const start = vi.fn(async () => undefined)
     registerQualityJourneyExecutionRuntimeAdapter({
-      start: async () => undefined,
+      start,
       cancel: async () => undefined,
       reconcile: async () => undefined,
     })
@@ -1449,18 +1082,23 @@ describe('Quality Journey Phase 7 execution coordinator (SQLite)', () => {
           },
           value.client,
         )
-        return startQualityJourneyRerun(
-          {
-            journeyId: value.journeyId,
-            targetProjectId: 'target-execution',
-            proposalId: proposal.id,
-            environmentId: 'environment-execution',
-            expectedStateHash: stateHash,
-            executionConsentId: consent.id,
-            idempotencyKey: `rerun-${key}`,
-          },
-          value.client,
-        )
+        const request = {
+          journeyId: value.journeyId,
+          targetProjectId: 'target-execution',
+          proposalId: proposal.id,
+          environmentId: 'environment-execution',
+          expectedStateHash: stateHash,
+          executionConsentId: consent.id,
+          idempotencyKey: `rerun-${key}`,
+        }
+        if (key === 'one') {
+          start.mockRejectedValueOnce(new Error('Runner reply interrupted after reservation'))
+          await expect(startQualityJourneyRerun(request, value.client)).rejects.toThrow('Runner reply interrupted')
+          await expect(
+            startQualityJourneyRerun({ ...request, idempotencyKey: 'unrelated-key' }, value.client),
+          ).rejects.toMatchObject({ code: 'CONFLICT' })
+        }
+        return startQualityJourneyRerun(request, value.client)
       }
       const first = startedExecution(await rerun(initial.cycles[0]!.id, 'evidence-1', 'one'))
       expect(initial.cycles[0]!.testRuns).toHaveLength(2)
@@ -1550,6 +1188,7 @@ describe('Quality Journey Phase 7 execution coordinator (SQLite)', () => {
       stateHash = reviewed.stateHash
       const second = startedExecution(await rerun(first.cycles[0]!.id, 'evidence-2', 'two'))
       expect(second.cycles[0]!.id).not.toBe(first.cycles[0]!.id)
+      expect(start).toHaveBeenCalledTimes(3)
       expect(await value.client.qualityJourneyCycle.count({ where: { journeyId: value.journeyId } })).toBe(3)
     } finally {
       await value.client.$disconnect()

@@ -9,6 +9,7 @@ import type {
 import { z } from 'zod'
 import prisma from '@/config/db-config'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
+import { managedScoutSnapshotId, reviewedScoutSnapshot } from '@/lib/quality-journey/managed-scout-snapshot'
 import {
   discoveryAuthTransitPathMatches,
   discoveryAuthTransitPolicyHash,
@@ -901,6 +902,7 @@ async function loadFrozenScope(
   allowedRoutes: string[]
   baseUrl: string
   environmentScopeVersion: number
+  managedMultiPage: boolean
   authFlow?: DiscoveryAuthTransitPolicy['flows'][number]
   authPolicyHash?: string
 }> {
@@ -953,6 +955,7 @@ async function loadFrozenScope(
     allowedRoutes: [...scope.routes].sort(),
     baseUrl: environment.baseUrl,
     environmentScopeVersion: frozen.scopeVersion,
+    managedMultiPage: journey.hostingMode === 'APP_SERVER_LOCAL_V1' && scope.routes.length > 1,
     authFlow,
     authPolicyHash: input.accessMode === 'AUTHENTICATED_INTENT' ? frozen.discoveryAuthTransitPolicyHash : undefined,
   }
@@ -1571,7 +1574,8 @@ export async function startQualityJourneyDiscoveryBrowserSession(
   const request = startSchema.parse(input)
   assertNoUnresolvedOwnedCleanup(request.journeyId, request.targetProjectId)
   const sessionId =
-    reservedSessionId ?? idFor('session', request.journeyId, request.discoveryRevisionId, request.workItemId, randomUUID())
+    reservedSessionId ??
+    idFor('session', request.journeyId, request.discoveryRevisionId, request.workItemId, randomUUID())
   const { scope, ownership } = await registerBrowserOwnership(request, sessionId, client, generation)
   try {
     assertNoUnresolvedOwnedCleanup(request.journeyId, request.targetProjectId)
@@ -2012,19 +2016,22 @@ async function persistDiscoveryBrowserReceipt(
   operation: SessionOperation | undefined,
   client: Db,
   controlSnapshot?: DiscoveryControlPresenceSnapshot,
+  managedManual = false,
 ) {
   return withTransaction(client, async tx => {
-    await assertFrozenScopeStillMatchesSession(session, tx)
+    const scope = await assertFrozenScopeStillMatchesSession(session, tx)
     assertCaptureOperationCurrent(session, operation)
     if (controlSnapshot) await assertControlPresenceCaptureCurrent(session, controlSnapshot, currentUrl, operation)
+    const snapshotId =
+      managedManual && scope.managedMultiPage ? managedScoutSnapshotId(session.discoveryRevisionId) : request.snapshotId
     const captured = buildDiscoveryBrowserReceipt(
       session,
-      request.snapshotId,
+      snapshotId,
       currentUrl,
       captureAccessOutcome(session),
       controlSnapshot ? discoveryControlPresenceFacts(controlSnapshot.presence) : [],
     )
-    const identityKey = `discovery-browser-receipt:${session.id}:${session.generation}:${request.snapshotId}`
+    const identityKey = `discovery-browser-receipt:${session.id}:${session.generation}:${snapshotId}`
     const existing = await tx.qualityJourneyArtifact.findUnique({
       where: { journeyId_identityKey: { journeyId: session.journeyId, identityKey } },
     })
@@ -2078,7 +2085,7 @@ async function assertControlPresenceCaptureCurrent(
 export async function captureQualityJourneyDiscoveryBrowserReceipt(
   input: unknown,
   client: Db = prisma,
-  internal?: { automaticAnonymous: true },
+  internal?: { automaticAnonymous?: true; managedManual?: true },
 ) {
   const request = captureSchema.parse(input)
   const session = await getLiveSession(request)
@@ -2103,7 +2110,15 @@ export async function captureQualityJourneyDiscoveryBrowserReceipt(
         409,
         { reason: 'MANUAL_DISCOVERY_ACCESS_REQUIRED' },
       )
-    return await persistDiscoveryBrowserReceipt(session, request, currentUrl, operation, client, controlSnapshot)
+    return await persistDiscoveryBrowserReceipt(
+      session,
+      request,
+      currentUrl,
+      operation,
+      client,
+      controlSnapshot,
+      internal?.managedManual,
+    )
   } finally {
     if (operation) releaseSessionOperation(session, operation)
   }
@@ -2339,6 +2354,7 @@ export async function assertDiscoveryBrowserReceiptAdmission(
   revision: DiscoveryReceiptRevision,
   tx: Prisma.TransactionClient,
   snapshot?: { contentHash: string; capturedAt: string },
+  reviewedPageSet = false,
 ) {
   const descriptors = new Map(bundle.evidenceReceipts.map(receipt => [receipt.artifactId, receipt]))
   const used = new Set(bundle.observations.flatMap(observation => observation.evidenceReceiptIds))
@@ -2387,7 +2403,18 @@ export async function assertDiscoveryBrowserReceiptAdmission(
     assertReceiptMatchesDiscovery(artifact, receipt, revision, environmentBindings)
     receipts.set(receipt.artifactId, receipt)
   }
-  if (
+  if (snapshot && reviewedPageSet) {
+    const expected = reviewedScoutSnapshot(
+      artifacts.map(artifact => ({
+        artifactId: artifact.artifactId,
+        contentHash: artifact.contentHash,
+        snapshotId: receipts.get(artifact.artifactId)!.snapshotId,
+        capturedAt: receipts.get(artifact.artifactId)!.capturedAt,
+      })),
+    )
+    if (expected.contentHash !== snapshot.contentHash || expected.capturedAt !== snapshot.capturedAt)
+      throw new ServiceError('Scout target snapshot does not match its reviewed Appraise browser receipts.', 'CONFLICT')
+  } else if (
     snapshot &&
     !artifacts.some(
       artifact =>

@@ -2,7 +2,12 @@ import { tagSchema, type Tag } from '@/constants/form-opts/tag-form-opts'
 import { type ActionResponse } from '@/types/form/actionHandler'
 import type { Tag as PrismaTag } from '@prisma/client'
 
-export type TagFormSubmitAction = (_prev: unknown, value: Tag, id?: string) => Promise<ActionResponse>
+export type TagFormSubmitAction = (
+  _prev: unknown,
+  value: Tag,
+  id?: string,
+  expectedUpdatedAt?: string,
+) => Promise<ActionResponse>
 
 export const tagFieldValidators = {
   name: tagSchema.shape.name,

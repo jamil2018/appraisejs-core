@@ -47,6 +47,18 @@ describe('test run download route', () => {
     expect(response.status).toBe(404)
   })
 
+  it('uses the explicit report project after another project becomes active', async () => {
+    mockFindFirst.mockResolvedValue(null)
+    const request = new NextRequest('http://localhost/api/test-runs/run-1/download?targetProjectId=p1', {
+      headers: { cookie: 'appraise-active-project=p2' },
+    })
+    const response = await GET(request, { params: Promise.resolve({ runId: 'run-1' }) })
+    expect(response.status).toBe(404)
+    expect(mockFindFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { runId: 'run-1', targetProjectId: 'p1' } }),
+    )
+  })
+
   it('archives only capsule artifacts scoped to the run project', async () => {
     mockFindFirst.mockResolvedValue({
       runId: 'run-1',

@@ -7,6 +7,7 @@ import { useForm } from '@tanstack/react-form'
 import { TanStackForm } from '@/lib/form/tanstack-form'
 import { handleStandardFormResult } from '@/lib/form/standard-form-result'
 import { useRouter } from 'next/navigation'
+import { withProjectScope } from '@/lib/project-scope'
 import {
   environmentFieldValidators,
   getActionErrorMessage,
@@ -19,9 +20,17 @@ type EnvironmentFormProps = {
   successMessage: string
   id?: string
   onSubmitAction: EnvironmentFormSubmitAction
+  projectId?: string
 }
 
-const EnvironmentForm = ({ defaultValues, successTitle, successMessage, id, onSubmitAction }: EnvironmentFormProps) => {
+const EnvironmentForm = ({
+  defaultValues,
+  successTitle,
+  successMessage,
+  id,
+  onSubmitAction,
+  projectId,
+}: EnvironmentFormProps) => {
   const { push } = useRouter()
   const form = useForm({
     defaultValues: defaultValues ?? environmentFormOpts.defaultValues,
@@ -33,7 +42,7 @@ const EnvironmentForm = ({ defaultValues, successTitle, successMessage, id, onSu
         successTitle,
         successMessage,
         errorMessage: getActionErrorMessage(res),
-        onSuccess: () => push('/environments'),
+        onSuccess: () => push(projectId ? withProjectScope('/environments', projectId) : '/environments'),
       })
     },
   })

@@ -50,12 +50,14 @@ function draftRequirementForSave(requirement: ReturnType<typeof buildBriefRequir
 export function useQualityJourneyCreateIntake({
   draft,
   predecessorJourneyId,
+  preferredProvider,
   projectId,
   push,
   recordContext,
 }: {
   draft?: DraftSnapshot
   predecessorJourneyId?: string
+  preferredProvider?: IntakeState['managedWorkerProvider']
   projectId: string
   push: (href: string) => void
   recordContext?: JourneyRecordContext
@@ -63,7 +65,12 @@ export function useQualityJourneyCreateIntake({
   const [state, dispatch] = useReducer(
     (current: IntakeState, patch: Partial<IntakeState>) => ({ ...current, ...patch }),
     draft,
-    initialIntakeState,
+    initialDraft => {
+      const initial = initialIntakeState(initialDraft)
+      return preferredProvider && preferredProvider !== initial.managedWorkerProvider
+        ? { ...initial, managedWorkerProvider: preferredProvider, managedWorkerModel: null }
+        : initial
+    },
   )
   const idempotencyKey = useRef(actionId('quality-journey-draft'))
   const draftRef = useRef<DraftSnapshot | undefined>(draft)
@@ -72,6 +79,9 @@ export function useQualityJourneyCreateIntake({
         idempotencyKey: string
         requirement: ReturnType<typeof draftRequirementForSave>
         currentStep: number
+        managedWorkerProvider: IntakeState['managedWorkerProvider']
+        managedWorkerModel?: IntakeState['managedWorkerModel']
+        managedWorkerEffort?: IntakeState['managedWorkerEffort']
         predecessorJourneyId?: string
       }
     | undefined
@@ -94,8 +104,14 @@ export function useQualityJourneyCreateIntake({
   const requirement = buildBriefRequirement(state, draft?.requirement, recordContext)
   const requirementRef = useRef(requirement)
   const currentStepRef = useRef(state.currentStep)
+  const managedWorkerProviderRef = useRef(state.managedWorkerProvider)
+  const managedWorkerModelRef = useRef(state.managedWorkerModel)
+  const managedWorkerEffortRef = useRef(state.managedWorkerEffort)
   requirementRef.current = requirement
   currentStepRef.current = state.currentStep
+  managedWorkerProviderRef.current = state.managedWorkerProvider
+  managedWorkerModelRef.current = state.managedWorkerModel
+  managedWorkerEffortRef.current = state.managedWorkerEffort
 
   const update = (patch: Partial<IntakeState>) => {
     editRevision.current += 1
@@ -108,7 +124,13 @@ export function useQualityJourneyCreateIntake({
   }
 
   const enqueueSave = useCallback(
-    function enqueueSave(requirementToSave = requirementRef.current, stepToSave = currentStepRef.current) {
+    function enqueueSave(
+      requirementToSave = requirementRef.current,
+      stepToSave = currentStepRef.current,
+      managedWorkerProviderToSave = managedWorkerProviderRef.current,
+      managedWorkerModelToSave = managedWorkerModelRef.current,
+      managedWorkerEffortToSave = managedWorkerEffortRef.current,
+    ) {
       const requestedRevision = editRevision.current
       const draftRequirement = draftRequirementForSave(requirementToSave)
       const operation = saveQueue.current
@@ -121,6 +143,9 @@ export function useQualityJourneyCreateIntake({
               idempotencyKey: idempotencyKey.current,
               requirement: draftRequirement,
               currentStep: stepToSave,
+              managedWorkerProvider: managedWorkerProviderToSave,
+              ...(managedWorkerModelToSave !== undefined ? { managedWorkerModel: managedWorkerModelToSave } : {}),
+              ...(managedWorkerEffortToSave !== undefined ? { managedWorkerEffort: managedWorkerEffortToSave } : {}),
               ...(predecessorJourneyId ? { predecessorJourneyId } : {}),
             }
             // Recover an interrupted first autosave with the original request identity and payload.
@@ -132,7 +157,10 @@ export function useQualityJourneyCreateIntake({
               pendingCreate.current = undefined
               if (
                 JSON.stringify(captured.requirement) !== JSON.stringify(draftRequirement) ||
-                captured.currentStep !== stepToSave
+                captured.currentStep !== stepToSave ||
+                captured.managedWorkerProvider !== managedWorkerProviderToSave ||
+                captured.managedWorkerModel !== managedWorkerModelToSave ||
+                captured.managedWorkerEffort !== managedWorkerEffortToSave
               )
                 activeDraft = created
             }
@@ -143,6 +171,9 @@ export function useQualityJourneyCreateIntake({
               expectedVersion: activeDraft.version,
               requirement: draftRequirement,
               currentStep: stepToSave,
+              managedWorkerProvider: managedWorkerProviderToSave,
+              ...(managedWorkerModelToSave !== undefined ? { managedWorkerModel: managedWorkerModelToSave } : {}),
+              ...(managedWorkerEffortToSave !== undefined ? { managedWorkerEffort: managedWorkerEffortToSave } : {}),
               ...(activeDraft.predecessorJourneyId ? { predecessorJourneyId: activeDraft.predecessorJourneyId } : {}),
             })
           }
@@ -155,7 +186,14 @@ export function useQualityJourneyCreateIntake({
           draftRef.current = saved
           const isLatestEdit = editRevision.current === requestedRevision
           setSaveStatus(isLatestEdit ? 'saved' : 'dirty')
-          if (isLatestEdit) setSaveConflict(false)
+          if (isLatestEdit) {
+            setSaveConflict(false)
+            const currentUrl = new URL(window.location.href)
+            if (currentUrl.searchParams.has('assistant')) {
+              currentUrl.searchParams.delete('assistant')
+              window.history.replaceState(window.history.state, '', currentUrl)
+            }
+          }
           return isLatestEdit
         })
         .catch(() => {
@@ -176,7 +214,15 @@ export function useQualityJourneyCreateIntake({
     return () => {
       if (saveTimer.current) window.clearTimeout(saveTimer.current)
     }
-  }, [draftRequirement, enqueueSave, hasMeaningfulEdit, state.currentStep])
+  }, [
+    draftRequirement,
+    enqueueSave,
+    hasMeaningfulEdit,
+    state.currentStep,
+    state.managedWorkerProvider,
+    state.managedWorkerModel,
+    state.managedWorkerEffort,
+  ])
 
   useEffect(() => {
     const warnBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -202,7 +248,14 @@ export function useQualityJourneyCreateIntake({
       updateView({ error: 'Your brief changed while it was being verified. Review it before creating the Journey.' })
       return
     }
-    return { revision, requirement, hash }
+    return {
+      revision,
+      requirement,
+      managedWorkerProvider: managedWorkerProviderRef.current,
+      managedWorkerModel: managedWorkerModelRef.current,
+      managedWorkerEffort: managedWorkerEffortRef.current,
+      hash,
+    }
   }
 
   function submit() {
@@ -218,7 +271,13 @@ export function useQualityJourneyCreateIntake({
         if (!confirmation || confirmation.revision !== editRevision.current) {
           const verified = await verifyCurrentRequirement()
           if (!verified) return
-          const savedLatest = await enqueueSave(verified.requirement)
+          const savedLatest = await enqueueSave(
+            verified.requirement,
+            currentStepRef.current,
+            verified.managedWorkerProvider,
+            verified.managedWorkerModel,
+            verified.managedWorkerEffort,
+          )
           const activeDraft = draftRef.current
           if (!activeDraft || !savedLatest || saveConflict || editRevision.current !== verified.revision) {
             updateView({ error: 'Your brief has not been saved yet. Retry after it is saved.' })
@@ -272,6 +331,25 @@ export function useQualityJourneyCreateIntake({
     })
   }
 
+  function openProviderSetup(settingsHref: string) {
+    startTransition(async () => {
+      if (saveTimer.current) window.clearTimeout(saveTimer.current)
+      const revision = editRevision.current
+      if (revision && saveStatus !== 'saved' && !(await enqueueSave())) {
+        updateView({ error: 'Save your brief before opening setup.' })
+        return
+      }
+      if (revision !== editRevision.current) return
+      const settings = new URL(settingsHref, window.location.origin)
+      const saved = draftRef.current
+      if (saved) {
+        const returnTo = `/quality-journeys/drafts/${encodeURIComponent(saved.id)}?project=${encodeURIComponent(projectId)}`
+        settings.searchParams.set('returnTo', returnTo)
+      }
+      push(`${settings.pathname}${settings.search}`)
+    })
+  }
+
   function saveAsNewDraft() {
     draftRef.current = undefined
     idempotencyKey.current = actionId('quality-journey-draft')
@@ -281,7 +359,7 @@ export function useQualityJourneyCreateIntake({
   }
 
   return {
-    actions: { enqueueSave, restore, saveAsNewDraft, submit },
+    actions: { enqueueSave, openProviderSetup, restore, saveAsNewDraft, submit },
     isPending,
     requirement,
     saveConflict,

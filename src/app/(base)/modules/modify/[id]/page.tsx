@@ -4,6 +4,7 @@ import { getAllModulesAction, getModuleByIdAction, updateModuleAction } from '@/
 import ModuleForm from '../../module-form'
 import { Metadata } from 'next'
 import { getModuleFormParentId, getModuleParentOptions, getModuleTableRows } from '../../module-helpers'
+import { withProjectScope } from '@/lib/project-scope'
 
 export const metadata: Metadata = {
   title: 'Appraise | Modify Module',
@@ -41,6 +42,7 @@ const ModifyModule = async ({ params }: { params: Promise<{ id: string }> }) => 
       </div>
       <ModuleForm
         id={id}
+        expectedUpdatedAt={moduleData.updatedAt.toISOString()}
         defaultValues={{
           name: moduleData.name,
           parentId: getModuleFormParentId(moduleData.parentId),
@@ -49,6 +51,7 @@ const ModifyModule = async ({ params }: { params: Promise<{ id: string }> }) => 
         successMessage="Module updated successfully"
         parentOptions={parentOptions}
         onSubmitAction={updateModuleAction}
+        redirectPath={withProjectScope('/modules', moduleData.targetProjectId)}
       />
     </div>
   )

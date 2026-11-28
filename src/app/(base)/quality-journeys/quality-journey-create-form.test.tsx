@@ -26,6 +26,7 @@ vi.mock('./quality-journey-actions', () => ({
 }))
 
 import { QualityJourneyCreateForm } from './quality-journey-create-form'
+import { getBriefFileContext, getBriefRecordContext } from '@/lib/quality-journey/record-context'
 
 beforeEach(() => {
   vi.stubGlobal('crypto', webcrypto)
@@ -47,6 +48,28 @@ afterEach(() => {
 })
 
 describe('QualityJourneyCreateForm', () => {
+  it('saves an explicit Claude Code selection with the brief before confirmation', async () => {
+    mocks.confirmDraft.mockResolvedValue({ success: true, data: { journeyId: 'journey-claude' } })
+    const user = userEvent.setup()
+    render(<QualityJourneyCreateForm projectId="project-1" />)
+    const worker = screen.getByRole('combobox', { name: 'Provider' })
+    expect(worker).toHaveValue('CODEX')
+    await user.selectOptions(worker, 'CLAUDE_CODE')
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Model' }), 'sonnet')
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Effort' }), 'high')
+    await user.type(screen.getByLabelText('What do you want to validate?'), 'Check checkout.')
+    await user.click(screen.getByRole('button', { name: 'Start journey' }))
+    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/quality-journeys/journey-claude?project=project-1'))
+    expect(mocks.createDraft).toHaveBeenCalledWith(
+      expect.objectContaining({
+        managedWorkerProvider: 'CLAUDE_CODE',
+        managedWorkerModel: 'sonnet',
+        managedWorkerEffort: 'high',
+      }),
+    )
+    expect(mocks.confirmDraft).toHaveBeenCalledOnce()
+  })
+
   it('offers one free-text brief and starts without mandatory configuration or a separate review', async () => {
     mocks.confirmDraft.mockResolvedValue({ success: true, data: { journeyId: 'journey-1' } })
     const user = userEvent.setup()
@@ -67,6 +90,68 @@ describe('QualityJourneyCreateForm', () => {
         draftId: 'draft-1',
         requirementHash: expect.stringMatching(/^sha256:/),
       }),
+    )
+  })
+
+  it('keeps a draft editable while the selected provider needs setup', async () => {
+    const user = userEvent.setup()
+    render(
+      <QualityJourneyCreateForm
+        projectId="project-1"
+        providerReadiness={{
+          CODEX: {
+            provider: 'CODEX',
+            ready: true,
+            state: 'ready',
+            reason: null,
+            actionLabel: null,
+            settingsHref: '/settings/agent-setup?provider=CODEX',
+          },
+          CLAUDE_CODE: {
+            provider: 'CLAUDE_CODE',
+            ready: false,
+            state: 'sign_in',
+            reason: 'Claude Code needs your sign-in.',
+            actionLabel: 'Sign in to Claude Code',
+            settingsHref: '/settings/agent-setup?provider=CLAUDE_CODE',
+          },
+        }}
+      />,
+    )
+    await user.type(screen.getByLabelText('What do you want to validate?'), 'Check checkout.')
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Provider' }), 'CLAUDE_CODE')
+    expect(screen.getByText('Claude Code needs your sign-in.')).toBeVisible()
+    expect(screen.getByRole('link', { name: 'Sign in to Claude Code' })).toHaveAttribute(
+      'href',
+      '/settings/agent-setup?provider=CLAUDE_CODE',
+    )
+    expect(screen.getByRole('button', { name: 'Start journey' })).toBeDisabled()
+    await waitFor(() => expect(mocks.createDraft).toHaveBeenCalled(), { timeout: 1500 })
+    expect(mocks.confirmDraft).not.toHaveBeenCalled()
+  })
+
+  it('clears a saved model and effort when the user selects provider defaults', async () => {
+    const user = userEvent.setup()
+    render(
+      <QualityJourneyCreateForm
+        projectId="project-1"
+        draft={{
+          id: 'draft-1',
+          version: 2,
+          draftHash: `sha256:${'a'.repeat(64)}`,
+          currentStep: 0,
+          requirement: { objective: 'Check checkout.' },
+          managedWorkerProvider: 'CLAUDE_CODE',
+          managedWorkerModel: 'sonnet',
+          managedWorkerEffort: 'high',
+        }}
+      />,
+    )
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Model' }), 'default')
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Effort' }), 'default')
+    await waitFor(() => expect(mocks.saveDraft).toHaveBeenCalled(), { timeout: 1500 })
+    expect(mocks.saveDraft).toHaveBeenLastCalledWith(
+      expect.objectContaining({ managedWorkerModel: null, managedWorkerEffort: null }),
     )
   })
 
@@ -109,6 +194,55 @@ describe('QualityJourneyCreateForm', () => {
       }),
     )
     expect(mocks.confirmDraft).not.toHaveBeenCalled()
+  })
+
+  it('saves a selected text file with the record context and restores its chip from a draft', async () => {
+    const reference = {
+      source: 'appraise.record/v1' as const,
+      kind: 'test-case' as const,
+      id: 'checkout-case',
+      title: 'Guest checkout',
+    }
+    const user = userEvent.setup()
+    const view = render(<QualityJourneyCreateForm projectId="project-1" recordContext={reference} />)
+    await user.upload(
+      screen.getByLabelText('Text file'),
+      new File(['Guest checkout title must appear.'], 'notes.md', { type: 'text/markdown' }),
+    )
+    expect(await screen.findByText('notes.md')).toBeVisible()
+    await user.type(screen.getByLabelText('What do you want to validate?'), 'Check the checkout title.')
+    await waitFor(() => expect(mocks.createDraft).toHaveBeenCalledOnce(), { timeout: 1500 })
+    const saved = mocks.createDraft.mock.calls[0][0].requirement
+    expect(getBriefFileContext(saved.context)?.file).toEqual({
+      name: 'notes.md',
+      content: 'Guest checkout title must appear.',
+    })
+    expect(getBriefRecordContext(saved.context)).toEqual(reference)
+
+    view.unmount()
+    render(
+      <QualityJourneyCreateForm
+        projectId="project-1"
+        draft={{ id: 'draft-1', version: 2, draftHash: `sha256:${'a'.repeat(64)}`, currentStep: 0, requirement: saved }}
+      />,
+    )
+    expect(screen.getByText('notes.md')).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Remove file' }))
+    await waitFor(() => expect(mocks.saveDraft).toHaveBeenCalled(), { timeout: 1500 })
+    expect(mocks.saveDraft).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        requirement: { objective: 'Check the checkout title.', context: JSON.stringify(reference) },
+      }),
+    )
+  })
+
+  it('rejects an oversized attachment before it enters a saved brief', async () => {
+    const user = userEvent.setup()
+    render(<QualityJourneyCreateForm projectId="project-1" />)
+    await user.upload(screen.getByLabelText('Text file'), new File(['a'.repeat(6_001)], 'large.txt'))
+    expect(await screen.findByRole('alert')).toHaveTextContent('under 6 KB')
+    expect(screen.queryByText('large.txt')).not.toBeInTheDocument()
+    expect(mocks.createDraft).not.toHaveBeenCalled()
   })
 
   it('offers save recovery and prevents starting over a conflicting version', async () => {

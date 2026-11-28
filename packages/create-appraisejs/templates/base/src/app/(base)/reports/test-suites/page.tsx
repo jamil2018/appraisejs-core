@@ -5,15 +5,17 @@ import { Suspense } from 'react'
 import DataTableSkeleton from '@/components/loading-skeleton/data-table/data-table-skeleton'
 import { Metadata } from 'next'
 import TestSuitesMetricTable from './test-suites-metric-table'
+import { requireActiveProject } from '@/lib/active-project'
 
 export const metadata: Metadata = {
   title: 'Appraise | Test Suites Metrics Report',
   description: 'Manage test suites report for identifying test suites that are not executed recently',
 }
 
-const TestSuitesMetricsReport = async ({ searchParams }: { searchParams: Promise<{ filter?: string }> }) => {
+const TestSuitesMetricsReport = async ({ searchParams }: { searchParams: Promise<{ filter?: string; project?: string }> }) => {
   const resolvedSearchParams = await searchParams
   const filter = resolvedSearchParams?.filter as 'notExecutedRecently' | undefined
+  const project = await requireActiveProject(resolvedSearchParams.project)
 
   return (
     <>
@@ -29,7 +31,7 @@ const TestSuitesMetricsReport = async ({ searchParams }: { searchParams: Promise
         </HeaderSubtitle>
       </div>
       <Suspense fallback={<DataTableSkeleton />}>
-        <TestSuitesMetricTable filter={filter || 'notExecutedRecently'} />
+        <TestSuitesMetricTable filter={filter || 'notExecutedRecently'} projectId={project.id} />
       </Suspense>
     </>
   )

@@ -1,14 +1,19 @@
 import type { PrismaClient } from '@prisma/client'
+import { parseManagedWorkerPreferences } from '@/lib/quality-journey/managed-worker-preferences'
 import prisma from '@/config/db-config'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { hashCanonical } from '@/lib/quality-journey/analysis-contracts'
-import {
-  runManagedAnalysis,
-  classifyManagedAnalysisFailure,
-} from '@/lib/quality-journey/codex-app-server/managed-analysis-sender'
 import { ServiceError } from '@/services/shared/errors'
+import { assertClaudeCodeJourneyRequest } from '@/services/provider-connection/claude-code-cli'
+import {
+  assertManagedProviderAtReservation,
+  bindManagedJourneySender,
+  managedJourneyProvider,
+  managedJourneyRoleEnabled,
+  type ManagedJourneyProvider,
+} from './app-managed-provider-sender'
 import { appManagedAnalysisCredential } from './app-managed-analysis-credential'
-import { appManagedTriageOutputSchema } from './app-managed-triage-contract'
+import { compileAppManagedTriageOutput } from './app-managed-triage-contract'
 import { prepareAppManagedTriageTask } from './app-managed-triage-task'
 import { assertCurrentCoordinatorSession, readScopedQualityJourney } from './quality-journey-coordinator-session'
 import { readInternalWorkerAuthority } from './quality-journey-internal-worker-authority'
@@ -23,8 +28,8 @@ import {
   type OperatorFinding,
 } from './app-managed-operator-triage'
 
-export function appManagedTriageEnabled() {
-  return process.env.APPRAISE_LOCAL_CODEX_TRIAGE_ENABLED === 'true'
+export function appManagedTriageEnabled(provider: ManagedJourneyProvider = 'CODEX') {
+  return managedJourneyRoleEnabled(provider, process.env.APPRAISE_LOCAL_CODEX_TRIAGE_ENABLED === 'true')
 }
 type Input = { journeyId: string; targetProjectId: string; expectedStateHash: string }
 function conflict(message: string): never {
@@ -145,7 +150,11 @@ export async function operatorTriage(
 }
 
 export async function startAppManagedTriage(input: Input, client: PrismaClient = prisma) {
-  if (!appManagedTriageEnabled()) conflict('Local Codex triage must be enabled by the Appraise server owner.')
+  const journey = await readScopedQualityJourney(input, client)
+  const provider = managedJourneyProvider(journey)
+  const preferences = parseManagedWorkerPreferences(provider, journey)
+  if (!appManagedTriageEnabled(provider))
+    conflict('The selected local triage provider must be enabled by the Appraise server owner.')
   const { owner, cycleId } = await getTriageOwner(input, client)
   if (
     await hasOperatorPreparation(
@@ -154,9 +163,11 @@ export async function startAppManagedTriage(input: Input, client: PrismaClient =
     )
   )
     return { accepted: false, awaitingOperator: true }
+  const sender = await bindManagedJourneySender(provider, preferences)
   const task = await triageTask(owner, client, 'native')
   const marker = 'APP_SERVER_LOCAL_V1_TRIAGE'
   try {
+    if (provider === 'CLAUDE_CODE') assertClaudeCodeJourneyRequest(task.prompt)
     await client.$transaction(async tx => {
       const hub = await tx.qualityJourneyProviderSlot.upsert({
         where: { id: 'HUB' },
@@ -166,6 +177,7 @@ export async function startAppManagedTriage(input: Input, client: PrismaClient =
       if (hub.intentId || hub.providerRunId) conflict('The local worker requires reconciliation before reuse.')
       await assertHistoricalHubQuiescent(tx)
       await readInternalWorkerAuthority(task.binding, tx)
+      await assertManagedProviderAtReservation(tx, input, provider, preferences)
       const reserved = await tx.qualityJourneyWorkAttempt.updateMany({
         where: {
           id: task.binding.attemptId,
@@ -176,9 +188,10 @@ export async function startAppManagedTriage(input: Input, client: PrismaClient =
         },
         data: {
           dispatchAdapterId: marker,
+          managedDispatchIdentityJson: sender.managedDispatchIdentityJson,
           dispatchReservedAt: new Date(),
           dispatchStartedAt: new Date(),
-          failureJson: canonicalContractJson({ state: 'UNKNOWN', reason: 'LOCAL_CODEX_TRIAGE_CONSUMED' }),
+          failureJson: canonicalContractJson({ state: 'UNKNOWN', reason: `LOCAL_${provider}_TRIAGE_CONSUMED` }),
         },
       })
       if (reserved.count !== 1) conflict('Triage was already dispatched and cannot be restarted.')
@@ -188,12 +201,12 @@ export async function startAppManagedTriage(input: Input, client: PrismaClient =
     throw error
   }
   let stage = 'NATIVE_SEND'
-  let candidate: ReturnType<typeof appManagedTriageOutputSchema.parse> | undefined
+  let candidate: ReturnType<typeof compileAppManagedTriageOutput> | undefined
   try {
-    const raw = await runManagedAnalysis(task.prompt)
+    const raw = await sender.run(task.prompt)
     stage = 'OUTPUT_VALIDATION'
     if (Buffer.byteLength(raw, 'utf8') > 1_000_000) throw new Error('Triage output exceeds the local bound.')
-    const call = appManagedTriageOutputSchema.parse(JSON.parse(raw))
+    const call = compileAppManagedTriageOutput(JSON.parse(raw))
     if (call.arguments.idempotencyKey !== task.submissionIdempotencyKey)
       throw new Error('Triage output changed its original submission identity.')
     candidate = call
@@ -243,7 +256,7 @@ export async function startAppManagedTriage(input: Input, client: PrismaClient =
           rejection: canonicalTriageRejection(error),
           detail:
             stage === 'NATIVE_SEND'
-              ? classifyManagedAnalysisFailure(error)
+              ? sender.failureDetail(error)
               : stage === 'OUTPUT_VALIDATION'
                 ? 'Model output did not satisfy the exact report content contract.'
                 : error instanceof ServiceError

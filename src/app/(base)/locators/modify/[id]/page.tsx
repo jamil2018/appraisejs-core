@@ -14,13 +14,21 @@ import {
   getModuleRows,
 } from '../../create/create-locator-workspace-helpers'
 import CreateLocatorWorkspace from '../../create/create-locator-workspace'
+import { requireActiveProject } from '@/lib/active-project'
 
 export const metadata: Metadata = {
   title: 'Appraise | Modify Locator',
   description: 'Update locator configuration with the Chromium picker workspace',
 }
 
-const ModifyLocator = async ({ params }: { params: Promise<{ id: string }> }) => {
+const ModifyLocator = async ({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams?: Promise<{ project?: string }>
+}) => {
+  const project = await requireActiveProject((await searchParams)?.project)
   const { id } = await params
   const [
     { data: locatorData, error: locatorError },
@@ -70,6 +78,7 @@ const ModifyLocator = async ({ params }: { params: Promise<{ id: string }> }) =>
         modules={modules}
         mode="modify"
         locatorId={id}
+        projectId={project.id}
         initialValues={{
           locatorName: locator.name ?? '',
           selector: locator.value ?? '',

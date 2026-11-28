@@ -68,6 +68,9 @@ The repository's swarm-routing configuration, agents, ledger utilities, developm
 and harness-only commands are also excluded.
 M10 disposable lifecycle fixtures remain repository-only; canonical Triager readiness,
 acceptance and sealed-evidence validation are synchronized normally.
+The same-Journey checkout pilot uses the M10 fixture to qualify canonical preparation through the real local runner.
+Its browser spec and fixture bridge stay in the repository alongside the report and collaboration pilot, which
+uses a disposable Git remote. The self-contained chat execution spec still ships.
 Phase-0 and managed-Journey qualification scripts, fixtures and cross-package tests are likewise
 repository-only. Template preparation excludes those exact path families while retaining canonical Journey services,
 contracts, migrations, and product tests.

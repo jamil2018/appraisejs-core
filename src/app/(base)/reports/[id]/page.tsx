@@ -3,6 +3,7 @@ import PageHeader from '@/components/typography/page-header'
 import { BrowserEngine } from '@prisma/client'
 import { Calendar, ChartLine, Clock } from 'lucide-react'
 import { Metadata } from 'next'
+import Image from 'next/image'
 import Link from 'next/link'
 import ReportMetricCard from '../report-metric-card'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,7 +16,9 @@ import { getReportByIdAction } from '@/actions/reports/report-actions'
 import { notFound } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { journeyRecordBriefHref } from '@/lib/quality-journey/record-context'
+import { reportStepEvidenceHref, reportStepScreenshotHref } from '@/lib/report-step-evidence'
 import { cn } from '@/lib/utils'
+import { withProjectScope } from '@/lib/project-scope'
 import {
   browserIcons,
   durationByFeatureBarChartConfig,
@@ -50,8 +53,14 @@ const browserEngineToBadge = (browserEngine: BrowserEngine) => {
   }
 }
 
-const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
-  const { id } = await params
+const ViewReport = async ({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ step?: string | string[] }>
+}) => {
+  const [{ id }, { step: selectedStepId }] = await Promise.all([params, searchParams])
 
   // Fetch report data
   const reportResponse = await getReportByIdAction(id)
@@ -65,6 +74,12 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
 
   const report: ReportDetailWithRelations = reportResponse.data
   const testRun = report.testRun
+  const selectedCase =
+    typeof selectedStepId === 'string'
+      ? report.testCases.find(testCase => testCase.reportScenario?.steps.some(step => step.id === selectedStepId))
+      : undefined
+  const selectedStep = selectedCase?.reportScenario?.steps.find(step => step.id === selectedStepId)
+  if (selectedStepId !== undefined && !selectedStep) notFound()
 
   const { totalTests, passedTests, failedTests, untestedTests } = getReportMetrics(report)
   const outcome = getReportOutcome(report)
@@ -110,6 +125,62 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
           </Button>
         </div>
       </div>
+      {selectedStep && selectedCase && (
+        <section
+          id="step-evidence"
+          aria-labelledby="step-evidence-heading"
+          className="scroll-mt-20 space-y-3 rounded-xl border border-border bg-card p-4"
+        >
+          <div className="space-y-1">
+            <h2 id="step-evidence-heading" className="text-base font-semibold">
+              Step evidence
+            </h2>
+            <p className="text-sm text-muted-foreground">{selectedCase.testRunTestCase.testCase.title}</p>
+            <p className="break-words text-sm font-medium">
+              {selectedStep.keyword.trim()} {selectedStep.name}
+            </p>
+            <StatusBadge
+              label={
+                selectedStep.status === 'FAILED'
+                  ? 'Failed'
+                  : selectedStep.status === 'PASSED'
+                    ? 'Passed'
+                    : selectedStep.status === 'SKIPPED'
+                      ? 'Skipped'
+                      : 'Unverified'
+              }
+              tone={
+                selectedStep.status === 'FAILED' ? 'danger' : selectedStep.status === 'PASSED' ? 'success' : 'neutral'
+              }
+            />
+          </div>
+          {selectedStep.screenshotPath ? (
+            <a
+              href={reportStepScreenshotHref(testRun.targetProjectId, selectedStep.id)}
+              className="app-focus block max-w-2xl rounded-lg"
+            >
+              <Image
+                alt={`Screenshot for ${selectedStep.name}`}
+                className="max-h-[60vh] w-full rounded-lg border border-border object-contain"
+                src={reportStepScreenshotHref(testRun.targetProjectId, selectedStep.id)}
+                width={1280}
+                height={720}
+                unoptimized
+              />
+            </a>
+          ) : (
+            <p className="text-sm text-muted-foreground">This step has no recorded screenshot.</p>
+          )}
+          {selectedStep.errorMessage && (
+            <pre
+              className="max-h-48 overflow-auto whitespace-pre-wrap break-words rounded-lg border bg-muted/30 p-3 text-xs"
+              aria-label="Observed step error"
+            >
+              {selectedStep.errorMessage.slice(0, 2_000)}
+            </pre>
+          )}
+        </section>
+      )}
       <section
         aria-labelledby="report-outcome-heading"
         className={cn(
@@ -137,9 +208,12 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
                   <li key={item.id} className="rounded-lg border border-danger-border bg-danger-surface/50 px-3 py-2">
                     <span className="font-medium">{item.testRunTestCase.testCase.title}</span>
                     {failedStep ? (
-                      <span className="block text-muted-foreground">
+                      <Link
+                        href={reportStepEvidenceHref(testRun.targetProjectId, report.id, failedStep.id)}
+                        className="app-focus block w-fit break-words rounded-sm text-info underline underline-offset-4"
+                      >
                         Failed step: {failedStep.keyword} {failedStep.name}
-                      </span>
+                      </Link>
                     ) : failedHook ? (
                       <span className="block text-muted-foreground">Failed hook: {failedHook.keyword}</span>
                     ) : null}
@@ -149,6 +223,32 @@ const ViewReport = async ({ params }: { params: Promise<{ id: string }> }) => {
             </ul>
           </div>
         ) : null}
+      </section>
+      <section aria-labelledby="report-artifacts-heading" className="rounded-xl border bg-card p-4">
+        <h2 id="report-artifacts-heading" className="font-semibold">
+          Run evidence and diagnostics
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Evidence status: {testRun.evidenceHealth.replaceAll('_', ' ')}
+        </p>
+        <div className="mt-3 flex flex-wrap gap-3 text-sm">
+          <Link
+            className="app-focus rounded-sm text-primary underline underline-offset-4"
+            href={withProjectScope(`/test-runs/${encodeURIComponent(testRun.id)}`, testRun.targetProjectId)}
+          >
+            View run diagnostics
+          </Link>
+          {testRun.runtimeCapsule && testRun.evidenceHealth === 'valid' ? (
+            <a
+              className="app-focus rounded-sm text-primary underline underline-offset-4"
+              href={`/api/test-runs/${encodeURIComponent(testRun.runId)}/download?targetProjectId=${encodeURIComponent(testRun.targetProjectId)}`}
+            >
+              Download recorded run artifacts
+            </a>
+          ) : (
+            <span className="text-muted-foreground">Recorded artifact download is unavailable for this run.</span>
+          )}
+        </div>
       </section>
       <section aria-labelledby="report-checks-heading" className="min-w-0">
         <h2 id="report-checks-heading" className="mb-2 text-base font-semibold">

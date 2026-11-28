@@ -85,11 +85,12 @@ export async function getTemplateTestCaseByIdAction(id: string): Promise<ActionR
 export async function updateTemplateTestCaseAction(
   value: z.infer<typeof templateTestCaseSchema>,
   id?: string,
+  expectedUpdatedAt?: string,
 ): Promise<ActionResponse> {
   try {
     templateTestCaseSchema.parse(value)
     const project = await requireActiveProjectForMutation()
-    const templateTestCase = await updateTemplateTestCase(id, value, project.id)
+    const templateTestCase = await updateTemplateTestCase(id, value, project.id, expectedUpdatedAt)
     revalidatePath('/template-test-cases')
     return {
       status: 200,

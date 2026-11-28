@@ -89,6 +89,7 @@ export async function updateTestSuiteAction(
   _prev: unknown,
   value: z.infer<typeof testSuiteSchema>,
   id?: string,
+  expectedUpdatedAt?: string,
 ): Promise<ActionResponse> {
   try {
     testSuiteSchema.parse(value)
@@ -101,7 +102,7 @@ export async function updateTestSuiteAction(
     }
 
     const project = await requireActiveProjectForMutation()
-    await updateTestSuiteFromInput(value, id, project.id)
+    await updateTestSuiteFromInput(value, id, project.id, expectedUpdatedAt)
 
     revalidatePath('/test-suites')
     return {

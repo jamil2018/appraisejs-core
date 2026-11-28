@@ -5,6 +5,7 @@ import { readDiscoveryRegistries } from './quality-journey-discovery-prerequisit
 type Node = DefaultTreeAdapterTypes.Node
 type Brief = { objective: string; environmentIds?: string[] }
 const maximumBytes = 192 * 1024
+const maximumObservedPathCharacters = 2048
 
 // Inspect static document structure. Scripts, form values and credentials never enter the analysis prompt.
 function hidden(node: DefaultTreeAdapterTypes.Element) {
@@ -53,7 +54,7 @@ async function inspectDocument(url: URL) {
   const reader = response.body?.getReader()
   try {
     if (!reader || !response.ok || !/^text\/html\b/i.test(response.headers.get('content-type') ?? ''))
-      return { path: url.pathname, observed: false, status: response.status }
+      return { path: url.pathname.slice(0, maximumObservedPathCharacters), observed: false, status: response.status }
     const parts: Uint8Array[] = []
     let size = 0
     while (size < maximumBytes) {
@@ -63,7 +64,11 @@ async function inspectDocument(url: URL) {
       size += part.length
       parts.push(part)
     }
-    return { path: url.pathname, observed: true, labels: inspectPageLabels(Buffer.concat(parts).toString('utf8')) }
+    return {
+      path: url.pathname.slice(0, maximumObservedPathCharacters),
+      observed: true,
+      labels: inspectPageLabels(Buffer.concat(parts).toString('utf8')),
+    }
   } finally {
     await reader?.cancel()
   }
@@ -104,13 +109,13 @@ export async function readAnalysisPageEvidence(
     if (url && url.origin === target.origin && url.pathname === path && !url.search && !url.hash) urls.push(url)
     if (urls.length === 3) break
   }
-  await onInspect?.((urls[1] ?? target).pathname)
+  await onInspect?.((urls[1] ?? target).pathname.slice(0, maximumObservedPathCharacters))
   const pages = await Promise.all(
     urls.map(async url => {
       try {
         return await inspectDocument(url)
       } catch {
-        return { path: url.pathname, observed: false }
+        return { path: url.pathname.slice(0, maximumObservedPathCharacters), observed: false }
       }
     }),
   )

@@ -11,9 +11,9 @@ import { NativeProviderSettings } from './native-provider-settings'
 
 const description: Record<ClaudeCodeConnectionStatus['state'], string> = {
   unavailable: 'Install Claude Code to connect this local app.',
-  disconnected: 'Connect Claude Code for project lookups in chat.',
+  disconnected: 'Sign in to Claude Code for project chat and supported Journeys.',
   authorizing: 'Continue in the Anthropic sign-in page. Appraise will check the connection when you return.',
-  connected: 'Connected. Open a project chat to review and send a Claude Code lookup.',
+  connected: 'Connected for project chat. Appraise checks Journey availability when you start a brief.',
   failed: 'Claude Code could not finish sign-in. Try again.',
 }
 

@@ -4,11 +4,13 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 import {
+  closeLocatorPickerSessionAction,
   getLocatorPickerSessionAction,
   savePickedLocatorAction,
   startLocatorPickerSessionAction,
 } from '@/actions/locator-picker/locator-picker-actions'
 import { toast } from '@/hooks/use-toast'
+import { withProjectScope } from '@/lib/project-scope'
 import type { LocatorPickerSession } from '@/types/locator-picker'
 
 import {
@@ -32,6 +34,8 @@ export function useLocatorWorkspace({
   mode = 'create',
   displayMode = 'page',
   locatorId,
+  projectId,
+  returnToChat,
   initialValues,
   onSaveSuccess,
   onClose,
@@ -45,6 +49,7 @@ export function useLocatorWorkspace({
   const [session, setSession] = useState<LocatorPickerSession | null>(null)
   const [isStarting, setIsStarting] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [isReturning, setIsReturning] = useState(false)
 
   const loadSession = async (sessionId: string, silent = false) => {
     const response = await getLocatorPickerSessionAction(sessionId)
@@ -127,6 +132,37 @@ export function useLocatorWorkspace({
     })
   }
 
+  const closePicker = async () => {
+    if (!session || session.status === 'closed') return true
+    const response = await closeLocatorPickerSessionAction(session.sessionId)
+    const closed = getLocatorPickerSession(response.data)
+    if (response.status === 200 && closed) {
+      setSession(closed)
+      return true
+    }
+    toast({ title: 'Unable to close picker', description: response.error || 'Try again.', variant: 'destructive' })
+    return false
+  }
+
+  const handleCancel = async () => {
+    if (await closePicker()) {
+      toast({
+        title: 'Picker closed',
+        description: 'No new selector was saved. You can continue manual entry or launch again.',
+      })
+    }
+  }
+
+  const handleReturnToChat = async () => {
+    if (!returnToChat) return
+    setIsReturning(true)
+    try {
+      if (await closePicker()) router.push(returnToChat)
+    } finally {
+      setIsReturning(false)
+    }
+  }
+
   const handleSave = async () => {
     setIsSaving(true)
 
@@ -154,8 +190,10 @@ export function useLocatorWorkspace({
       if (isInlineMode && saveResult) {
         await onSaveSuccess?.(saveResult)
         onClose?.()
+      } else if (returnToChat) {
+        await handleReturnToChat()
       } else {
-        router.push('/locators')
+        router.push(projectId ? withProjectScope('/locators', projectId) : '/locators')
         router.refresh()
       }
       return
@@ -183,6 +221,7 @@ export function useLocatorWorkspace({
     state,
     isStarting,
     isSaving,
+    isReturning,
     setSourceType: (sourceType: LocatorSourceType) => setState(current => ({ ...current, sourceType })),
     setEnvironmentId: (environmentId: string) => setState(current => ({ ...current, environmentId })),
     setUrl: (url: string) => setState(current => ({ ...current, url })),
@@ -195,7 +234,9 @@ export function useLocatorWorkspace({
     setRoute: (route: string) => setState(current => ({ ...current, route })),
     setModuleId: (moduleId: string) => setState(current => ({ ...current, moduleId })),
     handleStart,
+    handleCancel,
     handleSave,
+    handleReturnToChat,
     ...derivedState,
   }
 }

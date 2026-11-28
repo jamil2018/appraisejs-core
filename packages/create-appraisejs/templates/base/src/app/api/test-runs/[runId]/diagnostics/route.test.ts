@@ -17,6 +17,17 @@ describe('GET capsule diagnostics', () => {
     expect(response.headers.get('cache-control')).toContain('no-store')
     await expect(response.json()).resolves.toEqual({ schemaVersion: '1', blockers: [] })
   })
+  it('uses the explicit report project after another project becomes active', async () => {
+    findUnique.mockResolvedValue(null)
+    const response = await GET(
+      new Request('http://localhost/api/test-runs/run/diagnostics?targetProjectId=p1', {
+        headers: { cookie: 'appraise-active-project=p2' },
+      }),
+      { params: Promise.resolve({ runId: 'run' }) },
+    )
+    expect(response.status).toBe(404)
+    expect(findUnique).toHaveBeenCalledWith(expect.objectContaining({ where: { runId: 'run', targetProjectId: 'p1' } }))
+  })
   it('maps absent to 404 and corruption to opaque 409', async () => {
     findUnique
       .mockResolvedValueOnce(null)

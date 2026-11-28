@@ -49,6 +49,15 @@ describe('shouldExcludeTemplatePath', () => {
     expect(shouldExcludeTemplatePath('scripts/tests/m12-packed-install.test.mjs')).toBe(true)
   })
 
+  it('excludes the checkout pilot that imports producer-only M10 fixtures', () => {
+    for (const prefix of ['', 'e2e/']) {
+      expect(shouldExcludeTemplatePath(prefix + 'chat-first-checkout-pilot.spec.ts')).toBe(true)
+      expect(shouldExcludeTemplatePath(prefix + 'helpers/chat-first-checkout-pilot-fixture.ts')).toBe(true)
+      expect(shouldExcludeTemplatePath(prefix + 'chat-first-reports-collaboration.spec.ts')).toBe(true)
+      expect(shouldExcludeTemplatePath(prefix + 'quality-journey-chat-execution.spec.ts')).toBe(false)
+    }
+  })
+
   it.each([
     'scripts/m06-native-patch-10.mjs',
     'm06-native-patch-10.mjs',

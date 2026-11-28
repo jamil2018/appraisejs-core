@@ -55,6 +55,8 @@ export default function CreateLocatorWorkspace({
   mode = 'create',
   displayMode = 'page',
   locatorId,
+  projectId,
+  returnToChat,
   initialValues,
   onSaveSuccess,
   onClose,
@@ -65,6 +67,7 @@ export default function CreateLocatorWorkspace({
     state,
     isStarting,
     isSaving,
+    isReturning,
     setSourceType,
     setEnvironmentId,
     setUrl,
@@ -76,7 +79,9 @@ export default function CreateLocatorWorkspace({
     setRoute,
     setModuleId,
     handleStart,
+    handleCancel,
     handleSave,
+    handleReturnToChat,
     canLaunch,
     canSave,
   } = useLocatorWorkspace({
@@ -86,13 +91,22 @@ export default function CreateLocatorWorkspace({
     mode,
     displayMode,
     locatorId,
+    projectId,
+    returnToChat,
     initialValues,
     onSaveSuccess,
     onClose,
   })
 
+  const operationPending = isStarting || isSaving || isReturning
+
   return (
     <div className="min-w-0 space-y-4">
+      {returnToChat && (
+        <Button type="button" variant="link" className="px-0" disabled={operationPending} onClick={handleReturnToChat}>
+          Return to chat
+        </Button>
+      )}
       <div className="grid min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
         <Card className="min-w-0">
           <CardHeader className="p-4">
@@ -163,10 +177,26 @@ export default function CreateLocatorWorkspace({
               </div>
             )}
 
-            <Button type="button" onClick={handleStart} disabled={isStarting || !canLaunch} className="w-full">
+            <Button
+              type="button"
+              onClick={handleStart}
+              disabled={operationPending || !canLaunch || session?.status === 'ready'}
+              className="w-full"
+            >
               {isStarting ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Target className="mr-2 size-4" />}
               Launch Chromium
             </Button>
+            {session && !['closed', 'error', 'picked'].includes(session.status) ? (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={operationPending}
+                onClick={handleCancel}
+                className="w-full"
+              >
+                Cancel picker
+              </Button>
+            ) : null}
 
             <Alert>
               <AlertTitle>Inside Chromium</AlertTitle>
@@ -226,6 +256,13 @@ export default function CreateLocatorWorkspace({
           <CardContent className="min-w-0 space-y-4 p-4 pt-0">
             {session?.pickedLocator ? (
               <PickedLocatorObservation pickedLocator={session.pickedLocator} />
+            ) : session?.status === 'closed' ? (
+              <Alert>
+                <AlertTitle>No target picked</AlertTitle>
+                <AlertDescription>
+                  The picker closed without a selector. Launch it again or enter a selector manually.
+                </AlertDescription>
+              </Alert>
             ) : (
               <Alert>
                 <AlertTitle>Waiting for a picked selector</AlertTitle>
@@ -354,7 +391,7 @@ export default function CreateLocatorWorkspace({
             )}
 
             <div className="flex justify-end border-t border-border pt-4">
-              <Button type="button" onClick={handleSave} disabled={!canSave || isSaving}>
+              <Button type="button" onClick={handleSave} disabled={!canSave || operationPending}>
                 {isSaving ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Save className="mr-2 size-4" />}
                 {isModifyMode ? 'Update Locator' : 'Save Locator'}
               </Button>

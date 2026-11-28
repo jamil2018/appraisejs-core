@@ -7,6 +7,8 @@ import { getAllModulesAction } from '@/actions/modules/module-actions'
 import { getAllTagsAction } from '@/actions/tags/tag-actions'
 import { Metadata } from 'next'
 import AuthoringLoadError from '@/components/data-state/authoring-load-error'
+import { requireActiveProjectForMutation } from '@/lib/active-project'
+import { withProjectScope } from '@/lib/project-scope'
 
 import { getModuleRows, getTagRows, getTestCasePickerRows } from '../test-suite-helpers'
 
@@ -16,6 +18,7 @@ export const metadata: Metadata = {
 }
 
 const CreateTestSuite = async () => {
+  const project = await requireActiveProjectForMutation()
   const [testCasesResponse, moduleListResponse, tagsResponse] = await Promise.all([
     getAllTestCasesAction(),
     getAllModulesAction(),
@@ -48,6 +51,7 @@ const CreateTestSuite = async () => {
         successTitle="Suite created"
         successMessage="Test suite created successfully"
         onSubmitAction={createTestSuiteAction}
+        redirectPath={withProjectScope('/test-suites', project.id)}
         testCases={testCases}
         moduleList={moduleList}
         tags={tags}

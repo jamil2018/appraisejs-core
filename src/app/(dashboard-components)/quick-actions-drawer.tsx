@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Blocks, FileCheck, LayoutTemplate, ListChecks, Route, TestTubeDiagonal, TestTubes, Plus } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { presentationVocabulary } from '@/lib/presentation-vocabulary'
+import { withProjectScope } from '@/lib/project-scope'
 
 const quickActions = [
   {
@@ -50,7 +51,7 @@ const quickActions = [
   },
 ]
 
-export default function QuickActionsDrawer() {
+export default function QuickActionsDrawer({ projectId }: { projectId: string }) {
   const { push } = useRouter()
   return (
     <Card>
@@ -63,7 +64,7 @@ export default function QuickActionsDrawer() {
             <button
               key={href}
               type="button"
-              onClick={() => push(href)}
+              onClick={() => push(withProjectScope(href, projectId))}
               className="app-focus flex min-h-14 items-start gap-2.5 rounded-lg border bg-field p-2.5 text-left transition-colors hover:bg-accent"
             >
               <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border bg-muted text-muted-foreground">

@@ -72,13 +72,13 @@ const status = {
       reviewItems: [{ recordKey: 'module:module-1' }],
     },
   ],
-} as never
+}
 
 describe('CollaborationControls', () => {
   it('shows the durable authentication repair state and offers an explicit retry', async () => {
     mocks.retryRemote.mockResolvedValue({ success: true, data: { id: 'binding-1' } })
     const user = userEvent.setup()
-    render(<CollaborationControls projectId="project-1" status={status} />)
+    render(<CollaborationControls projectId="project-1" status={status as never} />)
     expect(screen.getByText(/authentication needs repair/i)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /Retry remote check after repairing credentials/i }))
     expect(mocks.retryRemote).toHaveBeenCalledWith({ targetProjectId: 'project-1' })
@@ -94,7 +94,7 @@ describe('CollaborationControls', () => {
       },
     })
     const user = userEvent.setup()
-    render(<CollaborationControls projectId="project-1" status={status} />)
+    render(<CollaborationControls projectId="project-1" status={status as never} />)
 
     expect(screen.getByText(/No worker is currently available/i)).toBeInTheDocument()
     expect(screen.getByText('Repair credentials.')).toBeInTheDocument()
@@ -116,7 +116,18 @@ describe('CollaborationControls', () => {
       },
     })
     const user = userEvent.setup()
-    render(<CollaborationControls projectId="project-1" status={status} />)
+    const decisionStatus = {
+      ...status,
+      operations: [
+        {
+          ...status.operations[0],
+          state: 'WAITING_FOR_DECISION',
+          preparedDigest: `sha256:${'a'.repeat(64)}`,
+          reviewItems: [{ recordKey: 'module:module-1', disposition: 'CONFLICT' }],
+        },
+      ],
+    } as never
+    render(<CollaborationControls projectId="project-1" status={decisionStatus} />)
     await user.click(screen.getByRole('button', { name: /Create CLI receipt: keep local/i }))
     expect(await screen.findByTestId('authority-receipt-token')).toHaveTextContent('a'.repeat(43))
     expect(screen.getByRole('button', { name: 'Copy receipt' })).toBeInTheDocument()

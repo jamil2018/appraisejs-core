@@ -7,6 +7,7 @@ import TestCaseForm from '../../test-case-form'
 import PageHeader from '@/components/typography/page-header'
 import { Button } from '@/components/ui/button'
 import { journeyRecordBriefHref } from '@/lib/quality-journey/record-context'
+import { withProjectScope } from '@/lib/project-scope'
 import { createTagAction } from '@/actions/tags/tag-actions'
 import { createTestSuiteAction } from '@/actions/test-suite/test-suite-actions'
 import { Metadata } from 'next'
@@ -116,6 +117,8 @@ const ModifyTestCase = async ({ params }: { params: Promise<{ id: string }> }) =
         onSubmitAction={updateTestCaseAction}
         id={id}
         defaultTitle={testCase.title}
+        expectedUpdatedAt={testCase.updatedAt.toISOString()}
+        returnPath={withProjectScope('/test-cases', testCase.targetProjectId)}
         defaultDescription={testCase.description}
         defaultTestSuiteIds={testCase.testSuiteIds}
         defaultTagIds={testCase.tagIds}

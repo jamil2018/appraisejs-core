@@ -9,6 +9,11 @@ This applies to reads as well as mutations. Lists, detail views, uniqueness chec
 test-run controls must receive the resolved project ID. Creation actions fail when no active project is selected, and
 services must persist the resolved ID rather than accepting ownership from form data.
 
+On a project-scoped workspace route, the proxy records the actual request URL. Actions use its explicit project
+before the active-project cookie so a tab retains its displayed scope when another tab switches projects. The
+workspace route registry defines where the URL establishes scope. Global routes such as Projects use their own
+selection controls.
+
 Ready Step Definitions are the shared-library exception: registry actions and services operate globally and do not
 require active-project resolution. Project-owned entities reference their exact immutable Step References.
 

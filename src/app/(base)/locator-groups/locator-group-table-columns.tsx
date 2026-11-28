@@ -7,6 +7,7 @@ import { createDataTableSelectionColumn } from '@/components/ui/data-table-selec
 import TableActions from '@/components/table/table-actions'
 import { LocatorGroup, Module } from '@prisma/client'
 import { formatDateTime } from '@/lib/utils'
+import { withProjectScope } from '@/lib/project-scope'
 import { deleteLocatorGroupAction } from '@/actions/locator-groups/locator-group-actions'
 import { Badge } from '@/components/ui/badge'
 
@@ -49,7 +50,7 @@ export const locatorGroupTableCols: ColumnDef<LocatorGroup & { module: Module }>
       return (
         <TableActions
           rowName={locatorGroup.name}
-          modifyLink={`/locator-groups/modify/${locatorGroup.id}`}
+          modifyLink={withProjectScope(`/locator-groups/modify/${locatorGroup.id}`, locatorGroup.targetProjectId)}
           deleteHandler={() => deleteLocatorGroupAction([locatorGroup.id])}
         />
       )

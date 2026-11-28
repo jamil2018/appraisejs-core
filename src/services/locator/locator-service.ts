@@ -393,9 +393,13 @@ export async function savePickedLocatorFromRequest(
   const value = Object.freeze(savePickedLocatorSchema.parse(request))
   const id = value.locatorId ?? randomUUID()
   if (!isSharedResourceId(targetProjectId)) refuse('REQUEST_SCOPE_OR_BOUNDS')
-  const session = value.sessionId ? await locatorPickerSessionManager.getSession(value.sessionId) : null
+  const session = value.sessionId
+    ? await locatorPickerSessionManager.getSession(value.sessionId, targetProjectId)
+    : null
   const fail = (status: number, message: string): SavePickedLocatorOutcome => ({ kind: 'error', status, message })
-  await locatorPickerSessionManager.markSaving(value.sessionId)
+  if (value.sessionId && !session)
+    return fail(404, 'Picker session is unavailable for this project. Start a new capture or save a manual selector.')
+  await locatorPickerSessionManager.markSaving(value.sessionId, targetProjectId)
   try {
     const locatorName = value.locatorName.trim(),
       selector = value.selector.trim()
@@ -519,6 +523,6 @@ export async function savePickedLocatorFromRequest(
       } satisfies SavePickedLocatorOutcome
     })
   } finally {
-    await locatorPickerSessionManager.markReadyAfterSave(value.sessionId)
+    await locatorPickerSessionManager.markReadyAfterSave(value.sessionId, targetProjectId)
   }
 }

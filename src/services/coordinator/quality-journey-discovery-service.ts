@@ -13,6 +13,7 @@ import {
   normalizeDiscoveryAuthTransitPolicyJson,
 } from '@/lib/quality-journey/discovery-auth-transit-policy'
 import { defaultOperationDefinitions } from '@/lib/operation-catalog'
+import { managedScoutSnapshotId } from '@/lib/quality-journey/managed-scout-snapshot'
 import {
   hashAnalysisCharter,
   hashResourceResolutionBundle,
@@ -23,6 +24,7 @@ import {
 } from '@/lib/quality-journey'
 import { readVisibleResourceOwnerships } from '@/services/project-resource/project-resource-ownership-service'
 import { ServiceError } from '@/services/shared/errors'
+import { readSealedManagedScoutEvidence } from './app-managed-discovery-evidence'
 import { readDiscoveryResourceLabels } from './quality-journey-discovery-resource-labels'
 import {
   assertDiscoveryPrerequisites,
@@ -81,7 +83,6 @@ function hash(value: unknown) {
 }
 const idFor = (kind: string, ...parts: string[]) =>
   `qjd_${kind}_${createHash('sha256').update(parts.join(':')).digest('hex').slice(0, 24)}`
-
 
 function snapshotDiscoveryCoordinatorSession(credentials: CoordinatorSessionCredentials | undefined) {
   if (!credentials || typeof credentials !== 'object') return credentials
@@ -545,7 +546,7 @@ async function registryStillCurrent(revision: Awaited<ReturnType<typeof getDisco
  */
 export async function readInternalDiscoveryAssignment(
   journey: QualityJourney,
-  item: Pick<QualityJourneyWorkItem, 'id' | 'inputHash'> & { role: 'SCOUT' | 'RESOURCE_EXPLORER' },
+  item: Pick<QualityJourneyWorkItem, 'id' | 'inputHash' | 'currentAttempt'> & { role: 'SCOUT' | 'RESOURCE_EXPLORER' },
   tx: Prisma.TransactionClient,
 ) {
   if (journey.hostingMode !== 'APP_SERVER_LOCAL_V1' || journey.stage !== 'DISCOVERY')
@@ -593,17 +594,38 @@ export async function readInternalDiscoveryAssignment(
       ...common,
       role: item.role,
       scope,
-      resourceLabels: await readDiscoveryResourceLabels(journey.targetProjectId, scope.resources, sourceOwnedBuiltIns, tx),
+      resourceLabels: await readDiscoveryResourceLabels(
+        journey.targetProjectId,
+        scope.resources,
+        sourceOwnedBuiltIns,
+        tx,
+      ),
     }
   }
 
   const scope = JSON.parse(revision.scoutScopeJson) as { environmentIds: string[]; routes: string[] }
   const evidence = await readInternalScoutEvidence(revision, tx)
-  if (!evidence.length)
-    throw new ServiceError('Scout is waiting for evidence from the Appraise Discovery browser.', 'CONFLICT', 409, {
-      reason: 'DISCOVERY_BROWSER_EVIDENCE_REQUIRED',
-    })
-  return { ...common, role: item.role, scope: { environmentIds: scope.environmentIds, routes: scope.routes }, evidence }
+  const reviewed = scope.routes.length > 1 ? await readSealedManagedScoutEvidence(revision, evidence, tx) : null
+  const waitingForReview =
+    scope.routes.length > 1 &&
+    !reviewed &&
+    (item.currentAttempt === 0 || evidence.some(page => page.snapshotId === managedScoutSnapshotId(revision.id)))
+  if (!evidence.length || waitingForReview)
+    throw new ServiceError(
+      waitingForReview
+        ? 'Scout is waiting for the operator to review the inspected pages.'
+        : 'Scout is waiting for evidence from the Appraise Discovery browser.',
+      'CONFLICT',
+      409,
+      { reason: 'DISCOVERY_BROWSER_EVIDENCE_REQUIRED' },
+    )
+  return {
+    ...common,
+    role: item.role,
+    scope: { environmentIds: scope.environmentIds, routes: scope.routes },
+    evidence: reviewed ?? evidence,
+    reviewedPageSet: reviewed !== null,
+  }
 }
 
 /** Exact, accepted Discovery inputs for downstream managed scenario design. */
@@ -866,18 +888,30 @@ async function completeDiscoveryAttempt(
 ) {
   const scope = { journeyId: input.journeyId, targetProjectId: input.targetProjectId }
   const attempt = await tx.qualityJourneyWorkAttempt.findUnique({
-    where: { id: input.attemptId }, include: { workItem: true, authorization: true },
+    where: { id: input.attemptId },
+    include: { workItem: true, authorization: true },
   })
-  if (!attempt || attempt.workItemId !== input.itemId || attempt.leaseId !== input.leaseId ||
+  if (
+    !attempt ||
+    attempt.workItemId !== input.itemId ||
+    attempt.leaseId !== input.leaseId ||
     attempt.authorizationId !== input.authorizationId ||
-    attempt.workItem.journeyId !== scope.journeyId || attempt.workItem.targetProjectId !== scope.targetProjectId ||
-    attempt.workItem.currentAttempt !== attempt.attempt || attempt.workItem.status !== 'IN_PROGRESS' ||
-    attempt.status !== 'IN_PROGRESS' || attempt.leaseExpiresAt <= new Date() ||
-    !attempt.authorization || attempt.authorization.workItemId !== input.itemId ||
-    attempt.authorization.journeyId !== scope.journeyId || attempt.authorization.targetProjectId !== scope.targetProjectId ||
+    attempt.workItem.journeyId !== scope.journeyId ||
+    attempt.workItem.targetProjectId !== scope.targetProjectId ||
+    attempt.workItem.currentAttempt !== attempt.attempt ||
+    attempt.workItem.status !== 'IN_PROGRESS' ||
+    attempt.status !== 'IN_PROGRESS' ||
+    attempt.leaseExpiresAt <= new Date() ||
+    !attempt.authorization ||
+    attempt.authorization.workItemId !== input.itemId ||
+    attempt.authorization.journeyId !== scope.journeyId ||
+    attempt.authorization.targetProjectId !== scope.targetProjectId ||
     attempt.authorization.role !== attempt.workItem.role ||
     attempt.authorization.roleContractDigest !== attempt.workItem.roleContractDigest ||
-    attempt.authorization.revokedAt || attempt.authorization.cancelledAt || hash(input.bundle) !== input.bundleHash)
+    attempt.authorization.revokedAt ||
+    attempt.authorization.cancelledAt ||
+    hash(input.bundle) !== input.bundleHash
+  )
     throw new ServiceError('Discovery terminal attempt lineage changed.', 'CONFLICT')
   if (typeof coordinatorSession === 'object')
     await assertCoordinatorAttemptSession({ ...coordinatorSession, ...scope, attemptId: attempt.id }, tx)
@@ -892,12 +926,20 @@ async function completeDiscoveryAttempt(
   // Revision readiness is a projection and never controls generation retirement.
   await queueAttemptTerminal(tx, scope, terminal)
   await beforeWrite(tx, scope, {
-    kind: 'ATTEMPT_TERMINAL_ROW', terminalAttemptId: terminal.attemptId, terminalResultHash: terminal.resultHash,
+    kind: 'ATTEMPT_TERMINAL_ROW',
+    terminalAttemptId: terminal.attemptId,
+    terminalResultHash: terminal.resultHash,
   })
   const completed = await tx.qualityJourneyWorkAttempt.updateMany({
     where: {
-      id: terminal.attemptId, workItemId: terminal.workItemId, authorizationId: terminal.authorizationId,
-      leaseId: input.leaseId, status: 'IN_PROGRESS', resultHash: null, resultJson: null, completedAt: null,
+      id: terminal.attemptId,
+      workItemId: terminal.workItemId,
+      authorizationId: terminal.authorizationId,
+      leaseId: input.leaseId,
+      status: 'IN_PROGRESS',
+      resultHash: null,
+      resultJson: null,
+      completedAt: null,
     },
     data: {
       status: 'COMPLETED',
@@ -908,16 +950,22 @@ async function completeDiscoveryAttempt(
   })
   if (completed.count !== 1) throw new ServiceError('Discovery terminal attempt changed concurrently.', 'CONFLICT')
   await beforeWrite(tx, scope, {
-    kind: 'WORK_ITEM_TERMINAL_ROW', terminalAttemptId: terminal.attemptId, terminalResultHash: terminal.resultHash,
+    kind: 'WORK_ITEM_TERMINAL_ROW',
+    terminalAttemptId: terminal.attemptId,
+    terminalResultHash: terminal.resultHash,
   })
   const itemCompleted = await tx.qualityJourneyWorkItem.updateMany({
     where: {
-      id: terminal.workItemId, ...scope, currentAttempt: attempt.attempt,
-      status: 'IN_PROGRESS', version: attempt.workItem.version,
+      id: terminal.workItemId,
+      ...scope,
+      currentAttempt: attempt.attempt,
+      status: 'IN_PROGRESS',
+      version: attempt.workItem.version,
     },
     data: { status: 'COMPLETED', version: { increment: 1 } },
   })
-  if (itemCompleted.count !== 1) throw new ServiceError('Discovery terminal work item changed concurrently.', 'CONFLICT')
+  if (itemCompleted.count !== 1)
+    throw new ServiceError('Discovery terminal work item changed concurrently.', 'CONFLICT')
   return terminal
 }
 
@@ -994,7 +1042,9 @@ async function completeIfReady(
   })
   // Finite sidecars: this revision completion and its DISCOVERY_COMPLETED event.
   await beforeWrite(tx, revision, {
-    kind: 'ROLE_OUTPUT_FINALIZATION', terminalAttemptId: terminal.attemptId, terminalResultHash: terminal.resultHash,
+    kind: 'ROLE_OUTPUT_FINALIZATION',
+    terminalAttemptId: terminal.attemptId,
+    terminalResultHash: terminal.resultHash,
   })
   const completed = await tx.qualityJourneyDiscoveryRevision.updateMany({
     where: { id: revision.id, status: 'COLLECTING', completionHash: null },
@@ -1087,7 +1137,27 @@ async function submitQualityJourneyTargetObservationInTransaction(
     )
   )
     throw new ServiceError('Scout observations exceed the frozen target scope.', 'CONFLICT')
-  await assertDiscoveryBrowserReceiptAdmission(bundle, revision, tx, internal ? bundle.targetSnapshot : undefined)
+  const reviewed =
+    internal && scope.routes.length > 1
+      ? await readSealedManagedScoutEvidence(revision, await readInternalScoutEvidence(revision, tx), tx)
+      : null
+  if (reviewed) {
+    const expected = new Map(reviewed.map(page => [page.artifactId, page.contentHash]))
+    if (
+      bundle.evidenceReceipts.length !== expected.size ||
+      bundle.evidenceReceipts.some(receipt => expected.get(receipt.artifactId) !== receipt.contentHash)
+    )
+      throw new ServiceError('Scout observations must cover the exact reviewed pages.', 'CONFLICT')
+  } else if (bundle.targetSnapshot.snapshotId === managedScoutSnapshotId(revision.id)) {
+    throw new ServiceError('The inspected pages have not been reviewed for this Scout assignment.', 'CONFLICT')
+  }
+  await assertDiscoveryBrowserReceiptAdmission(
+    bundle,
+    revision,
+    tx,
+    internal ? bundle.targetSnapshot : undefined,
+    reviewed !== null,
+  )
   await assertDiscoverySubmissionModeLineageInTransaction(
     {
       journeyId: request.journeyId,
@@ -1117,11 +1187,22 @@ async function submitQualityJourneyTargetObservationInTransaction(
     },
   })
   if (!updated.count) throw new ServiceError('Scout output raced with another submission.', 'CONFLICT')
-  const terminal = await completeDiscoveryAttempt({
-    journeyId: request.journeyId, targetProjectId: request.targetProjectId,
-    attemptId: attempt.id, authorizationId: authorization.id,
-    leaseId: request.leaseId, itemId: item.id, bundle, bundleHash,
-  }, tx, beforeWrite, queueAttemptTerminal, coordinatorSession)
+  const terminal = await completeDiscoveryAttempt(
+    {
+      journeyId: request.journeyId,
+      targetProjectId: request.targetProjectId,
+      attemptId: attempt.id,
+      authorizationId: authorization.id,
+      leaseId: request.leaseId,
+      itemId: item.id,
+      bundle,
+      bundleHash,
+    },
+    tx,
+    beforeWrite,
+    queueAttemptTerminal,
+    coordinatorSession,
+  )
   return { replayed: false, discoveryRevision: await completeIfReady(revision.id, tx, beforeWrite, terminal) }
 }
 
@@ -1137,10 +1218,21 @@ export async function submitQualityJourneyTargetObservation(
     await assertManagedDiscoverySubmissionAttempt(request, tx)
     const bundle = targetObservationBundleSchema.parse(request.bundle)
     const bundleHash = hashTargetObservationBundle(bundle)
-    return withJourneyBusinessWriteJoinInTransaction(tx, request, originalCoordinatorSession, (beforeWrite, queueAttemptTerminal) =>
-      submitQualityJourneyTargetObservationInTransaction(
-        request, bundle, bundleHash, tx, beforeWrite, queueAttemptTerminal, originalCoordinatorSession,
-      ))
+    return withJourneyBusinessWriteJoinInTransaction(
+      tx,
+      request,
+      originalCoordinatorSession,
+      (beforeWrite, queueAttemptTerminal) =>
+        submitQualityJourneyTargetObservationInTransaction(
+          request,
+          bundle,
+          bundleHash,
+          tx,
+          beforeWrite,
+          queueAttemptTerminal,
+          originalCoordinatorSession,
+        ),
+    )
   })
 }
 
@@ -1189,17 +1281,24 @@ async function selectedResourceResolutionUseRequest(
   revision: Awaited<ReturnType<typeof getDiscoveryRevision>>,
   originalCredentials: CoordinatorSessionCredentials | undefined,
 ) {
-  if (await readJourneyBusinessEnrollmentKindInTransaction(tx, revision) === 'LEGACY') return null
-  if (!originalCredentials || typeof originalCredentials !== 'object' ||
-    !originalCredentials.coordinatorSessionId || !originalCredentials.coordinatorGeneration ||
+  if ((await readJourneyBusinessEnrollmentKindInTransaction(tx, revision)) === 'LEGACY') return null
+  if (
+    !originalCredentials ||
+    typeof originalCredentials !== 'object' ||
+    !originalCredentials.coordinatorSessionId ||
+    !originalCredentials.coordinatorGeneration ||
     originalCredentials.journeyId !== revision.journeyId ||
-    originalCredentials.targetProjectId !== revision.targetProjectId)
+    originalCredentials.targetProjectId !== revision.targetProjectId
+  )
     throw new ServiceError('E2 resource resolution requires the original current coordinator binding.', 'UNAUTHORIZED')
   return resolveResourceResolutionUseRequestInTransaction(tx, {
-    scope: { journeyId: revision.journeyId, targetProjectId: revision.targetProjectId,
+    scope: {
+      journeyId: revision.journeyId,
+      targetProjectId: revision.targetProjectId,
       coordinatorSessionId: originalCredentials.coordinatorSessionId,
       generation: originalCredentials.coordinatorGeneration,
-      credentials: { ...originalCredentials, journeyId: revision.journeyId, targetProjectId: revision.targetProjectId } },
+      credentials: { ...originalCredentials, journeyId: revision.journeyId, targetProjectId: revision.targetProjectId },
+    },
     discoveryRevisionId: revision.id,
     resourceResolutionHash: revision.resourceResolutionHash ?? '',
   })
@@ -1289,11 +1388,22 @@ async function submitQualityJourneyResourceResolutionInTransaction(
   const retained = await tx.qualityJourneyDiscoveryRevision.findUniqueOrThrow({ where: { id: revision.id } })
   const useRequest = await selectedResourceResolutionUseRequest(tx, retained, coordinatorSession)
   if (useRequest) await acquireSharedResourceUseInBusinessGroupInTransaction(tx, useRequest, beforeWrite)
-  const terminal = await completeDiscoveryAttempt({
-    journeyId: request.journeyId, targetProjectId: request.targetProjectId,
-    attemptId: attempt.id, authorizationId: authorization.id,
-    leaseId: request.leaseId, itemId: item.id, bundle, bundleHash,
-  }, tx, beforeWrite, queueAttemptTerminal, coordinatorSession)
+  const terminal = await completeDiscoveryAttempt(
+    {
+      journeyId: request.journeyId,
+      targetProjectId: request.targetProjectId,
+      attemptId: attempt.id,
+      authorizationId: authorization.id,
+      leaseId: request.leaseId,
+      itemId: item.id,
+      bundle,
+      bundleHash,
+    },
+    tx,
+    beforeWrite,
+    queueAttemptTerminal,
+    coordinatorSession,
+  )
   return { replayed: false, discoveryRevision: await completeIfReady(revision.id, tx, beforeWrite, terminal) }
 }
 
@@ -1309,10 +1419,21 @@ export async function submitQualityJourneyResourceResolution(
   return withTransaction(client, async tx => {
     await assertCoordinatorMutationSession(originalCoordinatorSession, request, tx)
     await assertManagedDiscoverySubmissionAttempt(request, tx)
-    return withJourneyBusinessWriteJoinInTransaction(tx, request, originalCoordinatorSession, (beforeWrite, queueAttemptTerminal) =>
-      submitQualityJourneyResourceResolutionInTransaction(
-        request, bundle, bundleHash, tx, beforeWrite, queueAttemptTerminal, originalCoordinatorSession,
-      ))
+    return withJourneyBusinessWriteJoinInTransaction(
+      tx,
+      request,
+      originalCoordinatorSession,
+      (beforeWrite, queueAttemptTerminal) =>
+        submitQualityJourneyResourceResolutionInTransaction(
+          request,
+          bundle,
+          bundleHash,
+          tx,
+          beforeWrite,
+          queueAttemptTerminal,
+          originalCoordinatorSession,
+        ),
+    )
   })
 }
 
@@ -1458,8 +1579,11 @@ export async function revalidateQualityJourneyDiscovery(
   client: PrismaClient = prisma,
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
-  const request = { journeyId: input.journeyId, targetProjectId: input.targetProjectId,
-    expectedActiveDiscoveryRevisionId: input.expectedActiveDiscoveryRevisionId }
+  const request = {
+    journeyId: input.journeyId,
+    targetProjectId: input.targetProjectId,
+    expectedActiveDiscoveryRevisionId: input.expectedActiveDiscoveryRevisionId,
+  }
   const originalCoordinatorSession = snapshotDiscoveryCoordinatorSession(coordinatorSession)
   return client.$transaction(async tx => {
     await assertCoordinatorMutationSession(originalCoordinatorSession, request, tx)

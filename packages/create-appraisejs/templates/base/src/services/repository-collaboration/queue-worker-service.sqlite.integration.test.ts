@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { copyMigratedTestDatabase, createTargetProjectFixture } from '@/test/migrated-test-database'
 
 import { connectCollaboration, updateCollaborationPolicy } from './binding-service'
-import { prepareCollaborationOperation } from './operation-service'
+import { executeCollaborationOperation, prepareCollaborationOperation } from './operation-service'
 import {
   acquireCollaborationMutationLock,
   cancelCollaborationOperation,
@@ -523,6 +523,64 @@ describe('repository collaboration queue and workers', () => {
         state: 'COMPLETED',
       })
       expect(await client.module.findFirst({ where: { name: 'Restart module' } })).toBeTruthy()
+    } finally {
+      await client.$disconnect()
+    }
+  })
+
+  it('leaves a chat-only READY preparation idle until a canonical step explicitly starts', async () => {
+    const { client, binding } = await fixture()
+    try {
+      const policy = await updateCollaborationPolicy(
+        {
+          bindingId: binding.id,
+          changes: { INTEGRATE: true },
+          trustedPrincipalId: 'local-user',
+          provenance: 'authenticated-host',
+        },
+        client,
+      )
+      const prepared = await prepareCollaborationOperation(
+        {
+          bindingId: binding.id,
+          intent: 'RECEIVE',
+          idempotencyKey: 'chat-ready-no-conflict',
+          expectedPolicyVersion: policy.policyVersion,
+          trigger: 'local-ui-chat-preparation',
+          incomingRecords: [
+            {
+              format: 'appraise.repository-collaboration/v1',
+              portableProjectId: 'queue-project',
+              portableId: 'chat-module',
+              version: 1,
+              archived: false,
+              kind: 'module',
+              payload: { name: 'Chat module', parentPortableId: null },
+            },
+          ],
+        },
+        client,
+      )
+      expect(prepared.state).toBe('READY')
+      const idle = await runCollaborationSchedulerTick({ observeRemote: async () => undefined }, client)
+      expect(idle.continuations).not.toContainEqual(expect.objectContaining({ operationId: prepared.id }))
+      expect(await client.module.findFirst({ where: { name: 'Chat module' } })).toBeNull()
+      expect(await client.collaborationOperation.findUnique({ where: { id: prepared.id } })).toMatchObject({
+        state: 'READY',
+      })
+
+      await executeCollaborationOperation(
+        {
+          operationId: prepared.id,
+          expectedVersion: prepared.version,
+          preparedDigest: prepared.preparedDigest!,
+          idempotencyKey: prepared.idempotencyKey,
+        },
+        client,
+      )
+      const resumed = await runCollaborationSchedulerTick({ observeRemote: async () => undefined }, client)
+      expect(resumed.continuations).toContainEqual({ operationId: prepared.id, outcome: 'completed' })
+      expect(await client.module.findFirst({ where: { name: 'Chat module' } })).toBeTruthy()
     } finally {
       await client.$disconnect()
     }

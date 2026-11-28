@@ -289,7 +289,13 @@ try {
     })
   }
   const historical = () => ({
-    attempts: all('SELECT * FROM QualityJourneyWorkAttempt ORDER BY id'),
+    attempts: all('SELECT * FROM QualityJourneyWorkAttempt ORDER BY id').map(
+      ({ managedDispatchIdentityJson, ...legacyAttempt }) => {
+        if (managedDispatchIdentityJson !== undefined)
+          assert.equal(managedDispatchIdentityJson, null, 'Migration must not invent an executable identity')
+        return legacyAttempt
+      },
+    ),
     work: all('SELECT * FROM QualityJourneyWorkItem ORDER BY id'),
     authorizations: all('SELECT * FROM QualityJourneyWorkAuthorization ORDER BY id'),
     handoffs: all('SELECT * FROM QualityJourneyCoordinatorHandoff ORDER BY id'),
@@ -303,6 +309,10 @@ try {
     'M03 must preserve every legacy attempt, authorization, manifest, receipt, handoff and lifecycle byte',
   )
   const rows = Object.fromEntries(all('SELECT * FROM QualityJourney ORDER BY id').map(row => [row.id, row]))
+  assert.ok(
+    all('PRAGMA table_info(QualityJourneyWorkAttempt)').some(column => column.name === 'managedDispatchIdentityJson'),
+  )
+  assert.ok(Object.values(rows).every(row => row.managedWorkerProvider === 'CODEX'))
   for (const id of [
     'empty',
     'factory',

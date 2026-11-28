@@ -20,7 +20,12 @@ export type TestSuiteGroupOption = {
   name: string
 }
 
-export type TestSuiteFormSubmitAction = (_prev: unknown, value: TestSuite, id?: string) => Promise<ActionResponse>
+export type TestSuiteFormSubmitAction = (
+  _prev: unknown,
+  value: TestSuite,
+  id?: string,
+  expectedUpdatedAt?: string,
+) => Promise<ActionResponse>
 
 export type TestSuiteInfoCard = {
   showHighlightGroup: boolean

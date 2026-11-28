@@ -3,6 +3,8 @@ import { CollectionEmpty, CollectionHeader } from '@/components/data-state/colle
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
 import Link from 'next/link'
+import { requireActiveProjectForMutation } from '@/lib/active-project'
+import { withProjectScope } from '@/lib/project-scope'
 import type { Metadata } from 'next'
 
 import { getModuleTableRows } from './module-helpers'
@@ -14,6 +16,7 @@ export const metadata: Metadata = {
 }
 
 export default async function Modules() {
+  const project = await requireActiveProjectForMutation()
   const { data, error } = await getAllModulesAction()
   const rows = getModuleTableRows(data)
 
@@ -22,7 +25,7 @@ export default async function Modules() {
   return (
     <div className="min-w-0 space-y-4">
       <CollectionHeader title="Modules">
-        <Button render={<Link href="/modules/create" />} nativeButton={false}>
+        <Button render={<Link href={withProjectScope('/modules/create', project.id)} />} nativeButton={false}>
           <Plus aria-hidden="true" /> New module
         </Button>
       </CollectionHeader>

@@ -6,6 +6,7 @@ import { AlertCircle, AlertTriangle, Clock, XCircle, CheckCircle2, ArrowRight } 
 import { DashboardMetrics } from '@prisma/client'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { withProjectScope } from '@/lib/project-scope'
 
 type AppDrawerItemConfig = {
   title: string
@@ -79,10 +80,12 @@ export default function AppDrawer({
   metrics,
   title,
   hasExecutionEvidence,
+  projectId,
 }: {
   metrics: DashboardMetrics | null
   title: string
   hasExecutionEvidence: boolean
+  projectId: string
 }) {
   const { push } = useRouter()
 
@@ -95,7 +98,7 @@ export default function AppDrawer({
       count: metrics?.failedRecentRunsCount ?? 0,
       tone: 'danger',
       onClick: () => {
-        push('/test-runs?filter=recentFailed')
+        push(withProjectScope('/test-runs?filter=recentFailed', projectId))
       },
     },
     {
@@ -106,7 +109,7 @@ export default function AppDrawer({
       count: metrics?.repeatedlyFailingTestsCount ?? 0,
       tone: 'danger',
       onClick: () => {
-        push('/reports/test-cases?filter=repeatedlyFailing')
+        push(withProjectScope('/reports/test-cases?filter=repeatedlyFailing', projectId))
       },
     },
     {
@@ -117,7 +120,7 @@ export default function AppDrawer({
       count: metrics?.flakyTestsCount ?? 0,
       tone: 'warning',
       onClick: () => {
-        push('/reports/test-cases?filter=flaky')
+        push(withProjectScope('/reports/test-cases?filter=flaky', projectId))
       },
     },
     {
@@ -128,7 +131,7 @@ export default function AppDrawer({
       count: metrics?.suitesNotExecutedRecentlyCount ?? 0,
       tone: 'warning',
       onClick: () => {
-        push('/reports/test-suites?filter=notExecutedRecently')
+        push(withProjectScope('/reports/test-suites?filter=notExecutedRecently', projectId))
       },
     },
   ]

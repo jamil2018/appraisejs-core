@@ -7,13 +7,21 @@ import LocatorGroupForm from '../../locator-group-form'
 import { updateLocatorGroupAction } from '@/actions/locator-groups/locator-group-actions'
 import { getAllModulesAction } from '@/actions/modules/module-actions'
 import { Metadata } from 'next'
+import { requireActiveProject } from '@/lib/active-project'
 
 export const metadata: Metadata = {
   title: 'Appraise | Modify Locator Group',
   description: 'Update locator group configuration',
 }
 
-const ModifyLocator = async ({ params }: { params: Promise<{ id: string }> }) => {
+const ModifyLocator = async ({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams?: Promise<{ project?: string }>
+}) => {
+  const project = await requireActiveProject((await searchParams)?.project)
   const { id } = await params
   const { data, error } = await getLocatorGroupByIdAction(id)
 
@@ -36,6 +44,7 @@ const ModifyLocator = async ({ params }: { params: Promise<{ id: string }> }) =>
         <HeaderSubtitle>Update the locator group configuration.</HeaderSubtitle>
       </div>
       <LocatorGroupForm
+        projectId={project.id}
         defaultValues={{
           name: locatorGroup.name ?? '',
           moduleId: locatorGroup.moduleId ?? '',

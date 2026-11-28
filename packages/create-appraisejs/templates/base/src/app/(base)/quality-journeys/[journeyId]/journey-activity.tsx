@@ -54,7 +54,7 @@ type Activity = {
   lastEventAt?: string
 }
 
-const agentSetupLabel = 'Agent setup needed'
+const agentSetupLabel = 'The selected assistant needs setup'
 
 function activityLabel(state: Activity, runtime?: string | null, role?: string, inspecting?: string) {
   if (state.status === 'CLOSED' || state.stage === 'CLOSED') return 'Journey complete'
@@ -62,7 +62,11 @@ function activityLabel(state: Activity, runtime?: string | null, role?: string, 
   if (state.legacy) return 'Ready to continue this journey in Appraise'
   if (state.stage === 'AUTOMATION' && state.awaitingTestPlan) return 'Waiting for a reviewed test plan'
   if (state.stage === 'TRIAGE' && state.awaitingReportReview) return 'Test run complete. Review the results.'
-  if (runtime === 'RECOVERY') return 'Agent stalled. Recovery is needed to continue.'
+  if (runtime === 'RECOVERY') {
+    if (state.stage === 'AUTOMATION') return 'Test preparation stopped before the checks were ready.'
+    if (state.stage === 'TRIAGE') return 'The tests finished. The results report couldn’t be saved.'
+    return 'Agent stalled. Recovery is needed to continue.'
+  }
   if (state.blocked) return 'Action needed to continue'
   if (state.question) return 'Waiting for your answer'
   if (state.stage === 'DISCOVERY') {
@@ -83,11 +87,6 @@ function activityLabel(state: Activity, runtime?: string | null, role?: string, 
   if (state.stage === 'ANALYSIS_REVIEW' && state.reviewing) return 'Ready to review acceptance criteria'
   if (state.stage === 'SCENARIO_REVIEW') return 'Ready to review scenarios'
   if (state.stage === 'REPORT_REVIEW') return 'Ready to review results'
-  if (
-    !state.analyzingEnabled &&
-    ['ANALYSIS', 'DISCOVERY', 'SCENARIO_DESIGN', 'AUTOMATION', 'TRIAGE'].includes(state.stage)
-  )
-    return agentSetupLabel
   if (runtime === 'RUNNING') {
     if (state.stage === 'ANALYSIS' && inspecting) return inspecting
     const work: Record<string, string> = {
@@ -100,6 +99,11 @@ function activityLabel(state: Activity, runtime?: string | null, role?: string, 
     }
     return work[state.stage] ?? 'Agent working'
   }
+  if (
+    !state.analyzingEnabled &&
+    ['ANALYSIS', 'DISCOVERY', 'SCENARIO_DESIGN', 'AUTOMATION', 'TRIAGE'].includes(state.stage)
+  )
+    return agentSetupLabel
   if (state.stage === 'EXECUTION') return 'Check the test run below'
   if (runtime === 'BLOCKED') return 'Waiting for the agent to become available'
   if (runtime === 'UNOBSERVED') return 'Waiting for a confirmed start'

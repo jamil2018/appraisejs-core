@@ -6,6 +6,7 @@ import { getTagByIdAction, updateTagAction } from '@/actions/tags/tag-actions'
 import { Tag } from 'lucide-react'
 import { Tag as TagType } from '@prisma/client'
 import { Metadata } from 'next'
+import { withProjectScope } from '@/lib/project-scope'
 
 export const metadata: Metadata = {
   title: 'Appraise | Modify Tag',
@@ -42,6 +43,8 @@ const ModifyTag = async ({ params }: { params: Promise<{ id: string }> }) => {
           tagExpression: tagData.tagExpression,
         }}
         id={id}
+        expectedUpdatedAt={tagData.updatedAt.toISOString()}
+        redirectPath={withProjectScope('/tags', tagData.targetProjectId)}
       />
     </div>
   )

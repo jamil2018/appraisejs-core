@@ -2,12 +2,16 @@ import type { PrismaClient } from '@prisma/client'
 import prisma from '@/config/db-config'
 import { z } from 'zod'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
-import {
-  classifyManagedAnalysisFailure,
-  runManagedAnalysis,
-  verifyManagedAnalysisExecutable,
-} from '@/lib/quality-journey/codex-app-server/managed-analysis-sender'
 import { ServiceError } from '@/services/shared/errors'
+import { assertClaudeCodeJourneyRequest } from '@/services/provider-connection/claude-code-cli'
+import { parseManagedWorkerPreferences } from '@/lib/quality-journey/managed-worker-preferences'
+import {
+  assertManagedProviderAtReservation,
+  bindManagedJourneySender,
+  managedJourneyProvider,
+  managedJourneyRoleEnabled,
+  type ManagedJourneyProvider,
+} from './app-managed-provider-sender'
 import { managedDiscoveryRoleSchema } from './app-managed-discovery-contract'
 import {
   projectAppManagedDiscoverySelection,
@@ -18,8 +22,8 @@ import { readScopedQualityJourney } from './quality-journey-coordinator-session'
 import { readInternalWorkerAuthority } from './quality-journey-internal-worker-authority'
 import { assertHistoricalHubQuiescent } from './quality-journey-provider-recovery'
 
-export function appManagedDiscoveryEnabled() {
-  return process.env.APPRAISE_LOCAL_CODEX_DISCOVERY_ENABLED === 'true'
+export function appManagedDiscoveryEnabled(provider: ManagedJourneyProvider = 'CODEX') {
+  return managedJourneyRoleEnabled(provider, process.env.APPRAISE_LOCAL_CODEX_DISCOVERY_ENABLED === 'true')
 }
 
 function sanitizedDiscoveryRefusal(error: unknown): string {
@@ -42,10 +46,15 @@ export async function startAppManagedDiscovery(
   input: { journeyId: string; targetProjectId: string; expectedStateHash: string; role: 'SCOUT' | 'RESOURCE_EXPLORER' },
   client: PrismaClient = prisma,
 ) {
-  if (!appManagedDiscoveryEnabled())
-    throw new ServiceError('Local Codex Discovery has not been enabled by this Appraise server owner.', 'CONFLICT')
   managedDiscoveryRoleSchema.parse(input.role)
   const journey = await readScopedQualityJourney(input, client)
+  const provider = managedJourneyProvider(journey)
+  const preferences = parseManagedWorkerPreferences(provider, journey)
+  if (!appManagedDiscoveryEnabled(provider))
+    throw new ServiceError(
+      'The selected local Discovery provider has not been enabled by this Appraise server owner.',
+      'CONFLICT',
+    )
   const session = journey.currentCoordinatorSessionId
     ? await client.qualityJourneyCoordinatorSession.findUnique({ where: { id: journey.currentCoordinatorSessionId } })
     : null
@@ -55,7 +64,7 @@ export async function startAppManagedDiscovery(
       'CONFLICT',
     )
   // Reject an incompatible host before claiming or consuming a fresh Discovery assignment.
-  await verifyManagedAnalysisExecutable()
+  const sender = await bindManagedJourneySender(provider, preferences)
   const task = await prepareAppManagedDiscoveryTask(
     {
       ...input,
@@ -69,6 +78,8 @@ export async function startAppManagedDiscovery(
   let consumed = false
   let stage = 'RESERVATION'
   try {
+    if (provider === 'CLAUDE_CODE')
+      assertClaudeCodeJourneyRequest(task.prompt, managedDiscoveryNativeOutputSchema(input.role))
     await client.$transaction(async tx => {
       const hub = await tx.qualityJourneyProviderSlot.upsert({
         where: { id: 'HUB' },
@@ -79,6 +90,7 @@ export async function startAppManagedDiscovery(
         throw new ServiceError('The local Codex worker requires reconciliation before reuse.', 'CONFLICT')
       await assertHistoricalHubQuiescent(tx)
       await readInternalWorkerAuthority(task.binding, tx)
+      await assertManagedProviderAtReservation(tx, input, provider, preferences)
       const result = await tx.qualityJourneyWorkAttempt.updateMany({
         where: {
           id: task.binding.attemptId,
@@ -89,9 +101,13 @@ export async function startAppManagedDiscovery(
         },
         data: {
           dispatchAdapterId: adapter,
+          managedDispatchIdentityJson: sender.managedDispatchIdentityJson,
           dispatchReservedAt: new Date(),
           dispatchStartedAt: new Date(),
-          failureJson: canonicalContractJson({ state: 'UNKNOWN', reason: 'LOCAL_CODEX_DISCOVERY_DISPATCH_CONSUMED' }),
+          failureJson: canonicalContractJson({
+            state: 'UNKNOWN',
+            reason: `LOCAL_${provider}_DISCOVERY_DISPATCH_CONSUMED`,
+          }),
         },
       })
       if (result.count !== 1)
@@ -102,7 +118,7 @@ export async function startAppManagedDiscovery(
     })
     consumed = true
     stage = 'NATIVE_SEND'
-    const raw = await runManagedAnalysis(task.prompt, managedDiscoveryNativeOutputSchema(input.role))
+    const raw = await sender.run(task.prompt, managedDiscoveryNativeOutputSchema(input.role))
     stage = 'OUTPUT_VALIDATION'
     if (Buffer.byteLength(raw, 'utf8') > 1_000_000) throw new Error('Discovery output exceeds the allowed bound.')
     const selection = JSON.parse(raw)
@@ -130,7 +146,7 @@ export async function startAppManagedDiscovery(
           refusalCategory: sanitizedDiscoveryRefusal(error),
           detail:
             stage === 'NATIVE_SEND'
-              ? classifyManagedAnalysisFailure(error)
+              ? sender.failureDetail(error)
               : stage === 'OUTPUT_VALIDATION'
                 ? 'Model output did not satisfy the exact Discovery contract.'
                 : 'Canonical Discovery handoff did not complete.',

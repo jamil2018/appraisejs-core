@@ -18,6 +18,7 @@ const {
   createTestSuiteAction,
   createTagAction,
   testCaseFormSpy,
+  requireActiveProjectForMutation,
 } = vi.hoisted(() => ({
   getAllTemplateTestCasesAction: vi.fn(),
   listReadyStepDefinitionOptionsAction: vi.fn(),
@@ -33,7 +34,10 @@ const {
   createTestSuiteAction: vi.fn(),
   createTagAction: vi.fn(),
   testCaseFormSpy: vi.fn(() => <div>Mock Test Case Form</div>),
+  requireActiveProjectForMutation: vi.fn(async () => ({ id: 'project-1' })),
 }))
+
+vi.mock('@/lib/active-project', () => ({ requireActiveProjectForMutation }))
 
 vi.mock('@/actions/template-test-case/template-test-case-actions', () => ({
   getAllTemplateTestCasesAction,
@@ -231,6 +235,7 @@ describe('Create Test Case From Template page', () => {
         onSubmitAction: createTestCaseAction,
         onCreateTestSuiteAction: createTestSuiteAction,
         onCreateTagAction: createTagAction,
+        returnPath: '/test-cases?project=project-1',
       }),
       undefined,
     )

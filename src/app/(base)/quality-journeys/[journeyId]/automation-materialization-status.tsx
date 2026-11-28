@@ -1,17 +1,11 @@
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 type AutomationContext = {
-  inputHash: string
-  inputHashes: string[]
-  scopeHash: string | null
-  portfolioRevisionId: string | null
   scenarioRevisionIds: string[]
   materializations: Array<{
     scenarioRevisionId: string
     status: string
-    suiteId: string | null
-    testCaseId: string | null
-    preparedCapsule: { id: string; status: string } | null
+    preparedCapsule: { status: string } | null
     failureKind?: string | null
     failureJson?: string | null
   }>

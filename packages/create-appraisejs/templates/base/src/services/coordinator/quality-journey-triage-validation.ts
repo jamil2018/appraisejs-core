@@ -19,7 +19,13 @@ function fullyEvidencedPass(run: TriageInput['runs'][number]) {
 
 /** Every material outcome has one primary attribution; successful execution is
  * not silently promoted to requirement success when its evidence is invalid. */
-export function validateQualityJourneyTriageReport(report: QualityJourneyTriageReport, input: TriageInput) {
+export function validateQualityJourneyTriageReport(
+  report: Pick<
+    QualityJourneyTriageReport,
+    'executionCycleId' | 'cycleId' | 'predecessorReportRevisionId' | 'findings' | 'coverage' | 'remediation'
+  >,
+  input: TriageInput,
+) {
   if (
     report.executionCycleId !== input.executionCycleId ||
     report.cycleId !== input.cycleId ||
@@ -37,7 +43,8 @@ export function validateQualityJourneyTriageReport(report: QualityJourneyTriageR
     fail('Every material outcome requires exactly one primary finding; finding IDs must be unique.')
   for (const finding of report.findings) validateFinding(finding, input)
   validateCoverage(report, input)
-  validateRemediation(report)
+  const remediationError = triageRemediationError(report)
+  if (remediationError) fail(remediationError)
 }
 
 function validateFinding(finding: QualityJourneyTriageReport['findings'][number], input: TriageInput) {
@@ -63,7 +70,9 @@ function validFailedEvidence(run: TriageInput['runs'][number]) {
   )
 }
 
-function validateRemediation(report: QualityJourneyTriageReport) {
+export function triageRemediationError(
+  report: Pick<QualityJourneyTriageReport, 'findings' | 'remediation'>,
+): string | undefined {
   if (report.remediation) {
     const proposal = report.remediation
     const findings = report.findings.filter(f => proposal.findingIds.includes(f.findingId))
@@ -71,13 +80,13 @@ function validateRemediation(report: QualityJourneyTriageReport) {
       findings.length !== proposal.findingIds.length ||
       findings.some(f => f.kind !== 'VALIDATION_REALIZATION_DEFECT' || f.unresolved)
     )
-      fail('Automation remediation requires resolved automation-realization findings.')
+      return 'Automation remediation requires resolved automation-realization findings.'
     if (!same(proposal.scenarioRevisionIds, [...new Set(findings.map(f => f.scenarioRevisionId))]))
-      fail('Remediation must name exactly the scenarios of its approved correction findings.')
+      return 'Remediation must name exactly the scenarios of its approved correction findings.'
   }
 }
 
-function validateCoverage(report: QualityJourneyTriageReport, input: TriageInput) {
+function validateCoverage(report: Pick<QualityJourneyTriageReport, 'coverage' | 'findings'>, input: TriageInput) {
   const requirements = input.analysis.content.requirements.map(r => r.requirementId)
   if (
     !same(

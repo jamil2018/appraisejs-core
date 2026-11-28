@@ -18,7 +18,8 @@ const project = 'project-1'
 const prepare = vi.mocked(prepareSharedResourceMutationInTransaction)
 const input = () => ({ name: 'Smoke', tagExpression: '@smoke' })
 const tagRow = (id = 'tag-1', extra: Row = {}) => ({ id, targetProjectId: project, archivedAt: null,
-  collaborationManaged: false, name: 'Smoke', tagExpression: '@smoke', ...extra })
+  collaborationManaged: false, name: 'Smoke', tagExpression: '@smoke',
+  updatedAt: new Date('2026-01-01T00:00:00.000Z'), ...extra })
 let tags: Row[], cases: Row[], suites: Row[], modules: Row[], runs: Row[], events: string[]
 function projection(row: Row, select: Record<string, unknown>): Row {
   return Object.fromEntries(Object.entries(select).filter(([, value]) => value).map(([key]) => {
@@ -122,6 +123,13 @@ describe('createTag', () => {
 })
 
 describe('updateTag', () => {
+  it('rejects a stale tag edit before reading connected cases or suites', async () => {
+    tags = [tagRow('tag-1', { updatedAt: new Date('2026-01-01T00:00:00.001Z') })]
+    await expect(updateTag('tag-1', input(), project, '2026-01-01T00:00:00.000Z'))
+      .rejects.toMatchObject({ code: 'CONFLICT', statusCode: 409 })
+    noWrites()
+  })
+
   it('throws when tag name already exists on another tag', async () => {
     tx.tag.findFirst.mockResolvedValueOnce(tagRow()).mockResolvedValueOnce({ id: 'tag-other' })
     await expect(updateTag('tag-1', { name: 'Regression', tagExpression: '@smoke' }, project))

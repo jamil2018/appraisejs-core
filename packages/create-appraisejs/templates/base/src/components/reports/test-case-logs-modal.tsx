@@ -10,6 +10,7 @@ import { StepStatus, ReportScenario } from '@prisma/client'
 import { CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react'
 import { ScrollArea } from '../ui/scroll-area'
 import { Button } from '@/components/ui/button'
+import { reportStepScreenshotHref } from '@/lib/report-step-evidence'
 
 /** Minimal shape so both full Prisma and report-table select types are accepted */
 type ReportScenarioWithDetails = ReportScenario & {
@@ -40,6 +41,7 @@ interface TestCaseLogsModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   reportScenario: ReportScenarioWithDetails | null
+  targetProjectId: string
 }
 
 const stepStatusToBadge = (status: StepStatus) => {
@@ -71,7 +73,7 @@ const formatKeyword = (keyword: string) => {
   return keyword.charAt(0) + keyword.slice(1).toLowerCase()
 }
 
-export function TestCaseLogsModal({ open, onOpenChange, reportScenario }: TestCaseLogsModalProps) {
+export function TestCaseLogsModal({ open, onOpenChange, reportScenario, targetProjectId }: TestCaseLogsModalProps) {
   const [expandedScreenshot, setExpandedScreenshot] = useState<{ stepId: string; stepName: string } | null>(null)
 
   if (!reportScenario) {
@@ -178,7 +180,7 @@ export function TestCaseLogsModal({ open, onOpenChange, reportScenario }: TestCa
                                     onClick={() => setExpandedScreenshot({ stepId: step.id, stepName: step.name })}
                                   >
                                     <Image
-                                      src={`/api/reports/steps/${step.id}/screenshot`}
+                                      src={reportStepScreenshotHref(targetProjectId, step.id)}
                                       alt={`Failure screenshot for step ${step.name}`}
                                       width={1280}
                                       height={720}
@@ -265,7 +267,7 @@ export function TestCaseLogsModal({ open, onOpenChange, reportScenario }: TestCa
           </DialogHeader>
           {expandedScreenshot && (
             <Image
-              src={`/api/reports/steps/${expandedScreenshot.stepId}/screenshot`}
+              src={reportStepScreenshotHref(targetProjectId, expandedScreenshot.stepId)}
               alt={`Failure screenshot for step ${expandedScreenshot.stepName}`}
               width={1600}
               height={900}

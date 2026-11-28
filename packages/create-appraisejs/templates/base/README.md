@@ -7,18 +7,28 @@ apply guarded migrations, seed canonical Step Definitions, build the app and pro
 `npm run start`. Use `npm run dev` for local development. Setup upgrades storage; it does not reset user data.
 Install desired browsers with `npm run install-playwright -- chromium` before browser execution.
 
-## Journey operation
+## Provider setup and Journey operation
 
-Use the Journey UI to confirm the immutable requirement and target, prepare the bounded Codex handoff, and explicitly
-send the prefilled composer. Local targets use their validated workspace; remote targets use neutral host context
-and retain the remote URL identity. Copy the prompt manually if the URI handler is absent or denied. Connection
-requires authenticated ticket redemption against the exact Journey and target; opening Codex grants no assignment.
-Expired or superseded tickets require a new handoff. Read current Journey state before claiming work.
+Open **Settings → Agent setup** in the running app to connect a provider for reviewed project-chat lookups. ChatGPT
+uses browser consent and private OS credential storage on macOS or Linux; Linux needs desktop Secret Service and
+`secret-tool`. Claude Code requires a verified, digest-pinned official executable and its own sign-in on a supported
+Mac. Cursor requires a pinned official CLI bundle and its own sign-in on a supported Mac. Settings reports unavailable
+providers and connection failures without making another provider a prerequisite. A saved lookup still needs its own
+review before sending it to the selected provider. Native Codex lookups require a configured, verified macOS
+app-server executable and a connected ChatGPT account.
 
-Install the separate `appraisejs` CLI/MCP package and follow **Agent setup** for authenticated MCP registration and
-plugin diagnostics. Unknown host versions or stale task schemas require capability checks and explicit reconnect.
-Do not treat a plugin version, tool list or successful launch as observed task liveness or exact schema capture.
-The **Last checked** time measures a successful status observation, not Codex activity. Silence means unknown.
+For a managed Quality Journey on a supported Mac, choose the installed **Managed worker** on the Journey brief.
+The saved worker choice is separate from the project-chat lookup provider. Appraise manages eligible role work and
+waits at its own review and execution-consent gates; installing a CLI or opening its sign-in screen does not start a
+Journey. Read the current Journey stage and blockers before acting.
+
+The separate `appraisejs` CLI/MCP package remains available for authenticated external coordinator assignments and
+manual work. Follow **Agent setup** for MCP registration and Codex plugin diagnostics, then use the project
+diagnostic on the intended hub and target. Existing external assignments require their versioned claim, admission,
+and outcome checks; they do not use the retired desktop Journey ticket handoff. Unknown host versions or stale task
+schemas require capability checks and explicit reconnect. A plugin version, tool list, or successful launch does not
+prove task liveness, exact schema capture, or lifecycle authority. **Last checked** records a successful status
+observation, not agent activity; silence means unknown.
 
 Analysis answers, scenario review/revision, execution consent, remediation, report review and closure remain human
 decisions in Appraise. Discovery starts anonymously; authenticated discovery needs the qualified Appraise browser
@@ -34,9 +44,9 @@ reset the DB, edit migration history or invoke bare Prisma to bypass refusal. Un
 downgrade. Direct DB access, arbitrary older binaries and concerted code/inventory replacement remain outside this guard.
 
 After a lost reply or restart, reread durable outcomes and reconcile the same assignment/cycle before retrying an
-effect. Human waits retain blockers; reconnect never fabricates approval or renews a lease. A fresh handoff/takeover
-requires current state and Appraise approval, and fences the predecessor. Target changes require explicit rebinding
-or refusal while preserving historical evidence.
+effect. Human waits retain blockers; reconnect never fabricates approval or renews a lease. An explicit hosting
+transfer requires current state, quiescence, and Appraise approval before it fences the predecessor. Target changes
+require explicit rebinding or refusal while preserving historical evidence.
 
 Use **Pause journey** to fence admissions and reconcile owned execution/browser cleanup. `CANCELLING` is not terminal:
 output completion, a valid live-supervisor stop receipt and browser-close acknowledgement must join. Lost private

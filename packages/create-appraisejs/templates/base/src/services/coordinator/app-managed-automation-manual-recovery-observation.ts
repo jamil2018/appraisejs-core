@@ -8,15 +8,40 @@ import { readScopedQualityJourney } from './quality-journey-coordinator-session'
 type Scope = { journeyId: string; targetProjectId: string }
 const marker = 'APP_SERVER_LOCAL_V1_PREPARATION_AUTOMATOR'
 export const manualAutomationRecoveryEventType = 'AUTOMATOR_MANUAL_RECOVERY_REQUESTED'
-const unknownNativeFailure = z
+const manualRecoveryFailure = z
   .object({
     state: z.literal('UNKNOWN'),
-    stage: z.literal('NATIVE_SEND'),
-    senderCleanupVerified: z.literal(false),
+    stage: z.enum(['NATIVE_SEND', 'OUTPUT_VALIDATION']),
+    senderCleanupVerified: z.boolean(),
     canonicalSubmissionStarted: z.literal(false),
     recoveryEligible: z.literal(false),
+    reason: z.string().optional(),
+    candidate: z.never().optional(),
+    candidateHash: z.never().optional(),
+    normalizedOutput: z.never().optional(),
+    normalizedOutputHash: z.never().optional(),
+    compiledCall: z.never().optional(),
+    compiledCallHash: z.never().optional(),
+    canonicalRecoveryCall: z.never().optional(),
+    canonicalRecoveryCallHash: z.never().optional(),
+    canonicalRecoveryUsed: z.never().optional(),
+    canonicalRecoveryOutcome: z.never().optional(),
   })
   .passthrough()
+  .refine(failure =>
+    failure.stage === 'NATIVE_SEND'
+      ? !failure.senderCleanupVerified
+      : failure.senderCleanupVerified && failure.reason === 'OUTPUT_VALIDATION_DID_NOT_COMPLETE',
+  )
+
+export function readManualAutomationFailure(value: string | null) {
+  if (value === null) return undefined
+  try {
+    return manualRecoveryFailure.safeParse(JSON.parse(value)).data
+  } catch {
+    return undefined
+  }
+}
 function conflict(message: string): never {
   throw new ServiceError(message, 'CONFLICT')
 }
@@ -24,6 +49,7 @@ function conflict(message: string): never {
 export async function readFailedManualAutomationAttempt(
   input: Scope & { attemptId?: string },
   tx: PrismaClient | Prisma.TransactionClient,
+  includeWaiting = false,
 ) {
   const journey = await readScopedQualityJourney(input, tx)
   if (journey.hostingMode !== 'APP_SERVER_LOCAL_V1' || journey.status !== 'ACTIVE' || journey.stage !== 'AUTOMATION')
@@ -51,7 +77,7 @@ export async function readFailedManualAutomationAttempt(
     attempt.executionMode !== 'EXTERNAL_V1' ||
     attempt.externalPrincipalId !== `appraise-local:${input.targetProjectId}` ||
     attempt.externalPrincipalAssurance !== 'PROJECT_CREDENTIAL_ONLY' ||
-    attempt.leaseExpiresAt > new Date() ||
+    (!includeWaiting && attempt.leaseExpiresAt > new Date()) ||
     !attempt.assignmentId ||
     !attempt.authorizationId ||
     !attempt.dispatchReservedAt ||
@@ -63,9 +89,8 @@ export async function readFailedManualAutomationAttempt(
     attempt.dispatchKey
   )
     conflict('Only the exact expired local Automator assignment can be fenced for manual preparation.')
-  const failure = unknownNativeFailure.safeParse(JSON.parse(attempt.failureJson))
-  if (!failure.success || failure.data.candidate || failure.data.candidateHash)
-    conflict('Manual preparation requires an unresolved native send with no retained proposal.')
+  const failure = readManualAutomationFailure(attempt.failureJson)
+  if (!failure) conflict('Manual preparation requires an unresolved attempt with no retained proposal.')
   const [acceptances, materializations, providerRuns] = await Promise.all([
     tx.qualityJourneyExternalSubmissionAcceptance.count({ where: { attemptId: attempt.id } }),
     tx.qualityJourneyAutomationMaterialization.count({ where: { attemptId: attempt.id } }),
@@ -73,21 +98,40 @@ export async function readFailedManualAutomationAttempt(
   ])
   if (acceptances || materializations || providerRuns)
     conflict('The original Automator has accepted work or provider effects requiring separate recovery.')
-  return { journey, attempt, failureHash: hashCanonical(JSON.parse(attempt.failureJson)) }
+  const authorization = await tx.qualityJourneyWorkAuthorization.findFirst({
+    where: { workItemId: attempt.workItemId, successorAuthorization: { is: null } },
+  })
+  if (
+    !authorization ||
+    authorization.id !== attempt.authorizationId ||
+    authorization.revokedAt ||
+    authorization.cancelledAt ||
+    (await tx.qualityJourneyWorkAttempt.count({ where: { authorizationId: authorization.id } })) >=
+      authorization.maxAttempts
+  )
+    conflict('Manual recovery requires remaining authority under the original hard attempt budget.')
+  return { journey, attempt, failure, failureHash: hashCanonical(failure) }
 }
 
 /** An expired authority can be abandoned without asserting that its physical effects stopped. */
 export async function getAppManagedAutomatorManualRecovery(
-  input: Scope,
+  input: Scope & { includeWaiting?: boolean },
   client: PrismaClient | Prisma.TransactionClient = prisma,
 ) {
   try {
-    const { attempt, failureHash } = await readFailedManualAutomationAttempt(input, client)
+    const { attempt, failure, failureHash } = await readFailedManualAutomationAttempt(
+      input,
+      client,
+      input.includeWaiting,
+    )
+    const waiting = attempt.leaseExpiresAt > new Date()
+    if (waiting && failure.stage !== 'OUTPUT_VALIDATION') return null
     return {
       attemptId: attempt.id,
       failureHash,
       nativeOutcome: 'UNKNOWN' as const,
-      senderCleanupVerified: false as const,
+      senderCleanupVerified: failure.senderCleanupVerified,
+      ...(waiting ? { availableAt: attempt.leaseExpiresAt.toISOString() } : {}),
     }
   } catch (error) {
     if (error instanceof ServiceError && error.code === 'CONFLICT') return null
@@ -118,8 +162,10 @@ export async function observePendingManualAutomationRecovery(
       where: { id: payload.predecessorAttemptId },
       include: { workItem: true },
     })
+    const failure = readManualAutomationFailure(prior?.failureJson ?? null)
     if (
       !prior ||
+      !failure ||
       prior.workItemId !== payload.workItemId ||
       prior.workItem.journeyId !== input.journeyId ||
       prior.workItem.targetProjectId !== input.targetProjectId ||
@@ -134,7 +180,7 @@ export async function observePendingManualAutomationRecovery(
       payload.dispatchReservedAt !== prior.dispatchReservedAt?.toISOString() ||
       payload.dispatchStartedAt !== prior.dispatchStartedAt?.toISOString() ||
       payload.nativeSend !== false ||
-      payload.senderCleanupVerified !== false ||
+      payload.senderCleanupVerified !== failure.senderCleanupVerified ||
       payload.canonicalSubmissionStarted !== false ||
       payload.acceptedSubmissionCount !== 0 ||
       payload.nativeOutcome !== 'UNKNOWN' ||

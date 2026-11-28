@@ -24,8 +24,8 @@ The native route starts one ephemeral Codex app-server per saved lookup. macOS S
 its private scratch directory, system resources, and the per-attempt loopback broker. The subprocess gets a random
 broker capability. Appraise keeps the account credential, forwards the reviewed query with one namespaced tool,
 and follows the verified tool call with a fixed acknowledgement and any reasoning history from the provider's
-first response. A result requires Appraise's local read and a confirmed native turn completion. Production
-Journey dispatch retains its refusal, and historical attempts keep their recorded outcomes.
+first response. A result requires Appraise's local read and a confirmed native turn completion. The managed
+Journey worker follows its own opt-in and session contract. Historical attempts keep their recorded outcomes.
 [Hosting and sessions](../../quality-journey-host-sessions.md) ·
 [Provider intent](../../quality-journey-provider-intents.md) ·
 [M13 evidence](../../../tasks/codex-app-server-journeys/M13-INTEGRATED-IMPLEMENTATION.md)
@@ -54,7 +54,7 @@ and update the configured digest when upgrading. Connect ChatGPT in Settings, op
 and select **Use native Codex for lookups**. Save a fresh lookup message and review the search before sending it.
 The preview keeps earlier attempts attached to their original messages and engines.
 
-## Enable Claude Code lookups on macOS
+## Enable Claude Code on macOS
 
 Confirm coverage under [Anthropic's terms for running Claude Code in your product](https://code.claude.com/docs/en/legal-and-compliance#can-customers-offer-claude-code-in-their-products).
 Use [Anthropic's native release verification instructions](https://code.claude.com/docs/en/setup) to verify an
@@ -75,7 +75,14 @@ text. Appraise checks that the CLI reports a recognized Claude subscription befo
 that session immediately before launch. The restricted print-mode process receives only those reviewed fields. Its loopback HTTPS relay limits
 egress to the documented Anthropic API and token refresh hosts. A successful structured result must request the
 one fixed action before Appraise searches the active project. Appraise keeps the resulting records locally and
-saves the attempt as `CLAUDE_CODE`. This integration is limited to saved project lookups in chat.
+saves the attempt as `CLAUDE_CODE`.
+
+Managed Journeys use the same verified executable and connected official CLI profile. Enable that path with
+`APPRAISE_LOCAL_CLAUDE_JOURNEY_ENABLED=true` and select Claude Code on the Journey brief. Appraise binds each
+role attempt to its original provider, executable and account. The CLI returns one structured proposal and
+Appraise validates it through the existing role gateway. Journey reviews, execution consent, and run evidence
+stay in Appraise. The live evidence below covers saved project lookups.
+[Quality Journey operator guide](../../quality-journey-operator-guide.md#start-a-local-server-with-managed-workers).
 
 An offline rehearsal on a fresh Next.js 16.4.6 scaffold applied all 102 migrations. A synthetic CLI exercised
 Settings connect and disconnect, the reviewed checkout lookup, project isolation, and result persistence after
@@ -90,6 +97,36 @@ unrelated subprocess, and a sibling loopback listener. The relay rejected an unl
 The corrected launcher completed a fresh Appraise checkout lookup and returned exactly **Guest checkout returns
 an order number**. The result persisted after reload and the other project's matching checkout case stayed out of
 the result. The two earlier unresolved attempts retained their recorded state.
+
+After reconnecting the official Claude Code profile, R5 completed a fresh reviewed lookup and retained the
+same result after reopening. In a different disposable project, Claude Code completed the managed Analysis,
+Scout, and Resource Explorer roles. Scenario Designer's dispatch stopped at output validation without a usable
+structured proposal. Appraise preserved its UNKNOWN attempt before canonical submission. None of this Journey's
+work reached scenario approval, execution permission, or the runner. Claude Code may complete a command without
+the `structured_output` field. Appraise requires that field for the schema-bound roles and continues to validate
+the proposal in the canonical services. [Claude Code structured output](https://code.claude.com/docs/en/headless#get-structured-output)
+
+The same macOS R6 Turbopack build `8TUe4ZeRbzIjQ3XDc1w7w` completed fresh reviewed lookups with ChatGPT
+Responses, Claude Code `2.1.332`, and Cursor CLI `2026.11.22-e9042b2`. Each lookup returned the selected project's
+case and excluded the other project's decoy. Reopening showed the original completed attempt. ChatGPT completed
+after renewed sign-in. A separate Claude Journey reached approved scenarios, then Appraise rejected a preparation
+proposal that omitted one of the two approved scenarios. The original Automator attempt is preserved as UNKNOWN.
+
+For Claude-managed automation, Appraise now requires one structured response key for each approved scenario.
+After checking the key set, Appraise converts the proposal to the same canonical array used for validation,
+submission, and recovery. A separate synthetic probe through the pinned CLI supplied two approved scenarios.
+Both returned in the structured response and passed canonical preflight. The probe ended before publication or
+execution. [Claude structured-output limits](https://platform.claude.com/docs/en/build-with-claude/structured-outputs#schema-complexity-limits)
+
+On final macOS build `y31SLERrhee_RncHocCsS`, a fresh single-route fixture completed each of the six managed
+Claude roles once. The exact Run permission card was reviewed before Appraise consumed its one execution
+consent. The sole Chromium run passed, its Activity and Result survived reopen, and the managed Triager
+produced one report. A separate two-route fixture stopped at scenario review after Discovery captured only one
+of its two approved routes. These are separate outcomes with separate durable records.
+
+On that same final build, ChatGPT Responses, Claude Code `2.1.332`, and Cursor CLI `2026.11.22-e9042b2` each
+completed a fresh reviewed project lookup. The matching case in a separate project stayed out of the result.
+Reopening retained one original completed attempt for each provider.
 
 ## Enable Cursor lookups on macOS
 

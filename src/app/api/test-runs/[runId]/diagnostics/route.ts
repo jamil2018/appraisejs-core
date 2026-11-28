@@ -10,7 +10,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ runI
   const { runId } = await params
   const nextRequest = new NextRequest(request)
   const targetProjectId =
-    nextRequest.cookies.get(ACTIVE_PROJECT_COOKIE)?.value ?? nextRequest.nextUrl.searchParams.get('targetProjectId')
+    nextRequest.nextUrl.searchParams.get('targetProjectId') ?? nextRequest.cookies.get(ACTIVE_PROJECT_COOKIE)?.value
   if (!targetProjectId)
     return NextResponse.json({ error: 'Managed runtime capsule diagnostic was not found.' }, { status: 404 })
   const run = await prisma.testRun.findFirst({

@@ -14,10 +14,13 @@ const mocks = vi.hoisted(() => ({
   revoke: vi.fn(),
   replace: vi.fn(),
   close: vi.fn(),
+  seal: vi.fn(),
+  refresh: vi.fn(),
   toast: vi.fn(),
 }))
 
 vi.mock('@/hooks/use-toast', () => ({ toast: mocks.toast }))
+vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: mocks.refresh }) }))
 vi.mock('../quality-journey-discovery-browser-actions', () => ({
   startQualityJourneyDiscoveryBrowserAction: mocks.start,
   authorizeQualityJourneyDiscoveryBrowserExactReturnAction: mocks.authorizeReturn,
@@ -28,6 +31,7 @@ vi.mock('../quality-journey-discovery-browser-actions', () => ({
   revokeQualityJourneyDiscoveryBrowserAction: mocks.revoke,
   replaceQualityJourneyDiscoveryBrowserContextAction: mocks.replace,
   closeQualityJourneyDiscoveryBrowserAction: mocks.close,
+  sealManagedScoutEvidenceReviewAction: mocks.seal,
 }))
 
 import { DiscoveryBrowserPanel } from './discovery-browser-panel'
@@ -84,6 +88,103 @@ beforeEach(() => {
       },
     },
   })
+  mocks.close.mockResolvedValue({ success: true, data: { id: 'session-1', state: 'CLOSED' } })
+  mocks.seal.mockResolvedValue({ success: true, data: {} })
+})
+
+const managedReview = {
+  discoveryRevisionId: 'discovery-1',
+  pages: [{ artifactId: 'receipt-1', routeId: '/account', environmentId: 'environment-1' }],
+  reviewHash: `sha256:${'a'.repeat(64)}`,
+}
+
+it('shows the server-reviewed page set after reload and seals exactly that hash', async () => {
+  const user = userEvent.setup()
+  render(<DiscoveryBrowserPanel discovery={discovery} journeyId="journey-1" managedReview={managedReview} />)
+
+  const review = screen.getByRole('region', { name: 'Inspected pages review' })
+  expect(review).toHaveTextContent('/account')
+  expect(review).toHaveTextContent('Local (environment-1)')
+  expect(review).toHaveTextContent('receipt-1')
+  await user.click(screen.getByRole('button', { name: 'Continue with inspected pages' }))
+  expect(mocks.seal).toHaveBeenCalledWith({
+    journeyId: 'journey-1',
+    discoveryRevisionId: 'discovery-1',
+    reviewHash: managedReview.reviewHash,
+  })
+  expect(mocks.refresh).toHaveBeenCalled()
+})
+
+it('closes a live browser before offering another page and never seals while it is open', async () => {
+  const user = userEvent.setup()
+  render(<DiscoveryBrowserPanel discovery={discovery} journeyId="journey-1" managedReview={managedReview} />)
+  await user.click(screen.getByRole('button', { name: 'Open target app' }))
+  expect(screen.getByRole('button', { name: 'Continue with inspected pages' })).toBeDisabled()
+  await user.click(screen.getByRole('button', { name: 'Close browser and inspect another page' }))
+  expect(mocks.close).toHaveBeenCalledWith({
+    journeyId: 'journey-1',
+    discoveryRevisionId: 'discovery-1',
+    sessionId: 'session-1',
+  })
+  expect(mocks.seal).not.toHaveBeenCalled()
+  expect(screen.getByRole('button', { name: 'Open target app' })).toBeInTheDocument()
+  expect(mocks.refresh).toHaveBeenCalled()
+})
+
+it('refreshes the durable reviewed set after a managed page inspection is saved', async () => {
+  const user = userEvent.setup()
+  mocks.start.mockResolvedValueOnce({
+    success: true,
+    data: {
+      id: 'session-1',
+      state: 'ACTIVE',
+      discoveryRevisionId: 'discovery-1',
+      accessMode: 'ANONYMOUS',
+      environmentId: 'environment-1',
+      routeId: '/account',
+      currentUrl: 'https://example.test/account',
+      expiresAt: '2026-09-14T00:05:00.000Z',
+    },
+  })
+  mocks.capture.mockResolvedValueOnce({
+    success: true,
+    data: {
+      artifactId: 'receipt-2',
+      contentHash: 'b'.repeat(64),
+      receipt: { observationFacts: ['Page heading was visible'] },
+    },
+  })
+  render(<DiscoveryBrowserPanel discovery={discovery} journeyId="journey-1" managedReview={managedReview} />)
+  await user.click(screen.getByRole('button', { name: 'Open target app' }))
+  await user.click(screen.getByRole('button', { name: 'Save page inspection' }))
+  expect(mocks.refresh).toHaveBeenCalled()
+  expect(screen.getByText('Page inspection saved')).toBeInTheDocument()
+})
+
+it('keeps the browser session visible if the close action fails', async () => {
+  const user = userEvent.setup()
+  mocks.close.mockResolvedValueOnce({ success: false, error: 'Cleanup is not confirmed' })
+  render(<DiscoveryBrowserPanel discovery={discovery} journeyId="journey-1" managedReview={managedReview} />)
+  await user.click(screen.getByRole('button', { name: 'Open target app' }))
+  await user.click(screen.getByRole('button', { name: 'Close browser and inspect another page' }))
+  expect(screen.getByRole('region', { name: 'Discovery browser session status' })).toBeInTheDocument()
+  expect(mocks.toast).toHaveBeenCalledWith({
+    title: 'Browser could not be closed',
+    description: 'Cleanup is not confirmed',
+    variant: 'destructive',
+  })
+  expect(mocks.refresh).not.toHaveBeenCalled()
+})
+
+it('withholds continuation until the server supplies a review hash', () => {
+  render(
+    <DiscoveryBrowserPanel
+      discovery={discovery}
+      journeyId="journey-1"
+      managedReview={{ ...managedReview, reviewHash: null }}
+    />,
+  )
+  expect(screen.queryByRole('button', { name: 'Continue with inspected pages' })).not.toBeInTheDocument()
 })
 
 it('keeps credential and MFA entry out of Appraise actions', async () => {

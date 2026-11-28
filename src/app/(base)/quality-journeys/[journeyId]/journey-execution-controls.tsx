@@ -31,12 +31,16 @@ export function JourneyExecutionCommand({
         onClick={() =>
           startTransition(async () => {
             setError(null)
-            const result = await qualityJourneyExecutionAction(action, {
-              ...input,
-              ...(['consent', 'revokeConsent', 'approve'].includes(action) ? {} : { idempotencyKey: requestKey }),
-            })
-            if (!result.success) setError(result.error ?? 'The request could not complete. Refresh and retry.')
-            router.refresh()
+            try {
+              const result = await qualityJourneyExecutionAction(action, {
+                ...input,
+                ...(['consent', 'revokeConsent', 'approve'].includes(action) ? {} : { idempotencyKey: requestKey }),
+              })
+              if (!result.success) setError(result.error ?? 'The request could not complete. Refresh and retry.')
+              router.refresh()
+            } catch {
+              setError('Appraise could not confirm this request. Check the recorded run before retrying.')
+            }
           })
         }
       >
@@ -47,6 +51,38 @@ export function JourneyExecutionCommand({
           {error}
         </p>
       ) : null}
+    </div>
+  )
+}
+
+export function JourneyRunObservationControls({
+  journeyId,
+  cycle,
+  stateHash,
+}: {
+  journeyId: string
+  cycle: { id: string; status: string }
+  stateHash: string
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      <JourneyExecutionCommand action="reconcile" input={{ journeyId, cycleId: cycle.id }}>
+        Check for results
+      </JourneyExecutionCommand>
+      {['RESERVED', 'RUNNING', 'CANCELLING'].includes(cycle.status) && (
+        <JourneyExecutionCommand
+          key={`${cycle.id}:${stateHash}`}
+          action="cancel"
+          input={{
+            journeyId,
+            cycleId: cycle.id,
+            expectedStateHash: stateHash,
+            reason: 'User requested cancellation.',
+          }}
+        >
+          {cycle.status === 'CANCELLING' ? 'Finish cancelling' : 'Cancel run'}
+        </JourneyExecutionCommand>
+      )}
     </div>
   )
 }
@@ -115,21 +151,23 @@ export function JourneyRerunProposalForm({
   cycleId,
   evidenceIds,
   scenarioRevisionIds,
+  scenarioTitles = {},
 }: {
   journeyId: string
   cycleId: string
   evidenceIds: string[]
   scenarioRevisionIds: string[]
+  scenarioTitles?: Record<string, string>
 }) {
   const [selected, setSelected] = useState<string[]>(scenarioRevisionIds)
   const [reason, setReason] = useState('')
   if (!evidenceIds.length) return null
   return (
-    <div className="space-y-3 border-t pt-3">
+    <div className="space-y-3 pt-3">
       <fieldset className="space-y-2">
         <legend className="text-sm font-medium">Select scenarios for a rerun proposal</legend>
-        {scenarioRevisionIds.map(id => (
-          <label key={id} className="flex items-center gap-2 break-all text-xs">
+        {scenarioRevisionIds.map((id, index) => (
+          <label key={id} className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
               checked={selected.includes(id)}
@@ -139,7 +177,7 @@ export function JourneyRerunProposalForm({
                 )
               }
             />
-            {id}
+            {scenarioTitles[id] ?? `Scenario ${index + 1}`}
           </label>
         ))}
       </fieldset>

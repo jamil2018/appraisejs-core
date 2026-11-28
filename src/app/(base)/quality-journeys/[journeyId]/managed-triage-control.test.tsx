@@ -41,6 +41,6 @@ describe('managed Triager control', () => {
   it('requires explicit server enablement', () => {
     render(<ManagedTriageControl {...props} enabled={false} />)
     expect(screen.getByRole('button')).toBeDisabled()
-    expect(screen.getByText(/server owner must enable/)).toBeVisible()
+    expect(screen.getByText(/unavailable for this step/)).toBeVisible()
   })
 })

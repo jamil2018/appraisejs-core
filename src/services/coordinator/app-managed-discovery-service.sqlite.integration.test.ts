@@ -1,6 +1,7 @@
 import { normalizeDiscoveryAuthTransitPolicyJson } from '@/lib/quality-journey/discovery-auth-transit-policy'
 import {
   captureAppManagedAnonymousDiscovery,
+  getAppManagedAnonymousDiscoveryCaptureStatus,
   readAppManagedAnonymousDiscoveryCapture,
 } from './app-managed-discovery-capture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -13,6 +14,8 @@ import {
 import { trustedHumanCoordinatorSession } from './quality-journey-coordinator-session'
 import { startAppManagedAnalysis } from './app-managed-analysis-service'
 import { startAppManagedDiscovery } from './app-managed-discovery-service'
+import { getManagedScoutEvidenceReview, sealManagedScoutEvidenceReview } from './app-managed-discovery-evidence'
+import { managedScoutSnapshotId } from '@/lib/quality-journey/managed-scout-snapshot'
 import {
   requestAppManagedScoutCorrection,
   requestAppManagedExplorerCorrection,
@@ -25,11 +28,19 @@ import {
   startQualityJourneyDiscoveryBrowserSession,
   type DiscoveryBrowserRuntime,
 } from './quality-journey-discovery-browser-service'
-const sender = vi.hoisted(() => ({ run: vi.fn(), verify: vi.fn() }))
+const sender = vi.hoisted(() => ({ run: vi.fn(), verify: vi.fn(), claudeRun: vi.fn(), claudeBind: vi.fn() }))
 vi.mock('@/lib/quality-journey/codex-app-server/managed-analysis-sender', () => ({
   runManagedAnalysis: sender.run,
   verifyManagedAnalysisExecutable: sender.verify,
+  inspectManagedCodexPrerequisites: async () => {
+    await sender.verify()
+    return { usableForDispatch: true, state: 'candidate' }
+  },
   classifyManagedAnalysisFailure: () => 'Native send UNKNOWN',
+}))
+vi.mock(import('@/services/provider-connection/claude-code-journey-sender'), async importOriginal => ({
+  ...(await importOriginal()),
+  bindClaudeCodeJourneySender: sender.claudeBind,
 }))
 const fixtures: Awaited<ReturnType<typeof createProviderFixture>>[] = []
 beforeEach(() => {
@@ -37,6 +48,15 @@ beforeEach(() => {
   vi.stubEnv('APPRAISE_LOCAL_CODEX_DISCOVERY_ENABLED', 'true')
   sender.run.mockReset()
   sender.verify.mockReset().mockResolvedValue(undefined)
+  sender.claudeRun.mockReset()
+  sender.claudeBind.mockReset().mockImplementation(async () => ({
+    identity: {
+      executableSha256: 'a'.repeat(64),
+      accountFingerprint: 'b'.repeat(64),
+      protocol: 'claude-code-print/v1',
+    },
+    run: sender.claudeRun,
+  }))
 })
 afterEach(async () => {
   vi.unstubAllEnvs()
@@ -130,7 +150,7 @@ function output(prompt: string, requiredQuestion = false) {
   })
 }
 
-async function discoveryReady(authPolicy: string | null = null) {
+async function discoveryReady(authPolicy: string | null = null, additionalRoutes: string[] = []) {
   const f = await ready()
   await f.client.environment.create({
     data: {
@@ -153,6 +173,17 @@ async function discoveryReady(authPolicy: string | null = null) {
       targetProjectId: f.scope.targetProjectId,
     },
   })
+  for (const [index, route] of additionalRoutes.entries()) {
+    await f.client.locatorGroup.create({
+      data: {
+        id: `discovery-locators-${index}`,
+        name: route,
+        route,
+        moduleId: 'discovery-module',
+        targetProjectId: f.scope.targetProjectId,
+      },
+    })
+  }
   sender.run.mockImplementation(async (prompt: string) => output(prompt))
   await startAppManagedAnalysis(f.input, f.client)
   const analysis = await f.client.qualityJourneyAnalysisRevision.findFirstOrThrow({
@@ -250,26 +281,106 @@ function captureRuntime(passwordInput = false, onLaunch = () => undefined): Disc
     },
   }
 }
-async function capture(f: Awaited<ReturnType<typeof discoveryReady>>, snapshotId = 'captured-checkout') {
+async function openCapture(
+  f: Awaited<ReturnType<typeof discoveryReady>>,
+  snapshotId: string,
+  routeId: string,
+  managedManual: boolean,
+) {
   const scope = { ...f.scope, discoveryRevisionId: f.discovery.id }
   const session = await startQualityJourneyDiscoveryBrowserSession(
     {
       ...scope,
       workItemId: f.discovery.scoutWorkItemId,
       environmentId: 'discovery-env',
-      routeId: '/checkout',
+      routeId,
       accessMode: 'ANONYMOUS',
     },
     f.client,
     captureRuntime(),
   )
+  const input = { ...scope, sessionId: session.id }
+  const close = () => closeQualityJourneyDiscoveryBrowserSession(input)
   try {
-    return await captureQualityJourneyDiscoveryBrowserReceipt({ ...scope, sessionId: session.id, snapshotId }, f.client)
-  } finally {
-    await closeQualityJourneyDiscoveryBrowserSession({ ...scope, sessionId: session.id })
+    const capture = await captureQualityJourneyDiscoveryBrowserReceipt(
+      { ...input, snapshotId },
+      f.client,
+      managedManual ? { managedManual: true } : undefined,
+    )
+    return { ...capture, close }
+  } catch (error) {
+    await close()
+    throw error
   }
 }
+async function capture(f: Awaited<ReturnType<typeof discoveryReady>>, snapshotId = 'captured-checkout') {
+  const captured = await openCapture(f, snapshotId, '/checkout', false)
+  await captured.close()
+  return captured
+}
 describe('app-managed Discovery dispatch', () => {
+  it('uses Claude for Scout and Resource Explorer with Codex Discovery disabled and no Codex verification', async () => {
+    const f = await discoveryReady()
+    await capture(f)
+    sender.verify.mockClear()
+    await f.client.qualityJourney.update({
+      where: { id: f.scope.journeyId },
+      data: { managedWorkerProvider: 'CLAUDE_CODE' },
+    })
+    vi.stubEnv('APPRAISE_LOCAL_CODEX_DISCOVERY_ENABLED', 'false')
+    vi.stubEnv('APPRAISE_LOCAL_CLAUDE_JOURNEY_ENABLED', 'true')
+    sender.claudeRun.mockImplementation(async (prompt: string) => discoveryOutput(prompt))
+    await expect(startAppManagedDiscovery({ ...f.input, role: 'RESOURCE_EXPLORER' }, f.client)).resolves.toMatchObject({
+      accepted: true,
+    })
+    await expect(startAppManagedDiscovery({ ...f.input, role: 'SCOUT' }, f.client)).resolves.toMatchObject({
+      accepted: true,
+    })
+    const explorer = await f.client.qualityJourneyWorkAttempt.findFirstOrThrow({
+      where: { workItemId: f.discovery.resourceWorkItemId },
+    })
+    const scout = await f.client.qualityJourneyWorkAttempt.findFirstOrThrow({
+      where: { workItemId: f.discovery.scoutWorkItemId },
+    })
+    for (const attempt of [explorer, scout])
+      expect(JSON.parse(attempt.managedDispatchIdentityJson!)).toMatchObject({ provider: 'CLAUDE_CODE' })
+    expect(sender.claudeRun).toHaveBeenCalledTimes(2)
+    expect(sender.verify).not.toHaveBeenCalled()
+    expect(sender.run).not.toHaveBeenCalled()
+  })
+
+  it('keeps automatic anonymous capture available for Claude when Codex Discovery is disabled', async () => {
+    const f = await discoveryReady()
+    await f.client.qualityJourney.update({
+      where: { id: f.scope.journeyId },
+      data: { managedWorkerProvider: 'CLAUDE_CODE' },
+    })
+    vi.stubEnv('APPRAISE_LOCAL_CODEX_DISCOVERY_ENABLED', 'false')
+    vi.stubEnv('APPRAISE_LOCAL_CLAUDE_JOURNEY_ENABLED', 'true')
+    expect(await getAppManagedAnonymousDiscoveryCaptureStatus(f.input, f.client)).toBe('READY')
+    const launch = vi.fn()
+    await expect(
+      captureAppManagedAnonymousDiscovery(f.input, f.client, captureRuntime(false, launch)),
+    ).resolves.toMatchObject({
+      receipt: { accessMode: 'ANONYMOUS', accessOutcome: 'ACTIVE' },
+    })
+    expect(launch).toHaveBeenCalledOnce()
+    expect(sender.run).not.toHaveBeenCalled() // Capture never calls a model.
+  })
+
+  it('requires the Claude Journey flag for automatic capture even when Codex Discovery is enabled', async () => {
+    const f = await discoveryReady()
+    await f.client.qualityJourney.update({
+      where: { id: f.scope.journeyId },
+      data: { managedWorkerProvider: 'CLAUDE_CODE' },
+    })
+    vi.stubEnv('APPRAISE_LOCAL_CLAUDE_JOURNEY_ENABLED', 'false')
+    expect(await getAppManagedAnonymousDiscoveryCaptureStatus(f.input, f.client)).toBe('MANUAL_REQUIRED')
+    await expect(captureAppManagedAnonymousDiscovery(f.input, f.client, captureRuntime())).rejects.toThrow(
+      'not been enabled',
+    )
+  })
+
   it('automatically captures only the exact anonymous scope once and closes its canonical browser before Scout dispatch', async () => {
     const f = await discoveryReady()
     const launch = vi.fn()
@@ -435,6 +546,100 @@ describe('app-managed Discovery dispatch', () => {
       0,
     )
   })
+  it('dispatches Scout once with only the sealed pages after review, including after reconnect', async () => {
+    const f = await discoveryReady(null, ['/help', '/unused'])
+    const runScout = () => startAppManagedDiscovery({ ...f.input, role: 'SCOUT' }, f.connect())
+    const first = await openCapture(f, 'checkout-browser', '/checkout', true)
+    const before = await getManagedScoutEvidenceReview(f.scope, f.connect())
+    expect(before).toMatchObject({ pages: [{ routeId: '/checkout' }], reviewHash: expect.any(String) })
+    const reviewInput = { ...f.scope, discoveryRevisionId: f.discovery.id, reviewHash: before!.reviewHash! }
+    try {
+      await expect(sealManagedScoutEvidenceReview(reviewInput, f.connect())).rejects.toThrow(
+        'Close the inspection browser',
+      )
+    } finally {
+      await first.close()
+    }
+    const second = await openCapture(f, 'help-browser', '/help', true)
+    await second.close()
+    expect(first.receipt.snapshotId).toBe(managedScoutSnapshotId(f.discovery.id))
+    expect(second.receipt.snapshotId).toBe(first.receipt.snapshotId)
+    expect(second.artifactId).not.toBe(first.artifactId)
+    await expect(runScout()).rejects.toThrow('operator to review')
+    expect(await f.client.qualityJourneyWorkAttempt.count({ where: { workItemId: f.discovery.scoutWorkItemId } })).toBe(
+      0,
+    )
+    expect(sender.run).not.toHaveBeenCalled()
+    await expect(sealManagedScoutEvidenceReview(reviewInput, f.connect())).rejects.toThrow('inspected pages changed')
+    const current = await getManagedScoutEvidenceReview(f.scope, f.connect())
+    expect(current?.pages.map(page => page.routeId).sort()).toEqual(['/checkout', '/help'])
+    const acceptedReview = { ...reviewInput, reviewHash: current!.reviewHash! }
+    await expect(
+      sealManagedScoutEvidenceReview({ ...acceptedReview, targetProjectId: 'other-project' }, f.connect()),
+    ).rejects.toThrow('no longer belong')
+    await sealManagedScoutEvidenceReview(acceptedReview, f.connect())
+    await sealManagedScoutEvidenceReview(acceptedReview, f.connect())
+    const late = await openCapture(f, 'unused-browser', '/unused', true)
+    await late.close()
+    expect(await getManagedScoutEvidenceReview(f.scope, f.connect())).toMatchObject({
+      pages: current?.pages,
+      reviewHash: null,
+    })
+    sender.run.mockImplementation(async (prompt: string) => {
+      const context = JSON.parse(prompt.split('\n\n').find(part => part.startsWith('{'))!)
+      expect(context.reviewedPages.map((page: { routeId: string }) => page.routeId).sort()).toEqual([
+        '/checkout',
+        '/help',
+      ])
+      expect(context).not.toHaveProperty('selectedSnapshot')
+      expect(prompt).not.toContain('Private title')
+      return JSON.stringify({
+        factIndexes: context.reviewedPages.map(
+          (page: { facts: Array<{ factIndex: number }> }) => page.facts[0].factIndex,
+        ),
+      })
+    })
+    await expect(runScout()).resolves.toMatchObject({ role: 'SCOUT', accepted: true })
+    const revision = await f.client.qualityJourneyDiscoveryRevision.findUniqueOrThrow({ where: { id: f.discovery.id } })
+    const bundle = JSON.parse(revision.targetObservationJson!)
+    expect(bundle.targetSnapshot.snapshotId).toBe(first.receipt.snapshotId)
+    expect(bundle.targetSnapshot.contentHash).not.toBe(first.contentHash)
+    expect(bundle.targetSnapshot.contentHash).not.toBe(second.contentHash)
+    expect(bundle.evidenceReceipts.map((page: { artifactId: string }) => page.artifactId).sort()).toEqual(
+      [first.artifactId, second.artifactId].sort(),
+    )
+    expect(bundle.observations.map((page: { routeId: string }) => page.routeId).sort()).toEqual(['/checkout', '/help'])
+    await expect(runScout()).rejects.toThrow()
+    expect(sender.run).toHaveBeenCalledTimes(1)
+  })
+
+  it('retains the original attempt when a native Scout result omits a reviewed page', async () => {
+    const f = await discoveryReady(null, ['/help'])
+    for (const route of ['/checkout', '/help']) {
+      const captured = await openCapture(f, `browser:${route.slice(1)}`, route, true)
+      await captured.close()
+    }
+    const review = await getManagedScoutEvidenceReview(f.scope, f.connect())
+    await sealManagedScoutEvidenceReview(
+      { ...f.scope, discoveryRevisionId: f.discovery.id, reviewHash: review!.reviewHash! },
+      f.connect(),
+    )
+    sender.run.mockResolvedValue('{"factIndexes":[0]}')
+    const runScout = () => startAppManagedDiscovery({ ...f.input, role: 'SCOUT' }, f.connect())
+    await expect(runScout()).rejects.toThrow('UNKNOWN')
+    const attempts = await f.client.qualityJourneyWorkAttempt.findMany({
+      where: { workItemId: f.discovery.scoutWorkItemId },
+    })
+    expect(attempts).toHaveLength(1)
+    expect(JSON.parse(attempts[0].failureJson!)).toMatchObject({ stage: 'CONTRACT_PREFLIGHT' })
+    expect(
+      (await f.client.qualityJourneyDiscoveryRevision.findUniqueOrThrow({ where: { id: f.discovery.id } }))
+        .targetObservationJson,
+    ).toBeNull()
+    await expect(runScout()).rejects.toThrow()
+    expect(sender.run).toHaveBeenCalledTimes(1)
+  })
+
   it('accepts both exact assignments through canonical gateways while preserving human gates', async () => {
     const f = await discoveryReady()
     const captured = await capture(f)

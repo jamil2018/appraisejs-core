@@ -4,13 +4,29 @@ import prisma from '@/config/db-config'
 import { ServiceError } from '@/services/shared/errors'
 
 import { runCollaborationSchedulerTick } from './queue-service'
+import { collaborationPublicDigest } from './operation-service'
+
+function parseJson(value: string | null): unknown {
+  if (!value) return null
+  try {
+    return JSON.parse(value) as unknown
+  } catch {
+    return null
+  }
+}
 
 function preparedSummary(preparedJson: string | null) {
   if (!preparedJson) return { changeCount: 0, decisionCount: 0, reviewItems: [] }
-  const value = JSON.parse(preparedJson) as {
-    prepared?: Array<{ recordKey?: string; disposition?: string; requiresDecision?: boolean }>
+  let prepared: Array<{ recordKey?: string; disposition?: string; requiresDecision?: boolean }>
+  try {
+    const value = JSON.parse(preparedJson) as unknown
+    prepared =
+      value && typeof value === 'object' && 'prepared' in value && Array.isArray(value.prepared)
+        ? value.prepared.filter(item => item && typeof item === 'object')
+        : []
+  } catch {
+    prepared = []
   }
-  const prepared = Array.isArray(value.prepared) ? value.prepared : []
   return {
     changeCount: prepared.length,
     decisionCount: prepared.filter(record => record.requiresDecision).length,
@@ -75,7 +91,10 @@ export async function getCollaborationStatus(
       })(),
       workers: binding.workers.map(worker => ({
         identity: worker.workerIdentity,
-        capabilities: JSON.parse(worker.capabilitiesJson) as string[],
+        capabilities: (() => {
+          const parsed = parseJson(worker.capabilitiesJson)
+          return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === 'string') : []
+        })(),
         lastHeartbeatAt: worker.lastHeartbeatAt,
         expiresAt: worker.expiresAt,
       })),
@@ -94,9 +113,9 @@ export async function getCollaborationStatus(
       idempotencyKey: operation.idempotencyKey,
       sourceRevision: operation.sourceRevision,
       targetRevision: operation.targetRevision,
-      preparedDigest: operation.preparedDigest,
-      acceptedDigest: operation.acceptedDigest,
-      blocker: operation.blockerJson ? (JSON.parse(operation.blockerJson) as unknown) : null,
+      preparedDigest: collaborationPublicDigest(operation.preparedDigest),
+      acceptedDigest: collaborationPublicDigest(operation.acceptedDigest),
+      blocker: parseJson(operation.blockerJson),
       receiptHash: operation.receiptHash,
       createdAt: operation.createdAt,
       updatedAt: operation.updatedAt,

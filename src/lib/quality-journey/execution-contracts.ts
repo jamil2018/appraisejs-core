@@ -68,6 +68,8 @@ export const qualityJourneyExecutionConsentScopeSchema = z
     targetFingerprint: z.string().min(1).max(512),
     environmentSnapshotHash: digest,
     executionInputsHash: digest,
+    journeyStateHash: digest.optional(),
+    chatConversationId: z.string().uuid().optional(),
     preparedRuntimeCapsuleIds: sortedIds,
     actions: z.array(z.string().min(1).max(200)).min(1).max(512),
     resourceHashes: z.record(z.string(), digest),

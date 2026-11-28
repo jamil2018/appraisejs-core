@@ -6,11 +6,21 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import CreateLocatorWorkspace from './create-locator-workspace'
 
-const { push, refresh, toast, startLocatorPickerSessionAction, savePickedLocatorAction } = vi.hoisted(() => ({
+const {
+  push,
+  refresh,
+  toast,
+  startLocatorPickerSessionAction,
+  getLocatorPickerSessionAction,
+  closeLocatorPickerSessionAction,
+  savePickedLocatorAction,
+} = vi.hoisted(() => ({
   push: vi.fn(),
   refresh: vi.fn(),
   toast: vi.fn(),
   startLocatorPickerSessionAction: vi.fn(),
+  getLocatorPickerSessionAction: vi.fn(),
+  closeLocatorPickerSessionAction: vi.fn(),
   savePickedLocatorAction: vi.fn(),
 }))
 
@@ -27,7 +37,8 @@ vi.mock('@/hooks/use-toast', () => ({
 
 vi.mock('@/actions/locator-picker/locator-picker-actions', () => ({
   startLocatorPickerSessionAction,
-  getLocatorPickerSessionAction: vi.fn(),
+  closeLocatorPickerSessionAction,
+  getLocatorPickerSessionAction,
   savePickedLocatorAction,
 }))
 
@@ -37,6 +48,8 @@ describe('CreateLocatorWorkspace', () => {
     refresh.mockClear()
     toast.mockClear()
     startLocatorPickerSessionAction.mockReset()
+    getLocatorPickerSessionAction.mockReset()
+    closeLocatorPickerSessionAction.mockReset()
     savePickedLocatorAction.mockReset()
   })
 
@@ -81,6 +94,97 @@ describe('CreateLocatorWorkspace', () => {
       description:
         'Use the in-browser Appraise picker panel to start picking, click one element, then confirm Use selector.',
     })
+  })
+
+  it('cancels an active picker and reports that no target was picked', async () => {
+    const user = userEvent.setup()
+    const session = {
+      sessionId: 'session-1',
+      launchSource: { environmentId: 'env-1', environmentName: 'Staging', url: 'https://example.test' },
+      browserName: 'chromium',
+      status: 'ready',
+      currentUrl: 'https://example.test',
+      currentPathname: '/',
+      pageTitle: 'Home',
+      companionPid: 123,
+      startedAt: '2026-11-01T00:00:00.000Z',
+      updatedAt: '2026-11-01T00:00:01.000Z',
+    }
+    startLocatorPickerSessionAction.mockResolvedValue({ status: 200, data: session })
+    closeLocatorPickerSessionAction.mockResolvedValue({
+      status: 200,
+      data: { ...session, status: 'closed', companionPid: null },
+    })
+
+    render(<CreateLocatorWorkspace environments={[{ id: 'env-1', name: 'Staging' }]} locatorGroups={[]} modules={[]} />)
+
+    await user.click(screen.getByRole('button', { name: 'Launch Chromium' }))
+    await user.click(await screen.findByRole('button', { name: 'Cancel picker' }))
+
+    await waitFor(() => expect(closeLocatorPickerSessionAction).toHaveBeenCalledWith('session-1'))
+    expect(await screen.findByText('No target picked')).toBeVisible()
+    expect(savePickedLocatorAction).not.toHaveBeenCalled()
+  })
+
+  it('brings a picked target into the editor before saving the reviewed selector', async () => {
+    const user = userEvent.setup()
+    const session = {
+      sessionId: 'session-1',
+      launchSource: { environmentId: 'env-1', environmentName: 'Staging', url: 'https://example.test' },
+      browserName: 'chromium',
+      status: 'ready',
+      currentUrl: 'https://example.test/checkout',
+      currentPathname: '/checkout',
+      pageTitle: 'Checkout',
+      companionPid: 123,
+      startedAt: '2026-11-01T00:00:00.000Z',
+      updatedAt: '2026-11-01T00:00:01.000Z',
+    }
+    startLocatorPickerSessionAction.mockResolvedValue({ status: 200, data: session })
+    getLocatorPickerSessionAction.mockResolvedValue({
+      status: 200,
+      data: {
+        ...session,
+        status: 'picked',
+        updatedAt: '2026-11-01T00:00:02.000Z',
+        pickedLocator: {
+          sessionId: 'session-1',
+          selector: '[data-testid="place-order"]',
+          currentUrl: 'https://example.test/checkout',
+          pathname: '/checkout',
+          pageTitle: 'Checkout',
+          tagName: 'button',
+          accessibleName: 'Place order',
+          matchCount: 1,
+          checkedAt: '2026-11-01T00:00:02.000Z',
+          checkedUrl: 'https://example.test/checkout',
+        },
+      },
+    })
+    savePickedLocatorAction.mockResolvedValue({ status: 200, message: 'Locator saved successfully', data: {} })
+
+    render(
+      <CreateLocatorWorkspace
+        environments={[{ id: 'env-1', name: 'Staging' }]}
+        locatorGroups={[{ id: 'group-1', name: 'Checkout', route: '/checkout', moduleId: 'module-1' }]}
+        modules={[{ id: 'module-1', name: 'Store', parentId: null }]}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Launch Chromium' }))
+    expect(await screen.findByText('Picked from page', {}, { timeout: 4000 })).toBeVisible()
+    expect(screen.getByLabelText('Selector')).toHaveValue('[data-testid="place-order"]')
+    expect(screen.getByLabelText('Locator Name')).toHaveValue('Place order')
+    await user.click(screen.getByRole('button', { name: 'Save Locator' }))
+    await waitFor(() =>
+      expect(savePickedLocatorAction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sessionId: 'session-1',
+          selector: '[data-testid="place-order"]',
+          existingLocatorGroupId: 'group-1',
+        }),
+      ),
+    )
   })
 
   it('saves a locator in create-group mode and navigates back to locators', async () => {

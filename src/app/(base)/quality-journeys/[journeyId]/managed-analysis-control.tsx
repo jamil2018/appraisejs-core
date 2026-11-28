@@ -9,10 +9,12 @@ export function ManagedAnalysisControl({
   journeyId,
   stateHash,
   enabled,
+  provider = 'CODEX',
 }: {
   journeyId: string
   stateHash: string
   enabled: boolean
+  provider?: 'CODEX' | 'CLAUDE_CODE'
 }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
@@ -44,12 +46,19 @@ export function ManagedAnalysisControl({
           })
         }}
       >
-        {pending ? 'Analyzing your brief…' : 'Analyze brief with local Codex'}
+        {pending
+          ? 'Analyzing your brief…'
+          : `Analyze brief with local ${provider === 'CLAUDE_CODE' ? 'Claude Code' : 'Codex'}`}
       </Button>
       {!enabled ? (
-        <p className="text-sm text-muted-foreground">The Appraise server owner must enable local Codex Analysis.</p>
+        <p className="text-sm text-muted-foreground">
+          {provider === 'CLAUDE_CODE' ? 'Claude Code' : 'Codex'} is unavailable for this step. Check assistant setup on
+          the Journey page.
+        </p>
       ) : null}
-      <p className="text-sm text-muted-foreground">Codex proposes a test approach for you to review and approve.</p>
+      <p className="text-sm text-muted-foreground">
+        {provider === 'CLAUDE_CODE' ? 'Claude Code' : 'Codex'} proposes a test approach for you to review and approve.
+      </p>
       {message ? (
         <p role="status" className="text-sm">
           {message}

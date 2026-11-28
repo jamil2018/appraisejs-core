@@ -21,6 +21,10 @@ import {
 } from './quality-journey-analysis-followup'
 import { providerIntentPolicy } from '@/lib/quality-journey/provider-intent-contract'
 import {
+  parseManagedWorkerPreferences,
+  type ManagedWorkerPreferences,
+} from '@/lib/quality-journey/managed-worker-preferences'
+import {
   enqueueQualityJourneyWakeInTransaction,
   trustedQualityJourneyWakeProducer,
 } from './quality-journey-wake-service'
@@ -52,6 +56,7 @@ import type {
   QualityJourneyWorkAttempt,
   QualityJourneyWorkItem,
   QualityJourneyWorkAuthorization,
+  QualityJourneyManagedWorkerProvider,
 } from '@prisma/client'
 import prisma from '@/config/db-config'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
@@ -528,6 +533,9 @@ function projection(row: QualityJourney) {
     stage: row.stage as QualityJourneyStage,
     status: row.status,
     hostingMode: row.hostingMode,
+    managedWorkerProvider: row.managedWorkerProvider,
+    managedWorkerModel: row.managedWorkerModel ?? undefined,
+    managedWorkerEffort: row.managedWorkerEffort ?? undefined,
     hostingProvenance: row.hostingProvenance,
     currentCoordinatorSessionId: row.currentCoordinatorSessionId,
     ownershipVersion: row.ownershipVersion,
@@ -1871,21 +1879,39 @@ type CreateQualityJourneyInput = {
   requirement: QualityJourneyRequirement
   predecessorJourneyId?: string
   hostingMode?: 'EXTERNAL_LEGACY' | 'APP_SERVER_LOCAL_V1'
-}
+  managedWorkerProvider?: QualityJourneyManagedWorkerProvider
+} & ManagedWorkerPreferences
 
 function normalizedJourneyCreation(input: CreateQualityJourneyInput) {
   const requirement = parseQualityJourneyRequirement(input.requirement)
-  const { hostingMode: requestedHostingMode, ...legacyInput } = input
+  const {
+    hostingMode: requestedHostingMode,
+    managedWorkerProvider = 'CODEX',
+    managedWorkerModel,
+    managedWorkerEffort,
+    ...legacyInput
+  } = input
   const hostingMode = requestedHostingMode ?? 'EXTERNAL_LEGACY'
   if (requestedHostingMode !== undefined && !['EXTERNAL_LEGACY', 'APP_SERVER_LOCAL_V1'].includes(requestedHostingMode))
     throw new ServiceError('Quality Journey hosting mode is invalid.', 'VALIDATION')
+  if (managedWorkerProvider !== 'CODEX' && managedWorkerProvider !== 'CLAUDE_CODE')
+    throw new ServiceError('Quality Journey managed worker is invalid.', 'VALIDATION')
+  let preferences: ReturnType<typeof parseManagedWorkerPreferences>
+  try {
+    preferences = parseManagedWorkerPreferences(managedWorkerProvider, { managedWorkerModel, managedWorkerEffort })
+  } catch {
+    throw new ServiceError('The selected model or effort is unavailable for this provider.', 'VALIDATION')
+  }
   // Keep pre-M03 and explicitly compatible requests on their original hash.
   const requestHash = hash({
     ...legacyInput,
     requirement,
     ...(hostingMode === 'APP_SERVER_LOCAL_V1' ? { hostingMode } : {}),
+    ...(managedWorkerProvider === 'CLAUDE_CODE' ? { managedWorkerProvider } : {}),
+    ...(preferences.managedWorkerModel ? { managedWorkerModel: preferences.managedWorkerModel } : {}),
+    ...(preferences.managedWorkerEffort ? { managedWorkerEffort: preferences.managedWorkerEffort } : {}),
   })
-  return { requirement, requestHash }
+  return { requirement, requestHash, managedWorkerProvider, preferences }
 }
 
 function assertJourneyCreationReplay(
@@ -1894,7 +1920,13 @@ function assertJourneyCreationReplay(
   hostingMode: string,
   requestHash: string,
 ) {
-  if (existing.rootRequestHash !== requestHash || (input.hostingMode && existing.hostingMode !== hostingMode))
+  if (
+    existing.rootRequestHash !== requestHash ||
+    existing.managedWorkerProvider !== (input.managedWorkerProvider ?? 'CODEX') ||
+    (existing.managedWorkerModel ?? undefined) !== (input.managedWorkerModel ?? undefined) ||
+    (existing.managedWorkerEffort ?? undefined) !== (input.managedWorkerEffort ?? undefined) ||
+    (input.hostingMode && existing.hostingMode !== hostingMode)
+  )
     throw new ServiceError('Quality Journey idempotency key was reused with different input.', 'CONFLICT')
 }
 
@@ -1903,9 +1935,13 @@ export async function createQualityJourneyInTransaction(
   tx: Prisma.TransactionClient,
   defaultHostingMode: 'EXTERNAL_LEGACY' | 'APP_SERVER_LOCAL_V1' = 'EXTERNAL_LEGACY',
 ) {
-  const { requirement, requestHash } = normalizedJourneyCreation(input)
+  const { requirement, requestHash, managedWorkerProvider, preferences } = normalizedJourneyCreation(input)
   // Exact retries retain the original caller intent across server default changes.
   const hostingMode = input.hostingMode ?? defaultHostingMode
+  if (managedWorkerProvider === 'CLAUDE_CODE' && hostingMode !== 'APP_SERVER_LOCAL_V1')
+    throw new ServiceError('Claude Code requires an Appraise-managed Journey.', 'VALIDATION')
+  if (hostingMode !== 'APP_SERVER_LOCAL_V1' && (preferences.managedWorkerModel || preferences.managedWorkerEffort))
+    throw new ServiceError('Model and effort choices require an Appraise-managed Journey.', 'VALIDATION')
   const existing = await tx.qualityJourney.findUnique({
     where: {
       targetProjectId_rootIdempotencyKey: {
@@ -1953,6 +1989,8 @@ export async function createQualityJourneyInTransaction(
       rootIdempotencyKey: input.idempotencyKey,
       rootRequestHash: requestHash,
       hostingMode,
+      managedWorkerProvider,
+      ...preferences,
       hostingProvenance: hostingMode === 'APP_SERVER_LOCAL_V1' ? 'EXPLICIT_INTERNAL_V1' : 'CREATED_COMPATIBILITY_V1',
       activeCycleId: cycleId,
       activeRevisionIdsJson: json(initial.activeRevisionIds),

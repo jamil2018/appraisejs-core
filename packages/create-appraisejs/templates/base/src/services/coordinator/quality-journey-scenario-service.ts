@@ -1112,7 +1112,12 @@ type ScenarioDecisionInput = {
     expectedStateHash: string
     idempotencyKey: string
     inputArtifactRefs: unknown[]
-    payload: { portfolioHash: string }
+    payload: {
+      portfolioHash: string
+      portfolioRevisionId?: string
+      approvedScenarioRevisionIds?: string[]
+      rejectedScenarioRevisionIds?: string[]
+    }
   }
   expectedReviewHash: string
   approvedScenarioRevisionIds: string[]
@@ -1379,17 +1384,24 @@ async function decideQualityJourneyScenariosInTransaction(
   return result
 }
 
+export async function recordQualityJourneyScenarioDecisionInTransaction(
+  value: ScenarioDecisionInput,
+  tx: Prisma.TransactionClient,
+  coordinatorSession?: CoordinatorSessionCredentials,
+) {
+  return withJourneyBusinessWriteJoinInTransaction(tx, value.command, coordinatorSession, async beforeWrite => {
+    await assertCoordinatorMutationSession(coordinatorSession, value.command, tx)
+    return decideQualityJourneyScenariosInTransaction(value, tx, beforeWrite, coordinatorSession)
+  })
+}
+
 export async function decideQualityJourneyScenarios(
   input: unknown,
   client: PrismaClient = prisma,
   coordinatorSession?: CoordinatorSessionCredentials,
 ) {
-  const value = input as ScenarioDecisionInput
   return client.$transaction(tx =>
-    withJourneyBusinessWriteJoinInTransaction(tx, value.command, coordinatorSession, async beforeWrite => {
-      await assertCoordinatorMutationSession(coordinatorSession, value.command, tx)
-      return decideQualityJourneyScenariosInTransaction(value, tx, beforeWrite, coordinatorSession)
-    }),
+    recordQualityJourneyScenarioDecisionInTransaction(input as ScenarioDecisionInput, tx, coordinatorSession),
   )
 }
 

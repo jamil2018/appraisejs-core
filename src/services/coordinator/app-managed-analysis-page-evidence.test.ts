@@ -56,3 +56,27 @@ it('waits for an unambiguous target', async () => {
   })
   expect(fetch).not.toHaveBeenCalled()
 })
+
+it('bounds recorded paths and labels independently of the fetched URL', async () => {
+  const route = `/checkout/${'a'.repeat(10_000)}`
+  const fetch = vi.fn(async (url: URL) => {
+    void url
+    return new Response(`<h1>${'x'.repeat(20_000)}</h1>`, {
+      headers: { 'content-type': 'text/html' },
+    })
+  })
+  vi.stubGlobal('fetch', fetch)
+  const scopedClient = {
+    environment: { findMany: async () => [{ id: 'one', baseUrl: 'https://shop.example/' }] },
+    module: { findMany: async () => [] },
+    locatorGroup: { findMany: async () => [{ route }] },
+  } as unknown as PrismaClient
+  const inspected = vi.fn(async (path: string) => {
+    void path
+  })
+  const evidence = await readAnalysisPageEvidence(input, scopedClient, inspected)
+  expect(fetch.mock.calls[1]![0].pathname).toBe(route)
+  expect(inspected.mock.calls[0]![0]).toHaveLength(2048)
+  expect(evidence.pages[1]!.path).toHaveLength(2048)
+  expect(Buffer.byteLength(JSON.stringify(evidence))).toBeLessThan(128 * 1024)
+})

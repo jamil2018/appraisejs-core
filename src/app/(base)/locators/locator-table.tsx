@@ -13,6 +13,7 @@ export default function LocatorTable({ rows }: { rows: LocatorTableRow[] }) {
       filterColumn="name"
       filterPlaceholder="Search locators"
       modifyLink="/locators/modify"
+      modifyLinkProjectId={rows[0].targetProjectId}
       deleteAction={deleteLocatorAction}
       density="compact"
       initialColumnVisibility={{ createdAt: false }}

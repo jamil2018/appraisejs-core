@@ -1,6 +1,6 @@
 import { trustedHumanCoordinatorSession } from './quality-journey-coordinator-session'
 import { createHash } from 'node:crypto'
-import { Prisma, type PrismaClient } from '@prisma/client'
+import { Prisma, type PrismaClient, type QualityJourneyManagedWorkerProvider } from '@prisma/client'
 import prisma from '@/config/db-config'
 import {
   hashQualityJourneyDraft,
@@ -13,6 +13,10 @@ import {
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { ServiceError } from '@/services/shared/errors'
 import {
+  parseManagedWorkerPreferences,
+  type ManagedWorkerPreferences,
+} from '@/lib/quality-journey/managed-worker-preferences'
+import {
   bindQualityJourneyAdvisoryReuseInputsInTransaction,
   createQualityJourneyInTransaction,
   submitDurableQualityJourneyCommandInTransaction,
@@ -23,11 +27,29 @@ type DraftRow = Awaited<ReturnType<Prisma.TransactionClient['qualityJourneyDraft
 const json = (value: unknown) => canonicalContractJson(value)
 const hash = (value: unknown) => `sha256:${createHash('sha256').update(json(value)).digest('hex')}`
 
+export function guidedCopyRequestHash(input: { journeyId: string; provider: QualityJourneyManagedWorkerProvider }) {
+  return hash({ kind: 'GUIDED_COPY', sourceJourneyId: input.journeyId, provider: input.provider })
+}
+
+function workerPreferences(
+  provider: QualityJourneyManagedWorkerProvider,
+  input: { managedWorkerModel?: unknown; managedWorkerEffort?: unknown },
+) {
+  try {
+    return parseManagedWorkerPreferences(provider, input)
+  } catch {
+    throw new ServiceError('The selected model or effort is unavailable for this provider.', 'VALIDATION')
+  }
+}
+
 function projection(row: NonNullable<DraftRow>) {
+  const preferences = workerPreferences(row.managedWorkerProvider, row)
   return {
     id: row.id,
     targetProjectId: row.targetProjectId,
     status: row.status,
+    managedWorkerProvider: row.managedWorkerProvider,
+    ...preferences,
     requirement: parseQualityJourneyDraftRequirement(JSON.parse(row.requirementJson)),
     currentStep: row.currentStep,
     predecessorJourneyId: row.predecessorJourneyId ?? undefined,
@@ -46,13 +68,16 @@ async function scopedDraft(input: { draftId: string; targetProjectId: string }, 
   return row
 }
 
-function draftValues(input: {
-  requirement: QualityJourneyDraftRequirement
-  currentStep: number
-  predecessorJourneyId?: string
-  version: number
-  advisorySeedDigest?: string
-}) {
+function draftValues(
+  input: {
+    requirement: QualityJourneyDraftRequirement
+    currentStep: number
+    predecessorJourneyId?: string
+    version: number
+    advisorySeedDigest?: string
+    managedWorkerProvider: QualityJourneyManagedWorkerProvider
+  } & ManagedWorkerPreferences,
+) {
   const requirement = parseQualityJourneyDraftRequirement(input.requirement)
   return {
     requirement,
@@ -63,6 +88,9 @@ function draftValues(input: {
       predecessorJourneyId: input.predecessorJourneyId,
       version: input.version,
       advisorySeedDigest: input.advisorySeedDigest,
+      managedWorkerProvider: input.managedWorkerProvider,
+      managedWorkerModel: input.managedWorkerModel,
+      managedWorkerEffort: input.managedWorkerEffort,
     }),
   }
 }
@@ -89,14 +117,27 @@ export async function createQualityJourneyDraft(
     requirement?: unknown
     currentStep?: number
     predecessorJourneyId?: string
-  },
+    managedWorkerProvider?: QualityJourneyManagedWorkerProvider
+    guidedCopySourceJourneyId?: string
+  } & ManagedWorkerPreferences,
   client: Db = prisma,
 ) {
   const requirement = parseQualityJourneyDraftRequirement(input.requirement ?? {})
   const currentStep = input.currentStep ?? 0
   if (!Number.isInteger(currentStep) || currentStep < 0 || currentStep > 3)
     throw new ServiceError('Draft step must be between 0 and 3.', 'VALIDATION')
-  const requestHash = hash({ requirement, currentStep, predecessorJourneyId: input.predecessorJourneyId ?? null })
+  const managedWorkerProvider = input.managedWorkerProvider ?? 'CODEX'
+  const preferences = workerPreferences(managedWorkerProvider, input)
+  const requestHash = input.guidedCopySourceJourneyId
+    ? guidedCopyRequestHash({ journeyId: input.guidedCopySourceJourneyId, provider: managedWorkerProvider })
+    : hash({
+        requirement,
+        currentStep,
+        predecessorJourneyId: input.predecessorJourneyId ?? null,
+        ...(managedWorkerProvider === 'CLAUDE_CODE' ? { managedWorkerProvider } : {}),
+        ...(preferences.managedWorkerModel ? { managedWorkerModel: preferences.managedWorkerModel } : {}),
+        ...(preferences.managedWorkerEffort ? { managedWorkerEffort: preferences.managedWorkerEffort } : {}),
+      })
   const existing = await client.qualityJourneyDraft.findUnique({
     where: {
       targetProjectId_createIdempotencyKey: {
@@ -110,11 +151,20 @@ export async function createQualityJourneyDraft(
       throw new ServiceError('Draft creation key was reused with different input.', 'CONFLICT')
     return { replayed: true, draft: projection(existing) }
   }
-  const values = draftValues({ requirement, currentStep, predecessorJourneyId: input.predecessorJourneyId, version: 1 })
+  const values = draftValues({
+    requirement,
+    currentStep,
+    predecessorJourneyId: input.predecessorJourneyId,
+    managedWorkerProvider,
+    ...preferences,
+    version: 1,
+  })
   const data = {
     targetProjectId: input.targetProjectId,
     createIdempotencyKey: input.idempotencyKey,
     createRequestHash: requestHash,
+    managedWorkerProvider,
+    ...preferences,
     requirementJson: json(values.requirement),
     currentStep: values.currentStep,
     predecessorJourneyId: values.predecessorJourneyId,
@@ -144,12 +194,22 @@ export async function createQualityJourneyDraft(
 /** Copying a brief is intentionally not a follow-up: only an explicit linked
  * follow-up action may set predecessorJourneyId. */
 export async function copyQualityJourneyBriefToDraft(
-  input: { journeyId: string; targetProjectId: string; idempotencyKey: string },
+  input: {
+    journeyId: string
+    targetProjectId: string
+    idempotencyKey: string
+    guidedCopyProvider?: QualityJourneyManagedWorkerProvider
+  },
   client: Db = prisma,
 ) {
   const journey = await client.qualityJourney.findFirst({
     where: { id: input.journeyId, targetProjectId: input.targetProjectId },
-    select: { activeRevisionIdsJson: true },
+    select: {
+      activeRevisionIdsJson: true,
+      managedWorkerProvider: true,
+      managedWorkerModel: true,
+      managedWorkerEffort: true,
+    },
   })
   if (!journey) throw new ServiceError('This Quality Journey was not found in the active workspace.', 'NOT_FOUND')
   const active = JSON.parse(journey.activeRevisionIdsJson) as { journey?: string }
@@ -159,11 +219,16 @@ export async function copyQualityJourneyBriefToDraft(
       })
     : null
   if (!revision) throw new ServiceError('The immutable Journey brief is unavailable.', 'CONFLICT')
+  const preferences = workerPreferences(journey.managedWorkerProvider, journey)
   return createQualityJourneyDraft(
     {
       targetProjectId: input.targetProjectId,
       idempotencyKey: input.idempotencyKey,
       requirement: JSON.parse(revision.contentJson),
+      managedWorkerProvider: input.guidedCopyProvider ?? journey.managedWorkerProvider,
+      managedWorkerModel: input.guidedCopyProvider ? undefined : preferences.managedWorkerModel,
+      managedWorkerEffort: preferences.managedWorkerEffort,
+      ...(input.guidedCopyProvider ? { guidedCopySourceJourneyId: input.journeyId } : {}),
       currentStep: 0,
     },
     client,
@@ -193,19 +258,29 @@ export async function saveQualityJourneyDraft(
     requirement: unknown
     currentStep: number
     predecessorJourneyId?: string
-  },
-  client: PrismaClient = prisma,
+    managedWorkerProvider?: QualityJourneyManagedWorkerProvider
+  } & ManagedWorkerPreferences,
+  client: Db = prisma,
 ) {
   const requirement = parseQualityJourneyDraftRequirement(input.requirement)
   if (!Number.isInteger(input.currentStep) || input.currentStep < 0 || input.currentStep > 3)
     throw new ServiceError('Draft step must be between 0 and 3.', 'VALIDATION')
   const nextVersion = input.expectedVersion + 1
+  const current = await scopedDraft(input, client)
+  const managedWorkerProvider = input.managedWorkerProvider ?? current.managedWorkerProvider
+  const preferences = workerPreferences(managedWorkerProvider, {
+    managedWorkerModel: input.managedWorkerModel === undefined ? current.managedWorkerModel : input.managedWorkerModel,
+    managedWorkerEffort:
+      input.managedWorkerEffort === undefined ? current.managedWorkerEffort : input.managedWorkerEffort,
+  })
   const values = draftValues({
     requirement,
     currentStep: input.currentStep,
     predecessorJourneyId: input.predecessorJourneyId,
     version: nextVersion,
     advisorySeedDigest: await advisorySeedDigest(input.draftId, client),
+    managedWorkerProvider,
+    ...preferences,
   })
   const changed = await client.qualityJourneyDraft.updateMany({
     where: {
@@ -216,6 +291,9 @@ export async function saveQualityJourneyDraft(
     },
     data: {
       requirementJson: json(values.requirement),
+      managedWorkerProvider,
+      managedWorkerModel: preferences.managedWorkerModel ?? null,
+      managedWorkerEffort: preferences.managedWorkerEffort ?? null,
       currentStep: values.currentStep,
       predecessorJourneyId: values.predecessorJourneyId ?? null,
       version: nextVersion,
@@ -248,6 +326,8 @@ async function moveDraft(
     predecessorJourneyId: draft.predecessorJourneyId ?? undefined,
     version: nextVersion,
     advisorySeedDigest: await advisorySeedDigest(draft.id, client),
+    managedWorkerProvider: draft.managedWorkerProvider,
+    ...workerPreferences(draft.managedWorkerProvider, draft),
   })
   const changed = await client.qualityJourneyDraft.updateMany({
     where: {
@@ -312,6 +392,8 @@ async function createAndSubmitDraftJourney(
       idempotencyKey: confirmationKey,
       ...(input.hostingMode ? { hostingMode: input.hostingMode } : {}),
       requirement,
+      managedWorkerProvider: draft.managedWorkerProvider,
+      ...workerPreferences(draft.managedWorkerProvider, draft),
       ...(draft.predecessorJourneyId ? { predecessorJourneyId: draft.predecessorJourneyId } : {}),
     },
     tx,
@@ -406,6 +488,8 @@ export async function confirmQualityJourneyDraft(
       predecessorJourneyId: draft.predecessorJourneyId ?? undefined,
       version: draft.version,
       advisorySeedDigest: await advisorySeedDigest(draft.id, tx),
+      managedWorkerProvider: draft.managedWorkerProvider,
+      ...workerPreferences(draft.managedWorkerProvider, draft),
     })
     if (expectedDraftHash !== draft.draftHash)
       throw new ServiceError('The selected reuse seeds changed. Reload before confirming.', 'CONFLICT')

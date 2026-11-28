@@ -10,11 +10,11 @@ const views = new Map<string, DataTableView>()
 const scrollPositions = new Map<string, ScrollPosition>()
 const maxRememberedViews = 24
 
-function defaultView(columnVisibility?: VisibilityState): DataTableView {
+function defaultView(columnVisibility: VisibilityState | undefined, pageSize: number): DataTableView {
   return {
     columnFilters: [],
     columnVisibility: columnVisibility ?? {},
-    pagination: { pageIndex: 0, pageSize: 10 },
+    pagination: { pageIndex: 0, pageSize },
     rowSelection: {},
     sorting: [],
   }
@@ -59,8 +59,14 @@ function useTableScroll(key?: string) {
   return ref
 }
 
-export function useDataTableView(key?: string, initialColumnVisibility?: VisibilityState) {
-  const [state, setState] = useState(() => (key ? views.get(key) : undefined) ?? defaultView(initialColumnVisibility))
+export function useDataTableView(
+  key: string | undefined,
+  initialColumnVisibility: VisibilityState | undefined,
+  pageSize: number,
+) {
+  const [state, setState] = useState(
+    () => (key ? views.get(key) : undefined) ?? defaultView(initialColumnVisibility, pageSize),
+  )
   const scrollRef = useTableScroll(key)
 
   useEffect(() => {

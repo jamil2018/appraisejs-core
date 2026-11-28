@@ -77,7 +77,7 @@ beforeEach(() => {
     try { const result = await callback(tx); events.push('commit'); return result }
     catch (error) { events.push('rollback-signal'); throw error }
   })
-  sessions.getSession.mockResolvedValue(null)
+  sessions.getSession.mockResolvedValue({ sessionId: 'session-1' })
   sessions.markSaving.mockImplementation(async () => { events.push('saving') })
   sessions.markReadyAfterSave.mockImplementation(async () => { events.push('ready') })
   tx.locator.findFirst.mockImplementation(async ({ where, select }) => {
@@ -222,14 +222,23 @@ describe('deleteLocators', () => {
 })
 
 describe('savePickedLocatorFromRequest', () => {
+  it('refuses a missing or foreign picker session before any locator mutation', async () => {
+    sessions.getSession.mockResolvedValueOnce(null)
+    await expect(savePickedLocatorFromRequest(input(), targetProjectId)).resolves.toMatchObject({
+      kind: 'error', status: 404, message: expect.stringContaining('Picker session is unavailable'),
+    })
+    expect(sessions.getSession).toHaveBeenCalledWith('session-1', targetProjectId)
+    expect(sessions.markSaving).not.toHaveBeenCalled()
+    noMutation()
+  })
   it('does not persist an ambiguous selector returned by the picker companion', async () => {
     sessions.getSession.mockResolvedValue({ pickedLocator: { selector: 'css=.checkout-button', matchCount: 2 } })
     await expect(savePickedLocatorFromRequest(input({ selector: 'css=.checkout-button' }), targetProjectId)).resolves.toEqual({
       kind: 'error', status: 400, message: 'The picker selector was not verified as exactly one live match. Pick again or enter a manual selector.',
     })
     noMutation()
-    expect(sessions.markSaving).toHaveBeenCalledWith('session-1')
-    expect(sessions.markReadyAfterSave).toHaveBeenCalledWith('session-1')
+    expect(sessions.markSaving).toHaveBeenCalledWith('session-1', targetProjectId)
+    expect(sessions.markReadyAfterSave).toHaveBeenCalledWith('session-1', targetProjectId)
   })
   it('does not persist a picker selector with a mismatched fingerprint', async () => {
     await badObservation({ selectorFingerprint: 'sha256:wrong', checkedAt: new Date().toISOString(), checkedUrl: 'https://example.com' })
@@ -268,7 +277,7 @@ describe('savePickedLocatorFromRequest', () => {
   })
   it('snapshots the parsed request before session lookup awaits', async () => {
     const gate = deferred(), request = input()
-    sessions.getSession.mockImplementationOnce(async () => { await gate.promise; return null })
+    sessions.getSession.mockImplementationOnce(async () => { await gate.promise; return { sessionId: 'session-1' } })
     const pending = savePickedLocatorFromRequest(request, targetProjectId)
     request.locatorName = 'Changed'; request.selector = 'wrong'; request.existingLocatorGroupId = 'foreign'; request.resolutionMode = 'create'
     gate.resolve(); await pending

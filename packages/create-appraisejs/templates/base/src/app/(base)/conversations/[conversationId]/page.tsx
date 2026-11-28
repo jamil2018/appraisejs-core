@@ -6,15 +6,23 @@ import { z } from 'zod'
 
 import PageHeader from '@/components/typography/page-header'
 import { requireActiveProject } from '@/lib/active-project'
-import { workspaceRecordHref, workspaceRecordLabel, type WorkspaceRecord } from '@/lib/conversation/workspace-records'
+import { runStopReviewSchema } from '@/lib/conversation/run-stop-review'
+import {
+  workspaceRecordHref,
+  workspaceRecordLabel,
+  type ConversationRecord,
+} from '@/lib/conversation/workspace-records'
 import { parseWorkspaceRequest } from '@/lib/conversation/workspace-request'
+import type { RunPermissionReview } from '@/lib/conversation/workspace-request'
 import { withProjectScope } from '@/lib/project-scope'
+import { readConversationCollaborationReview } from '@/services/conversation/conversation-collaboration-review'
 import {
   readConversationProviderState,
   type ConversationReadAttempt,
 } from '@/services/conversation/conversation-read-service'
 import { configuredMacCodexReadExecutable } from '@/services/conversation/codex-read-launcher'
 import {
+  getLatestConversationCollaborationOperation,
   getLatestConversationJourney,
   getProjectConversation,
   type ConversationMessage,
@@ -27,8 +35,10 @@ import { getClaudeCodeConnection } from '@/services/provider-connection/claude-c
 import { getCursorConnection } from '@/services/provider-connection/cursor-connection-service'
 import { ServiceError } from '@/services/shared/errors'
 
-import { JourneyChatFocus } from '../../quality-journeys/[journeyId]/journey-chat-focus'
+import { readJourneyChatFocus } from '../../quality-journeys/[journeyId]/journey-chat-focus'
+import { JourneyStatusObservationProvider } from '../../quality-journeys/[journeyId]/journey-status-observation'
 import { loadChatAttachment, type ContextParams } from '../chat-attachment'
+import { CaseDeletionReviewCard } from '../case-deletion-review-card'
 import { ConversationComposer } from '../conversation-composer'
 import {
   ConversationProviderControls,
@@ -40,18 +50,27 @@ export const metadata: Metadata = { title: 'Chat' }
 
 function MessageRecord({
   projectId,
+  conversationId,
   conversationPath,
   record,
 }: {
   projectId: string
+  conversationId: string
   conversationPath: string
-  record: WorkspaceRecord
+  record: ConversationRecord
 }) {
   const attached = new URLSearchParams({ kind: 'test-case', record: record.id })
+  const recordHref = workspaceRecordHref(projectId, record)
+  const href =
+    record.kind === 'SETTINGS'
+      ? `${recordHref}&${new URLSearchParams({ returnTo: withProjectScope(conversationPath, projectId) })}`
+      : record.kind === 'LOCATOR' && record.destination === 'create'
+        ? `${recordHref}&${new URLSearchParams({ fromChat: conversationId })}`
+        : recordHref
   return (
     <div className="flex min-w-0 gap-1">
       <Link
-        href={workspaceRecordHref(projectId, record)}
+        href={href}
         className="app-focus flex min-h-9 min-w-0 flex-1 items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-1.5 text-sm hover:bg-muted"
       >
         <span className="shrink-0 text-xs text-muted-foreground">{workspaceRecordLabel(record.kind)}</span>
@@ -60,7 +79,7 @@ function MessageRecord({
         </span>
         <ArrowUpRight aria-hidden="true" className="size-3.5 shrink-0 text-muted-foreground" />
       </Link>
-      {record.kind === 'TEST_CASE' && (
+      {record.kind === 'TEST_CASE' && !record.destination && (
         <Link
           href={withProjectScope(`${conversationPath}?${attached}`, projectId)}
           title="Attach case"
@@ -103,11 +122,25 @@ function Message({
         {message.records.length > 0 && (
           <ul aria-label="Matching project records" className="space-y-1">
             {message.records.map(record => (
-              <li key={`${record.kind}:${record.id}`}>
-                <MessageRecord record={record} projectId={projectId} conversationPath={conversationPath} />
+              <li key={`${record.kind}:${record.id}:${record.reportStepId ?? ''}:${record.destination ?? ''}`}>
+                <MessageRecord
+                  record={record}
+                  projectId={projectId}
+                  conversationId={message.conversationId}
+                  conversationPath={conversationPath}
+                />
               </li>
             ))}
           </ul>
+        )}
+        {message.role === 'APPRAISE' && message.caseDeletionReview && (
+          <CaseDeletionReviewCard
+            key={message.caseDeletionReview.hash}
+            review={message.caseDeletionReview}
+            projectId={projectId}
+            conversationId={message.conversationId}
+            messageId={message.id}
+          />
         )}
       </div>
       {providerRead}
@@ -147,15 +180,30 @@ export default async function ConversationPage({
   })
   const providerScope = { projectId: scope.id, conversationId }
   const serverScope = { targetProjectId: scope.id, conversationId }
-  const [context, readState, savedJourney] = await Promise.all([
+  const [context, readState, savedJourney, collaborationReview] = await Promise.all([
     loadChatAttachment(scope.id, query),
     readConversationProviderState(
       serverScope,
       messages.map(message => message.id),
     ),
     getLatestConversationJourney(serverScope),
+    getLatestConversationCollaborationOperation(serverScope).then(id =>
+      id ? readConversationCollaborationReview(scope.id, undefined, id) : null,
+    ),
   ])
   const journeyId = context?.kind === 'QUALITY_JOURNEY' ? context.id : savedJourney
+  const savedConversationId = journeyId === savedJourney ? conversation.id : undefined
+  const journeyFocus = journeyId
+    ? await readJourneyChatFocus({ projectId: scope.id, journeyId, savedConversationId })
+    : null
+  const runPermissionReview =
+    journeyFocus && 'runPermissionReview' in journeyFocus
+      ? (journeyFocus.runPermissionReview as RunPermissionReview)
+      : undefined
+  const runStopReview =
+    journeyFocus && 'runStopReview' in journeyFocus
+      ? runStopReviewSchema.safeParse(journeyFocus.runStopReview).data
+      : undefined
   let nativeAvailable = false
   try {
     nativeAvailable = process.platform === 'darwin' && !!configuredMacCodexReadExecutable()
@@ -177,7 +225,7 @@ export default async function ConversationPage({
   const attempts = new Map(readState.attempts.map(attempt => [attempt.messageId, attempt]))
   const path = `/conversations/${conversation.id}`
   const first = messages[0]?.ordinal ?? 1
-  return (
+  const chat = (
     <div className="mx-auto flex min-h-[calc(100dvh-6rem)] max-w-3xl flex-col gap-5 lg:min-h-[calc(100dvh-2.5rem)]">
       <header className="space-y-2">
         <Link
@@ -198,7 +246,7 @@ export default async function ConversationPage({
           blocked={readState.blocked}
         />
       </header>
-      {journeyId && <JourneyChatFocus projectId={scope.id} journeyId={journeyId} />}
+      {journeyFocus?.card}
       <div className="flex flex-1 flex-wrap items-start gap-2 text-sm text-primary">
         {first > 1 && (
           <Link
@@ -237,15 +285,28 @@ export default async function ConversationPage({
           ))}
         </ol>
       </div>
-      <div className="sticky bottom-0 bg-background pb-2">
+      <div className={collaborationReview ? 'pb-2' : 'sticky bottom-0 bg-background pb-2'}>
         <ConversationComposer
           key={JSON.stringify([conversation.id, context])}
           conversationId={conversation.id}
           projectId={scope.id}
           initialContext={context}
+          analysisReview={journeyFocus?.analysisReview}
+          scenarioReview={journeyFocus?.scenarioReview}
+          collaborationReview={collaborationReview ?? undefined}
+          analysisQuestion={journeyFocus?.analysisQuestion}
+          runPermissionReview={runPermissionReview}
+          runStopReview={runStopReview}
         />
       </div>
     </div>
+  )
+  return savedConversationId && journeyFocus ? (
+    <JourneyStatusObservationProvider {...journeyFocus.observation} refreshChatSnapshot>
+      {chat}
+    </JourneyStatusObservationProvider>
+  ) : (
+    chat
   )
 }
 

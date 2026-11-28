@@ -24,7 +24,45 @@ vi.mock('@/lib/active-project', () => ({
 import { revalidatePath } from 'next/cache'
 import { locatorPickerSessionManager } from '@/lib/locator-picker/session-manager'
 import { savePickedLocatorFromRequest } from '@/services/locator/locator-service'
-import { savePickedLocatorAction } from './locator-picker-actions'
+import {
+  closeLocatorPickerSessionAction,
+  getLocatorPickerSessionAction,
+  savePickedLocatorAction,
+  startLocatorPickerSessionAction,
+} from './locator-picker-actions'
+
+describe('project-scoped picker actions', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('passes the trusted project to session launch and refuses an environment from another project', async () => {
+    vi.mocked(locatorPickerSessionManager.startSession).mockRejectedValueOnce(
+      new Error('Choose an environment or provide a URL before launching Chromium.'),
+    )
+
+    const result = await startLocatorPickerSessionAction({ environmentId: 'foreign-env' })
+
+    expect(locatorPickerSessionManager.startSession).toHaveBeenCalledWith({ environmentId: 'foreign-env' }, 'project-1')
+    expect(result.success).toBe(false)
+  })
+
+  it('does not reveal a picker session owned by another project', async () => {
+    vi.mocked(locatorPickerSessionManager.getSession).mockResolvedValueOnce(null)
+
+    const result = await getLocatorPickerSessionAction('foreign-session')
+
+    expect(locatorPickerSessionManager.getSession).toHaveBeenCalledWith('foreign-session', 'project-1')
+    expect(result).toMatchObject({ status: 404, success: false })
+  })
+
+  it('cannot cancel a picker session from another project', async () => {
+    vi.mocked(locatorPickerSessionManager.closeSession).mockResolvedValueOnce(null)
+
+    const result = await closeLocatorPickerSessionAction('foreign-session')
+
+    expect(locatorPickerSessionManager.closeSession).toHaveBeenCalledWith('foreign-session', 'project-1')
+    expect(result).toMatchObject({ status: 404, success: false })
+  })
+})
 
 describe('savePickedLocatorAction', () => {
   beforeEach(() => {
@@ -85,7 +123,7 @@ describe('savePickedLocatorAction', () => {
       existingLocatorGroupId: 'group-1',
     })
 
-    expect(locatorPickerSessionManager.markReadyAfterSave).toHaveBeenCalledWith('session-9')
+    expect(locatorPickerSessionManager.markReadyAfterSave).toHaveBeenCalledWith('session-9', 'project-1')
     expect(result).toEqual({
       status: 500,
       success: false,

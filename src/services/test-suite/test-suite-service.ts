@@ -10,6 +10,7 @@ import {
   type SharedResourceMutationKey,
 } from '@/services/coordinator/quality-journey-shared-resource-guard-service'
 import { ServiceError } from '@/services/shared/errors'
+import { authoringEditVersion, throwIfStaleAuthoringUpdate } from '@/services/shared/authoring-edit-version'
 import { TagType, type Prisma } from '@prisma/client'
 import type { z } from 'zod'
 
@@ -178,29 +179,46 @@ export async function listTestSuites(targetProjectId: string) {
 }
 
 export async function createTestSuiteFromInput(value: z.infer<typeof testSuiteSchema>, targetProjectId: string) {
-  const input = snapshot(value),
-    id = randomUUID()
-  return prisma.$transaction(async tx => {
-    await suppliedRelationships(tx, input, targetProjectId)
-    const existing = keys([], input.testCases ?? [])
-    if (existing.length + 1 > sharedResourceBounds.keys) refuse('RESOURCE_BOUND')
-    await prepareSharedResourceMutationInTransaction(tx, targetProjectId, {
-      existing,
-      newRoots: [{ kind: 'TEST_SUITE', resourceId: id }],
-      deleted: [],
-    })
-    const identifier = await createIdentifier(tx, targetProjectId)
-    return tx.testSuite.create({
-      data: {
-        id,
-        name: input.name,
-        description: input.description,
-        targetProject: { connect: { id: targetProjectId } },
-        module: { connect: { id: input.moduleId } },
-        testCases: { connect: input.testCases?.map(resourceId => ({ id: resourceId })) },
-        tags: { connect: [identifier.id, ...(input.tagIds ?? [])].map(tagId => ({ id: tagId })) },
-      },
-    })
+  const input = snapshot(value)
+  const id = randomUUID()
+  return prisma.$transaction(tx => createTestSuitePreparedInTransaction(tx, input, targetProjectId, id))
+}
+
+export async function createTestSuiteInTransaction(
+  tx: Tx,
+  value: z.infer<typeof testSuiteSchema>,
+  targetProjectId: string,
+) {
+  const input = snapshot(value)
+  const id = randomUUID()
+  return createTestSuitePreparedInTransaction(tx, input, targetProjectId, id)
+}
+
+async function createTestSuitePreparedInTransaction(
+  tx: Tx,
+  input: z.infer<typeof testSuiteSchema>,
+  targetProjectId: string,
+  id: string,
+) {
+  await suppliedRelationships(tx, input, targetProjectId)
+  const existing = keys([], input.testCases ?? [])
+  if (existing.length + 1 > sharedResourceBounds.keys) refuse('RESOURCE_BOUND')
+  await prepareSharedResourceMutationInTransaction(tx, targetProjectId, {
+    existing,
+    newRoots: [{ kind: 'TEST_SUITE', resourceId: id }],
+    deleted: [],
+  })
+  const identifier = await createIdentifier(tx, targetProjectId)
+  return tx.testSuite.create({
+    data: {
+      id,
+      name: input.name,
+      description: input.description,
+      targetProject: { connect: { id: targetProjectId } },
+      module: { connect: { id: input.moduleId } },
+      testCases: { connect: input.testCases?.map(resourceId => ({ id: resourceId })) },
+      tags: { connect: [identifier.id, ...(input.tagIds ?? [])].map(tagId => ({ id: tagId })) },
+    },
   })
 }
 
@@ -218,12 +236,14 @@ export async function updateTestSuiteFromInput(
   value: z.infer<typeof testSuiteSchema>,
   id: string,
   targetProjectId: string,
+  expectedUpdatedAt?: string,
 ): Promise<void> {
   const input = snapshot(value)
   if (!isSharedResourceId(id)) missing()
   await prisma.$transaction(async tx => {
-    const suite = await tx.testSuite.findFirst({ where: { id }, select: suiteSelect })
+    const suite = await tx.testSuite.findFirst({ where: { id }, select: { ...suiteSelect, updatedAt: true } })
     if (!suite || suite.id !== id || suite.targetProjectId !== targetProjectId || suite.archivedAt !== null) missing()
+    const editVersion = authoringEditVersion(suite.updatedAt, expectedUpdatedAt)
     await validateOldModule(tx, suite.moduleId, targetProjectId)
     await suppliedRelationships(tx, input, targetProjectId)
     const tags = await suiteTags(tx, [id], targetProjectId)
@@ -235,17 +255,215 @@ export async function updateTestSuiteFromInput(
     const identifier = getIdentifierTagByPrefix(tags, 'ts_')
     await prepareSharedResourceMutationInTransaction(tx, targetProjectId, { existing, newRoots: [], deleted: [] })
     const identifierId = identifier?.id ?? (await createIdentifier(tx, targetProjectId)).id
-    await tx.testSuite.update({
-      where: { id },
-      data: {
-        name: input.name,
-        description: input.description,
-        testCases: { set: input.testCases?.map(testCaseId => ({ id: testCaseId })) },
-        tags: { set: [...new Set([identifierId, ...(input.tagIds ?? [])])].map(tagId => ({ id: tagId })) },
-        module: { connect: { id: input.moduleId } },
-      },
-    })
+    try {
+      await tx.testSuite.update({
+        where: { id, ...(editVersion ? { targetProjectId, archivedAt: null, updatedAt: editVersion.expected } : {}) },
+        data: {
+          name: input.name,
+          description: input.description,
+          testCases: { set: input.testCases?.map(testCaseId => ({ id: testCaseId })) },
+          tags: { set: [...new Set([identifierId, ...(input.tagIds ?? [])])].map(tagId => ({ id: tagId })) },
+          module: { connect: { id: input.moduleId } },
+          ...(editVersion ? { updatedAt: editVersion.next } : {}),
+        },
+      })
+    } catch (error) {
+      throwIfStaleAuthoringUpdate(error)
+    }
   })
+}
+
+/** Add one exact attached case while preserving all other authored suite fields and relationships. */
+export async function addAttachedCaseToTestSuiteInTransaction(
+  tx: Tx,
+  input: {
+    targetProjectId: string
+    testCaseId: string
+    expectedCaseTitle: string
+    suiteName: string
+    moduleName: string
+  },
+): Promise<{ id: string; name: string; added: boolean }> {
+  const selected = await addSelectedCasesToTestSuiteInTransaction(tx, {
+    targetProjectId: input.targetProjectId,
+    cases: [{ id: input.testCaseId, expectedTitle: input.expectedCaseTitle }],
+    suiteName: input.suiteName,
+    moduleName: input.moduleName,
+  })
+  return { id: selected.id, name: selected.name, added: selected.addedCount === 1 }
+}
+
+/** Resolve every name before a single guarded membership write in the caller's transaction. */
+export async function addNamedCasesToTestSuiteInTransaction(
+  tx: Tx,
+  input: { targetProjectId: string; caseTitles: readonly string[]; suiteName: string; moduleName: string },
+): Promise<{ id: string; name: string; addedCount: number }> {
+  const { targetProjectId, suiteName, moduleName } = input
+  const caseTitles = Array.isArray(input.caseTitles) ? [...input.caseTitles] : relationships()
+  if (
+    !isSharedResourceId(targetProjectId) ||
+    caseTitles.length < 2 ||
+    caseTitles.length > 8 ||
+    caseTitles.some(title => typeof title !== 'string' || title.length < 3 || title.length > 512) ||
+    new Set(caseTitles).size !== caseTitles.length
+  )
+    relationships()
+  const selected: Array<{ id: string; expectedTitle: string }> = []
+  for (const title of caseTitles) {
+    const matches = await tx.testCase.findMany({
+      where: { targetProjectId, title, archivedAt: null },
+      select: { id: true, title: true, targetProjectId: true, archivedAt: true },
+      take: 2,
+    })
+    if (
+      matches.length !== 1 ||
+      matches[0]!.targetProjectId !== targetProjectId ||
+      matches[0]!.archivedAt !== null ||
+      matches[0]!.title !== title
+    )
+      refuse('CASE_TITLE_AMBIGUOUS_OR_MISSING')
+    selected.push({ id: matches[0]!.id, expectedTitle: title })
+  }
+  return addSelectedCasesToTestSuiteInTransaction(tx, { targetProjectId, cases: selected, suiteName, moduleName })
+}
+
+async function addSelectedCasesToTestSuiteInTransaction(
+  tx: Tx,
+  input: {
+    targetProjectId: string
+    cases: readonly { id: string; expectedTitle: string }[]
+    suiteName: string
+    moduleName: string
+  },
+): Promise<{ id: string; name: string; addedCount: number }> {
+  const { targetProjectId, suiteName, moduleName } = input
+  const selected = input.cases.map(row => ({ id: row.id, expectedTitle: row.expectedTitle }))
+  const caseIds = selected.map(row => row.id)
+  if (
+    !isSharedResourceId(targetProjectId) ||
+    !caseIds.length ||
+    caseIds.length > 8 ||
+    caseIds.some(id => !isSharedResourceId(id)) ||
+    new Set(caseIds).size !== caseIds.length ||
+    selected.some(
+      row => typeof row.expectedTitle !== 'string' || row.expectedTitle.length < 3 || row.expectedTitle.length > 512,
+    )
+  )
+    relationships()
+  const cases = await tx.testCase.findMany({
+    where: { id: { in: caseIds } },
+    select: { id: true, targetProjectId: true, title: true, archivedAt: true },
+    take: caseIds.length + 1,
+  })
+  const titles = new Map(selected.map(row => [row.id, row.expectedTitle]))
+  if (
+    cases.length !== caseIds.length ||
+    cases.some(row => row.targetProjectId !== targetProjectId || row.archivedAt !== null)
+  )
+    relationships()
+  if (cases.some(row => row.title !== titles.get(row.id)))
+    throw new ServiceError(
+      'A selected case changed. Review its current title before changing suite membership.',
+      'CONFLICT',
+      409,
+    )
+  const modules = await tx.module.findMany({
+    where: { targetProjectId, name: moduleName, archivedAt: null },
+    select: { id: true },
+    take: 2,
+  })
+  if (modules.length !== 1) refuse('MODULE_NAME_AMBIGUOUS_OR_MISSING')
+  const moduleId = modules[0]!.id
+  await validateModule(tx, moduleId, targetProjectId)
+  const suites = await tx.testSuite.findMany({
+    where: { targetProjectId, moduleId, name: suiteName, archivedAt: null },
+    select: { ...suiteSelect, name: true, updatedAt: true },
+    take: 2,
+  })
+  if (suites.length !== 1) refuse('SUITE_NAME_AMBIGUOUS_OR_MISSING')
+  const suite = suites[0]!
+  if (!isSharedResourceId(suite.id) || suite.targetProjectId !== targetProjectId || suite.archivedAt !== null)
+    refuse('SUITE_SCOPE')
+  await suiteTags(tx, [suite.id], targetProjectId)
+  const oldMembers = await members(tx, [suite.id], targetProjectId)
+  const existing = keys([suite.id], [...oldMembers.map(row => row.id), ...caseIds])
+  await prepareSharedResourceMutationInTransaction(tx, targetProjectId, { existing, newRoots: [], deleted: [] })
+  const oldIds = new Set(oldMembers.map(row => row.id))
+  const newIds = caseIds.filter(id => !oldIds.has(id))
+  if (!newIds.length) return { id: suite.id, name: suite.name, addedCount: 0 }
+  const editVersion = authoringEditVersion(suite.updatedAt, suite.updatedAt.toISOString())!
+  try {
+    await tx.testSuite.update({
+      where: {
+        id: suite.id,
+        targetProjectId,
+        moduleId,
+        name: suiteName,
+        archivedAt: null,
+        updatedAt: editVersion.expected,
+      },
+      data: { testCases: { connect: newIds.map(id => ({ id })) }, updatedAt: editVersion.next },
+    })
+  } catch (error) {
+    throwIfStaleAuthoringUpdate(error)
+  }
+  return { id: suite.id, name: suite.name, addedCount: newIds.length }
+}
+
+/** Rename only a uniquely identified active suite while retaining its module, members, tags, and history. */
+export async function renameExactTestSuiteInTransaction(
+  tx: Tx,
+  input: { targetProjectId: string; currentName: string; moduleName: string; nextName: string },
+): Promise<{ id: string; name: string }> {
+  const { targetProjectId, currentName, moduleName, nextName } = input
+  if (!isSharedResourceId(targetProjectId) || currentName === nextName) relationships()
+  const modules = await tx.module.findMany({
+    where: { targetProjectId, name: moduleName, archivedAt: null },
+    select: { id: true },
+    take: 2,
+  })
+  if (modules.length !== 1) refuse('MODULE_NAME_AMBIGUOUS_OR_MISSING')
+  const moduleId = modules[0]!.id
+  await validateModule(tx, moduleId, targetProjectId)
+  const suites = await tx.testSuite.findMany({
+    where: { targetProjectId, moduleId, name: currentName, archivedAt: null },
+    select: { ...suiteSelect, updatedAt: true },
+    take: 2,
+  })
+  if (suites.length !== 1) refuse('SUITE_NAME_AMBIGUOUS_OR_MISSING')
+  const suite = suites[0]!
+  if (!isSharedResourceId(suite.id) || suite.targetProjectId !== targetProjectId || suite.archivedAt !== null)
+    refuse('SUITE_SCOPE')
+  const collision = await tx.testSuite.findFirst({
+    where: { targetProjectId, moduleId, name: nextName, archivedAt: null },
+    select: { id: true },
+  })
+  if (collision) refuse('NEXT_SUITE_NAME_EXISTS')
+  await suiteTags(tx, [suite.id], targetProjectId)
+  const oldMembers = await members(tx, [suite.id], targetProjectId)
+  await prepareSharedResourceMutationInTransaction(tx, targetProjectId, {
+    existing: keys(
+      [suite.id],
+      oldMembers.map(row => row.id),
+    ),
+    newRoots: [],
+    deleted: [],
+  })
+  const editVersion = authoringEditVersion(suite.updatedAt, suite.updatedAt.toISOString())!
+  const result = await tx.testSuite.updateMany({
+    where: {
+      id: suite.id,
+      targetProjectId,
+      moduleId,
+      name: currentName,
+      archivedAt: null,
+      updatedAt: editVersion.expected,
+    },
+    data: { name: nextName, updatedAt: editVersion.next },
+  })
+  if (result.count !== 1)
+    throw new ServiceError('The test suite changed. Review it again before renaming.', 'CONFLICT', 409)
+  return { id: suite.id, name: nextName }
 }
 
 export async function deleteTestSuitesByIds(ids: string[], targetProjectId: string): Promise<void> {

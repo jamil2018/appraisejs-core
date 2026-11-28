@@ -8,6 +8,7 @@ import { createDataTableSelectionColumn } from '@/components/ui/data-table-selec
 import TableActions from '@/components/table/table-actions'
 import { deleteTagAction } from '@/actions/tags/tag-actions'
 import { formatDateTime } from '@/lib/utils'
+import { withProjectScope } from '@/lib/project-scope'
 
 export const tagTableCols: ColumnDef<Tag>[] = [
   createDataTableSelectionColumn<Tag>(row => row.name),
@@ -40,7 +41,7 @@ export const tagTableCols: ColumnDef<Tag>[] = [
       return (
         <TableActions
           rowName={tag.name}
-          modifyLink={`/tags/modify/${tag.id}`}
+          modifyLink={withProjectScope(`/tags/modify/${tag.id}`, tag.targetProjectId)}
           deleteHandler={() => deleteTagAction([tag.id])}
         />
       )

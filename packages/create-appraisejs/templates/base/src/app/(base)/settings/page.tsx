@@ -1,4 +1,4 @@
-import { ArrowUpRight } from 'lucide-react'
+import { ArrowLeft, ArrowUpRight } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 
@@ -8,6 +8,7 @@ import { readCursorConnection } from '@/actions/provider-connection/cursor-actio
 import PageHeader from '@/components/typography/page-header'
 import { readActiveProjectCookie } from '@/lib/active-project'
 import { withProjectScope } from '@/lib/project-scope'
+import { resolveActiveProject } from '@/services/target-project/target-project-service'
 
 import { AppearanceSettings } from './appearance-settings'
 import { ChatGptSettings } from './chatgpt-settings'
@@ -19,19 +20,45 @@ export const metadata: Metadata = {
   description: 'Manage appearance, workspace preferences, and agent setup.',
 }
 
-export default async function SettingsPage() {
-  const [project, chatGptStatus, chatGptProfiles, claudeCodeStatus, cursorStatus] = await Promise.all([
+function safeReturnTo(returnTo: string | undefined, projectId: string | undefined) {
+  if (!returnTo?.startsWith('/') || returnTo.startsWith('//') || !projectId) return undefined
+  const parsed = new URL(returnTo, 'http://appraise.local')
+  if (!/^\/(?:conversations|quality-journeys)\/[^/]+$/.test(parsed.pathname)) return undefined
+  if (parsed.searchParams.get('project') !== projectId) return undefined
+  return `${parsed.pathname}${parsed.search}${parsed.hash}`
+}
+
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ project?: string; returnTo?: string }>
+}) {
+  const [params, cookieProject, chatGptStatus, chatGptProfiles, claudeCodeStatus, cursorStatus] = await Promise.all([
+    searchParams,
     readActiveProjectCookie(),
     readChatGptConnection(),
     readChatGptProfiles(),
     readClaudeCodeConnection(),
     readCursorConnection(),
   ])
-  const scoped = (href: string) => (project ? withProjectScope(href, project) : href)
+  const project = await resolveActiveProject({ urlProjectId: params?.project, cookieProjectId: cookieProject })
+  const scoped = (href: string) => (project ? withProjectScope(href, project.id) : href)
+  const returnTo = safeReturnTo(params?.returnTo, project?.id)
 
   return (
     <div className="flex max-w-3xl flex-col gap-4">
-      <PageHeader>Settings</PageHeader>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <PageHeader>Settings</PageHeader>
+        {returnTo ? (
+          <Link
+            className="app-focus inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-primary hover:bg-muted"
+            href={returnTo}
+          >
+            <ArrowLeft aria-hidden="true" className="size-4" />
+            {returnTo.startsWith('/quality-journeys/') ? 'Return to Journey' : 'Return to chat'}
+          </Link>
+        ) : null}
+      </div>
       <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4">
         <h2 className="text-sm font-semibold">Appearance</h2>
         <AppearanceSettings />

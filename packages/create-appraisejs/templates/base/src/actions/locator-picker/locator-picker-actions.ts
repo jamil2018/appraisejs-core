@@ -22,7 +22,8 @@ export async function startLocatorPickerSessionAction(
 ): Promise<ActionResponse> {
   try {
     const parsedRequest = startLocatorPickerSessionSchema.parse(request)
-    const session = await locatorPickerSessionManager.startSession(parsedRequest)
+    const project = await requireActiveProjectForMutation()
+    const session = await locatorPickerSessionManager.startSession(parsedRequest, project.id)
 
     return {
       status: session.status === 'error' ? 500 : 200,
@@ -41,7 +42,8 @@ export async function startLocatorPickerSessionAction(
 
 export async function getLocatorPickerSessionAction(sessionId: string): Promise<ActionResponse> {
   try {
-    const session = await locatorPickerSessionManager.getSession(sessionId)
+    const project = await requireActiveProjectForMutation()
+    const session = await locatorPickerSessionManager.getSession(sessionId, project.id)
     if (!session) {
       return {
         status: 404,
@@ -64,9 +66,27 @@ export async function getLocatorPickerSessionAction(sessionId: string): Promise<
   }
 }
 
-export async function savePickedLocatorAction(request: SavePickedLocatorRequest): Promise<ActionResponse> {
+export async function closeLocatorPickerSessionAction(sessionId: string): Promise<ActionResponse> {
   try {
     const project = await requireActiveProjectForMutation()
+    const session = await locatorPickerSessionManager.closeSession(sessionId, project.id)
+    return session
+      ? { status: 200, success: true, data: session }
+      : { status: 404, success: false, error: 'Locator picker session not found in this project.' }
+  } catch (error) {
+    return {
+      status: 500,
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to close the locator picker session.',
+    }
+  }
+}
+
+export async function savePickedLocatorAction(request: SavePickedLocatorRequest): Promise<ActionResponse> {
+  let targetProjectId: string | undefined
+  try {
+    const project = await requireActiveProjectForMutation()
+    targetProjectId = project.id
     const outcome = await savePickedLocatorFromRequest(request, project.id)
 
     if (outcome.kind === 'error') {
@@ -99,7 +119,8 @@ export async function savePickedLocatorAction(request: SavePickedLocatorRequest)
       message: outcome.message,
     }
   } catch (error) {
-    await locatorPickerSessionManager.markReadyAfterSave(request.sessionId).catch(() => undefined)
+    if (targetProjectId)
+      await locatorPickerSessionManager.markReadyAfterSave(request.sessionId, targetProjectId).catch(() => undefined)
     return {
       status: 500,
       success: false,

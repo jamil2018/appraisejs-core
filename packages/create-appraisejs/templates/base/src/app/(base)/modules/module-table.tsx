@@ -18,6 +18,7 @@ export default function ModuleTable({ rows }: { rows: ModuleTableRow[] }) {
       filterColumn="name"
       filterPlaceholder="Search modules"
       modifyLink="/modules/modify"
+      modifyLinkProjectId={projectId}
       deleteAction={deleteModuleAction}
       density="compact"
       initialColumnVisibility={{ createdAt: false }}

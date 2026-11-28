@@ -11,6 +11,7 @@ import Link from 'next/link'
 import { formatDuration } from './report-detail-helpers'
 import type { ReportWithRelations } from '@/types/report'
 import { TestRunResultBadge, TestRunStatusBadge } from '@/components/test-run/test-run-report-badges'
+import { withProjectScope } from '@/lib/project-scope'
 
 export const reportTableCols: ColumnDef<ReportWithRelations>[] = [
   {
@@ -87,7 +88,7 @@ export const reportTableCols: ColumnDef<ReportWithRelations>[] = [
     cell: ({ row }) => {
       const report = row.original
       return (
-        <Link href={`/reports/${report.id}`}>
+        <Link href={withProjectScope(`/reports/${encodeURIComponent(report.id)}`, report.testRun.targetProjectId)}>
           <Button variant="outline" size="sm" className="flex items-center gap-2">
             <Eye className="size-4" />
             View

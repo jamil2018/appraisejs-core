@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
 import { reconnectDiscoveryBrowser } from '@/services/coordinator/quality-journey-discovery-browser-reconnect'
+import { sealManagedScoutEvidenceReview } from '@/services/coordinator/app-managed-discovery-evidence'
 import { requireActiveProjectForMutation } from '@/lib/active-project'
 import {
   authorizeQualityJourneyDiscoveryBrowserExactReturn,
@@ -38,6 +39,7 @@ const start = binding
   .strict()
 const session = binding.extend({ sessionId: id }).strict()
 const capture = session.extend({ snapshotId: id }).strict()
+const managedReview = binding.extend({ reviewHash: z.string().regex(/^sha256:[a-f0-9]{64}$/) }).strict()
 
 function failure(error: unknown): ActionResponse {
   return error instanceof ServiceError ? serviceErrorToActionResponse(error) : unknownErrorToActionResponse(error)
@@ -92,7 +94,13 @@ export async function authorizeQualityJourneyDiscoveryBrowserExactReturnAction(
 }
 
 export async function captureQualityJourneyDiscoveryBrowserReceiptAction(input: unknown): Promise<ActionResponse> {
-  return mutate(input, capture, value => captureQualityJourneyDiscoveryBrowserReceipt(value))
+  return mutate(input, capture, value =>
+    captureQualityJourneyDiscoveryBrowserReceipt(value, undefined, { managedManual: true }),
+  )
+}
+
+export async function sealManagedScoutEvidenceReviewAction(input: unknown): Promise<ActionResponse> {
+  return mutate(input, managedReview, value => sealManagedScoutEvidenceReview(value))
 }
 
 export async function markQualityJourneyDiscoveryBrowserMissingAccessAction(input: unknown): Promise<ActionResponse> {

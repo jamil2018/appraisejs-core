@@ -1,8 +1,19 @@
 import type { QualityJourneyRequirement } from '@/lib/quality-journey/requirement-values'
-import type { JourneyRecordContext } from '@/lib/quality-journey/record-context'
+import type { ManagedWorkerEffort, ManagedWorkerModel } from '@/lib/quality-journey/managed-worker-preferences'
+import {
+  getBriefFileContext,
+  withBriefFileContext,
+  withoutBriefFileContext,
+  type BriefFile,
+  type JourneyRecordContext,
+} from '@/lib/quality-journey/record-context'
 
 export type IntakeState = {
   objective: string
+  managedWorkerProvider: 'CODEX' | 'CLAUDE_CODE'
+  managedWorkerModel?: ManagedWorkerModel | null
+  managedWorkerEffort?: ManagedWorkerEffort | null
+  attachedFile: BriefFile | null
   currentStep: number
   error: string | null
 }
@@ -15,6 +26,9 @@ export type DraftSnapshot = {
   currentStep: number
   requirement: Partial<QualityJourneyRequirement>
   predecessorJourneyId?: string
+  managedWorkerProvider?: 'CODEX' | 'CLAUDE_CODE'
+  managedWorkerModel?: ManagedWorkerModel
+  managedWorkerEffort?: ManagedWorkerEffort
 }
 
 export function actionId(prefix: string) {
@@ -27,13 +41,20 @@ export function buildBriefRequirement(
   saved?: DraftSnapshot['requirement'],
   recordContext?: JourneyRecordContext,
 ): QualityJourneyRequirement {
-  const source = recordContext ? { context: JSON.stringify(recordContext) } : undefined
-  return { ...source, ...saved, objective: values.objective.trim() }
+  const sourceContext = saved?.context ?? (recordContext ? JSON.stringify(recordContext) : undefined)
+  const context = withBriefFileContext(withoutBriefFileContext(sourceContext), values.attachedFile)
+  const savedWithoutContext = { ...saved }
+  delete savedWithoutContext.context
+  return { ...savedWithoutContext, ...(context ? { context } : {}), objective: values.objective.trim() }
 }
 
 export function initialIntakeState(draft?: DraftSnapshot): IntakeState {
   return {
     objective: draft?.requirement.objective ?? '',
+    managedWorkerProvider: draft?.managedWorkerProvider ?? 'CODEX',
+    managedWorkerModel: draft?.managedWorkerModel,
+    managedWorkerEffort: draft?.managedWorkerEffort,
+    attachedFile: getBriefFileContext(draft?.requirement.context)?.file ?? null,
     currentStep: Math.min(draft?.currentStep ?? 0, 3),
     error: null,
   }

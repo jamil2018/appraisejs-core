@@ -11,6 +11,8 @@ import {
   resolveTemplateTestCaseSelection,
 } from './create-from-template-route-helpers'
 import { getTemplateTestCasesWithSteps } from './create-from-template-helpers'
+import { requireActiveProjectForMutation } from '@/lib/active-project'
+import { withProjectScope } from '@/lib/project-scope'
 
 export const metadata: Metadata = {
   title: 'Appraise | Create Test Case From Template',
@@ -24,6 +26,7 @@ const CreateTestCaseFromTemplate = async ({
 }) => {
   const resolvedSearchParams = searchParams ? await searchParams : {}
   const selectedTemplateTestCaseId = resolvedSearchParams.templateTestCaseId ?? ''
+  const project = await requireActiveProjectForMutation()
 
   const { templateTestCasesResponse, resourceResponses } = await loadCreateFromTemplateRouteResources()
   const templateTestCases = getTemplateTestCasesWithSteps(templateTestCasesResponse.data)
@@ -61,6 +64,7 @@ const CreateTestCaseFromTemplate = async ({
         templateTestCases={templateTestCases}
         selectedTemplateTestCase={selectedTemplateTestCase}
         convertedTemplateData={convertedTemplateData}
+        returnPath={withProjectScope('/test-cases', project.id)}
       />
     </div>
   )

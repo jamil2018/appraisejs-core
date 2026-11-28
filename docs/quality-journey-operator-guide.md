@@ -5,13 +5,19 @@ blockers, review decisions, and operational controls as the source of truth. A s
 Test Run does not advance a Journey. See [lifecycle flow](agent-lifecycle-flow.md) and
 [hosting/session contracts](quality-journey-host-sessions.md).
 
-Start from one brief. The form shows its save status next to **Start journey**. On the Journey page, answer the
-current required question or review the criteria when they are ready. **How to connect the agent** appears when
-progress needs a workspace owner to enable the agent. **History** holds the original brief and prior work.
+Start from one brief. Describe what should happen, choose a provider and model, and set its effort if you want
+to change the default. You can attach one small `.txt`, `.md`, or `.json` file. The composer shows its save
+status next to **Start journey**. When the selected provider needs setup, the link opens a guide for that
+provider and returns to the saved brief. On the Journey page, answer the current question or review the suggested
+tests. **History** holds the original brief and prior work.
 
 ## Start a local server with managed workers
 
-For an installed, migrated project on a supported Mac, use the existing Codex CLI login on the machine hosting AppraiseJS. From the AppraiseJS project directory, the following starts the managed workflow on loopback using the project’s configured database.
+On a supported Mac, the **Provider** field on the Journey brief chooses the assistant for the Journey's six agent
+roles. The saved Journey retains its provider, model, and effort across pause and reconnect. The project chat's
+lookup provider is selected separately.
+
+To use Codex, use the existing Codex CLI login on the machine hosting AppraiseJS. From the migrated AppraiseJS project directory, start the managed workflow on loopback using the project's configured database.
 
 ```sh
 APPRAISE_LOCAL_CODEX_ANALYSIS_ENABLED=true \
@@ -21,6 +27,12 @@ APPRAISE_LOCAL_CODEX_TRIAGE_ENABLED=true \
 node scripts/start-local.mjs dev --hostname 127.0.0.1 --port 35968
 ```
 
+To use Claude Code, configure the [verified macOS executable and digest](design/chat-first/provider-proof.md#enable-claude-code-on-macos)
+and start Appraise on loopback with `APPRAISE_LOCAL_CLAUDE_JOURNEY_ENABLED=true`. Choose **Claude Code** in the brief.
+Appraise opens the provider's setup guide if sign-in is needed. A connected Claude Code profile can serve both
+project lookups and managed Journeys. Recovering or reconnecting an interrupted attempt preserves the original
+provider and attempt.
+
 When the server is already running with these settings, open its existing Journey. Appraise schedules eligible work and waits for human review, browser access, or permission when the stage requires it.
 
 ## Run a journey
@@ -28,8 +40,8 @@ When the server is already running with these settings, open its existing Journe
 1. Open **Quality Journeys → New journey**. Write the requirement in your own words and choose **Start journey**. Drafts save as you type. A short brief such as “Check guest checkout” is sufficient.
 2. Watch the stage bar and the activity underneath. The agent can inspect static document labels at an unambiguous registered environment. Authentication, redirects and client-rendered content can limit what it observes. If Appraise needs a product decision, choose a suggested answer or write your own.
 3. Read the acceptance criteria and exclusions. Choose **Request change** beside an item, write the correction and choose **Send change**. Appraise starts revising that item immediately. Read the revised wording before choosing **Approve criteria**. Complete any project setup shown for the intended environment and destination.
-4. When scoped discovery needs browser evidence, open the offered target, sign in there if required, and choose **Save page inspection**. Appraise then reviews the evidence and prepares scenarios. Approve the scenarios you want to run.
-5. Review the prepared tests, target and effects. Grant the requested permission and start the run. Results summarize requirement outcomes. Open a finding to inspect the corresponding test run.
+4. When discovery needs browser evidence, open the offered target, sign in there if required, and choose **Save page inspection**. If the scope offers multiple pages, inspect the pages relevant to the brief and choose **Continue with inspected pages**. Appraise uses the captured pages you reviewed. Approve the scenarios you want to run.
+5. Review the prepared tests, target and effects. In the saved Journey chat, open **Review run permission**, then choose or type **Allow and run these tests** for the displayed scope. The chat saves typed consent with the original run reservation. Results summarize requirement outcomes. Open a finding to inspect the corresponding test run.
 6. **History** contains earlier answers, reviews and evidence. **Pause** stops new work. Choose **Resume** when the existing work has stopped and Appraise can continue safely.
 
 ## Guest checkout verification
@@ -37,6 +49,12 @@ When the server is already running with these settings, open its existing Journe
 A local managed journey against a disposable checkout reached **Results** on November 20, 2026. Appraise recorded the original criteria, pause and resume, reconnect, browser evidence, scenario approval and permission for the prepared test. The checkout test passed and the managed Triager submitted a report against its sealed evidence. The report left a human closure decision open because repeatability and behavior outside the approved scenario were unverified.
 
 An earlier independent journey revised a criterion in response to feedback and passed its checkout test but lost the proposed report during submission. Its original outcome remains unresolved. New submissions retain the validated proposal so Appraise can recover that same report without sending the worker a second request.
+
+When the runner finishes, **Test results** shows the recorded outcomes and links to each run. The separate
+assistant report can still fail to publish. If Appraise can verify retained evidence notes from a rejected
+repair proposal, those notes remain available for reading. An accepted report is required for report review.
+New tests that wait for a page element or compare its text must open the intended page in their own scenario.
+Each scenario starts with a fresh browser context, even when the test plan shows shared setup or dependencies.
 
 ## Observe and recover
 
@@ -47,6 +65,13 @@ If criteria submission stalls, Appraise checks the original assignment before of
 In the guest-checkout walkthrough, recovery preserved three answers and both earlier revisions. The managed agent published a third revision requiring an order identifier. The journey showed **Ready to review acceptance criteria** with **Approve criteria** enabled and no open questions.
 
 In the hands-on **Check guest checkout** journey, test preparation stalled after its original worker lost contact. Appraise preserved the original attempt and accepted a reviewed replacement for the same approved scenario. The Chromium run against Guest checkout demo completed with 11 operations passed, one failed, and the final step skipped. The guest could submit one $5 notebook and see “Order confirmed.” The confirmation had no order identifier. The journey closed with that target defect recorded and linked to the run’s sealed evidence. The earlier passing walkthrough used a different journey and approval.
+
+When test preparation stops during output validation, **Manual preparation** can appear while Appraise waits for
+the original assignment to expire. **Check availability** reloads the recorded state. Recovery requires verified
+worker cleanup, remaining preparation authority, and a recorded failure without a saved proposal or accepted
+submission. A separate manual assignment uses the steps available to the approved Journey. When those steps cannot
+express an approved check, start a fresh review in a project with the required steps and locators. A manual assignment
+still needs reviewed mappings and separate permission before the prepared tests can run.
 
 ## Inspect the target page
 

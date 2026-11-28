@@ -3,6 +3,7 @@ import EnvironmentForm from '../../environment-form'
 import PageHeader from '@/components/typography/page-header'
 import HeaderSubtitle from '@/components/typography/page-header-subtitle'
 import { Metadata } from 'next'
+import { requireActiveProject } from '@/lib/active-project'
 import { getEnvironmentTableRows } from '../../environment-helpers'
 
 export const metadata: Metadata = {
@@ -14,7 +15,14 @@ function optionalField(value: string | null) {
   return value || ''
 }
 
-const ModifyEnvironment = async ({ params }: { params: Promise<{ id: string }> }) => {
+const ModifyEnvironment = async ({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams?: Promise<{ project?: string }>
+}) => {
+  const project = await requireActiveProject((await searchParams)?.project)
   const { id } = await params
   const { data: environmentToBeEditedData, error: environmentToBeEditedError } = await getEnvironmentByIdAction(id)
 
@@ -34,6 +42,7 @@ const ModifyEnvironment = async ({ params }: { params: Promise<{ id: string }> }
         <HeaderSubtitle>Update the environment configuration.</HeaderSubtitle>
       </div>
       <EnvironmentForm
+        projectId={project.id}
         id={id}
         defaultValues={{
           name: environmentData.name,
@@ -42,6 +51,7 @@ const ModifyEnvironment = async ({ params }: { params: Promise<{ id: string }> }
           apiBaseUrl: optionalField(environmentData.apiBaseUrl),
           username: optionalField(environmentData.username),
           passwordEnvironmentVariable: optionalField(environmentData.passwordEnvironmentVariable),
+          discoveryAuthTransitPolicyJson: optionalField(environmentData.discoveryAuthTransitPolicyJson),
         }}
         successTitle="Environment updated"
         successMessage="Environment updated successfully"

@@ -760,9 +760,31 @@ function materializeSteps(
   knownLocators: Set<string>,
   operationReferences: ReadonlySet<string>,
 ) {
-  return proposal.steps.map(mapping =>
+  const mapped = proposal.steps.map(mapping =>
     materializeStep(intent.steps.find(step => step.stepId === mapping.sourceScenarioStepId)!, mapping, definitions, knownLocators, operationReferences),
   )
+  assertApplicationPageEstablished(mapped)
+  return mapped
+}
+
+// The observed element checks need an established application page. Keep this
+// preparation guard outside frozen operation definitions and their hashes.
+const applicationPageRequiredOperations = new Set([
+  'browser.wait.wait.for.element',
+  'browser.text.assertion.assert.element.equals.text',
+])
+
+function assertApplicationPageEstablished(steps: readonly MappedStep[]) {
+  let established = false
+  for (const step of steps) {
+    if ((step.operation.pageContext === 'requires' || applicationPageRequiredOperations.has(step.operation.id)) &&
+      !established)
+      throw new ServiceError(
+        'Automator proposal must establish the application page before checking an element in this scenario.',
+        'CONFLICT',
+      )
+    if (step.operation.pageContext === 'establishes') established = true
+  }
 }
 
 async function findMaterializationReplay(

@@ -68,7 +68,7 @@ test.describe('Test hierarchy CRUD @crud', () => {
     await page.getByRole('button', { name: /Continue/ }).click()
     await expect(page.getByText('Test Case Flow', { exact: true }).first()).toBeVisible()
     await page.getByRole('button', { name: 'Save test case' }).click()
-    await expect(page).toHaveURL(/\/test-cases$/)
+    await expect.poll(() => new URL(page.url()).pathname).toBe('/test-cases')
     await expect(page.getByText('E2E From Template Case', { exact: true }).first()).toBeVisible()
   })
 

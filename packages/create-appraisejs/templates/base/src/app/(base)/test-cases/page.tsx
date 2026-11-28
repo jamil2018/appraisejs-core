@@ -3,6 +3,7 @@ import { CollectionEmpty, CollectionHeader } from '@/components/data-state/colle
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { CircleAlert } from 'lucide-react'
 import type { Metadata } from 'next'
+import { requireActiveProjectForMutation } from '@/lib/active-project'
 
 import { NewTestCaseMenu } from './new-test-case-menu'
 import { getTestCaseRows } from './test-case-row-helpers'
@@ -14,13 +15,14 @@ export const metadata: Metadata = {
 }
 
 export default async function TestCases() {
+  const project = await requireActiveProjectForMutation()
   const { data, success, error, message } = await getAllTestCasesAction()
   const rows = getTestCaseRows(data)
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
       <CollectionHeader title="Test Cases">
-        <NewTestCaseMenu />
+        <NewTestCaseMenu projectId={project.id} />
       </CollectionHeader>
       <TestCaseResults rows={rows} error={success ? undefined : error || message || 'Try refreshing this page.'} />
     </div>

@@ -33,9 +33,10 @@ type ReportScenarioWithDetails =
 
 interface ViewLogsButtonProps {
   reportScenario: ReportScenarioWithDetails
+  targetProjectId: string
 }
 
-export function ViewLogsButton({ reportScenario }: ViewLogsButtonProps) {
+export function ViewLogsButton({ reportScenario, targetProjectId }: ViewLogsButtonProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   return (
@@ -51,7 +52,12 @@ export function ViewLogsButton({ reportScenario }: ViewLogsButtonProps) {
         View Logs
       </Button>
       {reportScenario && (
-        <TestCaseLogsModal open={isModalOpen} onOpenChange={setIsModalOpen} reportScenario={reportScenario} />
+        <TestCaseLogsModal
+          open={isModalOpen}
+          onOpenChange={setIsModalOpen}
+          reportScenario={reportScenario}
+          targetProjectId={targetProjectId}
+        />
       )}
     </>
   )

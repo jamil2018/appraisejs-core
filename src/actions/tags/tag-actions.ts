@@ -78,11 +78,12 @@ export async function updateTagAction(
   _prev: unknown,
   value: z.infer<typeof tagSchema>,
   id?: string,
+  expectedUpdatedAt?: string,
 ): Promise<ActionResponse> {
   try {
     tagSchema.parse(value)
     const project = await requireActiveProjectForMutation()
-    const updatedTag = await updateTag(id, value, project.id)
+    const updatedTag = await updateTag(id, value, project.id, expectedUpdatedAt)
     revalidatePath('/tags')
     return {
       status: 200,

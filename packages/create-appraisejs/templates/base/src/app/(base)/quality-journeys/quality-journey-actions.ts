@@ -6,8 +6,10 @@ import { z } from 'zod'
 
 import { environmentSchema } from '@/constants/form-opts/environment-form-opts'
 import { hashQualityJourneyRequirement, qualityJourneyRequirementSchema } from '@/lib/quality-journey'
+import { managedWorkerEffortSchema, managedWorkerModelSchema } from '@/lib/quality-journey/managed-worker-preferences'
 import { requireActiveProjectForMutation } from '@/lib/active-project'
 import { scheduleAppManagedJourneyContinuation } from '@/services/coordinator/app-managed-progression-service'
+import { getManagedJourneyReadinessForProvider } from '@/services/coordinator/app-managed-journey-readiness'
 import {
   answerQualityJourneyAnalysisQuestion,
   decideQualityJourneyAnalysis,
@@ -49,16 +51,26 @@ const createJourneySchema = z
     requirement: qualityJourneyRequirementSchema,
     predecessorJourneyId: id.optional(),
     idempotencyKey: id,
+    managedWorkerProvider: z.enum(['CODEX', 'CLAUDE_CODE']).optional(),
+    managedWorkerModel: managedWorkerModelSchema.optional(),
+    managedWorkerEffort: managedWorkerEffortSchema.optional(),
   })
   .strict()
 
 const draftRequirementSchema = qualityJourneyRequirementSchema.partial().strict()
+const managedWorkerProviderSchema = z.enum(['CODEX', 'CLAUDE_CODE'])
+const workerPreferencesSchema = {
+  managedWorkerModel: managedWorkerModelSchema.nullable().optional(),
+  managedWorkerEffort: managedWorkerEffortSchema.nullable().optional(),
+}
 const createDraftSchema = z
   .object({
     idempotencyKey: id,
     requirement: draftRequirementSchema.optional(),
     currentStep: z.number().int().min(0).max(3).optional(),
     predecessorJourneyId: id.optional(),
+    managedWorkerProvider: managedWorkerProviderSchema.optional(),
+    ...workerPreferencesSchema,
   })
   .strict()
 const saveDraftSchema = z
@@ -68,6 +80,8 @@ const saveDraftSchema = z
     requirement: draftRequirementSchema,
     currentStep: z.number().int().min(0).max(3),
     predecessorJourneyId: id.optional(),
+    managedWorkerProvider: managedWorkerProviderSchema.optional(),
+    ...workerPreferencesSchema,
   })
   .strict()
 const moveDraftSchema = z.object({ draftId: id, expectedVersion: z.number().int().min(1) }).strict()
@@ -178,15 +192,25 @@ async function scheduleStartedJourney(journeyId: string, targetProjectId: string
   }
 }
 
+async function requireManagedJourneyReady(targetProjectId: string, provider: 'CODEX' | 'CLAUDE_CODE') {
+  const readiness = await getManagedJourneyReadinessForProvider({ targetProjectId }, provider)
+  if (!readiness.ready)
+    throw new ServiceError(readiness.reason ?? 'Set up the selected provider before starting this Journey.', 'CONFLICT')
+}
+
 export async function createQualityJourneyAction(input: unknown): Promise<ActionResponse> {
   try {
     const value = createJourneySchema.parse(input)
     const project = await requireActiveProjectForMutation()
+    await requireManagedJourneyReady(project.id, value.managedWorkerProvider ?? 'CODEX')
     const requirement = value.requirement
     const created = await createAppManagedJourney({
       targetProjectId: project.id,
       idempotencyKey: value.idempotencyKey,
       requirement,
+      ...(value.managedWorkerProvider ? { managedWorkerProvider: value.managedWorkerProvider } : {}),
+      ...(value.managedWorkerModel ? { managedWorkerModel: value.managedWorkerModel } : {}),
+      ...(value.managedWorkerEffort ? { managedWorkerEffort: value.managedWorkerEffort } : {}),
       ...(value.predecessorJourneyId ? { predecessorJourneyId: value.predecessorJourneyId } : {}),
     })
     const journey = created.journey
@@ -269,6 +293,8 @@ export async function confirmQualityJourneyDraftAction(input: unknown): Promise<
   try {
     const value = confirmDraftSchema.parse(input)
     const project = await requireActiveProjectForMutation()
+    const draft = await getQualityJourneyDraft({ draftId: value.draftId, targetProjectId: project.id })
+    if (draft.status === 'ACTIVE') await requireManagedJourneyReady(project.id, draft.managedWorkerProvider)
     const result = await confirmQualityJourneyDraft({ ...value, targetProjectId: project.id })
     const continuationError = await scheduleStartedJourney(result.journeyId, project.id)
     revalidatePath('/quality-journeys')

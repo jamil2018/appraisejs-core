@@ -40,6 +40,7 @@ export const TestSuiteForm = ({
   tags,
   onSuccess,
   redirectPath = '/test-suites',
+  expectedUpdatedAt,
 }: {
   defaultValues?: TestSuite
   successTitle: string
@@ -51,13 +52,17 @@ export const TestSuiteForm = ({
   tags: Tag[]
   onSuccess?: (suite: PrismaTestSuite) => void | Promise<void>
   redirectPath?: string | null
+  expectedUpdatedAt?: string
 }) => {
   const { push } = useRouter()
   const form = useForm({
     defaultValues: defaultValues ?? testSuiteFormOpts.defaultValues,
     validators: testSuiteFormOpts.validators,
     onSubmit: async ({ value }) => {
-      const res = await onSubmitAction(undefined, value, id)
+      const res =
+        expectedUpdatedAt === undefined
+          ? await onSubmitAction(undefined, value, id)
+          : await onSubmitAction(undefined, value, id, expectedUpdatedAt)
       if (res.status === 200) {
         if (onSuccess) {
           const createdTestSuite = getCreatedTestSuite(res.data)
@@ -82,7 +87,7 @@ export const TestSuiteForm = ({
           push(redirectPath)
         }
       }
-      if (res.status === 400) {
+      if (res.status === 400 || res.status === 409) {
         toast({
           title: 'Error',
           description: getActionErrorMessage(res),
@@ -233,7 +238,7 @@ export const TestSuiteForm = ({
             </form.Field>
             <form.Subscribe selector={formState => [formState.canSubmit, formState.isSubmitting]}>
               {([canSubmit, isSubmitting]) => (
-                <Button type="submit" disabled={!canSubmit} className="hover:bg-primary/90">
+                <Button type="submit" disabled={!canSubmit || isSubmitting} className="hover:bg-primary/90">
                   <Save className="size-4" />
                   <span className="font-bold">{isSubmitting ? '...' : 'Save'}</span>
                 </Button>

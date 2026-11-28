@@ -5,6 +5,9 @@ import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { hashCanonical } from '@/lib/quality-journey/analysis-contracts'
 import { ServiceError } from '@/services/shared/errors'
 import { appManagedTriageDefinitions, appManagedTriageOutputSchema } from './app-managed-triage-contract'
+import { hashQualityJourneyExecutionValue } from '@/lib/quality-journey'
+import type { TriageInput } from './quality-journey-triage-input'
+import { triageRemediationError, validateQualityJourneyTriageReport } from './quality-journey-triage-validation'
 import { appManagedTriageAssignmentSchema } from './app-managed-triage-evidence'
 import { appManagedAnalysisCredential } from './app-managed-analysis-credential'
 import {
@@ -29,6 +32,45 @@ const retained = z
   })
   .passthrough()
 type Scope = { journeyId: string; targetProjectId: string }
+
+const rejectedRemediation = retained.extend({
+  state: z.literal('UNKNOWN'),
+  stage: z.literal('CANONICAL_SUBMISSION'),
+  canonicalRecoveryUsed: z.literal(true),
+  canonicalRecoveryOutcome: z.literal('REJECTED_OR_UNKNOWN'),
+  rejection: z.object({ kind: z.literal('CANONICAL'), code: z.literal('CONFLICT'), message: z.string() }),
+})
+
+/** Read-only notes for a report whose confirmed rejection involved its optional repair proposal. */
+export function readRetainedTriageNotes(failureJson: string, assignment: { input: TriageInput; inputHash: string }) {
+  try {
+    const state = rejectedRemediation.parse(JSON.parse(failureJson))
+    const { candidate, candidateHash, submissionIdempotencyKey, rejection } = state
+    const input = assignment.input
+    const { remediation, ...notes } = candidate.arguments.report
+    if (
+      !remediation ||
+      rejection.message !== triageRemediationError(candidate.arguments.report) ||
+      hashCanonical(candidate) !== candidateHash ||
+      candidate.arguments.idempotencyKey !== submissionIdempotencyKey ||
+      hashQualityJourneyExecutionValue(input) !== assignment.inputHash
+    )
+      return null
+    validateQualityJourneyTriageReport(
+      {
+        ...notes,
+        executionCycleId: input.executionCycleId,
+        cycleId: input.cycleId,
+        predecessorReportRevisionId: input.predecessorReport?.reportRevisionId,
+      },
+      input,
+    )
+    return { summary: notes.summary, findings: notes.findings, recommendations: notes.recommendations }
+  } catch {
+    return null
+  }
+}
+
 function deny(message: string): never {
   throw new ServiceError(message, 'CONFLICT')
 }

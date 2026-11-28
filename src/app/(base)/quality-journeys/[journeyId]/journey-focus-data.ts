@@ -5,7 +5,44 @@ import type { getQualityJourney } from '@/services/coordinator/quality-journey-s
 import type { getQualityJourneyTriage } from '@/services/coordinator/quality-journey-triage-service'
 
 import { selectJourneyFocus } from './journey-focus-projection'
+import type { AnalysisReviewContent } from './proposed-checks-event'
 import { toAnalysisRevisionView } from './quality-journey-view-model'
+
+type Criterion = ReturnType<typeof toAnalysisRevisionView>['obligations'][number]
+type CriterionChanges = Extract<AnalysisReviewContent, { kind: 'review-changes' }>['changes']
+
+export function analysisCriterionChanges(
+  previous: readonly Criterion[],
+  current: readonly Criterion[],
+): CriterionChanges {
+  const old = new Map(previous.map(criterion => [criterion.obligationId, criterion]))
+  const changes: CriterionChanges = []
+  for (const criterion of current) {
+    const prior = old.get(criterion.obligationId)
+    old.delete(criterion.obligationId)
+    if (
+      !prior ||
+      prior.requirementId !== criterion.requirementId ||
+      prior.statement !== criterion.statement ||
+      JSON.stringify(prior.acceptanceSignals) !== JSON.stringify(criterion.acceptanceSignals)
+    ) {
+      changes.push({
+        id: criterion.obligationId,
+        kind: prior ? 'changed' : 'added',
+        statement: criterion.statement,
+        signals: criterion.acceptanceSignals,
+      })
+    }
+  }
+  for (const criterion of old.values())
+    changes.push({
+      id: criterion.obligationId,
+      kind: 'removed',
+      statement: criterion.statement,
+      signals: criterion.acceptanceSignals,
+    })
+  return changes
+}
 
 export function currentJourneyAnalysis(
   journey: Awaited<ReturnType<typeof getQualityJourney>>,

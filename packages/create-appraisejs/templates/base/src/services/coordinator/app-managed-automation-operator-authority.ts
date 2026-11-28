@@ -1,6 +1,7 @@
 import type { Prisma } from '@prisma/client'
 import { hashCanonical } from '@/lib/quality-journey/analysis-contracts'
 import { ServiceError } from '@/services/shared/errors'
+import { readManualAutomationFailure } from './app-managed-automation-manual-recovery-observation'
 
 /** Server-held durable manual recovery, never a model-asserted reviewer or payload flag. */
 export async function assertOperatorAutomationLocatorAuthority(
@@ -40,6 +41,8 @@ export async function assertOperatorAutomationLocatorAuthority(
     prior.resultHash
   )
     return fail()
+  const failure = readManualAutomationFailure(prior.failureJson)
+  if (!failure) return fail()
   const events = await tx.qualityJourneyEvent.findMany({
     where: {
       journeyId: scope.journeyId,
@@ -61,7 +64,7 @@ export async function assertOperatorAutomationLocatorAuthority(
       value.dispatchReservedAt === prior.dispatchReservedAt!.toISOString() &&
       value.dispatchStartedAt === prior.dispatchStartedAt!.toISOString() &&
       value.nativeOutcome === 'UNKNOWN' &&
-      value.senderCleanupVerified === false &&
+      value.senderCleanupVerified === failure.senderCleanupVerified &&
       value.canonicalSubmissionStarted === false &&
       value.acceptedSubmissionCount === 0 &&
       value.nativeSend === false

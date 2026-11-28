@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { z } from 'zod'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
 import { qualityJourneyRequirementSchema, type QualityJourneyRequirement } from './requirement-contracts'
+import type { ManagedWorkerPreferences } from './managed-worker-preferences'
 
 const qualityJourneyDraftRequirementSchema = qualityJourneyRequirementSchema.partial().strict()
 export type QualityJourneyDraftRequirement = z.infer<typeof qualityJourneyDraftRequirementSchema>
@@ -11,12 +12,15 @@ export function parseQualityJourneyDraftRequirement(value: unknown): QualityJour
 }
 
 /** Draft identity is intentionally domain separated from immutable requirement hashes. */
-export function hashQualityJourneyDraft(input: {
-  requirement: QualityJourneyDraftRequirement
-  predecessorJourneyId?: string
-  version: number
-  advisorySeedDigest?: string
-}): string {
+export function hashQualityJourneyDraft(
+  input: {
+    requirement: QualityJourneyDraftRequirement
+    predecessorJourneyId?: string
+    version: number
+    advisorySeedDigest?: string
+    managedWorkerProvider?: 'CODEX' | 'CLAUDE_CODE'
+  } & ManagedWorkerPreferences,
+): string {
   return `sha256:${createHash('sha256')
     .update(
       canonicalContractJson({
@@ -24,6 +28,9 @@ export function hashQualityJourneyDraft(input: {
         version: input.version,
         requirement: input.requirement,
         predecessorJourneyId: input.predecessorJourneyId ?? null,
+        ...(input.managedWorkerProvider === 'CLAUDE_CODE' ? { managedWorkerProvider: 'CLAUDE_CODE' } : {}),
+        ...(input.managedWorkerModel ? { managedWorkerModel: input.managedWorkerModel } : {}),
+        ...(input.managedWorkerEffort ? { managedWorkerEffort: input.managedWorkerEffort } : {}),
         ...(input.advisorySeedDigest ? { advisorySeedDigest: input.advisorySeedDigest } : {}),
       }),
     )

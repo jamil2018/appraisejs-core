@@ -13,6 +13,7 @@ export function ManagedDiscoveryControl(props: {
   journeyId: string
   stateHash: string
   enabled: boolean
+  provider?: 'CODEX' | 'CLAUDE_CODE'
   scoutAccepted?: boolean
   resourceAccepted?: boolean
   correctionReady?: boolean
@@ -28,7 +29,10 @@ export function ManagedDiscoveryControl(props: {
         </>
       )}
       {!props.enabled ? (
-        <p className="text-sm text-muted-foreground">The Appraise server owner must enable local Codex Discovery.</p>
+        <p className="text-sm text-muted-foreground">
+          {props.provider === 'CLAUDE_CODE' ? 'Claude Code' : 'Codex'} is unavailable for this step. Check assistant
+          setup on the Journey page.
+        </p>
       ) : null}
     </div>
   )

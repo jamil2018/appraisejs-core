@@ -1,16 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-  useTransition,
-  type ReactNode,
-} from 'react'
+import { createContext, useCallback, use, useEffect, useRef, useState, useTransition, type ReactNode } from 'react'
 
 import { readQualityJourneyStatusAction } from '../quality-journey-status-actions'
 import type { QualityJourneyStatusSnapshot } from '@/services/coordinator/quality-journey-query-service'
@@ -79,6 +70,12 @@ function nextPollDelay(control: ObservationControl, snapshot: QualityJourneyStat
 function nextState(current: ObservationState, snapshot: QualityJourneyStatusSnapshot | null): ObservationState {
   if (!snapshot || (current.snapshot && snapshot.lifecycle.version < current.snapshot.lifecycle.version))
     return { ...current, isChecking: false, isOutdated: true }
+  if (
+    current.snapshot &&
+    snapshot.lifecycle.version === current.snapshot.lifecycle.version &&
+    snapshot.lifecycle.stateHash !== current.snapshot.lifecycle.stateHash
+  )
+    return { ...current, isChecking: false, isOutdated: true }
   return {
     snapshot,
     isChecking: false,
@@ -132,44 +129,49 @@ function useJourneyStatusObservation({ journeyId, projectId, stage, version, ini
 function useVisibleJourneyStatusPolling({
   stopped,
   checkForUpdates,
+  refreshChatSnapshot,
 }: {
   stopped: boolean
   checkForUpdates: (manual?: boolean) => Promise<void>
+  refreshChatSnapshot?: boolean
 }) {
   useEffect(() => {
     if (stopped) return
     const checkWhenVisible = () => {
-      if (document.visibilityState === 'visible') void checkForUpdates()
+      if (document.visibilityState === 'visible') void checkForUpdates(refreshChatSnapshot)
     }
     const timer = window.setInterval(() => void checkForUpdates(), INITIAL_POLL_DELAY_MS)
     document.addEventListener('visibilitychange', checkWhenVisible)
+    if (refreshChatSnapshot) window.addEventListener('online', checkWhenVisible)
     checkWhenVisible()
     return () => {
       window.clearInterval(timer)
       document.removeEventListener('visibilitychange', checkWhenVisible)
+      window.removeEventListener('online', checkWhenVisible)
     }
-  }, [checkForUpdates, stopped])
+  }, [checkForUpdates, refreshChatSnapshot, stopped])
 }
 
-type ProviderProps = ObservationScope & { stateHash: string; children: ReactNode }
+type ProviderProps = ObservationScope & { stateHash: string; refreshChatSnapshot?: boolean; children: ReactNode }
 
 export function JourneyStatusObservationProvider(props: ProviderProps) {
   return <ScopedJourneyStatusObservation key={JSON.stringify([props.projectId, props.journeyId])} {...props} />
 }
 
-function ScopedJourneyStatusObservation({ stateHash, children, ...scope }: ProviderProps) {
+function ScopedJourneyStatusObservation({ stateHash, children, refreshChatSnapshot, ...scope }: ProviderProps) {
   const observation = useJourneyStatusObservation(scope)
   useVisibleJourneyStatusPolling({
     stopped: observation.automaticPollingStopped,
     checkForUpdates: observation.checkForUpdates,
+    refreshChatSnapshot,
   })
-  const router = useRouter()
+  const { refresh } = useRouter()
   const [loadingNewerVersion, startTransition] = useTransition()
   const newerVersionAvailable = Boolean(
     observation.snapshot &&
     (observation.snapshot.lifecycle.version > scope.version || observation.snapshot.lifecycle.stateHash !== stateHash),
   )
-  const loadNewerVersion = useCallback(() => startTransition(() => router.refresh()), [router, startTransition])
+  const loadNewerVersion = useCallback(() => startTransition(refresh), [refresh, startTransition])
 
   const loaded = useRef<string | null>(null)
   useEffect(() => {
@@ -182,13 +184,14 @@ function ScopedJourneyStatusObservation({ stateHash, children, ...scope }: Provi
       !revision ||
       !newerVersionAvailable ||
       loaded.current === revision ||
-      ['ANALYSIS_REVIEW', 'SCENARIO_REVIEW', 'REPORT_REVIEW', 'DISCOVERY', 'EXECUTION'].includes(scope.stage) ||
-      document.querySelector('main textarea, main input:not([type="hidden"]), main [contenteditable="true"]')
+      (!refreshChatSnapshot &&
+        (['ANALYSIS_REVIEW', 'SCENARIO_REVIEW', 'REPORT_REVIEW', 'DISCOVERY', 'EXECUTION'].includes(scope.stage) ||
+          document.querySelector('main textarea, main input:not([type="hidden"]), main [contenteditable="true"]')))
     )
       return
     loaded.current = revision
     loadNewerVersion()
-  }, [observation.snapshot, newerVersionAvailable, scope.stage, loadNewerVersion])
+  }, [observation.snapshot, newerVersionAvailable, scope.stage, loadNewerVersion, refreshChatSnapshot])
 
   return (
     <JourneyStatusFreshnessContext.Provider value={{ newerVersionAvailable, loadingNewerVersion, loadNewerVersion }}>
@@ -202,14 +205,14 @@ function ScopedJourneyStatusObservation({ stateHash, children, ...scope }: Provi
 const JourneyStatusObservationContext = createContext<ReturnType<typeof useJourneyStatusObservation> | null>(null)
 
 export function useJourneyStatusObservationContext() {
-  const observation = useContext(JourneyStatusObservationContext)
+  const observation = use(JourneyStatusObservationContext)
   if (!observation) throw new Error('Journey status observation is unavailable.')
   return observation
 }
 
 export function useJourneyStatusFreshness(): JourneyStatusFreshness {
   return (
-    useContext(JourneyStatusFreshnessContext) ?? {
+    use(JourneyStatusFreshnessContext) ?? {
       newerVersionAvailable: false,
       loadingNewerVersion: false,
       loadNewerVersion: () => undefined,

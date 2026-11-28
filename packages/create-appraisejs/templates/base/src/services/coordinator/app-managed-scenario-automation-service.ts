@@ -1,19 +1,25 @@
 import { z } from 'zod'
 import { hashCanonical } from '@/lib/quality-journey/analysis-contracts'
 import type { PrismaClient } from '@prisma/client'
+import { parseManagedWorkerPreferences } from '@/lib/quality-journey/managed-worker-preferences'
 import prisma from '@/config/db-config'
 import { canonicalContractJson } from '@/lib/catalog-contracts'
-import {
-  runManagedAnalysis,
-  classifyManagedAnalysisFailure,
-  observeManagedAnalysisCleanup,
-} from '@/lib/quality-journey/codex-app-server/managed-analysis-sender'
+import { observeManagedAnalysisCleanup } from '@/lib/quality-journey/codex-app-server/managed-analysis-sender'
 import { ServiceError } from '@/services/shared/errors'
+import { assertClaudeCodeJourneyRequest } from '@/services/provider-connection/claude-code-cli'
+import {
+  assertManagedProviderAtReservation,
+  bindManagedJourneySender,
+  managedJourneyProvider,
+  managedJourneyRoleEnabled,
+  type ManagedJourneyProvider,
+} from './app-managed-provider-sender'
 import { appManagedAnalysisCredential } from './app-managed-analysis-credential'
 import {
   appManagedScenarioAutomationOutputSchema,
   type AppManagedScenarioAutomationRole,
 } from './app-managed-scenario-automation-contract'
+import { ManagedPreparationOutputError } from './app-managed-scenario-automation-native-schema'
 import { prepareAppManagedScenarioAutomationTask } from './app-managed-scenario-automation-task'
 import { assertCurrentCoordinatorSession, readScopedQualityJourney } from './quality-journey-coordinator-session'
 import { readInternalWorkerAuthority } from './quality-journey-internal-worker-authority'
@@ -23,8 +29,8 @@ import {
   startQualityJourneyScenarioDesign,
 } from './quality-journey-scenario-service'
 
-export function appManagedScenarioAutomationEnabled() {
-  return process.env.APPRAISE_LOCAL_CODEX_SCENARIO_AUTOMATION_ENABLED === 'true'
+export function appManagedScenarioAutomationEnabled(provider: ManagedJourneyProvider = 'CODEX') {
+  return managedJourneyRoleEnabled(provider, process.env.APPRAISE_LOCAL_CODEX_SCENARIO_AUTOMATION_ENABLED === 'true')
 }
 type Input = {
   journeyId: string
@@ -38,6 +44,7 @@ function conflict(message: string): never {
 
 /** Persist only validation paths and trusted canonical service messages; never native errors or arbitrary causes. */
 function preparationRejection(error: unknown): unknown {
+  if (error instanceof ManagedPreparationOutputError) return { kind: 'OUTPUT_CONTRACT', reason: error.reason }
   if (error instanceof z.ZodError)
     return {
       kind: 'SCHEMA',
@@ -49,6 +56,7 @@ function preparationRejection(error: unknown): unknown {
     }
   let current = error
   for (let depth = 0; depth < 6 && current instanceof Error; depth++) {
+    if (current instanceof ManagedPreparationOutputError) return { kind: 'OUTPUT_CONTRACT', reason: current.reason }
     if (current instanceof ServiceError)
       return {
         kind: 'CANONICAL',
@@ -65,9 +73,10 @@ function preparationRejection(error: unknown): unknown {
 
 /** A single explicit local request; the durable marker is consumed before native effects. */
 export async function startAppManagedScenarioAutomation(input: Input, client: PrismaClient = prisma) {
-  if (!appManagedScenarioAutomationEnabled())
-    conflict('Local Codex scenario design and preparation must be enabled by the Appraise server owner.')
   const journey = await readScopedQualityJourney(input, client)
+  const provider = managedJourneyProvider(journey)
+  if (!appManagedScenarioAutomationEnabled(provider))
+    conflict('The selected local preparation provider must be enabled by the Appraise server owner.')
   if (
     journey.hostingMode !== 'APP_SERVER_LOCAL_V1' ||
     journey.status !== 'ACTIVE' ||
@@ -91,6 +100,8 @@ export async function startAppManagedScenarioAutomation(input: Input, client: Pr
     coordinatorGeneration: session.generation,
   }
   await assertCurrentCoordinatorSession(owner, client)
+  const preferences = parseManagedWorkerPreferences(provider, journey)
+  const sender = await bindManagedJourneySender(provider, preferences)
   if (journey.stage === 'DISCOVERY') {
     const discovery = journey.activeDiscoveryRevisionId
       ? await client.qualityJourneyDiscoveryRevision.findUnique({ where: { id: journey.activeDiscoveryRevisionId } })
@@ -120,11 +131,13 @@ export async function startAppManagedScenarioAutomation(input: Input, client: Pr
       role: input.role,
       principal: { principalId, assurance: 'PROJECT_CREDENTIAL_ONLY' },
       assignmentSecret: await appManagedAnalysisCredential(owner, client),
+      provider,
     },
     client,
   )
   const marker = `APP_SERVER_LOCAL_V1_PREPARATION_${input.role}`
   try {
+    if (provider === 'CLAUDE_CODE') assertClaudeCodeJourneyRequest(task.prompt, task.nativeOutputSchema)
     await client.$transaction(async tx => {
       const hub = await tx.qualityJourneyProviderSlot.upsert({
         where: { id: 'HUB' },
@@ -134,6 +147,7 @@ export async function startAppManagedScenarioAutomation(input: Input, client: Pr
       if (hub.intentId || hub.providerRunId) conflict('The local worker requires reconciliation before reuse.')
       await assertHistoricalHubQuiescent(tx)
       await readInternalWorkerAuthority(task.binding, tx)
+      await assertManagedProviderAtReservation(tx, input, provider, preferences)
       const reserved = await tx.qualityJourneyWorkAttempt.updateMany({
         where: {
           id: task.binding.attemptId,
@@ -144,9 +158,10 @@ export async function startAppManagedScenarioAutomation(input: Input, client: Pr
         },
         data: {
           dispatchAdapterId: marker,
+          managedDispatchIdentityJson: sender.managedDispatchIdentityJson,
           dispatchReservedAt: new Date(),
           dispatchStartedAt: new Date(),
-          failureJson: canonicalContractJson({ state: 'UNKNOWN', reason: 'LOCAL_CODEX_PREPARATION_CONSUMED' }),
+          failureJson: canonicalContractJson({ state: 'UNKNOWN', reason: `LOCAL_${provider}_PREPARATION_CONSUMED` }),
         },
       })
       if (reserved.count !== 1) conflict('Preparation was already dispatched and cannot be restarted.')
@@ -160,17 +175,23 @@ export async function startAppManagedScenarioAutomation(input: Input, client: Pr
   let compiledCall: unknown
   let normalizedOutput: unknown
   try {
-    const raw = await runManagedAnalysis(task.prompt, task.nativeOutputSchema, { attemptId: task.binding.attemptId })
+    const raw = await sender.run(task.prompt, task.nativeOutputSchema, { attemptId: task.binding.attemptId })
     stage = 'OUTPUT_VALIDATION'
-    if (Buffer.byteLength(raw, 'utf8') > 1_000_000) throw new Error('Preparation output exceeds the bound.')
-    normalizedOutput = task.normalizeNativeOutput(JSON.parse(raw))
+    if (Buffer.byteLength(raw, 'utf8') > 1_000_000) throw new ManagedPreparationOutputError('OUTPUT_TOO_LARGE')
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(raw)
+    } catch {
+      throw new ManagedPreparationOutputError('OUTPUT_NOT_JSON')
+    }
+    normalizedOutput = task.normalizeNativeOutput(parsed)
     const call = appManagedScenarioAutomationOutputSchema.parse(normalizedOutput)
     candidate = call
     stage = 'SEMANTIC_VALIDATION'
     const compiled = task.compile(call)
     compiledCall = compiled
     if (call.toolName !== task.submitToolName || call.arguments.idempotencyKey !== task.submissionIdempotencyKey)
-      throw new Error('Preparation output changed the original role or submission identity.')
+      throw new ManagedPreparationOutputError('SUBMISSION_IDENTITY_MISMATCH')
     // Persist only strict content after sender cleanup, before canonical effects. A crash never requires another send.
     const retained = await client.qualityJourneyWorkAttempt.updateMany({
       where: { id: task.binding.attemptId, dispatchAdapterId: marker },
@@ -213,7 +234,8 @@ export async function startAppManagedScenarioAutomation(input: Input, client: Pr
           stage,
           reason: `${stage}_DID_NOT_COMPLETE`,
           senderCleanupVerified:
-            stage !== 'NATIVE_SEND' || observeManagedAnalysisCleanup(task.binding.attemptId).privateRootCleanupVerified,
+            stage !== 'NATIVE_SEND' ||
+            (provider === 'CODEX' && observeManagedAnalysisCleanup(task.binding.attemptId).privateRootCleanupVerified),
           submissionIdempotencyKey: task.submissionIdempotencyKey,
           recoveryEligible: stage !== 'NATIVE_SEND' && Boolean(candidate),
           canonicalSubmissionStarted: ['CANONICAL_SUBMISSION', 'REVIEW_PUBLICATION'].includes(stage),
@@ -223,7 +245,7 @@ export async function startAppManagedScenarioAutomation(input: Input, client: Pr
           rejection: preparationRejection(error),
           detail:
             stage === 'NATIVE_SEND'
-              ? classifyManagedAnalysisFailure(error)
+              ? sender.failureDetail(error)
               : stage === 'OUTPUT_VALIDATION'
                 ? 'Model output did not satisfy the exact preparation submission contract.'
                 : error instanceof ServiceError

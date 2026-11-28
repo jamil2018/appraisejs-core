@@ -15,6 +15,7 @@ const {
   getAllTestCasesAction,
   getAllModulesAction,
   getAllEnvironmentsAction,
+  requireActiveProjectForMutation,
   testCaseFormSpy,
 } = vi.hoisted(() => ({
   createTestCaseAction: vi.fn(),
@@ -28,8 +29,11 @@ const {
   getAllTestCasesAction: vi.fn(),
   getAllModulesAction: vi.fn(),
   getAllEnvironmentsAction: vi.fn(),
+  requireActiveProjectForMutation: vi.fn(async () => ({ id: 'project-1' })),
   testCaseFormSpy: vi.fn(() => <div>Mock Test Case Form</div>),
 }))
+
+vi.mock('@/lib/active-project', () => ({ requireActiveProjectForMutation }))
 
 vi.mock('@/actions/step-definition/step-definition-actions', () => ({
   listReadyStepDefinitionOptionsAction,
@@ -107,6 +111,7 @@ describe('Create Test Case page', () => {
         moduleList: [{ id: 'module-1', name: 'Payments' }],
         environments: [{ id: 'env-1', name: 'Staging' }],
         onSubmitAction: createTestCaseAction,
+        returnPath: '/test-cases?project=project-1',
         onCreateTestSuiteAction: createTestSuiteAction,
         onCreateTagAction: createTagAction,
       }),

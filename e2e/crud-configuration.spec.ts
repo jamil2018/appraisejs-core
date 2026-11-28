@@ -50,7 +50,7 @@ test.describe('Configuration CRUD @crud', () => {
     await expect(page.getByRole('button', { name: 'Update Locator' })).toBeVisible()
     await page.getByLabel('Locator Name').fill('E2E Sign In Button Edited')
     await page.getByRole('button', { name: 'Update Locator' }).click()
-    await expect(page).toHaveURL(/\/locators$/)
+    await expect.poll(() => new URL(page.url()).pathname).toBe('/locators')
     await expect(page.getByText('E2E Sign In Button Edited', { exact: true }).first()).toBeVisible()
 
     await deleteRowByName(page, locatorName, 'Search locators')

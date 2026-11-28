@@ -1,47 +1,24 @@
-import { execFile, spawn } from 'node:child_process'
+import { spawn } from 'node:child_process'
 import { randomBytes, randomUUID } from 'node:crypto'
 import { chmod, lstat, mkdir, mkdtemp, readFile, realpath, rename, rm, rmdir, writeFile } from 'node:fs/promises'
 import { Socket } from 'node:net'
 import { homedir } from 'node:os'
 import path from 'node:path'
 
+import { cursorImageCommand, cursorProfileUnavailable, ensureCursorImageAvailable } from './cursor-disk-image'
+import { acquireCursorProfileLock } from './cursor-profile-lock'
 import { providerSecretVault } from './provider-secret-vault'
 
 const imageName = 'cursor.sparseimage'
 const keyName = 'vault-id'
-
-function unavailable() {
-  return new Error('Cursor’s encrypted profile could not be opened.')
-}
-
-function imageCommand(args: string[], secret?: Buffer) {
-  return new Promise<string>((resolve, reject) => {
-    const child = execFile(
-      '/usr/bin/hdiutil',
-      args,
-      {
-        env: { NODE_ENV: 'production', PATH: '/usr/bin:/bin:/usr/sbin', LC_ALL: 'C' },
-        encoding: 'utf8',
-        timeout: 30_000,
-        killSignal: 'SIGKILL',
-        maxBuffer: 32 * 1024,
-      },
-      (error, stdout) => {
-        if (error) reject(unavailable())
-        else resolve(stdout)
-      },
-    )
-    child.stdin?.on('error', () => undefined)
-    child.stdin?.end(secret && `${secret.toString('hex')}\0`)
-  })
-}
 
 export async function cursorPrivateDirectory(directory: string) {
   await mkdir(directory, { mode: 0o700 }).catch((error: NodeJS.ErrnoException) => {
     if (error.code !== 'EEXIST') throw error
   })
   const info = await lstat(directory)
-  if (!info.isDirectory() || info.uid !== process.getuid?.() || (info.mode & 0o077) !== 0) throw unavailable()
+  if (!info.isDirectory() || info.uid !== process.getuid?.() || (info.mode & 0o077) !== 0)
+    throw cursorProfileUnavailable()
   return directory
 }
 
@@ -55,7 +32,7 @@ async function privateFile(filename: string, maxBytes: number) {
     info.size < 1 ||
     info.size > maxBytes
   ) {
-    throw unavailable()
+    throw cursorProfileUnavailable()
   }
   return filename
 }
@@ -70,7 +47,7 @@ async function initializeImage(storage: string, directory: string) {
     await providerSecretVault.create(id, secret)
     keyCreated = true
     const image = path.join(staging, imageName)
-    await imageCommand(
+    await cursorImageCommand(
       [
         'create',
         '-size',
@@ -151,8 +128,7 @@ async function watchMount(root: string, volume: string, originalDevice: number) 
   return watcher.stdin
 }
 
-async function profileImage() {
-  const storage = await cursorPrivateDirectory(path.join(await realpath(homedir()), '.appraise-cursor'))
+async function profileImage(storage: string) {
   const directory = path.join(storage, 'encrypted-profile')
   try {
     await lstat(directory)
@@ -163,14 +139,35 @@ async function profileImage() {
   await cursorPrivateDirectory(directory)
   const image = await privateFile(path.join(directory, imageName), 256 * 1024 * 1024)
   const id = await readFile(await privateFile(path.join(directory, keyName), 36), 'utf8')
-  if (!/^encrypted: YES$/m.test(await imageCommand(['isencrypted', image]))) throw unavailable()
   return { image, id }
 }
 
 async function openProfile() {
-  const { image, id } = await profileImage()
+  const storage = await cursorPrivateDirectory(path.join(await realpath(homedir()), '.appraise-cursor'))
+  const lock = await acquireCursorProfileLock(storage)
+  try {
+    const mounted = await mountProfile(storage, lock.assertHeld)
+    return {
+      profile: mounted.profile,
+      async close() {
+        try {
+          await mounted.close()
+        } finally {
+          await lock.release()
+        }
+      },
+    }
+  } catch (error) {
+    await lock.release()
+    throw error
+  }
+}
+
+async function mountProfile(storage: string, assertLease: () => void) {
+  const { image, id } = await profileImage(storage)
+  await ensureCursorImageAvailable(image, assertLease)
   const secret = await providerSecretVault.read(id)
-  if (!secret) throw unavailable()
+  if (!secret) throw cursorProfileUnavailable()
 
   let mountRoot: string | undefined
   let mounted: string | undefined
@@ -181,11 +178,12 @@ async function openProfile() {
     mounted = await cursorPrivateDirectory(path.join(mountRoot, 'volume'))
     mountDevice = (await lstat(mounted)).dev
     watcher = await watchMount(mountRoot, mounted, mountDevice)
-    await imageCommand(
+    assertLease()
+    await cursorImageCommand(
       ['attach', '-nobrowse', '-noautoopen', '-owners', 'on', '-stdinpass', '-mountpoint', mounted, image],
       secret,
     )
-    if (mountDevice === (await lstat(mounted)).dev) throw unavailable()
+    if (mountDevice === (await lstat(mounted)).dev) throw cursorProfileUnavailable()
     const root = mountRoot
     const volume = mounted
     const device = mountDevice
@@ -195,7 +193,9 @@ async function openProfile() {
       profile,
       async close() {
         try {
+          assertLease()
           await closeProfile(root, volume, device)
+          await ensureCursorImageAvailable(image, assertLease)
           cleanupWatcher.end('detached\n')
         } finally {
           cleanupWatcher.end()
@@ -216,7 +216,7 @@ async function openProfile() {
 }
 
 async function closeProfile(root: string, volume: string, originalDevice: number) {
-  if ((await lstat(volume)).dev !== originalDevice) await imageCommand(['detach', volume])
+  if ((await lstat(volume)).dev !== originalDevice) await cursorImageCommand(['detach', volume])
   await rmdir(volume)
   await rmdir(root)
 }

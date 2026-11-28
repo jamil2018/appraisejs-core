@@ -5,13 +5,16 @@ import { Tag } from 'lucide-react'
 import React from 'react'
 import TagForm from '../tag-form'
 import { Metadata } from 'next'
+import { requireActiveProjectForMutation } from '@/lib/active-project'
+import { withProjectScope } from '@/lib/project-scope'
 
 export const metadata: Metadata = {
   title: 'Appraise | Create Tag',
   description: 'Create a new tag to be used in your test cases',
 }
 
-const CreateTag = () => {
+const CreateTag = async () => {
+  const project = await requireActiveProjectForMutation()
   return (
     <div className="min-w-0 space-y-4">
       <div className="min-w-0">
@@ -27,6 +30,7 @@ const CreateTag = () => {
         successTitle="Tag created"
         successMessage="Tag created successfully"
         onSubmitAction={createTagAction}
+        redirectPath={withProjectScope('/tags', project.id)}
         defaultValues={{
           name: '',
           tagExpression: '',

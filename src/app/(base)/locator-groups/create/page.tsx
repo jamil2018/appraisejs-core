@@ -7,13 +7,15 @@ import LocatorGroupForm from '../locator-group-form'
 import { getAllModulesAction } from '@/actions/modules/module-actions'
 import { Module } from '@prisma/client'
 import { Metadata } from 'next'
+import { requireActiveProject } from '@/lib/active-project'
 
 export const metadata: Metadata = {
   title: 'Appraise | Create Locator Group',
   description: 'Create a new locator group',
 }
 
-const CreateLocatorGroup = async () => {
+const CreateLocatorGroup = async ({ searchParams }: { searchParams?: Promise<{ project?: string }> }) => {
+  const project = await requireActiveProject((await searchParams)?.project)
   const { data: moduleList, error: moduleListError } = await getAllModulesAction()
 
   if (moduleListError) {
@@ -32,6 +34,7 @@ const CreateLocatorGroup = async () => {
         <HeaderSubtitle>Create a new locator group.</HeaderSubtitle>
       </div>
       <LocatorGroupForm
+        projectId={project.id}
         moduleList={moduleList as Module[]}
         onSubmitAction={createLocatorGroupAction}
         successTitle="Locator Group Created"

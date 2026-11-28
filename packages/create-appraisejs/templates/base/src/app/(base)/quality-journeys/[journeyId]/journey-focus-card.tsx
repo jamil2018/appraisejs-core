@@ -1,13 +1,22 @@
 'use client'
 
 import Link from 'next/link'
+import type { ReactNode } from 'react'
 
 import { Button } from '@/components/ui/button'
 
 import type { JourneyFocus } from './journey-focus-projection'
 import { useJourneyStatusFreshness } from './journey-status-observation'
 
-export function JourneyFocusCard({ focus, href }: { focus: JourneyFocus; href?: string }) {
+export function JourneyFocusCard({
+  focus,
+  href,
+  children,
+}: {
+  focus: JourneyFocus
+  href?: string
+  children?: ReactNode
+}) {
   const freshness = useJourneyStatusFreshness()
   return (
     <article
@@ -45,6 +54,7 @@ export function JourneyFocusCard({ focus, href }: { focus: JourneyFocus; href?: 
           A newer version is available. Load it before reviewing this scope.
         </p>
       ) : null}
+      {children}
       {focus.details.length ? (
         <details className="text-xs text-muted-foreground">
           <summary className="app-focus w-fit cursor-pointer rounded-md">Scope and revision</summary>

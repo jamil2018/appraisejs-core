@@ -23,6 +23,7 @@ vi.mock('@/services/coordinator/quality-journey-triage-service', () => ({ getQua
 vi.mock('@/services/coordinator/quality-journey-scenario-service', () => ({
   getQualityJourneyScenarioPortfolio: mocks.getScenarios,
 }))
+vi.mock('../quality-journey-execution-actions', () => ({ qualityJourneyExecutionAction: vi.fn() }))
 
 import { JourneyChatFocus } from './journey-chat-focus'
 
@@ -40,7 +41,7 @@ describe('JourneyChatFocus', () => {
       },
     })
     mocks.getAnalysis.mockResolvedValue({ revisions: [] })
-    mocks.getExecution.mockResolvedValue({ consents: [] })
+    mocks.getExecution.mockResolvedValue({ consents: [], cycles: [] })
     mocks.getTriage.mockResolvedValue({
       activeReportRevisionId: 'report-1',
       reports: [{ id: 'report-1', report: { findings: [{ unresolved: true }, { unresolved: false }] } }],

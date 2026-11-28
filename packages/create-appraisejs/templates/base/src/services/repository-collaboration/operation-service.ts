@@ -1304,7 +1304,7 @@ export async function decideCollaborationOperation(
   return client.$transaction(transaction => decideCollaborationOperationInTransaction(input, transaction))
 }
 
-async function decideCollaborationOperationInTransaction(
+export async function decideCollaborationOperationInTransaction(
   input: DecideCollaborationOperationInput,
   transaction: Transaction,
 ) {

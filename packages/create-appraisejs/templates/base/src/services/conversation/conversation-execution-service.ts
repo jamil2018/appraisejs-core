@@ -1,0 +1,390 @@
+import { createHash } from 'node:crypto'
+import type { Prisma, PrismaClient } from '@prisma/client'
+
+import prisma from '@/config/db-config'
+import { qualityJourneyExecutionConsentScopeSchema, qualityJourneyIdentifierSchema } from '@/lib/quality-journey'
+import type { ConversationContext } from '@/services/conversation/conversation-service'
+import type { RunPermissionReview } from '@/lib/conversation/workspace-request'
+import { isRunStopRequest, runStopReviewSchema, type RunStopReview } from '@/lib/conversation/run-stop-review'
+import { freezeJourneyExecutionEnvironment } from '@/lib/quality-journey/execution-environment'
+import { trustedHumanCoordinatorSession } from '@/services/coordinator/quality-journey-coordinator-session'
+import {
+  cancelQualityJourneyExecution,
+  executionConsentOrder,
+  getQualityJourneyExecution,
+  startQualityJourneyExecution,
+} from '@/services/coordinator/quality-journey-execution-service'
+import { ServiceError } from '@/services/shared/errors'
+
+import {
+  getLatestConversationJourney,
+  recordRunPermissionTurnInTransaction,
+  recordRunStopTurnInTransaction,
+  replayConversationTurn,
+  type ConversationTurn,
+} from './conversation-service'
+
+type ChatExecutionScope = {
+  targetProjectId: string
+  conversationId: string
+  journeyId: string
+}
+
+type RequestChatExecution = ChatExecutionScope & {
+  environmentId: string
+  browserEngine: 'CHROMIUM' | 'FIREFOX' | 'WEBKIT'
+  expectedStateHash: string
+}
+
+type ApproveChatExecution = ChatExecutionScope & {
+  executionConsentId: string
+  expectedScopeHash: string
+}
+
+/** Save the exact human request with the cancellation receipt before the adapter is called. */
+export async function stopConversationExecutionWithTurn(
+  input: {
+    targetProjectId: string
+    conversationId: string
+    idempotencyKey: string
+    content: string
+    context?: ConversationContext
+    runStopReview: RunStopReview
+  },
+  client: PrismaClient = prisma,
+) {
+  const { targetProjectId, conversationId, idempotencyKey, content } = input
+  const runStopReview = runStopReviewSchema.parse(input.runStopReview)
+  const { journeyId, executionCycleId, expectedStateHash } = runStopReview
+  const context = input.context ? { ...input.context } : undefined
+  if (!isRunStopRequest(content) || (context && (context.kind !== 'QUALITY_JOURNEY' || context.id !== journeyId)))
+    throw new ServiceError('Open the current run activity in this saved Journey chat.', 'CONFLICT')
+  const turn = { targetProjectId, conversationId, idempotencyKey, content, context, runStopReview }
+  const original = await replayConversationTurn(turn, client)
+  if (original) return original
+  const receiptKey = createHash('sha256')
+    .update(JSON.stringify([conversationId, idempotencyKey]))
+    .digest('hex')
+  try {
+    await cancelQualityJourneyExecution(
+      {
+        targetProjectId,
+        journeyId,
+        cycleId: executionCycleId,
+        expectedStateHash,
+        idempotencyKey: `chat-stop:${receiptKey}`,
+        reason: 'User requested cancellation in the saved Journey chat.',
+      },
+      client,
+      trustedHumanCoordinatorSession,
+      {
+        conversationId,
+        assertLinked: async tx => {
+          const linked = await getLatestConversationJourney({ targetProjectId, conversationId }, tx)
+          if (linked !== journeyId)
+            throw new ServiceError('This Journey is no longer linked to the saved chat.', 'CONFLICT')
+        },
+        recordHumanReply: async (tx, cancellation) => {
+          if (cancellation.executionCycleId !== executionCycleId)
+            throw new ServiceError('The stop request belongs to a different run.', 'CONFLICT')
+          await recordRunStopTurnInTransaction(tx, turn)
+        },
+      },
+    )
+  } catch (error) {
+    const committed = await replayConversationTurn(turn, client)
+    if (committed) return committed
+    throw error
+  }
+  const saved = await replayConversationTurn(turn, client)
+  if (!saved) throw new ServiceError('Appraise could not confirm the saved stop request. Check Activity.', 'CONFLICT')
+  return saved
+}
+
+function chatOptions(
+  input: ChatExecutionScope,
+  requestConsentOnly?: true,
+  approval?: Pick<ApproveChatExecution, 'executionConsentId' | 'expectedScopeHash'>,
+  recordHumanReply?: (
+    tx: Prisma.TransactionClient,
+    reservation: { replayed: boolean; executionCycleId: string },
+  ) => Promise<void>,
+) {
+  return {
+    conversationId: input.conversationId,
+    requestConsentOnly,
+    approvalScopeHash: approval?.expectedScopeHash,
+    recordHumanReply,
+    assertLinked: async (tx: Prisma.TransactionClient) => {
+      if ((await getLatestConversationJourney(input, tx)) !== input.journeyId)
+        throw new ServiceError('This Journey is no longer linked to the saved chat.', 'CONFLICT', 409)
+    },
+    assertCurrentApproval: approval
+      ? async (tx: Prisma.TransactionClient) => {
+          const permissions = await tx.qualityJourneyExecutionConsent.findMany({
+            where: {
+              journeyId: input.journeyId,
+              targetProjectId: input.targetProjectId,
+              status: { in: ['REQUESTED', 'GRANTED'] },
+            },
+            select: { id: true, scopeHash: true, scopeJson: true },
+            orderBy: executionConsentOrder(),
+          })
+          const latest = permissions.findLast(
+            permission =>
+              qualityJourneyExecutionConsentScopeSchema.parse(JSON.parse(permission.scopeJson)).chatConversationId ===
+              input.conversationId,
+          )
+          if (latest?.id !== approval.executionConsentId || latest.scopeHash !== approval.expectedScopeHash)
+            throw new ServiceError('Run permission changed. Load the current scope.', 'CONFLICT', 409)
+        }
+      : undefined,
+  }
+}
+
+async function assertSavedJourney(input: ChatExecutionScope, client: PrismaClient) {
+  qualityJourneyIdentifierSchema.parse(input.targetProjectId)
+  qualityJourneyIdentifierSchema.parse(input.journeyId)
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input.conversationId))
+    throw new ServiceError('Conversation id is invalid.', 'VALIDATION', 400)
+  const linked = await getLatestConversationJourney(input, client)
+  if (linked !== input.journeyId)
+    throw new ServiceError('This Journey is no longer linked to the saved chat.', 'CONFLICT', 409)
+  const journey = await client.qualityJourney.findFirst({
+    where: { id: input.journeyId, targetProjectId: input.targetProjectId },
+    select: { activeCycleId: true, stateHash: true, status: true },
+  })
+  if (!journey) throw new ServiceError('Quality Journey target scope was not found.', 'NOT_FOUND', 404)
+  return journey
+}
+
+function attemptKey(input: RequestChatExecution & { preparedRuntimeCapsuleIds: string[] }) {
+  const digest = createHash('sha256')
+    .update(
+      JSON.stringify({
+        conversationId: input.conversationId,
+        journeyId: input.journeyId,
+        stateHash: input.expectedStateHash,
+        environmentId: input.environmentId,
+        browserEngine: input.browserEngine,
+        preparedRuntimeCapsuleIds: input.preparedRuntimeCapsuleIds,
+      }),
+    )
+    .digest('hex')
+  return `chat-execution:${digest}`
+}
+
+/** Request a fresh, explicit Run permission for the exact prepared Journey scope. */
+export async function requestConversationExecution(input: RequestChatExecution, client: PrismaClient = prisma) {
+  const journey = await assertSavedJourney(input, client)
+  if (journey.stateHash !== input.expectedStateHash)
+    throw new ServiceError('The Journey changed. Load the current run scope.', 'CONFLICT', 409)
+  const prepared = await client.qualityJourneyPreparedRuntimeCapsule.findMany({
+    where: {
+      journeyId: input.journeyId,
+      targetProjectId: input.targetProjectId,
+      cycleId: journey.activeCycleId,
+      status: 'PREPARED',
+    },
+    select: { id: true },
+    orderBy: { id: 'asc' },
+  })
+  if (!prepared.length) throw new ServiceError('The approved tests are not prepared yet.', 'CONFLICT', 409)
+  const preparedRuntimeCapsuleIds = prepared.map(item => item.id)
+  return startQualityJourneyExecution(
+    {
+      targetProjectId: input.targetProjectId,
+      journeyId: input.journeyId,
+      environmentId: input.environmentId,
+      browserEngine: input.browserEngine,
+      expectedStateHash: input.expectedStateHash,
+      preparedRuntimeCapsuleIds,
+      idempotencyKey: attemptKey({ ...input, preparedRuntimeCapsuleIds }),
+    },
+    client,
+    trustedHumanCoordinatorSession,
+    chatOptions(input, true),
+  )
+}
+
+/** Recover a saved request, grant it through Appraise, then reserve its one runner attempt. */
+export async function approveConversationExecution(
+  input: ApproveChatExecution,
+  client: PrismaClient = prisma,
+  recordHumanReply?: (
+    tx: Prisma.TransactionClient,
+    reservation: { replayed: boolean; executionCycleId: string },
+  ) => Promise<void>,
+) {
+  await assertSavedJourney(input, client)
+  const consent = await client.qualityJourneyExecutionConsent.findFirst({
+    where: {
+      id: input.executionConsentId,
+      journeyId: input.journeyId,
+      targetProjectId: input.targetProjectId,
+      scopeHash: input.expectedScopeHash,
+    },
+  })
+  if (!consent) throw new ServiceError('Run permission changed. Load the current scope.', 'CONFLICT', 409)
+  const scope = qualityJourneyExecutionConsentScopeSchema.parse(JSON.parse(consent.scopeJson))
+  if (scope.chatConversationId !== input.conversationId || !scope.journeyStateHash)
+    throw new ServiceError('Run permission belongs to another attempt.', 'CONFLICT', 409)
+  if (consent.status === 'CONSUMED' && consent.executionCycleId) return readConversationExecution(input, client)
+  const observed = await readConversationExecution(input, client)
+  if (observed.permission?.id !== consent.id || observed.permission.stale || observed.permission.expired)
+    throw new ServiceError('Run permission changed. Request the current scope.', 'CONFLICT', 409)
+  if (consent.status !== 'REQUESTED' && consent.status !== 'GRANTED')
+    throw new ServiceError('Run permission is unavailable. Request a fresh scope.', 'CONFLICT', 409)
+  if (consent.expiresAt && consent.expiresAt <= new Date())
+    throw new ServiceError('Run permission expired. Request a fresh scope.', 'CONFLICT', 409)
+  const checkpoint = /^START_EXECUTION:(.+):(CHROMIUM|FIREFOX|WEBKIT)$/.exec(scope.checkpoint)
+  if (!checkpoint) throw new ServiceError('Run permission has an invalid execution target.', 'CONFLICT', 409)
+  const request = {
+    targetProjectId: input.targetProjectId,
+    conversationId: input.conversationId,
+    journeyId: input.journeyId,
+    environmentId: checkpoint[1]!,
+    browserEngine: checkpoint[2] as RequestChatExecution['browserEngine'],
+    expectedStateHash: scope.journeyStateHash,
+    preparedRuntimeCapsuleIds: scope.preparedRuntimeCapsuleIds,
+  }
+  try {
+    await startQualityJourneyExecution(
+      {
+        journeyId: request.journeyId,
+        targetProjectId: request.targetProjectId,
+        environmentId: request.environmentId,
+        browserEngine: request.browserEngine,
+        expectedStateHash: request.expectedStateHash,
+        preparedRuntimeCapsuleIds: request.preparedRuntimeCapsuleIds,
+        idempotencyKey: attemptKey(request),
+        executionConsentId: consent.id,
+      },
+      client,
+      trustedHumanCoordinatorSession,
+      chatOptions(input, undefined, input, recordHumanReply),
+    )
+  } catch (error) {
+    if (recordHumanReply) throw error
+    const latest = await client.qualityJourneyExecutionConsent.findUnique({ where: { id: consent.id } })
+    if (latest?.status !== 'CONSUMED' || !latest.executionCycleId) throw error
+    // Reservation committed before the reply was lost. Observe it without dispatching again.
+  }
+  return readConversationExecution(input, client)
+}
+
+/** Typed consent joins the human chat turn to Appraise's canonical reservation before runner dispatch. */
+export async function approveConversationExecutionWithTurn(
+  input: ApproveChatExecution & {
+    idempotencyKey: string
+    content: string
+    context?: ConversationContext
+  },
+  client: PrismaClient = prisma,
+): Promise<ConversationTurn> {
+  const runPermissionReview: RunPermissionReview = {
+    journeyId: input.journeyId,
+    executionConsentId: input.executionConsentId,
+    expectedScopeHash: input.expectedScopeHash,
+  }
+  const recoverTurn = () => replayConversationTurn({ ...input, runPermissionReview }, client)
+  const replay = await recoverTurn()
+  if (replay) return replay
+  let turn: ConversationTurn | undefined
+  try {
+    await approveConversationExecution(input, client, async (tx, reservation) => {
+      if (reservation.replayed)
+        throw new ServiceError('The original run already has a recorded permission decision.', 'CONFLICT', 409)
+      turn = await recordRunPermissionTurnInTransaction(tx, { ...input, runPermissionReview })
+    })
+  } catch (error) {
+    // A competing identical submission may have committed after our first read.
+    // Preserve a lost native response from this caller's own committed turn.
+    if (!turn) {
+      const committed = await recoverTurn()
+      if (committed) return committed
+    }
+    throw error
+  }
+  if (!turn) {
+    const committed = await recoverTurn()
+    if (committed) return committed
+  }
+  if (!turn) throw new ServiceError('Run permission changed. Load the current scope.', 'CONFLICT', 409)
+  return turn
+}
+
+/** Render only persisted Appraise consent and runner observations after reconnect. */
+export async function readConversationExecution(input: ChatExecutionScope, client: PrismaClient = prisma) {
+  const journey = await assertSavedJourney(input, client)
+  const execution = await getQualityJourneyExecution(
+    { journeyId: input.journeyId, targetProjectId: input.targetProjectId },
+    client,
+  )
+  const permission = execution.consents
+    .map(consent => ({ ...consent, scope: qualityJourneyExecutionConsentScopeSchema.parse(consent.scope) }))
+    .filter(consent => consent.scope.chatConversationId === input.conversationId)
+    .findLast(consent => ['REQUESTED', 'GRANTED'].includes(consent.status))
+  const checkpoint = permission
+    ? /^START_EXECUTION:(.+):(CHROMIUM|FIREFOX|WEBKIT)$/.exec(permission.scope.checkpoint)
+    : null
+  const [prepared, target, environment] = permission
+    ? await Promise.all([
+        client.qualityJourneyPreparedRuntimeCapsule.findMany({
+          where: {
+            id: { in: permission.scope.preparedRuntimeCapsuleIds },
+            journeyId: input.journeyId,
+            targetProjectId: input.targetProjectId,
+          },
+          include: { materialization: { include: { scenarioRevision: true } } },
+        }),
+        client.targetProject.findUnique({
+          where: { id: input.targetProjectId },
+          select: { displayName: true, fingerprint: true, kind: true },
+        }),
+        client.environment.findFirst({
+          where: { id: checkpoint?.[1] ?? '', targetProjectId: input.targetProjectId },
+        }),
+      ])
+    : [[], null, null]
+  const environmentMatches =
+    permission && target && environment
+      ? freezeJourneyExecutionEnvironment(environment, target.kind).hash === permission.scope.environmentSnapshotHash
+      : false
+  const scenarios = permission
+    ? permission.scope.preparedRuntimeCapsuleIds.map(id => {
+        const capsule = prepared.find(item => item.id === id)
+        const intent = capsule
+          ? (JSON.parse(capsule.materialization.scenarioRevision.behavioralIntentJson) as unknown)
+          : null
+        const title = intent && typeof intent === 'object' && 'title' in intent ? intent.title : null
+        return {
+          preparedRuntimeCapsuleId: id,
+          scenarioRevisionId: capsule?.materialization.scenarioRevisionId ?? null,
+          title: typeof title === 'string' ? title : null,
+        }
+      })
+    : []
+  return {
+    journeyStateHash: journey.stateHash,
+    paused: journey.status === 'PAUSED',
+    execution,
+    permission: permission
+      ? {
+          ...permission,
+          stale:
+            permission.scope.journeyStateHash !== journey.stateHash ||
+            prepared.length !== permission.scope.preparedRuntimeCapsuleIds.length ||
+            target?.fingerprint !== permission.scope.targetFingerprint ||
+            !environmentMatches,
+          expired: permission.expiresAt !== null && permission.expiresAt <= Date.now(),
+          scenarios,
+          target: target?.displayName ?? null,
+          environment: environmentMatches
+            ? { name: environment!.name, baseUrl: environment!.baseUrl, browserEngine: checkpoint![2] }
+            : null,
+        }
+      : null,
+    cycles: execution.cycles,
+  }
+}

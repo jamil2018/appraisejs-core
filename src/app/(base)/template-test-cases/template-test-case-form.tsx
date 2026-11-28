@@ -1,5 +1,5 @@
 'use client'
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useRef, useState } from 'react'
 
 import TemplateTestCaseFlow from './template-test-case-flow'
 import type { FlowBlock, TemplateTestCaseNodeOrderMap } from '@/types/diagram/diagram'
@@ -44,21 +44,34 @@ type TemplateTestCaseFormProps = {
   locatorGroups: Array<Pick<LocatorGroup, 'id' | 'name' | 'route' | 'moduleId'>>
   environments: Array<Pick<Environment, 'id' | 'name'>>
   modules: Array<Pick<Module, 'id' | 'name' | 'parentId'>>
-  onSubmitAction: (value: z.infer<typeof templateTestCaseSchema>, id?: string) => Promise<ActionResponse>
+  onSubmitAction: (
+    value: z.infer<typeof templateTestCaseSchema>,
+    id?: string,
+    expectedUpdatedAt?: string,
+  ) => Promise<ActionResponse>
   id?: string
   defaultTitle?: string
   defaultDescription?: string
   defaultValueInput?: boolean
   defaultFlowBlocks?: FlowBlock[]
+  returnPath?: string
+  expectedUpdatedAt?: string
 }
 
 const EMPTY_FLOW_BLOCKS: FlowBlock[] = []
 
 type TemplateFormStateOptions = Pick<
   TemplateTestCaseFormProps,
-  'defaultNodesOrder' | 'defaultFlowBlocks' | 'defaultTitle' | 'defaultDescription' | 'onSubmitAction' | 'id'
+  | 'defaultNodesOrder'
+  | 'defaultFlowBlocks'
+  | 'defaultTitle'
+  | 'defaultDescription'
+  | 'onSubmitAction'
+  | 'id'
+  | 'expectedUpdatedAt'
 > & {
   push: (path: string) => void
+  returnPath: string
 }
 
 function useTemplateTestCaseFormState({
@@ -69,6 +82,8 @@ function useTemplateTestCaseFormState({
   onSubmitAction,
   id,
   push,
+  returnPath,
+  expectedUpdatedAt,
 }: TemplateFormStateOptions) {
   const [nodesOrder, setNodesOrder] = useState<TemplateTestCaseNodeOrderMap>(defaultNodesOrder)
   const [flowBlocks, setFlowBlocks] = useState<FlowBlock[]>(defaultFlowBlocks)
@@ -80,7 +95,10 @@ function useTemplateTestCaseFormState({
     description?: string[]
     steps?: string[]
   }>({})
+  const pendingRef = useRef(false)
+  const [isSaving, setIsSaving] = useState(false)
   const handleSubmit = useCallback(async () => {
+    if (pendingRef.current) return
     const topologyError = validateScenarioTopology(nodesOrder, flowBlocks)
     if (topologyError) {
       setErrors({ steps: [topologyError] })
@@ -97,9 +115,32 @@ function useTemplateTestCaseFormState({
       return
     }
     setErrors({})
-    const response = await onSubmitAction(result.data, id)
-    handleTestCaseSaveResponse({ response, redirectPath: '/template-test-cases', push, toast })
-  }, [description, flowBlocks, id, nodesOrder, onSubmitAction, push, title])
+    pendingRef.current = true
+    setIsSaving(true)
+    try {
+      const response =
+        expectedUpdatedAt === undefined
+          ? await onSubmitAction(result.data, id)
+          : await onSubmitAction(result.data, id, expectedUpdatedAt)
+      if (response.status === 200 || response.status === 500)
+        handleTestCaseSaveResponse({ response, redirectPath: returnPath, push, toast })
+      else
+        toast({
+          title: 'Could not save case template',
+          description: response.error ?? response.message ?? 'Reload this editor and try again.',
+          variant: 'destructive',
+        })
+    } catch {
+      toast({
+        title: 'Could not save case template',
+        description: 'Your changes are still here; try again.',
+        variant: 'destructive',
+      })
+    } finally {
+      pendingRef.current = false
+      setIsSaving(false)
+    }
+  }, [description, expectedUpdatedAt, flowBlocks, id, nodesOrder, onSubmitAction, push, returnPath, title])
 
   return {
     nodesOrder,
@@ -114,6 +155,7 @@ function useTemplateTestCaseFormState({
     setDescription,
     errors,
     handleSubmit,
+    isSaving,
   }
 }
 
@@ -220,6 +262,8 @@ const TemplateTestCaseForm = ({
   defaultValueInput = false,
   defaultFlowBlocks = EMPTY_FLOW_BLOCKS,
   onSubmitAction,
+  returnPath = '/template-test-cases',
+  expectedUpdatedAt,
 }: TemplateTestCaseFormProps) => {
   const { push } = useRouter()
   const form = useTemplateTestCaseFormState({
@@ -230,6 +274,8 @@ const TemplateTestCaseForm = ({
     onSubmitAction,
     id,
     push,
+    returnPath,
+    expectedUpdatedAt,
   })
   const { nodesOrder, setNodesOrder } = form
   const flow = useMemo(() => flowFromNodeOrder(nodesOrder), [nodesOrder])
@@ -275,9 +321,9 @@ const TemplateTestCaseForm = ({
       </div>
       <TemplateTestCaseFormFieldError message={form.errors.steps} />
       <div className="mb-4 flex flex-col gap-2">
-        <Button onClick={form.handleSubmit} className="w-fit px-6">
+        <Button onClick={form.handleSubmit} disabled={form.isSaving} className="w-fit px-6">
           <Save className="size-4" aria-hidden />
-          <span className="font-bold">Save</span>
+          <span className="font-bold">{form.isSaving ? 'Saving…' : 'Save'}</span>
         </Button>
       </div>
     </div>

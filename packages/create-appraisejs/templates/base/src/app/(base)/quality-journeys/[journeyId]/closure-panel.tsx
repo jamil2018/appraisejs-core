@@ -39,7 +39,7 @@ export function ClosurePanel({ journeyId, stateHash, closure }: Props) {
   }
   if (!closure.reportRevisionId && !closure.receipt) return null
   return (
-    <Card aria-label="Terminal journey review">
+    <Card role="region" aria-label="Terminal journey review">
       <CardHeader>
         <CardTitle>{closure.receipt ? 'Journey closed' : 'Close journey'}</CardTitle>
         <CardDescription>

@@ -97,9 +97,13 @@ function postReturnFailure(value: unknown, expired: boolean) {
 }
 
 async function localOwner(scope: Scope, tx: Prisma.TransactionClient) {
-  if (process.env.APPRAISE_LOCAL_CODEX_ANALYSIS_ENABLED !== 'true')
-    deny('Local Analysis has not been enabled by the server owner.')
   const journey = await readScopedQualityJourney(scope, tx)
+  if (
+    journey.managedWorkerProvider === 'CLAUDE_CODE'
+      ? process.env.APPRAISE_LOCAL_CLAUDE_JOURNEY_ENABLED !== 'true'
+      : process.env.APPRAISE_LOCAL_CODEX_ANALYSIS_ENABLED !== 'true'
+  )
+    deny('Local Analysis has not been enabled by the server owner.')
   if (
     journey.hostingMode !== 'APP_SERVER_LOCAL_V1' ||
     journey.status !== 'ACTIVE' ||
